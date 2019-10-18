@@ -1,0 +1,16 @@
+[
+	{"description": "GDC UUID for file", "name": "id", "type": "string"},
+	{"description": "Name of file", "name": "file_name", "type": "string"},
+	{"description": "md5 checksum", "name": "md5", "type": "string"},
+	{"description": "File size", "name": "size", "type": "integer"},
+	{"description": "State (e.g. released)", "name": "state", "type": "string"},
+	{"description": "e.g. TCGA, CPTAC-3", "name": "project_id", "type": "string"},
+	{"description": "Base ID", "name": "baseid", "type": "string"},
+	{"description": "File version", "name": "version", "type": "string"},
+	{"description": "Version release", "name": "release", "type": "string"},
+	{"description": "open or controlled phs project ID list", "name": "acl", "type": "string"},
+	{"description": "active or legacy", "name": "type", "type": "string"},
+	{"description": "Reason for deletion", "name": "deletereason", "type": "string"},
+	{"description": "gs URL", "name": "gs_url", "type": "string"},
+	{"description": "List of URLs from IndexD)", "name": "indexd_url", "type": "string"}
+]
