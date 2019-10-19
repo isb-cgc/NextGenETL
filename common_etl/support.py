@@ -403,11 +403,11 @@ def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_b
         extract_job = client.get_job(extract_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(extract_job.job_id, extract_job.state))
         job_state = extract_job.state
-        time.sleep(5)
-    print('Job {} is done with status'.format(extract_job.job_id))
+        if job_state != 'DONE':
+            time.sleep(5)
+    print('Job {} is done'.format(extract_job.job_id))
 
     extract_job = client.get_job(extract_job.job_id, location=location)
-    print('Job {} is done'.format(extract_job.job_id))
     if extract_job.error_result is not None:
         print('Error result!! {}'.format(extract_job.error_result))
         return False
@@ -725,7 +725,6 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
     print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
-    print('Job {} is done'.format(query_job.job_id))
     if query_job.error_result is not None:
         print('Error result!! {}'.format(query_job.error_result))
         return False
@@ -760,7 +759,6 @@ def bq_harness_with_result(sql, do_batch):
     print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
-    print('Job {} is done'.format(query_job.job_id))
     if query_job.error_result is not None:
         print('Error result!! {}'.format(query_job.error_result))
         return None
@@ -814,11 +812,11 @@ def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
         load_job = client.get_job(load_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(load_job.job_id, load_job.state))
         job_state = load_job.state
-        time.sleep(5)
-    print('Job {} is done with status'.format(load_job.job_id))
+        if job_state != 'DONE':
+            time.sleep(5)
+    print('Job {} is done'.format(load_job.job_id))
 
     load_job = client.get_job(load_job.job_id, location=location)
-    print('Job {} is done'.format(load_job.job_id))
     if load_job.error_result is not None:
         print('Error result!! {}'.format(load_job.error_result))
         for err in load_job.errors:
