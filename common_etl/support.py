@@ -720,8 +720,9 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
         query_job = client.get_job(query_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
         job_state = query_job.state
-        time.sleep(5)
-    print('Job {} is done with status'.format(query_job.job_id))
+        if job_state != 'DONE':
+            time.sleep(5)
+    print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
     print('Job {} is done'.format(query_job.job_id))
@@ -754,9 +755,9 @@ def bq_harness_with_result(sql, do_batch):
         query_job = client.get_job(query_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
         job_state = query_job.state
-        print(query_job)
-        time.sleep(5)
-    print('Job {} is done with status'.format(query_job.job_id))
+        if job_state != 'DONE':
+            time.sleep(5)
+    print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
     print('Job {} is done'.format(query_job.job_id))
