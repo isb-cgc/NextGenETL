@@ -1,0 +1,11 @@
+[
+    {"name": "project_short_name", "description": "TCGA project abbreviation, eg TCGA-BRCA (ISB-CGC added column)"},
+    {"name": "case_barcode", "description": "TCGA case barcode, eg TCGA-AP-A1DV (ISB-CGC added column)"},
+    {"name": "sample_barcode", "description": "TCGA sample barcode, eg TCGA-AP-A1DV-01A (ISB-CGC added column)"},
+    {"name": "aliquot_barcode", "description": "TCGA aliquot barcode, eg TCGA-AP-A1DV-10A-01D-A135-09 (ISB-CGC added column)"},
+    {"name": "miRNA_ID", "description": "From the GDC file"},
+    {"name": "read_count", "description": "From the GDC file"},
+    {"name": "reads_per_million_miRNA_mapped", "description": "From the GDC file"},
+    {"name": "cross_mapped", "description": "From the GDC file"},
+    {"name": "fileUUID", "description": "GDC identifier for file with this data (ISB-CGC added column)"}
+]
