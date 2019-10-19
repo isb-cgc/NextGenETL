@@ -51,7 +51,8 @@ wget https://raw.githubusercontent.com/isb-cgc/examples-Python/master/python/cre
 
 rm -rf ~/NextGenETL
 git clone https://github.com/isb-cgc/NextGenETL.git
-
+cd NextGenETL/scripts
+chmod u+x *.sh
 
 
 

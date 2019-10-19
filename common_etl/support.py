@@ -731,6 +731,44 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
         return False
     return True
 
+'''
+----------------------------------------------------------------------------------------------
+Use to run queries where we want to get the result back to use (not write into a table)
+'''
+def bq_harness_with_result(sql, do_batch):
+    """
+    Handles all the boilerplate for running a BQ job
+    """
+
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig()
+    if do_batch:
+        job_config.priority = bigquery.QueryPriority.BATCH
+    location = 'US'
+
+    # API request - starts the query
+    query_job = client.query(sql, location=location, job_config=job_config)
+
+    # Query
+    job_state = 'NOT_STARTED'
+    while job_state != 'DONE':
+        query_job = client.get_job(query_job.job_id, location=location)
+        print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
+        job_state = query_job.state
+        print(query_job)
+        time.sleep(5)
+    print('Job {} is done with status'.format(query_job.job_id))
+
+    query_job = client.get_job(query_job.job_id, location=location)
+    print('Job {} is done'.format(query_job.job_id))
+    if query_job.error_result is not None:
+        print('Error result!! {}'.format(query_job.error_result))
+        return None
+
+    results = query_job.result()
+
+    return results
+
 
 def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
     """
