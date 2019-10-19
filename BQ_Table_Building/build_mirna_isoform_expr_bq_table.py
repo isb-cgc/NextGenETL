@@ -16,7 +16,6 @@ limitations under the License.
 
 """
 
-
 '''
 Make sure the Notebook VM has BigQuery and Storage Read/Write permissions!
 '''
@@ -26,6 +25,7 @@ import os
 import yaml
 import io
 from json import loads as json_loads
+from os.path import expanduser
 from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, build_pull_list_with_bq, update_schema, \
@@ -270,6 +270,19 @@ def main(args):
     AUGMENTED_SCHEMA_FILE = "SchemaFiles/isoform_augmented_schema_list.json"
 
     #
+    # BQ does not like to be given paths that have "~". So make all local paths absolute:
+    #
+
+    home = expanduser("~")
+    local_files_dir = "{}/{}".format(home, params('LOCAL_FILES_DIR'))
+    one_big_tsv = "{}/{}".format(home, params('ONE_BIG_TSV'))
+    manifest_file = "{}/{}".format(home, params('MANIFEST_FILE'))
+    local_pull_list = "{}/{}".format(home, params('LOCAL_PULL_LIST'))
+    file_traversal_list = "{}/{}".format(home, params('FILE_TRAVERSAL_LIST'))
+    hold_schema_dict = "{}/{}".format(home, params('HOLD_SCHEMA_DICT'))
+    hold_schema_list = "{}/{}".format(home, params('HOLD_SCHEMA_LIST'))
+
+    #
     # Use the filter set to get a manifest from GDC using their API. Note that is a pull list is
     # provided, these steps can be omitted:
     #
@@ -279,7 +292,7 @@ def main(args):
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                                params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
-                                               params['BUCKET_MANIFEST_TSV'], params['MANIFEST_FILE'],
+                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
                                                params['BQ_AS_BATCH'])
         if not manifest_success:
             print("Failure generating manifest")
@@ -290,7 +303,7 @@ def main(args):
     #
     
     if 'clear_target_directory' in steps:
-        create_clean_target(params['LOCAL_FILES_DIR'])
+        create_clean_target(local_files_dir)
 
     #
     # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
@@ -309,26 +322,26 @@ def main(args):
                                 params['BQ_PULL_LIST_TABLE'],
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
-                                params['LOCAL_PULL_LIST'], params['BQ_AS_BATCH'])
+                                local_pull_list, params['BQ_AS_BATCH'])
  
     #
     # Now hitting GDC cloud buckets. Get the files in the pull list:
     #
 
     if 'download_from_gdc' in steps:       
-        with open(params['LOCAL_PULL_LIST'], mode='r') as pull_list_file:
+        with open(local_pull_list, mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         print("Preparing to download %s files from buckets\n" % len(pull_list))
         bp = BucketPuller(10)
-        bp.pull_from_buckets(pull_list, params['LOCAL_FILES_DIR'])
+        bp.pull_from_buckets(pull_list, local_files_dir)
 
     #
     # Traverse the tree of downloaded files and create a flat list of all files:
     #
     
     if 'build_traversal_list' in steps:
-        all_files = build_file_list(params['LOCAL_FILES_DIR'])
-        with open(params['FILE_TRAVERSAL_LIST'], mode='w') as traversal_list:
+        all_files = build_file_list(local_files_dir)
+        with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line)) 
    
@@ -337,9 +350,9 @@ def main(args):
     #
     
     if 'concat_all_files' in steps:       
-        with open(params['FILE_TRAVERSAL_LIST'], mode='r') as traversal_list_file:
+        with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()  
-        concat_all_files(all_files, params['ONE_BIG_TSV'], 
+        concat_all_files(all_files, one_big_tsv,
                          params['PROGRAM_PREFIX'], extra_cols, file_info, split_col_func)
             
     #
@@ -348,16 +361,16 @@ def main(args):
     #
     
     if 'build_the_schema' in steps:
-        typing_tups = build_schema(params['ONE_BIG_TSV'], params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
-                              typing_tups, params['HOLD_SCHEMA_LIST'], params['HOLD_SCHEMA_DICT'])
+                              typing_tups, hold_schema_list, hold_schema_dict)
          
     #
     # Upload the giant TSV into a cloud bucket:
     #
     
     if 'upload_to_bucket' in steps:
-        upload_to_bucket(params['WORKING_BUCKET'], params['BUCKET_SKEL_TSV'], params['ONE_BIG_TSV'])
+        upload_to_bucket(params['WORKING_BUCKET'], params['BUCKET_SKEL_TSV'], one_big_tsv)
 
     #
     # Create the BQ table from the TSV:
@@ -365,7 +378,7 @@ def main(args):
         
     if 'create_bq_from_tsv' in steps:
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], params['BUCKET_SKEL_TSV'])
-        with open(params['HOLD_SCHEMA_LIST'], mode='r') as schema_hold_dict:
+        with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['SKELETON_TABLE'], params['BQ_AS_BATCH'])
 
@@ -416,7 +429,7 @@ def main(args):
     #
     
     if 'update_final_schema' in steps:    
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['HOLD_SCHEMA_DICT']) 
+        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], hold_schema_dict)
         if not success:
             print("Schema update failed")
             return       

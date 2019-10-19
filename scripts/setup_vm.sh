@@ -36,6 +36,8 @@ python3 -m pip install google-api-python-client
 python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
 python3 -m pip install PyYaml
+# used by build_schema:
+python3 -m pip install python-dateutil
 deactivate
 
 # Install Libraries From GitHub
