@@ -41,7 +41,8 @@ deactivate
 # Install Libraries From GitHub
 # We need the ISB-CGC schema builder
 
-cd ~
+mkdir -p ~/extlib
+cd ~/extlib
 rm -f createSchemaP3.py
 wget https://raw.githubusercontent.com/isb-cgc/examples-Python/master/python/createSchemaP3.py
 
@@ -49,6 +50,7 @@ wget https://raw.githubusercontent.com/isb-cgc/examples-Python/master/python/cre
 # Off to github to get the code!
 #
 
+cd ~
 rm -rf ~/NextGenETL
 git clone https://github.com/isb-cgc/NextGenETL.git
 cd NextGenETL/scripts

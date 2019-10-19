@@ -3,7 +3,7 @@
 source ~/setEnvVars.sh
 
 export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib
+export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
