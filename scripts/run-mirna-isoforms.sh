@@ -14,5 +14,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_test_archival_metadata_bq_table.py ~/config/MirnaIsoformExprBQBuild.yaml
+python3 ./BQ_Table_Building/build_mirna_isoform_expr_bq_table.py ~/config/MirnaIsoformExprBQBuild.yaml
 deactivate
