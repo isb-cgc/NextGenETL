@@ -183,7 +183,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, extra_cols = load_config(yaml_file.read())
+        params, bq_filters, steps, extra_cols = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -207,6 +207,14 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     #
+    # Best practice is to clear out the directory where the files are going. Don't want anything left over.
+    # Also creates the destination directory
+    #
+
+    if 'clear_target_directory' in steps:
+        create_clean_target(local_files_dir)
+
+    #
     # Use the filter set to get a manifest. Note that is a pull list is
     # provided, these steps can be omitted:
     #
@@ -221,13 +229,6 @@ def main(args):
         if not manifest_success:
             print("Failure generating manifest")
             return
-
-    #
-    # Best practice is to clear out the directory where the files are going. Don't want anything left over:
-    #
-    
-    if 'clear_target_directory' in steps:
-        create_clean_target(local_files_dir)
 
     #
     # If you have already created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step.
