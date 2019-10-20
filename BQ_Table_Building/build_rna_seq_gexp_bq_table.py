@@ -501,8 +501,8 @@ def main(args):
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
             upload_to_bucket(params['WORKING_BUCKET'], 
-                             bucket_target_blob_sets[count_name], 
-                             params['ONE_BIG_TSV'].format(count_name))
+                             bucket_target_blob_sets[count_name],
+                             one_big_tsv.format(count_name))
             
     if 'delete_all_bq' in steps:
         table_cleaner(params, file_sets, True)
