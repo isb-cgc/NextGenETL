@@ -624,6 +624,7 @@ class BucketPuller(object):
         for i in range(0, self._thread_count):
             if i > len(chunks):
                 break
+            print(" Going to  chunks " % i)
             th = threading.Thread(target=self._pull_func, args=(chunks[i], local_files_dir))
             self._threads.append(th)
 
