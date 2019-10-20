@@ -339,6 +339,9 @@ def get_the_bq_manifest(file_table, filter_dict, max_files, project, tmp_dataset
     """
 
     sql = manifest_builder_sql(file_table, filter_dict, max_files)
+    print(sql)
+    if sql is not None:
+        return False
     success = generic_bq_harness(sql, tmp_dataset, tmp_bq, do_batch, True)
     if not success:
         return False
@@ -698,7 +701,6 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
     """
     Handles all the boilerplate for running a BQ job
     """
-
     client = bigquery.Client()
     job_config = bigquery.QueryJobConfig()
     if do_batch:
@@ -781,6 +783,11 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
 
 
 def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
+    return csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table,
+                                do_batch, bigquery.WriteDisposition.WRITE_TRUNCATE)
+
+
+def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
     client = bigquery.Client()
 
     dataset_ref = client.dataset(dataset_id)
@@ -796,7 +803,8 @@ def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
     job_config.schema = schema_list
     job_config.skip_leading_rows = 1
     job_config.source_format = bigquery.SourceFormat.CSV
-    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+    if write_depo is not None:
+        job_config.write_disposition = write_depo
     # Can make the "CSV" file a TSV file using this:
     job_config.field_delimiter = '\t'
 
