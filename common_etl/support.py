@@ -365,7 +365,7 @@ def manifest_builder_sql(file_table, filter_dict_list, max_files):
         for key, val in filter.items():
             if isinstance(val, list):
                 or_list = []
-                for aval in list:
+                for aval in val:
                     or_list.append(a_clause.format(key, aval))
                 all_ors = ' OR '.join(or_list)
                 full_clause = "({})".format(all_ors)
