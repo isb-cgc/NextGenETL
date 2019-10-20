@@ -430,9 +430,9 @@ def main(args):
                                                    table_for_count, params['WORKING_BUCKET'],
                                                    tsv_for_count, mani_for_count,
                                                    params['BQ_AS_BATCH'])
-        if not manifest_success:
-            print("Failure generating manifest")
-            return
+            if not manifest_success:
+                print("Failure generating manifest")
+                return
 
     #if 'manifest_from_gdc' in steps:
     #    for file_set in file_sets:

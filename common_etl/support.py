@@ -339,9 +339,6 @@ def get_the_bq_manifest(file_table, filter_dict, max_files, project, tmp_dataset
     """
 
     sql = manifest_builder_sql(file_table, filter_dict, max_files)
-    print(tmp_bq)
-    if sql is not None:
-        return False
     success = generic_bq_harness(sql, tmp_dataset, tmp_bq, do_batch, True)
     if not success:
         return False
