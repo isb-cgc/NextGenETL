@@ -621,13 +621,15 @@ class BucketPuller(object):
         size = size if self._total_files % self._thread_count == 0 else size + 1
         chunks = [pull_list[pos:pos + size] for pos in range(0, self._total_files, size)]
         for i in range(0, self._thread_count):
+            if i > len(chunks):
+                break
             th = threading.Thread(target=self._pull_func, args=(chunks[i], local_files_dir))
             self._threads.append(th)
 
-        for i in range(0, self._thread_count):
+        for i in range(0, len(self._threads)):
             self._threads[i].start()
 
-        for i in range(0, self._thread_count):
+        for i in range(0, len(self._threads)):
             self._threads[i].join()
 
         print_progress_bar(self._read_files, self._total_files)
