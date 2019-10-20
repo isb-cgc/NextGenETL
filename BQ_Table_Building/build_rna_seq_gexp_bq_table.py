@@ -623,7 +623,7 @@ def main(args):
 
         success = all_counts_to_one_table(params['TARGET_DATASET'], 
                                           params['THREE_COUNTS_TABLE'],
-                                          'WRITE_EMPTY', sql_dict)
+                                          True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
             print("merge_counts_and_metadata failed")
@@ -652,7 +652,7 @@ def main(args):
         success = glue_in_gene_names(three_counts_table, params['GENE_NAMES_TABLE'], 
                                      params['TARGET_DATASET'], 
                                      params['FINAL_FINAL_TABLE'],
-                                     'WRITE_EMPTY', sql_dict)
+                                     True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
             print("glue_gene_names failed")
