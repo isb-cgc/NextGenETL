@@ -595,9 +595,9 @@ def main(args):
                                              params['TARGET_TABLE'].format(count_name))  
             
             success = merge_counts_and_metadata(step3_table, counts_table, 
-                                                             params['TARGET_DATASET'], 
-                                                             params['COUNTS_WITH_METADATA_TABLE'].format(count_name),
-                                                             'WRITE_EMPTY', sql_dict)
+                                                params['TARGET_DATASET'],
+                                                params['COUNTS_WITH_METADATA_TABLE'].format(count_name),
+                                                True, sql_dict, params['BQ_AS_BATCH'])
 
             if not success:
                 print("merge_counts_and_metadata failed")
