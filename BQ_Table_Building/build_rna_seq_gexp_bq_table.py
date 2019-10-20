@@ -514,7 +514,7 @@ def main(args):
             bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob_sets[count_name])
             csv_to_bq_write_depo(schema_sets[count_name], bucket_src_url,
                                  params['TARGET_DATASET'],
-                                 params['TARGET_TABLE'].format(count_name), None)
+                                 params['TARGET_TABLE'].format(count_name), params['BQ_AS_BATCH'], None)
 
     if 'attach_ids_to_files' in steps:
         count = 0
