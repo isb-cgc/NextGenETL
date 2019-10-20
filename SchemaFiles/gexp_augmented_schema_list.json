@@ -1,0 +1,6 @@
+[
+    {"name": "Ensembl_gene_id_v", "description": "Ensembl gene ID"},
+    {"name": "HTSeq__FPKM_UQ", "description": "count"},
+    {"name": "source_file_name", "description": "Source file name"},
+    {"name": "source_file_id", "description": "Source file ID"}
+]

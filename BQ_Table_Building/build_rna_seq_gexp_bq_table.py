@@ -28,11 +28,12 @@ import io
 import zipfile
 import gzip
 from os.path import expanduser
+from json import loads as json_loads
 from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
-                               build_combined_schema
+                               typing_tups_to_schema_list
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -500,8 +501,10 @@ def main(args):
             for tup in typing_tups:
                 print(tup)
             hold_schema_list_for_count = hold_schema_list.format(count_name)
-            hold_schema_dict_for_count = hold_schema_dict.format(count_name)
-            # build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
+            typing_tups_to_schema_list(typing_tups, hold_schema_list_for_count)
+            #hold_schema_list_for_count = hold_schema_list.format(count_name)
+            #hold_schema_dict_for_count = hold_schema_dict.format(count_name)
+            ## build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
             #                       typing_tups, hold_schema_list_for_count, hold_schema_dict_for_count)
 
     bucket_target_blob_sets = {}
@@ -524,7 +527,10 @@ def main(args):
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
             bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob_sets[count_name])
-            csv_to_bq_write_depo(schema_sets[count_name], bucket_src_url,
+            hold_schema_list_for_count = hold_schema_list.format(count_name)
+            with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq_write_depo(typed_schema, bucket_src_url,
                                  params['TARGET_DATASET'],
                                  params['TARGET_TABLE'].format(count_name), params['BQ_AS_BATCH'], None)
 
