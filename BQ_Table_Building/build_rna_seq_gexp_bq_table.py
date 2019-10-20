@@ -125,12 +125,13 @@ Delete All Intermediate Tables and (Optionally) the Final Result:
 '''
 def table_cleaner(params, file_sets, delete_result):
     dump_table_tags = ['STEP_2_TABLE', 'STEP_2A_TABLE', 'STEP_3_TABLE',
-                       'THREE_COUNTS_TABLE', 'BQ_PULL_LIST_TABLE']
+                       'THREE_COUNTS_TABLE']
     dump_tables = [params[x] for x in dump_table_tags]
     for file_set in file_sets:
         count_name, _ = next(iter(file_set.items()))
         dump_tables.append(params['TARGET_TABLE'].format(count_name))
         dump_tables.append(params['COUNTS_WITH_METADATA_TABLE'].format(count_name))
+        dump_tables.append(params['BQ_PULL_LIST_TABLE'].format(count_name))
     if delete_result:
         delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_FINAL_TABLE'])
 
