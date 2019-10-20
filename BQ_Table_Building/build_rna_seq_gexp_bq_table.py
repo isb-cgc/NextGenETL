@@ -31,7 +31,8 @@ from os.path import expanduser
 from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
-                               build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq
+                               build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
+                               build_combined_schema
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -473,24 +474,35 @@ def main(args):
             local_files_dir_for_count = local_files_dir.format(count_name)
             bp.pull_from_buckets(pull_list, local_files_dir_for_count)
 
-    all_files_sets = {}
     if 'build_file_list' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
             local_files_dir_for_count = local_files_dir.format(count_name)
-            all_files_sets[count_name] = build_file_list(local_files_dir_for_count)
+            all_files = build_file_list(local_files_dir_for_count)
+            file_traversal_list_for_count = file_traversal_list.format(count_name)
+            with open(file_traversal_list_for_count, mode='w') as traversal_list:
+                for line in all_files:
+                    traversal_list.write("{}\n".format(line))
 
     if 'concat_all_files' in steps:
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             header = count_dict['header'] if 'header' in count_dict else None
-            concat_all_files(all_files_sets[count_name], one_big_tsv.format(count_name), header)
+            file_traversal_list_for_count = file_traversal_list.format(count_name)
+            with open(file_traversal_list_for_count, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+                concat_all_files(all_files, one_big_tsv.format(count_name), header)
 
-    schema_sets = {}
     if 'build_the_schema' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
-            schema_sets[count_name] = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
+            typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
+            for tup in typing_tups:
+                print(tup)
+            hold_schema_list_for_count = hold_schema_list.format(count_name)
+            hold_schema_dict_for_count = hold_schema_dict.format(count_name)
+            # build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
+            #                       typing_tups, hold_schema_list_for_count, hold_schema_dict_for_count)
 
     bucket_target_blob_sets = {}
     for file_set in file_sets:
