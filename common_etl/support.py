@@ -339,7 +339,7 @@ def get_the_bq_manifest(file_table, filter_dict, max_files, project, tmp_dataset
     """
 
     sql = manifest_builder_sql(file_table, filter_dict, max_files)
-    print(sql)
+    print(tmp_bq)
     if sql is not None:
         return False
     success = generic_bq_harness(sql, tmp_dataset, tmp_bq, do_batch, True)
@@ -357,8 +357,6 @@ def manifest_builder_sql(file_table, filter_dict_list, max_files):
     Generates SQL for above function
     """
     filter_list = []
-    #where_clause = "WHERE {} = '{}'"
-    #and_clause = "AND {} = '{}'"
     a_clause = "{} = '{}'"
 
     for filter in filter_dict_list:
