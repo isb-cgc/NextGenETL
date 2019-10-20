@@ -483,13 +483,13 @@ def main(args):
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             header = count_dict['header'] if 'header' in count_dict else None
-            concat_all_files(all_files_sets[count_name], params['ONE_BIG_TSV'].format(count_name), header)
+            concat_all_files(all_files_sets[count_name], one_big_tsv.format(count_name), header)
 
     schema_sets = {}
     if 'build_the_schema' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
-            schema_sets[count_name] = build_schema(params['ONE_BIG_TSV'].format(count_name), 10000)
+            schema_sets[count_name] = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
 
     bucket_target_blob_sets = {}
     for file_set in file_sets:
