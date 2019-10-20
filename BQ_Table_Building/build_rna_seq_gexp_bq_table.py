@@ -415,8 +415,7 @@ def main(args):
     if 'clear_target_directory' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
-            print(local_files_dir.format(count_name))
-            #create_clean_target(params, local_files_dir.format(count_name))
+            create_clean_target(params, local_files_dir.format(count_name))
 
     if 'build_manifest_from_filters' in steps:
         for file_set in file_sets:
