@@ -801,9 +801,10 @@ def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, writ
         job_config.priority = bigquery.QueryPriority.BATCH
 
     schema_list = []
-    for dict in schema:
-        schema_list.append(bigquery.SchemaField(dict['name'], dict['type'].upper(),
-                                                mode='NULLABLE', description=dict['description']))
+    for mydict in schema:
+        print(mydict)
+        schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
+                                                mode='NULLABLE', description=mydict['description']))
 
     job_config.schema = schema_list
     job_config.skip_leading_rows = 1
