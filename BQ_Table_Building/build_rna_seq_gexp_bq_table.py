@@ -433,15 +433,6 @@ def main(args):
                 print("Failure generating manifest")
                 return
 
-    #if 'manifest_from_gdc' in steps:
-    #    for file_set in file_sets:
-    #        count_name, count_dict = next(iter(file_set.items()))
-    #        manifest_filter = build_manifest_filter(count_dict['filters'])
-    #        max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-    #        manifest_success = get_the_manifest(manifest_filter, params, count_name, max_files)
-    #        if not manifest_success:
-    #            return
-
     #
     # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
     # created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step. If creating a pull
@@ -450,17 +441,22 @@ def main(args):
     #
 
     if 'build_pull_list' in steps:
-        full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                          params['TARGET_DATASET'],
-                                          params['BQ_MANIFEST_TABLE'])
-
-        build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
-                                params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                params['BQ_PULL_LIST_TABLE'],
-                                params['WORKING_BUCKET'],
-                                params['BUCKET_PULL_LIST'],
-                                local_pull_list, params['BQ_AS_BATCH'])
-
+        for file_set in file_sets:
+            count_name, count_dict = next(iter(file_set.items()))
+            mani_for_count = manifest_file.format(count_name)
+            table_for_count = params['BQ_MANIFEST_TABLE'].format(count_name)
+            local_pull_for_count = local_pull_list.format(count_name)
+            pull_table_for_count = params['BQ_PULL_LIST_TABLE'].format(count_name)
+            bucket_pull_list_for_count = params['BUCKET_PULL_LIST'].format(count_name)
+            full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                              params['TARGET_DATASET'],
+                                              table_for_count)
+            build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+                                    params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                    pull_table_for_count,
+                                    params['WORKING_BUCKET'],
+                                    bucket_pull_list_for_count,
+                                    local_pull_for_count, params['BQ_AS_BATCH'])
     #
     # Now hitting GDC cloud buckets. Get the files in the pull list:
     #
