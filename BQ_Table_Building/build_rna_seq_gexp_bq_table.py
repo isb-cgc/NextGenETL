@@ -33,7 +33,7 @@ from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
-                               typing_tups_to_schema_list
+                               typing_tups_to_schema_list, generic_bq_harness_write_depo
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -145,10 +145,10 @@ def table_cleaner(params, file_sets, delete_result):
 Associate Aliquot And Case IDs to File IDs
 BQ ETL step 2: find the case and aliquot gdc_ids that go with each gexp file
 '''
-def build_aliquot_and_case(gexp_table, file_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
+def build_aliquot_and_case(gexp_table, file_table, target_dataset, output_table, write_depo, sql_dict, do_batch):
 
     sql = attach_aliquot_and_case_ids_sql(gexp_table, file_table, sql_dict)
-    return generic_bq_harness(sql, target_dataset, output_table, do_batch, do_replace)
+    return generic_bq_harness_write_depo(sql, target_dataset, output_table, do_batch, write_depo)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -538,13 +538,13 @@ def main(args):
         count = 0
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
-            do_replace = (count == 0)
+            write_depo = "WRITE_TRUNCATE" if (count == 0) else "WRITE_APPEND"
             gexp_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                            params['TARGET_DATASET'], 
                                            params['TARGET_TABLE'].format(count_name))                 
             success = build_aliquot_and_case(gexp_table, params['FILEDATA_TABLE'], 
                                              params['TARGET_DATASET'], 
-                                             params['STEP_2_TABLE'], do_replace, {}, params['BQ_AS_BATCH'])
+                                             params['STEP_2_TABLE'], write_depo, {}, params['BQ_AS_BATCH'])
             count += 1
 
         if not success:

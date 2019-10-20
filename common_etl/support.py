@@ -710,8 +710,20 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
     job_config = bigquery.QueryJobConfig()
     if do_batch:
         job_config.priority = bigquery.QueryPriority.BATCH
-    if do_replace:
-        job_config.write_disposition = "WRITE_TRUNCATE"
+    write_depo = "WRITE_TRUNCATE" if do_replace else None
+    return generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo)
+
+
+def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo):
+    """
+    Handles all the boilerplate for running a BQ job
+    """
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig()
+    if do_batch:
+        job_config.priority = bigquery.QueryPriority.BATCH
+    if write_depo is not None:
+        job_config.write_disposition = write_depo
 
     target_ref = client.dataset(target_dataset).table(dest_table)
     job_config.destination = target_ref
