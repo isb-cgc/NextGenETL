@@ -469,15 +469,15 @@ def main(args):
                 pull_list = pull_list_file.read().splitlines()
             print("Preparing to download %s files from buckets\n" % len(pull_list))
             bp = BucketPuller(10)
-            bp.pull_from_buckets(pull_list, local_files_dir)
-
+            local_files_dir_for_count = local_files_dir.format(count_name)
+            bp.pull_from_buckets(pull_list, local_files_dir_for_count)
 
     all_files_sets = {}
     if 'build_file_list' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
-            local_files_dir = params['LOCAL_FILES_DIR'].format(count_name)
-            all_files_sets[count_name] = build_file_list(local_files_dir)
+            local_files_dir_for_count = local_files_dir.format(count_name)
+            all_files_sets[count_name] = build_file_list(local_files_dir_for_count)
 
     if 'concat_all_files' in steps:
         for file_set in file_sets:
