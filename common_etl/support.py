@@ -357,16 +357,24 @@ def manifest_builder_sql(file_table, filter_dict_list, max_files):
     Generates SQL for above function
     """
     filter_list = []
-    where_clause = "WHERE {} = '{}'"
-    and_clause = "AND {} = '{}'"
+    #where_clause = "WHERE {} = '{}'"
+    #and_clause = "AND {} = '{}'"
+    a_clause = "{} = '{}'"
 
     for filter in filter_dict_list:
         for key, val in filter.items():
-            if len(filter_list) == 0:
-                filter_list.append(where_clause.format(key, val))
+            if isinstance(val, list):
+                or_list = []
+                for aval in list:
+                    or_list.append(a_clause.format(key, aval))
+                all_ors = ' OR '.join(or_list)
+                full_clause = "({})".format(all_ors)
+                filter_list.append(full_clause)
             else:
-                filter_list.append(and_clause.format(key, val))
-    all_filters = ' '.join(filter_list)
+                filter_list.append(a_clause.format(key, val))
+
+    all_filters = ' AND '.join(filter_list)
+    all_filters = "WHERE {}".format(all_filters)
 
     limit_clause = "" if max_files is None else "LIMIT {}".format(max_files)
 
