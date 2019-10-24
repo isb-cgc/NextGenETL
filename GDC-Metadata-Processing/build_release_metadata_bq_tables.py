@@ -62,7 +62,7 @@ def extract_program_names(release_table, do_batch):
     for row in results:
         pn = row.program_name
         if pn is not None and pn != "None":
-            retval.append(pn)
+            retval.append(pn.replace(".", "_")) # handles BEATAML1.0 FIXME! Make it general
     return retval
 
 '''
