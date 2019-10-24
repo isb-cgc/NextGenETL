@@ -99,8 +99,8 @@ def extract_file_data_sql(release_table, program_name):
                                      r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$") 
               ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id,
-            a.cases__project__project_id as project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            a.project_short_name, # TCGA-OV
+            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
             a.program_name, # TCGA
             #CASE WHEN (a.data_type = "Annotated Somatic Mutation") OR (a.data_type = "Raw Simple Somatic Mutation")
             #     THEN "WXS" 
@@ -146,8 +146,8 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             a.file_id as file_gdc_id,
             a.case_gdc_id,
             a.associated_entities__entity_gdc_id as slide_id,
-            a.cases__project__project_id as project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            a.project_short_name, # TCGA-OV
+            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
             a.program_name, # TCGA
             CASE WHEN (a.experimental_strategy = "Diagnostic Slide") 
                  THEN "Diagnostic image" 
@@ -190,8 +190,8 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.file_id as file_gdc_id,
             a.case_gdc_id,
             a.associated_entities__entity_gdc_id as case_id,
-            a.cases__project__project_id as project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            a.project_short_name, # TCGA-OV
+            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
             a.program_name, # TCGA
             a.data_type,    
             a.data_category,
