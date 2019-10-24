@@ -60,7 +60,7 @@ def extract_program_names(release_table, do_batch):
     results = bq_harness_with_result(sql, do_batch)
     retval = []
     for row in results:
-        pn = row.cases__project__program__name
+        pn = row.program_name
         if pn is not None and pn != "None":
             retval.append(pn)
     return retval
@@ -71,7 +71,7 @@ SQL for above:
 '''
 def extract_program_names_sql(release_table):
     return '''
-        SELECT DISTINCT cases__project__program__name FROM `{0}` # program_name
+        SELECT DISTINCT program_name FROM `{0}` # program_name
         '''.format(release_table)
 
 '''
