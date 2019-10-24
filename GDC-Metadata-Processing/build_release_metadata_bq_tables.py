@@ -113,7 +113,7 @@ def extract_file_data_sql(release_table, program_name):
             a.data_format,
             a.platform,
             CAST(null AS STRING) as file_name_key,
-            a.index_files__file_id as index_file_id,
+            a.index_file_id,
             CAST(null AS STRING) as index_file_name_key,
             a.index_files__file_size as index_file_size,
             a.access,
