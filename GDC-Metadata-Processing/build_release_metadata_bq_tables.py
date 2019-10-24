@@ -115,7 +115,7 @@ def extract_file_data_sql(release_table, program_name):
             CAST(null AS STRING) as file_name_key,
             a.index_file_gdc_id as index_file_id,
             CAST(null AS STRING) as index_file_name_key,
-            a.index_files__file_size as index_file_size,
+            a.index_file_size,
             a.access,
             a.acl
         FROM `{0}` AS a
