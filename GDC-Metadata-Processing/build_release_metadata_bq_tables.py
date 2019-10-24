@@ -91,7 +91,7 @@ def extract_file_data_sql(release_table, program_name):
     return '''
         SELECT 
             a.file_id as file_gdc_id,
-            a.cases__case_id as case_gdc_id,
+            a.case_gdc_id,
             # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
             # no matter what is is...
             CASE WHEN (STRPOS(a.associated_entities__entity_id, ";") != 0) 
@@ -144,7 +144,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
     return '''
         SELECT 
             a.file_id as file_gdc_id,
-            a.cases__case_id as case_gdc_id,
+            a.case_gdc_id,
             a.associated_entities__entity_id as slide_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
@@ -188,7 +188,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
     return '''
         SELECT 
             a.file_id as file_gdc_id,
-            a.cases__case_id as case_gdc_id,
+            a.case_gdc_id,
             a.associated_entities__entity_id as case_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
@@ -212,9 +212,9 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
                 ( a.file_type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # Armor against multiple case entries:
-              ( a.cases__case_id NOT LIKE "%;%" )  AND
+              ( a.case_gdc_id NOT LIKE "%;%" )  AND
               # Armor against multiple case entries:
-              ( a.cases__case_id != "multi" )
+              ( a.case_gdc_id != "multi" )
         '''.format(release_table, program_name)
 
 
