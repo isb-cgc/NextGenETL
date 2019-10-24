@@ -101,7 +101,7 @@ def extract_file_data_sql(release_table, program_name):
             END as aliquot_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
-            a.cases__project__program__name as program_name, # TCGA
+            a.program_name, # TCGA
             #CASE WHEN (a.data_type = "Annotated Somatic Mutation") OR (a.data_type = "Raw Simple Somatic Mutation")
             #     THEN "WXS" 
             #  ELSE a.data_type
@@ -119,7 +119,7 @@ def extract_file_data_sql(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.cases__project__program__name = '{1}' ) AND         
+        WHERE ( a.program__name = '{1}' ) AND
               ( ( a.type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
                 ( a.type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR 
                 ( a.type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
@@ -148,7 +148,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             a.associated_entities__entity_id as slide_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
-            a.cases__project__program__name as program_name, # TCGA
+            a.program_name, # TCGA
             CASE WHEN (a.experimental_strategy = "Diagnostic Slide") 
                  THEN "Diagnostic image" 
                  WHEN (a.experimental_strategy = "Tissue Slide") 
@@ -167,7 +167,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE a.cases__project__program__name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
+        WHERE a.program__name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
         '''.format(release_table, program_name)
 
 
@@ -192,7 +192,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.associated_entities__entity_id as case_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
-            a.cases__project__program__name as program_name, # TCGA 
+            a.program_name, # TCGA
             a.data_type,    
             a.data_category,
             a.experimental_strategy,
@@ -207,7 +207,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.cases__project__program__name = '{1}' ) AND         
+        WHERE ( a.program__name = '{1}' ) AND
               ( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
                 ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
               ( a.associated_entities__entity_type = "case" ) AND
