@@ -119,7 +119,7 @@ def extract_file_data_sql(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.program__name = '{1}' ) AND
+        WHERE ( a.program_name = '{1}' ) AND
               ( ( a.type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
                 ( a.type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR 
                 ( a.type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
@@ -167,7 +167,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE a.program__name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
+        WHERE a.program_name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
         '''.format(release_table, program_name)
 
 
@@ -207,7 +207,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.program__name = '{1}' ) AND
+        WHERE ( a.program_name = '{1}' ) AND
               ( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
                 ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
               ( a.associated_entities__entity_type = "case" ) AND
