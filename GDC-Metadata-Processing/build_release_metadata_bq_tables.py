@@ -108,7 +108,7 @@ def extract_file_data_sql(release_table, program_name):
             a.experimental_strategy as data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -120,9 +120,9 @@ def extract_file_data_sql(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         WHERE ( a.program_name = '{1}' ) AND
-              ( ( a.type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
-                ( a.type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR 
-                ( a.type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
+              ( ( a.file_type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
+                ( a.file_type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR
+                ( a.file_type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
               ( a.associated_entities__entity_type ="aliquot" )
         '''.format(release_table, program_name)
 
@@ -156,7 +156,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             END as data_type,
             a.data_category,
             CAST(null AS STRING) as experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -167,7 +167,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE a.program_name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
+        WHERE a.program_name = '{1}' AND ( a.file_type = "slide_image" AND a.data_format = "SVS" )
         '''.format(release_table, program_name)
 
 
@@ -196,7 +196,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.data_type,    
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -208,8 +208,8 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         WHERE ( a.program_name = '{1}' ) AND
-              ( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
-                ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
+              ( ( a.file_type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
+                ( a.file_type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # Armor against multiple case entries:
               ( a.cases__case_id NOT LIKE "%;%" )  AND
@@ -248,7 +248,7 @@ def case_barcodes_sql_archive(release_table, aliquot_2_case_table, program_name)
             CAST(null AS STRING) as data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -290,7 +290,7 @@ def aliquot_barcodes_sql_archive(release_table, aliquot_2_case_table, program_na
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -340,7 +340,7 @@ def slide_barcodes_sql_archive(release_table, slide_2_case_table, program_name):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -406,7 +406,7 @@ def install_uris_sql(union_table, mapping_table):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -430,7 +430,7 @@ def install_uris_sql(union_table, mapping_table):
             a1.data_type,
             a1.data_category,
             a1.experimental_strategy,
-            a1.type,
+            a1.file_type,
             a1.file_size,
             a1.data_format,
             a1.platform,
