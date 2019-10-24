@@ -94,10 +94,10 @@ def extract_file_data_sql(release_table, program_name):
             a.case_gdc_id,
             # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
             # no matter what is is...
-            CASE WHEN (STRPOS(a.associated_entities__entity_id, ";") != 0) 
-                 THEN REGEXP_EXTRACT(a.associated_entities__entity_id, 
+            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
                                      r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$") 
-              ELSE a.associated_entities__entity_id 
+              ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
@@ -145,7 +145,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
         SELECT 
             a.file_id as file_gdc_id,
             a.case_gdc_id,
-            a.associated_entities__entity_id as slide_id,
+            a.associated_entities__entity_gdc_id as slide_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
             a.program_name, # TCGA
@@ -189,7 +189,7 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
         SELECT 
             a.file_id as file_gdc_id,
             a.case_gdc_id,
-            a.associated_entities__entity_id as case_id,
+            a.associated_entities__entity_gdc_id as case_id,
             a.cases__project__project_id as project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.cases__project__project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
             a.program_name, # TCGA
