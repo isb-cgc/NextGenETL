@@ -599,7 +599,6 @@ def main(args):
         return
 
     count = 0
-    builds = []
     for build in builds:
         build_tag = build_tags[count]
         count += 1
