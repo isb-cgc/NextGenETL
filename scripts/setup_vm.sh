@@ -58,6 +58,9 @@ git clone https://github.com/isb-cgc/NextGenETL.git
 cd NextGenETL/scripts
 chmod u+x *.sh
 
+mv setEnvVars.sh ~
+echo "Be sure to now customize the ~/setEnvVars.sh file to your system!"
+
 
 
 

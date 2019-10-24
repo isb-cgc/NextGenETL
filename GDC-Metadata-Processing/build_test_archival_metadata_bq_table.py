@@ -42,7 +42,7 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'],
             yaml_dict['builds'], yaml_dict['build_tags'])

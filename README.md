@@ -38,13 +38,13 @@ For each GDC release, the DCF issues manifests (active, legacy) of all the files
 TSV files, including the mapping of each file UUID to a GCS `gs://` bucket path. We import these
 file into BQ, and then create simple file mapping tables (e.g. * = 16):
 
-- `DCF_DR17_active_manifest`
+- `DCF_DR*_active_manifest`
 
-- `DCF_DR17_legacy_manifest`
+- `DCF_DR*_legacy_manifest`
 
-- `dr17_active_file_map`
+- `dr*_active_file_map`
 
-- `dr17_legacy_file_map`
+- `dr*_legacy_file_map`
 
 This script, that does this operation, is configured via using a YAML file:
 
