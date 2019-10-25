@@ -616,7 +616,9 @@ def main(args):
         build_tag = build_tags[count]
         count += 1
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
-        datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
+        #datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
+        datasets = []
+        datasets.append("FM")
         for dataset in datasets:
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))  
             ok = do_dataset_and_build(steps, build, build_tag, dataset, params)
