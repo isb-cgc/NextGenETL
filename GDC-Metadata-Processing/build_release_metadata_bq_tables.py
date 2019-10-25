@@ -178,14 +178,14 @@ Clinical extraction (CLIN and BIO files):
 '''
 def extract_clinbio_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_file_data_sql_archived_clinbio(release_table, program_name)
+    sql = extract_file_data_sql_clinbio(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def extract_file_data_sql_archived_clinbio(release_table, program_name):
+def extract_file_data_sql_clinbio(release_table, program_name):
     return '''
         SELECT 
             a.file_id as file_gdc_id,
@@ -209,8 +209,10 @@ def extract_file_data_sql_archived_clinbio(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         WHERE ( a.program_name = '{1}' ) AND
-              ( ( a.file_type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
-                ( a.file_type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
+              # Do not restrict the data format:
+              #( ( a.file_type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
+              #  ( a.file_type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
+              ( a.file_type = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # Armor against multiple case entries:
               ( a.case_gdc_id NOT LIKE "%;%" )  AND
