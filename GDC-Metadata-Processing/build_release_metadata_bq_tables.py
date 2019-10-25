@@ -30,7 +30,8 @@ import io
 import requests
 from json import loads as json_loads
 
-from common_etl.support import generic_bq_harness, confirm_google_vm, bq_harness_with_result
+from common_etl.support import generic_bq_harness, confirm_google_vm, \
+                               bq_harness_with_result, delete_table_bq_job
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -561,6 +562,19 @@ def do_dataset_and_build(steps, build, build_tag, dataset, params):
         if not success:
             print("{} {} create_final_table job failed".format(dataset, build))
             return False
+
+        #
+        # Clear out working temp tables:
+        #
+
+    if 'dump_working_tables' in steps:
+        dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
+                           'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
+                           'UNION_TABLE']
+        dump_tables = ["{}_{}_{}".format(dataset, build, params[x]) for x in dump_table_tags]
+        dump_tables.append()
+        for table in dump_tables:
+            delete_table_bq_job(params['TARGET_DATASET'], table)
 
     #
     # Done!
