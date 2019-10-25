@@ -540,7 +540,7 @@ def do_dataset_and_build(steps, build, build_tag, dataset, params):
                                           "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_2_TABLE']))        
 
         union_table = "{}_{}_{}".format(dataset, build, params['UNION_TABLE'])
-        table_collection,append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], union_table))
+        table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], union_table))
         success = build_union(slide_table, align_table, clinbio_table,
                               params['TARGET_DATASET'], union_table, params['BQ_AS_BATCH'])
         if not success:
