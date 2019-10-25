@@ -410,13 +410,13 @@ def install_uris_sql(union_table, mapping_table):
             a.file_size,
             a.data_format,
             a.platform,
-            c.file_gdc_url as file_name_key,
+            c.gcs_path as file_name_key,
             a.index_file_id,
             a.index_file_name_key,
             a.index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a LEFT OUTER JOIN `{1}` AS c ON a.file_gdc_id = c.file_gdc_id )
+        FROM `{0}` AS a LEFT OUTER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
         
         SELECT
             a1.file_gdc_id,
@@ -436,11 +436,11 @@ def install_uris_sql(union_table, mapping_table):
             a1.platform,
             a1.file_name_key,
             a1.index_file_id,
-            c.file_gdc_url as index_file_name_key,
+            c.gcs_path as index_file_name_key,
             a1.index_file_size,
             a1.access,
             a1.acl
-        FROM a1 LEFT OUTER JOIN `{1}` AS c ON a1.index_file_id = c.file_gdc_id        
+        FROM a1 LEFT OUTER JOIN `{1}` AS c ON a1.index_file_id = c.file_uuid
         '''.format(union_table, mapping_table)
 
 
