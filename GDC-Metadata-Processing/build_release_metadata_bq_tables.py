@@ -572,7 +572,6 @@ def do_dataset_and_build(steps, build, build_tag, dataset, params):
                            'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
                            'UNION_TABLE']
         dump_tables = ["{}_{}_{}".format(dataset, build, params[x]) for x in dump_table_tags]
-        dump_tables.append()
         for table in dump_tables:
             delete_table_bq_job(params['TARGET_DATASET'], table)
 
