@@ -446,7 +446,6 @@ def main(args):
     if 'build_pull_list' in steps:
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
-            mani_for_count = manifest_file.format(count_name)
             table_for_count = params['BQ_MANIFEST_TABLE'].format(count_name)
             local_pull_for_count = local_pull_list.format(count_name)
             pull_table_for_count = params['BQ_PULL_LIST_TABLE'].format(count_name)

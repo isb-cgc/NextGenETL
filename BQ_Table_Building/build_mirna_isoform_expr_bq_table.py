@@ -239,7 +239,6 @@ def file_info(aFile, program_prefix):
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
 to e.g. skip previously run steps.
-
 '''
 def main(args):
 

@@ -1,0 +1,15 @@
+[
+    {"name": "project_short_name", "description": "Project name abbreviation, eg TCGA-LGG (there are 33 distinct tumor-type specific projects) (ISB-CGC added column)"},
+    {"name": "case_barcode", "description": "Original TCGA case barcode, eg TCGA-12-1089 -- note that each case typically has a primary-tumor sample and a matched-normal (blood or adjacent tissue) sample; please refer to the TCGA Biospecimen table for more details (ISB-CGC added column)"},
+    {"name": "sample_barcode", "description": "Original TCGA sample barcode, eg TCGA-12-1089-01A -- note that one sample may have multiple aliquots and therefore multiple sets of CN segmentations; so be sure to use GROUP BY appropriately in your queries (ISB-CGC added column)"},
+    {"name": "aliquot_barcode", "description": "TCGA aliquot barcode, eg TCGA-12-1089-01A-01D-0517-0 (ISB-CGC added column)"},
+    {"name": "chromosome", "description": "Chromosome for this CN segment (each row in this table correspond to one CN segment for one TCGA aliquot) -- there are 23 chromosomes: 1-22 and X"},
+    {"name": "start_pos", "description": "CN segment start-position (1-based coordinates)"},
+    {"name": "end_pos", "description": "CN segment end-position (1-based coordinates)"},
+    {"name": "num_probes", "description": "Number of probes in the SNP array used to infer this CN segment"},
+    {"name": "segment_mean", "description": "Mean CN value for this segment; the value is base2 log(CN/2), centered at 0"},
+    {"name": "case_gdc_id", "description": "GDC case identifier (ISB-CGC added column)"},
+    {"name": "sample_gdc_id", "description": "GDC sample identifier (ISB-CGC added column)"},
+    {"name": "aliquot_gdc_id", "description": "GDC aliquot identifier (ISB-CGC added column)"},
+    {"name": "file_gdc_id", "description": "GDC file identifier (ISB-CGC added column)"}
+]
