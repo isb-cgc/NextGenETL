@@ -1,0 +1,14 @@
+[
+    {"name": "program_name", "type": "string", "mode": "nullable", "description": "eg TCGA, TARGET, etc"},
+    {"name": "project_id", "type": "string", "mode": "nullable", "description": "eg TCGA-BRCA, TARGET-AML, etc"},
+    {"name": "case_gdc_id", "type": "string", "mode": "nullable", "description": "case GDC uuid"},
+    {"name": "case_barcode", "type": "string", "mode": "nullable", "description": "case submitter id"},
+    {"name": "sample_gdc_id", "type": "string", "mode": "nullable", "description": "sample GDC uuid"},
+    {"name": "sample_barcode", "type": "string", "mode": "nullable", "description": "sample submitter id"},
+    {"name": "sample_type", "type": "integer", "mode": "nullable", "description": "eg '01', '11', '06', etc"},
+    {"name": "sample_type_name", "type": "string", "mode": "nullable", "description": "eg 'Primary Tumor', 'Solid Tissue Normal', etc"},
+    {"name": "portion_gdc_id", "type": "string", "mode": "nullable", "description": "portion GDC uuid"},
+    {"name": "portion_barcode", "type": "string", "mode": "nullable", "description": "portion submitter id"},
+    {"name": "slide_gdc_id", "type": "string", "mode": "nullable", "description": "slide GDC uuid"},
+    {"name": "slide_barcode", "type": "string", "mode": "nullable", "description": "slide submitter id"}
+]

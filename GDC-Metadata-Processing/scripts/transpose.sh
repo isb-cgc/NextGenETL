@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 # Copyright 2019, Institute for Systems Biology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,19 +15,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
+if [ $# -ne 1 ]
+then
 
-mkdir -p ~/config
-pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/RnaSeqGexpBQBuild.yaml .
-popd > /dev/null
+	echo "Usage: `basename $0` INPUT_FILE"
 
-pushd ${MY_VENV} > /dev/null
-source bin/activate
-popd > /dev/null
-cd ..
-python3 ./BQ_Table_Building/build_rna_seq_gexp_bq_table.py ~/config/RnaSeqGexpBQBuild.yaml
-deactivate
+else
+
+	in_file=$1
+
+	awk 'BEGIN {FS=OFS="\t"}
+	{
+	for (i=1;i<=NF;i++)
+	{
+	 arr[NR,i]=$i;
+	 if(big <= NF)
+	  big=NF;
+	 }
+	}
+
+	END {
+	  for(i=1;i<=big;i++)
+	   {
+	    for(j=1;j<=NR;j++)
+	    {
+	     printf("%s%s",arr[j,i], (j==NR ? "" : OFS));
+	    }
+	    print "";
+	   }
+	}' $in_file
+
+fi
+

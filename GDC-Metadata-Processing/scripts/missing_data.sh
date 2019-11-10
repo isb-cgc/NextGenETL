@@ -14,19 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ~/setEnvVars.sh
-
-export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
-
-mkdir -p ~/config
-pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/RnaSeqGexpBQBuild.yaml .
-popd > /dev/null
-
-pushd ${MY_VENV} > /dev/null
-source bin/activate
-popd > /dev/null
-cd ..
-python3 ./BQ_Table_Building/build_rna_seq_gexp_bq_table.py ~/config/RnaSeqGexpBQBuild.yaml
-deactivate
+cat caseData.bq.*.tsv | awk ' BEGIN {print "Case Name[Fields]"} !/^#/ {cnt=0; for (i=3; i<=NF; i++) {if ($i != "") {cnt++} } {print $2 "["cnt" fields]"} } ' FS='\t' | grep "\[0 fields\]" | sort | sed 's/\[0 fields\]//'

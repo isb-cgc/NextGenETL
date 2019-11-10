@@ -14,19 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ~/setEnvVars.sh
+nohup python ../scripts/queryByCase.py --endpoint legacy >& qbc.log1 &
 
-export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
+sleep 10
 
-mkdir -p ~/config
-pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/RnaSeqGexpBQBuild.yaml .
-popd > /dev/null
-
-pushd ${MY_VENV} > /dev/null
-source bin/activate
-popd > /dev/null
-cd ..
-python3 ./BQ_Table_Building/build_rna_seq_gexp_bq_table.py ~/config/RnaSeqGexpBQBuild.yaml
-deactivate
+nohup python ../scripts/queryByFile.py --endpoint legacy >& qbf.log1 &
