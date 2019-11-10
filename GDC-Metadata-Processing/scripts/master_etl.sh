@@ -27,21 +27,23 @@ export PATH=${REL_ROOT}/scripts/:${PATH}
 source ${REL_ROOT}/scripts/setEnvVarsGDCMetadata.sh
 
 #
-# Edit these flags as desired to run only parts of the workflow:
+# These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
+# Actual values are set in the setEnvVarsGDCMetadata.sh file, **not here**. This script should, in practice,
+# not need to be edited as things change from release to release!
 #
-
-BUILD_DIR=skip
-API_PULL=skip
-HEX_EXTRACT=run
-CURR_FILE_CHECK=run
-LEG_FILE_CHECK=run
-QC_CHECK=run
-GEN_CUT_LISTS=run
-BQ_PREP_CASES=run
-BQ_PREP_OTHER=run
-RAW_SCHEMA_CHECK=run
-COPY_ANNOT_SCHEMA=run
-LOAD_BQ=run
+#
+#BUILD_DIR=skip
+#API_PULL=skip
+#HEX_EXTRACT=run
+#CURR_FILE_CHECK=run
+#LEG_FILE_CHECK=run
+#QC_CHECK=run
+#GEN_CUT_LISTS=run
+#BQ_PREP_CASES=run
+#BQ_PREP_OTHER=run
+#RAW_SCHEMA_CHECK=run
+#COPY_ANNOT_SCHEMA=run
+#LOAD_BQ=run
 
 #
 # REALLY cannot run both phases at once. The API pull takes days and exits immediately with nohup set:
