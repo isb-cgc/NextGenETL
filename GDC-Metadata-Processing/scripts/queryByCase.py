@@ -45,7 +45,7 @@ files_fields = []
 #verboseFlag = 999
 #verboseFlag = 14
 # WJRL 11/10/19 NOW AN ARGUMENT!
-#verboseFlag = 0 # WJRL 11/8/19
+verboseFlag = 0
 
 uuidStr = uuid.uuid1().hex[:8]
 
@@ -1238,7 +1238,7 @@ def main(args):
     if args.verbosity is None:
         verboseFlag = 0
     else:
-        verboseFlag = int(args.verbosity)
+        verboseFlag = args.verbosity
         print("Verbosity level {}".format(verboseFlag))
 
     ## define where the data is going to come from ...
