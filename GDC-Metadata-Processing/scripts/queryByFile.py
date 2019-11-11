@@ -212,7 +212,8 @@ def getFileInfo(fileID_list, files_endpt, dbName, file_fh2):
                 sys.exit(-1)
 
             file_id = fileInfo['file_id'][0]
-            ## print file_id            ## print fileID_dict
+            ## print file_id
+            ## print fileID_dict
 
             if (file_id not in fileID_dict):
                 fileID_dict[file_id] = [fileInfo]
@@ -268,17 +269,21 @@ def flattenJSON(inJ):
     outJ = {}
 
     def flatten(x, name=''):
-        ## print " in flatten ... name=<%s> " % name        if type(x) is dict:
+        ## print " in flatten ... name=<%s> " % name
+        if type(x) is dict:
             for a in x:
-                ## print "     dict handling a=<%s> " % a                flatten(x[a], name + a + '__')
+                ## print "     dict handling a=<%s> " % a
+                flatten(x[a], name + a + '__')
         elif type(x) is list:
             i = 0
             for a in x:
-                ## print "     list handling a=<%s> " % a                flatten(a, name)
+                ## print "     list handling a=<%s> " % a
+                flatten(a, name)
                 i += 1
         else:
             if (x is not None):
-                ## print "     leaf handling name=<%s> " % name                if (name[:-2] in outJ):
+                ## print "     leaf handling name=<%s> " % name
+                if (name[:-2] in outJ):
                     outJ[name[:-2]] += [x]
                 else:
                     outJ[name[:-2]] = [x]
@@ -331,6 +336,8 @@ def get_file_info(files_endpt, file_id):
                  + 'archive.archive_id,archive.revision,archive.state,archive.submitter_id'
 
     ## print " fieldsList: <%s> " % fieldsList
+
+
     ## IMPORTANT: if we want to get information about index_files, we would
     ## need to add the following to this params dict:
     ##         'expand': 'index_files'
@@ -498,17 +505,22 @@ def examineFilesInfo(fileID_dict):
             print " "
 
         for aField in files_fields:
-            ## print " "            ## print " aField=<%s> " % aField
-            ## print " fileFieldValues[aField] = ", fileFieldValues[aField]            ## try:
-            ##     print " fileInfo[aField] = ", fileInfo[aField]            ## except:
-            ##     print " nothing found for this aField "            if (len(fileFieldValues[aField]) < 50):
+            ## print " "
+            ## print " aField=<%s> " % aField
+            ## print " fileFieldValues[aField] = ", fileFieldValues[aField]
+            ## try:
+            ##     print " fileInfo[aField] = ", fileInfo[aField]
+            ## except:
+            ##     print " nothing found for this aField "
+            if (len(fileFieldValues[aField]) < 50):
                 try:
                     for aValue in fileInfo[aField]:
                         if (aValue not in fileFieldValues[aField]):
                             fileFieldValues[aField][aValue] = 1
                         else:
                             fileFieldValues[aField][aValue] += 1
-                            ## print fileFieldValues[aField]                except:
+                            ## print fileFieldValues[aField]
+                except:
                     pass
 
     for aField in files_fields:
