@@ -128,6 +128,7 @@ if [ "${HEX_EXTRACT}" == "run" ]; then
     #
 
     cd ${REL_ROOT}/${RELNAME}-current
+    echo "now in" `pwd`
     CURRENT_CASE_API_HEX=`ls -1 caseData.bq.*.t* | awk -F . '{print $3}' | sort | uniq`
 
     #
@@ -259,7 +260,7 @@ if [ "${GEN_CUT_LISTS}" == "run" ]; then
     LEGACY_CASE_API_HEX=`cat legacy_case_api_hex.txt`
     FILE_IN="caseData.bq.${LEGACY_CASE_API_HEX}.tsv"
 
-    CUT_LIST=`generate_cut_list ${FILE_IN} ${EXPECTED_LEGACY} ${KEEP_COLS}`
+    CUT_LIST=`generate_cut_list.sh ${FILE_IN} ${EXPECTED_LEGACY} "${KEEP_COLS}"`
     HAVE_ERROR=$?
     if [ ${HAVE_ERROR} -ne 0 ]; then
         echo "WARNING: Retained legacy columns have changed; perform manual curation!"
@@ -268,10 +269,10 @@ if [ "${GEN_CUT_LISTS}" == "run" ]; then
     echo ${CUT_LIST} > legacy_case_cut_list.txt
 
     #Legacy column holding file count:
-    SUMMARY_COL=`generate_cut_list ${FILE_IN} ${EXPECTED_LEGACY_FILE_COUNT_COL} ${KEEP_COUNT}`
+    SUMMARY_COL=`generate_cut_list.sh ${FILE_IN} ${EXPECTED_LEGACY_FILE_COUNT_COL} ${KEEP_COUNT}`
     HAVE_ERROR=$?
     if [ ${HAVE_ERROR} -ne 0 ]; then
-        echo "WARNING: Retained legacy columns have changed; perform manual curation!"
+        echo "WARNING: file count column has changed; perform manual curation!"
         exit
     fi
     echo ${SUMMARY_COL} > legacy_count_col.txt
@@ -281,7 +282,7 @@ if [ "${GEN_CUT_LISTS}" == "run" ]; then
     CURRENT_CASE_API_HEX=`cat current_case_api_hex.txt`
     FILE_IN="caseData.bq.${CURRENT_CASE_API_HEX}.tsv"
 
-    CUT_LIST=`generate_cut_list ${FILE_IN} ${EXPECTED_CURRENT} ${KEEP_COLS}`
+    CUT_LIST=`generate_cut_list.sh ${FILE_IN} ${EXPECTED_CURRENT} "${KEEP_COLS}"`
     HAVE_ERROR=$?
     if [ ${HAVE_ERROR} -ne 0 ]; then
         echo "WARNING: Retained current columns have changed; perform manual curation!"
@@ -291,7 +292,7 @@ if [ "${GEN_CUT_LISTS}" == "run" ]; then
 
     #current column holding file count:
 
-    SUMMARY_COL=`generate_cut_list ${FILE_IN} ${EXPECTED_CURRENT_FILE_COUNT_COL} ${KEEP_COUNT}`
+    SUMMARY_COL=`generate_cut_list.sh ${FILE_IN} ${EXPECTED_CURRENT_FILE_COUNT_COL} ${KEEP_COUNT}`
     HAVE_ERROR=$?
     if [ ${HAVE_ERROR} -ne 0 ]; then
         echo "WARNING: Retained current columns have changed; perform manual curation!"
@@ -304,7 +305,7 @@ if [ "${GEN_CUT_LISTS}" == "run" ]; then
     FILE_IN="fileData.bq.${CURRENT_FILE_API_HEX}.tsv"
 
 
-    TOSS_COL=`generate_cut_list ${FILE_IN} ${EXPECTED_ERROR_COL} ${TOSS_COLS}`
+    TOSS_COL=`generate_cut_list.sh ${FILE_IN} ${EXPECTED_ERROR_COL} ${TOSS_COLS}`
     HAVE_ERROR=$?
     if [ ${HAVE_ERROR} -ne 0 ]; then
         echo "WARNING: Retained current file columns have changed; perform manual curation!"
@@ -328,12 +329,12 @@ if [ "${BQ_PREP_CASES}" == "run" ]; then
     CURRENT_CASE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-current/current_case_api_hex.txt`
     LEGACY_CASE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_case_api_hex.txt`
     LEGACY_FILE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_file_api_hex.txt`
-    CURRENT_CUT==`cat ${REL_ROOT}/${RELNAME}-current/current_case_cut_list.txt
-    LEGACY_CUT==`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_case_cut_list.txt
-    CURRENT_COUNT_COL==`cat ${REL_ROOT}/${RELNAME}-current/current_count_col.txt
-    LEGACY_COUNT_COL==`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_count_col.txt
-    ./just_case.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${RELNAME} ${SCRATCH_DIR} \
-                   ${CURRENT_CUT} ${LEGACY_CUT} ${CURRENT_COUNT_COL} ${LEGACY_COUNT_COL}
+    CURRENT_CUT=`cat ${REL_ROOT}/${RELNAME}-current/current_case_cut_list.txt`
+    LEGACY_CUT=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_case_cut_list.txt`
+    CURRENT_COUNT_COL=`cat ${REL_ROOT}/${RELNAME}-current/current_count_col.txt`
+    LEGACY_COUNT_COL=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_count_col.txt`
+    just_case.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${RELNAME} ${SCRATCH_DIR} \
+                 ${CURRENT_CUT} ${LEGACY_CUT} ${CURRENT_COUNT_COL} ${LEGACY_COUNT_COL}
 
 
 fi
@@ -349,8 +350,8 @@ if [ "${BQ_PREP_OTHER}" == "run" ]; then
     LEGACY_CASE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_case_api_hex.txt`
     LEGACY_FILE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_file_api_hex.txt`
     DITCH_LIST=`cat ${REL_ROOT}/${RELNAME}-current/current_skip_error_type_cols.txt`
-    ./proc_release_tables.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${LEGACY_FILE_API_HEX} \
-                             ${RELNAME} ${SCRATCH_DIR} ${DITCH_LIST}
+    proc_release_tables.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${LEGACY_FILE_API_HEX} \
+                           ${RELNAME} ${SCRATCH_DIR} ${DITCH_LIST}
 fi
 
 #
@@ -385,7 +386,7 @@ if [ "${RAW_SCHEMA_CHECK}" == "run" ]; then
         ALL_GOOD=false
         echo "Slide raw schema mismatch: ${SLIDE_DIFF}"
     fi
-    if [ ! ${ALL_GOOD} ]; then
+    if [ ${ALL_GOOD} != true ]; then
         echo "RAW SCHEMA MATCH FAILURE: EXITING"
         exit
     fi
@@ -415,5 +416,5 @@ if [ "${LOAD_BQ}" == "run" ]; then
     echo "Running LOAD_BQ"
     cd ${REL_ROOT}/${RELNAME}-forBQ
     SCHEMA_DATE=`cat current_schema_date.txt`
-    ./just_loadBQ.sh ${SCHEMA_DATE} ${RELNAME} ${BUCK_TARGET} ${DATASET}
+    just_loadBQ.sh ${SCHEMA_DATE} ${RELNAME} ${BUCK_TARGET} ${DATASET}
 fi

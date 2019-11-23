@@ -161,7 +161,6 @@ diff legacy_in_active.xxx legacy.ids.xxx | grep "^>" | cut -c3- | sort > only_in
 #
 
 wc -l *.xxx
-i
 
 # Create a table of data rows for data only in legacy (going into $f5 caseData.merge.t2) and output count
 for u in `cat only_in_legacy.xxx`
