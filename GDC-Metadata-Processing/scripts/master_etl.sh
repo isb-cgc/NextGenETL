@@ -21,10 +21,12 @@ SCRATCH_DIR=${REL_ROOT}/scratch
 export PATH=${REL_ROOT}/scripts/:${PATH}
 
 #
-# Per release configuration values are changed in this file, not here:
+# Per release configuration values are changed in this file, not here. Plus, put the
+# customized config file up in the home directory so it can be retained long-term even if
+# code is changing.
 #
 
-source ${REL_ROOT}/scripts/setEnvVarsGDCMetadata.sh
+source ${HOME}/setEnvVarsGDCMetadata.sh
 
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
