@@ -1338,7 +1338,7 @@ if __name__ == '__main__':
     print " "
 
     parser = argparse.ArgumentParser(description="Query the GDC endpoints for case and file metadata")
-    parser.add_argument("-v", "--verbosity", type=int, help="Verbosity (0 to 999) Can get ginormous if > 0")
+    parser.add_argument("-v", "--verbosity", type=int, help="Verbosity (0 to 999) Can get ginormous (~100M/case) if > 0")
     parser.add_argument("-e", "--endpoint", type=str, help="either legacy or active", required=True)
     parser.add_argument("-i", "--case_id", type=str, help="single case GUID")
     parser.add_argument("-s", "--case_ids", type=str, help="file with multiple case GUIDs")

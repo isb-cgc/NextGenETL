@@ -50,8 +50,6 @@ EXPECTED_ERROR_COL="30"
 
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
-# Actual values are set in the setEnvVarsGDCMetadata.sh file, **not here**. This script should, in practice,
-# not need to be edited as things change from release to release!
 #
 # Important! The BUILD_DIR and API_PULL steps (PHASE I) MUST NOT be run with the following steps. The API
 # pull steps runs for days, and will exit immediately after nohupping the jobs

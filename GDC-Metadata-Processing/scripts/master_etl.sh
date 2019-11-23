@@ -69,7 +69,7 @@ if [ "${QC_CHECK}" == "run" ] || \
     PHASE_2=true
 fi
 
-if [ ${PHASE_1} ] && [ ${PHASE_2} ]; then
+if [ "${PHASE_1}" = true ] && [ "${PHASE_2}" = true ]; then
     echo "CANNOT RUN PHASES 1 AND 2 TOGETHER"
     exit
 fi
@@ -156,7 +156,7 @@ if [ "${HEX_EXTRACT}" == "run" ]; then
     LEGACY_FILE_API_HEX=`echo ${LEGACY_CASE_API_HEX} ${TWO_FILE_DATA_HEX} | tr " " "\n" | \
                          sort | uniq -c | grep "^ *1 " | awk '{print $2}'`
     echo ${LEGACY_CASE_API_HEX} > legacy_case_api_hex.txt
-    echo ${LEGACY_FILE_API_HEX} > legacy_case_api_hex.txt
+    echo ${LEGACY_FILE_API_HEX} > legacy_file_api_hex.txt
 
 fi
 
@@ -200,7 +200,7 @@ if [ "${LEG_FILE_CHECK}" == "run" ]; then
     LEGACY_CASE_API_HEX=`cat legacy_case_api_hex.txt`
     LEGACY_FILE_API_HEX=`cat legacy_file_api_hex.txt`
     SIZE_BY_CASE_API=`cat fileData.bq.${LEGACY_CASE_API_HEX}.tsv | wc -l`
-    SIZE_BY_FILE_API=`cat fileData.bq.${SIZE_BY_FILE_API}.tsv | wc -l`
+    SIZE_BY_FILE_API=`cat fileData.bq.${LEGACY_FILE_API_HEX}.tsv | wc -l`
     if [ ${SIZE_BY_CASE_API} -ne ${EXPECTED_LEGACY_FILE_SIZE_BY_CASE} ]; then
         echo "ERROR: Unexpected legacy SIZE_BY_CASE_API: ${SIZE_BY_CASE_API} vs. ${EXPECTED_LEGACY_FILE_SIZE_BY_CASE}"
         exit
@@ -213,7 +213,9 @@ fi
 
 #
 # The current case table preparation includes counting the number of legacy files per case. Rel17 and Rel18
-# had API failures that made this count incorrect. Above test should catch this, but belt-and-suspenders:
+# had API failures that made this count incorrect. Above test should catch this, but belt-and-suspenders.
+# NOTE: If we had API failures on the legacy run, move those files off to the side and copy in the files
+# from a previous clean legacy load, unless there really has been a change to the legacy archive
 #
 
 if [ "${QC_CHECK}" == "run" ]; then
