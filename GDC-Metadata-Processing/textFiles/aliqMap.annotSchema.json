@@ -1,18 +1,98 @@
 [
-    {"name": "program_name", "type": "string", "mode": "nullable", "description": "eg TCGA, TARGET, etc"},
-    {"name": "project_id", "type": "string", "mode": "nullable", "description": "eg TCGA-BRCA, TARGET-AML, etc"},
-    {"name": "case_gdc_id", "type": "string", "mode": "nullable", "description": "GDC case uuid"},
-    {"name": "case_barcode", "type": "string", "mode": "nullable", "description": "original/submitter case id"},
-    {"name": "sample_gdc_id", "type": "string", "mode": "nullable", "description": "GDC sample uuid"},
-    {"name": "sample_barcode", "type": "string", "mode": "nullable", "description": "original/submitter sample id"},
-    {"name": "sample_type", "type": "string", "mode": "nullable", "description": "eg '01', '11', '06', etc"},
-    {"name": "sample_type_name", "type": "string", "mode": "nullable", "description": "eg 'Primary Tumor', 'Solid Tissue Normal', 'Metastatic', etc"},
-    {"name": "sample_is_ffpe", "type": "string", "mode": "nullable", "description": "either 'False', 'None', 'True', or null"},
-    {"name": "sample_preservation_method", "type": "string", "mode": "nullable", "description": "usually null or 'FFPE', also 'Snap Frozen' or 'Frozen'"},
-    {"name": "portion_gdc_id", "type": "string", "mode": "nullable", "description": "GDC portion uuid"},
-    {"name": "portion_barcode", "type": "string", "mode": "nullable", "description": "original/submitter portion id"},
-    {"name": "analyte_gdc_id", "type": "string", "mode": "nullable", "description": "GDC analyte uuid"},
-    {"name": "analyte_barcode", "type": "string", "mode": "nullable", "description": "original/submitter analyte id"},
-    {"name": "aliquot_gdc_id", "type": "string", "mode": "nullable", "description": "GDC aliquot uuid"},
-    {"name": "aliquot_barcode", "type": "string", "mode": "nullable", "description": "original/submitter/aliquot id"}
+  {
+    "description": "Program name, eg TCGA or TARGET",
+    "mode": "NULLABLE",
+    "name": "program_name",
+    "type": "STRING"
+  },
+  {
+    "description": "ID of the Project -- e.g. TCGA-BRCA, TARGET-AML, etc.",
+    "mode": "NULLABLE",
+    "name": "project_id",
+    "type": "STRING"
+  },
+  {
+    "description": "GDC unique identifier",
+    "mode": "NULLABLE",
+    "name": "case_gdc_id",
+    "type": "STRING"
+  },
+  {
+    "description": "Submitter identifier, eg HCC1954, TCGA-ZX-AA5X, etc",
+    "mode": "NULLABLE",
+    "name": "case_barcode",
+    "type": "STRING"
+  },
+  {
+    "description": "Unique GDC identifier for this sample (corresponds to the sample_barcode), eg a1ec9279-c1a6-4e58-97ed-9ec1f36187c5  --  this can be used to access more information from the GDC data portal",
+    "mode": "NULLABLE",
+    "name": "sample_gdc_id",
+    "type": "STRING"
+  },
+  {
+    "description": "Original/submitter sample ID",
+    "mode": "NULLABLE",
+    "name": "sample_barcode",
+    "type": "STRING"
+  },
+  {
+    "description": "Two-digit sample_type code which forms part of the sample barcode eg. 01,11,06, etc.",
+    "mode": "NULLABLE",
+    "name": "sample_type",
+    "type": "STRING"
+  },
+  {
+    "description": "The longer name of the sample type; eg. Primary Tumor, Recurrent Tumor, etc.",
+    "mode": "NULLABLE",
+    "name": "sample_type_name",
+    "type": "STRING"
+  },
+  {
+    "description": "Whether a smaple is FFPE, either  False,  None ,  True, or null",
+    "mode": "NULLABLE",
+    "name": "sample_is_ffpe",
+    "type": "STRING"
+  },
+  {
+    "description": "Sample Preservation Method, usually null or  FFPE, also Snap Frozen or Frozen",
+    "mode": "NULLABLE",
+    "name": "sample_preservation_method",
+    "type": "STRING"
+  },
+  {
+    "description": "Unique GDC identifier for this portion (corresponds to the portion_barcode), eg 12ab0051-32d1-4fc2-8abe-645b54a9d664 -- this can be used to access more information from the GDC data portal",
+    "mode": "NULLABLE",
+    "name": "portion_gdc_id",
+    "type": "STRING"
+  },
+  {
+    "description": "Original/submitter portion ID",
+    "mode": "NULLABLE",
+    "name": "portion_barcode",
+    "type": "STRING"
+  },
+  {
+    "description": "Unique GDC identifier for this analyte (corresponds to the analyte_barcode), eg 58e703d9-fd75-4b8b-9bdd-842ae024ebcd -- this can be used to access more information from the GDC data portal",
+    "mode": "NULLABLE",
+    "name": "analyte_gdc_id",
+    "type": "STRING"
+  },
+  {
+    "description": "Original/submitter analyte ID",
+    "mode": "NULLABLE",
+    "name": "analyte_barcode",
+    "type": "STRING"
+  },
+  {
+    "description": "Unique GDC identifier for this aliquot (corresponds to the aliquot_barcode), eg 7fbfdb3e-1fd2-4206-8d2e-7f68e4a15844  --  this can be used to access more information from the GDC data portal",
+    "mode": "NULLABLE",
+    "name": "aliquot_gdc_id",
+    "type": "STRING"
+  },
+  {
+    "description": "Original TCGA aliquot barcode, eg TCGA-12-1089-01A-01D-0517-01",
+    "mode": "NULLABLE",
+    "name": "aliquot_barcode",
+    "type": "STRING"
+  }
 ]

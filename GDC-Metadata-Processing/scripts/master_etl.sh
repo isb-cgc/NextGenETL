@@ -405,7 +405,7 @@ if [ "${COPY_ANNOT_SCHEMA}" == "run" ]; then
     cp ${REL_ROOT}/textFiles/caseData.annotSchema.json caseData.${SCH_DATE}.json
     cp ${REL_ROOT}/textFiles/fileData.current.annotSchema.json fileData.current.${SCH_DATE}.json
     cp ${REL_ROOT}/textFiles/fileData.legacy.annotSchema.json fileData.legacy.${SCH_DATE}.json
-    cp ${REL_ROOT}/textFiles/slidMap.annotSchema.json slidMap.${SCHDATE}.json
+    cp ${REL_ROOT}/textFiles/slidMap.annotSchema.json slidMap.${SCH_DATE}.json
 fi
 
 #

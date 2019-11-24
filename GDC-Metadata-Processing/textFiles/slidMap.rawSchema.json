@@ -10,4 +10,3 @@
     {"name": "portion_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "slide_gdc_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "slide_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"}
-

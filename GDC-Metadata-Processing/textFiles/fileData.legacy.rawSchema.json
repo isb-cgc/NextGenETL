@@ -43,4 +43,3 @@
     {"name": "tags", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "type", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "updated_datetime", "type": "string", "mode": "nullable", "description": "<add description here>"}
-

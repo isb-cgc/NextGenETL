@@ -14,4 +14,3 @@
     {"name": "analyte_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "aliquot_gdc_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "aliquot_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"}
-
