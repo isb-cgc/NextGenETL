@@ -1,0 +1,2 @@
+Data was generated from file metadata information from the GDC legacy archive release {0}, {1}.
+More details: https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#{2}

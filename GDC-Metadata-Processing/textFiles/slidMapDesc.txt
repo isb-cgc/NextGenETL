@@ -1,0 +1,3 @@
+Data was generated from file metadata information from the GDC release {0}, {1}.
+Image slides are mapped to case information.
+More details: https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#{2}

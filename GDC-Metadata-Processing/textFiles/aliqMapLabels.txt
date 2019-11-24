@@ -1,0 +1,5 @@
+access  open
+source_0    gdc
+category    file_metadata
+data_type_0 file_metadata
+status  current

@@ -1,0 +1,6 @@
+access  open
+source_0    gdc
+reference_genome_0  hg38
+category    file_metadata
+data_type_0 file_metadata
+status  current
