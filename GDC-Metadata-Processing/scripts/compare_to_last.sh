@@ -22,6 +22,66 @@ CURR_PATH=${PARENT_DIR}/${CURR_RELNAME}-forBQ
 LAST_PATH=${PARENT_DIR}/${LAST_RELNAME}-forBQ
 SCRATCH_PATH=${PARENT_DIR}/scratch
 
+compare () {
+
+    local ITEM=$1
+    local TABLE=$2
+    local CUT_ARG=$3
+    local CUT_ARG_2=$4
+    local CUT_ARG_3=$5
+    local HEADER_STRING=$6
+    local TITLE=`echo "${ITEM}" | tr "[a-z]" "[A-Z]"`
+
+    echo " "
+    echo "*********************************************************** "
+    echo ${TITLE}
+    echo " "
+
+    local CURR_COUNT=`cat ${CURR_PATH}/${TABLE}.t1 | wc -l`
+    local LAST_COUNT=`cat ${LAST_PATH}/${TABLE}.t1 | wc -l`
+    local DIFF_COUNT=$((CURR_COUNT - LAST_COUNT))
+
+    echo "Current " ${ITEM} " count:  " ${CURR_COUNT}
+    echo "Previous " ${ITEM} " count: " ${LAST_COUNT}
+    echo "Difference:             " ${DIFF_COUNT}
+    echo " "
+
+    #
+    # How many items have been removed or added since the last release?
+    #
+
+    cat ${CURR_PATH}/${TABLE}.t1 | cut -f ${CUT_ARG} | grep -v "${HEADER_STRING}" | sort > ${SCRATCH_PATH}/new_${ITEM}.txt
+    cat ${LAST_PATH}/${TABLE}.t1 | cut -f ${CUT_ARG} | grep -v "${HEADER_STRING}" | sort > ${SCRATCH_PATH}/old_${ITEM}.txt
+
+    diff --new-line-format="" --unchanged-line-format="" ${SCRATCH_PATH}/old_${ITEM}.txt ${SCRATCH_PATH}/new_${ITEM}.txt > ${SCRATCH_PATH}/removed_${ITEM}.txt
+    diff --old-line-format="" --unchanged-line-format="" ${SCRATCH_PATH}/old_${ITEM}.txt ${SCRATCH_PATH}/new_${ITEM}.txt > ${SCRATCH_PATH}/added_${ITEM}.txt
+
+    local REMOVED_COUNT=`cat ${SCRATCH_PATH}/removed_${ITEM}.txt | wc -l`
+    local ADDED_COUNT=`cat ${SCRATCH_PATH}/added_${ITEM}.txt | wc -l`
+
+    echo "Removed " ${ITEM} " count:" ${REMOVED_COUNT}
+
+    cat ${SCRATCH_PATH}/removed_${ITEM}.txt | cut -f ${CUT_ARG_2} | sort | uniq -c
+
+    echo " "
+    echo "Added " ${ITEM} " count:  " ${ADDED_COUNT}
+
+    cat ${SCRATCH_PATH}/added_${ITEM}.txt | cut -f ${CUT_ARG_2} | sort | uniq -c
+
+    cat ${CURR_PATH}/${TABLE}.t1 ${LAST_PATH}/${TABLE}.t1 | sort | uniq -c | grep "^ *1 " > ${SCRATCH_PATH}/comp_${ITEM}.txt
+    cat ${SCRATCH_PATH}/comp_${ITEM}.txt | sed 's/^ *1 //' | cut -f ${CUT_ARG} | sort | uniq > ${SCRATCH_PATH}/diff_${ITEM}.txt
+    cat ${SCRATCH_PATH}/diff_${ITEM}.txt ${SCRATCH_PATH}/removed_${ITEM}.txt ${SCRATCH_PATH}/added_${ITEM}.txt | sort | uniq -c | grep "^ *1 " > ${SCRATCH_PATH}/changed_${ITEM}.txt
+
+    local CHANGED_COUNT=`cat ${SCRATCH_PATH}/changed_${ITEM}.txt | wc -l`
+
+    echo " "
+    echo "Changed " ${ITEM} " count:  " ${CHANGED_COUNT}
+
+    cat ${SCRATCH_PATH}/changed_${ITEM}.txt | cut -f ${CUT_ARG_3} | sort | uniq -c
+}
+
+compare "aliquot" "aliqMap.merge" "2,8,15" "1,2" "3,4" "portion_barcode"
+
 
 echo " "
 echo "*********************************************************** "
@@ -69,6 +129,11 @@ echo " "
 echo "Changed aliquot count:  " ${CHANGED_ALIQ_COUNT}
 
 cat ${SCRATCH_PATH}/changedAliq.txt | awk '{print $3 " " $4}' | sort | uniq -c
+
+
+
+exit
+
 
 echo " "
 echo "*********************************************************** "
@@ -127,7 +192,7 @@ echo "Difference:          " ${DIFF_CASE_COUNT}
 echo " "
 
 #
-# How many aliquots have been removed or added since the last release?
+# How many cases have been removed or added since the last release?
 #
 
 cat ${CURR_PATH}/caseData.merge.t1 | awk -F '\t' '{print $1 " " $7}' | grep -v "file_id" | sort > ${SCRATCH_PATH}/newCase.txt
