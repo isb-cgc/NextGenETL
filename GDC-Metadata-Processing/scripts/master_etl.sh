@@ -35,7 +35,8 @@ source ${HOME}/setEnvVarsGDCMetadata.sh
 #
 #
 #BUILD_DIR=skip
-#API_PULL=skip
+#API_PULL_LEGACY=skip
+#API_PULL_CURRENT=skip
 #HEX_EXTRACT=run
 #CURR_FILE_CHECK=run
 #LEG_FILE_CHECK=run
@@ -54,7 +55,7 @@ source ${HOME}/setEnvVarsGDCMetadata.sh
 PHASE_1=false
 PHASE_2=false
 
-if [ "${API_PULL}" == "run" ] || [ "${BUILD_DIR}" == "run" ]; then
+if [ "${API_PULL_LEGACY}" == "run" ] || [ "${API_PULL_CURRENT}" == "run" ] || [ "${BUILD_DIR}" == "run" ]; then
     PHASE_1=true
 fi
 
@@ -94,16 +95,21 @@ fi
 # doing phase II operations:
 #
 
-if [ "${API_PULL}" == "run" ]; then
-    cd ${REL_ROOT}/${RELNAME}-current
-    run_try_active.sh
-
+if [ "${API_PULL_LEGACY}" == "run" ]; then
     cd ${REL_ROOT}/${RELNAME}-legacy
     run_try_legacy.sh
+fi
 
-    echo "Go away for a few days..."
+if [ "${API_PULL_CURRENT}" == "run" ]; then
+    cd ${REL_ROOT}/${RELNAME}-current
+    run_try_active.sh
+fi
+
+if [ "${API_PULL_CURRENT}" == "run" ] || [ "${API_PULL_LEGACY}" == "run" ]; then
+    echo "Go away for a day or two..."
     exit
 fi
+
 
 #
 # Extract out the file hex codes needed by downstream scripts. API scripts tag outputs with random hex

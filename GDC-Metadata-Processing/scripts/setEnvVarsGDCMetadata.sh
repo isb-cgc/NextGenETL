@@ -51,20 +51,21 @@ EXPECTED_ERROR_COL="30"
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
 #
-# Important! The BUILD_DIR and API_PULL steps (PHASE I) MUST NOT be run with the following steps. The API
+# Important! The BUILD_DIR and API_PULL_* steps (PHASE I) MUST NOT be run with the following steps. The API
 # pull steps runs for days, and will exit immediately after nohupping the jobs
 #
 
-BUILD_DIR=skip
-API_PULL=skip
-HEX_EXTRACT=run
-CURR_FILE_CHECK=run
-LEG_FILE_CHECK=run
-QC_CHECK=run
-GEN_CUT_LISTS=run
-BQ_PREP_CASES=run
-BQ_PREP_OTHER=run
-RAW_SCHEMA_CHECK=run
-COPY_ANNOT_SCHEMA=run
-LOAD_BQ=run
+BUILD_DIR=run
+API_PULL_LEGACY=skip
+API_PULL_CURRENT=run
+HEX_EXTRACT=skip
+CURR_FILE_CHECK=skip
+LEG_FILE_CHECK=skip
+QC_CHECK=skip
+GEN_CUT_LISTS=skip
+BQ_PREP_CASES=skip
+BQ_PREP_OTHER=skip
+RAW_SCHEMA_CHECK=skip
+COPY_ANNOT_SCHEMA=skip
+LOAD_BQ=skip
 
