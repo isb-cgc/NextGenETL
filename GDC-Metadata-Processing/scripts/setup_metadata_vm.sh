@@ -20,7 +20,8 @@ sudo apt-get upgrade -y
 sudo apt-get install -y	git
 
 #
-# These scripts ae python 2, so we go that route:
+# Legacy GDC metadata scripts are all written in Python 2, so we will take the Python 2 approach to installing
+# a virtual environment this stuff:
 #
 
 sudo apt-get install -y python-pip
@@ -30,17 +31,58 @@ sudo apt-get install -y python-pip
 #
 
 pip install virtualenv
-
 sudo /usr/bin/easy_install virtualenv
-
 virtualenv pyvenv
-
 source ./pyvenv/bin/activate
 
 pip install pandas
 pip install requests
 
 deactivate
+
+#
+# Do not use pip3 to upgrade pip. Does not play well with Debian pip
+#
+
+sudo apt-get install -y python3-pip
+
+#
+# We want venv:
+#
+
+sudo apt-get install -y python3-venv
+
+#
+# Google packages get the infamous "Failed building wheel for ..." message. SO suggestions
+# for this situation:
+# https://stackoverflow.com/questions/53204916/what-is-the-meaning-of-failed-building-wheel-for-x-in-pip-install
+#
+# pip3 install wheel
+# OR:
+# pip install <package> --no-cache-dir.
+#
+# Using the first option
+#
+
+python3 -m venv virtualEnvETL
+source virtualEnvETL/bin/activate
+python3 -m pip install wheel
+python3 -m pip install google-api-python-client
+python3 -m pip install google-cloud-storage
+python3 -m pip install google-cloud-bigquery
+python3 -m pip install PyYaml
+# used by build_schema:
+python3 -m pip install python-dateutil
+deactivate
+
+#
+# Build the directory structure:
+#
+
+cd ~
+mkdir -p GDC-metadata/scratch
+mkdir -p GDC-metadata/scripts
+mkdir -p GDC-metadata/textFiles
 
 #
 # Off to github to get the code!
@@ -52,14 +94,20 @@ git clone https://github.com/isb-cgc/NextGenETL.git
 cd NextGenETL/GDC-Metadata-Processing/scripts
 chmod u+x *.sh
 
-cp setEnvVarsGDCMetadata.sh ~
-echo "Be sure to now customize the ~/setEnvVarsGDCMetadata.sh file to your system!"
-mkdir -p ~/GDC-metadata/scripts
-cp * ~/GDC-metadata/scripts
-mkdir -p ~/GDC-metadata/textFiles
-cd ../textFiles
-cp * ~/GDC-metadata/textFiles
+#
+# Put the scripts and text files in the processing directories:
+#
 
+cd ~
+cp ~/NextGenETL/GDC-Metadata-Processing/scripts/*  GDC-metadata/scripts
+cp ~/NextGenETL/GDC-Metadata-Processing/textFiles/*  GDC-metadata/textFiles
+
+
+mv setEnvVarsGDCMetadata.sh ~
+echo "Be sure to now customize the ~/setEnvVars.sh file to your system!"
+
+echo "A 30G machine is required to process the current/active collection"
+echo "A 60G machine is required to process the legacy collection"
 
 
 
