@@ -30,16 +30,22 @@ sudo apt-get install -y python-pip
 # We want venv:
 #
 
+
 pip install virtualenv
 sudo /usr/bin/easy_install virtualenv
-virtualenv pyvenv
-source ./pyvenv/bin/activate
+
+cd ~
+virtualenv pyVenvForTwo
+source ./pyvenvForTwo/bin/activate
 
 pip install pandas
 pip install requests
 
 deactivate
 
+#
+# Newer GDC metadata scripts are written in Python 3, so we will create a virtual environment for that stuff:
+#
 #
 # Do not use pip3 to upgrade pip. Does not play well with Debian pip
 #
@@ -64,15 +70,13 @@ sudo apt-get install -y python3-venv
 # Using the first option
 #
 
-python3 -m venv virtualEnvETL
-source virtualEnvETL/bin/activate
+cd ~
+python3 -m venv pyVenvForThree
+source pyVenvForThree/bin/activate
 python3 -m pip install wheel
 python3 -m pip install google-api-python-client
 python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
-python3 -m pip install PyYaml
-# used by build_schema:
-python3 -m pip install python-dateutil
 deactivate
 
 #
@@ -103,8 +107,8 @@ cp ~/NextGenETL/GDC-Metadata-Processing/scripts/*  GDC-metadata/scripts
 cp ~/NextGenETL/GDC-Metadata-Processing/textFiles/*  GDC-metadata/textFiles
 
 
-mv setEnvVarsGDCMetadata.sh ~
-echo "Be sure to now customize the ~/setEnvVars.sh file to your system!"
+mv NextGenETL/GDC-Metadata-Processing/scripts/setEnvVarsGDCMetadata.sh ~
+echo "Be sure to now customize the ~/setEnvVarsGDCMetadata.sh file to your system and version!"
 
 echo "A 30G machine is required to process the current/active collection"
 echo "A 60G machine is required to process the legacy collection"

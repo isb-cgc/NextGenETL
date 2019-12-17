@@ -44,9 +44,15 @@ source ${HOME}/setEnvVarsGDCMetadata.sh
 #GEN_CUT_LISTS=run
 #BQ_PREP_CASES=run
 #BQ_PREP_OTHER=run
+#BUILD_NORM_TSVS=run
+#COMPARE_TO_LAST=run
+#DETAILED_DIFFS=run
 #RAW_SCHEMA_CHECK=run
 #COPY_ANNOT_SCHEMA=run
 #LOAD_BQ=run
+#DESC_AND_LABELS=run
+#PUBLISH_TABLES=run
+#ARCHIVE_TARS=run
 
 #
 # REALLY cannot run both phases at once. The API pull takes days and exits immediately with nohup set:
@@ -67,8 +73,14 @@ if [ "${QC_CHECK}" == "run" ] || \
    [ "${BQ_PREP_CASES}" == "run" ] || \
    [ "${BQ_PREP_OTHER}" == "run" ] || \
    [ "${RAW_SCHEMA_CHECK}" == "run" ] || \
+   [ "${BUILD_NORM_TSVS}" == "run" ] || \
+   [ "${COMPARE_TO_LAST}" == "run" ] || \
+   [ "${DETAILED_DIFFS}" == "run" ] || \
    [ "${COPY_ANNOT_SCHEMA}" == "run" ] || \
-   [ "${LOAD_BQ}" == "run" ]; then
+   [ "${LOAD_BQ}" == "run" ] || \
+   [ "${DESC_AND_LABELS}" == "run" ] || \
+   [ "${PUBLISH_TABLES}" == "run" ] || \
+   [ "${ARCHIVE_TARS}" == "run" ]; then
     PHASE_2=true
 fi
 
@@ -96,13 +108,17 @@ fi
 #
 
 if [ "${API_PULL_LEGACY}" == "run" ]; then
+    source ~/pyVenvForTwo/bin/activate
     cd ${REL_ROOT}/${RELNAME}-legacy
     run_try_legacy.sh
+    deactivate
 fi
 
 if [ "${API_PULL_CURRENT}" == "run" ]; then
+    source ~/pyVenvForTwo/bin/activate
     cd ${REL_ROOT}/${RELNAME}-current
     run_try_active.sh
+    deactivate
 fi
 
 if [ "${API_PULL_CURRENT}" == "run" ] || [ "${API_PULL_LEGACY}" == "run" ]; then
@@ -230,8 +246,8 @@ fi
 if [ "${QC_CHECK}" == "run" ]; then
     echo "Running QC_CHECK"
     cd ${REL_ROOT}/${RELNAME}-legacy
-    missing_data.sh > missingCases.txt
-    MISSING_CASE_SIZE=`cat missingCases.txt | wc -l`
+    missing_data.sh > ../scratch/missingCases.txt
+    MISSING_CASE_SIZE=`cat ../scratch/missingCases.txt | wc -l`
     if [ ${MISSING_CASE_SIZE} -ne 0 ]; then
         echo "ERROR: Missing files for ${MISSING_CASE_SIZE} cases"
         exit
@@ -342,7 +358,6 @@ if [ "${BQ_PREP_CASES}" == "run" ]; then
     just_case.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${RELNAME} ${SCRATCH_DIR} \
                  ${CURRENT_CUT} ${LEGACY_CUT} ${CURRENT_COUNT_COL} ${LEGACY_COUNT_COL}
 
-
 fi
 
 #
@@ -351,6 +366,7 @@ fi
 
 if [ "${BQ_PREP_OTHER}" == "run" ]; then
     echo "Running BQ_PREP_OTHER"
+    source ~/pyVenvForTwo/bin/activate
     cd ${REL_ROOT}/${RELNAME}-forBQ
     CURRENT_CASE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-current/current_case_api_hex.txt`
     LEGACY_CASE_API_HEX=`cat ${REL_ROOT}/${RELNAME}-legacy/legacy_case_api_hex.txt`
@@ -358,6 +374,7 @@ if [ "${BQ_PREP_OTHER}" == "run" ]; then
     DITCH_LIST=`cat ${REL_ROOT}/${RELNAME}-current/current_skip_error_type_cols.txt`
     proc_release_tables.sh ${CURRENT_CASE_API_HEX} ${LEGACY_CASE_API_HEX} ${LEGACY_FILE_API_HEX} \
                            ${RELNAME} ${SCRATCH_DIR} ${DITCH_LIST}
+    deactivate
 fi
 
 #
@@ -399,19 +416,108 @@ if [ "${RAW_SCHEMA_CHECK}" == "run" ]; then
 fi
 
 #
-# If the raw schemas are all good, we can swap in our prepared annotated versions:
+# Normalize lists. Many GDC fields are lists delimited by ";", and the order is not consistent
+# between releases. To check for real changes between releases, we want to normalize these
+# lists to be lexicographic.
+#
+
+if [ "${BUILD_NORM_TSVS}" == "run" ]; then
+    echo "Running BUILD_NORM_TSVS"
+    cd ${REL_ROOT}
+    rm -rf ${RELNAME}norm-forBQ
+    rm -rf ${PREV_RELNAME}norm-forBQ
+    mkdir -p ${RELNAME}norm-forBQ
+    mkdir -p ${PREV_RELNAME}norm-forBQ
+    source ~/pyVenvForThree/bin/activate
+
+    python scripts/multiNormalize.py ${RELNAME}-forBQ/caseData.merge.t1 ${RELNAME}norm-forBQ/caseData.merge.t1
+    python scripts/multiNormalize.py ${RELNAME}-forBQ/aliqMap.merge.t1 ${RELNAME}norm-forBQ/aliqMap.merge.t1
+    python scripts/multiNormalize.py ${RELNAME}-forBQ/slidMap.merge.t1 ${RELNAME}norm-forBQ/slidMap.merge.t1
+    python scripts/multiNormalize.py ${RELNAME}-forBQ/fileData.current.t1 ${RELNAME}norm-forBQ/fileData.current.t1
+    python scripts/multiNormalize.py ${RELNAME}-forBQ/fileData.legacy.t1 ${RELNAME}norm-forBQ/fileData.legacy.t1
+
+    python scripts/multiNormalize.py ${PREV_RELNAME}-forBQ/caseData.merge.t1 ${PREV_RELNAME}norm-forBQ/caseData.merge.t1
+    python scripts/multiNormalize.py ${PREV_RELNAME}-forBQ/aliqMap.merge.t1 ${PREV_RELNAME}norm-forBQ/aliqMap.merge.t1
+    python scripts/multiNormalize.py ${PREV_RELNAME}-forBQ/slidMap.merge.t1 ${PREV_RELNAME}norm-forBQ/slidMap.merge.t1
+    python scripts/multiNormalize.py ${PREV_RELNAME}-forBQ/fileData.current.t1 ${PREV_RELNAME}norm-forBQ/fileData.current.t1
+    python scripts/multiNormalize.py ${PREV_RELNAME}-forBQ/fileData.legacy.t1 ${PREV_RELNAME}norm-forBQ/fileData.legacy.t1
+
+    deactivate
+fi
+
+#
+# Run the compare program to find the differences
+#
+
+if [ "${COMPARE_TO_LAST}" == "run" ]; then
+    echo "Running COMPARE_TO_LAST"
+    cd ${REL_ROOT}
+    compare_to_last.sh ${REL_ROOT} ${RELNAME}norm ${PREV_RELNAME}norm
+fi
+
+#
+# Take the above differences that were found and drill down to find out more:
+#
+
+if [ "${DETAILED_DIFFS}" == "run" ]; then
+    echo "Running DETAILED_DIFFS"
+    cd ${REL_ROOT}
+    source ~/pyVenvForThree/bin/activate
+
+    python3 scripts/columnChanges.py changed_aliquot.txt ${REL_ROOT} scratch \
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 14 "silent"
+
+    python3 scripts/columnChanges.py changed_slide.txt ${REL_ROOT} scratch \
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 10 "silent"
+
+    python3 scripts/columnChanges.py changed_caseData.txt ${REL_ROOT} scratch \
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 0 "silent"
+
+    python3 scripts/columnChanges.py changed_currentFiles.txt ${REL_ROOT} scratch \
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 1 "silent"
+
+    python3 scripts/columnChanges.py changed_legacyFiles.txt ${REL_ROOT} scratch \
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 1 "silent"
+    deactivate
+fi
+
+
+#
+# If the raw schemas are all good, we can swap in the prepared schemas, descriptions, and labels from our BQEcosystem repo:
 #
 
 if [ "${COPY_ANNOT_SCHEMA}" == "run" ]; then
     echo "Running COPY_ANNOT_SCHEMA"
+    source ~/pyVenvForThree/bin/activate
+    cd ~
+    rm -rf ~/BQEcosystem
+    git clone https://github.com/isb-cgc/BQEcosystem.git
+
     cd ${REL_ROOT}/${RELNAME}-forBQ
     SCH_DATE=`date +%d%b%Y | tr A-Z a-z`
     echo ${SCH_DATE} > current_schema_date.txt
-    cp ${REL_ROOT}/textFiles/aliqMap.annotSchema.json aliqMap.${SCH_DATE}.json
-    cp ${REL_ROOT}/textFiles/caseData.annotSchema.json caseData.${SCH_DATE}.json
-    cp ${REL_ROOT}/textFiles/fileData.current.annotSchema.json fileData.current.${SCH_DATE}.json
-    cp ${REL_ROOT}/textFiles/fileData.legacy.annotSchema.json fileData.legacy.${SCH_DATE}.json
-    cp ${REL_ROOT}/textFiles/slidMap.annotSchema.json slidMap.${SCH_DATE}.json
+
+    python ../scripts/generateTableDetails.py \
+      ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_aliquot2caseIDmap.json aliq_bqe
+    mv aliq_bqe_schema.json aliqMap.${SCH_DATE}.json
+
+    python ../scripts/generateTableDetails.py \
+      ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json case_bqe
+    mv case_bqe_schema.json caseData.${SCH_DATE}.json
+
+    python ../scripts/generateTableDetails.py \
+      ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_active.json file_current_bqe
+    mv file_current_bqe_schema.json fileData.current.${SCH_DATE}.json
+
+    python ../scripts/generateTableDetails.py \
+      ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_legacy.json file_legacy_bqe
+    mv file_legacy_bqe_schema.json fileData.legacy.${SCH_DATE}.json
+
+    python ../scripts/generateTableDetails.py \
+      ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_slide2caseIDmap.json slide_bqe
+    mv slide_bqe_schema.json slidMap.${SCH_DATE}.json
+
+    deactivate
 fi
 
 #
@@ -422,5 +528,55 @@ if [ "${LOAD_BQ}" == "run" ]; then
     echo "Running LOAD_BQ"
     cd ${REL_ROOT}/${RELNAME}-forBQ
     SCHEMA_DATE=`cat current_schema_date.txt`
-    just_loadBQ.sh ${SCHEMA_DATE} ${RELNAME} ${BUCK_TARGET} ${DATASET}
+    just_loadBQ.sh ${SCHEMA_DATE} ${RELNAME} ${BUCK_TARGET} ${PROJ_AND_DATASET}
+fi
+
+#
+# Install table descriptions and labels extracted from the BQEcosystem repo:
+#
+
+if [ "${DESC_AND_LABELS}" == "run" ]; then
+    echo "Running DESC_AND_LABELS"
+    source ~/pyVenvForThree/bin/activate
+    cd ${REL_ROOT}/${RELNAME}-forBQ
+    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_slide2caseIDmap slide_bqe
+    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_aliquot2caseIDmap aliq_bqe
+    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_caseData case_bqe
+    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_legacy file_legacy_bqe
+    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_current file_current_bqe
+    deactivate
+fi
+
+
+#
+# Install table descriptions and labels extracted from the BQEcosystem repo:
+#
+
+if [ "${PUBLISH_TABLES}" == "run" ]; then
+    echo "Running PUBLISH_TABLES"
+    source ~/pyVenvForThree/bin/activate
+    cd ${REL_ROOT}/${RELNAME}-forBQ
+    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_slide2caseIDmap \
+                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_slide2caseIDmap
+    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_aliquot2caseIDmap \
+                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_aliquot2caseIDmap
+    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_caseData \
+                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_caseData
+    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_fileData_legacy \
+                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_fileData_legacy
+    # Note what we call "current" is now being called "active" in the published table:
+    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_fileData_current \
+                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_fileData_active
+    deactivate
+fi
+
+#
+# Get all the data from the run archived as a compressed tar file up in a google bucket:
+#
+
+if [ "${ARCHIVE_TARS}" == "run" ]; then
+    echo "Running ARCHIVE_TARS"
+    cd ${REL_ROOT}
+    tar cvzf tar-archive-${RELNAME}.tgz ${RELNAME}-current ${RELNAME}-legacy ${RELNAME}-forBQ
+    gsutil cp tar-archive-${RELNAME}.tgz ${TAR_TARGET}
 fi

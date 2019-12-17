@@ -16,10 +16,23 @@
 
 # Set to a release tag (e.g. rel18)
 RELNAME=relXX
+# Set to previous release if doing comparisons of release changes
+PREV_RELNAME=relXXminusOne
 # Where TSV files get written on the way to BQ tables:
 BUCK_TARGET=gs://your-bucket-name-here/etl/${RELNAME}
+# Where the BQ data set lives (dataset_name)
+DATASET=your_dataset_name
 # Where the BQ data set lives (project:dataset_name)
-DATASET=your-etl-project:your_dataset_name
+PROJ_AND_DATASET=your-etl-project:${DATASET}
+# Where do we store the compressed tar file of the extracted data:
+TAR_TARGET=gs://your-bucket-name-here/metatars/${RELNAME}
+# The release ID in BQ Schema repo (might be different than RELNAME):
+BQ_SCHEMA_RELNAME=relXX
+# The published release ID (might be different than RELNAME):
+PUB_RELNAME=relXX
+# The publication location:
+PUBLISH_PROJ_AND_DATASET_AND_REL=your-publish-project.your-publish-dataset.${PUB_RELNAME}
+
 
 #
 # These have been stable for many releases, so we expect them to stay the
@@ -66,6 +79,11 @@ GEN_CUT_LISTS=skip
 BQ_PREP_CASES=skip
 BQ_PREP_OTHER=skip
 RAW_SCHEMA_CHECK=skip
+BUILD_NORM_TSVS=skip
+COMPARE_TO_LAST=skip
+DETAILED_DIFFS=skip
 COPY_ANNOT_SCHEMA=skip
 LOAD_BQ=skip
+PUBLISH_TABLES=skip
+ARCHIVE_TARS=skip
 
