@@ -1,0 +1,58 @@
+#
+# YAML Configuration file used for script build_dcf_manfest_bq_tables.py
+# Builds BQ tables for legacy and active DCF manifests, then creates pared-down
+# UUID to gs URL mapping BQ tables.
+#
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What bucket holds the tsv files we will use to build the BQ tables?
+  WORKING_BUCKET: your_working_bucket_name
+
+  # The tsv files:
+  ACTIVE_MANIFEST_TSV: Your_Active_Manifest_For_Release.tsv
+  LEGACY_MANIFEST_TSV: Your_Legacy_Manifest_For_Release.tsv
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_name
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # BQ tables for file maps:
+
+  ACTIVE_FILE_MAP_BQ: Your_Active_File_Map_Table_For_Release
+  LEGACY_FILE_MAP_BQ: Your_Legacy_File_Map_Table_For_Release
+
+  # BQ tables for manifest:
+
+  ACTIVE_MANIFEST_BQ: Your_Active_Manifest_Table_For_Release
+  LEGACY_MANIFEST_BQ: Your_Legacy_Manifest_Table_For_Release
+
+  # Which tables do we build?
+
+  DO_ACTIVE: True
+  DO_LEGACY: True
+
+  # Manifest table description:
+  DCF_MANIFEST_TABLE_DESCRIPTION: Table holding the DCF manifest for a specific active/legacy release.
+
+  # File map table description:
+  FILE_MAP_TABLE_DESCRIPTION: Table holding the UUID to gs URL mapping for a specific active/legacy release.
+
+# Note that although the steps are given in the actual order here as
+# a list, changing the order here does not change the order of execution, which is fixed.
+
+steps:
+
+  # Build the manifest tables from the imported tsvs:
+  - create_bq_manifest_from_tsv
+
+  # Build the file map bq tables from the manifest:
+  - create_file_map_bq
+
+  # Add a table description:
+  - add_table_descriptions
