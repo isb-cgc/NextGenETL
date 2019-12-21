@@ -179,7 +179,7 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
 
     terms = []
     for pair in filter_list:
-        for key_vals in pair.items:
+        for key_vals in pair.items():
             terms.append('a.{} = "{}"'.format(key_vals[0], key_vals[1]))
 
     filter_term = " OR ".join(terms)
