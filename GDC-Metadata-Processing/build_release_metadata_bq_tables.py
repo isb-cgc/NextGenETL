@@ -729,7 +729,7 @@ def do_dataset_and_build(steps, build, build_tag, dataset, params):
         union_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['TARGET_DATASET'], 
                                         "{}_{}_{}".format(dataset, build, params['UNION_TABLE']))        
-        success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], build),
+        success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], build_tag),
                                params['TARGET_DATASET'], 
                                "{}_{}_{}".format(dataset, build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
         if not success:
