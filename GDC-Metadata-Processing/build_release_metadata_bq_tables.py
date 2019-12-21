@@ -166,16 +166,36 @@ def extract_program_names_sql(release_table):
 ----------------------------------------------------------------------------------------------
 BAM and VCF extraction: BAMS, simple somatic, and annotated somatic VCFs in the target table
 '''
-def extract_aligned_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+def extract_aligned_file_data(release_table, program_name, target_dataset, filter_list, dest_table, do_batch):
 
-    sql = extract_alignment_file_data_sql(release_table, program_name)
+    sql = extract_alignment_file_data_sql(release_table, program_name, filter_list)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def extract_alignment_file_data_sql(release_table, program_name):
+def extract_alignment_file_data_sql(release_table, program_name, filter_list):
+
+    terms = []
+    for pair in filter_list:
+        for key_vals in pair.items:
+            terms.append('a.{} = "{}"'.format(key_vals[0], key_vals[1]))
+
+    filter_term = " OR ".join(terms)
+
+    # (a.file_type = "copy_number_segment"
+    # OR
+    # a.file_type = "gene_expression"
+    # OR
+    # a.file_type = "methylation_beta_value"
+    # OR
+    # # CGCI has null aliquot IDS for gene_expression type:
+    # a.file_type = "mirna_expression" )  # AND
+    # # ( a.associated_entities__entity_type ="aliquot" )
+
+
+
     return '''
         SELECT 
             a.file_id as file_gdc_id,
@@ -212,103 +232,12 @@ def extract_alignment_file_data_sql(release_table, program_name):
               #( ( a.file_type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
               #  ( a.file_type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR
               #  ( a.file_type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
-              ( a.file_type = "simple_somatic_mutation" OR
-                a.file_type = "annotated_somatic_mutation" OR
-                a.file_type = "aligned_reads" ) AND
-              ( a.associated_entities__entity_type ="aliquot" )
-        '''.format(release_table, program_name)
-
-'''
-----------------------------------------------------------------------------------------------
-Various other files
-'''
-def extract_other_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
-
-    sql = extract_legacy_target_file_data_sql(release_table, program_name)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above:
-'''
-def extract_other_file_data_sql(release_table, program_name):
-    return '''
-        SELECT
-            a.file_id as file_gdc_id,
-            a.case_gdc_id,
-            # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
-            # no matter what it is...
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
-                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
-              ELSE a.associated_entities__entity_gdc_id
-            END as aliquot_id,
-            a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
-            a.program_name, # TCGA
-            a.experimental_strategy as data_type,
-            a.data_category,
-            a.experimental_strategy,
-            a.file_type,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            CAST(null AS STRING) as file_name_key,
-            a.index_file_gdc_id as index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            a.index_file_size,
-            a.access,
-            a.acl
-        FROM `{0}` AS a
-        WHERE ( a.program_name = '{1}' ) AND
-              ( a.file_type = "copy_number_segment" OR
-                a.file_type = "gene_expression" OR
-                a.file_type = "methylation_beta_value" OR
-                # CGCI has null aliquot IDS for gene_expression type:
-                a.file_type = "mirna_expression" ) # AND
-              # ( a.associated_entities__entity_type ="aliquot" )
-        '''.format(release_table, program_name)
-
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above:
-'''
-def extract_legacy_target_file_data_sql(release_table, program_name):
-    return '''
-        SELECT
-            a.file_id as file_gdc_id,
-            a.case_gdc_id,
-            # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
-            # no matter what it is...
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
-                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
-                 ELSE a.associated_entities__entity_gdc_id
-            END as aliquot_id,
-            a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
-            a.program_name, # TCGA
-            a.experimental_strategy as data_type,
-            a.data_category,
-            a.experimental_strategy,
-            a.file_type,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            CAST(null AS STRING) as file_name_key,
-            a.index_file_gdc_id as index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            a.index_file_size,
-            a.access,
-            a.acl
-        FROM `{0}` AS a
-        WHERE ( a.program_name = '{1}' ) AND
-              ( a.data_category = "Raw sequencing data" OR
-                a.data_type = "Aligned reads" OR
-                a.data_type = "Unaligned reads" )
-        '''.format(release_table, program_name)
-
+              #( a.file_type = "simple_somatic_mutation" OR
+              #  a.file_type = "annotated_somatic_mutation" OR
+              #  a.file_type = "aligned_reads" ) AND
+              #( a.associated_entities__entity_type ="aliquot" )
+              ({2}) )
+        '''.format(release_table, program_name, filter_term)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -544,9 +473,9 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
 ----------------------------------------------------------------------------------------------
 Glue different tables together:
 '''
-def build_union(slide_table, align_table, clin_table, other_table, target_dataset, dest_table, do_batch):
+def build_union(table_list, target_dataset, dest_table, do_batch):
 
-    sql = union_sql(slide_table, align_table, clin_table, other_table)
+    sql = union_sql(table_list)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 
@@ -554,16 +483,12 @@ def build_union(slide_table, align_table, clin_table, other_table, target_datase
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def union_sql(slide_table, align_table, clin_table, other_table):
-    return '''
-        SELECT * FROM `{0}`
-        UNION ALL
-        SELECT * FROM `{1}`
-        UNION ALL
-        SELECT * FROM `{2}`
-        UNION ALL
-        SELECT * FROM `{3}`
-        '''.format(slide_table, align_table, clin_table, other_table)
+def union_sql(table_list):
+    terms = []
+    for table in table_list:
+        terms.append("SELECT * FROM `{0}`".format(table))
+    filter_term = " UNION ALL ".join(terms)
+    return filter_term
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -637,7 +562,9 @@ def install_uris_sql(union_table, mapping_table):
 ----------------------------------------------------------------------------------------------
 Do all the steps for a given dataset and build
 '''
-def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
+
+
+def do_dataset_and_build(steps, build, build_tag, path_tag, filter_list, dataset, params):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
     
@@ -660,13 +587,12 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
     if 'pull_align' in steps:
         step_one_table = "{}_{}_{}".format(dataset, build, params['ALIGN_STEP_1_TABLE'])
         table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_one_table))
-        success = extract_aligned_file_data(file_table, dataset, params['TARGET_DATASET'], 
+        success = extract_aligned_file_data(file_table, dataset, filter_list, params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])        
         if not success:
             print("{} {} pull_align job failed".format(dataset, build))
             return False    
 
-        
     if 'pull_clinbio' in steps:
         step_one_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE'])
         table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_one_table))
@@ -676,15 +602,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
             print("{} {} pull_clinbio job failed".format(dataset, build))
             return False
 
-    if 'pull_other' in steps:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_STEP_1_TABLE'])
-        table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_one_table))
-        success = extract_other_file_data(file_table, dataset, params['TARGET_DATASET'],
-                                            step_one_table, params['BQ_AS_BATCH'])
-        if not success:
-            print("{} {} pull_other job failed".format(dataset, build))
-            return False
-        
     if 'slide_barcodes' in steps:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                      params['TARGET_DATASET'], 
@@ -712,20 +629,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
             print("{} {} align_barcodes job failed".format(dataset, build))
             return False
 
-    if 'other_barcodes' in steps:
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                     params['TARGET_DATASET'],
-                                     "{}_{}_{}".format(dataset, build, params['OTHER_STEP_1_TABLE']))
-        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_STEP_2_TABLE'])
-        table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_two_table))
-        success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
-                                           step_two_table, params['BQ_AS_BATCH'])
-
-        if not success:
-            print("{} {} align_barcodes job failed".format(dataset, build))
-            return False
-
-        
     if 'clinbio_barcodes' in steps:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                      params['TARGET_DATASET'], 
@@ -741,31 +644,28 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
             return False                 
         
     if 'union_tables' in steps:
-        slide_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                        params['TARGET_DATASET'], 
-                                        "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_2_TABLE']))
-        align_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                        params['TARGET_DATASET'], 
-                                        "{}_{}_{}".format(dataset, build, params['ALIGN_STEP_2_TABLE']))
-        clinbio_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                          params['TARGET_DATASET'], 
-                                          "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_2_TABLE']))
-        other_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+        slide_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                         params['TARGET_DATASET'],
-                                        "{}_{}_{}".format(dataset, build, params['OTHER_STEP_2_TABLE']))
-
+                                        "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_2_TABLE']))
+        align_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                        params['TARGET_DATASET'],
+                                        "{}_{}_{}".format(dataset, build, params['ALIGN_STEP_2_TABLE']))
+        clinbio_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                          params['TARGET_DATASET'],
+                                          "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_2_TABLE']))
+        table_list = [slide_table, align_table, clinbio_table]
 
         union_table = "{}_{}_{}".format(dataset, build, params['UNION_TABLE'])
         table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], union_table))
-        success = build_union(slide_table, align_table, clinbio_table, other_table,
+        success = build_union(table_list,
                               params['TARGET_DATASET'], union_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} union_tables job failed".format(dataset, build))
             return False
-   
-    #
+
+
     # Merge the barcode info into the final table we are building:
-    #
+
 
     if 'create_final_table' in steps:
         union_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
@@ -784,8 +684,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params):
 
     if 'dump_working_tables' in steps:
         dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
-                           'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
-                           'OTHER_STEP_1_TABLE', 'OTHER_STEP_2_TABLE']
+                           'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE']
         dump_tables = ["{}_{}_{}".format(dataset, build, params[x]) for x in dump_table_tags]
         for table in dump_tables:
             delete_table_bq_job(params['TARGET_DATASET'], table)
@@ -826,11 +725,7 @@ def main(args):
         print("Bad YAML load")
         return
 
-    count = 0
-    for build in builds:
-        build_tag = build_tags[count]
-        path_tag = path_tags[count]
-        count += 1
+    for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
         datasets = programs
         if len(datasets) == 0:
@@ -839,9 +734,9 @@ def main(args):
             filter_list = filter_sets[dataset][build_tag]
             print(filter_list)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
-            #ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params)
-            #if not ok:
-            #    return
+            ok = do_dataset_and_build(steps, build, build_tag, path_tag, filter_list, dataset, params)
+            if not ok:
+                return
             
     print('job completed')
 
