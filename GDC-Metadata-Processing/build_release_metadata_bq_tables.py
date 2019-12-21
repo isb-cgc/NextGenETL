@@ -212,12 +212,16 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
               ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id,
             a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            # Some names have two hyphens, not just one:
+            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z0-9]+-([A-Z]+$)-[A-Z0-9]")
+                 ELSE (a.data_type = "Raw Simple Somatic Mutation")
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
+            END as a.disease_code, # OV
             a.program_name, # TCGA
-            #CASE WHEN (a.data_type = "Annotated Somatic Mutation") OR (a.data_type = "Raw Simple Somatic Mutation")
-            #     THEN "WXS" 
-            #  ELSE a.data_type
-            a.experimental_strategy as data_type,
+            # TARGET LEGACY needs this ditched:
+            # a.experimental_strategy as data_type,
+            a.data_type
             a.data_category,
             a.experimental_strategy,
             a.file_type,
@@ -231,16 +235,7 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.program_name = '{1}' ) AND
-              # Do not restrict file type:
-              #( ( a.file_type = "simple_somatic_mutation" AND a.data_format = "VCF" ) OR
-              #  ( a.file_type = "annotated_somatic_mutation" AND a.data_format = "VCF" ) OR
-              #  ( a.file_type = "aligned_reads" AND a.data_format = "BAM" ) ) AND
-              #( a.file_type = "simple_somatic_mutation" OR
-              #  a.file_type = "annotated_somatic_mutation" OR
-              #  a.file_type = "aligned_reads" ) AND
-              #( a.associated_entities__entity_type ="aliquot" )
-              ({2})
+        WHERE ( a.program_name = '{1}' ) AND ( {2} )
         '''.format(release_table, program_name, filter_term)
 
 '''
