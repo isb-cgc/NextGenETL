@@ -239,7 +239,7 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
               #  a.file_type = "annotated_somatic_mutation" OR
               #  a.file_type = "aligned_reads" ) AND
               #( a.associated_entities__entity_type ="aliquot" )
-              ({2}) )
+              ({2})
         '''.format(release_table, program_name, filter_term)
 
 '''
