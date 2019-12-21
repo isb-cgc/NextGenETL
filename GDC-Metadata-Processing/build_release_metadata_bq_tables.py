@@ -214,10 +214,10 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
             a.project_short_name, # TCGA-OV
             # Some names have two hyphens, not just one:
             CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)-[A-Z0-9]")
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
                  ELSE
                    REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
-            END as a.disease_code, # OV
+            END as disease_code, # OV
             a.program_name, # TCGA
             # TARGET LEGACY needs this ditched:
             # a.experimental_strategy as data_type,
