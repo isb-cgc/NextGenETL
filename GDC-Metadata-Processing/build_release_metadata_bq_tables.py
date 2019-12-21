@@ -166,7 +166,7 @@ def extract_program_names_sql(release_table):
 ----------------------------------------------------------------------------------------------
 BAM and VCF extraction: BAMS, simple somatic, and annotated somatic VCFs in the target table
 '''
-def extract_aligned_file_data(release_table, program_name, target_dataset, filter_list, dest_table, do_batch):
+def extract_aligned_file_data(release_table, program_name, filter_list, target_dataset, dest_table, do_batch):
 
     sql = extract_alignment_file_data_sql(release_table, program_name, filter_list)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
