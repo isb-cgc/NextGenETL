@@ -221,7 +221,7 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
             a.program_name, # TCGA
             # TARGET LEGACY needs this ditched:
             # a.experimental_strategy as data_type,
-            a.data_type
+            a.data_type,
             a.data_category,
             a.experimental_strategy,
             a.file_type,
