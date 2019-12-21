@@ -836,7 +836,7 @@ def main(args):
         if len(datasets) == 0:
             datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
         for dataset in datasets:
-            filter_list = filter_sets[dataset][build]
+            filter_list = filter_sets[dataset][build_tag]
             print(filter_list)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
             #ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params)
