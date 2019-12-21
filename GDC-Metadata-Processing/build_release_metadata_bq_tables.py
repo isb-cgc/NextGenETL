@@ -223,7 +223,7 @@ Various other files
 '''
 def extract_other_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_other_file_data_sql(release_table, program_name)
+    sql = extract_legacy_target_file_data_sql(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -267,6 +267,47 @@ def extract_other_file_data_sql(release_table, program_name):
                 a.file_type = "mirna_expression" ) # AND
               # ( a.associated_entities__entity_type ="aliquot" )
         '''.format(release_table, program_name)
+
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above:
+'''
+def extract_legacy_target_file_data_sql(release_table, program_name):
+    return '''
+        SELECT
+            a.file_id as file_gdc_id,
+            a.case_gdc_id,
+            # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
+            # no matter what it is...
+            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+              ELSE a.associated_entities__entity_gdc_id
+            END as aliquot_id,
+            a.project_short_name, # TCGA-OV
+            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            a.program_name, # TCGA
+            a.experimental_strategy as data_type,
+            a.data_category,
+            a.experimental_strategy,
+            a.file_type,
+            a.file_size,
+            a.data_format,
+            a.platform,
+            CAST(null AS STRING) as file_name_key,
+            a.index_file_gdc_id as index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            a.index_file_size,
+            a.access,
+            a.acl
+        FROM `{0}` AS a
+        WHERE ( a.program_name = '{1}' ) AND
+              ( a.data_category = "Raw sequencing data" OR
+                a.data_type = "Aligned reads" OR
+                a.data_type = "Unaligned reads" )
+        '''.format(release_table, program_name)
+
 
 '''
 ----------------------------------------------------------------------------------------------
