@@ -135,7 +135,7 @@ def load_config(yaml_config):
         return None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], 
-            yaml_dict['builds'], yaml_dict['build_tags'])
+            yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['programs'])
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -538,7 +538,7 @@ def install_uris(union_table, mapping_table, target_dataset, dest_table, do_batc
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def install_uris_sql(union_table, mapping_table):    
+def install_uris_sql(union_table, mapping_table):
     return '''
         WITH a1 as (
         SELECT
@@ -729,7 +729,7 @@ def do_dataset_and_build(steps, build, build_tag, dataset, params):
         union_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['TARGET_DATASET'], 
                                         "{}_{}_{}".format(dataset, build, params['UNION_TABLE']))        
-        success = install_uris(union_table, params['UUID_2_URL_TABLE'], 
+        success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], build),
                                params['TARGET_DATASET'], 
                                "{}_{}_{}".format(dataset, build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
         if not success:
@@ -778,7 +778,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags = load_config(yaml_file.read())
+        params, steps, builds, build_tags, programs = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -789,9 +789,9 @@ def main(args):
         build_tag = build_tags[count]
         count += 1
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
-        #datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
-        datasets = []
-        datasets.append("TARGET")
+        datasets = programs
+        if len(datasets) == 0:
+            datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
         for dataset in datasets:
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))  
             ok = do_dataset_and_build(steps, build, build_tag, dataset, params)
