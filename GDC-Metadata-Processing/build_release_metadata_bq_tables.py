@@ -132,10 +132,11 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None
+        return None, None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], 
-            yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'], yaml_dict['programs'])
+            yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
+            yaml_dict['programs'], yaml_dict['filter_sets'])
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -283,7 +284,7 @@ def extract_legacy_target_file_data_sql(release_table, program_name):
             CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
                                      r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
-              ELSE a.associated_entities__entity_gdc_id
+                 ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id,
             a.project_short_name, # TCGA-OV
             REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
@@ -819,7 +820,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags, path_tags, programs = load_config(yaml_file.read())
+        params, steps, builds, build_tags, path_tags, programs, filter_sets = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -835,10 +836,12 @@ def main(args):
         if len(datasets) == 0:
             datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
         for dataset in datasets:
+            filter_list = filter_sets[dataset][build]
+            print(filter_list)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
-            ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params)
-            if not ok:
-                return
+            #ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset, params)
+            #if not ok:
+            #    return
             
     print('job completed')
 
