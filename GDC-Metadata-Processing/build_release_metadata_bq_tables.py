@@ -267,7 +267,7 @@ def extract_file_data_sql_slides(release_table, program_name):
             END as data_type,
             a.data_category,
             CAST(null AS STRING) as experimental_strategy,
-            a.file_type as type_,
+            a.file_type as typeai,
             a.file_size,
             a.data_format,
             a.platform,
@@ -280,7 +280,7 @@ def extract_file_data_sql_slides(release_table, program_name):
         FROM `{0}` AS a
         # Do not restrict type
         # WHERE a.program_name = '{1}' AND ( a.`type` = "slide_image" AND a.data_format = "SVS" )
-        WHERE a.program_name = '{1}' AND type_ = "slide_image"
+        WHERE a.program_name = '{1}' AND typeai = "slide_image"
         '''.format(release_table, program_name)
 
 '''
