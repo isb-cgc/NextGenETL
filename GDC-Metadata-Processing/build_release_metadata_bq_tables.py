@@ -258,7 +258,12 @@ def extract_file_data_sql_slides(release_table, program_name):
             a.case_gdc_id,
             a.associated_entities__entity_gdc_id as slide_id,
             a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            # Some names have two hyphens, not just one:
+            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
+                 ELSE
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
+            END as disease_code, # OV
             a.program_name, # TCGA
             CASE WHEN (a.experimental_strategy = "Diagnostic Slide") 
                  THEN "Diagnostic image" 
@@ -303,7 +308,12 @@ def extract_file_data_sql_clinbio(release_table, program_name):
             a.case_gdc_id,
             a.associated_entities__entity_gdc_id as case_id,
             a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            # Some names have two hyphens, not just one:
+            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
+                 ELSE
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
+            END as disease_code, # OV
             a.program_name, # TCGA
             a.data_type,    
             a.data_category,
@@ -323,7 +333,7 @@ def extract_file_data_sql_clinbio(release_table, program_name):
               # Do not restrict the data format:
               #( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
               #  ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
-              ( a.`type` = "clinical_supplement" OR a.`type` = "biospecimen_supplement" ) AND
+              ( a.`type` = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # This dropping of multi-case entries makes FM table empty:
               # Armor against multiple case entries:
