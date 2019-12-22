@@ -224,7 +224,7 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.file_type as type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -267,7 +267,7 @@ def extract_file_data_sql_slides(release_table, program_name):
             END as data_type,
             a.data_category,
             CAST(null AS STRING) as experimental_strategy,
-            a.file_type,
+            a.file_type as type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -279,8 +279,8 @@ def extract_file_data_sql_slides(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         # Do not restrict type
-        # WHERE a.program_name = '{1}' AND ( a.file_type = "slide_image" AND a.data_format = "SVS" )
-        WHERE a.program_name = '{1}' AND a.file_type = "slide_image"
+        # WHERE a.program_name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
+        WHERE a.program_name = '{1}' AND a.type = "slide_image"
         '''.format(release_table, program_name)
 
 '''
@@ -308,7 +308,7 @@ def extract_file_data_sql_clinbio(release_table, program_name):
             a.data_type,    
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.file_type as type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -321,9 +321,9 @@ def extract_file_data_sql_clinbio(release_table, program_name):
         FROM `{0}` AS a
         WHERE ( a.program_name = '{1}' ) AND
               # Do not restrict the data format:
-              #( ( a.file_type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
-              #  ( a.file_type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
-              ( a.file_type = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
+              #( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
+              #  ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
+              ( a.type = "clinical_supplement" OR a.type = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # This dropping of multi-case entries makes FM table empty:
               # Armor against multiple case entries:
@@ -363,7 +363,7 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             CAST(null AS STRING) as data_type,
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -405,7 +405,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -455,7 +455,7 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -519,7 +519,7 @@ def install_uris_sql(union_table, mapping_table):
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -543,7 +543,7 @@ def install_uris_sql(union_table, mapping_table):
             a1.data_type,
             a1.data_category,
             a1.experimental_strategy,
-            a1.file_type,
+            a1.type,
             a1.file_size,
             a1.data_format,
             a1.platform,
@@ -586,7 +586,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, filter_list, dataset
     if 'pull_align' in steps:
         step_one_table = "{}_{}_{}".format(dataset, build, params['ALIGN_STEP_1_TABLE'])
         table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_one_table))
-        success = extract_aligned_file_data(file_table, dataset, filter_list, params['TARGET_DATASET'],
+        success = extract_aligned_file_data(file_table, dataset, filter_list['sequence'], params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])        
         if not success:
             print("{} {} pull_align job failed".format(dataset, build))
