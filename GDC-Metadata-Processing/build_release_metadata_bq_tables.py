@@ -280,7 +280,7 @@ def extract_file_data_sql_slides(release_table, program_name):
         FROM `{0}` AS a
         # Do not restrict type
         # WHERE a.program_name = '{1}' AND ( a.`type` = "slide_image" AND a.data_format = "SVS" )
-        WHERE a.program_name = '{1}' AND a.type = "slide_image"
+        WHERE a.program_name = '{1}' AND `a.type` = "slide_image"
         '''.format(release_table, program_name)
 
 '''
