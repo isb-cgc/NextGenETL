@@ -242,16 +242,27 @@ def extract_alignment_file_data_sql(release_table, program_name, filter_list):
 ----------------------------------------------------------------------------------------------
 Slide extraction
 '''
-def extract_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+def extract_slide_file_data(release_table, program_name, filter_list, target_dataset, dest_table, do_batch):
 
-    sql = extract_file_data_sql_slides(release_table, program_name)
+    sql = extract_file_data_sql_slides(release_table, program_name, filter_list)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def extract_file_data_sql_slides(release_table, program_name):
+def extract_file_data_sql_slides(release_table, program_name, filter_list):
+
+    terms = []
+    for pair in filter_list:
+        print(pair)
+        print(type(pair))
+
+        for key_vals in pair.items():
+            terms.append('a.{} = "{}"'.format(key_vals[0], key_vals[1]))
+
+    filter_term = " OR ".join(terms)
+
     return '''
         SELECT 
             a.file_id as file_gdc_id,
@@ -285,8 +296,8 @@ def extract_file_data_sql_slides(release_table, program_name):
         FROM `{0}` AS a
         # Do not restrict type
         # WHERE a.program_name = '{1}' AND ( a.`type` = "slide_image" AND a.data_format = "SVS" )
-        WHERE a.program_name = '{1}' AND a.file_type = "slide_image"
-        '''.format(release_table, program_name)
+        WHERE a.program_name = '{1}' AND ( {2} )
+        '''.format(release_table, program_name, filter_term)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -333,7 +344,7 @@ def extract_file_data_sql_clinbio(release_table, program_name):
               # Do not restrict the data format:
               #( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
               #  ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
-              ( a.`type` = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
+              ( a.file_type = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # This dropping of multi-case entries makes FM table empty:
               # Armor against multiple case entries:
@@ -586,7 +597,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, filter_list, dataset
     if 'pull_slides' in steps:        
         step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
         table_collection.append('{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], step_one_table))
-        success = extract_slide_file_data(file_table, dataset, params['TARGET_DATASET'], 
+        success = extract_slide_file_data(file_table, dataset, filter_list['slide'], params['TARGET_DATASET'],
                                           step_one_table, params['BQ_AS_BATCH'])
 
         if not success:
