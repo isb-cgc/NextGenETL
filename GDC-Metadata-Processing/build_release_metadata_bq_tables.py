@@ -279,8 +279,8 @@ def extract_file_data_sql_slides(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         # Do not restrict type
-        # WHERE a.program_name = '{1}' AND ( a.type = "slide_image" AND a.data_format = "SVS" )
-        WHERE a.program_name = '{1}' AND a.type = "slide_image"
+        # WHERE a.program_name = '{1}' AND ( a.`type` = "slide_image" AND a.data_format = "SVS" )
+        WHERE a.program_name = '{1}' AND a.`type` = "slide_image"
         '''.format(release_table, program_name)
 
 '''
@@ -323,7 +323,7 @@ def extract_file_data_sql_clinbio(release_table, program_name):
               # Do not restrict the data format:
               #( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
               #  ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
-              ( a.type = "clinical_supplement" OR a.type = "biospecimen_supplement" ) AND
+              ( a.`type` = "clinical_supplement" OR a.`type` = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # This dropping of multi-case entries makes FM table empty:
               # Armor against multiple case entries:
