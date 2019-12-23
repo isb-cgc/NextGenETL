@@ -197,7 +197,7 @@ def build_sql_where_clause(program_name, sql_dict):
     and_filter_list = sql_dict['and_filters'] if 'and_filters' in sql_dict else []
     and_terms = [prog_term]
     if len(or_terms) > 0:
-        and_terms.append(or_filter_term)
+        and_terms.append('( {} )'.format(or_filter_term))
     for pair in and_filter_list:
         for key_vals in pair.items():
             and_terms.append('( a.{0} {1} "{2}" )'.format(key_vals[0], key_vals[1][0], key_vals[1][1]))
