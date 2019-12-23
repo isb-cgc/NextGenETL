@@ -846,7 +846,7 @@ def main(args):
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
         datasets = programs
-        if len(datasets) == 0:
+        if datasets is None:
             datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
         for dataset in datasets:
             sql_dict = filter_sets[dataset][build_tag]
