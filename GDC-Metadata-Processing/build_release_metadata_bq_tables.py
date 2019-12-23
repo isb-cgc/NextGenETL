@@ -178,6 +178,9 @@ def extract_aligned_file_data(release_table, program_name, sql_dict, target_data
 build the total filter term:
 '''
 def build_sql_where_clause(program_name, sql_dict):
+    print("_________SLIDES_________")
+    print(sql_dict)
+
 
     or_terms = []
     or_filter_list = sql_dict['or_filters'] if 'or_filters' in sql_dict else []
