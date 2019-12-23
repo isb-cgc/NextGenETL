@@ -381,9 +381,9 @@ Various other files
 '''
 
 
-def extract_other_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+def extract_other_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
 
-    sql = extract_other_file_data_sql(release_table, program_name)
+    sql = extract_other_file_data_sql(release_table, program_name, sql_dict)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
