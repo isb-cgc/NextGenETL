@@ -264,6 +264,7 @@ Slide extraction
 def extract_slide_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
 
     sql = extract_file_data_sql_slides(release_table, program_name, sql_dict)
+    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
