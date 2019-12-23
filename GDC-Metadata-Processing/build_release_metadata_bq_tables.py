@@ -326,6 +326,7 @@ Clinical extraction (CLIN and BIO files):
 
 def extract_clinbio_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
     sql = extract_file_data_sql_clinbio(release_table, program_name, sql_dict)
+    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
