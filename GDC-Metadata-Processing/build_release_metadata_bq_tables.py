@@ -178,7 +178,7 @@ def extract_aligned_file_data(release_table, program_name, sql_dict, target_data
 build the total filter term:
 '''
 def build_sql_where_clause(program_name, sql_dict):
-    print("_________SLIDES_________")
+    print("_________BUILD_WHERE_________")
     print(sql_dict)
 
 
@@ -247,7 +247,7 @@ def extract_alignment_file_data_sql(release_table, program_name, sql_dict):
             a.program_name, # TCGA
             # Everybody except TCGA ACTIVE uses the input "data_type" for "data_type"
             # TCGA active uses the "experimental_strategy" for "data_type"
-            {0}, # The variable type term
+            {0}, # The variable type_term
             a.data_category,
             a.experimental_strategy,
             # Using a keyword for a column is bogus, but it was like this already:
@@ -322,16 +322,21 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
 ----------------------------------------------------------------------------------------------
 Clinical extraction (CLIN and BIO files):
 '''
-def extract_clinbio_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_file_data_sql_clinbio(release_table, program_name)
+
+def extract_clinbio_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
+    sql = extract_file_data_sql_clinbio(release_table, program_name, sql_dict)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def extract_file_data_sql_clinbio(release_table, program_name):
+
+
+def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
+    and_filter_term = build_sql_where_clause(program_name, sql_dict)
+
     return '''
         SELECT 
             a.file_id as file_gdc_id,
@@ -348,6 +353,7 @@ def extract_file_data_sql_clinbio(release_table, program_name):
             a.data_type,    
             a.data_category,
             a.experimental_strategy,
+            # Using a keyword for a column is bogus, but it was like this already:
             a.file_type as `type`,
             a.file_size,
             a.data_format,
@@ -360,9 +366,6 @@ def extract_file_data_sql_clinbio(release_table, program_name):
             a.acl
         FROM `{0}` AS a
         WHERE ( a.program_name = '{1}' ) AND
-              # Do not restrict the data format:
-              #( ( a.type = "clinical_supplement" AND a.data_format = "BCR XML" ) OR
-              #  ( a.type = "biospecimen_supplement" AND a.data_format = "BCR XML" ) ) AND
               ( a.file_type = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
               ( a.associated_entities__entity_type = "case" ) AND
               # This dropping of multi-case entries makes FM table empty:
@@ -370,7 +373,8 @@ def extract_file_data_sql_clinbio(release_table, program_name):
               ( a.case_gdc_id NOT LIKE "%;%" )  AND
               # Armor against multiple case entries:
               ( a.case_gdc_id != "multi" )
-        '''.format(release_table, program_name)
+        WHERE {1}
+        '''.format(release_table, and_filter_term)
 
 
 '''
@@ -686,7 +690,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
     if 'pull_clinbio' in steps and 'bioclin' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE'])
-        success = extract_clinbio_file_data(file_table, dataset, params['TARGET_DATASET'], 
+        success = extract_clinbio_file_data(file_table, dataset, sql_dict['bioclin'], params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH']) 
         if not success:
             print("{} {} pull_clinbio job failed".format(dataset, build))
@@ -756,10 +760,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
         union_table_tags = ['SLIDE_STEP_2_TABLE', 'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_2_TABLE', 'OTHER_STEP_2_TABLE']
 
         for tag in union_table_tags:
-            table_name = "{}_{}_{}".format(dataset, build, params[tag])
-            if bq_table_exists(params['TARGET_DATASET'], table_name):
-                full_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
-                table_list.append(full_table)
+            if tag in params:
+                table_name = "{}_{}_{}".format(dataset, build, params[tag])
+                if bq_table_exists(params['TARGET_DATASET'], table_name):
+                    full_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
+                    table_list.append(full_table)
 
         union_table = "{}_{}_{}".format(dataset, build, params['UNION_TABLE'])
         success = build_union(table_list,
