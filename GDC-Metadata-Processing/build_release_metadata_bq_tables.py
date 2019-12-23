@@ -849,7 +849,10 @@ def main(args):
         if datasets is None:
             datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
         for dataset in datasets:
-            sql_dict = filter_sets[dataset][build_tag]
+            if dataset in filter_sets and build_tag in filter_sets[dataset]:
+                sql_dict = filter_sets[dataset][build_tag]
+            else:
+                sql_dict = {}
             print(sql_dict)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
             ok = do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, params)
