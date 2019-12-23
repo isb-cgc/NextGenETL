@@ -418,7 +418,7 @@ def extract_other_file_data_sql(release_table, program_name, sql_dict):
             {0}, # The variable type_term
             a.data_category,
             a.experimental_strategy,
-            a.file_type,
+            a.file_type as `type`,
             a.file_size,
             a.data_format,
             a.platform,
