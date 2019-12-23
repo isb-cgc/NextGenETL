@@ -366,14 +366,6 @@ def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
             a.access,
             a.acl
         FROM `{0}` AS a
-        WHERE ( a.program_name = '{1}' ) AND
-              ( a.file_type = "clinical_supplement" OR a.file_type = "biospecimen_supplement" ) AND
-              ( a.associated_entities__entity_type = "case" ) AND
-              # This dropping of multi-case entries makes FM table empty:
-              # Armor against multiple case entries:
-              ( a.case_gdc_id NOT LIKE "%;%" )  AND
-              # Armor against multiple case entries:
-              ( a.case_gdc_id != "multi" )
         WHERE {1}
         '''.format(release_table, and_filter_term)
 
