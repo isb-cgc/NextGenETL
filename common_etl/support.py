@@ -19,6 +19,7 @@ limitations under the License.
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import exceptions
+from google.cloud.exceptions import NotFound
 import shutil
 import os
 import requests
@@ -1023,7 +1024,17 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
-
+def bq_table_exists(target_dataset, dest_table):
+    """
+    Does table exist?
+    """
+    client = bigquery.Client()
+    table_ref = client.dataset(target_dataset).table(dest_table)
+    try:
+        client.get_table(table_ref)
+        return True
+    except NotFound:
+        return False
 
 def delete_table_bq_job(target_dataset, delete_table):
     client = bigquery.Client()
