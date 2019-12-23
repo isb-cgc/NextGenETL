@@ -203,8 +203,15 @@ def build_sql_where_clause(program_name, sql_dict):
             and_terms.append('( a.{0} {1} "{2}" )'.format(key_vals[0], key_vals[1][0], key_vals[1][1]))
     and_filter_term = " AND ".join(and_terms)
 
+    if 'type_term' in sql_dict:
+        type_term = sql_dict['type_term']
+        with_table = type_term.format("a")
+        full_type_term = "{0} as data_type".format(with_table)
+    else:
+        full_type_term = "a.data_type"
+
     print(and_filter_term)
-    return and_filter_term
+    return and_filter_term, full_type_term
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -212,9 +219,8 @@ SQL for above:
 '''
 def extract_alignment_file_data_sql(release_table, program_name, sql_dict):
 
-    and_filter_term = build_sql_where_clause(program_name, sql_dict)
+    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
 
-    type_term = "a.{0} as data_type".format(sql_dict['type_term']) if 'type_term' in sql_dict else 'a.data_type'
 
     # (a.file_type = "copy_number_segment"
     # OR
@@ -263,7 +269,7 @@ def extract_alignment_file_data_sql(release_table, program_name, sql_dict):
             a.acl
         FROM `{1}` AS a
         WHERE {2}
-        '''.format(type_term, release_table, and_filter_term)
+        '''.format(full_type_term, release_table, and_filter_term)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -279,9 +285,11 @@ def extract_slide_file_data(release_table, program_name, sql_dict, target_datase
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
+
+
 def extract_file_data_sql_slides(release_table, program_name, sql_dict):
 
-    and_filter_term = build_sql_where_clause(program_name, sql_dict)
+    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
 
     return '''
         SELECT 
@@ -296,11 +304,7 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
                    REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
             END as disease_code, # OV
             a.program_name, # TCGA
-            CASE WHEN (a.experimental_strategy = "Diagnostic Slide") 
-                 THEN "Diagnostic image" 
-                 WHEN (a.experimental_strategy = "Tissue Slide") 
-                 THEN "Tissue slide image" 
-            END as data_type,
+            {0}, # The variable type_term
             a.data_category,
             CAST(null AS STRING) as experimental_strategy,
             # Using a keyword for a column is bogus, but it was like this already:
@@ -314,9 +318,9 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
             CAST(null AS INT64) as index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a
-        WHERE {1}
-        '''.format(release_table, and_filter_term)
+        FROM `{1}` AS a
+        WHERE {2}
+        '''.format(full_type_term, release_table, and_filter_term)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -336,7 +340,8 @@ SQL for above:
 
 
 def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
-    and_filter_term = build_sql_where_clause(program_name, sql_dict)
+
+    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
 
     return '''
         SELECT 
@@ -351,7 +356,7 @@ def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
                    REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
             END as disease_code, # OV
             a.program_name, # TCGA
-            a.data_type,    
+            {0}, # The variable type_term
             a.data_category,
             a.experimental_strategy,
             # Using a keyword for a column is bogus, but it was like this already:
@@ -365,9 +370,9 @@ def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
             CAST(null AS INT64) as index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a
-        WHERE {1}
-        '''.format(release_table, and_filter_term)
+        FROM `{1}` AS a
+        WHERE {2}
+        '''.format(full_type_term, release_table, and_filter_term)
 
 
 '''
@@ -385,7 +390,12 @@ def extract_other_file_data(release_table, program_name, target_dataset, dest_ta
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def extract_other_file_data_sql(release_table, program_name):
+
+
+def extract_other_file_data_sql(release_table, program_name, sql_dict):
+
+    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
+
     return '''
         SELECT
             a.file_id as file_gdc_id,
@@ -398,9 +408,14 @@ def extract_other_file_data_sql(release_table, program_name):
               ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id,
             a.project_short_name, # TCGA-OV
-            REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)") as disease_code, # OV
+            # Some names have two hyphens, not just one:
+            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
+                 ELSE
+                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
+            END as disease_code, # OV
             a.program_name, # TCGA
-            a.experimental_strategy as data_type,
+            {0}, # The variable type_term
             a.data_category,
             a.experimental_strategy,
             a.file_type,
@@ -413,20 +428,16 @@ def extract_other_file_data_sql(release_table, program_name):
             a.index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a
-        WHERE ( a.program_name = '{1}' ) AND
-              ( a.file_type = "copy_number_segment" OR
-                a.file_type = "gene_expression" OR
-                a.file_type = "methylation_beta_value" OR
-                # CGCI has null aliquot IDS for gene_expression type:
-                a.file_type = "mirna_expression" ) # AND
-              # ( a.associated_entities__entity_type ="aliquot" )
-        '''.format(release_table, program_name)
+        FROM `{1}` AS a
+        WHERE {2}
+        '''.format(full_type_term, release_table, and_filter_term)
 
 '''
 ----------------------------------------------------------------------------------------------
 Get case barcodes associated with the clinical files:
 '''
+
+
 def extract_case_barcodes(release_table, aliquot_2_case_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = case_barcodes_sql(release_table, aliquot_2_case_table, program_name)
@@ -691,7 +702,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
     if 'pull_other' in steps and 'other' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, params['TARGET_DATASET'],
+        success = extract_other_file_data(file_table, dataset, sql_dict['other'], params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_other job failed".format(dataset, build))
