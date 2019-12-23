@@ -200,7 +200,7 @@ def build_sql_where_clause(program_name, sql_dict):
     for pair in and_filter_list:
         for key_vals in pair.items():
             and_terms.append('a.{0} {1} "{2}"'.format(key_vals[0], key_vals[1][0], key_vals[1][1]))
-    and_filter_term = " OR ".join(or_terms)
+    and_filter_term = " OR ".join(and_terms)
 
     print(and_filter_term)
     return and_filter_term
