@@ -413,7 +413,7 @@ def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
                                      r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
               ELSE a.associated_entities__entity_gdc_id
-            END as aliquot_id,
+            END as {3}_id,
             a.project_short_name, # TCGA-OV
             # Some names have two hyphens, not just one:
             CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
