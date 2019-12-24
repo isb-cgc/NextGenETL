@@ -317,14 +317,14 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
             CAST(null AS STRING) as index_file_name_key,
             CAST(null AS INT64) as index_file_size,
             a.access,
-            a.acl
+            a.acl,
             # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
             # we need to pull that out to get that info
             CASE WHEN (a.case_gdc_id IS NULL) THEN
                    REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9]+).[A-Z0-9]+$")
                 ELSE
                    CAST(null AS STRING)
-            END as slide_barcode,
+            END as slide_barcode
         FROM `{1}` AS a
         WHERE {2}
         '''.format(full_type_term, release_table, and_filter_term)
