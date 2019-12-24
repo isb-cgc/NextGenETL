@@ -460,9 +460,10 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             a.project_short_name,
             a.disease_code,
             a.program_name,
-            # FIXME DO WE WANT TO DROP THIS ARCHIVAL FIX???
+            # FIXME DO WE WANT TO DROP THIS ARCHIVAL FIX??? Yes...
             # Archival table had null in this slot:
-            CAST(null AS STRING) as data_type,
+            # CAST(null AS STRING) as data_type,
+            a.data_type,
             a.data_category,
             a.experimental_strategy,
             a.type,
