@@ -320,7 +320,7 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
             a.acl,
             # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
             # we need to pull that out to get that info
-            CASE WHEN (a.case_gdc_id IS NULL) THEN
+            CASE WHEN (a.associated_entities__entity_gdc_id IS NULL) THEN
                    a.file_name # REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9]+)\.[A-Z0-9]+$")
                 ELSE
                    CAST(null AS STRING)
