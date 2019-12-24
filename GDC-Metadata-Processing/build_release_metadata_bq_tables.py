@@ -775,7 +775,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
     if 'pull_other_aliquot' in steps and 'other_aliquot' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, sql_dict['other'], "aliquot", params['TARGET_DATASET'],
+        success = extract_other_file_data(file_table, dataset, sql_dict['other_aliquot'], "aliquot", params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_other job failed".format(dataset, build))
@@ -783,7 +783,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
     if 'pull_other_case' in steps and 'other_case' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, sql_dict['other'], "case", params['TARGET_DATASET'],
+        success = extract_other_file_data(file_table, dataset, sql_dict['other_case'], "case", params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_other job failed".format(dataset, build))
