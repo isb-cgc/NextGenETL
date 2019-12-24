@@ -640,7 +640,7 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             a.index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a JOIN a1 ON a.slide_id = a1.slide_gdc_id )
+        FROM `{0}` AS a JOIN a1 ON a.slide_id = a1.slide_gdc_id
         '''.format(release_table, slide_2_case_table, program_name)
 
 '''
