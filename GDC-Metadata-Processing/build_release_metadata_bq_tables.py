@@ -268,7 +268,7 @@ def extract_alignment_file_data_sql(release_table, program_name, sql_dict):
             a.access,
             a.acl
         FROM `{1}` AS a
-        WHERE {2}
+        WHERE {2} AND (a.associated_entities__entity_type = "aliquot")
         '''.format(full_type_term, release_table, and_filter_term)
 
 '''
@@ -318,6 +318,13 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
             CAST(null AS INT64) as index_file_size,
             a.access,
             a.acl
+            # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
+            # we need to pull that out to get that info
+            CASE WHEN (a.case_gdc_id IS NULL) THEN
+                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9]+).[A-Z0-9]+$")
+                ELSE
+                   CAST(null AS STRING)
+            END as slide_barcode,
         FROM `{1}` AS a
         WHERE {2}
         '''.format(full_type_term, release_table, and_filter_term)
@@ -381,9 +388,9 @@ Various other files
 '''
 
 
-def extract_other_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
+def extract_other_file_data(release_table, program_name, sql_dict, barcode, target_dataset, dest_table, do_batch):
 
-    sql = extract_other_file_data_sql(release_table, program_name, sql_dict)
+    sql = extract_other_file_data_sql(release_table, program_name, sql_dict, barcode)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -392,7 +399,7 @@ SQL for above:
 '''
 
 
-def extract_other_file_data_sql(release_table, program_name, sql_dict):
+def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
 
     and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
 
@@ -429,8 +436,8 @@ def extract_other_file_data_sql(release_table, program_name, sql_dict):
             a.access,
             a.acl
         FROM `{1}` AS a
-        WHERE {2}
-        '''.format(full_type_term, release_table, and_filter_term)
+        WHERE {2} AND (a.associated_entities__entity_type = "{3}")
+        '''.format(full_type_term, release_table, and_filter_term, barcode)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -535,7 +542,7 @@ def extract_slide_barcodes(release_table, slide_2_case_table, program_name, targ
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
+def slide_barcodes_sql_misses(release_table, slide_2_case_table, program_name):
 
     return '''
         # Some slides have two entries in the slide_2_case table if they depict two portions. Remove the dups:
@@ -569,6 +576,71 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a JOIN a1 ON a.slide_id = a1.slide_gdc_id
+        '''.format(release_table, slide_2_case_table, program_name)
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above:
+'''
+def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
+
+    return '''
+        # Some slides have two entries in the slide_2_case table if they depict two portions. Remove the dups:
+        WITH a1 as (
+        SELECT DISTINCT
+            case_barcode,
+            sample_gdc_id,
+            sample_barcode,
+            slide_gdc_id,
+            slide_barcode
+        FROM `{1}` GROUP BY case_barcode, sample_gdc_id, sample_barcode, slide_gdc_id, slide_barcode)
+        SELECT
+            a.file_gdc_id,
+            a.case_gdc_id,
+            a1.case_barcode,
+            a1.sample_gdc_id,
+            a1.sample_barcode,
+            a.project_short_name,
+            a.disease_code,
+            a.program_name,
+            a.data_type,
+            a.data_category,
+            a.experimental_strategy,
+            a.type,
+            a.file_size,
+            a.data_format,
+            a.platform,
+            a.file_name_key,
+            a.index_file_id,
+            a.index_file_name_key,
+            a.index_file_size,
+            a.access,
+            a.acl
+        FROM `{0}` AS a JOIN a1 ON a.slide_barcode = a1.slide_barcode
+        UNION DISTINCT
+        SELECT
+            a.file_gdc_id,
+            a.case_gdc_id,
+            a1.case_barcode,
+            a1.sample_gdc_id,
+            a1.sample_barcode,
+            a.project_short_name,
+            a.disease_code,
+            a.program_name,
+            a.data_type,
+            a.data_category,
+            a.experimental_strategy,
+            a.type,
+            a.file_size,
+            a.data_format,
+            a.platform,
+            a.file_name_key,
+            a.index_file_id,
+            a.index_file_name_key,
+            a.index_file_size,
+            a.access,
+            a.acl
+        FROM `{0}` AS a JOIN a1 ON a.slide_id = a1.slide_gdc_id )
         '''.format(release_table, slide_2_case_table, program_name)
 
 '''
@@ -701,13 +773,22 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} pull_clinbio job failed".format(dataset, build))
             return False
 
-    if 'pull_other' in steps and 'other' in sql_dict:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, sql_dict['other'], params['TARGET_DATASET'],
+    if 'pull_other_aliquot' in steps and 'other_aliquot' in sql_dict:
+        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_1_TABLE'])
+        success = extract_other_file_data(file_table, dataset, sql_dict['other'], "aliquot", params['TARGET_DATASET'],
                                             step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_other job failed".format(dataset, build))
             return False
+
+    if 'pull_other_case' in steps and 'other_case' in sql_dict:
+        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_1_TABLE'])
+        success = extract_other_file_data(file_table, dataset, sql_dict['other'], "case", params['TARGET_DATASET'],
+                                            step_one_table, params['BQ_AS_BATCH'])
+        if not success:
+            print("{} {} pull_other job failed".format(dataset, build))
+            return False
+
 
     if 'slide_barcodes' in steps and 'slide' in sql_dict:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
@@ -747,11 +828,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} clin_barcodes job failed".format(dataset, build))
             return False                 
 
-    if 'other_barcodes' in steps and 'other' in sql_dict:
+    if 'other_aliquot_barcodes' in steps and 'other_aliquot' in sql_dict:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                      params['TARGET_DATASET'],
-                                     "{}_{}_{}".format(dataset, build, params['OTHER_STEP_1_TABLE']))
-        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_STEP_2_TABLE'])
+                                     "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_1_TABLE']))
+        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_2_TABLE'])
         success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
                                            step_two_table, params['BQ_AS_BATCH'])
 
@@ -759,10 +840,24 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} other_barcodes job failed".format(dataset, build))
             return False
 
+    if 'other_case_barcodes' in steps and 'other_case' in sql_dict:
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                     params['TARGET_DATASET'],
+                                     "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_1_TABLE']))
+        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_2_TABLE'])
+        success = extract_case_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+                                        step_two_table, params['BQ_AS_BATCH'])
+
+        if not success:
+            print("{} {} other_barcodes job failed".format(dataset, build))
+            return False
+
+
     if 'union_tables' in steps:
         table_list = []
 
-        union_table_tags = ['SLIDE_STEP_2_TABLE', 'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_2_TABLE', 'OTHER_STEP_2_TABLE']
+        union_table_tags = ['SLIDE_STEP_2_TABLE', 'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_2_TABLE',
+                            'OTHER_CASE_STEP_2_TABLE' ,'OTHER_ALIQUOT_STEP_2_TABLE']
 
         for tag in union_table_tags:
             if tag in params:
@@ -799,7 +894,8 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
         dump_tables = []
         dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
                            'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
-                           'OTHER_STEP_1_TABLE', 'OTHER_STEP_2_TABLE', 'UNION_TABLE']
+                           'OTHER_CASE_STEP_1_TABLE', 'OTHER_CASE_STEP_2_TABLE',
+                           'OTHER_ALIQUOT_STEP_1_TABLE', 'OTHER_ALIQUOT_STEP_2_TABLE', 'UNION_TABLE']
         for tag in dump_table_tags:
             table_name = "{}_{}_{}".format(dataset, build, params[tag])
             if bq_table_exists(params['TARGET_DATASET'], table_name):
