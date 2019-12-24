@@ -192,10 +192,10 @@ def build_sql_where_clause(program_name, sql_dict):
 
     print(or_filter_term)
 
-    prog_term = "(a.program_name = '{0}')".format(program_name)
+   # prog_term = "(a.program_name = '{0}')".format(program_name)
 
     and_filter_list = sql_dict['and_filters'] if 'and_filters' in sql_dict else []
-    and_terms = [prog_term]
+    and_terms = [] #[prog_term]
     if len(or_terms) > 0:
         and_terms.append('( {} )'.format(or_filter_term))
     for pair in and_filter_list:
