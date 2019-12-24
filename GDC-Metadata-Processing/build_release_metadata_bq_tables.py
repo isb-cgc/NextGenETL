@@ -192,10 +192,14 @@ def build_sql_where_clause(program_name, sql_dict):
 
     print(or_filter_term)
 
-   # prog_term = "(a.program_name = '{0}')".format(program_name)
+    # Some legacy TCGA images don't even have a TCGA program_name! So make it optional:
+    and_terms = []
+    if program_name is not None:
+        prog_term = "(a.program_name = '{0}')".format(program_name)
+        and_terms.append(prog_term)
 
     and_filter_list = sql_dict['and_filters'] if 'and_filters' in sql_dict else []
-    and_terms = [] #[prog_term]
+
     if len(or_terms) > 0:
         and_terms.append('( {} )'.format(or_filter_term))
     for pair in and_filter_list:
@@ -289,7 +293,9 @@ SQL for above:
 
 def extract_file_data_sql_slides(release_table, program_name, sql_dict):
 
-    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
+    # 10,000+ Legacy TCGA slides have no program name! Accommodate this bogosity:
+    use_name = None if 'drop_program' in sql_dict and sql_dict['drop_program'] else program_name
+    and_filter_term, full_type_term = build_sql_where_clause(use_name, sql_dict)
 
     return '''
         SELECT 
@@ -321,7 +327,7 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
             # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
             # we need to pull that out to get that info
             CASE WHEN (a.case_gdc_id IS NULL) THEN
-                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+).+$") #REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+)\.[A-Z0-9-]+$")
+                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+).+$")
                 ELSE
                    CAST(null AS STRING)
             END as slide_barcode
