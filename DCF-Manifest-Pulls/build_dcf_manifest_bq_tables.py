@@ -155,10 +155,8 @@ def main(args):
     #
 
     if 'pull_table_info_from_git' in steps:
-        create_clean_target(params['SCHEMA_REPO_LOCAL'])
-        repo = Repo.init(params['SCHEMA_REPO_LOCAL'])
-        repo.clone(params['SCHEMA_REPO_URL'])
-        repo.git.pull('origin','master')
+        create_clean_target()
+        Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
 
     if 'process_git_schemas' in steps:
         # Where do we dump the schema git repository?
