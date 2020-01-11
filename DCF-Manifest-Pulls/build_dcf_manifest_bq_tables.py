@@ -156,7 +156,7 @@ def main(args):
 
     if 'pull_table_info_from_git' in steps:
         create_clean_target(params['SCHEMA_REPO_LOCAL'])
-        repo = Repo.init(params['SCHEMA_REPO_LOCAL'], bare=True)
+        repo = Repo.init(params['SCHEMA_REPO_LOCAL'])
         repo.clone(params['SCHEMA_REPO_URL'])
         repo.git.pull()
 
