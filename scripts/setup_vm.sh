@@ -55,6 +55,10 @@ python3 -m pip install gitpython
 python3 -m pip install python-dateutil
 deactivate
 
+# Make a place for schemas to be placed:
+
+mkdir -p ~/schemaRepo
+
 # Install Libraries From GitHub
 # We need the ISB-CGC schema builder
 

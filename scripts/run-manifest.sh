@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ./setEnvVars.sh
+source ~/setEnvVars.sh
 
 export MY_VENV=~/virtualEnvETL
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib

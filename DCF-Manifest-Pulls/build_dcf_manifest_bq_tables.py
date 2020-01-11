@@ -158,6 +158,7 @@ def main(args):
         create_clean_target(params['SCHEMA_REPO_LOCAL'])
         repo = Repo.init(params['SCHEMA_REPO_LOCAL'], bare=True)
         repo.clone(params['SCHEMA_REPO_URL'])
+        repo.git.pull()
 
     if 'process_git_schemas' in steps:
         # Where do we dump the schema git repository?
