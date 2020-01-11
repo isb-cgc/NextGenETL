@@ -1150,10 +1150,12 @@ def generate_table_detail_files(dict_file, file_tag):
     #
     # Read in the chunks and write them out into pieces the bq command can use
     #
+    print(dict_file)
+    print(file_tag)
     try:
         with open(dict_file, mode='r') as bqt_dict_file:
             bqt_dict = json_loads(bqt_dict_file.read())
-
+        print("A")
         with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
             desc_file.write(bqt_dict['description'])
         with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
