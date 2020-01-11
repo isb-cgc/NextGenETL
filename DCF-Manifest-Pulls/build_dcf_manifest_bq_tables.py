@@ -155,15 +155,22 @@ def main(args):
     #
 
     if 'pull_table_info_from_git' in steps:
-        create_clean_target(params['SCHEMA_REPO_LOCAL'])
-        Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
 
     if 'process_git_schemas' in steps:
         # Where do we dump the schema git repository?
         schema_file = "{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_JSON'])
 
         # Write out the details
-        generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
+        success = generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
+        if not success:
+            print("process_git_schemas failed")
+            return
 
 
     #
@@ -209,9 +216,9 @@ def main(args):
                                                params[map_dict['ACTIVE_FILE_MAP_BQ']])
         success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
                                        params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
-    if not success:
-        print("install file map schema failed")
-        return
+        if not success:
+            print("create combined table failed")
+            return
 
     #
     # Add descriptions to the combined table:
