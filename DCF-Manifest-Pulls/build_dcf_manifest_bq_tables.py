@@ -211,9 +211,9 @@ def main(args):
 
     if 'create_combined_table' in steps:
         legacy_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                               params[map_dict['LEGACY_FILE_MAP_BQ']])
+                                               params['LEGACY_FILE_MAP_BQ'])
         active_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                               params[map_dict['ACTIVE_FILE_MAP_BQ']])
+                                               params['ACTIVE_FILE_MAP_BQ'])
         success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
                                        params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
         if not success:
