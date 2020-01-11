@@ -1190,6 +1190,7 @@ def install_labels_and_desc(dataset, table, file_tag):
         table.labels = labels
         client.update_table(table, ['description', 'labels'])
     except Exception as ex:
+        print(ex)
         return False
 
     return True
@@ -1208,6 +1209,7 @@ def publish_table(source_table, target_table):
         job = client.copy_table(source_table, target_table)
         job.result()
     except Exception as ex:
+        print(ex)
         return False
 
     return True
