@@ -1164,6 +1164,7 @@ def generate_table_detail_files(dict_file, file_tag):
             schema_file.write('\n')
         return
     except Exception as ex:
+        print(ex)
         return False
 
     return True
