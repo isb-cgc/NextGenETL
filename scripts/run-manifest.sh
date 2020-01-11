@@ -24,6 +24,11 @@ pushd ~/config > /dev/null
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ManifestBQBuild.yaml .
 popd > /dev/null
 
+
+
+
+
+
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null

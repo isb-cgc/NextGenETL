@@ -17,8 +17,7 @@ limitations under the License.
 """
 
 import sys
-from google.cloud import bigquery
-from json import loads as json_loads
+from common_etl.support import install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -37,18 +36,7 @@ def main(args):
     table = args[2]
     file_tag = args[3]
 
-    with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
-        desc = desc_file.read()
-
-    with open("{}_labels.json".format(file_tag), mode='r') as label_file:
-        labels = json_loads(label_file.read())
-
-    client = bigquery.Client()
-    table_ref = client.dataset(dataset).table(table)
-    table = client.get_table(table_ref)
-    table.description = desc
-    table.labels = labels
-    client.update_table(table, ['description', 'labels'])
+    install_labels_and_desc(dataset, table, file_tag)
 
 if __name__ == "__main__":
     main(sys.argv)

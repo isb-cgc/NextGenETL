@@ -1137,3 +1137,73 @@ def list_schema(source_dataset, source_table):
     for src_sf in src_schema:
         print(src_sf.name, src_sf.field_type, src_sf.description)
     return True
+
+
+'''
+----------------------------------------------------------------------------------------------
+Take the BQ Ecosystem json file for the table and break out the pieces into chunks that will
+be arguments to the bq command used to create the table.
+'''
+
+def generate_table_detail_files(dict_file, file_tag):
+
+    #
+    # Read in the chunks and write them out into pieces the bq command can use
+    #
+
+    with open(dict_file, mode='r') as bqt_dict_file:
+        bqt_dict = json_loads(bqt_dict_file.read())
+
+    with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+        desc_file.write(bqt_dict['description'])
+    with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+        label_file.write(json_dumps(bqt_dict['labels'], sort_keys=True, indent=4, separators=(',', ': ')))
+        label_file.write('\n')
+    with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+        schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
+        schema_file.write('\n')
+    return
+
+'''
+----------------------------------------------------------------------------------------------
+Take the labels and description of a BQ table and get them installed
+'''
+
+
+def install_labels_and_desc(dataset, table, file_tag):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = json_loads(label_file.read())
+
+        client = bigquery.Client()
+        table_ref = client.dataset(dataset).table(table)
+        table = client.get_table(table_ref)
+        table.description = desc
+        table.labels = labels
+        client.update_table(table, ['description', 'labels'])
+    except Exception as ex:
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Publish a table by copying it.
+Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
+'''
+
+
+def publish_table(source_table, target_table):
+
+    try:
+        client = bigquery.Client()
+        job = client.copy_table(source_table, target_table)
+        job.result()
+    except Exception as ex:
+        return False
+
+    return True

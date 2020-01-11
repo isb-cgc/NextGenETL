@@ -19,8 +19,10 @@ limitations under the License.
 import sys
 import yaml
 import io
+from git import Repo
 from json import loads as json_loads
-from common_etl.support import generic_bq_harness, csv_to_bq, update_description, update_schema_with_dict
+from common_etl.support import generic_bq_harness, csv_to_bq, install_labels_and_desc, \
+      update_schema_with_dict, create_clean_target, generate_table_detail_files, publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -54,7 +56,6 @@ SQL for the file mapping table
 def file_map_sql(manifest_table):
     return '''
       SELECT id as file_uuid,
-             acl,
              gs_url as gcs_path
       FROM `{0}`
     '''.format(manifest_table)
@@ -75,6 +76,25 @@ def schema_list_to_dict(schema_list_file):
 
 '''
 ----------------------------------------------------------------------------------------------
+Build a combined table to publish
+'''
+def build_combined_table(legacy_paths_table, active_paths_table, target_dataset, dest_table, do_batch):
+    sql = combined_table_sql(legacy_paths_table, active_paths_table)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for the combined table
+'''
+def combined_table_sql(legacy_paths_table, active_paths_table):
+    return '''
+      SELECT * from {}
+        UNION DICTINCT
+      SELECT * from {}
+    '''.format(legacy_paths_table, active_paths_table)
+
+'''
+----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input!
 This allows you to e.g. skip previously run steps.
@@ -85,6 +105,10 @@ def main(args):
     #if not confirm_google_vm():
     #    print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
     #    return
+
+    # Manifest files need to be copied over to the bucket gdc_manifests when DCF publishes them to their bucket:
+    #
+
 
     if len(args) != 2:
         print(" ")
@@ -108,7 +132,7 @@ def main(args):
 
     MANIFEST_SCHEMA_LIST = "SchemaFiles/dcf_manifest_schema.json"
 
-    # Schema that describes our final map table:
+    # Schema that describes the file map table:
 
     FILE_MAP_SCHEMA_LIST = "SchemaFiles/dcf_file_map_schema.json"
 
@@ -125,6 +149,23 @@ def main(args):
     if params['DO_LEGACY']:
         mani_dict['LEGACY_MANIFEST_TSV'] = 'LEGACY_MANIFEST_BQ'
         map_dict['LEGACY_MANIFEST_BQ'] = 'LEGACY_FILE_MAP_BQ'
+
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        create_clean_target(params['SCHEMA_REPO_LOCAL'])
+        repo = Repo.init(params['SCHEMA_REPO_LOCAL'], bare=True)
+        repo.clone(params['SCHEMA_REPO_URL'])
+
+    if 'process_git_schemas' in steps:
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_JSON'])
+
+        # Write out the details
+        generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
+
 
     #
     # Create a manifest BQ table from a TSV:
@@ -162,23 +203,42 @@ def main(args):
                 print("install file map schema failed")
                 return
 
+    if 'create_combined_table' in steps:
+        legacy_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                               params[map_dict['LEGACY_FILE_MAP_BQ']])
+        active_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                               params[map_dict['ACTIVE_FILE_MAP_BQ']])
+        success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
+                                       params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
+    if not success:
+        print("install file map schema failed")
+        return
+
     #
-    # Add descriptions
+    # Add descriptions to the combined table:
     #
 
-    if 'add_table_descriptions' in steps:
-        for mapkey in list(map_dict.keys()):
-            success = update_description(params['TARGET_DATASET'], params[mapkey],
-                                         params['DCF_MANIFEST_TABLE_DESCRIPTION'])
-            if not success:
-                print("install manifest description failed")
-                return
+    if 'add_table_description' in steps:
 
-            success = update_description(params['TARGET_DATASET'], params[map_dict[mapkey]],
-                                         params['FILE_MAP_TABLE_DESCRIPTION'])
-            if not success:
-                print("install file map description failed")
-                return
+        success = install_labels_and_desc(params['TARGET_DATASET'],
+                                          params['COMBINED_TABLE'], params['PROX_DESC_PREFIX'])
+
+        if not success:
+            print("install file map description failed")
+            return
+
+    if 'publish' in steps:
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['COMBINED_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("install file map description failed")
+            return
 
     print('job completed')
 

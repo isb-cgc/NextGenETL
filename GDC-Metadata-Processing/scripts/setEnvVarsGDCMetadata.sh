@@ -22,14 +22,18 @@ PREV_RELNAME=relXXminusOne
 BUCK_TARGET=gs://your-bucket-name-here/etl/${RELNAME}
 # Where the BQ data set lives (dataset_name)
 DATASET=your_dataset_name
+# Project where the etl work is being done
+WORKING_PROJECT=your-etl-project
 # Where the BQ data set lives (project:dataset_name)
-PROJ_AND_DATASET=your-etl-project:${DATASET}
+PROJ_AND_DATASET=${WORKING_PROJECT}:${DATASET}
 # Where do we store the compressed tar file of the extracted data:
 TAR_TARGET=gs://your-bucket-name-here/metatars/${RELNAME}
 # The release ID in BQ Schema repo (might be different than RELNAME):
 BQ_SCHEMA_RELNAME=relXX
 # The published release ID (might be different than RELNAME):
 PUB_RELNAME=relXX
+# The publication source:
+SOURCE_PROJ_AND_DATASET_AND_REL=${WORKING_PROJECT}.${DATASET}.${RELNAME}
 # The publication location:
 PUBLISH_PROJ_AND_DATASET_AND_REL=your-publish-project.your-publish-dataset.${PUB_RELNAME}
 
@@ -84,6 +88,7 @@ COMPARE_TO_LAST=skip
 DETAILED_DIFFS=skip
 COPY_ANNOT_SCHEMA=skip
 LOAD_BQ=skip
+DESC_AND_LABELS=skip
 PUBLISH_TABLES=skip
 ARCHIVE_TARS=skip
 

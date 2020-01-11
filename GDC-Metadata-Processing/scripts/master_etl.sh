@@ -218,6 +218,13 @@ fi
 #EXPECTED_LEGACY_FILE_SIZE_BY_CASE=761544
 #EXPECTED_LEGACY_FILE_SIZE_BY_FILE=837960
 #
+# Note: the SIZE of the downloaded file for the by-case file listing can change, since in some releases (rel12, rel21)
+# an additional column "file_state" appears in the by-by case listing. Thus, fileData.bq.hex-for-case.tsv = 631339195
+# and fileData.bq.hex-for-files.tsv = 658598393. Compared to fileData.bq.hex-for-case.tsv = 623723754.
+#
+# However, since we do not use the by-case listing, we can ignore the difference.
+#
+#
 
 if [ "${LEG_FILE_CHECK}" == "run" ]; then
     echo "Running LEG_FILE_CHECK"
@@ -419,6 +426,10 @@ fi
 # Normalize lists. Many GDC fields are lists delimited by ";", and the order is not consistent
 # between releases. To check for real changes between releases, we want to normalize these
 # lists to be lexicographic.
+#
+# WARNING! DANGER! These tables cannot be the ones uploaded to the BQ table, because the ordering appears to be
+# consistent across columns. So normalizing the order of the columns will break that correspondence.
+# DO NOT USE THEM EXCEPT FOR CHECKS!
 #
 
 if [ "${BUILD_NORM_TSVS}" == "run" ]; then

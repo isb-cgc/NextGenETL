@@ -1,5 +1,4 @@
 [
 	{"description": "GDC UUID for file", "name": "file_uuid", "type": "string"},
-	{"description": "open or controlled phs project ID list", "name": "acl", "type": "string"},
 	{"description": "gs URL", "name": "gcs_path", "type": "string"}
 ]

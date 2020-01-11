@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 import sys
-from google.cloud import bigquery
+from common_etl.support import publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -35,9 +35,7 @@ def main(args):
     source_table = args[1]
     target_table = args[2]
 
-    client = bigquery.Client()
-    job = client.copy_table(source_table, target_table)
-    job.result()
+    publish_table(source_table, target_table)
 
 if __name__ == "__main__":
     main(sys.argv)

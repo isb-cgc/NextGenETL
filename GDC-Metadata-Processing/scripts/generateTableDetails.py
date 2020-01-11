@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 import sys
-from json import loads as json_loads, dumps as json_dumps
+from common_etl.support import generate_table_detail_files
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -36,18 +36,7 @@ def main(args):
     # Read in the chunks and write them out into pieces the bq command can use
     #
 
-    file_tag = args[2]
-    with open(args[1], mode='r') as bqt_dict_file:
-        bqt_dict = json_loads(bqt_dict_file.read())
-
-    with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
-        desc_file.write(bqt_dict['description'])
-    with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
-        label_file.write(json_dumps(bqt_dict['labels'], sort_keys=True, indent=4, separators=(',', ': ')))
-        label_file.write('\n')
-    with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
-        schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
-        schema_file.write('\n')
+    generate_table_detail_files(args[1], args[2])
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -36,10 +36,11 @@ sudo /usr/bin/easy_install virtualenv
 
 cd ~
 virtualenv pyVenvForTwo
-source ./pyvenvForTwo/bin/activate
+source ./pyVenvForTwo/bin/activate
 
 pip install pandas
 pip install requests
+pip install python-dateutil
 
 deactivate
 
