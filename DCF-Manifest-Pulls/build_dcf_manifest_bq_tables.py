@@ -88,9 +88,9 @@ SQL for the combined table
 '''
 def combined_table_sql(legacy_paths_table, active_paths_table):
     return '''
-      SELECT * from {}
+      SELECT * from `{}`
         UNION DICTINCT
-      SELECT * from {}
+      SELECT * from `{}`
     '''.format(legacy_paths_table, active_paths_table)
 
 '''
