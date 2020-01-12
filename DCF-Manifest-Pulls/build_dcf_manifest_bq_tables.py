@@ -89,9 +89,15 @@ SQL for the combined table
 '''
 def combined_table_sql(legacy_paths_table, active_paths_table):
     return '''
-      SELECT * from `{}`
+      SELECT
+        file_uuid as file_gdc_id,
+        gcs_path as file_gdc_url
+      FROM `{}`
         UNION DISTINCT
-      SELECT * from `{}`
+      SELECT
+        file_uuid as file_gdc_id,
+        gcs_path as file_gdc_url
+      FROM `{}`
     '''.format(legacy_paths_table, active_paths_table)
 
 '''
@@ -215,16 +221,24 @@ def main(args):
                                                params['LEGACY_FILE_MAP_BQ'])
         active_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                                params['ACTIVE_FILE_MAP_BQ'])
-        #success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
-        #                               params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
-        #if not success:
-        #    print("create combined table failed")
-        #    return
-
-        schema_dict_loc = "{}_schema.json".format(params['PROX_DESC_PREFIX'])
-        success = update_schema(params['TARGET_DATASET'], params['COMBINED_TABLE'], schema_dict_loc)
+        success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
+                                       params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
         if not success:
-            print("create combined table update schema failed")
+            print("create combined table failed")
+            return
+
+    if 'add_combined_desc' in steps:
+        schema_dict_loc = "{}_schema.json".format(params['PROX_DESC_PREFIX'])
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            dict_for_entry = {'description': entry['description']}
+            schema_dict[entry['name']] = dict_for_entry
+
+        success = update_schema_with_dict(params['TARGET_DATASET'], params['COMBINED_TABLE'], schema_dict)
+        if not success:
+            print("add_combined_desc failed")
             return
 
     #

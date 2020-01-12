@@ -10,7 +10,7 @@ files_and_buckets_and_tables:
   BQ_AS_BATCH: False
 
   # Where do we dump the schema git repository?
-  SCHEMA_REPO_LOCAL: full_path_to_schema_git_repo
+  SCHEMA_REPO_LOCAL: /full/path/to/local/schema_git_repo
 
   # Where is the repo?
   SCHEMA_REPO_URL: https://github.com/your_schema_repo.git
@@ -19,7 +19,7 @@ files_and_buckets_and_tables:
   RAW_SCHEMA_JSON: path_from_repo_top/table_info_file.json
 
   # What file prefix hold the processed schema and other descriptions (this is a prefix)
-  PROX_DESC_PREFIX: myManifestDesc_
+  PROX_DESC_PREFIX: /full/path/to/myManifestDesc
 
   # What bucket holds the tsv files we will use to build the BQ tables?
   WORKING_BUCKET: your_working_bucket_name
@@ -49,6 +49,10 @@ files_and_buckets_and_tables:
   DO_ACTIVE: True
   DO_LEGACY: True
 
+  # What goes out for public consumption:
+
+  COMBINED_TABLE: Your_pre_publication_table
+
   # Publication table:
 
   PUBLICATION_PROJECT: Your-publication-project
@@ -74,6 +78,9 @@ steps:
 
   # Create a combined table for publication:
   - create_combined_table
+
+  # install field descriptions:
+  - add_combined_desc
 
   # Add table description and tags to combined table:
   - add_table_description
