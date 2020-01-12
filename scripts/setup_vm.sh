@@ -59,6 +59,10 @@ deactivate
 
 mkdir -p ~/schemaRepo
 
+# Make a place for scratch files:
+
+mkdir -p ~/scratch
+
 # Install Libraries From GitHub
 # We need the ISB-CGC schema builder
 

@@ -22,7 +22,8 @@ import io
 from git import Repo
 from json import loads as json_loads
 from common_etl.support import generic_bq_harness, csv_to_bq, install_labels_and_desc, \
-      update_schema_with_dict, create_clean_target, generate_table_detail_files, publish_table
+     update_schema_with_dict, create_clean_target, generate_table_detail_files, \
+     publish_table, update_schema
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -214,10 +215,16 @@ def main(args):
                                                params['LEGACY_FILE_MAP_BQ'])
         active_paths_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                                params['ACTIVE_FILE_MAP_BQ'])
-        success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
-                                       params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
+        #success = build_combined_table(legacy_paths_table, active_paths_table, params['TARGET_DATASET'],
+        #                               params['COMBINED_TABLE'], params['BQ_AS_BATCH'])
+        #if not success:
+        #    print("create combined table failed")
+        #    return
+
+        schema_dict_loc = "{}_schema.json".format(params['PROX_DESC_PREFIX'])
+        success = update_schema(params['TARGET_DATASET'], params['COMBINED_TABLE'], schema_dict_loc)
         if not success:
-            print("create combined table failed")
+            print("create combined table update schema failed")
             return
 
     #

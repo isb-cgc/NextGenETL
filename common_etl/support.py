@@ -986,30 +986,39 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
+    try:
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema = json_loads(schema_hold_dict.read())
 
-    with open(schema_dict_loc, mode='r') as schema_hold_dict:
-        full_schema = json_loads(schema_hold_dict.read())
-
-    update_schema_with_dict(target_dataset, dest_table, full_schema)
-    return True
-
+        success = update_schema_with_dict(target_dataset, dest_table, full_schema)
+        if not success:
+            return False
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
 
 def update_schema_with_dict(target_dataset, dest_table, full_schema):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
-    client = bigquery.Client()
-    table_ref = client.dataset(target_dataset).table(dest_table)
-    table = client.get_table(table_ref)
-    orig_schema = table.schema
-    new_schema = []
-    for old_sf in orig_schema:
-        new_desc = full_schema[old_sf.name]['description']
-        new_sf = bigquery.SchemaField(old_sf.name, old_sf.field_type, description=new_desc)
-        new_schema.append(new_sf)
-    table.schema = new_schema
-    table = client.update_table(table, ["schema"])
+    try:
+        client = bigquery.Client()
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        orig_schema = table.schema
+        new_schema = []
+        for old_sf in orig_schema:
+            new_desc = full_schema[old_sf.name]['description']
+            new_sf = bigquery.SchemaField(old_sf.name, old_sf.field_type, description=new_desc)
+            new_schema.append(new_sf)
+        table.schema = new_schema
+        table = client.update_table(table, ["schema"])
+    except Exception as ex:
+        print(ex)
+        return False
+
     return True
 
 def update_description(target_dataset, dest_table, desc):
