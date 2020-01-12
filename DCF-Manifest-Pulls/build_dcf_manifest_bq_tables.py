@@ -235,6 +235,7 @@ def main(args):
         for entry in full_schema_list:
             dict_for_entry = {'description': entry['description']}
             schema_dict[entry['name']] = dict_for_entry
+        print(schema_dict)
 
         success = update_schema_with_dict(params['TARGET_DATASET'], params['COMBINED_TABLE'], schema_dict)
         if not success:
