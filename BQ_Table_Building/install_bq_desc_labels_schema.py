@@ -74,6 +74,7 @@ def main(args):
     #
 
     if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
         try:
             create_clean_target(params['SCHEMA_REPO_LOCAL'])
             Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
@@ -81,42 +82,53 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if 'process_git_schemas' in steps:
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_JSON'])
+    for dict in params['FIX_LIST']:
 
-        # Write out the details
-        success = generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
-        if not success:
-            print("process_git_schemas failed")
-            return
+        table, repo_file = next(iter(dict.items()))
 
+        if 'process_git_schemas' in steps:
+            print('process_git_schemas: {}'.format(table))
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], repo_file)
 
-    if 'update_field_descriptions' in steps:
-        schema_dict_loc = "{}_schema.json".format(params['PROX_DESC_PREFIX'])
-        schema_dict = {}
-        with open(schema_dict_loc, mode='r') as schema_hold_dict:
-            full_schema_list = json_loads(schema_hold_dict.read())
-        for entry in full_schema_list:
-            schema_dict[entry['name']] = {'description': entry['description']}
+            # Write out the details
+            success = generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
+            if not success:
+                print("process_git_schemas failed")
+                return
+        #
+        # Update the per-field descriptions:
+        #
 
-        success = update_schema_with_dict(params['TARGET_DATASET'], params['TARGET_TABLE'], schema_dict)
-        if not success:
-            print("update_field_descriptions failed")
-            return
+        if 'update_field_descriptions' in steps:
+            print('update_field_descriptions: {}'.format(table))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            schema_dict = {}
+            with open(schema_dict_loc, mode='r') as schema_hold_dict:
+                full_schema_list = json_loads(schema_hold_dict.read())
+            for entry in full_schema_list:
+                schema_dict[entry['name']] = {'description': entry['description']}
 
-    #
-    # Add descriptions to the combined table:
-    #
+            success = update_schema_with_dict(params['TARGET_DATASET'], table, schema_dict)
+            if not success:
+                print("update_field_descriptions failed")
+                return
 
-    if 'update_table_description' in steps:
-        success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          params['TARGET_TABLE'], params['PROX_DESC_PREFIX'])
-        if not success:
-            print("update_table_description failed")
-            return
+        #
+        # Add description and labels to the target table:
+        #
 
-    print('job completed')
+        if 'update_table_description' in steps:
+            print('update_table_description: {}'.format(table))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
+            params['PROX_DESC_PREFIX']
+            success = install_labels_and_desc(params['TARGET_DATASET'], table, full_file_prefix)
+            if not success:
+                print("update_table_description failed")
+                return
+
+        print('job completed')
 
 
 if __name__ == "__main__":
