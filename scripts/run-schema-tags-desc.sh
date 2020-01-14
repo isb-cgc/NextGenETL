@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_bq_desc_labels_schema.py ~/config/UpdateBQFromSchemas.yaml
+python3 ./BQ_Table_Building/install_bq_desc_labels_schema.py ~/config/UpdateBQFromSchemas.yaml
 deactivate
