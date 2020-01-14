@@ -90,9 +90,9 @@ def main(args):
             print('process_git_schemas: {}'.format(table))
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], repo_file)
-
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
             # Write out the details
-            success = generate_table_detail_files(schema_file, params['PROX_DESC_PREFIX'])
+            success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
                 print("process_git_schemas failed")
                 return
