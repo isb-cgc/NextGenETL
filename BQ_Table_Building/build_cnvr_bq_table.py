@@ -207,12 +207,16 @@ def main(args):
         full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                           params['TARGET_DATASET'],
                                           params['BQ_MANIFEST_TABLE'])
-        build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
-                                params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                params['BQ_PULL_LIST_TABLE'],
-                                params['WORKING_BUCKET'],
-                                params['BUCKET_PULL_LIST'],
-                                local_pull_list, params['BQ_AS_BATCH'])
+        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+                                          params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                          params['BQ_PULL_LIST_TABLE'],
+                                          params['WORKING_BUCKET'],
+                                          params['BUCKET_PULL_LIST'],
+                                          local_pull_list, params['BQ_AS_BATCH'])
+
+        if not success:
+            print("Build pull list failed")
+            return;
     #
     # Now hitting GDC cloud buckets. Get the files in the pull list:
     #
@@ -252,7 +256,6 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
@@ -265,6 +268,7 @@ def main(args):
             return
 
     if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
@@ -274,7 +278,7 @@ def main(args):
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
     if 'upload_to_bucket' in steps:
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, params['ONE_BIG_TSV'])
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
 
     if 'create_bq_from_tsv' in steps:
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
