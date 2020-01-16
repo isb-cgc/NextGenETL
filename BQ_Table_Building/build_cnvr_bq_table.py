@@ -26,13 +26,15 @@ import os
 from os.path import expanduser
 import yaml
 import io
+from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
                                build_pull_list_with_bq, BucketPuller, build_combined_schema, \
-                               delete_table_bq_job
+                               delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
+                               generate_table_detail_files
 
 
 '''
@@ -176,7 +178,7 @@ def main(args):
     AUGMENTED_SCHEMA_FILE = "SchemaFiles/cnvr_augmented_schema_list.json"
 
     #
-    # Use the filter set to get a manifest from GDC using their API. Note that if a pull list is
+    # Use the filter set to build a manifest. Note that if a pull list is
     # provided, these steps can be omitted:
     #
 
@@ -235,9 +237,37 @@ def main(args):
             all_files = traversal_list_file.read().splitlines()
         concat_all_files(all_files, one_big_tsv)
 
-    if 'build_the_schema' in steps:
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    if 'analyze_the_schema' in steps:
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
@@ -259,6 +289,18 @@ def main(args):
                                           params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
         if not success:
             print("Join job failed")
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'update_table_description' in steps:
+        print('update_table_description')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        if not success:
+            print("update_table_description failed")
+            return
 
     #
     # Clear out working temp tables:
