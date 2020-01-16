@@ -1,0 +1,133 @@
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_id
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: your_bucket_name
+
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: full/path/in/bucket # DO NOT HAVE A LEADING /
+
+  # Where are the files going on the VM:
+  LOCAL_FILES_DIR: relative/local/path/copyNumberFilesHold
+
+  # Where is the table that allows us to build the manifest:
+  FILE_TABLE: project.dataset.gdc_release_fileData
+
+  # Where do we put the manifest as a bq table:
+  BQ_MANIFEST_TABLE: Your_Manifest_Table
+
+  # Where do we put the pull list as a bq table:
+  BQ_PULL_LIST_TABLE: Your_Pull_Table
+
+  # Where is the table that maps gdc file IDs to gcs paths:
+  INDEXD_BQ_TABLE: project.dataset.gdc_id_to_gcs_table
+
+  # Where do we stash the manifest in the bucket after we get it:
+  BUCKET_MANIFEST_TSV: full/path/in/bucket/manifest.tsv # DO NOT HAVE A LEADING /
+
+  # Where do we stash the pull_list in the bucket after we get it:
+  BUCKET_PULL_LIST: full/path/in/bucket/cnvr_pull_list.txt # DO NOT HAVE A LEADING /
+
+  # Where do we locally stash the pull_list after we get it, or where is it if already provided:
+  LOCAL_PULL_LIST: relative/local/path/cnvr_pull_list.tsv
+
+  # Download can create a directory tree, which we need to traverse on upload. Put it here:
+  FILE_TRAVERSAL_LIST: relative/local/path/cnvr_traversal_list.txt
+
+  # We glue all the files into one big one, here:
+  ONE_BIG_TSV: relative/local/path/CNVR-Data.tsv
+
+  # Where do we stash the manifest after we get it:
+  MANIFEST_FILE: relative/local/path/CNV.tsv
+
+  # What will be the file in the bucket (TSV):
+  BUCKET_TSV: TSV_file_in_bucket.tsv
+
+  # Where is the skeleton table:
+  TARGET_TABLE: Raw_BQ_table
+
+  # Where is the table that maps aliquot ID to all the other stuff (e.g. case barcode):
+  ALIQUOT_TABLE: project.dataser.relxx_aliquot2caseIDmap
+
+  # Final table name:
+  FINAL_TARGET_TABLE: Final_CNVR_Table_Name
+
+  # Where do we dump the schema git repository?
+  SCHEMA_REPO_LOCAL: /full/path/to/schemaRepo
+
+  # Where is the repo?
+  SCHEMA_REPO_URL: https://github.com/your_org/yourSchemaRepe.git
+
+  # What directory holds the schema data files in the repo?
+  RAW_SCHEMA_DIR: TableSchemaDirectory
+
+  # What repo branch to use?
+  SCHEMA_REPO_BRANCH: master
+
+  # What directory holds the processed schema, tag, and desc lists?
+  PROX_DESC_PREFIX: /full/path/to/scratch
+
+  # Name of schema file:
+  SCHEMA_FILE_NAME: name_of_table_schema_file.json
+
+  # Saved schema dict (all fields):
+  HOLD_SCHEMA_DICT: relative/local/path/saved_cnvr_schema_dict.json
+
+  # Saved schema list (typed tuples from schema analysis only)
+  HOLD_SCHEMA_LIST: relative/local/path/saved_cnvr_skel_schema.json
+
+  # Number of rows to skip while sampling big TSV to generate schema:
+  SCHEMA_SAMPLE_SKIPS: 100
+
+
+# You can go to the GDC Data Portal Repository, build a filter, then click on the "Advanced Search"
+# button to see the key-value pairs you want:
+
+bq_filters:
+   - program_name: TCGA
+   - access: open
+   - data_format: TXT
+   - data_type: Masked Copy Number Segment
+   - platform: Affymetrix SNP 6.0
+   - data_category: Copy Number Variation
+
+steps:
+  # Empty out the LOCAL_FILES_DIR first:
+  - clear_target_directory
+  # Get a manifest from our filters:
+  - build_manifest_from_filters
+  # Build the pull list from the manifest:
+  - build_pull_list
+  # Run the downloader on the manifest (caution: long!) into LOCAL_FILES_DIR
+  - download_from_gdc
+  # Build a file list from traversing LOCAL_FILES_DIR:
+  - build_file_list
+  # Build the ONE_BIG_TSV file from the little files:
+  - concat_all_files
+  # Analyze the schema from the ONE_BIG_TSV file:
+  - analyze_the_schema
+  # Get the table schema/description/tags pulled from git:
+  - pull_table_info_from_git
+  # Extract the table schema/description/tags from that file:
+  - process_git_schemas
+  # Upload ONE_BIG_TSV to WORKING_BUCKET/WORKING_BUCKET_DIR/BUCKET_TSV:
+  - upload_to_bucket
+  # Load BQ table TARGET_DATASET.TARGET_TABLE:
+  - create_bq_from_tsv
+  # Fold in fields from ALIQUOT_TABLE to TARGET_DATASET.FINAL_TARGET_TABLE
+  - add_aliquot_fields
+  # Update the field descriptions:
+  - update_field_descriptions
+  # Add table description and tags to table:
+  - update_table_description
+  # Delete working tables:
+  - dump_working_tables
