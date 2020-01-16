@@ -15,6 +15,9 @@ files_and_buckets_and_tables:
   # What repo directory holds the schema data files?
   RAW_SCHEMA_DIR: path_from_repo_top
 
+  # What repo branch to use?
+  SCHEMA_REPO_BRANCH: master
+
   # What file prefix hold the processed schema and other descriptions (this is a prefix)
   PROX_DESC_PREFIX: /full/path/to/myProcessedDataDir
 

@@ -77,7 +77,8 @@ def main(args):
         print('pull_table_info_from_git')
         try:
             create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
         except Exception as ex:
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
@@ -122,7 +123,6 @@ def main(args):
         if 'update_table_description' in steps:
             print('update_table_description: {}'.format(table))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
-            params['PROX_DESC_PREFIX']
             success = install_labels_and_desc(params['TARGET_DATASET'], table, full_file_prefix)
             if not success:
                 print("update_table_description failed")
