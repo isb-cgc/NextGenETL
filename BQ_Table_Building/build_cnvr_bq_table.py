@@ -174,6 +174,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
+        print('clear_target_directory')
         create_clean_target(local_files_dir)
 
     #
@@ -182,6 +183,7 @@ def main(args):
     #
 
     if 'build_manifest_from_filters' in steps:
+        print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
@@ -201,6 +203,7 @@ def main(args):
     #
 
     if 'build_pull_list' in steps:
+        print('build_pull_list')
         full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                           params['TARGET_DATASET'],
                                           params['BQ_MANIFEST_TABLE'])
@@ -215,6 +218,7 @@ def main(args):
     #
 
     if 'download_from_gdc' in steps:
+        print('download_from_gdc')
         with open(local_pull_list, mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         print("Preparing to download %s files from buckets\n" % len(pull_list))
@@ -222,12 +226,14 @@ def main(args):
         bp.pull_from_buckets(pull_list, local_files_dir)
 
     if 'build_file_list' in steps:
+        print('build_file_list')
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
 
     if 'concat_all_files' in steps:
+        print('concat_all_files')
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
         concat_all_files(all_files, one_big_tsv)
