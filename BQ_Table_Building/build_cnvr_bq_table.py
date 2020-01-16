@@ -173,9 +173,8 @@ def main(args):
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
-    # Schema that describes CNVR table:
-
-    AUGMENTED_SCHEMA_FILE = "SchemaFiles/cnvr_augmented_schema_list.json"
+    if 'clear_target_directory' in steps:
+        create_clean_target(local_files_dir)
 
     #
     # Use the filter set to build a manifest. Note that if a pull list is
@@ -193,10 +192,6 @@ def main(args):
         if not manifest_success:
             print("Failure generating manifest")
             return
-
-
-    if 'clear_target_directory' in steps:
-        create_clean_target(local_files_dir)
 
     #
     # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
