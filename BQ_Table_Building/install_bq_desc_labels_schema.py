@@ -21,9 +21,8 @@ import yaml
 import io
 from git import Repo
 from json import loads as json_loads
-from common_etl.support import generic_bq_harness, csv_to_bq, install_labels_and_desc, \
-     update_schema_with_dict, create_clean_target, generate_table_detail_files, \
-     publish_table, update_schema
+from common_etl.support import install_labels_and_desc, update_schema_with_dict, \
+                               create_clean_target, generate_table_detail_files
 
 '''
 ----------------------------------------------------------------------------------------------
