@@ -278,15 +278,18 @@ def main(args):
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
     if 'upload_to_bucket' in steps:
+        print('upload_to_bucket')
         upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
 
     if 'create_bq_from_tsv' in steps:
+        print('create_bq_from_tsv')
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
+        print('add_aliquot_fields')
         full_target_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                               params['TARGET_DATASET'],
                                               params['TARGET_TABLE'])
@@ -294,6 +297,25 @@ def main(args):
                                           params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
         if not success:
             print("Join job failed")
+
+    #
+    # Update the per-field descriptions:
+    #
+
+    if 'update_field_descriptions' in steps:
+        print('update_field_descriptions')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            schema_dict[entry['name']] = {'description': entry['description']}
+
+        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
+        if not success:
+            print("update_field_descriptions failed")
+            return
 
     #
     # Add description and labels to the target table:
