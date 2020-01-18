@@ -22,7 +22,7 @@ files_and_buckets_and_tables:
   PROX_DESC_PREFIX: /full/path/to/myProcessedDataDir
 
   # What project are we in:
-  WORKING_PROJECT: your_working_project_name
+  WORKING_PROJECT: your_working_project_id
 
   # Where is the BQ table dataset:
   TARGET_DATASET: your_bq_dataset_name_in_working_project
