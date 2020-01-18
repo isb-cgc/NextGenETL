@@ -135,7 +135,7 @@ In GDC active, there are > 450,000 files that have associated_entities as aliquo
 VCF files, there are two. We need to pull in associated aliquot, sample, and case IDs in the next step.
 As always, multi-case entries are skipped.
 '''
-def extract_active_aliquot_file_data_sql(release_table, program_name, sql_dict):
+def extract_active_aliquot_file_data_sql(release_table, program_name):
 
     return '''
         SELECT 
