@@ -75,6 +75,7 @@ def extract_program_names_sql(release_table):
         SELECT DISTINCT program_name FROM `{0}` # program_name
         '''.format(release_table)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 BAM and VCF extraction: BAMS, simple somatic, and annotated somatic VCFs in the target table
@@ -466,6 +467,53 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
 '''
 ----------------------------------------------------------------------------------------------
+Get case barcode associated with aliquot-associated files, with no aliqout mapping table data:
+'''
+def prepare_aliquot_without_map(release_table, case_table, program_name, target_dataset, dest_table, do_batch):
+
+    sql = aliquot_barcodes_without_map_sql(release_table, case_table, program_name)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+If we do not have any aliquot mapping, we cannot back it out to sample IDs. So we need to just
+get the case barcode and call it good.
+
+'''
+def aliquot_barcodes_without_map_sql(release_table, case_table, program_name):
+
+    return '''
+        SELECT
+                d.file_gdc_id,
+                d.case_gdc_id,
+                e.case_barcode,
+                CAST(null AS STRING) as sample_one_gdc_id,
+                CAST(null AS STRING) as sample_one_barcode,
+                CAST(null AS STRING) as sample_one_type_name,
+                CAST(null AS STRING) as sample_two_gdc_id,
+                CAST(null AS STRING) as sample_two_barcode,
+                CAST(null AS STRING) as sample_two_type_name,
+                d.project_short_name,
+                d.project_short_name_suffix,
+                d.program_name,
+                d.data_type,
+                d.data_category,
+                d.experimental_strategy,
+                d.file_type,
+                d.file_size,
+                d.data_format,
+                d.platform,
+                d.file_name_key,
+                d.index_file_id,
+                d.index_file_name_key,
+                d.index_file_size,
+                d.access,
+                d.acl
+        FROM `{0}` AS d JOIN `{1}` AS e ON d.case_gdc_id = e.case_gdc_id
+        '''.format(release_table, case_table, program_name)
+
+'''
+----------------------------------------------------------------------------------------------
 Get sample and case barcodes associated with aliquot-associated files:
 '''
 def extract_aliquot_barcodes(release_table, aliquot_2_case_table, program_name, target_dataset, dest_table, do_batch):
@@ -475,7 +523,11 @@ def extract_aliquot_barcodes(release_table, aliquot_2_case_table, program_name, 
 
 '''
 ----------------------------------------------------------------------------------------------
-SQL for getting
+SQL for getting case and sample info from aliquot IDs.
+BAD NEWS! As of Rel21, the aliquot mapping table only holds data for:
+CGCI, HCMI, TCGA, CPTAC, TARGET, CCLE
+
+
 '''
 def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
@@ -737,7 +789,7 @@ sequence
 '''
 
 
-def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, params):
+def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, aliquot_map_programs, params):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
 
@@ -818,12 +870,23 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
             step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
-            success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
-                                               step_two_table, params['BQ_AS_BATCH'])
 
-            if not success:
-                print("{} {} align_barcodes job failed".format(dataset, build))
-                return False
+            if dataset in aliquot_map_programs:
+                success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+                                                   step_two_table, params['BQ_AS_BATCH'])
+
+                if not success:
+                    print("{} {} align_barcodes job failed".format(dataset, build))
+                    return False
+            else:
+                success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset, params['TARGET_DATASET'],
+                                                      step_two_table, params['BQ_AS_BATCH'])
+
+                if not success:
+                    print("{} {} align_barcodes job failed".format(dataset, build))
+                    return False
+
+
         else:
             print("{} {} aliquot_barcodes step skipped (no input table)".format(dataset, build))
 
@@ -957,6 +1020,9 @@ def main(args):
         datasets = programs
         if datasets is None:
             datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
+
+        # Not all programs show up in the aliquot map table. So figure out who does:
+        aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
         for dataset in datasets:
             if dataset in filter_sets and build_tag in filter_sets[dataset]:
                 sql_dict = filter_sets[dataset][build_tag]
@@ -964,7 +1030,8 @@ def main(args):
                 sql_dict = {}
             print(sql_dict)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
-            ok = do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, params)
+            ok = do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset,
+                                      aliquot_map_programs, params)
             if not ok:
                 return
             
