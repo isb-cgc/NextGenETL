@@ -530,33 +530,34 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 a1.access,
                 a1.acl
         FROM a1 LEFT JOIN `{1}` AS c ON a1.aliquot_id_two = c.aliquot_gdc_id
-        # Those cases with a "multi" as an aliquot id, we need to just haul them in:
+        # Those cases with a "multi" as an aliquot id, we still need to just haul them in,
+        # but also get the case barcode as well:
         UNION DISTINCT
         SELECT
-                file_gdc_id,
-                case_gdc_id,
-                case_barcode,
+                d.file_gdc_id,
+                d.case_gdc_id,
+                e.case_barcode,
                 CAST(null AS STRING) as sample_one_gdc_id,
                 CAST(null AS STRING) as sample_one_barcode,
                 CAST(null AS STRING) as sample_two_gdc_id,
                 CAST(null AS STRING) as sample_two_barcode,
-                project_short_name,
-                project_short_name_suffix,
-                program_name,
-                data_type,
-                data_category,
-                experimental_strategy,
-                file_type,
-                file_size,
-                data_format,
-                platform,
-                file_name_key,
-                index_file_id,
-                index_file_name_key,
-                index_file_size,
-                access,
-                acl
-        FROM `{0}` WHERE aliquot_id_one = "multi"
+                d.project_short_name,
+                d.project_short_name_suffix,
+                d.program_name,
+                d.data_type,
+                d.data_category,
+                d.experimental_strategy,
+                d.file_type,
+                d.file_size,
+                d.data_format,
+                d.platform,
+                d.file_name_key,
+                d.index_file_id,
+                d.index_file_name_key,
+                d.index_file_size,
+                d.access,
+                d.acl
+        FROM `{0}` AS d JOIN `{1}` AS e ON d.case_gdc_id = e.case_gdc_id WHERE d.aliquot_id_one = "multi"
         '''.format(release_table, aliquot_2_case_table, program_name)
 
 '''
