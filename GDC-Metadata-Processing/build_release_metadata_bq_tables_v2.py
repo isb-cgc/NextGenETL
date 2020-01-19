@@ -504,7 +504,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 a.index_file_size,
                 a.access,
                 a.acl
-            FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_id_one = c.aliquot_gdc_id)
+            FROM `{0}` AS a WHERE a.aliquot_id_one != "multi" JOIN `{1}` AS c ON a.aliquot_id_one = c.aliquot_gdc_id)
         SELECT
                 a1.file_gdc_id,
                 a1.case_gdc_id,
@@ -530,8 +530,34 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 a1.access,
                 a1.acl
         FROM a1 LEFT JOIN `{1}` AS c ON a1.aliquot_id_two = c.aliquot_gdc_id
+        # Those cases with a "multi" as an aliquot id, we need to just haul them in:
+        UNION DISTINCT
+        SELECT
+                file_gdc_id,
+                case_gdc_id,
+                case_barcode,
+                CAST(null AS STRING) as sample_one_gdc_id,
+                CAST(null AS STRING) as sample_one_barcode,
+                CAST(null AS STRING) as sample_two_gdc_id,
+                CAST(null AS STRING) as sample_two_barcode,
+                project_short_name,
+                project_short_name_suffix,
+                program_name,
+                data_type,
+                data_category,
+                experimental_strategy,
+                file_type,
+                file_size,
+                data_format,
+                platform,
+                file_name_key,
+                index_file_id,
+                index_file_name_key,
+                index_file_size,
+                access,
+                acl
+        FROM `{0}` WHERE aliquot_id_one = "multi"
         '''.format(release_table, aliquot_2_case_table, program_name)
-
 
 '''
 ----------------------------------------------------------------------------------------------
