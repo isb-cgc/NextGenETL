@@ -770,9 +770,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} pull_aliquot job failed".format(dataset, build))
             return False
 
-        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
-            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
-            print("{} pull_aliquot table result was empty: table deleted".format(step_one_table))
+        if bq_table_is_empty(params['TARGET_DATASET'], params['ALIQUOT_STEP_1_TABLE']):
+            delete_table_bq_job(params['TARGET_DATASET'], params['ALIQUOT_STEP_1_TABLE'])
+            print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
 
     if 'pull_clinbio' in steps and 'bioclin' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE'])
@@ -816,7 +816,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
                                      params['TARGET_DATASET'], 
                                      "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE']))
 
-        if bq_table_exists(params['TARGET_DATASET'], in_table):
+        if bq_table_exists(params['TARGET_DATASET'], params['ALIQUOT_STEP_1_TABLE']):
             step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
             success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
                                                step_two_table, params['BQ_AS_BATCH'])
