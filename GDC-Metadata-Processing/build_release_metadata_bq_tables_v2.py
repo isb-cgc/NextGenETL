@@ -487,6 +487,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 c.case_barcode,
                 c.sample_gdc_id as sample_one_gdc_id,
                 c.sample_barcode as sample_one_barcode,
+                a.aliquot_id_two,
                 a.project_short_name,
                 a.project_short_name_suffix,
                 a.program_name,
@@ -528,7 +529,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 a1.index_file_size,
                 a1.access,
                 a1.acl
-        FROM a1 LEFT JOIN `{1}` AS c ON a.aliquot_id_two = c.aliquot_gdc_id
+        FROM a1 LEFT JOIN `{1}` AS c ON a1.aliquot_id_two = c.aliquot_gdc_id
         '''.format(release_table, aliquot_2_case_table, program_name)
 
 
