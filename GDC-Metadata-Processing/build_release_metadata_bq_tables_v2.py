@@ -504,7 +504,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 a.index_file_size,
                 a.access,
                 a.acl
-            FROM `{0}` AS a WHERE a.aliquot_id_one != "multi" JOIN `{1}` AS c ON a.aliquot_id_one = c.aliquot_gdc_id)
+            FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_id_one = c.aliquot_gdc_id WHERE a.aliquot_id_one != "multi" )
         SELECT
                 a1.file_gdc_id,
                 a1.case_gdc_id,
