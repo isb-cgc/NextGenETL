@@ -29,7 +29,8 @@ import sys
 import io
 
 from common_etl.support import generic_bq_harness, confirm_google_vm, \
-                               bq_harness_with_result, delete_table_bq_job, bq_table_exists
+                               bq_harness_with_result, delete_table_bq_job, \
+                               bq_table_exists, bq_table_is_empty
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -465,7 +466,7 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
 '''
 ----------------------------------------------------------------------------------------------
-Get sample and case barcodes associated with the sequence files:
+Get sample and case barcodes associated with aliquot-associated files:
 '''
 def extract_aliquot_barcodes(release_table, aliquot_2_case_table, program_name, target_dataset, dest_table, do_batch):
 
@@ -474,7 +475,7 @@ def extract_aliquot_barcodes(release_table, aliquot_2_case_table, program_name, 
 
 '''
 ----------------------------------------------------------------------------------------------
-SQL for above:
+SQL for getting
 '''
 def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
@@ -761,13 +762,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} repair slides sub-job failed".format(dataset, build))
             return False
 
-    if 'pull_aliquot' in steps and 'sequence' in sql_dict:
+    if 'pull_aliquot' in steps:
         step_one_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
         success = extract_active_aliquot_file_data(file_table, dataset, params['TARGET_DATASET'],
                                                    step_one_table, params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} pull_align job failed".format(dataset, build))
-            return False    
+            print("{} {} pull_aliquot job failed".format(dataset, build))
+            return False
+
+        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
+            print("{} pull_aliquot table result was empty: table deleted".format(step_one_table))
 
     if 'pull_clinbio' in steps and 'bioclin' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE'])
@@ -806,18 +811,21 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} slide_barcodes job failed".format(dataset, build))
             return False
         
-    if 'aliquot_barcodes' in steps and 'sequence' in sql_dict:
+    if 'aliquot_barcodes' in steps:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                      params['TARGET_DATASET'], 
                                      "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE']))
 
-        step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
-        success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'], 
-                                           step_two_table, params['BQ_AS_BATCH'])
+        if bq_table_exists(params['TARGET_DATASET'], in_table):
+            step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
+            success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+                                               step_two_table, params['BQ_AS_BATCH'])
 
-        if not success:
-            print("{} {} align_barcodes job failed".format(dataset, build))
-            return False
+            if not success:
+                print("{} {} align_barcodes job failed".format(dataset, build))
+                return False
+        else:
+            print("{} {} aliquot_barcodes step skipped (no input table)".format(dataset, build))
 
     if 'clinbio_barcodes' in steps and 'bioclin' in sql_dict:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
