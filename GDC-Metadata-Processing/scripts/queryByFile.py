@@ -351,22 +351,27 @@ def get_file_info(files_endpt, file_id):
 
     if (verboseFlag >= 9): print " get request ", files_endpt, params
 
-    iTry = 0
-    sleepTime = 0.1
-
-    maxNumTry = 100
-    maxNumTry = 10
     ## on a 3/28 run for active DR16 this was the retry pattern I saw:
     ##      442  >>>> trying again ...  2 0.1
     ##       10  >>>> trying again ...  3 0.11
     ##        2  >>>> trying again ...  4 0.121
     ##        1  >>>> trying again ...  5 0.1331`
 
-    while (iTry < maxNumTry):
+    # 1/20/2020: If we are seeing a stretch of poor API performance, back off for a *long* time! Match the logic
+    # and timing over in the case endpoint code.
+
+    iTry = 0
+    sleepTime = 1
+    while iTry < 11:
+
+        if iTry == 10:
+            print " HOLY COW WHAT IS GOING ON ??? !!! "
+
         if (iTry > 0):
             print " >>>> trying again ... ", iTry + 1, sleepTime
             time.sleep(sleepTime)
-            sleepTime = sleepTime * 1.1
+            sleepTime = sleepTime * 2
+            if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:

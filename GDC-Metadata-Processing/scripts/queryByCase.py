@@ -414,7 +414,10 @@ def getCaseTree(caseInfo):
             print " sample_gdc_id : ", u['sample_id']
             print " sample_barcode : ", u['submitter_id']
             print " sample_type : ", u['sample_type']
-            print " sample_type_id : ", u['sample_type_id']
+            try:
+                print " sample_type_id : ", u['sample_type_id']
+            except:
+                print " NO sample_type_id field ... "
             try:
                 print " sample_is_ffpe : ", u['is_ffpe']
             except:
@@ -427,22 +430,17 @@ def getCaseTree(caseInfo):
         sample_gdc_id = u['sample_id'].strip()
         sample_barcode = u['submitter_id'].strip()
         sample_type = u['sample_type'].strip()
-        sample_type_id = u['sample_type_id'].strip()
 
-        try:
-            sample_is_ffpe = str(u['is_ffpe'])
-        except:
-            sample_is_ffpe = ''
-
-        try:
-            if (u['preservation_method'] is None):
-                sample_preservation_method = ''
-            else:
-                sample_preservation_method = u['preservation_method'].strip()
-        except:
-            sample_preservation_method = ''
-
-        if ('portions' in uKeys):
+        #
+        # 1/19/2020: Don't use exception catches to handle lack of key. Also, "sample_type_id"
+        # is optional (e.g. FM) so treat it as such
+        sample_type_id = str(u['sample_type_id']) if 'sample_type_id' in u else 'NA'
+        sample_is_ffpe = str(u['is_ffpe']) if 'is_ffpe' in u else ''
+        sample_preservation_method = \
+            u['preservation_method'].strip() if 'preservation_method' in u \
+                                                and u['preservation_method'] is not None \
+                                             else ''
+        if 'portions' in uKeys:
             w = u['portions']
             numPortions = len(w)
             if (verboseFlag >= 33): print " numPortions : ", numPortions
@@ -455,33 +453,31 @@ def getCaseTree(caseInfo):
                     print " x : ", x
                     print " xKeys : ", xKeys
 
-                try:
-                    if (verboseFlag >= 33):
-                        print " portion_gdc_id : ", x['portion_id']
-                        print " portion_barcode : ", x['submitter_id']
-                    portion_gdc_id = x['portion_id'].strip()
-                    portion_barcode = x['submitter_id'].strip()
-                except:
-                    if (verboseFlag >= 33): print " failed to get portion_id and submitter_id ??? ", xKeys
-                    portion_gdc_id = "NA"
-                    portion_barcode = "NA"
+                # 1/19/2020: Previous code assumed that these could be treated uniformly: if
+                # one was not there, the other would be missing too. Incorrect (FM). Treat separately.
+                portion_gdc_id = x['portion_id'].strip() if 'portion_id' in xKeys else "NA"
+                portion_barcode = x['submitter_id'].strip() if 'submitter_id' in xKeys else "NA"
+                if (verboseFlag >= 33):
+                    print " portion_gdc_id : ", portion_gdc_id
+                    print " portion_barcode : ", portion_barcode
 
-                if ('slides' in xKeys):
+                if 'slides' in xKeys:
                     y = x['slides']
                     if (verboseFlag >= 33): print " y : ", y
                     numSlides = len(y)
                     if (verboseFlag >= 33): print " numSlides : ", numSlides
                     if (numSlides == 0):
-                        print " hmmmm no slides for this portion ? "
+                        # Make the warnings USEFUL with a case ID:
+                        print(" hmmmm no slides for this portion ? case {}".format(case_gdc_id))
                         slide_gdc_id = "NA"
-                        slid_gdc_barcode = "NA"
+                        slide_gdc_barcode = "NA"
                         fhS.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   portion_gdc_id, portion_barcode, \
-                                   slide_gdc_id, slide_barcode))
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   portion_gdc_id, portion_barcode,
+                                   slide_gdc_id, slide_gdc_barcode))
 
                     for iSlide in range(numSlides):
                         if (verboseFlag >= 33):
@@ -492,32 +488,32 @@ def getCaseTree(caseInfo):
                         slide_barcode = y[iSlide]['submitter_id'].strip()
 
                         fhS.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   portion_gdc_id, portion_barcode, \
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   portion_gdc_id, portion_barcode,
                                    slide_gdc_id, slide_barcode))
                         if (verboseFlag >= 66): print " done with iSlide ", iSlide
 
-                if ('analytes' in xKeys):
+                if 'analytes' in xKeys:
                     z = x['analytes']
                     numAnalytes = len(z)
                     if (verboseFlag >= 33): print " numAnalytes : ", numAnalytes
                     if (numAnalytes == 0):
-                        print " hmmmm no analytes for this portion ? "
+                        print(" hmmmm no analytes for this portion ? case {}".format(case_gdc_id))
                         analyte_gdc_id = "NA"
                         analyte_barcode = "NA"
                         aliquot_gdc_id = "NA"
                         aliquot_barcode = "NA"
                         fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   sample_is_ffpe, sample_preservation_method, \
-                                   portion_gdc_id, portion_barcode, \
-                                   analyte_gdc_id, analyte_barcode, \
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   sample_is_ffpe, sample_preservation_method,
+                                   portion_gdc_id, portion_barcode,
+                                   analyte_gdc_id, analyte_barcode,
                                    aliquot_gdc_id, aliquot_barcode))
 
                     for iA in range(numAnalytes):
@@ -527,33 +523,31 @@ def getCaseTree(caseInfo):
                             print iA
                             print " a : ", a
                             print " aKeys : ", aKeys
-                        try:
-                            if (verboseFlag >= 33):
-                                print " analyte_gdc_id : ", a['analyte_id']
-                                print " analyte_barcode : ", a['submitter_id']
-                            analyte_gdc_id = a['analyte_id'].strip()
-                            analyte_barcode = a['submitter_id'].strip()
-                        except:
-                            if (verboseFlag >= 33): print " failed to get analyte_id and submitter_id ??? ", aKeys
-                            analyte_gdc_id = "NA"
-                            analyte_barcode = "NA"
+                        # 1/19/2020: Same problem as elsewhere. Sometimes you have a gdc id where
+                        # there is no submitter barcode, since some projects do not follow the
+                        # GDC data model and only the GDC creates a synthetic entity.
+                        analyte_gdc_id = a['analyte_id'].strip() if 'analyte_id' in a else "NA"
+                        analyte_barcode = a['submitter_id'].strip() if 'submitter_id' in a else "NA"
+                        if (verboseFlag >= 33):
+                            print " analyte_gdc_id : ", analyte_gdc_id
+                            print " analyte_barcode : ", analyte_barcode
 
-                        if ('aliquots' in aKeys):
+                        if 'aliquots' in aKeys:
                             b = a['aliquots']
                             numAliquots = len(b)
                             if (verboseFlag >= 33): print " numAliquots : ", numAliquots
-                            if (numAliquots == 0):
-                                print " hmmmm no aliquots for this analyte ? "
+                            if numAliquots == 0:
+                                print(" hmmmm no aliquots for this analyte ? case {} analyte {}".format(case_gdc_id, analyte_gdc_id))
                                 aliquot_gdc_id = "NA"
                                 aliquot_barcode = "NA"
                                 fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                          (program_name, project_id, \
-                                           case_gdc_id, case_barcode, \
-                                           sample_gdc_id, sample_barcode, \
-                                           sample_type_id, sample_type, \
-                                           sample_is_ffpe, sample_preservation_method, \
-                                           portion_gdc_id, portion_barcode, \
-                                           analyte_gdc_id, analyte_barcode, \
+                                          (program_name, project_id,
+                                           case_gdc_id, case_barcode,
+                                           sample_gdc_id, sample_barcode,
+                                           sample_type_id, sample_type,
+                                           sample_is_ffpe, sample_preservation_method,
+                                           portion_gdc_id, portion_barcode,
+                                           analyte_gdc_id, analyte_barcode,
                                            aliquot_gdc_id, aliquot_barcode))
 
                             for iB in range(numAliquots):
@@ -567,45 +561,48 @@ def getCaseTree(caseInfo):
                                 aliquot_gdc_id = c['aliquot_id'].strip()
                                 aliquot_barcode = c['submitter_id'].strip()
                                 fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                          (program_name, project_id, \
-                                           case_gdc_id, case_barcode, \
-                                           sample_gdc_id, sample_barcode, \
-                                           sample_type_id, sample_type, \
-                                           sample_is_ffpe, sample_preservation_method, \
-                                           portion_gdc_id, portion_barcode, \
-                                           analyte_gdc_id, analyte_barcode, \
+                                          (program_name, project_id,
+                                           case_gdc_id, case_barcode,
+                                           sample_gdc_id, sample_barcode,
+                                           sample_type_id, sample_type,
+                                           sample_is_ffpe, sample_preservation_method,
+                                           portion_gdc_id, portion_barcode,
+                                           analyte_gdc_id, analyte_barcode,
                                            aliquot_gdc_id, aliquot_barcode))
 
                         else:
-                            print " hmmmm no aliquots for this analyte ? "
+                            print(" hmmmm no aliquots for this analyte ? case {} analyte {}".format(case_gdc_id,
+                                                                                                    analyte_gdc_id))
                             aliquot_gdc_id = "NA"
                             aliquot_barcode = "NA"
 
                             fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                      (program_name, project_id, \
-                                       case_gdc_id, case_barcode, \
-                                       sample_gdc_id, sample_barcode, \
-                                       sample_type_id, sample_type, \
-                                       sample_is_ffpe, sample_preservation_method, \
-                                       portion_gdc_id, portion_barcode, \
-                                       analyte_gdc_id, analyte_barcode, \
+                                      (program_name, project_id,
+                                       case_gdc_id, case_barcode,
+                                       sample_gdc_id, sample_barcode,
+                                       sample_type_id, sample_type,
+                                       sample_is_ffpe, sample_preservation_method,
+                                       portion_gdc_id, portion_barcode,
+                                       analyte_gdc_id, analyte_barcode,
                                        aliquot_gdc_id, aliquot_barcode))
 
-                else:
-                    print " hmmmm no analytes for this portion ? "
+                elif 'slides' not in xKeys:
+                    # 1/19/2020: Previously, this fired off *every* time there was a portion
+                    # with just slides and no analytes. Fix that.
+                    print(" hmmmm no analytes or slides for this portion ? case {}".format(case_gdc_id))
                     analyte_gdc_id = "NA"
                     analyte_barcode = "NA"
                     aliquot_gdc_id = "NA"
                     aliquot_barcode = "NA"
 
                     fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                              (program_name, project_id, \
-                               case_gdc_id, case_barcode, \
-                               sample_gdc_id, sample_barcode, \
-                               sample_type_id, sample_type, \
-                               sample_is_ffpe, sample_preservation_method, \
-                               portion_gdc_id, portion_barcode, \
-                               analyte_gdc_id, analyte_barcode, \
+                              (program_name, project_id,
+                               case_gdc_id, case_barcode,
+                               sample_gdc_id, sample_barcode,
+                               sample_type_id, sample_type,
+                               sample_is_ffpe, sample_preservation_method,
+                               portion_gdc_id, portion_barcode,
+                               analyte_gdc_id, analyte_barcode,
                                aliquot_gdc_id, aliquot_barcode))
 
 
@@ -669,19 +666,19 @@ def get_case_info(cases_endpt, case_id):
 
     if (verboseFlag >= 9): print " get request ", cases_endpt, params
 
+    # 1/19/2020 See discussion below on revising the retry timing.
     iTry = 0
-    sleepTime = 0.1
-    ## outer loop for multiple retries ...
-    while (iTry < 10):
+    sleepTime = 1
+    while iTry < 11:
 
-        if (iTry == 9):
+        if iTry == 10:
             print " HOLY COW WHAT IS GOING ON ??? !!! "
 
         if (iTry > 0):
             print " >>>> trying again ... ", iTry + 1, sleepTime
             time.sleep(sleepTime)
-            sleepTime = sleepTime * 1.5
-            if (sleepTime > 60.): sleepTime = 60.
+            sleepTime = sleepTime * 2
+            if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:
@@ -704,10 +701,12 @@ def get_case_info(cases_endpt, case_id):
 
             ## before we flatten this structure, we need to get the
             ## complete case -> sample -> aliquot relationship ...
+
             try:
                 caseTree = getCaseTree(caseInfo)
-            except:
-                print " WARNING !!! failed in getCaseTree !!! "
+            except Exception, ex:
+                print(" WARNING !!! failed in getCaseTree !!! case: {}".format(case_id))
+                print(str(ex))
 
             if (verboseFlag >= 9): print " calling flattenJSON ... "
             caseInfo = flattenJSON(caseInfo)
@@ -723,13 +722,12 @@ def get_case_info(cases_endpt, case_id):
 
             return (caseInfo)
 
-        except:
+        except Exception, ex:
+            # Note that this catastrophic error will cause a retry:
             print " ERROR in get_case_info ??? failed to get any information about this case ??? ", case_id
+            print(str(ex))
 
     return ({})
-
-    ## sys.exit(-1)
-
 
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -778,25 +776,33 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
 
     if (verboseFlag >= 9): print " get request ", files_endpt, params
 
+    # 1/19/2020 We have seen a number of failures in the GDC endpoint that trash the run, which takes
+    # several days. The previous version does the first retry after waiting 1/10 of a second. Then
+    # it increases that number by a factor of 1.5 each round, finally getting to a whopping 3.8 seconds
+    # in the last delay.
+    # If we really are hitting a failed API, we would rather slow *way* down to try and keep the whole
+    # thing going. So start with a 1 second delay, and crank it up to 10 minutes (600 seconds) if that's
+    # what it takes to try and *push through* the problem. If the API is really that dead, we can manually
+    # kill it.
     iTry = 0
-    sleepTime = 0.1
-    while (iTry < 10):
+    sleepTime = 1
+    while iTry < 11:
 
-        if (iTry == 9):
+        if iTry == 10:
             print " HOLY COW WHAT IS GOING ON ??? !!! "
 
         if (iTry > 0):
             print " >>>> trying again ... ", iTry + 1, sleepTime
             time.sleep(sleepTime)
-            sleepTime = sleepTime * 1.5
-            if (sleepTime > 60.): sleepTime = 60.
+            sleepTime = sleepTime * 2
+            if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:
             if (verboseFlag >= 9): print " get request ", files_endpt, params
             response = requests.get(files_endpt, params=params, timeout=60.0)
         except:
-            print " ERROR !!! requests.get() call FAILED ??? (c) "
+            print(" ERROR !!! requests.get() call FAILED ??? (c) case: {} ".format(case_id))
             continue
 
         ## check response status_code
@@ -806,7 +812,7 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
                 print " --> BAD status_code returned !!! ", response.status_code
                 continue
         except:
-            print " ERROR just in looking for status_code ??? !!! "
+            print(" ERROR just in looking for status_code ??? !!!  {} ".format(case_id))
             continue
 
         try:
@@ -820,16 +826,17 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
                 print json.dumps(rj, indent=4)
 
             if (numFiles >= maxNumFiles):
-                print " ERROR ??? need to increase maxNumFiles limit !!! ??? "
+                print(" ERROR ??? need to increase maxNumFiles limit !!! ??? {} ".format(case_id))
                 sys.exit(-1)
 
             if (numFiles < numExpected):
-                print " ERROR ??? did not get back all of the files we were expecting ??? !!! "
-                print "     expecting %d ... got back %d " % (numExpected, numFiles)
+                print(" ERROR ??? did not get back all of the files we were expecting ??? !!!  {} ".format(case_id))
+                print("     expecting %d ... got back %d " % (numExpected, numFiles))
                 sys.exit(-1)
 
             if (numFiles != numExpected):
                 print " ERROR ??? number of files does not match expected number ??? (%d,%d) " % (numFiles, numExpected)
+                print(" case  {} ".format(case_id))
 
             ## if the number of files we get back is greater than or equal to
             ## what's expected, let's just go with it ...
