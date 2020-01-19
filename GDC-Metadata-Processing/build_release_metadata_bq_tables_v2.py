@@ -479,29 +479,56 @@ SQL for above:
 def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
     return '''
+        WITH
+          a1 AS (
+            SELECT
+                a.file_gdc_id,
+                a.case_gdc_id,
+                c.case_barcode,
+                c.sample_gdc_id as sample_one_gdc_id,
+                c.sample_barcode as sample_one_barcode,
+                a.project_short_name,
+                a.project_short_name_suffix,
+                a.program_name,
+                a.data_type,
+                a.data_category,
+                a.experimental_strategy,
+                a.file_type,
+                a.file_size,
+                a.data_format,
+                a.platform,
+                a.file_name_key,
+                a.index_file_id,
+                a.index_file_name_key,
+                a.index_file_size,
+                a.access,
+                a.acl
+            FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_one_id = c.aliquot_gdc_id)
         SELECT
-            a.file_gdc_id,
-            a.case_gdc_id,
-            c.case_barcode,
-            c.sample_gdc_id,
-            c.sample_barcode,
-            a.project_short_name,
-            a.disease_code,
-            a.program_name,
-            a.data_type,
-            a.data_category,
-            a.experimental_strategy,
-            a.type,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            a.file_name_key,
-            a.index_file_id,
-            a.index_file_name_key,
-            a.index_file_size,
-            a.access,
-            a.acl
-        FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_id = c.aliquot_gdc_id
+                a1.file_gdc_id,
+                a1.case_gdc_id,
+                a1.case_barcode,
+                a1.sample_one_gdc_id,
+                a1.sample_one_barcode,
+                c.sample_gdc_id as sample_two_gdc_id,
+                c.sample_barcode as sample_two_barcode,
+                a1.project_short_name,
+                a1.project_short_name_suffix,
+                a1.program_name,
+                a1.data_type,
+                a1.data_category,
+                a1.experimental_strategy,
+                a1.file_type,
+                a1.file_size,
+                a1.data_format,
+                a1.platform,
+                a1.file_name_key,
+                a1.index_file_id,
+                a1.index_file_name_key,
+                a1.index_file_size,
+                a1.access,
+                a1.acl
+        FROM a1 LEFT JOIN `{1}` AS c ON a.aliquot_two_id = c.aliquot_gdc_id)
         '''.format(release_table, aliquot_2_case_table, program_name)
 
 
