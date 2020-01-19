@@ -774,12 +774,12 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
             print("{} {} slide_barcodes job failed".format(dataset, build))
             return False
         
-    if 'align_barcodes' in steps and 'sequence' in sql_dict:
+    if 'aliquot_barcodes' in steps and 'sequence' in sql_dict:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                      params['TARGET_DATASET'], 
                                      "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE']))
 
-        step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
+        step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
         success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'], 
                                            step_two_table, params['BQ_AS_BATCH'])
 
