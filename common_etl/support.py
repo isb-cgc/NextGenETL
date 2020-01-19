@@ -1045,6 +1045,15 @@ def bq_table_exists(target_dataset, dest_table):
     except NotFound:
         return False
 
+def bq_table_is_empty(target_dataset, dest_table):
+    """
+    Is table empty?
+    """
+    client = bigquery.Client()
+    table_ref = client.dataset(target_dataset).table(dest_table)
+    table = client.get_table(table_ref)
+    return table.num_rows == 0
+
 def delete_table_bq_job(target_dataset, delete_table):
     client = bigquery.Client()
     table_ref = client.dataset(target_dataset).table(delete_table)
