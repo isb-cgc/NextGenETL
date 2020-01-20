@@ -501,7 +501,7 @@ def getCaseTree(caseInfo):
                     numAnalytes = len(z)
                     if (verboseFlag >= 33): print " numAnalytes : ", numAnalytes
                     if (numAnalytes == 0):
-                        print(" hmmmm no analytes for this portion ? case {}".format(case_gdc_id))
+                        print(" hmmmm no analytes for this portion ? case {} proj {}".format(case_gdc_id, project_id))
                         analyte_gdc_id = "NA"
                         analyte_barcode = "NA"
                         aliquot_gdc_id = "NA"
@@ -537,7 +537,7 @@ def getCaseTree(caseInfo):
                             numAliquots = len(b)
                             if (verboseFlag >= 33): print " numAliquots : ", numAliquots
                             if numAliquots == 0:
-                                print(" hmmmm no aliquots for this analyte ? case {} analyte {}".format(case_gdc_id, analyte_gdc_id))
+                                print(" hmmmm no aliquots for this analyte ? case {} analyte {} proj {}".format(case_gdc_id, analyte_gdc_id, project_id))
                                 aliquot_gdc_id = "NA"
                                 aliquot_barcode = "NA"
                                 fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
@@ -571,8 +571,8 @@ def getCaseTree(caseInfo):
                                            aliquot_gdc_id, aliquot_barcode))
 
                         else:
-                            print(" hmmmm no aliquots for this analyte ? case {} analyte {}".format(case_gdc_id,
-                                                                                                    analyte_gdc_id))
+                            print(" hmmmm no aliquots for this analyte ? case {} analyte {} proj {}".format(case_gdc_id,
+                                                                                                            analyte_gdc_id, project_id))
                             aliquot_gdc_id = "NA"
                             aliquot_barcode = "NA"
 
@@ -589,7 +589,7 @@ def getCaseTree(caseInfo):
                 elif 'slides' not in xKeys:
                     # 1/19/2020: Previously, this fired off *every* time there was a portion
                     # with just slides and no analytes. Fix that.
-                    print(" hmmmm no analytes or slides for this portion ? case {}".format(case_gdc_id))
+                    print(" hmmmm no analytes or slides for this portion ? case {} proj {}".format(case_gdc_id, project_id))
                     analyte_gdc_id = "NA"
                     analyte_barcode = "NA"
                     aliquot_gdc_id = "NA"
