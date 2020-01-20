@@ -461,20 +461,19 @@ def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
 
 '''
 ----------------------------------------------------------------------------------------------
-Get case barcodes associated with the clinical files:
+Get case barcodes associated with case-tagged files:
 '''
 
+def extract_case_barcodes(release_table, case_table, program_name, target_dataset, dest_table, do_batch):
 
-def extract_case_barcodes(release_table, aliquot_2_case_table, program_name, target_dataset, dest_table, do_batch):
-
-    sql = case_barcodes_sql(release_table, aliquot_2_case_table, program_name)
+    sql = case_barcodes_sql(release_table, case_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
 '''
-def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
+def case_barcodes_sql(release_table, case_table, program_name):
     return '''
         WITH
         a1 AS (SELECT DISTINCT case_gdc_id, case_barcode FROM `{1}` GROUP BY case_gdc_id, case_barcode)            
@@ -505,7 +504,7 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             a.access,
             a.acl
         FROM `{0}` AS a JOIN a1 ON a.case_gdc_id = a1.case_gdc_id
-        '''.format(release_table, aliquot_2_case_table, program_name)
+        '''.format(release_table, case_table, program_name)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -925,7 +924,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
             step_two_table = "{}_{}_{}".format(dataset, build, params['CASE_STEP_2_TABLE'])
-            success = extract_case_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+            success = extract_case_barcodes(in_table, params['CASE_TABLE'], dataset, params['TARGET_DATASET'],
                                             step_two_table, params['BQ_AS_BATCH'])
 
             if not success:
