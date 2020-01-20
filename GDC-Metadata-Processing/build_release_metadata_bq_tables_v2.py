@@ -78,58 +78,15 @@ def extract_program_names_sql(release_table):
 
 '''
 ----------------------------------------------------------------------------------------------
-BAM and VCF extraction: BAMS, simple somatic, and annotated somatic VCFs in the target table
+Figure out what programs have valid aliquot mapping data in the table. Not all do; errors in processing
+prior to Rel22 for programs with GDC-generated portion and analyte IDs, and programs with bad case
+data (ORGANOID-PANCREATIC) will not have useful aliquot mapping data available.
 '''
 def extract_active_aliquot_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_active_aliquot_file_data_sql(release_table, program_name)
     print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-
-'''
-----------------------------------------------------------------------------------------------
-build the total filter term:
-'''
-def build_sql_where_clause(program_name, sql_dict):
-    print("_________BUILD_WHERE_________")
-    print(sql_dict)
-
-
-    or_terms = []
-    or_filter_list = sql_dict['or_filters'] if 'or_filters' in sql_dict else []
-    for pair in or_filter_list:
-        for key_vals in pair.items():
-            or_terms.append('( a.{0} {1} "{2}" )'.format(key_vals[0], key_vals[1][0], key_vals[1][1]))
-    print(len(or_terms))
-    or_filter_term = " OR ".join(or_terms)
-
-    print(or_filter_term)
-
-    # Some legacy TCGA images don't even have a TCGA program_name! So make it optional:
-    and_terms = []
-    if program_name is not None:
-        prog_term = "(a.program_name = '{0}')".format(program_name)
-        and_terms.append(prog_term)
-
-    and_filter_list = sql_dict['and_filters'] if 'and_filters' in sql_dict else []
-
-    if len(or_terms) > 0:
-        and_terms.append('( {} )'.format(or_filter_term))
-    for pair in and_filter_list:
-        for key_vals in pair.items():
-            and_terms.append('( a.{0} {1} "{2}" )'.format(key_vals[0], key_vals[1][0], key_vals[1][1]))
-    and_filter_term = " AND ".join(and_terms)
-
-    if 'type_term' in sql_dict:
-        type_term = sql_dict['type_term']
-        with_table = type_term.format("a")
-        full_type_term = "{0} as data_type".format(with_table)
-    else:
-        full_type_term = "a.data_type"
-
-    print(and_filter_term)
-    return and_filter_term, full_type_term
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -186,9 +143,9 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
 ----------------------------------------------------------------------------------------------
 Slide extraction
 '''
-def extract_slide_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
+def extract_active_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_file_data_sql_slides(release_table, program_name, sql_dict)
+    sql = extract_active_file_data_sql_slides(release_table, program_name)
     print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
@@ -197,51 +154,40 @@ def extract_slide_file_data(release_table, program_name, sql_dict, target_datase
 SQL for above:
 '''
 
-
-def extract_file_data_sql_slides(release_table, program_name, sql_dict):
-
-    # 10,000+ Legacy TCGA slides have no program name! Accommodate this bogosity:
-    use_name = None if 'drop_program' in sql_dict and sql_dict['drop_program'] else program_name
-    and_filter_term, full_type_term = build_sql_where_clause(use_name, sql_dict)
-
+def extract_active_file_data_sql_slides(release_table, program_name):
     return '''
-        SELECT 
+        SELECT
             a.file_id as file_gdc_id,
             a.case_gdc_id,
             a.associated_entities__entity_gdc_id as slide_id,
             a.project_short_name, # TCGA-OV
-            # Some names have two hyphens, not just one:
-            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
+            # Take everything after first hyphen, including following hyphens:
+            CASE WHEN (a.project_short_name LIKE '%-%') THEN
+                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
                  ELSE
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
-            END as disease_code, # OV
+                   CAST(null AS STRING)
+            END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
             a.program_name, # TCGA
-            {0}, # The variable type_term
+            a.data_type,
             a.data_category,
-            CAST(null AS STRING) as experimental_strategy,
-            # Using a keyword for a column is bogus, but it was like this already:
-            a.file_type as `type`,
+            a.experimental_strategy,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
             CAST(null AS STRING) as file_name_key,
-            CAST(null AS STRING) as index_file_id,
+            a.index_file_gdc_id as index_file_id,
             CAST(null AS STRING) as index_file_name_key,
-            CAST(null AS INT64) as index_file_size,
+            a.index_file_size,
             a.access,
-            a.acl,
-            # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
-            # we need to pull that out to get that info
-            CASE WHEN (a.case_gdc_id IS NULL) THEN
-                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+).+$")
-                ELSE
-                   CAST(null AS STRING)
-            END as slide_barcode
+            a.acl
         FROM `{1}` AS a
-        WHERE {2}
-        '''.format(full_type_term, release_table, and_filter_term)
-
+        WHERE (a.program_name = "{0}") AND
+              (a.case_gdc_id IS NOT NULL) AND
+              (a.case_gdc_id NOT LIKE "%;%") AND
+              (a.case_gdc_id != "multi") AND
+              (a.associated_entities__entity_type = "slide")
+        '''.format(program_name, release_table)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -349,115 +295,6 @@ def extract_active_case_file_data_sql(release_table, program_name):
               (a.case_gdc_id != "multi") AND
               (a.associated_entities__entity_type = "case")
         '''.format(program_name, release_table)
-
-
-
-
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above:
-'''
-
-
-def extract_file_data_sql_clinbio(release_table, program_name, sql_dict):
-
-    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
-
-    return '''
-        SELECT 
-            a.file_id as file_gdc_id,
-            a.case_gdc_id,
-            a.associated_entities__entity_gdc_id as case_id,
-            a.project_short_name, # TCGA-OV
-            # Some names have two hyphens, not just one:
-            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
-                 ELSE
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
-            END as disease_code, # OV
-            a.program_name, # TCGA
-            {0}, # The variable type_term
-            a.data_category,
-            a.experimental_strategy,
-            # Using a keyword for a column is bogus, but it was like this already:
-            a.file_type as `type`,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            CAST(null AS STRING) as file_name_key,
-            CAST(null AS STRING) as index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            CAST(null AS INT64) as index_file_size,
-            a.access,
-            a.acl
-        FROM `{1}` AS a
-        WHERE {2}
-        '''.format(full_type_term, release_table, and_filter_term)
-
-
-'''
-----------------------------------------------------------------------------------------------
-Various other files
-'''
-
-
-def extract_other_file_data(release_table, program_name, sql_dict, barcode, target_dataset, dest_table, do_batch):
-
-    sql = extract_other_file_data_sql(release_table, program_name, sql_dict, barcode)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above:
-'''
-
-
-def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
-
-    and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
-    use_and = and_filter_term if and_filter_term == "" else "{} AND".format(and_filter_term)
-
-    return '''
-        SELECT
-            a.file_id as file_gdc_id,
-            a.case_gdc_id,
-            # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
-            # no matter what it is...
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
-                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
-              ELSE a.associated_entities__entity_gdc_id
-            END as {3}_id,
-            a.project_short_name, # TCGA-OV
-            # Some names have two hyphens, not just one:
-            CASE WHEN (a.project_short_name LIKE '%-%-%') THEN
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+)-[A-Z0-9]+$")
-                 ELSE
-                   REGEXP_EXTRACT(a.project_short_name, r"^[A-Z]+-([A-Z]+$)")
-            END as disease_code, # OV
-            a.program_name, # TCGA
-            {0}, # The variable type_term
-            a.data_category,
-            a.experimental_strategy,
-            a.file_type as `type`,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            CAST(null AS STRING) as file_name_key,
-            a.index_file_gdc_id as index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            a.index_file_size,
-            a.access,
-            a.acl
-        FROM `{1}` AS a
-        # The whole deal here is to only use files associated with a single case ID. Null ids and
-        # multiple IDs means we ignore the file.
-        WHERE (a.case_gdc_id IS NOT NULL) AND
-              (a.case_gdc_id NOT LIKE '%;%') AND
-              (a.case_gdc_id != 'multi') AND {2}
-              (a.associated_entities__entity_type = "{3}")
-        '''.format(full_type_term, release_table, use_and, barcode)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -838,22 +675,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
     # Pull stuff from rel:
     #
      
-    if 'pull_slides' in steps and 'slide' in sql_dict:
-        step_zero_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_0_TABLE'])
-        success = extract_slide_file_data(file_table, dataset, sql_dict['slide'], params['TARGET_DATASET'],
-                                          step_zero_table, params['BQ_AS_BATCH'])
-
+    if 'pull_slides' in steps:
+        step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
+        success = extract_active_slide_file_data(file_table, dataset, params['TARGET_DATASET'],
+                                                 step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_slides job failed".format(dataset, build))
             return False
 
-        step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
-        case_table = "{}_{}_{}".format(dataset, build, params['CASE_TABLE'])
-        success = repair_slide_file_data(case_table, step_zero_table,
-                                         params['TARGET_DATASET'], step_one_table, params['BQ_AS_BATCH'])
-        if not success:
-            print("{} {} repair slides sub-job failed".format(dataset, build))
-            return False
+        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
+            print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_1_TABLE']))
 
     if 'pull_aliquot' in steps:
         step_one_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
@@ -879,17 +711,19 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
             delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
             print("{} pull_case table result was empty: table deleted".format(params['CASE_STEP_1_TABLE']))
 
-    if 'slide_barcodes' in steps and 'slide' in sql_dict:
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                     params['TARGET_DATASET'], 
-                                     "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE']))
-        step_two_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_2_TABLE'])
-        success = extract_slide_barcodes(in_table, params['SLIDE_TABLE'], dataset, params['TARGET_DATASET'], 
-                                         step_two_table, params['BQ_AS_BATCH'])
+    if 'slide_barcodes' in steps:
+        table_name = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                     params['TARGET_DATASET'], table_name)
 
-        if not success:
-            print("{} {} slide_barcodes job failed".format(dataset, build))
-            return False
+        if bq_table_exists(params['TARGET_DATASET'], table_name):
+            step_two_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_2_TABLE'])
+            success = extract_slide_barcodes(in_table, params['SLIDE_TABLE'], dataset, params['TARGET_DATASET'],
+                                             step_two_table, params['BQ_AS_BATCH'])
+
+            if not success:
+                print("{} {} slide_barcodes job failed".format(dataset, build))
+                return False
         
     if 'aliquot_barcodes' in steps:
         table_name = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
