@@ -140,7 +140,7 @@ As always, multi-case entries are skipped.
 def extract_active_aliquot_file_data_sql(release_table, program_name):
 
     return '''
-        SELECT 
+        SELECT
             a.file_id as file_gdc_id,
             a.case_gdc_id,
             CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
@@ -154,7 +154,7 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
               ELSE CAST(null AS STRING)
             END as aliquot_id_two,
             a.project_short_name, # TCGA-OV
-            # Take everything afer first hyphen, including following hyphens:
+            # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
                    REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
                  ELSE
@@ -307,10 +307,52 @@ Clinical extraction (CLIN and BIO files):
 '''
 
 
-def extract_clinbio_file_data(release_table, program_name, sql_dict, target_dataset, dest_table, do_batch):
-    sql = extract_file_data_sql_clinbio(release_table, program_name, sql_dict)
-    print(sql)
+def extract_active_case_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+    sql = extract_active_case_file_data_sql(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+If the associated entity is a case ID, then haul that in:
+'''
+def extract_active_case_file_data_sql(release_table, program_name):
+
+    return '''
+        SELECT
+            a.file_id as file_gdc_id,
+            a.case_gdc_id,
+            a.project_short_name, # TCGA-OV
+            # Take everything after first hyphen, including following hyphens:
+            CASE WHEN (a.project_short_name LIKE '%-%') THEN
+                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
+                 ELSE
+                   CAST(null AS STRING)
+            END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
+            a.program_name, # TCGA
+            a.data_type,
+            a.data_category,
+            a.experimental_strategy,
+            a.file_type,
+            a.file_size,
+            a.data_format,
+            a.platform,
+            CAST(null AS STRING) as file_name_key,
+            a.index_file_gdc_id as index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            a.index_file_size,
+            a.access,
+            a.acl
+        FROM `{1}` AS a
+        WHERE (a.program_name = "{0}") AND
+              (a.case_gdc_id IS NOT NULL) AND
+              (a.case_gdc_id NOT LIKE "%;%") AND
+              (a.case_gdc_id != "multi") AND
+              (a.associated_entities__entity_type = "case")
+        '''.format(program_name, release_table)
+
+
+
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -477,7 +519,8 @@ def prepare_aliquot_without_map(release_table, case_table, program_name, target_
 '''
 ----------------------------------------------------------------------------------------------
 If we do not have any aliquot mapping, we cannot back it out to sample IDs. So we need to just
-get the case barcode and call it good.
+get the case barcode and call it good. Note this is a patch for Rel21 and older data, where
+metadata processing code was broken.
 
 '''
 def aliquot_barcodes_without_map_sql(release_table, case_table, program_name):
@@ -524,9 +567,10 @@ def extract_aliquot_barcodes(release_table, aliquot_2_case_table, program_name, 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for getting case and sample info from aliquot IDs.
-BAD NEWS! As of Rel21, the aliquot mapping table only holds data for:
-CGCI, HCMI, TCGA, CPTAC, TARGET, CCLE
-
+BAD NEWS! As of Rel21, the aliquot mapping table only holds data for: CGCI, HCMI, TCGA, CPTAC, TARGET,
+CCLE. Errors in the code that built the aliquot table meant that many projects did not get loaded. This
+problem should mostly be fixed in Rel22, though there appear to be problems with the ORGANOID-PANCREATIC
+case data for Rel22.
 
 '''
 def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
@@ -783,9 +827,7 @@ def install_uris_sql(union_table, mapping_table):
 
 '''
 ----------------------------------------------------------------------------------------------
-Do all the steps for a given dataset and build
-
-sequence
+Do all the steps for a given dataset and build sequence
 '''
 
 
@@ -826,30 +868,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
             delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
             print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
 
-    if 'pull_clinbio' in steps and 'bioclin' in sql_dict:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE'])
-        success = extract_clinbio_file_data(file_table, dataset, sql_dict['bioclin'], params['TARGET_DATASET'],
-                                            step_one_table, params['BQ_AS_BATCH']) 
+    if 'pull_case' in steps:
+        step_one_table = "{}_{}_{}".format(dataset, build, params['CASE_STEP_1_TABLE'])
+        success = extract_active_case_file_data(file_table, dataset, params['TARGET_DATASET'],
+                                                step_one_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_clinbio job failed".format(dataset, build))
             return False
 
-    if 'pull_other_aliquot' in steps and 'other_aliquot' in sql_dict:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, sql_dict['other_aliquot'], "aliquot", params['TARGET_DATASET'],
-                                            step_one_table, params['BQ_AS_BATCH'])
-        if not success:
-            print("{} {} pull_other job failed".format(dataset, build))
-            return False
-
-    if 'pull_other_case' in steps and 'other_case' in sql_dict:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_1_TABLE'])
-        success = extract_other_file_data(file_table, dataset, sql_dict['other_case'], "case", params['TARGET_DATASET'],
-                                            step_one_table, params['BQ_AS_BATCH'])
-        if not success:
-            print("{} {} pull_other job failed".format(dataset, build))
-            return False
-
+        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
+            print("{} pull_case table result was empty: table deleted".format(params['CASE_STEP_1_TABLE']))
 
     if 'slide_barcodes' in steps and 'slide' in sql_dict:
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
@@ -890,43 +919,18 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
         else:
             print("{} {} aliquot_barcodes step skipped (no input table)".format(dataset, build))
 
-    if 'clinbio_barcodes' in steps and 'bioclin' in sql_dict:
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                     params['TARGET_DATASET'], 
-                                     "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_1_TABLE']))
+    if 'case_barcodes' in steps:
+        table_name = "{}_{}_{}".format(dataset, build, params['CASE_STEP_1_TABLE'])
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
 
-        step_two_table = "{}_{}_{}".format(dataset, build, params['CLINBIO_STEP_2_TABLE'])
-        success = extract_case_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'], 
-                                        step_two_table, params['BQ_AS_BATCH'])
+        if bq_table_exists(params['TARGET_DATASET'], table_name):
+            step_two_table = "{}_{}_{}".format(dataset, build, params['CASE_STEP_2_TABLE'])
+            success = extract_case_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+                                            step_two_table, params['BQ_AS_BATCH'])
 
-        if not success:
-            print("{} {} clin_barcodes job failed".format(dataset, build))
-            return False                 
-
-    if 'other_aliquot_barcodes' in steps and 'other_aliquot' in sql_dict:
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                     params['TARGET_DATASET'],
-                                     "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_1_TABLE']))
-        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_ALIQUOT_STEP_2_TABLE'])
-        success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
-                                           step_two_table, params['BQ_AS_BATCH'])
-
-        if not success:
-            print("{} {} other_barcodes job failed".format(dataset, build))
-            return False
-
-    if 'other_case_barcodes' in steps and 'other_case' in sql_dict:
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                     params['TARGET_DATASET'],
-                                     "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_1_TABLE']))
-        step_two_table = "{}_{}_{}".format(dataset, build, params['OTHER_CASE_STEP_2_TABLE'])
-        success = extract_case_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
-                                        step_two_table, params['BQ_AS_BATCH'])
-
-        if not success:
-            print("{} {} other_barcodes job failed".format(dataset, build))
-            return False
-
+            if not success:
+                print("{} {} case_barcodes job failed".format(dataset, build))
+                return False
 
     if 'union_tables' in steps:
         table_list = []
