@@ -482,18 +482,19 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             a.file_gdc_id,
             a.case_gdc_id,
             a1.case_barcode,
-            "NA" as sample_gdc_id,
-            "NA" as sample_barcode,
+            CAST(null AS STRING) as sample_one_gdc_id,
+            CAST(null AS STRING) as sample_one_barcode,
+            CAST(null AS STRING) as sample_one_type_name,
+            CAST(null AS STRING) as sample_two_gdc_id,
+            CAST(null AS STRING) as sample_two_barcode,
+            CAST(null AS STRING) as sample_two_type_name,
             a.project_short_name,
-            a.disease_code,
+            a.project_short_name_suffix,
             a.program_name,
-            # FIXME DO WE WANT TO DROP THIS ARCHIVAL FIX??? Yes...
-            # Archival table had null in this slot:
-            # CAST(null AS STRING) as data_type,
             a.data_type,
             a.data_category,
             a.experimental_strategy,
-            a.type,
+            a.file_type,
             a.file_size,
             a.data_format,
             a.platform,
@@ -505,7 +506,6 @@ def case_barcodes_sql(release_table, aliquot_2_case_table, program_name):
             a.acl
         FROM `{0}` AS a JOIN a1 ON a.case_id = a1.case_gdc_id
         '''.format(release_table, aliquot_2_case_table, program_name)
-
 
 '''
 ----------------------------------------------------------------------------------------------
