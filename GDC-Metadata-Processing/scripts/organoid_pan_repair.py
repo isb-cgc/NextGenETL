@@ -25,9 +25,11 @@ ORGANOID-PANCREATIC results from GDC API before and including Rel22 have problem
 aliquot IDs in case endpoint. Repair the TSV file.
 '''
 
-repairs = \
 '''
 associated_entities__entity_submitter_id	case_gdc_id	associated_entities__entity_gdc_id
+'''
+repairs = \
+'''
 ALIQUOT1	f5393eea-abad-4f59-a19d-4ac65bd0ad65	b4352279-0f5a-4c8f-b1d4-5f9bdf690d1c
 ALIQUOT10	490344a3-9367-42cb-b109-8562eed90bdf	07c0ca7e-a9ba-4573-bd8a-cbf73d650cbb
 ALIQUOT100	5ff50c23-54c5-4296-a164-1160cfa629c4	f28cbec0-071a-41bf-94e0-4fdbe02742c3
@@ -219,8 +221,6 @@ ALIQUOT99	c6f03bd6-e8e1-4e41-a2ec-464188a3277f	80abd46a-37d9-4531-be39-6890e22da
 '''
 
 
-
-
 def main(args):
 
     if len(args) != 3:
@@ -238,33 +238,33 @@ def main(args):
     # pull info out of each row:
     #
 
-    case_dict = {}
+    sample_dict = {}
     with open(args[1], mode='r') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
         for row in reader:
+            sample_id = row[4]
             case_id = row[2]
-            if case_id in case_dict:
-                case = case_dict[case_id]
+            if sample_id in sample_dict:
+                sample = sample_dict[sample_id]
                 if "PORTION" in row[11]:
-                    case[11] = row[11]
-                    case[10] = row[10]
+                    sample[11] = row[11]
+                    sample[10] = row[10]
                 elif "ANALYTE" in row[13]:
-                    case[13] = row[13]
-                    case[12] = row[12]
-                    case[15] = row[13].replace("ANALYTE", "ALIQUOT")
-                    repair_info = repair_dict[case[15]]
+                    sample[13] = row[13]
+                    sample[12] = row[12]
+                    sample[15] = row[13].replace("ANALYTE", "ALIQUOT")
+                    repair_info = repair_dict[sample[15]]
                     if repair_info[1] != case_id:
                         raise Exception
-                    case[14] = repair_info[2]
+                    sample[14] = repair_info[2]
                 else:
                     raise Exception
             else:
-                case = row.copy()
-                case_dict[case_id] = case
-
+                sample = row.copy()
+                sample_dict[sample_id] = sample
 
     with open(args[2], mode='w+') as normfile:
-        for k, v in case_dict.items():
+        for k, v in sample_dict.items():
             first = True
             for field in v:
                 if not first:
