@@ -685,47 +685,51 @@ def get_case_info(cases_endpt, case_id):
             if (verboseFlag >= 9): print " get request ", cases_endpt, params
             response = requests.get(cases_endpt, params=params, timeout=60.0)
         except:
-            print " ERROR !!! requests.get() call FAILED ??? (b) "
+            print " ERROR !!! requests.get() call FAILED ??? (b) Going to retry..."
+            response = None
 
-        try:
-            if (verboseFlag >= 9): print " now parsing json response ... "
-            rj = response.json()
-            if (verboseFlag >= 5):
-                print json.dumps(rj, indent=4)
-            if (len(rj['data']['hits']) != 1):
-                if (len(rj['data']['hits']) >= 1):
-                    print " HOW DID THIS HAPPEN ??? more than one case ??? !!! ", len(rj['data']['hits'])
-                else:
-                    print " NOTHING came back for this case ??? ", case_id
-            caseInfo = rj['data']['hits'][0]
 
-            ## before we flatten this structure, we need to get the
-            ## complete case -> sample -> aliquot relationship ...
-
+        # Don't try to parse the response if we never got a response:
+        if response is not None:
             try:
-                caseTree = getCaseTree(caseInfo)
+                if (verboseFlag >= 9): print " now parsing json response ... "
+                rj = response.json()
+                if (verboseFlag >= 5):
+                    print json.dumps(rj, indent=4)
+                if (len(rj['data']['hits']) != 1):
+                    if (len(rj['data']['hits']) >= 1):
+                        print " HOW DID THIS HAPPEN ??? more than one case ??? !!! ", len(rj['data']['hits'])
+                    else:
+                        print " NOTHING came back for this case ??? ", case_id
+                caseInfo = rj['data']['hits'][0]
+
+                ## before we flatten this structure, we need to get the
+                ## complete case -> sample -> aliquot relationship ...
+
+                try:
+                    caseTree = getCaseTree(caseInfo)
+                except Exception, ex:
+                    print(" WARNING !!! failed in getCaseTree !!! case: {}".format(case_id))
+                    print(str(ex))
+
+                if (verboseFlag >= 9): print " calling flattenJSON ... "
+                caseInfo = flattenJSON(caseInfo)
+
+                fields = caseInfo.keys()
+                fields.sort()
+
+                for aField in fields:
+                    if (aField not in cases_fields):
+                        if (verboseFlag >= 1):
+                            print " adding new field to cases_fields list : <%s> " % aField
+                        cases_fields += [aField]
+
+                return (caseInfo)
+
             except Exception, ex:
-                print(" WARNING !!! failed in getCaseTree !!! case: {}".format(case_id))
+                # Note that this error in parsing will cause a retry:
+                print " ERROR in get_case_info ??? failed to get any information about this case ??? ", case_id
                 print(str(ex))
-
-            if (verboseFlag >= 9): print " calling flattenJSON ... "
-            caseInfo = flattenJSON(caseInfo)
-
-            fields = caseInfo.keys()
-            fields.sort()
-
-            for aField in fields:
-                if (aField not in cases_fields):
-                    if (verboseFlag >= 1):
-                        print " adding new field to cases_fields list : <%s> " % aField
-                    cases_fields += [aField]
-
-            return (caseInfo)
-
-        except Exception, ex:
-            # Note that this catastrophic error will cause a retry:
-            print " ERROR in get_case_info ??? failed to get any information about this case ??? ", case_id
-            print(str(ex))
 
     return ({})
 
