@@ -65,6 +65,12 @@ EXPECTED_LEGACY_FILE_COUNT_COL="30"
 EXPECTED_CURRENT_FILE_COUNT_COL="31"
 EXPECTED_ERROR_COL="30"
 
+ALIQUOT_CHANGE_ID_FIELD="14"
+SLIDE_CHANGE_ID_FIELD="10"
+CASE_CHANGE_ID_FIELD="0"
+CURR_FILE_CHANGE_ID_FIELD="1"
+LEG_FILE_CHANGE_ID_FIELD="1"
+
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
 #

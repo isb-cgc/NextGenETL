@@ -48,7 +48,7 @@ def main(args):
     with open(change_file_name, mode='r') as change_file:
         for line in change_file:
             toks = line.split()
-            need_cases.add(toks[1])
+            need_cases.add(toks[id_field])
 
     if len(need_cases) == 0:
         print("No changes to analyze")

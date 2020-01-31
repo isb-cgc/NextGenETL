@@ -475,23 +475,27 @@ if [ "${DETAILED_DIFFS}" == "run" ]; then
     cd ${REL_ROOT}
     source ~/pyVenvForThree/bin/activate
 
+    echo "##### DETAILED ALIQUOT CHANGES ######"
     python3 scripts/columnChanges.py changed_aliquot.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 14 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 ${ALIQUOT_CHANGE_ID_FIELD} "silent"
 
+    echo "##### DETAILED SLIDE CHANGES ######"
     python3 scripts/columnChanges.py changed_slide.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 10 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 ${SLIDE_CHANGE_ID_FIELD} "silent"
 
+    echo "##### DETAILED CASE CHANGES ######"
     python3 scripts/columnChanges.py changed_caseData.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 0 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 ${CASE_CHANGE_ID_FIELD} "silent"
 
+    echo "##### DETAILED CURRENT FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_currentFiles.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 1 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 ${CURR_FILE_CHANGE_ID_FIELD} "silent"
 
+    echo "##### DETAILED LEGACY FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_legacyFiles.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 1 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 ${LEG_FILE_CHANGE_ID_FIELD} "silent"
     deactivate
 fi
-
 
 #
 # If the raw schemas are all good, we can swap in the prepared schemas, descriptions, and labels from our BQEcosystem repo:
