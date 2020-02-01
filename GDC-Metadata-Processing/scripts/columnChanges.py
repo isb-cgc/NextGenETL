@@ -38,8 +38,8 @@ def main(args):
     new_dir = args[5]
     check_file_name = args[6]
     case_field = int(args[7])
-    id_field = int(args[9])
-    verbose = args[10] == "verbose"
+    id_field = int(args[8])
+    verbose = args[9] == "verbose"
 
     change_file_name = "{}/{}/{}".format(parent_dir, scratch_dir, change_file)
     old_file_name = "{}/{}/{}".format(parent_dir, old_dir, check_file_name)
