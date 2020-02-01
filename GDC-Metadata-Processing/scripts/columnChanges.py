@@ -28,7 +28,7 @@ def main(args):
 
     if len(args) != 10:
         print(" ")
-        print(" Usage : {} <change_file_name> <parent_dir> <scratch_dir> <old_dir> <new_dir> <check_file_name> <case_field> <id_field> <vebose | silent>".format(args[0]))
+        print(" Usage : {} <change_file_name> <parent_dir> <scratch_dir> <old_dir> <new_dir> <check_file_name> <change_id_field> <tsv_id_field> <vebose | silent>".format(args[0]))
         return
 
     change_file = args[1]
@@ -37,7 +37,7 @@ def main(args):
     old_dir = args[4]
     new_dir = args[5]
     check_file_name = args[6]
-    case_field = int(args[7])
+    change_field = int(args[7])
     id_field = int(args[8])
     verbose = args[9] == "verbose"
 
@@ -45,31 +45,35 @@ def main(args):
     old_file_name = "{}/{}/{}".format(parent_dir, old_dir, check_file_name)
     new_file_name = "{}/{}/{}".format(parent_dir, new_dir, check_file_name)
 
-    need_cases = set()
+    need_change_ids = set()
     with open(change_file_name, mode='r') as change_file:
         for line in change_file:
-            toks = line.split()
-            need_cases.add(toks[case_field])
+            # ditch leading "1" count and newline:
+            line = line.replace('   1 ','').splitlines()[0]
+            toks = line.split('\t')
+            need_change_ids.add(toks[change_field])
 
-    if len(need_cases) == 0:
+    if len(need_change_ids) == 0:
         print("No changes to analyze")
         return
 
     new_lines = {}
     with open(new_file_name, mode='r') as case_file:
         for line in case_file:
+            line = line.splitlines()[0]
             toks = line.split('\t')
-            if toks[id_field] in need_cases:
+            if toks[id_field] in need_change_ids:
                 new_lines[toks[id_field]] = toks
 
     old_lines = {}
     headers = []
     with open(old_file_name, mode='r') as case_file:
         for line in case_file:
+            line = line.splitlines()[0]
             toks = line.split('\t')
             if len(headers) == 0:
                 headers = toks
-            if toks[id_field] in need_cases:
+            if toks[id_field] in need_change_ids:
                 old_lines[toks[id_field]] = toks
 
     change_counts = {}

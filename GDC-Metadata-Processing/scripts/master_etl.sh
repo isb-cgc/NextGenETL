@@ -478,27 +478,27 @@ if [ "${DETAILED_DIFFS}" == "run" ]; then
     echo "##### DETAILED ALIQUOT CHANGES ######"
     python3 scripts/columnChanges.py changed_aliquot.txt ${REL_ROOT} scratch \
             ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 \
-            ${ALIQUOT_CHANGE_CASE_FIELD} ${ALIQUOT_CHANGE_ID_FIELD} "silent"
+            ${ALIQUOT_CHANGE_ID_FIELD} ${ALIQUOT_CHANGE_TSV_ID_FIELD} "silent"
 
     echo "##### DETAILED SLIDE CHANGES ######"
     python3 scripts/columnChanges.py changed_slide.txt ${REL_ROOT} scratch \
             ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 \
-            ${SLIDE_CHANGE_CASE_FIELD} ${SLIDE_CHANGE_ID_FIELD} "silent"
+            ${SLIDE_CHANGE_ID_FIELD} ${SLIDE_CHANGE_TSV_ID_FIELD} "silent"
 
     echo "##### DETAILED CASE CHANGES ######"
     python3 scripts/columnChanges.py changed_caseData.txt ${REL_ROOT} scratch \
             ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 \
-            ${CASE_CHANGE_CASE_FIELD} ${CASE_CHANGE_ID_FIELD} "silent"
+            ${CASE_CHANGE_ID_FIELD} ${CASE_CHANGE_TSV_ID_FIELD} "silent"
 
     echo "##### DETAILED CURRENT FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_currentFiles.txt ${REL_ROOT} scratch \
             ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 \
-            ${CURR_FILE_CHANGE_CASE_FIELD} ${CURR_FILE_CHANGE_ID_FIELD} "silent"
+            ${CURR_FILE_CHANGE_ID_FIELD} ${CURR_FILE_CHANGE_TSV_ID_FIELD} "silent"
 
     echo "##### DETAILED LEGACY FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_legacyFiles.txt ${REL_ROOT} scratch \
             ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 \
-            ${LEG_FILE_CHANGE_CASE_FIELD} ${LEG_FILE_CHANGE_ID_FIELD} "silent"
+            ${LEG_FILE_CHANGE_ID_FIELD} ${LEG_FILE_CHANGE_TSV_ID_FIELD} "silent"
     deactivate
 fi
 
