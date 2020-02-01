@@ -51,7 +51,7 @@ def main(args):
             # ditch leading "1" count and newline:
             line = line.replace('   1 ','').splitlines()[0]
             toks = line.split('\t')
-            need_change_ids.add(toks[change_field])
+            need_change_ids.add(toks[change_field].lstrip())
 
     if len(need_change_ids) == 0:
         print("No changes to analyze")
