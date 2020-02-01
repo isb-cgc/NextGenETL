@@ -71,6 +71,12 @@ CASE_CHANGE_ID_FIELD="0"
 CURR_FILE_CHANGE_ID_FIELD="1"
 LEG_FILE_CHANGE_ID_FIELD="1"
 
+ALIQUOT_CHANGE_CASE_FIELD="3"
+SLIDE_CHANGE_CASE_FIELD="3"
+CASE_CHANGE_CASE_FIELD="1"
+CURR_FILE_CHANGE_CASE_FIELD="1"
+LEG_FILE_CHANGE_CASE_FIELD="1"
+
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
 #

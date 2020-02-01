@@ -26,9 +26,9 @@ Provide detailed breakdown of column value changes
 
 def main(args):
 
-    if len(args) != 9:
+    if len(args) != 10:
         print(" ")
-        print(" Usage : {} <change_file_name> <parent_dir> <scratch_dir> <old_dir> <new_dir> <check_file_name> <id_field> <vebose | silent>".format(args[0]))
+        print(" Usage : {} <change_file_name> <parent_dir> <scratch_dir> <old_dir> <new_dir> <check_file_name> <case_field> <id_field> <vebose | silent>".format(args[0]))
         return
 
     change_file = args[1]
@@ -37,8 +37,9 @@ def main(args):
     old_dir = args[4]
     new_dir = args[5]
     check_file_name = args[6]
-    id_field = int(args[7])
-    verbose = args[8] == "verbose"
+    case_field = int(args[7])
+    id_field = int(args[9])
+    verbose = args[10] == "verbose"
 
     change_file_name = "{}/{}/{}".format(parent_dir, scratch_dir, change_file)
     old_file_name = "{}/{}/{}".format(parent_dir, old_dir, check_file_name)
@@ -48,7 +49,7 @@ def main(args):
     with open(change_file_name, mode='r') as change_file:
         for line in change_file:
             toks = line.split()
-            need_cases.add(toks[id_field])
+            need_cases.add(toks[case_field])
 
     if len(need_cases) == 0:
         print("No changes to analyze")
