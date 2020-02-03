@@ -529,6 +529,7 @@ if [ "${COPY_ANNOT_SCHEMA}" == "run" ]; then
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json case_bqe
     HAVE_ERROR=$?
+    echo ${HAVE_ERROR}
     if [ ${HAVE_ERROR} -ne 0 ]; then
         echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json NOT PROCESSED"
         exit
