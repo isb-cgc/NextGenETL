@@ -38,6 +38,7 @@ def main(args):
 
     success = generate_table_detail_files(args[1], args[2])
     if not success:
+        print("NO SUCCESS {}".format(success))
         return 1
     return 0
 
