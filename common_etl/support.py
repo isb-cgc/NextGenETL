@@ -1180,6 +1180,9 @@ def generate_table_detail_files(dict_file, file_tag):
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
             schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
             schema_file.write('\n')
+        with open("{}_friendly.json".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(bqt_dict['friendlyName'])
+
     except Exception as ex:
         print(ex)
         return False
@@ -1201,12 +1204,16 @@ def install_labels_and_desc(dataset, table, file_tag):
         with open("{}_labels.json".format(file_tag), mode='r') as label_file:
             labels = json_loads(label_file.read())
 
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+
         client = bigquery.Client()
         table_ref = client.dataset(dataset).table(table)
         table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
-        client.update_table(table, ['description', 'labels'])
+        table.friendlyName = friendly
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
     except Exception as ex:
         print(ex)
         return False
