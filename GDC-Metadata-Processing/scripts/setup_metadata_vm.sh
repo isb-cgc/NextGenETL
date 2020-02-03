@@ -87,6 +87,7 @@ deactivate
 cd ~
 mkdir -p GDC-metadata/scratch
 mkdir -p GDC-metadata/scripts
+mkdir -p GDC-metadata/scripts/common_etl
 mkdir -p GDC-metadata/textFiles
 
 #
@@ -105,6 +106,7 @@ chmod u+x *.sh
 
 cd ~
 cp ~/NextGenETL/GDC-Metadata-Processing/scripts/*  GDC-metadata/scripts
+cp ~/NextGenETL/common_etl/* GDC-metadata/scripts/common_etl
 cp ~/NextGenETL/GDC-Metadata-Processing/textFiles/*  GDC-metadata/textFiles
 
 

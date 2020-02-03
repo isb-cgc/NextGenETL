@@ -519,22 +519,51 @@ if [ "${COPY_ANNOT_SCHEMA}" == "run" ]; then
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_aliquot2caseIDmap.json aliq_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_aliquot2caseIDmap.json NOT PROCESSED"
+        exit
+    fi
     mv aliq_bqe_schema.json aliqMap.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json case_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json NOT PROCESSED"
+        exit
+    fi
+
     mv case_bqe_schema.json caseData.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_active.json file_current_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_active.json NOT PROCESSED"
+        exit
+    fi
+
     mv file_current_bqe_schema.json fileData.current.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_legacy.json file_legacy_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_legacy.json NOT PROCESSED"
+        exit
+    fi
+
     mv file_legacy_bqe_schema.json fileData.legacy.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_slide2caseIDmap.json slide_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_slide2caseIDmap.json NOT PROCESSED"
+        exit
+    fi
+
     mv slide_bqe_schema.json slidMap.${SCH_DATE}.json
 
     deactivate

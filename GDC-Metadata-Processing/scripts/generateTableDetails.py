@@ -36,7 +36,10 @@ def main(args):
     # Read in the chunks and write them out into pieces the bq command can use
     #
 
-    generate_table_detail_files(args[1], args[2])
+    success = generate_table_detail_files(args[1], args[2])
+    if not success:
+        return 1
+    return 0
 
 if __name__ == "__main__":
     main(sys.argv)
