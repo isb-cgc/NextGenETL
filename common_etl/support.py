@@ -1,6 +1,6 @@
 """
 
-Copyright 2019, Institute for Systems Biology
+Copyright 2019-2020, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1214,6 +1214,53 @@ def install_labels_and_desc(dataset, table, file_tag):
         table.labels = labels
         table.friendlyName = friendly
         client.update_table(table, ['description', 'labels', 'friendlyName'])
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
+be arguments to the bq command used to update the dataset.
+'''
+
+def generate_dataset_desc_file(dict_file, file_tag):
+
+    #
+    # Read in the chunks and write them out into pieces the bq command can use
+    #
+
+    try:
+        with open(dict_file, mode='r') as bqt_dict_file:
+            bqt_dict = json_loads(bqt_dict_file.read())
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(bqt_dict['description'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the description of a BQ dataset and get it installed
+'''
+
+
+def install_dataset_desc(dataset_id, file_tag):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        client = bigquery.Client()
+        dataset = client.get_dataset(dataset_id)  # Make an API request.
+        dataset.description = desc
+        client.update_dataset(dataset, ["description"])
+
     except Exception as ex:
         print(ex)
         return False
