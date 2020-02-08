@@ -48,6 +48,7 @@ source ${HOME}/setEnvVarsGDCMetadata.sh
 #COMPARE_TO_LAST=run
 #DETAILED_DIFFS=run
 #RAW_SCHEMA_CHECK=run
+#OUTPUT_LOOK_FILES=run
 #COPY_ANNOT_SCHEMA=run
 #LOAD_BQ=run
 #DESC_AND_LABELS=run
@@ -73,6 +74,7 @@ if [ "${QC_CHECK}" == "run" ] || \
    [ "${BQ_PREP_CASES}" == "run" ] || \
    [ "${BQ_PREP_OTHER}" == "run" ] || \
    [ "${RAW_SCHEMA_CHECK}" == "run" ] || \
+   [ "${OUTPUT_LOOK_FILES}" == "run" ] || \
    [ "${BUILD_NORM_TSVS}" == "run" ] || \
    [ "${COMPARE_TO_LAST}" == "run" ] || \
    [ "${DETAILED_DIFFS}" == "run" ] || \
@@ -420,6 +422,25 @@ if [ "${RAW_SCHEMA_CHECK}" == "run" ]; then
         echo "RAW SCHEMA MATCH FAILURE: EXITING"
         exit
     fi
+fi
+
+#
+# "LOOK" files are
+#
+
+if [ "${OUTPUT_LOOK_FILES}" == "run" ]; then
+    echo "Running OUTPUT_LOOK_FILES"
+    cd ${REL_ROOT}/${RELNAME}-forBQ
+    echo "------------------------- LOOK AT ALIQUOT"
+    cat aliqMap.merge.t1.look
+    echo "------------------------- LOOK AT CASES"
+    cat caseData.merge.t1.t1.look
+    echo "------------------------- LOOK AT CURRENT FILES"
+    cat fileData.current.t1.look
+    echo "------------------------- LOOK AT LEGACY FILES"
+    cat fileData.legacy.t1.look
+    echo "------------------------- LOOK AT_SLIDES"
+    cat slidMap.merge.t1.look
 fi
 
 #

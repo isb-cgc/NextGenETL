@@ -57,7 +57,9 @@ for k in $(eval echo "{1..$maxK}")
         cut -f $k $f.n >& $f.t
         sort -T ${SCRATCH_DIR} $f.t | uniq -c | sort -T ${SCRATCH_DIR} -nr >& $f.s
         wc -l $f.s >> $f.look
+        echo "-----------------------------" >> $f.look
         head -10 $f.s >> $f.look
+        echo "-----------------------------" >> $f.look
         tail -10 $f.s >> $f.look
    done
 
