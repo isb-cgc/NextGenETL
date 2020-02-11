@@ -434,7 +434,9 @@ def getCaseTree(caseInfo):
         #
         # 1/19/2020: Don't use exception catches to handle lack of key. Also, "sample_type_id"
         # is optional (e.g. FM) so treat it as such
-        sample_type_id = str(u['sample_type_id']) if 'sample_type_id' in u else 'NA'
+        # 2/10/2020: Some programs have "None" for sample_type_id. Having "" to create a null
+        # is preferable when value is not present.
+        sample_type_id = str(u['sample_type_id']) if 'sample_type_id' in u else ''
         sample_is_ffpe = str(u['is_ffpe']) if 'is_ffpe' in u else ''
         sample_preservation_method = \
             u['preservation_method'].strip() if 'preservation_method' in u \
