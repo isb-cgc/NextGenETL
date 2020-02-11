@@ -35,8 +35,8 @@ def main(args):
     convert_to_null = args[4]
     with open(args[1], mode='r', newline='') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
-        with open(args[2], mode='w+', newline='\n', encoding='utf-8') as normfile:
-            writer = csv.writer(normfile, delimiter='\t')
+        with open(args[2], mode='w+') as normfile:
+            writer = csv.writer(normfile, delimiter='\t', lineterminator='\n')
             for row in reader:
                 if row[fix_col] == convert_to_null:
                     row[fix_col] = ''
