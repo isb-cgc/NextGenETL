@@ -33,10 +33,10 @@ def main(args):
 
     fix_col = int(args[3])
     convert_to_null = args[4]
-    with open(args[1], mode='r') as tsvfile:
+    with open(args[1], mode='r',newline='') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
         with open(args[2], mode='w+') as normfile:
-            writer = csv.writer(normfile, delimiter='\t')
+            writer = csv.writer(normfile, delimiter='\t',newline='')
             for row in reader:
                 if row[fix_col] == convert_to_null:
                     row[fix_col] = ''
