@@ -1180,7 +1180,7 @@ def generate_table_detail_files(dict_file, file_tag):
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
             schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
             schema_file.write('\n')
-        with open("{}_friendly.json".format(file_tag), mode='w+') as friendly_file:
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
             friendly_file.write(bqt_dict['friendlyName'])
 
     except Exception as ex:
