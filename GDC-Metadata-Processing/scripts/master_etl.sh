@@ -434,7 +434,7 @@ if [ "${OUTPUT_LOOK_FILES}" == "run" ]; then
     echo "------------------------- LOOK AT ALIQUOT"
     cat aliqMap.merge.t1.look
     echo "------------------------- LOOK AT CASES"
-    cat caseData.merge.t1.t1.look
+    cat caseData.merge.t1.look
     echo "------------------------- LOOK AT CURRENT FILES"
     cat fileData.current.t1.look
     echo "------------------------- LOOK AT LEGACY FILES"
