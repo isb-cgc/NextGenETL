@@ -84,7 +84,6 @@ chmod u+x *.sh
 mv setEnvVars.sh ~
 echo "Be sure to now customize the ~/setEnvVars.sh file to your system!"
 
-echo "Note: 8G machines are not big enough to run metadata download (trying 30G)"
 
 
 

@@ -433,6 +433,26 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     blob.download_to_filename(local_file)
     return
 
+
+def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target_bucket_file=None):
+    """
+    Get a Bucket File to another bucket
+    No leading / in bucket_file name!!
+    Target bucket is the same as source, unless provided
+    """
+    storage_client = storage.Client()
+    source_bucket = storage_client.bucket(source_bucket_name)
+    source_blob = source_bucket.blob(bucket_file)  # no leading / in blob name!!
+
+    destination_bucket = storage_client.bucket(target_bucket_name)
+
+    if target_bucket_file is None:
+        target_bucket_file = bucket_file
+    source_bucket.copy_blob(source_blob, destination_bucket, target_bucket_file)
+    return
+
+
+
 def build_manifest_filter(filter_dict_list):
     """
     Build a manifest filter using the list of filter items you can get from a GDC search
@@ -1212,7 +1232,7 @@ def install_labels_and_desc(dataset, table, file_tag):
         table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
-        table.friendlyName = friendly
+        table.friendly_name = friendly
         client.update_table(table, ['description', 'labels', 'friendlyName'])
     except Exception as ex:
         print(ex)
