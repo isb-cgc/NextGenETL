@@ -27,16 +27,17 @@ Take the labels and description of a BQ table and get them installed
 
 def main(args):
 
-    if len(args) != 4:
+    if len(args) != 5:
         print(" ")
-        print(" Usage : {} <bq_dataset> <bq_table> <file_tag>".format(args[0]))
+        print(" Usage : {} <project> <bq_dataset> <bq_table> <file_tag>".format(args[0]))
         return
 
-    dataset = args[1]
-    table = args[2]
-    file_tag = args[3]
+    proj = args[1]
+    dataset = args[2]
+    table = args[3]
+    file_tag = args[4]
 
-    install_labels_and_desc(dataset, table, file_tag)
+    install_labels_and_desc(dataset, table, file_tag, project=proj)
 
 if __name__ == "__main__":
     main(sys.argv)
