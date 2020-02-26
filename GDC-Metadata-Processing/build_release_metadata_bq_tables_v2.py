@@ -59,11 +59,7 @@ def extract_program_names(release_table, do_batch):
 
     sql = extract_program_names_sql(release_table)
     results = bq_harness_with_result(sql, do_batch)
-    retval = []
-    for row in results:
-        pn = row.program_name
-        if pn is not None and pn != "None":
-            retval.append(pn.replace(".", "_")) # handles BEATAML1.0 FIXME! Make it general
+    retval = [row.program_name for row in results if row.program_name is not None and row.program_name != "None"]
     return retval
 
 '''
@@ -678,7 +674,7 @@ Do all the steps for a given dataset and build sequence
 '''
 
 
-def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map_programs, params):
+def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple, aliquot_map_programs, params):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
 
@@ -687,11 +683,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
     #
      
     if 'pull_slides' in steps:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
-        success = extract_active_slide_file_data(file_table, dataset, params['TARGET_DATASET'],
+        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
+        success = extract_active_slide_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
                                                  step_one_table, params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} pull_slides job failed".format(dataset, build))
+            print("{} {} pull_slides job failed".format(dataset_tuple[0], build))
             return False
 
         if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
@@ -699,11 +695,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
             print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_1_TABLE']))
 
     if 'pull_aliquot' in steps:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
-        success = extract_active_aliquot_file_data(file_table, dataset, params['TARGET_DATASET'],
+        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+        success = extract_active_aliquot_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
                                                    step_one_table, params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} pull_aliquot job failed".format(dataset, build))
+            print("{} {} pull_aliquot job failed".format(dataset_tuple[0], build))
             return False
 
         if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
@@ -711,11 +707,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
             print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
 
     if 'pull_case' in steps:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['CASE_STEP_1_TABLE'])
-        success = extract_active_case_file_data(file_table, dataset, params['TARGET_DATASET'],
+        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_1_TABLE'])
+        success = extract_active_case_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
                                                 step_one_table, params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} pull_clinbio job failed".format(dataset, build))
+            print("{} {} pull_clinbio job failed".format(dataset_tuple[0], build))
             return False
 
         if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
@@ -723,57 +719,57 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
             print("{} pull_case table result was empty: table deleted".format(params['CASE_STEP_1_TABLE']))
 
     if 'slide_barcodes' in steps:
-        table_name = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                      params['TARGET_DATASET'], table_name)
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
-            step_two_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_2_TABLE'])
-            success = extract_slide_barcodes(in_table, params['SLIDE_TABLE'], dataset, params['TARGET_DATASET'],
+            step_two_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_2_TABLE'])
+            success = extract_slide_barcodes(in_table, params['SLIDE_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
                                              step_two_table, params['BQ_AS_BATCH'])
 
             if not success:
-                print("{} {} slide_barcodes job failed".format(dataset, build))
+                print("{} {} slide_barcodes job failed".format(dataset_tuple[0], build))
                 return False
         
     if 'aliquot_barcodes' in steps:
-        table_name = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_1_TABLE'])
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                      params['TARGET_DATASET'], table_name)
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
-            step_two_table = "{}_{}_{}".format(dataset, build, params['ALIQUOT_STEP_2_TABLE'])
+            step_two_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_2_TABLE'])
 
-            if dataset in aliquot_map_programs:
-                success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset, params['TARGET_DATASET'],
+            if dataset_tuple[0] in aliquot_map_programs:
+                success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
                                                    step_two_table, params['BQ_AS_BATCH'])
 
                 if not success:
-                    print("{} {} align_barcodes job failed".format(dataset, build))
+                    print("{} {} align_barcodes job failed".format(dataset_tuple[0], build))
                     return False
             else:
-                success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset, params['TARGET_DATASET'],
+                success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
                                                       step_two_table, params['BQ_AS_BATCH'])
 
                 if not success:
-                    print("{} {} align_barcodes job failed".format(dataset, build))
+                    print("{} {} align_barcodes job failed".format(dataset_tuple[0], build))
                     return False
 
 
         else:
-            print("{} {} aliquot_barcodes step skipped (no input table)".format(dataset, build))
+            print("{} {} aliquot_barcodes step skipped (no input table)".format(dataset_tuple[0], build))
 
     if 'case_barcodes' in steps:
-        table_name = "{}_{}_{}".format(dataset, build, params['CASE_STEP_1_TABLE'])
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_1_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
-            step_two_table = "{}_{}_{}".format(dataset, build, params['CASE_STEP_2_TABLE'])
-            success = extract_case_barcodes(in_table, params['CASE_TABLE'], dataset, params['TARGET_DATASET'],
+            step_two_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_2_TABLE'])
+            success = extract_case_barcodes(in_table, params['CASE_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
                                             step_two_table, params['BQ_AS_BATCH'])
 
             if not success:
-                print("{} {} case_barcodes job failed".format(dataset, build))
+                print("{} {} case_barcodes job failed".format(dataset_tuple[0], build))
                 return False
 
     if 'union_tables' in steps:
@@ -783,16 +779,16 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
 
         for tag in union_table_tags:
             if tag in params:
-                table_name = "{}_{}_{}".format(dataset, build, params[tag])
+                table_name = "{}_{}_{}".format(dataset_tuple[1], build, params[tag])
                 if bq_table_exists(params['TARGET_DATASET'], table_name):
                     full_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
                     table_list.append(full_table)
 
-        union_table = "{}_{}_{}".format(dataset, build, params['UNION_TABLE'])
+        union_table = "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE'])
         success = build_union(table_list,
                               params['TARGET_DATASET'], union_table, params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} union_tables job failed".format(dataset, build))
+            print("{} {} union_tables job failed".format(dataset_tuple[0], build))
             return False
 
     # Merge the URL info into the final table we are building:
@@ -800,12 +796,12 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
     if 'create_final_table' in steps:
         union_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['TARGET_DATASET'], 
-                                        "{}_{}_{}".format(dataset, build, params['UNION_TABLE']))        
+                                        "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE']))
         success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], path_tag),
                                params['TARGET_DATASET'], 
-                               "{}_{}_{}".format(dataset, build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
+                               "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
         if not success:
-            print("{} {} create_final_table job failed".format(dataset, build))
+            print("{} {} create_final_table job failed".format(dataset_tuple[0], build))
             return False
 
     #
@@ -818,7 +814,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map
                            'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
                            'UNION_TABLE']
         for tag in dump_table_tags:
-            table_name = "{}_{}_{}".format(dataset, build, params[tag])
+            table_name = "{}_{}_{}".format(dataset_tuple[1], build, params[tag])
             if bq_table_exists(params['TARGET_DATASET'], table_name):
                 dump_tables.append(table_name)
 
@@ -863,18 +859,17 @@ def main(args):
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
-        datasets = programs
-        if datasets is None:
-            datasets = extract_program_names(file_table, params['BQ_AS_BATCH'])
-
-        # Not all programs show up in the aliquot map table. So figure out who does:
+        do_programs = extract_program_names(file_table, params['BQ_AS_BATCH']) if programs is None else programs
+        dataset_tuples = [(pn, pn.replace(".", "_")) for pn in do_programs] # handles BEATAML1.0 FIXME! Make it general
+         # Not all programs show up in the aliquot map table. So figure out who does:
         aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
-        for dataset in datasets:
-            print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
-            ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset,
-                                      aliquot_map_programs, params)
-            if not ok:
-                return
+        print(dataset_tuples)
+        for dataset_tuple in dataset_tuples:
+            print ("Processing build {} ({}) for program {} {} ".format(build, build_tag, dataset_tuple[0], dataset_tuple[1]))
+            #ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
+            #                          aliquot_map_programs, params)
+            #if not ok:
+            #    return
             
     print('job completed')
 
