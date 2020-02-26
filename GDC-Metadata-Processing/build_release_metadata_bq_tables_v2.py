@@ -180,7 +180,9 @@ def extract_active_file_data_sql_slides(release_table, program_name):
             CAST(null AS STRING) as index_file_name_key,
             a.index_file_size,
             a.access,
-            a.acl
+            a.acl,
+            # Gotta have this for repairing busted slides with no case_id
+            CAST(null AS STRING) as slide_barcode
         FROM `{1}` AS a
         WHERE (a.program_name = "{0}") AND
               (a.case_gdc_id IS NOT NULL) AND
