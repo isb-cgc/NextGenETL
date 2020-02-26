@@ -865,11 +865,11 @@ def main(args):
         aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
         print(dataset_tuples)
         for dataset_tuple in dataset_tuples:
-            print ("Processing build {} ({}) for program {} {} ".format(build, build_tag, dataset_tuple[0], dataset_tuple[1]))
-            #ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
-            #                          aliquot_map_programs, params)
-            #if not ok:
-            #    return
+            print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset_tuple[0]))
+            ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
+                                      aliquot_map_programs, params)
+            if not ok:
+                return
             
     print('job completed')
 
