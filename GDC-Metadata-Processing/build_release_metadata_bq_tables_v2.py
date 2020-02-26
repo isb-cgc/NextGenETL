@@ -49,7 +49,7 @@ def load_config(yaml_config):
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], 
             yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
-            yaml_dict['programs'], yaml_dict['filter_sets'])
+            yaml_dict['programs'])
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -667,7 +667,7 @@ Do all the steps for a given dataset and build sequence
 '''
 
 
-def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, aliquot_map_programs, params):
+def do_dataset_and_build(steps, build, build_tag, path_tag, dataset, aliquot_map_programs, params):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
 
@@ -844,7 +844,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags, path_tags, programs, filter_sets = load_config(yaml_file.read())
+        params, steps, builds, build_tags, path_tags, programs = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -859,13 +859,8 @@ def main(args):
         # Not all programs show up in the aliquot map table. So figure out who does:
         aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
         for dataset in datasets:
-            if dataset in filter_sets and build_tag in filter_sets[dataset]:
-                sql_dict = filter_sets[dataset][build_tag]
-            else:
-                sql_dict = {}
-            print(sql_dict)
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset))
-            ok = do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset,
+            ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset,
                                       aliquot_map_programs, params)
             if not ok:
                 return
