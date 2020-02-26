@@ -768,8 +768,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
     if 'union_tables' in steps:
         table_list = []
 
-        union_table_tags = ['SLIDE_STEP_2_TABLE', 'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_2_TABLE',
-                            'OTHER_CASE_STEP_2_TABLE' ,'OTHER_ALIQUOT_STEP_2_TABLE']
+        union_table_tags = ['SLIDE_STEP_2_TABLE', 'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_2_TABLE']
 
         for tag in union_table_tags:
             if tag in params:
@@ -804,10 +803,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, a
 
     if 'dump_working_tables' in steps:
         dump_tables = []
-        dump_table_tags = ['SLIDE_STEP_0_TABLE', 'SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
-                           'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
-                           'OTHER_CASE_STEP_1_TABLE', 'OTHER_CASE_STEP_2_TABLE',
-                           'OTHER_ALIQUOT_STEP_1_TABLE', 'OTHER_ALIQUOT_STEP_2_TABLE', 'UNION_TABLE']
+        dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIQUOT_STEP_1_TABLE',
+                           'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
+                           'UNION_TABLE']
         for tag in dump_table_tags:
             table_name = "{}_{}_{}".format(dataset, build, params[tag])
             if bq_table_exists(params['TARGET_DATASET'], table_name):
