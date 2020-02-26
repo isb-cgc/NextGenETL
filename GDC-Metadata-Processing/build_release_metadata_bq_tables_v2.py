@@ -525,7 +525,7 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             sample_type_name,
             slide_gdc_id,
             slide_barcode
-        FROM `{1}` GROUP BY case_barcode, sample_gdc_id, sample_barcode, slide_gdc_id, slide_barcode)
+        FROM `{1}` GROUP BY case_barcode, sample_gdc_id, sample_barcode, sample_type_name, slide_gdc_id, slide_barcode)
         SELECT
             a.file_gdc_id,
             a.case_gdc_id,
