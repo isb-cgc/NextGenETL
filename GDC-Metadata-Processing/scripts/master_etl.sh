@@ -619,7 +619,7 @@ fi
 
 
 #
-# Install table descriptions and labels extracted from the BQEcosystem repo:
+# Publish the tables:
 #
 
 if [ "${PUBLISH_TABLES}" == "run" ]; then
