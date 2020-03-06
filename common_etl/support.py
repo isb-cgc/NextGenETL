@@ -1018,13 +1018,13 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
-def update_schema_with_dict(target_dataset, dest_table, full_schema):
+def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
     try:
-        client = bigquery.Client()
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
         table = client.get_table(table_ref)
         orig_schema = table.schema
@@ -1215,7 +1215,7 @@ Take the labels and description of a BQ table and get them installed
 '''
 
 
-def install_labels_and_desc(dataset, table, file_tag):
+def install_labels_and_desc(dataset, table, file_tag, project=None):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1227,7 +1227,7 @@ def install_labels_and_desc(dataset, table, file_tag):
         with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
             friendly = friendly_file.read()
 
-        client = bigquery.Client()
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(dataset).table(table)
         table = client.get_table(table_ref)
         table.description = desc

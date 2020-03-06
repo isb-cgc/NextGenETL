@@ -609,17 +609,17 @@ if [ "${DESC_AND_LABELS}" == "run" ]; then
     echo "Running DESC_AND_LABELS"
     source ~/pyVenvForThree/bin/activate
     cd ${REL_ROOT}/${RELNAME}-forBQ
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_slide2caseIDmap slide_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_aliquot2caseIDmap aliq_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_caseData case_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_legacy file_legacy_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_current file_current_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_slide2caseIDmap slide_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_aliquot2caseIDmap aliq_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_caseData case_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_fileData_legacy file_legacy_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_fileData_current file_current_bqe
     deactivate
 fi
 
 
 #
-# Install table descriptions and labels extracted from the BQEcosystem repo:
+# Publish the tables:
 #
 
 if [ "${PUBLISH_TABLES}" == "run" ]; then
