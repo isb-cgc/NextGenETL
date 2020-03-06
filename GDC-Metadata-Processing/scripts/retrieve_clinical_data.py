@@ -155,8 +155,12 @@ def filter_mappings_by_field_group(args):
 
 # todo: select correct data types given GDC field metadata
 def get_bq_type(gdc_type):
-    if gdc_type == 'keyword':
-        return 'string'
+    if gdc_type == 'keyword' or gdc_type == 'id':
+        return 'STRING'
+    elif gdc_type == 'float':
+        return 'FLOAT64'
+    elif gdc_type == 'integer':
+        return 'INT64'
     else:
         return gdc_type
 
@@ -168,8 +172,14 @@ def generate_clinical_bq_schema(args):
     for field in field_map.keys():
         field_metadata = field_map[field]
 
+        split_field_name = field_metadata['field'].split('.')
+
+        column_name = "__"
+
+        column_name = column_name.join(split_field_name)
+
         schema_obj = {
-            "name": field_metadata['field'],
+            "name": column_name,
             "type": get_bq_type(field_metadata['type']),
             "description": field_metadata['description']
         }
