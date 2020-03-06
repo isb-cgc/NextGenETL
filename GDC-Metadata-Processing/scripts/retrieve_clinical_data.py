@@ -28,7 +28,8 @@ import os
 
 
 ENDPOINT = 'https://api.gdc.cancer.gov/cases'
-REQUEST_FIELDS = 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
+EXPAND_FIELD_GROUPS = 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
+PARENT_FIELD_GROUPS = 'demographic,diagnoses,exposures,family_histories'
 
 DEFAULT_BATCH_SIZE = 1000
 OUTPUT_PATH = '../textFiles/'
@@ -62,7 +63,7 @@ def retrieve_and_output_cases(args):
     request_params = {
         'from': args.start_index,
         'size': args.batch_size,
-        'expand': args.field_groups
+        'expand': args.expand
     }
 
     with open(fp, io_mode) as json_output_file:
@@ -135,9 +136,59 @@ def retrieve_and_output_cases(args):
     output_report(inserted_count, total_cases_count, file_size, total_time)
 
 
+def filter_mappings_by_field_group(args):
+    field_map = {}
+    res = requests.get(ENDPOINT + '/_mapping')
+
+    field_group_list = args.field_groups.split(',')
+
+    field_mappings = res.json()['_mapping']
+
+    for field in field_mappings:
+        top_level_grouping = field.split('.')[1]
+
+        if top_level_grouping in field_group_list:
+            field_map[field] = field_mappings[field]
+
+    return field_map
+
+
+# todo: select correct data types given GDC field metadata
+def get_bq_type(gdc_type):
+    if gdc_type == 'keyword':
+        return 'string'
+    else:
+        return gdc_type
+
+
+def generate_clinical_bq_schema(args):
+    schema_list = []
+    field_map = filter_mappings_by_field_group(args)
+
+    for field in field_map.keys():
+        field_metadata = field_map[field]
+
+        schema_obj = {
+            "name": field_metadata['field'],
+            "type": get_bq_type(field_metadata['type']),
+            "description": field_metadata['description']
+        }
+
+        schema_list.append(schema_obj)
+
+    with open('../../SchemaFiles/clinical_schema.json', 'w') as schema_file:
+        json.dump(schema_list, schema_file)
+
+
 def main(args):
+    # todo: args should be in the yaml config
+    # todo: field_groups should too
+    # todo: these functions should be called based on 'steps' in yaml
+
     # get all case records from API
-    retrieve_and_output_cases(args)
+    # retrieve_and_output_cases(args)
+
+    generate_clinical_bq_schema(args)
 
 
 if __name__ == '__main__':
@@ -147,8 +198,10 @@ if __name__ == '__main__':
                         help="Starting index (helpful for resuming interrupted retrieval).")
     parser.add_argument("-s", "--batch_size", type=int, default=DEFAULT_BATCH_SIZE,
                         help="Number of records to retrieve per batch request.")
-    parser.add_argument("-g", "--field_groups", default=REQUEST_FIELDS,
-                        help="List of field groups to retrieve (comma-delineated, no spaces).")
+    parser.add_argument("-e", "--expand", default=EXPAND_FIELD_GROUPS,
+                        help="List of 'expand' field groups to retrieve (comma-delineated, no spaces).")
+    parser.add_argument("-g", "--field_groups", default=PARENT_FIELD_GROUPS,
+                        help="List of top-level field groups. Retrieves all child fields, even those nested.")
     parser.add_argument("-a", "--append", action='store_true',
                         help="Append new results to existing json file. (Overwrites data by default.)")
     parser.add_argument("-f", "--file", type=str, default='clinical_data.json',
