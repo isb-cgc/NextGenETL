@@ -275,11 +275,6 @@
         "description": "The extent of a cervical or endometrial cancer within the body, especially whether the disease has spread from the original site to other parts of the body, as described by the International Federation of Gynecology and Obstetrics (FIGO) stages."
       },
       {
-        "name": "figo_staging_edition_year",
-        "type": "STRING",
-        "description": "The text term used to describe the edition year of the FIGO staging system used to stage the patient's gynecologic tumor."
-      },
-      {
         "name": "first_symptom_prior_to_diagnosis",
         "type": "STRING",
         "description": "Text term used to describe the patient's first symptom experienced prior to diagnosis and thought to be related to the disease."
@@ -295,24 +290,9 @@
         "description": "The text term used to describe the overall grouping of grades defined by the Gleason grading classification, which is used to determine the aggressiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."
       },
       {
-        "name": "gleason_grade_tertiary",
-        "type": "STRING",
-        "description": "The text term used to describe the tertiary pattern as described by the Gleason Grading System."
-      },
-      {
-        "name": "gleason_patterns_percent",
-        "type": "INT64",
-        "description": "Numeric value that represents the percentage of Patterns 4 and 5, which is used when the Gleason score is greater than 7 to predict prognosis."
-      },
-      {
         "name": "goblet_cells_columnar_mucosa_present",
         "type": "STRING",
         "description": "The yes/no/unknown indicator used to describe whether goblet cells were determined to be present in the esophageal columnar mucosa."
-      },
-      {
-        "name": "greatest_tumor_dimension",
-        "type": "INT64",
-        "description": "Numeric value that represents the measurement of the widest portion of the tumor in centimeters."
       },
       {
         "name": "gross_tumor_weight",
@@ -390,11 +370,6 @@
         "description": "For tumors in paired organs, designates the side on which the cancer originates."
       },
       {
-        "name": "lymph_node_involved_site",
-        "type": "STRING",
-        "description": "The text term used to describe the anatomic site of lymph node involvement."
-      },
-      {
         "name": "lymph_nodes_positive",
         "type": "INT64",
         "description": "The number of lymph nodes involved with disease as determined by pathologic examination."
@@ -408,16 +383,6 @@
         "name": "lymphatic_invasion_present",
         "type": "STRING",
         "description": "A yes/no indicator to ask if small or thin-walled vessel invasion is present, indicating lymphatic involvement"
-      },
-      {
-        "name": "margin_distance",
-        "type": "INT64",
-        "description": "Numeric value that represents the distance between the tumor and the surgical margin"
-      },
-      {
-        "name": "margins_involved_site",
-        "type": "STRING",
-        "description": "The text term used to describe the anatomic sites that were involved in the survival margins."
       },
       {
         "name": "masaoka_stage",
@@ -485,11 +450,6 @@
         "description": "The text term that describes whether the surface tissue (outer boundary) of the ovary shows evidence of involvement or presence of cancer."
       },
       {
-        "name": "papillary_renal_cell_type",
-        "type": "STRING",
-        "description": "The text term used to describe the type of papillary renal cell carcinoma characterized by the presence of papillae covered by small cells with scant amount of cytoplasm."
-      },
-      {
         "name": "percent_tumor_invasion",
         "type": "INT64",
         "description": "The percentage of tumor cells spread locally in a malignant neoplasm through infiltration or destruction of adjacent tissue."
@@ -513,11 +473,6 @@
         "name": "peritoneal_fluid_cytological_status",
         "type": "STRING",
         "description": "The text term used to describe the malignant status of the peritoneal fluid determined by cytologic testing."
-      },
-      {
-        "name": "pregnant_at_diagnosis",
-        "type": "STRING",
-        "description": "The text term used to indicate whether the patient was pregnant at the time they were diagnosed."
       },
       {
         "name": "primary_diagnosis",
@@ -585,19 +540,9 @@
         "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."
       },
       {
-        "name": "transglottic_extension",
-        "type": "STRING",
-        "description": "The text term used to describe an extension of the tumor beyond the opening into the ventricles and vocal cords."
-      },
-      {
         "name": "tumor_confined_to_organ_of_origin",
         "type": "STRING",
         "description": "The yes/no/unknown indicator used to describe whether the tumor is confined to the organ where it originated and did not spread to a proximal or distant location within the body."
-      },
-      {
-        "name": "tumor_depth",
-        "type": "INT64",
-        "description": "Numeric value that represents the depth of  tumor invasion, measured in millimeters (mm)."
       },
       {
         "name": "tumor_focality",
@@ -752,11 +697,6 @@
         "mode": "REPEATED",
         "fields": [
           {
-            "name": "chemo_concurrent_to_radiation",
-            "type": "STRING",
-            "description": "The text term used to describe whether the patient was receiving chemotherapy concurrent to radiation."
-          },
-          {
             "name": "created_datetime",
             "type": "STRING",
             "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
@@ -775,16 +715,6 @@
             "name": "initial_disease_status",
             "type": "STRING",
             "description": "The text term used to describe the status of the patient's malignancy when the treatment began."
-          },
-          {
-            "name": "number_of_cycles",
-            "type": "INT64",
-            "description": "The numeric value used to describe the number of cycles of a specific treatment or regimen the patient received."
-          },
-          {
-            "name": "reason_treatment_ended",
-            "type": "STRING",
-            "description": "The text term used to describe the reason a specific treatment or regimen ended."
           },
           {
             "name": "regimen_or_line_of_therapy",
@@ -812,34 +742,9 @@
             "description": "The anatomic site or field targeted by a treatment regimen or single agent therapy."
           },
           {
-            "name": "treatment_arm",
-            "type": "STRING",
-            "description": "Text term used to describe the treatment arm assigned to a patient at the time eligibility is determined."
-          },
-          {
-            "name": "treatment_dose",
-            "type": "INT64",
-            "description": "The numeric value used to describe the dose of an agent the patient received."
-          },
-          {
-            "name": "treatment_dose_units",
-            "type": "STRING",
-            "description": "The text term used to describe the dose units of an agent the patient received."
-          },
-          {
             "name": "treatment_effect",
             "type": "STRING",
             "description": "The text term used to describe the pathologic effect a treatment(s) had on the tumor."
-          },
-          {
-            "name": "treatment_effect_indicator",
-            "type": "STRING",
-            "description": "The text term used to indicate whether the treatment had an effect on the patient."
-          },
-          {
-            "name": "treatment_frequency",
-            "type": "STRING",
-            "description": "The text term used to describe the frequency the patient received an agent or regimen."
           },
           {
             "name": "treatment_id",
@@ -888,7 +793,7 @@
       {
         "name": "age_is_obfuscated",
         "type": "STRING",
-        "description": "The age or other properties related to the patient's age have been modified for compliance reasons. The actual age may differ from what was reported in order to comply with the Health Insurance Portability and Accountability Act (HIPAA)."
+        "description": "The age of the patient has been modified for compliance reasons. The actual age differs from what is reported. Other date intervals for this patient may also be modified."
       },
       {
         "name": "cause_of_death",
@@ -899,11 +804,6 @@
         "name": "cause_of_death_source",
         "type": "STRING",
         "description": "The text term used to describe the source used to determine the patient's cause of death."
-      },
-      {
-        "name": "country_of_residence_at_enrollment",
-        "type": "STRING",
-        "description": "The text term used to describe the patient's country of residence at the time they were enrolled in the study."
       },
       {
         "name": "created_datetime",
@@ -993,11 +893,6 @@
     "mode": "REPEATED",
     "fields": [
       {
-        "name": "age_at_onset",
-        "type": "INT64",
-        "description": "Numeric value used to represent the age of the patient when exposure to a specific environmental factor began."
-      },
-      {
         "name": "alcohol_days_per_week",
         "type": "INT64",
         "description": "Numeric value used to describe the average number of days each week that a person consumes an alcoholic beverage."
@@ -1048,29 +943,14 @@
         "description": "The yes/no/unknown indicator used to describe whether a patient was exposed to smoke that is emitted from burning tobacco, including cigarettes, pipes, and cigars. This includes tobacco smoke exhaled by smokers."
       },
       {
-        "name": "exposure_duration",
-        "type": "STRING",
-        "description": "Text term used to describe the length of time the patient was exposed to an environmental factor."
-      },
-      {
         "name": "exposure_id",
         "type": "STRING",
         "description": ""
       },
       {
-        "name": "exposure_type",
-        "type": "STRING",
-        "description": "The text term used to describe the type of environmental exposure."
-      },
-      {
         "name": "height",
         "type": "INT64",
         "description": "The height of the patient in centimeters."
-      },
-      {
-        "name": "marijuana_use_per_week",
-        "type": "INT64",
-        "description": "Numeric value that represents the number of times the patient uses marijuana each day."
       },
       {
         "name": "pack_years_smoked",
@@ -1086,11 +966,6 @@
         "name": "respirable_crystalline_silica_exposure",
         "type": "STRING",
         "description": "The yes/no/unknown indicator used to describe whether a patient was exposured to respirable crystalline silica, a widespread, naturally occurring, crystalline metal oxide that consists of different forms including quartz, cristobalite, tridymite, tripoli, ganister, chert and novaculite."
-      },
-      {
-        "name": "secondhand_smoke_as_child",
-        "type": "STRING",
-        "description": "The text term used to indicate whether the patient was exposed to secondhand smoke as a child."
       },
       {
         "name": "smoking_frequency",
@@ -1126,11 +1001,6 @@
         "name": "tobacco_smoking_status",
         "type": "STRING",
         "description": "Category describing current smoking status and smoking history as self-reported by a patient."
-      },
-      {
-        "name": "tobacco_use_per_day",
-        "type": "INT64",
-        "description": "Numeric value that represents the number of times the patient uses tobacco each day."
       },
       {
         "name": "type_of_smoke_exposure",

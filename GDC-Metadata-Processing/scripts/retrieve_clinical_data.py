@@ -223,13 +223,14 @@ def generate_clinical_bq_schema(args):
     with open('../../SchemaFiles/clinical_schema.json', 'w') as schema_file:
         json.dump(cases_list, schema_file)
 
+
 def main(args):
     # todo: args should be set in the yaml config
     # todo: field_groups should too
     # todo: these functions should be called based on 'steps' in yaml
 
     # get all case records from API
-    # retrieve_and_output_cases(args)
+    retrieve_and_output_cases(args)
 
     generate_clinical_bq_schema(args)
 
