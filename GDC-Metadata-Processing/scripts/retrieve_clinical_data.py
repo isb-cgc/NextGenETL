@@ -23,13 +23,16 @@ import pprint
 import json
 import time
 import os
+from google.cloud import bigquery
 
 # todo: meaningful error handling (enabling resume) if the process breaks before data's all appended to the file.
 
 
 ENDPOINT = 'https://api.gdc.cancer.gov/cases'
 EXPAND_FIELD_GROUPS = 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
-PARENT_FIELD_GROUPS = 'demographic,diagnoses,exposures,family_histories'
+PARENT_FIELD_GROUPS = 'demographic,diagnoses,exposures,family_histories,case_autocomplete,case_id,created_datetime,\
+days_to_index,days_to_lost_to_followup,diagnosis_ids,disease_type,index_date,lost_to_followup,primary_site,state,\
+submitter_diagnosis_ids,submitter_id,updated_datetime'
 
 DEFAULT_BATCH_SIZE = 1000
 OUTPUT_PATH = '../textFiles/'
@@ -153,20 +156,38 @@ def filter_mappings_by_field_group(args):
     return field_map
 
 
-# todo: select correct data types given GDC field metadata
 def get_bq_type(gdc_type):
     if gdc_type == 'keyword' or gdc_type == 'id':
         return 'STRING'
     elif gdc_type == 'float':
         return 'FLOAT64'
-    elif gdc_type == 'integer':
+    elif gdc_type == 'integer' or gdc_type == 'long':
         return 'INT64'
     else:
         return gdc_type
 
 
+def generate_bq_schema_field(name, metadata):
+    return {
+        "name": name,
+        "type": get_bq_type(metadata['type']),
+        "description": metadata['description']
+    }
+
+
+def generate_bq_nested_schema_field(name, field_list):
+    return {
+        "name": name,
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": field_list
+    }
+
+
 def generate_clinical_bq_schema(args):
-    schema_list = []
+    demographic_list, diagnoses_list, diagnoses__treatments_list, diagnoses__annotations_list, exposures_list, \
+        family_histories_list, cases_list = [], [], [], [], [], [], []
+
     field_map = filter_mappings_by_field_group(args)
 
     for field in field_map.keys():
@@ -174,24 +195,36 @@ def generate_clinical_bq_schema(args):
 
         split_field_name = field_metadata['field'].split('.')
 
-        column_name = "__"
+        field_schema = generate_bq_schema_field(split_field_name[-1], field_metadata)
 
-        column_name = column_name.join(split_field_name)
+        if split_field_name[0] == 'diagnoses':
+            if split_field_name[1] == 'annotations':
+                diagnoses__annotations_list.append(field_schema)
+            elif split_field_name[1] == 'treatments':
+                diagnoses__treatments_list.append(field_schema)
+            else:
+                diagnoses_list.append(field_schema)
+        elif split_field_name[0] == 'demographic':
+            demographic_list.append(field_schema)
+        elif split_field_name[0] == 'exposures':
+            exposures_list.append(field_schema)
+        elif split_field_name[0] == 'family_histories':
+            family_histories_list.append(field_schema)
+        else:
+            cases_list.append(field_schema)
 
-        schema_obj = {
-            "name": column_name,
-            "type": get_bq_type(field_metadata['type']),
-            "description": field_metadata['description']
-        }
-
-        schema_list.append(schema_obj)
+    diagnoses_list.append(generate_bq_nested_schema_field('annotations', diagnoses__annotations_list))
+    diagnoses_list.append(generate_bq_nested_schema_field('treatments', diagnoses__treatments_list))
+    cases_list.append(generate_bq_nested_schema_field('diagnoses', diagnoses_list))
+    cases_list.append(generate_bq_nested_schema_field('demographic', demographic_list))
+    cases_list.append(generate_bq_nested_schema_field('exposures', exposures_list))
+    cases_list.append(generate_bq_nested_schema_field('family_histories', family_histories_list))
 
     with open('../../SchemaFiles/clinical_schema.json', 'w') as schema_file:
-        json.dump(schema_list, schema_file)
-
+        json.dump(cases_list, schema_file)
 
 def main(args):
-    # todo: args should be in the yaml config
+    # todo: args should be set in the yaml config
     # todo: field_groups should too
     # todo: these functions should be called based on 'steps' in yaml
 
