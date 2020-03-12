@@ -61,6 +61,15 @@ files_and_buckets_and_tables:
   # Final table name:
   FINAL_TARGET_TABLE: Final_CNVR_Table_Name
 
+  # Project to publish to:
+  PUBLICATION_PROJECT: your_publication_project_id
+
+  # Dataset to publish to:
+  PUBLICATION_DATASET: your_publication_dataset
+
+  # Table name to publish to:
+  PUBLICATION_TABLE: your_publication_table
+
   # Where do we dump the schema git repository?
   SCHEMA_REPO_LOCAL: /full/path/to/schemaRepo
 
@@ -129,5 +138,7 @@ steps:
   - update_field_descriptions
   # Add table description and tags to table:
   - update_table_description
+  # publish the table:
+  - publish
   # Delete working tables:
   - dump_working_tables
