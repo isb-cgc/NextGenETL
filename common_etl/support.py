@@ -1297,9 +1297,36 @@ Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 def publish_table(source_table, target_table):
 
     try:
-        client = bigquery.Client()
-        job = client.copy_table(source_table, target_table)
+        #
+        # 3/11/20: Friendly names not copied across, so do it here!
+        #
+
+        src_toks = source_table.split('.')
+        src_proj = src_toks[0]
+        src_dset = src_toks[1]
+        src_tab = src_toks[2]
+
+        trg_toks = target_table.split('.')
+        trg_proj = trg_toks[0]
+        trg_dset = trg_toks[1]
+        trg_tab = trg_toks[2]
+
+        src_client = bigquery.Client(src_proj)
+        job = src_client.copy_table(source_table, target_table)
         job.result()
+
+        src_table_ref = src_client.dataset(src_dset).table(src_tab)
+        s_table = src_client.get_table(src_table_ref)
+        src_friendly = s_table.friendly_name
+
+        trg_client = bigquery.Client(trg_proj)
+        trg_table_ref = trg_client.dataset(trg_dset).table(trg_tab)
+        t_table = src_client.get_table(trg_table_ref)
+        t_table.friendly_name = src_friendly
+
+        trg_client.update_table(t_table, ['friendlyName'])
+
+
     except Exception as ex:
         print(ex)
         return False
