@@ -267,6 +267,10 @@ def main(args):
             print("install file map description failed")
             return
 
+    #
+    # publish table:
+    #
+
     if 'publish' in steps:
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
@@ -277,7 +281,7 @@ def main(args):
         success = publish_table(source_table, publication_dest)
 
         if not success:
-            print("install file map description failed")
+            print("publish table failed")
             return
 
     print('job completed')
