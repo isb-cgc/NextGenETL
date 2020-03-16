@@ -1230,10 +1230,23 @@ def install_labels_and_desc(dataset, table, file_tag, project=None):
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(dataset).table(table)
         table = client.get_table(table_ref)
+        #
+        # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
+        # previous labels to handle label removals.
+        #
+
+        table.description = None
+        table.labels = None
+        table.friendly_name = None
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
+
+        table_ref = client.dataset(dataset).table(table)
+        table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
         table.friendly_name = friendly
         client.update_table(table, ['description', 'labels', 'friendlyName'])
+
     except Exception as ex:
         print(ex)
         return False
