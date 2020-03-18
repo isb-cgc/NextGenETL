@@ -110,7 +110,7 @@ def main(args):
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
 
-            success = update_schema_with_dict(params['TARGET_DATASET'], table, schema_dict)
+            success = update_schema_with_dict(params['TARGET_DATASET'], table, schema_dict, project=params['TARGET_PROJECT'])
             if not success:
                 print("update_field_descriptions failed")
                 return
@@ -122,7 +122,7 @@ def main(args):
         if 'update_table_description' in steps:
             print('update_table_description: {}'.format(table))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
-            success = install_labels_and_desc(params['TARGET_DATASET'], table, full_file_prefix)
+            success = install_labels_and_desc(params['TARGET_DATASET'], table, full_file_prefix, project=params['TARGET_PROJECT'])
             if not success:
                 print("update_table_description failed")
                 return

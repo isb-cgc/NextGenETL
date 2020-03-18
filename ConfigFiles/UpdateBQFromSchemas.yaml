@@ -21,11 +21,11 @@ files_and_buckets_and_tables:
   # What file prefix hold the processed schema and other descriptions (this is a prefix)
   PROX_DESC_PREFIX: /full/path/to/myProcessedDataDir
 
-  # What project are we in:
-  WORKING_PROJECT: your_working_project_id
+  # What project is the table in:
+  TARGET_PROJECT: your_target_project_id
 
   # Where is the BQ table dataset:
-  TARGET_DATASET: your_bq_dataset_name_in_working_project
+  TARGET_DATASET: your_bq_dataset_name_in_target_project
 
   # For each table to update, what is the schema file in the repo:
   FIX_LIST:
