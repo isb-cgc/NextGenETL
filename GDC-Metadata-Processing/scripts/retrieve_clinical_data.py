@@ -102,7 +102,6 @@ def retrieve_and_output_cases(args):
                 is_last_page = True
 
                 # If this is the last page, append metadata and finish constructing the json object
-
                 json_metadata = {
                     "inserted_count": inserted_count,
                     "total_available_count": response_metadata['total']
@@ -177,6 +176,14 @@ def generate_clinical_bq_schema(args):
     flattened_json = check_for_field_values(args)
     field_type_dict = infer_data_types(flattened_json)
 
+    return
+
+    """
+    for field in field_type_dict.keys():
+        if not field_type_dict[field]:
+            print(field)
+    """
+
     filtered_field_mappings = filter_mappings_by_field_group(args)
 
     for field in filtered_field_mappings.keys():
@@ -193,6 +200,10 @@ def generate_clinical_bq_schema(args):
             print("[ERROR] flat_field_name: {}, split_field_name: {}, field: {}"
                   .format(flat_field_name, split_field_name[-1], field))
 
+        print(field_schema)
+
+
+    """
         if split_field_name[0] == 'diagnoses':
             if split_field_name[1] == 'annotations':
                 diagnoses__annotations_list.append(field_schema)
@@ -218,64 +229,54 @@ def generate_clinical_bq_schema(args):
 
     with open('../../SchemaFiles/clinical_schema.json', 'w') as schema_file:
         json.dump(cases_list, schema_file)
+    """
 
 
-def collect_field_vals(cases_field_dict, key, value):
-    if not isinstance(value, list) and not isinstance(value, dict):
-        if key not in cases_field_dict:
-            cases_field_dict[key] = set()
-        cases_field_dict[key].add(value)
+def collect_field_vals(cases_field_dict, field_group, prefix):
+    for key in field_group:
+        # skip over fields that represent expands, they're added later
+        if not isinstance(key, list) and not isinstance(key, dict) and field_group[key]:
+            full_name = prefix + key
+
+            if full_name not in cases_field_dict:
+                cases_field_dict[full_name] = set()
+            cases_field_dict[full_name].add(field_group[key])
 
     return cases_field_dict
 
 
 def check_for_field_values(args):
-    json_file_path = OUTPUT_PATH + args.file
-
     cases_field_dict = {}
-    with open(json_file_path, 'r') as json_file:
+
+    with open(OUTPUT_PATH + args.file, 'r') as json_file:
         json_obj = json.load(json_file)
 
+        cases_field_dict = collect_field_vals(cases_field_dict, json_obj['cases'], '')
+
         for case in json_obj['cases']:
-            for key in case.keys():
-                cases_field_dict = collect_field_vals(cases_field_dict, key, case[key])
-
             if 'demographic' in case:
-                for key in case['demographic']:
-                    cases_field_dict = collect_field_vals(
-                        cases_field_dict, 'demographic__' + key, case['demographic'][key])
-
+                cases_field_dict = collect_field_vals(cases_field_dict, case['demographic'], 'demographic__')
             if 'diagnoses' in case:
                 for diagnosis in case['diagnoses']:
-                    for key in diagnosis:
-                        cases_field_dict = collect_field_vals(cases_field_dict, 'diagnoses__' + key, diagnosis[key])
+                    cases_field_dict = collect_field_vals(cases_field_dict, diagnosis, 'diagnoses__')
 
-                        if 'annotations' in diagnosis:
-                            for annotation in diagnosis['annotations']:
-                                for annotation_key in annotation:
-                                    cases_field_dict = collect_field_vals(
-                                        cases_field_dict,
-                                        'diagnoses__annotations__' + annotation_key,
-                                        annotation[annotation_key])
-
-                        if 'treatments' in diagnosis:
-                            for treatment in diagnosis['treatments']:
-                                for treatment_key in treatment:
-                                    cases_field_dict = collect_field_vals(
-                                        cases_field_dict, 'diagnoses__treatments__' + treatment_key,
-                                        treatment[treatment_key])
+                    if 'annotations' in diagnosis:
+                        for annotation in diagnosis['annotations']:
+                            cases_field_dict = collect_field_vals(cases_field_dict, annotation,
+                                                                  'diagnoses__annotations__')
+                    if 'treatments' in diagnosis:
+                        for treatment in diagnosis['treatments']:
+                            cases_field_dict = collect_field_vals(cases_field_dict, treatment,
+                                                                  'diagnoses__treatments__')
 
             if 'family_histories' in case:
                 for family_history in case['family_histories']:
-                    for key in family_history:
-                        cases_field_dict = collect_field_vals(
-                            cases_field_dict, 'family_histories__' + key, family_history[key])
-
+                    cases_field_dict = collect_field_vals(cases_field_dict, family_history, 'family_histories__')
             if 'exposures' in case:
                 for exposure in case['exposures']:
-                    for key in exposure:
-                        cases_field_dict = collect_field_vals(
-                            cases_field_dict, 'exposures__' + key, exposure[key])
+                    cases_field_dict = collect_field_vals(cases_field_dict, exposure, 'exposures__')
+
+    print(cases_field_dict)
 
     return cases_field_dict
 
