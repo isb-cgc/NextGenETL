@@ -1,6 +1,7 @@
 import io
 import yaml
 import sys
+import pprint
 
 
 def load_config(yaml_file, yaml_dict_keys):
@@ -28,30 +29,6 @@ def load_config(yaml_file, yaml_dict_keys):
         return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
 
         return tuple(return_dicts)
-
-
-def flatten_json(json_input):
-    json_output = {}
-
-    def flatten(x, name=''):
-        if type(x) is dict:
-            for a in x:
-                flatten(x[a], name + a + '__')
-        elif type(x) is list:
-            for a in x:
-                flatten(a, name)
-        else:
-            if x:
-                if name[:-2] in json_output:
-                    json_output[name[:-2]] += [x]
-                else:
-                    json_output[name[:-2]] = [x]
-
-    flatten(json_input)
-
-    print(json_output.keys())
-
-    return json_output
 
 
 def check_value_type(value):
@@ -106,3 +83,7 @@ def infer_data_types(flattened_json):
                 print("[ERROR] NO TYPE SET FOR val {}, type {}".format(value, val_type))
 
     return data_types
+
+def pprint_json(data):
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(data)

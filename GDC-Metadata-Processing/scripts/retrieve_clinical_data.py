@@ -19,11 +19,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 
 import argparse
 import requests
-import pprint
 import json
 import time
 import os
-from common_etl.utils import flatten_json, infer_data_types
+from common_etl.utils import infer_data_types
 from google.cloud import bigquery
 
 # todo: meaningful error handling (enabling resume) if the process breaks before data's all appended to the file.
@@ -31,9 +30,6 @@ from google.cloud import bigquery
 
 ENDPOINT = 'https://api.gdc.cancer.gov/cases'
 EXPAND_FIELD_GROUPS = 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
-PARENT_FIELD_GROUPS = 'demographic,diagnoses,exposures,family_histories,case_id,created_datetime,\
-days_to_index,days_to_lost_to_followup,diagnosis_ids,disease_type,index_date,lost_to_followup,primary_site,state,\
-submitter_diagnosis_ids,submitter_id,updated_datetime'
 
 # removed case_autocomplete, doesn't seem to have any associations in reality
 
@@ -125,41 +121,6 @@ def retrieve_and_output_cases(args):
     output_report(inserted_count, total_cases_count, file_size, total_time)
 
 
-def filter_mappings_by_field_group(args):
-    field_map = {}
-    res = requests.get(ENDPOINT + '/_mapping')
-
-    field_group_list = args.field_groups.split(',')
-
-    field_mappings = res.json()['_mapping']
-
-    for field in field_mappings:
-        top_level_grouping = field.split('.')[1]
-
-        if top_level_grouping in field_group_list:
-            field_map[field] = field_mappings[field]
-
-    return field_map
-
-
-def generate_bq_schema_field(name, field_type, metadata):
-    if field_type == 'integer':
-        bq_type = "INT64"
-    elif field_type == 'float':
-        bq_type = "FLOAT64"
-    elif field_type == 'string':
-        bq_type = 'STRING'
-    else:
-        print("[ERROR] No type defined in schema for field {}".format(name))
-        bq_type = None
-
-    return {
-        "name": name,
-        "type": bq_type,
-        "description": metadata['description']
-    }
-
-
 def generate_bq_nested_schema_field(name, field_list):
     return {
         "name": name,
@@ -169,56 +130,28 @@ def generate_bq_nested_schema_field(name, field_list):
     }
 
 
-def generate_clinical_bq_schema(args):
+def generate_clinical_bq_schema(schema_dict):
     demographic_list, diagnoses_list, diagnoses__treatments_list, diagnoses__annotations_list, exposures_list, \
         family_histories_list, cases_list = [], [], [], [], [], [], []
 
-    flattened_json = check_for_field_values(args)
-    field_type_dict = infer_data_types(flattened_json)
+    for field in schema_dict:
+        split_field_name = field.split('__')
 
-    return
-
-    """
-    for field in field_type_dict.keys():
-        if not field_type_dict[field]:
-            print(field)
-    """
-
-    filtered_field_mappings = filter_mappings_by_field_group(args)
-
-    for field in filtered_field_mappings.keys():
-        field_metadata = filtered_field_mappings[field]
-
-        split_field_name = field_metadata['field'].split('.')
-        flat_field_name = "__".join(split_field_name)
-
-        try:
-            field_schema = generate_bq_schema_field(split_field_name[-1],
-                                                    field_type_dict[flat_field_name],
-                                                    field_metadata)
-        except KeyError:
-            print("[ERROR] flat_field_name: {}, split_field_name: {}, field: {}"
-                  .format(flat_field_name, split_field_name[-1], field))
-
-        print(field_schema)
-
-
-    """
-        if split_field_name[0] == 'diagnoses':
-            if split_field_name[1] == 'annotations':
-                diagnoses__annotations_list.append(field_schema)
-            elif split_field_name[1] == 'treatments':
-                diagnoses__treatments_list.append(field_schema)
+        if split_field_name[1] == 'diagnoses':
+            if split_field_name[2] == 'annotations':
+                diagnoses__annotations_list.append(schema_dict[field])
+            elif split_field_name[2] == 'treatments':
+                diagnoses__treatments_list.append(schema_dict[field])
             else:
-                diagnoses_list.append(field_schema)
-        elif split_field_name[0] == 'demographic':
-            demographic_list.append(field_schema)
-        elif split_field_name[0] == 'exposures':
-            exposures_list.append(field_schema)
-        elif split_field_name[0] == 'family_histories':
-            family_histories_list.append(field_schema)
+                diagnoses_list.append(schema_dict[field])
+        elif split_field_name[1] == 'demographic':
+            demographic_list.append(schema_dict[field])
+        elif split_field_name[1] == 'exposures':
+            exposures_list.append(schema_dict[field])
+        elif split_field_name[1] == 'family_histories':
+            family_histories_list.append(schema_dict[field])
         else:
-            cases_list.append(field_schema)
+            cases_list.append(schema_dict[field])
 
     diagnoses_list.append(generate_bq_nested_schema_field('annotations', diagnoses__annotations_list))
     diagnoses_list.append(generate_bq_nested_schema_field('treatments', diagnoses__treatments_list))
@@ -229,61 +162,127 @@ def generate_clinical_bq_schema(args):
 
     with open('../../SchemaFiles/clinical_schema.json', 'w') as schema_file:
         json.dump(cases_list, schema_file)
+
+
+def compile_field_values(field_dict, key, parent_dict, prefix):
     """
+    Steps:
+
+    - Open JSON File externally
+    - First function pass hands in an empty dict, json_obj['cases'], 'cases__'
+
+    - If the value at key is a dict, add key string to prefix. Iterate over value's keys
+    - If the value at key is a list, add key string to prefix. Nested for loop to iterate over value's keys
+    - If the value at key is a primitive:
+        - make field name by concatenating prefix and key string. Check field_dict for membership. If not found, create
+        dict entry with key == field name string and value == to set().
+        - Add value to field_dict set.
+    """
+    if isinstance(parent_dict[key], list) and isinstance(parent_dict[key][0], dict):
+        for dict_item in parent_dict[key]:
+            for dict_key in dict_item:
+                field_dict = compile_field_values(field_dict, dict_key, dict_item, prefix + key + "__")
+    elif isinstance(parent_dict[key], dict):
+        for dict_key in parent_dict[key]:
+            field_dict = compile_field_values(field_dict, dict_key, parent_dict[key], prefix + key + "__")
+    else:
+        field_name = prefix + key
+
+        if field_name not in field_dict:
+            field_dict[field_name] = set()
+
+        if isinstance(parent_dict[key], list):
+            value = ", ".join(parent_dict[key])
+        else:
+            value = parent_dict[key]
+
+        field_dict[field_name].add(value)
+
+    return field_dict
 
 
-def collect_field_vals(cases_field_dict, field_group, prefix):
-    for key in field_group:
-        # skip over fields that represent expands, they're added later
-        if not isinstance(key, list) and not isinstance(key, dict) and field_group[key]:
-            full_name = prefix + key
+def generate_mapping_endpoint_dict(from_file=False, file_path=None):
+    field_mapping_dict = {}
 
-            if full_name not in cases_field_dict:
-                cases_field_dict[full_name] = set()
-            cases_field_dict[full_name].add(field_group[key])
+    if from_file:
+        with open(file_path, 'r') as json_file:
+            json_obj = json.load(json_file)
+            field_mappings = json_obj['_mapping']
+    else:
+        res = requests.get(ENDPOINT + '/_mapping')
+        field_mappings = res.json()['_mapping']
 
-    return cases_field_dict
+    for field in field_mappings:
+        field_name = "__".join(field.split('.'))
 
+        if field_mappings[field]['type'] == 'long':
+            field_type = 'integer'
+        elif field_mappings[field]['type'] == 'float':
+            field_type = 'float'
+        else:
+            field_type = 'string'
 
-def check_for_field_values(args):
-    cases_field_dict = {}
+        field_mapping_dict[field_name] = {
+            'name': field.split('__')[-1],
+            'type': field_type,
+            'description': field_mappings[field]['description']
+        }
 
-    with open(OUTPUT_PATH + args.file, 'r') as json_file:
-        json_obj = json.load(json_file)
-
-        cases_field_dict = collect_field_vals(cases_field_dict, json_obj['cases'], '')
-
-        for case in json_obj['cases']:
-            if 'demographic' in case:
-                cases_field_dict = collect_field_vals(cases_field_dict, case['demographic'], 'demographic__')
-            if 'diagnoses' in case:
-                for diagnosis in case['diagnoses']:
-                    cases_field_dict = collect_field_vals(cases_field_dict, diagnosis, 'diagnoses__')
-
-                    if 'annotations' in diagnosis:
-                        for annotation in diagnosis['annotations']:
-                            cases_field_dict = collect_field_vals(cases_field_dict, annotation,
-                                                                  'diagnoses__annotations__')
-                    if 'treatments' in diagnosis:
-                        for treatment in diagnosis['treatments']:
-                            cases_field_dict = collect_field_vals(cases_field_dict, treatment,
-                                                                  'diagnoses__treatments__')
-
-            if 'family_histories' in case:
-                for family_history in case['family_histories']:
-                    cases_field_dict = collect_field_vals(cases_field_dict, family_history, 'family_histories__')
-            if 'exposures' in case:
-                for exposure in case['exposures']:
-                    cases_field_dict = collect_field_vals(cases_field_dict, exposure, 'exposures__')
-
-    print(cases_field_dict)
-
-    return cases_field_dict
+    return field_mapping_dict
 
 
-def pprint_json(data):
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(data)
+def generate_schema_fields_dict(field_mapping_dict, field_data_type_dict):
+    schema_dict = {}
+
+    for key in field_data_type_dict:
+        try:
+            column_name = field_mapping_dict[key]['name'].split('.')[-1]
+            description = field_mapping_dict[key]['description']
+        except KeyError:
+            # for some reason, cases.id isn't in the mapping endpoint, this handles the lack of description
+            column_name = key.split("__")[-1]
+            description = ""
+
+        if field_data_type_dict[key]:
+            field_type = field_data_type_dict[key]
+        elif key in field_mapping_dict:
+            field_type = field_mapping_dict[key]['type']
+        else:
+            # this would happen if there were a field added to the cases endpoint that didn't hold any values
+            # and wasn't actually added to the _mappings.
+            print("Not adding field {} because no type found".format(key))
+            continue
+
+        if field_type == 'integer':
+            bq_type = "INT64"
+        elif field_type == 'float':
+            bq_type = "FLOAT64"
+        elif field_type == 'string':
+            bq_type = 'STRING'
+        else:
+            print("[ERROR] No type defined in schema for field {}".format(key))
+            bq_type = None
+
+        schema_dict[key] = {
+            "name": column_name,
+            "type": bq_type,
+            "description": description
+        }
+
+    return schema_dict
+
+
+def generate_schema(args):
+    field_mapping_dict = generate_mapping_endpoint_dict()
+
+    with open(OUTPUT_PATH + args.file) as data_file:
+        json_obj = json.load(data_file)
+
+    field_value_sets = compile_field_values(dict(), 'cases', json_obj, '')
+    field_data_type_dict = infer_data_types(field_value_sets)
+
+    schema_dict = generate_schema_fields_dict(field_mapping_dict, field_data_type_dict)
+    generate_clinical_bq_schema(schema_dict)
 
 
 def output_report(inserted_count, total_cases_count, file_size, total_time):
@@ -298,14 +297,15 @@ def output_report(inserted_count, total_cases_count, file_size, total_time):
 
 
 def main(args):
+    pass
     # todo: args should be set in the yaml config
     # todo: field_groups should too
     # todo: these functions should be called based on 'steps' in yaml
 
     # get all case records from API
     # retrieve_and_output_cases(args)
-
-    generate_clinical_bq_schema(args)
+    generate_schema(args)
+    # generate_clinical_bq_schema(args)
     # check_for_field_values(args)
 
 
@@ -318,8 +318,6 @@ if __name__ == '__main__':
                         help="Number of records to retrieve per batch request.")
     parser.add_argument("-e", "--expand", default=EXPAND_FIELD_GROUPS,
                         help="List of 'expand' field groups to retrieve (comma-delineated, no spaces).")
-    parser.add_argument("-g", "--field_groups", default=PARENT_FIELD_GROUPS,
-                        help="List of top-level field groups. Retrieves all child fields, even those nested.")
     parser.add_argument("-a", "--append", action='store_true',
                         help="Append new results to existing json file. (Overwrites data by default.)")
     parser.add_argument("-f", "--file", type=str, default='clinical_data.json',

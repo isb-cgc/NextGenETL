@@ -1,1 +1,1104 @@
-[{"name": "case_id", "type": "STRING", "description": ""}, {"name": "created_datetime", "type": "STRING", "description": ""}, {"name": "created_datetime", "type": "STRING", "description": ""}, {"name": "created_datetime", "type": "STRING", "description": ""}, {"name": "diagnosis_ids", "type": "STRING", "description": ""}, {"name": "disease_type", "type": "STRING", "description": ""}, {"name": "index_date", "type": "STRING", "description": ""}, {"name": "lost_to_followup", "type": "STRING", "description": ""}, {"name": "primary_site", "type": "STRING", "description": ""}, {"name": "state", "type": "STRING", "description": ""}, {"name": "submitter_diagnosis_ids", "type": "STRING", "description": ""}, {"name": "submitter_id", "type": "STRING", "description": ""}, {"name": "updated_datetime", "type": "STRING", "description": ""}, {"name": "diagnoses", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "age_at_diagnosis", "type": "INT64", "description": "Age at the time of diagnosis expressed in number of days since birth."}, {"name": "ajcc_clinical_m", "type": "STRING", "description": "Extent of the distant metastasis for the cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."}, {"name": "ajcc_clinical_n", "type": "STRING", "description": "Extent of the regional lymph node involvement for the cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."}, {"name": "ajcc_clinical_stage", "type": "STRING", "description": "Stage group determined from clinical information on the tumor (T), regional node (N) and metastases (M) and by grouping cases with similar prognosis for cancer."}, {"name": "ajcc_clinical_t", "type": "STRING", "description": "Extent of the primary cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."}, {"name": "ajcc_pathologic_m", "type": "STRING", "description": "Code to represent the defined absence or presence of distant spread or metastases (M) to locations via vascular channels or lymphatics beyond the regional lymph nodes, using criteria established by the American Joint Committee on Cancer (AJCC)."}, {"name": "ajcc_pathologic_n", "type": "STRING", "description": "The codes that represent the stage of cancer based on the nodes present (N stage) according to criteria based on multiple editions of the AJCC's Cancer Staging Manual."}, {"name": "ajcc_pathologic_stage", "type": "STRING", "description": "The extent of a cancer, especially whether the disease has spread from the original site to other parts of the body based on AJCC staging criteria."}, {"name": "ajcc_pathologic_t", "type": "STRING", "description": "Code of pathological T (primary tumor) to define the size or contiguous extension of the primary tumor (T), using staging criteria from the American Joint Committee on Cancer (AJCC)."}, {"name": "ajcc_staging_system_edition", "type": "STRING", "description": "The text term used to describe the version or edition of the American Joint Committee on Cancer Staging Handbooks, a publication by the group formed for the purpose of developing a system of staging for cancer that is acceptable to the American medical profession and is compatible with other accepted classifications."}, {"name": "ajcc_staging_system_edition", "type": "STRING", "description": "The text term used to describe the version or edition of the American Joint Committee on Cancer Staging Handbooks, a publication by the group formed for the purpose of developing a system of staging for cancer that is acceptable to the American medical profession and is compatible with other accepted classifications."}, {"name": "ajcc_staging_system_edition", "type": "STRING", "description": "The text term used to describe the version or edition of the American Joint Committee on Cancer Staging Handbooks, a publication by the group formed for the purpose of developing a system of staging for cancer that is acceptable to the American medical profession and is compatible with other accepted classifications."}, {"name": "ann_arbor_b_symptoms", "type": "STRING", "description": "Text term to signify whether lymphoma B-symptoms are present as noted in the patient's medical record."}, {"name": "ann_arbor_clinical_stage", "type": "STRING", "description": "The text term used to describe the clinical classification of lymphoma, as defined by the Ann Arbor Lymphoma Staging System."}, {"name": "ann_arbor_extranodal_involvement", "type": "STRING", "description": "Indicator that identifies whether a patient with malignant lymphoma has lymphomatous involvement of an extranodal site."}, {"name": "ann_arbor_pathologic_stage", "type": "STRING", "description": "The text term used to describe the pathologic classification of lymphoma, as defined by the Ann Arbor Lymphoma Staging System."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "classification_of_tumor", "type": "STRING", "description": "Text that describes the kind of disease present in the tumor specimen as related to a specific timepoint."}, {"name": "classification_of_tumor", "type": "STRING", "description": "Text that describes the kind of disease present in the tumor specimen as related to a specific timepoint."}, {"name": "classification_of_tumor", "type": "STRING", "description": "Text that describes the kind of disease present in the tumor specimen as related to a specific timepoint."}, {"name": "cog_renal_stage", "type": "STRING", "description": "The text term used to describe the staging classification of renal tumors, as defined by the Children's Oncology Group (COG)."}, {"name": "cog_renal_stage", "type": "STRING", "description": "The text term used to describe the staging classification of renal tumors, as defined by the Children's Oncology Group (COG)."}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "days_to_last_follow_up", "type": "INT64", "description": "Time interval from the date of last follow up to the date of initial pathologic diagnosis, represented as a calculated number of days."}, {"name": "days_to_last_known_disease_status", "type": "INT64", "description": "Time interval from the date of last follow up to the date of initial pathologic diagnosis, represented as a calculated number of days."}, {"name": "days_to_recurrence", "type": "INT64", "description": "Number of days between the date used for index and the date the patient's disease recurred."}, {"name": "diagnosis_id", "type": "STRING", "description": ""}, {"name": "diagnosis_id", "type": "STRING", "description": ""}, {"name": "diagnosis_id", "type": "STRING", "description": ""}, {"name": "diagnosis_id", "type": "STRING", "description": ""}, {"name": "diagnosis_id", "type": "STRING", "description": ""}, {"name": "esophageal_columnar_dysplasia_degree", "type": "STRING", "description": "Text term to describe the amount of dysplasia found within the benign esophageal columnar mucosa."}, {"name": "esophageal_columnar_metaplasia_present", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether esophageal columnar metaplasia was determined to be present."}, {"name": "figo_stage", "type": "STRING", "description": "The extent of a cervical or endometrial cancer within the body, especially whether the disease has spread from the original site to other parts of the body, as described by the International Federation of Gynecology and Obstetrics (FIGO) stages."}, {"name": "figo_stage", "type": "STRING", "description": "The extent of a cervical or endometrial cancer within the body, especially whether the disease has spread from the original site to other parts of the body, as described by the International Federation of Gynecology and Obstetrics (FIGO) stages."}, {"name": "figo_stage", "type": "STRING", "description": "The extent of a cervical or endometrial cancer within the body, especially whether the disease has spread from the original site to other parts of the body, as described by the International Federation of Gynecology and Obstetrics (FIGO) stages."}, {"name": "gastric_esophageal_junction_involvement", "type": "STRING", "description": "The yes/no/unknown/not reported indicator used to describe whether the tumor is located across the gastroesophageal junction."}, {"name": "gastric_esophageal_junction_involvement", "type": "STRING", "description": "The yes/no/unknown/not reported indicator used to describe whether the tumor is located across the gastroesophageal junction."}, {"name": "gastric_esophageal_junction_involvement", "type": "STRING", "description": "The yes/no/unknown/not reported indicator used to describe whether the tumor is located across the gastroesophageal junction."}, {"name": "gastric_esophageal_junction_involvement", "type": "STRING", "description": "The yes/no/unknown/not reported indicator used to describe whether the tumor is located across the gastroesophageal junction."}, {"name": "goblet_cells_columnar_mucosa_present", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether goblet cells were determined to be present in the esophageal columnar mucosa."}, {"name": "goblet_cells_columnar_mucosa_present", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether goblet cells were determined to be present in the esophageal columnar mucosa."}, {"name": "goblet_cells_columnar_mucosa_present", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether goblet cells were determined to be present in the esophageal columnar mucosa."}, {"name": "icd_10_code", "type": "STRING", "description": "Alphanumeric value used to describe the  disease code from the tenth version of the International Classification of Disease (ICD-10)."}, {"name": "igcccg_stage", "type": "STRING", "description": "The text term used to describe the International Germ Cell Cancer Collaborative Group (IGCCCG), a grouping used to further classify metastatic testicular tumors."}, {"name": "igcccg_stage", "type": "STRING", "description": "The text term used to describe the International Germ Cell Cancer Collaborative Group (IGCCCG), a grouping used to further classify metastatic testicular tumors."}, {"name": "igcccg_stage", "type": "STRING", "description": "The text term used to describe the International Germ Cell Cancer Collaborative Group (IGCCCG), a grouping used to further classify metastatic testicular tumors."}, {"name": "igcccg_stage", "type": "STRING", "description": "The text term used to describe the International Germ Cell Cancer Collaborative Group (IGCCCG), a grouping used to further classify metastatic testicular tumors."}, {"name": "inss_stage", "type": "STRING", "description": "Text term used to describe the staging classification of neuroblastic tumors, as defined by the International Neuroblastoma Staging System (INSS)."}, {"name": "international_prognostic_index", "type": "STRING", "description": "The text term used to describe the International Prognostic Index, which classifies the prognosis of patients with aggressive non-Hodgkin's lymphoma."}, {"name": "international_prognostic_index", "type": "STRING", "description": "The text term used to describe the International Prognostic Index, which classifies the prognosis of patients with aggressive non-Hodgkin's lymphoma."}, {"name": "international_prognostic_index", "type": "STRING", "description": "The text term used to describe the International Prognostic Index, which classifies the prognosis of patients with aggressive non-Hodgkin's lymphoma."}, {"name": "international_prognostic_index", "type": "STRING", "description": "The text term used to describe the International Prognostic Index, which classifies the prognosis of patients with aggressive non-Hodgkin's lymphoma."}, {"name": "iss_stage", "type": "STRING", "description": "The multiple myeloma disease stage at diagnosis."}, {"name": "iss_stage", "type": "STRING", "description": "The multiple myeloma disease stage at diagnosis."}, {"name": "last_known_disease_status", "type": "STRING", "description": "Text term that describes the last known state or condition of an individual's neoplasm."}, {"name": "laterality", "type": "STRING", "description": "For tumors in paired organs, designates the side on which the cancer originates."}, {"name": "laterality", "type": "STRING", "description": "For tumors in paired organs, designates the side on which the cancer originates."}, {"name": "lymph_nodes_positive", "type": "INT64", "description": "The number of lymph nodes involved with disease as determined by pathologic examination."}, {"name": "lymph_nodes_tested", "type": "INT64", "description": "The number of lymph nodes tested to determine whether lymph nodes were  involved with disease as determined by a pathologic examination."}, {"name": "lymphatic_invasion_present", "type": "STRING", "description": "A yes/no indicator to ask if small or thin-walled vessel invasion is present, indicating lymphatic involvement"}, {"name": "lymphatic_invasion_present", "type": "STRING", "description": "A yes/no indicator to ask if small or thin-walled vessel invasion is present, indicating lymphatic involvement"}, {"name": "lymphatic_invasion_present", "type": "STRING", "description": "A yes/no indicator to ask if small or thin-walled vessel invasion is present, indicating lymphatic involvement"}, {"name": "masaoka_stage", "type": "STRING", "description": "The text term used to describe the Masaoka staging system, a classification that defines prognostic indicators for thymic malignancies and predicts tumor recurrence."}, {"name": "masaoka_stage", "type": "STRING", "description": "The text term used to describe the Masaoka staging system, a classification that defines prognostic indicators for thymic malignancies and predicts tumor recurrence."}, {"name": "metastasis_at_diagnosis", "type": "STRING", "description": "The text term used to describe the extent of metastatic disease present at diagnosis."}, {"name": "metastasis_at_diagnosis", "type": "STRING", "description": "The text term used to describe the extent of metastatic disease present at diagnosis."}, {"name": "method_of_diagnosis", "type": "STRING", "description": "Text term used to describe the method used to confirm the patients malignant diagnosis."}, {"name": "micropapillary_features", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether micropapillary features were determined to be present."}, {"name": "micropapillary_features", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether micropapillary features were determined to be present."}, {"name": "micropapillary_features", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether micropapillary features were determined to be present."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "morphology", "type": "STRING", "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."}, {"name": "perineural_invasion_present", "type": "STRING", "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."}, {"name": "perineural_invasion_present", "type": "STRING", "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."}, {"name": "perineural_invasion_present", "type": "STRING", "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."}, {"name": "perineural_invasion_present", "type": "STRING", "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."}, {"name": "perineural_invasion_present", "type": "STRING", "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."}, {"name": "primary_diagnosis", "type": "STRING", "description": "Text term used to describe the patient's histologic diagnosis, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."}, {"name": "primary_gleason_grade", "type": "STRING", "description": "The text term used to describe the primary Gleason score, which describes the pattern of cells making up the largest area of the tumor. The primary and secondary Gleason pattern grades are combined to determine the patient's Gleason grade group, which is used to determine the aggresiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."}, {"name": "prior_malignancy", "type": "STRING", "description": "The yes/no/unknown indicator used to describe the patient's history of prior cancer diagnosis."}, {"name": "prior_treatment", "type": "STRING", "description": "A yes/no/unknown/not applicable indicator related to the administration of therapeutic agents received before the body specimen was collected."}, {"name": "progression_or_recurrence", "type": "STRING", "description": "Yes/No/Unknown indicator to identify whether a patient has had a new tumor event after initial treatment."}, {"name": "residual_disease", "type": "STRING", "description": "Text terms to describe the status of a tissue margin following surgical resection."}, {"name": "secondary_gleason_grade", "type": "STRING", "description": "The text term used to describe the secondary Gleason score, which describes the pattern of cells making up the second largest area of the tumor. The primary and secondary Gleason pattern grades are combined to determine the patient's Gleason grade group, which is used to determine the aggresiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."}, {"name": "site_of_resection_or_biopsy", "type": "STRING", "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "synchronous_malignancy", "type": "STRING", "description": "A yes/no/unknown indicator used to describe whether the patient had an additional malignant diagnosis at the same time the tumor used for sequencing was diagnosed. If both tumors were sequenced, both tumors would have synchronous malignancies."}, {"name": "tissue_or_organ_of_origin", "type": "STRING", "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."}, {"name": "tissue_or_organ_of_origin", "type": "STRING", "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "tumor_grade", "type": "STRING", "description": "Numeric value to express the degree of abnormality of cancer cells, a measure of differentiation and aggressiveness."}, {"name": "tumor_largest_dimension_diameter", "type": "FLOAT64", "description": "Numeric value used to describe the maximum diameter or dimension of the primary tumor, measured in centimeters."}, {"name": "tumor_largest_dimension_diameter", "type": "FLOAT64", "description": "Numeric value used to describe the maximum diameter or dimension of the primary tumor, measured in centimeters."}, {"name": "tumor_stage", "type": "STRING", "description": "The extent of a cancer in the body. Staging is usually based on the size of the tumor, whether lymph nodes contain cancer, and whether the cancer has spread from the original site to other parts of the body. The accepted values for tumor_stage depend on the tumor site, type, and accepted staging system. These items should accompany the tumor_stage value as associated metadata."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "vascular_invasion_present", "type": "STRING", "description": "The yes/no indicator to ask if large vessel or venous invasion was detected by surgery or presence in a tumor specimen."}, {"name": "vascular_invasion_type", "type": "STRING", "description": "Text term that represents the type of vascular tumor invasion."}, {"name": "vascular_invasion_type", "type": "STRING", "description": "Text term that represents the type of vascular tumor invasion."}, {"name": "vascular_invasion_type", "type": "STRING", "description": "Text term that represents the type of vascular tumor invasion."}, {"name": "year_of_diagnosis", "type": "INT64", "description": "Numeric value to represent the year of an individual's initial pathologic diagnosis of cancer."}, {"name": "annotations", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "annotation_id", "type": "STRING", "description": ""}, {"name": "annotation_id", "type": "STRING", "description": ""}, {"name": "annotation_id", "type": "STRING", "description": ""}, {"name": "category", "type": "STRING", "description": "Top level characterization of the annotation."}, {"name": "classification", "type": "STRING", "description": "Top level classification of the annotation."}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "legacy_created_datetime", "type": null, "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "legacy_created_datetime", "type": null, "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "notes", "type": "STRING", "description": "Open entry for any further description or characterization of the data."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "status", "type": "STRING", "description": "Status of the annotation."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}]}, {"name": "treatments", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "tissue_or_organ_of_origin", "type": "STRING", "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "days_to_treatment_end", "type": "INT64", "description": "Number of days between the date used for index and the date the treatment ended."}, {"name": "days_to_treatment_start", "type": "INT64", "description": "Number of days between the date used for index and the date the treatment started."}, {"name": "initial_disease_status", "type": "STRING", "description": "The text term used to describe the status of the patient's malignancy when the treatment began."}, {"name": "initial_disease_status", "type": "STRING", "description": "The text term used to describe the status of the patient's malignancy when the treatment began."}, {"name": "initial_disease_status", "type": "STRING", "description": "The text term used to describe the status of the patient's malignancy when the treatment began."}, {"name": "regimen_or_line_of_therapy", "type": "STRING", "description": "The text term used to describe the regimen or line of therapy."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "therapeutic_agents", "type": "STRING", "description": "Text identification of the individual agent(s) used as part of a treatment regimen."}, {"name": "treatment_id", "type": "STRING", "description": ""}, {"name": "treatment_intent_type", "type": "STRING", "description": "Text term to identify the reason for the administration of a treatment regimen. [Manually-curated]"}, {"name": "treatment_or_therapy", "type": "STRING", "description": "A yes/no/unknown/not applicable indicator related to the administration of therapeutic agents received."}, {"name": "treatment_outcome", "type": "STRING", "description": "Text term that describes the patient's final outcome after the treatment was administered."}, {"name": "treatment_type", "type": "STRING", "description": "Text term that describes the kind of treatment administered."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}]}]}, {"name": "demographic", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "age_at_index", "type": "INT64", "description": "The patient's age (in years) on the reference or anchor date date used during date obfuscation."}, {"name": "age_at_index", "type": "INT64", "description": "The patient's age (in years) on the reference or anchor date date used during date obfuscation."}, {"name": "cause_of_death", "type": "STRING", "description": "Text term to identify the cause of death for a patient."}, {"name": "cause_of_death", "type": "STRING", "description": "Text term to identify the cause of death for a patient."}, {"name": "cause_of_death", "type": "STRING", "description": "Text term to identify the cause of death for a patient."}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "days_to_birth", "type": "INT64", "description": "Number of days between the date used for index and the date from a person's date of birth represented as a calculated negative number of days."}, {"name": "days_to_death", "type": "INT64", "description": "Number of days between the date used for index and the date from a person's date of death represented as a calculated number of days."}, {"name": "demographic_id", "type": "STRING", "description": ""}, {"name": "ethnicity", "type": "STRING", "description": "An individual's self-described social and cultural grouping, specifically whether an individual describes themselves as Hispanic or Latino. The provided values are based on the categories defined by the U.S. Office of Management and Business and used by the U.S. Census Bureau."}, {"name": "gender", "type": "STRING", "description": "Text designations that identify gender. Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles. [Explanatory Comment 1: Identification of gender is based upon self-report and may come from a form, questionnaire, interview, etc.]"}, {"name": "gender", "type": "STRING", "description": "Text designations that identify gender. Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles. [Explanatory Comment 1: Identification of gender is based upon self-report and may come from a form, questionnaire, interview, etc.]"}, {"name": "gender", "type": "STRING", "description": "Text designations that identify gender. Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles. [Explanatory Comment 1: Identification of gender is based upon self-report and may come from a form, questionnaire, interview, etc.]"}, {"name": "race", "type": "STRING", "description": "An arbitrary classification of a taxonomic group that is a division of a species. It usually arises as a consequence of geographical isolation within a species and is characterized by shared heredity, physical attributes and behavior, and in the case of humans, by common history, nationality, or geographic distribution. The provided values are based on the categories defined by the U.S. Office of Management and Business and used by the U.S. Census Bureau."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "vital_status", "type": "STRING", "description": "The survival state of the person registered on the protocol."}, {"name": "vital_status", "type": "STRING", "description": "The survival state of the person registered on the protocol."}, {"name": "year_of_birth", "type": "INT64", "description": "Numeric value to represent the calendar year in which an individual was born."}, {"name": "year_of_death", "type": "INT64", "description": "Numeric value to represent the year of the death of an individual."}]}, {"name": "exposures", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "disease_type", "type": "STRING", "description": ""}, {"name": "disease_type", "type": "STRING", "description": ""}, {"name": "disease_type", "type": "STRING", "description": ""}, {"name": "alcohol_history", "type": "STRING", "description": "A response to a question that asks whether the participant has consumed at least 12 drinks of any kind of alcoholic beverage in their lifetime."}, {"name": "alcohol_intensity", "type": "STRING", "description": "Category to describe the patient's current level of alcohol use as self-reported by the patient."}, {"name": "asbestos_exposure", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to asbestos."}, {"name": "bmi", "type": "FLOAT64", "description": "A calculated numerical quantity that represents an individual's weight to height ratio."}, {"name": "cigarettes_per_day", "type": "FLOAT64", "description": "The average number of cigarettes smoked per day."}, {"name": "cigarettes_per_day", "type": "FLOAT64", "description": "The average number of cigarettes smoked per day."}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "exposure_id", "type": "STRING", "description": ""}, {"name": "exposure_id", "type": "STRING", "description": ""}, {"name": "height", "type": "FLOAT64", "description": "The height of the patient in centimeters."}, {"name": "height", "type": "FLOAT64", "description": "The height of the patient in centimeters."}, {"name": "pack_years_smoked", "type": "FLOAT64", "description": "Numeric computed value to represent lifetime tobacco exposure defined as number of cigarettes smoked per day x number of years smoked divided by 20."}, {"name": "radon_exposure", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to radon."}, {"name": "radon_exposure", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to radon."}, {"name": "radon_exposure", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to radon."}, {"name": "radon_exposure", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to radon."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "tobacco_smoking_onset_year", "type": "INT64", "description": "The year in which the participant began smoking."}, {"name": "tobacco_smoking_quit_year", "type": "INT64", "description": "The year in which the participant quit smoking."}, {"name": "tobacco_smoking_status", "type": "INT64", "description": "Category describing current smoking status and smoking history as self-reported by a patient."}, {"name": "tobacco_smoking_status", "type": "INT64", "description": "Category describing current smoking status and smoking history as self-reported by a patient."}, {"name": "tobacco_smoking_status", "type": "INT64", "description": "Category describing current smoking status and smoking history as self-reported by a patient."}, {"name": "tobacco_smoking_status", "type": "INT64", "description": "Category describing current smoking status and smoking history as self-reported by a patient."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "weight", "type": "FLOAT64", "description": "The weight of the patient measured in kilograms."}, {"name": "years_smoked", "type": "INT64", "description": "Numeric value (or unknown) to represent the number of years a person has been smoking."}]}, {"name": "family_histories", "type": "RECORD", "mode": "REPEATED", "fields": [{"name": "created_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}, {"name": "family_history_id", "type": "STRING", "description": ""}, {"name": "family_history_id", "type": "STRING", "description": ""}, {"name": "relationship_gender", "type": "STRING", "description": "The text term used to describe the gender of the patient's relative with a history of cancer."}, {"name": "relationship_primary_diagnosis", "type": "STRING", "description": "The text term used to describe the malignant diagnosis of the patient's relative with a history of cancer."}, {"name": "relationship_type", "type": "STRING", "description": "The subgroup that describes the state of connectedness between members of the unit of society organized around kinship ties."}, {"name": "relative_with_cancer_history", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether any of the patient's relatives have a history of cancer."}, {"name": "relative_with_cancer_history", "type": "STRING", "description": "The yes/no/unknown indicator used to describe whether any of the patient's relatives have a history of cancer."}, {"name": "state", "type": "STRING", "description": "The current state of the object."}, {"name": "submitter_id", "type": "STRING", "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."}, {"name": "updated_datetime", "type": "STRING", "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"}]}]
+[
+  {
+    "name": "submitter_id",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "aliquot_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_aliquot_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_sample_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_diagnosis_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "created_datetime",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "id",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "state",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "updated_datetime",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "disease_type",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_slide_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "slide_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "primary_site",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "diagnosis_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "case_id",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "sample_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_analyte_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "analyte_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "submitter_portion_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "portion_ids",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "lost_to_followup",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "index_date",
+    "type": "STRING",
+    "description": ""
+  },
+  {
+    "name": "days_to_lost_to_followup",
+    "type": "INT64",
+    "description": ""
+  },
+  {
+    "name": "diagnoses",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "fields": [
+      {
+        "name": "submitter_id",
+        "type": "STRING",
+        "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+      },
+      {
+        "name": "site_of_resection_or_biopsy",
+        "type": "STRING",
+        "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."
+      },
+      {
+        "name": "tumor_stage",
+        "type": "STRING",
+        "description": "The extent of a cancer in the body. Staging is usually based on the size of the tumor, whether lymph nodes contain cancer, and whether the cancer has spread from the original site to other parts of the body. The accepted values for tumor_stage depend on the tumor site, type, and accepted staging system. These items should accompany the tumor_stage value as associated metadata."
+      },
+      {
+        "name": "last_known_disease_status",
+        "type": "STRING",
+        "description": "Text term that describes the last known state or condition of an individual's neoplasm."
+      },
+      {
+        "name": "created_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "morphology",
+        "type": "STRING",
+        "description": "The third edition of the International Classification of Diseases for Oncology, published in 2000 used principally in tumor and cancer registries for coding the site (topography) and the histology (morphology) of neoplasms. The study of the structure of the cells and their arrangement to constitute tissues and, finally, the association among these to form organs. In pathology, the microscopic process of identifying normal and abnormal morphologic characteristics in tissues, by employing various cytochemical and immunocytochemical stains. A system of numbered categories for representation of data."
+      },
+      {
+        "name": "tissue_or_organ_of_origin",
+        "type": "STRING",
+        "description": "The text term used to describe the anatomic site of origin, of the patient's malignant disease, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."
+      },
+      {
+        "name": "days_to_recurrence",
+        "type": "INT64",
+        "description": "Number of days between the date used for index and the date the patient's disease recurred."
+      },
+      {
+        "name": "classification_of_tumor",
+        "type": "STRING",
+        "description": "Text that describes the kind of disease present in the tumor specimen as related to a specific timepoint."
+      },
+      {
+        "name": "progression_or_recurrence",
+        "type": "STRING",
+        "description": "Yes/No/Unknown indicator to identify whether a patient has had a new tumor event after initial treatment."
+      },
+      {
+        "name": "state",
+        "type": "STRING",
+        "description": "The current state of the object."
+      },
+      {
+        "name": "tumor_grade",
+        "type": "STRING",
+        "description": "Numeric value to express the degree of abnormality of cancer cells, a measure of differentiation and aggressiveness."
+      },
+      {
+        "name": "updated_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "age_at_diagnosis",
+        "type": "INT64",
+        "description": "Age at the time of diagnosis expressed in number of days since birth."
+      },
+      {
+        "name": "days_to_last_known_disease_status",
+        "type": "FLOAT64",
+        "description": "Time interval from the date of last follow up to the date of initial pathologic diagnosis, represented as a calculated number of days."
+      },
+      {
+        "name": "diagnosis_id",
+        "type": "STRING",
+        "description": ""
+      },
+      {
+        "name": "primary_diagnosis",
+        "type": "STRING",
+        "description": "Text term used to describe the patient's histologic diagnosis, as described by the World Health Organization's (WHO) International Classification of Diseases for Oncology (ICD-O)."
+      },
+      {
+        "name": "days_to_last_follow_up",
+        "type": "INT64",
+        "description": "Time interval from the date of last follow up to the date of initial pathologic diagnosis, represented as a calculated number of days."
+      },
+      {
+        "name": "ajcc_staging_system_edition",
+        "type": "STRING",
+        "description": "The text term used to describe the version or edition of the American Joint Committee on Cancer Staging Handbooks, a publication by the group formed for the purpose of developing a system of staging for cancer that is acceptable to the American medical profession and is compatible with other accepted classifications."
+      },
+      {
+        "name": "icd_10_code",
+        "type": "STRING",
+        "description": "Alphanumeric value used to describe the  disease code from the tenth version of the International Classification of Disease (ICD-10)."
+      },
+      {
+        "name": "days_to_diagnosis",
+        "type": "INT64",
+        "description": "Number of days between the date used for index and the date the patient was diagnosed with the malignant disease."
+      },
+      {
+        "name": "ajcc_pathologic_n",
+        "type": "STRING",
+        "description": "The codes that represent the stage of cancer based on the nodes present (N stage) according to criteria based on multiple editions of the AJCC's Cancer Staging Manual."
+      },
+      {
+        "name": "ajcc_pathologic_m",
+        "type": "STRING",
+        "description": "Code to represent the defined absence or presence of distant spread or metastases (M) to locations via vascular channels or lymphatics beyond the regional lymph nodes, using criteria established by the American Joint Committee on Cancer (AJCC)."
+      },
+      {
+        "name": "prior_malignancy",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe the patient's history of prior cancer diagnosis."
+      },
+      {
+        "name": "prior_treatment",
+        "type": "STRING",
+        "description": "A yes/no/unknown/not applicable indicator related to the administration of therapeutic agents received before the body specimen was collected."
+      },
+      {
+        "name": "synchronous_malignancy",
+        "type": "STRING",
+        "description": "A yes/no/unknown indicator used to describe whether the patient had an additional malignant diagnosis at the same time the tumor used for sequencing was diagnosed. If both tumors were sequenced, both tumors would have synchronous malignancies."
+      },
+      {
+        "name": "ajcc_pathologic_t",
+        "type": "STRING",
+        "description": "Code of pathological T (primary tumor) to define the size or contiguous extension of the primary tumor (T), using staging criteria from the American Joint Committee on Cancer (AJCC)."
+      },
+      {
+        "name": "year_of_diagnosis",
+        "type": "INT64",
+        "description": "Numeric value to represent the year of an individual's initial pathologic diagnosis of cancer."
+      },
+      {
+        "name": "ajcc_pathologic_stage",
+        "type": "STRING",
+        "description": "The extent of a cancer, especially whether the disease has spread from the original site to other parts of the body based on AJCC staging criteria."
+      },
+      {
+        "name": "ajcc_clinical_m",
+        "type": "STRING",
+        "description": "Extent of the distant metastasis for the cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."
+      },
+      {
+        "name": "secondary_gleason_grade",
+        "type": "STRING",
+        "description": "The text term used to describe the secondary Gleason score, which describes the pattern of cells making up the second largest area of the tumor. The primary and secondary Gleason pattern grades are combined to determine the patient's Gleason grade group, which is used to determine the aggresiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."
+      },
+      {
+        "name": "ajcc_clinical_t",
+        "type": "STRING",
+        "description": "Extent of the primary cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."
+      },
+      {
+        "name": "primary_gleason_grade",
+        "type": "STRING",
+        "description": "The text term used to describe the primary Gleason score, which describes the pattern of cells making up the largest area of the tumor. The primary and secondary Gleason pattern grades are combined to determine the patient's Gleason grade group, which is used to determine the aggresiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."
+      },
+      {
+        "name": "ajcc_clinical_n",
+        "type": "STRING",
+        "description": "Extent of the regional lymph node involvement for the cancer based on evidence obtained from clinical assessment parameters determined prior to treatment."
+      },
+      {
+        "name": "ajcc_clinical_stage",
+        "type": "STRING",
+        "description": "Stage group determined from clinical information on the tumor (T), regional node (N) and metastases (M) and by grouping cases with similar prognosis for cancer."
+      },
+      {
+        "name": "gross_tumor_weight",
+        "type": "INT64",
+        "description": "Numeric value used to describe the gross pathologic tumor weight, measured in grams."
+      },
+      {
+        "name": "lymphatic_invasion_present",
+        "type": "STRING",
+        "description": "A yes/no indicator to ask if small or thin-walled vessel invasion is present, indicating lymphatic involvement"
+      },
+      {
+        "name": "goblet_cells_columnar_mucosa_present",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether goblet cells were determined to be present in the esophageal columnar mucosa."
+      },
+      {
+        "name": "enneking_msts_grade",
+        "type": "STRING",
+        "description": "The text term used to describe the surgical grade of the musculoskeletal sarcoma, using the Enneking staging system approved by the Musculoskeletal Tumor Society (MSTS)."
+      },
+      {
+        "name": "best_overall_response",
+        "type": "STRING",
+        "description": "The best improvement achieved throughout the entire course of protocol treatment."
+      },
+      {
+        "name": "international_prognostic_index",
+        "type": "STRING",
+        "description": "The text term used to describe the International Prognostic Index, which classifies the prognosis of patients with aggressive non-Hodgkin's lymphoma."
+      },
+      {
+        "name": "ovarian_specimen_status",
+        "type": "STRING",
+        "description": "The text term used to describe the physical condition of the involved ovary."
+      },
+      {
+        "name": "gastric_esophageal_junction_involvement",
+        "type": "STRING",
+        "description": "The yes/no/unknown/not reported indicator used to describe whether the tumor is located across the gastroesophageal junction."
+      },
+      {
+        "name": "non_nodal_regional_disease",
+        "type": "STRING",
+        "description": "The text term used to describe whether the patient had non-nodal regional disease."
+      },
+      {
+        "name": "ann_arbor_clinical_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the clinical classification of lymphoma, as defined by the Ann Arbor Lymphoma Staging System."
+      },
+      {
+        "name": "tumor_confined_to_organ_of_origin",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether the tumor is confined to the organ where it originated and did not spread to a proximal or distant location within the body."
+      },
+      {
+        "name": "first_symptom_prior_to_diagnosis",
+        "type": "STRING",
+        "description": "Text term used to describe the patient's first symptom experienced prior to diagnosis and thought to be related to the disease."
+      },
+      {
+        "name": "cog_liver_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the staging classification of liver tumors, as defined by the Children's Oncology Group (COG). This staging system specifically describes the extent of the primary tumor prior to treatment."
+      },
+      {
+        "name": "lymph_nodes_tested",
+        "type": "INT64",
+        "description": "The number of lymph nodes tested to determine whether lymph nodes were  involved with disease as determined by a pathologic examination."
+      },
+      {
+        "name": "micropapillary_features",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether micropapillary features were determined to be present."
+      },
+      {
+        "name": "child_pugh_classification",
+        "type": "STRING",
+        "description": "The text term used to describe the classification used in the prognosis of chronic liver disease, mainly cirrhosis."
+      },
+      {
+        "name": "mitosis_karyorrhexis_index",
+        "type": "STRING",
+        "description": "Text term that represents the component of the International Neuroblastoma Pathology Classification (INPC) for mitosis-karyorrhexis index (MKI)."
+      },
+      {
+        "name": "enneking_msts_metastasis",
+        "type": "STRING",
+        "description": "Text term and code that represents the metastatic stage of the musculoskeletal sarcoma, using the Enneking staging system approved by the Musculoskeletal Tumor Society (MSTS)."
+      },
+      {
+        "name": "inpc_grade",
+        "type": "STRING",
+        "description": "Text term used to describe the classification of neuroblastic differentiation within neuroblastoma tumors, as defined by the International Neuroblastoma Pathology Classification (INPC)."
+      },
+      {
+        "name": "gleason_grade_group",
+        "type": "STRING",
+        "description": "The text term used to describe the overall grouping of grades defined by the Gleason grading classification, which is used to determine the aggressiveness of prostate cancer. Note that this grade describes the entire prostatectomy specimen and is not specific to the sample used for sequencing."
+      },
+      {
+        "name": "enneking_msts_stage",
+        "type": "STRING",
+        "description": "Text term used to describe the stage of the musculoskeletal sarcoma, using the Enneking staging system approved by the Musculoskeletal Tumor Society (MSTS)."
+      },
+      {
+        "name": "ann_arbor_extranodal_involvement",
+        "type": "STRING",
+        "description": "Indicator that identifies whether a patient with malignant lymphoma has lymphomatous involvement of an extranodal site."
+      },
+      {
+        "name": "circumferential_resection_margin",
+        "type": "INT64",
+        "description": "Numeric value used to describe the non-peritonealised bare area of rectum, comprising anterior and posterior segments, when submitted as a surgical specimen resulting from excision of cancer of the rectum."
+      },
+      {
+        "name": "figo_stage",
+        "type": "STRING",
+        "description": "The extent of a cervical or endometrial cancer within the body, especially whether the disease has spread from the original site to other parts of the body, as described by the International Federation of Gynecology and Obstetrics (FIGO) stages."
+      },
+      {
+        "name": "anaplasia_present",
+        "type": "STRING",
+        "description": "Yes/no/unknown/not reported indicator used to describe whether anaplasia was present at the time of diagnosis."
+      },
+      {
+        "name": "perineural_invasion_present",
+        "type": "STRING",
+        "description": "a yes/no indicator to ask if perineural invasion or infiltration of tumor or cancer is present."
+      },
+      {
+        "name": "iss_stage",
+        "type": "STRING",
+        "description": "The multiple myeloma disease stage at diagnosis."
+      },
+      {
+        "name": "medulloblastoma_molecular_classification",
+        "type": "STRING",
+        "description": "The text term used to describe the classification of medulloblastoma tumors based on molecular features."
+      },
+      {
+        "name": "peritoneal_fluid_cytological_status",
+        "type": "STRING",
+        "description": "The text term used to describe the malignant status of the peritoneal fluid determined by cytologic testing."
+      },
+      {
+        "name": "vascular_invasion_present",
+        "type": "STRING",
+        "description": "The yes/no indicator to ask if large vessel or venous invasion was detected by surgery or presence in a tumor specimen."
+      },
+      {
+        "name": "irs_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the classification of rhabdomyosarcoma tumors, as defined by the Intergroup Rhabdomyosarcoma Study (IRS)."
+      },
+      {
+        "name": "tumor_largest_dimension_diameter",
+        "type": "FLOAT64",
+        "description": "Numeric value used to describe the maximum diameter or dimension of the primary tumor, measured in centimeters."
+      },
+      {
+        "name": "inpc_histologic_group",
+        "type": "STRING",
+        "description": "The text term used to describe the classification of neuroblastomas distinguishing between favorable and unfavorable histologic groups. The histologic score, defined by the International Neuroblastoma Pathology Classification (INPC), is based on age, mitosis-karyorrhexis index (MKI), stromal content and degree of tumor cell differentiation."
+      },
+      {
+        "name": "non_nodal_tumor_deposits",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe the presence of tumor deposits in the pericolic or perirectal fat or in adjacent mesentery away from the leading edge of the tumor."
+      },
+      {
+        "name": "wilms_tumor_histologic_subtype",
+        "type": "STRING",
+        "description": "The text term used to describe the classification of Wilms tumors distinguishing between favorable and unfavorable histologic groups."
+      },
+      {
+        "name": "esophageal_columnar_dysplasia_degree",
+        "type": "STRING",
+        "description": "Text term to describe the amount of dysplasia found within the benign esophageal columnar mucosa."
+      },
+      {
+        "name": "mitotic_count",
+        "type": "INT64",
+        "description": "The number of mitoses identified under the microscope in tumors. The method of counting varies, according to the specific tumor examined. Usually, the mitotic count is determined based on the number of mitoses per high power field (40X) or 10 high power fields."
+      },
+      {
+        "name": "anaplasia_present_type",
+        "type": "STRING",
+        "description": "The text term used to describe the morphologic findings indicating the presence of a malignant cellular infiltrate characterized by the presence of large pleomorphic cells, necrosis, and high mitotic activity in a tissue sample."
+      },
+      {
+        "name": "inss_stage",
+        "type": "STRING",
+        "description": "Text term used to describe the staging classification of neuroblastic tumors, as defined by the International Neuroblastoma Staging System (INSS)."
+      },
+      {
+        "name": "inrg_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the staging classification of neuroblastic tumors, as defined by the International Neuroblastoma Risk Group (INRG)."
+      },
+      {
+        "name": "igcccg_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the International Germ Cell Cancer Collaborative Group (IGCCCG), a grouping used to further classify metastatic testicular tumors."
+      },
+      {
+        "name": "peripancreatic_lymph_nodes_positive",
+        "type": "STRING",
+        "description": "Enumerated numeric value or range of values used to describe the number of peripancreatic lymph nodes determined to be positive."
+      },
+      {
+        "name": "vascular_invasion_type",
+        "type": "STRING",
+        "description": "Text term that represents the type of vascular tumor invasion."
+      },
+      {
+        "name": "laterality",
+        "type": "STRING",
+        "description": "For tumors in paired organs, designates the side on which the cancer originates."
+      },
+      {
+        "name": "percent_tumor_invasion",
+        "type": "INT64",
+        "description": "The percentage of tumor cells spread locally in a malignant neoplasm through infiltration or destruction of adjacent tissue."
+      },
+      {
+        "name": "method_of_diagnosis",
+        "type": "STRING",
+        "description": "Text term used to describe the method used to confirm the patients malignant diagnosis."
+      },
+      {
+        "name": "residual_disease",
+        "type": "STRING",
+        "description": "Text terms to describe the status of a tissue margin following surgical resection."
+      },
+      {
+        "name": "enneking_msts_tumor_site",
+        "type": "STRING",
+        "description": "Text term and code that represents the tumor site of the musculoskeletal sarcoma, using the Enneking staging system approved by the Musculoskeletal Tumor Society (MSTS)."
+      },
+      {
+        "name": "weiss_assessment_score",
+        "type": "STRING",
+        "description": "The text term used to describe the overall Weiss assessment score, a commonly used assessment describing the malignancy of adrenocortical tumors. The Weiss score is determined based on nine histological criteria including the following: high nuclear grade, mitotic rate greater than five per 50 high power fields (HPF), atypical mitotic figures, eosinophilic tumor cell cytoplasm (greater than 75% tumor cells), diffuse architecture (greater than 33% of tumor), necrosis, venous invasion, sinusoidal invasion, and capsular invasion."
+      },
+      {
+        "name": "cog_neuroblastoma_risk_group",
+        "type": "STRING",
+        "description": "Text term that represents the categorization of patients on the basis of prognostic factors per a system developed by Children's Oncology Group (COG). Risk level is used to assign treatment intensity."
+      },
+      {
+        "name": "metastasis_at_diagnosis_site",
+        "type": "STRING",
+        "description": "Text term to identify an anatomic site in which metastatic disease involvement is found."
+      },
+      {
+        "name": "esophageal_columnar_metaplasia_present",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether esophageal columnar metaplasia was determined to be present."
+      },
+      {
+        "name": "cog_rhabdomyosarcoma_risk_group",
+        "type": "STRING",
+        "description": "Text term used to describe the classification of rhabdomyosarcoma, as defined by the Children's Oncology Group (COG)."
+      },
+      {
+        "name": "largest_extrapelvic_peritoneal_focus",
+        "type": "STRING",
+        "description": "The text term used to describe the diameter of the largest focus originating outside of the pelvic peritoneal region."
+      },
+      {
+        "name": "peripancreatic_lymph_nodes_tested",
+        "type": "INT64",
+        "description": "The total number of peripancreatic lymph nodes tested for the presence of pancreatic cancer cells."
+      },
+      {
+        "name": "lymph_nodes_positive",
+        "type": "INT64",
+        "description": "The number of lymph nodes involved with disease as determined by pathologic examination."
+      },
+      {
+        "name": "ann_arbor_b_symptoms",
+        "type": "STRING",
+        "description": "Text term to signify whether lymphoma B-symptoms are present as noted in the patient's medical record."
+      },
+      {
+        "name": "tumor_focality",
+        "type": "STRING",
+        "description": "The text term used to describe whether the patient's disease originated in a single location or multiple locations."
+      },
+      {
+        "name": "masaoka_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the Masaoka staging system, a classification that defines prognostic indicators for thymic malignancies and predicts tumor recurrence."
+      },
+      {
+        "name": "tumor_regression_grade",
+        "type": "STRING",
+        "description": "A numeric value used to measure therapeutic response of the primary tumor and predict patient outcomes based on a three-point tumor regression grading system."
+      },
+      {
+        "name": "ann_arbor_pathologic_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the pathologic classification of lymphoma, as defined by the Ann Arbor Lymphoma Staging System."
+      },
+      {
+        "name": "days_to_best_overall_response",
+        "type": "INT64",
+        "description": "Number of days between the date used for index and the date of the patient was thought to have the best overall response to their disease."
+      },
+      {
+        "name": "supratentorial_localization",
+        "type": "STRING",
+        "description": "Text term to specify the location of the supratentorial tumor."
+      },
+      {
+        "name": "irs_group",
+        "type": "STRING",
+        "description": "Text term used to describe the classification of rhabdomyosarcoma tumors, as defined by the Intergroup Rhabdomyosarcoma Study (IRS)."
+      },
+      {
+        "name": "ishak_fibrosis_score",
+        "type": "STRING",
+        "description": "The text term used to describe the classification of the histopathologic degree of liver damage."
+      },
+      {
+        "name": "burkitt_lymphoma_clinical_variant",
+        "type": "STRING",
+        "description": "Burkitt's lymphoma categorization based on clinical features that differ from other forms of the same disease."
+      },
+      {
+        "name": "breslow_thickness",
+        "type": "INT64",
+        "description": "The number that describes the distance, in millimeters, between the upper layer of the epidermis and the deepest point of tumor penetration."
+      },
+      {
+        "name": "metastasis_at_diagnosis",
+        "type": "STRING",
+        "description": "The text term used to describe the extent of metastatic disease present at diagnosis."
+      },
+      {
+        "name": "cog_renal_stage",
+        "type": "STRING",
+        "description": "The text term used to describe the staging classification of renal tumors, as defined by the Children's Oncology Group (COG)."
+      },
+      {
+        "name": "ovarian_surface_involvement",
+        "type": "STRING",
+        "description": "The text term that describes whether the surface tissue (outer boundary) of the ovary shows evidence of involvement or presence of cancer."
+      },
+      {
+        "name": "annotations",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+          {
+            "name": "created_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "category",
+            "type": "STRING",
+            "description": "Top level characterization of the annotation."
+          },
+          {
+            "name": "status",
+            "type": "STRING",
+            "description": "Status of the annotation."
+          },
+          {
+            "name": "submitter_id",
+            "type": "STRING",
+            "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+          },
+          {
+            "name": "annotation_id",
+            "type": "STRING",
+            "description": ""
+          },
+          {
+            "name": "classification",
+            "type": "STRING",
+            "description": "Top level classification of the annotation."
+          },
+          {
+            "name": "updated_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "notes",
+            "type": "STRING",
+            "description": "Open entry for any further description or characterization of the data."
+          },
+          {
+            "name": "legacy_updated_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "legacy_created_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "state",
+            "type": "STRING",
+            "description": "The current state of the object."
+          }
+        ]
+      },
+      {
+        "name": "treatments",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+          {
+            "name": "submitter_id",
+            "type": "STRING",
+            "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+          },
+          {
+            "name": "initial_disease_status",
+            "type": "STRING",
+            "description": "The text term used to describe the status of the patient's malignancy when the treatment began."
+          },
+          {
+            "name": "treatment_or_therapy",
+            "type": "STRING",
+            "description": "A yes/no/unknown/not applicable indicator related to the administration of therapeutic agents received."
+          },
+          {
+            "name": "treatment_outcome",
+            "type": "STRING",
+            "description": "Text term that describes the patient's final outcome after the treatment was administered."
+          },
+          {
+            "name": "days_to_treatment_start",
+            "type": "INT64",
+            "description": "Number of days between the date used for index and the date the treatment started."
+          },
+          {
+            "name": "treatment_effect",
+            "type": "STRING",
+            "description": "The text term used to describe the pathologic effect a treatment(s) had on the tumor."
+          },
+          {
+            "name": "created_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "treatment_type",
+            "type": "STRING",
+            "description": "Text term that describes the kind of treatment administered."
+          },
+          {
+            "name": "treatment_anatomic_site",
+            "type": "STRING",
+            "description": "The anatomic site or field targeted by a treatment regimen or single agent therapy."
+          },
+          {
+            "name": "days_to_treatment_end",
+            "type": "INT64",
+            "description": "Number of days between the date used for index and the date the treatment ended."
+          },
+          {
+            "name": "treatment_id",
+            "type": "STRING",
+            "description": ""
+          },
+          {
+            "name": "state",
+            "type": "STRING",
+            "description": "The current state of the object."
+          },
+          {
+            "name": "updated_datetime",
+            "type": "STRING",
+            "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+          },
+          {
+            "name": "therapeutic_agents",
+            "type": "STRING",
+            "description": "Text identification of the individual agent(s) used as part of a treatment regimen."
+          },
+          {
+            "name": "regimen_or_line_of_therapy",
+            "type": "STRING",
+            "description": "The text term used to describe the regimen or line of therapy."
+          },
+          {
+            "name": "treatment_intent_type",
+            "type": "STRING",
+            "description": "Text term to identify the reason for the administration of a treatment regimen. [Manually-curated]"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "demographic",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "fields": [
+      {
+        "name": "submitter_id",
+        "type": "STRING",
+        "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+      },
+      {
+        "name": "race",
+        "type": "STRING",
+        "description": "An arbitrary classification of a taxonomic group that is a division of a species. It usually arises as a consequence of geographical isolation within a species and is characterized by shared heredity, physical attributes and behavior, and in the case of humans, by common history, nationality, or geographic distribution. The provided values are based on the categories defined by the U.S. Office of Management and Business and used by the U.S. Census Bureau."
+      },
+      {
+        "name": "ethnicity",
+        "type": "STRING",
+        "description": "An individual's self-described social and cultural grouping, specifically whether an individual describes themselves as Hispanic or Latino. The provided values are based on the categories defined by the U.S. Office of Management and Business and used by the U.S. Census Bureau."
+      },
+      {
+        "name": "vital_status",
+        "type": "STRING",
+        "description": "The survival state of the person registered on the protocol."
+      },
+      {
+        "name": "created_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "updated_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "state",
+        "type": "STRING",
+        "description": "The current state of the object."
+      },
+      {
+        "name": "demographic_id",
+        "type": "STRING",
+        "description": ""
+      },
+      {
+        "name": "gender",
+        "type": "STRING",
+        "description": "Text designations that identify gender. Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles. [Explanatory Comment 1: Identification of gender is based upon self-report and may come from a form, questionnaire, interview, etc.]"
+      },
+      {
+        "name": "year_of_birth",
+        "type": "INT64",
+        "description": "Numeric value to represent the calendar year in which an individual was born."
+      },
+      {
+        "name": "age_at_index",
+        "type": "INT64",
+        "description": "The patient's age (in years) on the reference or anchor date date used during date obfuscation."
+      },
+      {
+        "name": "days_to_birth",
+        "type": "INT64",
+        "description": "Number of days between the date used for index and the date from a person's date of birth represented as a calculated negative number of days."
+      },
+      {
+        "name": "year_of_death",
+        "type": "INT64",
+        "description": "Numeric value to represent the year of the death of an individual."
+      },
+      {
+        "name": "days_to_death",
+        "type": "INT64",
+        "description": "Number of days between the date used for index and the date from a person's date of death represented as a calculated number of days."
+      },
+      {
+        "name": "cause_of_death_source",
+        "type": "STRING",
+        "description": "The text term used to describe the source used to determine the patient's cause of death."
+      },
+      {
+        "name": "occupation_duration_years",
+        "type": "INT64",
+        "description": "The number of years a patient worked in a specific occupation."
+      },
+      {
+        "name": "premature_at_birth",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether the patient was premature (less than 37 weeks gestation) at birth."
+      },
+      {
+        "name": "weeks_gestation_at_birth",
+        "type": "INT64",
+        "description": "Numeric value used to describe the number of weeks starting  from the approximate date of the biological mother's last menstrual period and ending with the birth of the patient."
+      },
+      {
+        "name": "cause_of_death",
+        "type": "STRING",
+        "description": "Text term to identify the cause of death for a patient."
+      },
+      {
+        "name": "age_is_obfuscated",
+        "type": "STRING",
+        "description": "The age or other properties related to the patient's age have been modified for compliance reasons. The actual age may differ from what was reported in order to comply with the Health Insurance Portability and Accountability Act (HIPAA)."
+      }
+    ]
+  },
+  {
+    "name": "exposures",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "fields": [
+      {
+        "name": "submitter_id",
+        "type": "STRING",
+        "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+      },
+      {
+        "name": "cigarettes_per_day",
+        "type": "FLOAT64",
+        "description": "The average number of cigarettes smoked per day."
+      },
+      {
+        "name": "exposure_id",
+        "type": "STRING",
+        "description": ""
+      },
+      {
+        "name": "created_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "weight",
+        "type": "FLOAT64",
+        "description": "The weight of the patient measured in kilograms."
+      },
+      {
+        "name": "height",
+        "type": "FLOAT64",
+        "description": "The height of the patient in centimeters."
+      },
+      {
+        "name": "state",
+        "type": "STRING",
+        "description": "The current state of the object."
+      },
+      {
+        "name": "updated_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "alcohol_intensity",
+        "type": "STRING",
+        "description": "Category to describe the patient's current level of alcohol use as self-reported by the patient."
+      },
+      {
+        "name": "bmi",
+        "type": "FLOAT64",
+        "description": "A calculated numerical quantity that represents an individual's weight to height ratio."
+      },
+      {
+        "name": "years_smoked",
+        "type": "INT64",
+        "description": "Numeric value (or unknown) to represent the number of years a person has been smoking."
+      },
+      {
+        "name": "alcohol_history",
+        "type": "STRING",
+        "description": "A response to a question that asks whether the participant has consumed at least 12 drinks of any kind of alcoholic beverage in their lifetime."
+      },
+      {
+        "name": "pack_years_smoked",
+        "type": "FLOAT64",
+        "description": "Numeric computed value to represent lifetime tobacco exposure defined as number of cigarettes smoked per day x number of years smoked divided by 20."
+      },
+      {
+        "name": "alcohol_drinks_per_day",
+        "type": "INT64",
+        "description": "Numeric value used to describe the average number of alcoholic beverages  a person consumes per day."
+      },
+      {
+        "name": "tobacco_smoking_onset_year",
+        "type": "INT64",
+        "description": "The year in which the participant began smoking."
+      },
+      {
+        "name": "tobacco_smoking_quit_year",
+        "type": "INT64",
+        "description": "The year in which the participant quit smoking."
+      },
+      {
+        "name": "alcohol_days_per_week",
+        "type": "INT64",
+        "description": "Numeric value used to describe the average number of days each week that a person consumes an alcoholic beverage."
+      },
+      {
+        "name": "tobacco_smoking_status",
+        "type": "INT64",
+        "description": "Category describing current smoking status and smoking history as self-reported by a patient."
+      },
+      {
+        "name": "radon_exposure",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to radon."
+      },
+      {
+        "name": "asbestos_exposure",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether the patient was exposed to asbestos."
+      },
+      {
+        "name": "type_of_smoke_exposure",
+        "type": "STRING",
+        "description": "The text term used to describe the patient's specific type of smoke exposure."
+      },
+      {
+        "name": "environmental_tobacco_smoke_exposure",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether a patient was exposed to smoke that is emitted from burning tobacco, including cigarettes, pipes, and cigars. This includes tobacco smoke exhaled by smokers."
+      },
+      {
+        "name": "respirable_crystalline_silica_exposure",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether a patient was exposured to respirable crystalline silica, a widespread, naturally occurring, crystalline metal oxide that consists of different forms including quartz, cristobalite, tridymite, tripoli, ganister, chert and novaculite."
+      },
+      {
+        "name": "smoking_frequency",
+        "type": "STRING",
+        "description": "The text term used to generally decribe how often the patient smokes."
+      },
+      {
+        "name": "type_of_tobacco_used",
+        "type": "STRING",
+        "description": "The text term used to describe the specific type of tobacco used by the patient."
+      },
+      {
+        "name": "time_between_waking_and_first_smoke",
+        "type": "STRING",
+        "description": "The text term used to describe the approximate amount of time elapsed between the time the patient wakes up in the morning to the time they smoke their first cigarette."
+      },
+      {
+        "name": "coal_dust_exposure",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether a patient was exposed to fine powder derived by the crushing of coal."
+      }
+    ]
+  },
+  {
+    "name": "family_histories",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "fields": [
+      {
+        "name": "submitter_id",
+        "type": "STRING",
+        "description": "A project-specific identifier for a node. This property is the calling card/nickname/alias for a unit of submission. It can be used in place of the UUID for identifying or recalling a node."
+      },
+      {
+        "name": "family_history_id",
+        "type": "STRING",
+        "description": ""
+      },
+      {
+        "name": "state",
+        "type": "STRING",
+        "description": "The current state of the object."
+      },
+      {
+        "name": "relationship_type",
+        "type": "STRING",
+        "description": "The subgroup that describes the state of connectedness between members of the unit of society organized around kinship ties."
+      },
+      {
+        "name": "relationship_age_at_diagnosis",
+        "type": "INT64",
+        "description": "The age (in years) when the patient's relative was first diagnosed."
+      },
+      {
+        "name": "updated_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "created_datetime",
+        "type": "STRING",
+        "description": "A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]"
+      },
+      {
+        "name": "relative_with_cancer_history",
+        "type": "STRING",
+        "description": "The yes/no/unknown indicator used to describe whether any of the patient's relatives have a history of cancer."
+      },
+      {
+        "name": "relationship_gender",
+        "type": "STRING",
+        "description": "The text term used to describe the gender of the patient's relative with a history of cancer."
+      },
+      {
+        "name": "relationship_primary_diagnosis",
+        "type": "STRING",
+        "description": "The text term used to describe the malignant diagnosis of the patient's relative with a history of cancer."
+      }
+    ]
+  }
+]
