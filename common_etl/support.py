@@ -1235,19 +1235,18 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
         # previous labels to handle label removals.
         #
 
-        print("point A")
+        for label in table.labels:
+            print(str(label))
         table.description = None
         table.labels = {}
         table.friendly_name = None
         client.update_table(table, ['description', 'labels', 'friendlyName'])
-        print("point B")
         table_ref = client.dataset(dataset).table(table_name)
         table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
         table.friendly_name = friendly
         client.update_table(table, ['description', 'labels', 'friendlyName'])
-        print("point C")
 
     except Exception as ex:
         print(ex)
