@@ -1237,7 +1237,7 @@ def install_labels_and_desc(dataset, table, file_tag, project=None):
 
         print("point A")
         table.description = None
-        table.labels = None
+        table.labels = {}
         table.friendly_name = None
         client.update_table(table, ['description', 'labels', 'friendlyName'])
         print("point B")
