@@ -1237,9 +1237,9 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
         replace_dict = {}
         print(str(table.labels))
-        for label, val in table.labels:
-            print(str(label))
-            print(str(val))
+        for label in table.labels:
+            print(label)
+            print(table[label])
             replace_dict[label] = None
         table.description = None
         table.labels = replace_dict
