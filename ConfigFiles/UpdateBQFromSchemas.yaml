@@ -21,16 +21,13 @@ files_and_buckets_and_tables:
   # What file prefix hold the processed schema and other descriptions (this is a prefix)
   PROX_DESC_PREFIX: /full/path/to/myProcessedDataDir
 
-  # What project are we in:
-  WORKING_PROJECT: your_working_project_id
-
-  # Where is the BQ table dataset:
-  TARGET_DATASET: your_bq_dataset_name_in_working_project
+  # What project is the table in:
+  TARGET_PROJECT: your_target_project_id
 
   # For each table to update, what is the schema file in the repo:
   FIX_LIST:
-    - Your_pre_publication_table_1 : table_info_file.json
-    - Your_pre_publication_table_2 : table_info_file_too.json
+    - target_dataset_1.Your_BQ_table_1 : table_info_file.json
+    - target_dataset_2.Your_BQ_table_2 : table_info_file_too.json
 
 # Note that although the steps are given in the actual order here as
 # a list, changing the order here does not change the order of execution, which is fixed.
