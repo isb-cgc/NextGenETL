@@ -23,7 +23,7 @@ from git import Repo
 from json import loads as json_loads
 from common_etl.support import generic_bq_harness, csv_to_bq, install_labels_and_desc, \
      update_schema_with_dict, create_clean_target, generate_table_detail_files, \
-     publish_table, update_schema
+     publish_table, bucket_to_bucket
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -158,6 +158,18 @@ def main(args):
         map_dict['LEGACY_MANIFEST_BQ'] = 'LEGACY_FILE_MAP_BQ'
 
     #
+    # Copy the manifest files from the data node source bucket:
+    #
+
+    if 'pull_manifest_from_data_node' in steps:
+        try:
+            for manikey in list(mani_dict.keys()):
+                bucket_to_bucket(params['SOURCE_BUCKET'], params[manikey], params['WORKING_BUCKET'])
+        except Exception as ex:
+            print("pull_manifest_from_data_node failed: {}".format(str(ex)))
+            return
+
+    #
     # Schemas and table descriptions are maintained in the github repo:
     #
 
@@ -255,6 +267,10 @@ def main(args):
             print("install file map description failed")
             return
 
+    #
+    # publish table:
+    #
+
     if 'publish' in steps:
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
@@ -265,7 +281,7 @@ def main(args):
         success = publish_table(source_table, publication_dest)
 
         if not success:
-            print("install file map description failed")
+            print("publish table failed")
             return
 
     print('job completed')

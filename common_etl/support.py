@@ -1,6 +1,6 @@
 """
 
-Copyright 2019, Institute for Systems Biology
+Copyright 2019-2020, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -432,6 +432,26 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     blob = bucket.blob(bucket_file)  # no leading / in blob name!!
     blob.download_to_filename(local_file)
     return
+
+
+def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target_bucket_file=None):
+    """
+    Get a Bucket File to another bucket
+    No leading / in bucket_file name!!
+    Target bucket is the same as source, unless provided
+    """
+    storage_client = storage.Client()
+    source_bucket = storage_client.bucket(source_bucket_name)
+    source_blob = source_bucket.blob(bucket_file)  # no leading / in blob name!!
+
+    destination_bucket = storage_client.bucket(target_bucket_name)
+
+    if target_bucket_file is None:
+        target_bucket_file = bucket_file
+    source_bucket.copy_blob(source_blob, destination_bucket, target_bucket_file)
+    return
+
+
 
 def build_manifest_filter(filter_dict_list):
     """
@@ -998,13 +1018,13 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
-def update_schema_with_dict(target_dataset, dest_table, full_schema):
+def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
     try:
-        client = bigquery.Client()
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
         table = client.get_table(table_ref)
         orig_schema = table.schema
@@ -1180,6 +1200,9 @@ def generate_table_detail_files(dict_file, file_tag):
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
             schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
             schema_file.write('\n')
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(bqt_dict['friendlyName'])
+
     except Exception as ex:
         print(ex)
         return False
@@ -1192,7 +1215,7 @@ Take the labels and description of a BQ table and get them installed
 '''
 
 
-def install_labels_and_desc(dataset, table, file_tag):
+def install_labels_and_desc(dataset, table, file_tag, project=None):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1201,12 +1224,78 @@ def install_labels_and_desc(dataset, table, file_tag):
         with open("{}_labels.json".format(file_tag), mode='r') as label_file:
             labels = json_loads(label_file.read())
 
-        client = bigquery.Client()
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(dataset).table(table)
+        table = client.get_table(table_ref)
+        #
+        # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
+        # previous labels to handle label removals.
+        #
+
+        print("point A")
+        table.description = None
+        table.labels = {}
+        table.friendly_name = None
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
+        print("point B")
         table_ref = client.dataset(dataset).table(table)
         table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
-        client.update_table(table, ['description', 'labels'])
+        table.friendly_name = friendly
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
+        print("point C")
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
+be arguments to the bq command used to update the dataset.
+'''
+
+def generate_dataset_desc_file(dict_file, file_tag):
+
+    #
+    # Read in the chunks and write them out into pieces the bq command can use
+    #
+
+    try:
+        with open(dict_file, mode='r') as bqt_dict_file:
+            bqt_dict = json_loads(bqt_dict_file.read())
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(bqt_dict['description'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the description of a BQ dataset and get it installed
+'''
+
+
+def install_dataset_desc(dataset_id, file_tag):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        client = bigquery.Client()
+        dataset = client.get_dataset(dataset_id)  # Make an API request.
+        dataset.description = desc
+        client.update_dataset(dataset, ["description"])
+
     except Exception as ex:
         print(ex)
         return False
@@ -1223,9 +1312,36 @@ Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 def publish_table(source_table, target_table):
 
     try:
-        client = bigquery.Client()
-        job = client.copy_table(source_table, target_table)
+        #
+        # 3/11/20: Friendly names not copied across, so do it here!
+        #
+
+        src_toks = source_table.split('.')
+        src_proj = src_toks[0]
+        src_dset = src_toks[1]
+        src_tab = src_toks[2]
+
+        trg_toks = target_table.split('.')
+        trg_proj = trg_toks[0]
+        trg_dset = trg_toks[1]
+        trg_tab = trg_toks[2]
+
+        src_client = bigquery.Client(src_proj)
+        job = src_client.copy_table(source_table, target_table)
         job.result()
+
+        src_table_ref = src_client.dataset(src_dset).table(src_tab)
+        s_table = src_client.get_table(src_table_ref)
+        src_friendly = s_table.friendly_name
+
+        trg_client = bigquery.Client(trg_proj)
+        trg_table_ref = trg_client.dataset(trg_dset).table(trg_tab)
+        t_table = src_client.get_table(trg_table_ref)
+        t_table.friendly_name = src_friendly
+
+        trg_client.update_table(t_table, ['friendlyName'])
+
+
     except Exception as ex:
         print(ex)
         return False

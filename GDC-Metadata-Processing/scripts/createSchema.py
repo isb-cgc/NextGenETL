@@ -167,7 +167,10 @@ def inferDataTM(dataRow, dataTypes, dataModes, fieldNames):
 
         for jtem in aToks:
 
-            if (jtem == '' or jtem == 'NA'):
+            # Previously was "if (jtem == '' or jtem == 'NA'):", but a field that has an NA in it can switch it
+            # from being an INTEGER to a STRING. Only '' gets interpreted as a null, and can be accomodated in
+            # a pure int field.
+            if jtem == '':
                 ## print " SKIPPING field #%d because it is blank ... " % ii
                 continue
 

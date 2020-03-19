@@ -1,6 +1,6 @@
 """
 
-Copyright 2019, Institute for Systems Biology
+Copyright 2020, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,27 +17,31 @@ limitations under the License.
 """
 
 import sys
-from common_etl.support import install_labels_and_desc
+import csv
 
 '''
 ----------------------------------------------------------------------------------------------
-Take the labels and description of a BQ table and get them installed
+Rel22 imports used 'NA' for sample_types where the field should have been null. Fix this.
 '''
-
 
 def main(args):
 
     if len(args) != 5:
         print(" ")
-        print(" Usage : {} <project> <bq_dataset> <bq_table> <file_tag>".format(args[0]))
+        print(" Usage : {} <damaged_tsv> <repaired_tsv> <fix_col> <convert_to_null>".format(args[0]))
         return
 
-    proj = args[1]
-    dataset = args[2]
-    table = args[3]
-    file_tag = args[4]
+    fix_col = int(args[3])
+    convert_to_null = args[4]
+    with open(args[1], mode='r', newline='') as tsvfile:
+        reader = csv.reader(tsvfile, delimiter='\t')
+        with open(args[2], mode='w+') as normfile:
+            writer = csv.writer(normfile, delimiter='\t', lineterminator='\n')
+            for row in reader:
+                if row[fix_col] == convert_to_null:
+                    row[fix_col] = ''
+                writer.writerow(row)
 
-    install_labels_and_desc(dataset, table, file_tag, project=proj)
 
 if __name__ == "__main__":
     main(sys.argv)

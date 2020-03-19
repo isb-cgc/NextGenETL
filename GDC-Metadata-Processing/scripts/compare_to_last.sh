@@ -58,11 +58,17 @@ compare () {
     # How many items have been removed or added since the last release?
     #
 
+    # Step 1: Create sorted reduced lists that just contain minimal identifying info:
+
     cat ${CURR_PATH}/${TABLE}.t1 | cut -f ${CUT_ARG} | grep -v "${HEADER_STRING}" | sort > ${SCRATCH_PATH}/new_${ITEM}.txt
     cat ${LAST_PATH}/${TABLE}.t1 | cut -f ${CUT_ARG} | grep -v "${HEADER_STRING}" | sort > ${SCRATCH_PATH}/old_${ITEM}.txt
 
+    # Step 2: Use diff with suppression of one of the two output lines to determine who is new and old:
+
     diff --new-line-format="" --unchanged-line-format="" ${SCRATCH_PATH}/old_${ITEM}.txt ${SCRATCH_PATH}/new_${ITEM}.txt > ${SCRATCH_PATH}/removed_${ITEM}.txt
     diff --old-line-format="" --unchanged-line-format="" ${SCRATCH_PATH}/old_${ITEM}.txt ${SCRATCH_PATH}/new_${ITEM}.txt > ${SCRATCH_PATH}/added_${ITEM}.txt
+
+    # And report the counts:
 
     local REMOVED_COUNT=`cat ${SCRATCH_PATH}/removed_${ITEM}.txt | wc -l`
     local ADDED_COUNT=`cat ${SCRATCH_PATH}/added_${ITEM}.txt | wc -l`
@@ -76,8 +82,18 @@ compare () {
 
     cat ${SCRATCH_PATH}/added_${ITEM}.txt | cut -f ${CUT_ARG_2} | sort | uniq -c
 
+    # Create the count of changed files. First command creates list of lines that appear only once
+    # in old and new, i.e. drops lines that are identical across both.
+
     cat ${CURR_PATH}/${TABLE}.t1 ${LAST_PATH}/${TABLE}.t1 | sort | uniq -c | grep "^ *1 " > ${SCRATCH_PATH}/comp_${ITEM}.txt
+
+    # Next step tosses away all but the identifying info, matching schema of the added and removed files.
+
     cat ${SCRATCH_PATH}/comp_${ITEM}.txt | sed 's/^ *1 //' | cut -f ${CUT_ARG} | sort | uniq > ${SCRATCH_PATH}/diff_${ITEM}.txt
+
+    # Third step glues uniques with the added and removed, and finds those that appear only once, e.g. tosses
+    # away all unique lines that have been in both old and new. Thus, the changed lines.
+
     cat ${SCRATCH_PATH}/diff_${ITEM}.txt ${SCRATCH_PATH}/removed_${ITEM}.txt ${SCRATCH_PATH}/added_${ITEM}.txt | sort | uniq -c | grep "^ *1 " > ${SCRATCH_PATH}/changed_${ITEM}.txt
 
     local CHANGED_COUNT=`cat ${SCRATCH_PATH}/changed_${ITEM}.txt | wc -l`
@@ -87,6 +103,11 @@ compare () {
 
     cat ${SCRATCH_PATH}/changed_${ITEM}.txt | cut -f ${CUT_ARG_2} | sort | uniq -c
 }
+
+# Note the last argument is any column header that will not appear in body (grep -v arg)
+# The text headers are used to determine the cuts, and the number lists just to confirm no changes from the past
+# The second list of numbers are the columns to keep (e.g. project, sample type) for counting how many times
+# they occur (by deleting the unique ID field)
 
 compare "aliquot" "aliqMap.merge" "project_id sample_type aliquot_gdc_id" "2,8,15" "1,2" "portion_barcode"
 compare "slide" "slidMap.merge" "project_id sample_type slide_gdc_id" "2,8,11" "1,2" "portion_barcode"

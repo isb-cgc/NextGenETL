@@ -48,6 +48,7 @@ source ${HOME}/setEnvVarsGDCMetadata.sh
 #COMPARE_TO_LAST=run
 #DETAILED_DIFFS=run
 #RAW_SCHEMA_CHECK=run
+#OUTPUT_LOOK_FILES=run
 #COPY_ANNOT_SCHEMA=run
 #LOAD_BQ=run
 #DESC_AND_LABELS=run
@@ -73,6 +74,7 @@ if [ "${QC_CHECK}" == "run" ] || \
    [ "${BQ_PREP_CASES}" == "run" ] || \
    [ "${BQ_PREP_OTHER}" == "run" ] || \
    [ "${RAW_SCHEMA_CHECK}" == "run" ] || \
+   [ "${OUTPUT_LOOK_FILES}" == "run" ] || \
    [ "${BUILD_NORM_TSVS}" == "run" ] || \
    [ "${COMPARE_TO_LAST}" == "run" ] || \
    [ "${DETAILED_DIFFS}" == "run" ] || \
@@ -423,6 +425,25 @@ if [ "${RAW_SCHEMA_CHECK}" == "run" ]; then
 fi
 
 #
+# "LOOK" files are
+#
+
+if [ "${OUTPUT_LOOK_FILES}" == "run" ]; then
+    echo "Running OUTPUT_LOOK_FILES"
+    cd ${REL_ROOT}/${RELNAME}-forBQ
+    echo "------------------------- LOOK AT ALIQUOT"
+    cat aliqMap.merge.t1.look
+    echo "------------------------- LOOK AT CASES"
+    cat caseData.merge.t1.look
+    echo "------------------------- LOOK AT CURRENT FILES"
+    cat fileData.current.t1.look
+    echo "------------------------- LOOK AT LEGACY FILES"
+    cat fileData.legacy.t1.look
+    echo "------------------------- LOOK AT_SLIDES"
+    cat slidMap.merge.t1.look
+fi
+
+#
 # Normalize lists. Many GDC fields are lists delimited by ";", and the order is not consistent
 # between releases. To check for real changes between releases, we want to normalize these
 # lists to be lexicographic.
@@ -475,23 +496,32 @@ if [ "${DETAILED_DIFFS}" == "run" ]; then
     cd ${REL_ROOT}
     source ~/pyVenvForThree/bin/activate
 
+    echo "##### DETAILED ALIQUOT CHANGES ######"
     python3 scripts/columnChanges.py changed_aliquot.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 14 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ aliqMap.merge.t1 \
+            ${ALIQUOT_CHANGE_ID_FIELD} ${ALIQUOT_CHANGE_TSV_ID_FIELD} "silent"
 
+    echo "##### DETAILED SLIDE CHANGES ######"
     python3 scripts/columnChanges.py changed_slide.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 10 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ slidMap.merge.t1 \
+            ${SLIDE_CHANGE_ID_FIELD} ${SLIDE_CHANGE_TSV_ID_FIELD} "silent"
 
+    echo "##### DETAILED CASE CHANGES ######"
     python3 scripts/columnChanges.py changed_caseData.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 0 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ caseData.merge.t1 \
+            ${CASE_CHANGE_ID_FIELD} ${CASE_CHANGE_TSV_ID_FIELD} "silent"
 
+    echo "##### DETAILED CURRENT FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_currentFiles.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 1 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.current.t1 \
+            ${CURR_FILE_CHANGE_ID_FIELD} ${CURR_FILE_CHANGE_TSV_ID_FIELD} "silent"
 
+    echo "##### DETAILED LEGACY FILE CHANGES ######"
     python3 scripts/columnChanges.py changed_legacyFiles.txt ${REL_ROOT} scratch \
-            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 1 "silent"
+            ${PREV_RELNAME}norm-forBQ ${RELNAME}norm-forBQ fileData.legacy.t1 \
+            ${LEG_FILE_CHANGE_ID_FIELD} ${LEG_FILE_CHANGE_TSV_ID_FIELD} "silent"
     deactivate
 fi
-
 
 #
 # If the raw schemas are all good, we can swap in the prepared schemas, descriptions, and labels from our BQEcosystem repo:
@@ -510,22 +540,51 @@ if [ "${COPY_ANNOT_SCHEMA}" == "run" ]; then
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_aliquot2caseIDmap.json aliq_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_aliquot2caseIDmap.json NOT PROCESSED"
+        exit
+    fi
     mv aliq_bqe_schema.json aliqMap.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json case_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_caseData.json NOT PROCESSED"
+        exit
+    fi
+
     mv case_bqe_schema.json caseData.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_active.json file_current_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_active.json NOT PROCESSED"
+        exit
+    fi
+
     mv file_current_bqe_schema.json fileData.current.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_legacy.json file_legacy_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_fileData_legacy.json NOT PROCESSED"
+        exit
+    fi
+
     mv file_legacy_bqe_schema.json fileData.legacy.${SCH_DATE}.json
 
     python ../scripts/generateTableDetails.py \
       ~/BQEcosystem/TableSchemas/isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_slide2caseIDmap.json slide_bqe
+    HAVE_ERROR=$?
+    if [ ${HAVE_ERROR} -ne 0 ]; then
+        echo "ERROR: isb-cgc:GDC_metadata.${BQ_SCHEMA_RELNAME}_slide2caseIDmap.json NOT PROCESSED"
+        exit
+    fi
+
     mv slide_bqe_schema.json slidMap.${SCH_DATE}.json
 
     deactivate
@@ -550,17 +609,17 @@ if [ "${DESC_AND_LABELS}" == "run" ]; then
     echo "Running DESC_AND_LABELS"
     source ~/pyVenvForThree/bin/activate
     cd ${REL_ROOT}/${RELNAME}-forBQ
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_slide2caseIDmap slide_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_aliquot2caseIDmap aliq_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_caseData case_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_legacy file_legacy_bqe
-    python3 ../scripts/install_desc_and_labels.py ${DATASET} ${RELNAME}_fileData_current file_current_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_slide2caseIDmap slide_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_aliquot2caseIDmap aliq_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_caseData case_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_fileData_legacy file_legacy_bqe
+    python3 ../scripts/install_desc_and_labels.py ${WORKING_PROJECT} ${DATASET} ${RELNAME}_fileData_current file_current_bqe
     deactivate
 fi
 
 
 #
-# Install table descriptions and labels extracted from the BQEcosystem repo:
+# Publish the tables:
 #
 
 if [ "${PUBLISH_TABLES}" == "run" ]; then

@@ -34,7 +34,7 @@ from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_cl
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
                                build_pull_list_with_bq, BucketPuller, build_combined_schema, \
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files
+                               generate_table_detail_files, publish_table
 
 
 '''
@@ -327,6 +327,23 @@ def main(args):
         success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
         if not success:
             print("update_table_description failed")
+            return
+
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
             return
 
     #

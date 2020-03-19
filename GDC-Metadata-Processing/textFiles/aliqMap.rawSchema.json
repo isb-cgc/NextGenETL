@@ -4,7 +4,7 @@
     {"name": "case_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "sample_gdc_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "sample_barcode", "type": "string", "mode": "nullable", "description": "<add description here>"},
-    {"name": "sample_type_id", "type": "integer", "mode": "nullable", "description": "<add description here>"},
+    {"name": "sample_type_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "sample_type", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "sample_is_ffpe", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "sample_preservation_method", "type": "string", "mode": "nullable", "description": "<add description here>"},

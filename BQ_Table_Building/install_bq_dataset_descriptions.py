@@ -20,9 +20,7 @@ import sys
 import yaml
 import io
 from git import Repo
-from json import loads as json_loads
-from common_etl.support import install_labels_and_desc, update_schema_with_dict, \
-                               create_clean_target, generate_table_detail_files
+from common_etl.support import create_clean_target, generate_dataset_desc_file, install_dataset_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -69,63 +67,45 @@ def main(args):
         return
 
     #
-    # Schemas and table descriptions are maintained in the github repo:
+    # Dataset descriptions are maintained in the github repo:
     #
 
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
+    if 'pull_dataset_info_from_git' in steps:
+        print('pull_dataset_info_from_git')
         try:
             create_clean_target(params['SCHEMA_REPO_LOCAL'])
             repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
             repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
         except Exception as ex:
-            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            print("pull_dataset_info_from_git failed: {}".format(str(ex)))
             return
 
-    for dict in params['FIX_LIST']:
+    for mydict in params['FIX_LIST']:
 
-        table, repo_file = next(iter(dict.items()))
+        dataset, repo_file = next(iter(mydict.items()))
 
         if 'process_git_schemas' in steps:
-            print('process_git_schemas: {}'.format(table))
+            print('process_git_schemas: {}'.format(dataset))
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], repo_file)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], dataset)
             # Write out the details
-            success = generate_table_detail_files(schema_file, full_file_prefix)
+            success = generate_dataset_desc_file(schema_file, full_file_prefix)
             if not success:
                 print("process_git_schemas failed")
-                return
-        #
-        # Update the per-field descriptions:
-        #
-
-        if 'update_field_descriptions' in steps:
-            print('update_field_descriptions: {}'.format(table))
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
-            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-            schema_dict = {}
-            with open(schema_dict_loc, mode='r') as schema_hold_dict:
-                full_schema_list = json_loads(schema_hold_dict.read())
-            for entry in full_schema_list:
-                schema_dict[entry['name']] = {'description': entry['description']}
-            set_and_table = table.split('.', maxsplit=1)
-            success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['TARGET_PROJECT'])
-            if not success:
-                print("update_field_descriptions failed")
                 return
 
         #
         # Add description and labels to the target table:
         #
 
-        if 'update_table_description' in steps:
-            print('update_table_description: {}'.format(table))
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table)
-            set_and_table = table.split('.', maxsplit=1)
-            success = install_labels_and_desc(set_and_table[0], set_and_table[1], full_file_prefix, project=params['TARGET_PROJECT'])
+        if 'update_dataset_descriptions' in steps:
+            print('update_dataset_descriptions: {}'.format(dataset))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], dataset)
+            full_dataset_id = "{}.{}".format(params['TARGET_PROJECT'], dataset)
+            success = install_dataset_desc(full_dataset_id, full_file_prefix)
             if not success:
-                print("update_table_description failed")
+                print("update_dataset_descriptions failed")
                 return
 
         print('job completed')

@@ -242,6 +242,7 @@ def extract_alignment_file_data_sql(release_table, program_name, sql_dict):
             a.case_gdc_id,
             # When there are two aliquots (tumor/normal VCFs, it looks like the target table is using the second
             # no matter what it is...
+            # WARNING! Some legacy files (entity_type = "aliquot;case") are of the form "caseID;aliquot1ID;aliquot2ID"
             CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
                                      r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$") 
@@ -335,6 +336,65 @@ def extract_file_data_sql_slides(release_table, program_name, sql_dict):
         WHERE {2}
         '''.format(full_type_term, release_table, and_filter_term)
 
+
+'''
+----------------------------------------------------------------------------------------------
+Slide repair. Legacy archive is full of bogus slide files which only can be identified by the file name.
+These tables do not hold the case id, nor the program or disease name. Fix this bogosity!
+'''
+def repair_slide_file_data(case_table, broken_table, target_dataset, dest_table, do_batch):
+
+    sql = repair_missing_case_data_sql_slides(case_table, broken_table)
+    print(sql)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above. Note this processing ends up throwing away one slide from case TCGA-08-0384, which
+actaully does not appear in the case file going back to at least release 6.
+'''
+
+def repair_missing_case_data_sql_slides(case_table, broken_table):
+
+    return '''
+        WITH
+           a1 AS
+          (SELECT case_gdc_id, project_id, case_barcode,
+             REGEXP_EXTRACT(project_id, r"^[A-Z]+-([A-Z]+$)") as disease_code,
+             program_name # TCGA
+           FROM `{0}`
+           ),
+          a2 AS
+          (SELECT *
+           FROM `{1}` WHERE slide_barcode IS NOT NULL
+          )
+        SELECT
+            a2.file_gdc_id,
+            a1.case_gdc_id,
+            a2.slide_id,
+            a1.project_id as project_short_name,
+            a1.disease_code,
+            a1.program_name,
+            a2.data_type,
+            a2.data_category,
+            a2.experimental_strategy,
+            a2.type,
+            a2.file_size,
+            a2.data_format,
+            a2.platform,
+            a2.file_name_key,
+            a2.index_file_id,
+            a2.index_file_name_key,
+            a2.index_file_size,
+            a2.access,
+            a2.acl,
+            a2.slide_barcode
+        FROM a2 JOIN a1 ON a1.case_barcode = REGEXP_EXTRACT(a2.slide_barcode, r"^(TCGA-[A-Z0-9][A-Z0-9]-[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9])")
+        UNION ALL
+        SELECT * FROM `{1}` WHERE slide_barcode IS NULL
+        '''.format(case_table, broken_table)
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Clinical extraction (CLIN and BIO files):
@@ -408,6 +468,7 @@ SQL for above:
 def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
 
     and_filter_term, full_type_term = build_sql_where_clause(program_name, sql_dict)
+    use_and = and_filter_term if and_filter_term == "" else "{} AND".format(and_filter_term)
 
     return '''
         SELECT
@@ -442,8 +503,13 @@ def extract_other_file_data_sql(release_table, program_name, sql_dict, barcode):
             a.access,
             a.acl
         FROM `{1}` AS a
-        WHERE {2} AND (a.associated_entities__entity_type = "{3}")
-        '''.format(full_type_term, release_table, and_filter_term, barcode)
+        # The whole deal here is to only use files associated with a single case ID. Null ids and
+        # multiple IDs means we ignore the file.
+        WHERE (a.case_gdc_id IS NOT NULL) AND
+              (a.case_gdc_id NOT LIKE '%;%') AND
+              (a.case_gdc_id != 'multi') AND {2}
+              (a.associated_entities__entity_type = "{3}")
+        '''.format(full_type_term, release_table, use_and, barcode)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -543,46 +609,6 @@ def extract_slide_barcodes(release_table, slide_2_case_table, program_name, targ
 
     sql = slide_barcodes_sql(release_table, slide_2_case_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above:
-'''
-def slide_barcodes_sql_misses(release_table, slide_2_case_table, program_name):
-
-    return '''
-        # Some slides have two entries in the slide_2_case table if they depict two portions. Remove the dups:
-        WITH a1 as (
-        SELECT DISTINCT
-            case_barcode,
-            sample_gdc_id,
-            sample_barcode,
-            slide_gdc_id
-        FROM `{1}` GROUP BY case_barcode, sample_gdc_id, sample_barcode, slide_gdc_id )
-        SELECT
-            a.file_gdc_id,
-            a.case_gdc_id,
-            a1.case_barcode,
-            a1.sample_gdc_id,
-            a1.sample_barcode,
-            a.project_short_name,
-            a.disease_code,
-            a.program_name,
-            a.data_type,
-            a.data_category,
-            a.experimental_strategy,
-            a.type,
-            a.file_size,
-            a.data_format,
-            a.platform,
-            a.file_name_key,
-            a.index_file_id,
-            a.index_file_name_key,
-            a.index_file_size,
-            a.access,
-            a.acl
-        FROM `{0}` AS a JOIN a1 ON a.slide_id = a1.slide_gdc_id
-        '''.format(release_table, slide_2_case_table, program_name)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -755,14 +781,22 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
     #
      
     if 'pull_slides' in steps and 'slide' in sql_dict:
-        step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
+        step_zero_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_0_TABLE'])
         success = extract_slide_file_data(file_table, dataset, sql_dict['slide'], params['TARGET_DATASET'],
-                                          step_one_table, params['BQ_AS_BATCH'])
+                                          step_zero_table, params['BQ_AS_BATCH'])
 
         if not success:
             print("{} {} pull_slides job failed".format(dataset, build))
-            return False  
-        
+            return False
+
+        step_one_table = "{}_{}_{}".format(dataset, build, params['SLIDE_STEP_1_TABLE'])
+        case_table = "{}_{}_{}".format(dataset, build, params['CASE_TABLE'])
+        success = repair_slide_file_data(case_table, step_zero_table,
+                                         params['TARGET_DATASET'], step_one_table, params['BQ_AS_BATCH'])
+        if not success:
+            print("{} {} repair slides sub-job failed".format(dataset, build))
+            return False
+
     if 'pull_align' in steps and 'sequence' in sql_dict:
         step_one_table = "{}_{}_{}".format(dataset, build, params['ALIGN_STEP_1_TABLE'])
         success = extract_aligned_file_data(file_table, dataset, sql_dict['sequence'], params['TARGET_DATASET'],
@@ -898,7 +932,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, sql_dict, dataset, p
 
     if 'dump_working_tables' in steps:
         dump_tables = []
-        dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
+        dump_table_tags = ['SLIDE_STEP_0_TABLE', 'SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIGN_STEP_1_TABLE',
                            'ALIGN_STEP_2_TABLE', 'CLINBIO_STEP_1_TABLE', 'CLINBIO_STEP_2_TABLE',
                            'OTHER_CASE_STEP_1_TABLE', 'OTHER_CASE_STEP_2_TABLE',
                            'OTHER_ALIQUOT_STEP_1_TABLE', 'OTHER_ALIQUOT_STEP_2_TABLE', 'UNION_TABLE']

@@ -21,6 +21,9 @@ files_and_buckets_and_tables:
   # What file prefix hold the processed schema and other descriptions (this is a prefix)
   PROX_DESC_PREFIX: /full/path/to/myManifestDesc
 
+  # What bucket holds the tsv files that we need to import from the data node?
+  SOURCE_BUCKET: data_node_source_bucket_name
+
   # What bucket holds the tsv files we will use to build the BQ tables?
   WORKING_BUCKET: your_working_bucket_name
 
@@ -63,6 +66,9 @@ files_and_buckets_and_tables:
 # a list, changing the order here does not change the order of execution, which is fixed.
 
 steps:
+
+  # Get the manifest from the source data node:
+  - pull_manifest_from_data_node
 
   # Get the table schema/description/tags pulled from git:
   - pull_table_info_from_git
