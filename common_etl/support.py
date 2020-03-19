@@ -1230,16 +1230,16 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(dataset).table(table_name)
         table = client.get_table(table_ref)
+
         #
         # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
-        # previous labels to handle label removals.
+        # previous labels to handle label removals. Note that the setting of each existing label
+        # to None is the only way this seems to work to empty them out (i.e. an empty dictionary
+        # does not cut it).
         #
 
         replace_dict = {}
-        print(str(table.labels))
         for label in table.labels:
-            print(label)
-            print(table.labels[label])
             replace_dict[label] = None
         table.description = None
         table.labels = replace_dict
