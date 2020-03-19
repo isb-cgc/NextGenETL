@@ -1235,10 +1235,12 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
         # previous labels to handle label removals.
         #
 
-        for label in table.labels:
-            print(str(label))
+        replace_dict = {}
+        for label, val in table.labels:
+            print(label + " " + val)
+            replace_dict[label] = None
         table.description = None
-        table.labels = {}
+        table.labels = replace_dict
         table.friendly_name = None
         client.update_table(table, ['description', 'labels', 'friendlyName'])
         table_ref = client.dataset(dataset).table(table_name)
