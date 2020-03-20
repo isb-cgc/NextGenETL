@@ -1082,6 +1082,9 @@ def delete_table_bq_job(target_dataset, delete_table):
         print('Table {}:{} deleted'.format(target_dataset, delete_table))
     except exceptions.NotFound as ex:
         print('Table {}:{} was not present'.format(target_dataset, delete_table))
+    except Exception as ex:
+        print(ex)
+        return False
 
     return True
 
@@ -1202,6 +1205,45 @@ def generate_table_detail_files(dict_file, file_tag):
             schema_file.write('\n')
         with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
             friendly_file.write(bqt_dict['friendlyName'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the staging files for a generic BQ metadata load and customize it for a single data set
+using tags.
+'''
+
+def customize_labels_and_desc(file_tag, tag_map):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = label_file.read()
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema = schema_file.read()
+
+        for tag in tag_map:
+            desc = desc.replace(tag, tag_map[tag])
+            labels = labels.replace(tag, tag_map[tag])
+            friendly = friendly.replace(tag, tag_map[tag])
+            schema = schema.replace(tag, tag_map[tag])
+
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(desc)
+        with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+            label_file.write(labels)
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema_file.write(schema)
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(friendly)
 
     except Exception as ex:
         print(ex)
