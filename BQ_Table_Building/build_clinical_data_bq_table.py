@@ -120,7 +120,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
 
     schema_filename = data_fp.split('/')[-1]
     bucket_target_blob = bq_params['WORKING_BUCKET_DIR'] + '/' + schema_filename
-    
+
     if not LOCAL_TEST:
         upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
@@ -265,7 +265,6 @@ def main(args):
         # Creates a BQ schema json file
         print('Creating BQ Schema')
         schema = create_bq_schema(api_params, data_fp)
-        print(schema)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
@@ -273,7 +272,7 @@ def main(args):
             print('[ERROR] Empty SchemaField object')
             exit(1)
         print('Building BQ Table')
-        create_and_load_table(bq_params, data_fp, schema)
+        create_and_load_table(bq_params, api_params['DATA_OUTPUT_FILE'], schema)
 
 
 if __name__ == '__main__':
