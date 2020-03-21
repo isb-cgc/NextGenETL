@@ -171,23 +171,17 @@ def create_bq_schema_file(params):
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
 
     with open(params['OUTPUT_FILEPATH'], 'r') as data_file:
-        json_obj = "{'cases': ["
 
         line = data_file.readline()
 
         while line != '':
-            json_obj += line
             line = data_file.readline()
 
-        json_obj += ']}'
+            json_case_obj = json.loads(line)
+            for key in json_case_obj:
+                field_dict = collect_field_values(dict(), key, json_case_obj, 'cases.')
 
-        if not data_file:
-            print('[ERROR] Empty result retrieved from dataset file, nothing to generate.')
-            exit(1)
-
-    # for each field, generate a set of values used to infer datatype
-    field_value_sets = collect_field_values(dict(), 'cases', json_obj, '')
-    field_data_type_dict = infer_data_types(field_value_sets)
+    field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
     schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)

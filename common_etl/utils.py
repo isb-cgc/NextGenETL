@@ -115,6 +115,26 @@ def infer_data_types(flattened_json):
     return data_types
 
 
+def infer_data_type(data_types_dict, key, value):
+    """
+    Infer data type of fields based on values contained in dataset.
+    :param value:
+    :param key:
+    :param data_types_dict:
+    :return: dict of field names and inferred type (None if no data in value set).
+    """
+    if data_types_dict[key] != 'STRING':
+        val_type = check_value_type(str(value))
+
+        if val_type == 'FLOAT64' or val_type == 'STRING':
+            data_types_dict[key] = val_type
+        elif val_type == 'INT64':
+            if not data_types_dict[key]:
+                data_types_dict[key] = 'INT64'
+
+    return data_types_dict
+
+
 def create_nested_schema_obj(name, field_list):
     """
     Create a repeated record for BQ schema.
