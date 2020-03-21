@@ -24,7 +24,7 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table
+    create_mapping_dict, create_and_load_table, arrays_to_str_list
 
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
 API_PARAM_LIST = ['ENDPOINT', 'EXPAND_FIELD_GROUPS', 'BATCH_SIZE', 'START_INDEX', 'MAX_PAGES', 'IO_MODE',
@@ -93,7 +93,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                 raise TypeError("[ERROR] 'pagination' key not found in response json, exiting.")
 
             for i in range(len(cases_json)):
-                case = arrays_to_str_lists(cases_json[i])
+                case = arrays_to_str_list(cases_json[i])
                 # writing in jsonlines format, as required by BQ
                 json.dump(obj=case, fp=json_output_file)
                 json_output_file.write('\n')
