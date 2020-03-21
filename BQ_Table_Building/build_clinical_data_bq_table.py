@@ -181,6 +181,11 @@ def create_bq_schema_file(params):
 
             line = data_file.readline()
 
+    print('FIELD DICT: ')
+    print(field_dict)
+    print('FIELD MAPPING DICT: ')
+    print(field_mapping_dict)
+
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
