@@ -42,6 +42,7 @@ def retrieve_and_output_cases(params):
 
     with open(params['OUTPUT_FILEPATH'], params['IO_MODE']) as json_output_file:
         inserted_count = 0
+        curr_index = params['START_INDEX']
 
         '''
         Create a single parent array for case objects (if not stripped, it would append an array for each batch). 
@@ -52,7 +53,7 @@ def retrieve_and_output_cases(params):
         while not is_last_page:
             try:
                 request_params = {
-                    'from': params['START_INDEX'],
+                    'from': curr_index,
                     'size': params['BATCH_SIZE'],
                     'expand': params['EXPAND_FIELD_GROUPS']
                 }
@@ -112,6 +113,7 @@ def retrieve_and_output_cases(params):
 
             print("Inserted page {} of {}!".format(curr_page, last_page))
             inserted_count += response_metadata['count']
+            curr_index += params['BATCH_SIZE']
 
     # calculate processing time and file size
     total_time = time.time()-start_time

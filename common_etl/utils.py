@@ -202,6 +202,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list, output_fp):
 
     with open(output_fp, 'w') as schema_file:
         json.dump(schema_base_list, schema_file)
+        print("BQ schema file creation is complete--file output at {}.".format(output_fp))
 
 
 def create_mapping_dict(endpoint):

@@ -41,7 +41,7 @@ params:
 steps:
 
   # Get the manifest from the source data node:
-  # - retrieve_and_output_cases
+  - retrieve_and_output_cases
 
   # Get the table schema/description/tags pulled from git:
   - create_bq_schema_file
