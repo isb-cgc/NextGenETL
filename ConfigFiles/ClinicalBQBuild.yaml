@@ -14,20 +14,22 @@ api_and_file_params:
 
   # How many case records to retrieve per GDC API call.
   # Larger batch sizes are more likely to fail before completion, recommend leaving this set to 1000.
-  API_BATCH_SIZE: 1000
+  BATCH_SIZE: 1000
 
   # Start index for retrieving case records
   START_INDEX: 0
 
   # Number of pages to write into json file (0 == all pages after start index)
-  MAX_PAGES: 1
+  MAX_PAGES: 0
 
   # 'a' if appending to existing cases json (for continuation of interrupted file build).
   # 'w' if creating or overwriting existing CASES_JSON_FILE.
   IO_MODE: 'w'
 
   # File to which to write the cases clinical data json file
-  OUTPUT_FILEPATH: relative/local/path/clinical_data.json
+  SCRATCH_DIR: path/from/home/directory
+
+  DATA_OUTPUT_FILE: your_datafile.json
 
 bq_params:
   # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
@@ -47,10 +49,6 @@ bq_params:
 
   # Table name:
   TARGET_TABLE: Final_Clinical_Table_Name
-
-  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
-  BQ_SCHEMA_FILEPATH: relative/local/path/clinical_schema.json
-
 
 # Note that although the steps are given in the actual order here as
 # a list, changing the order here does not change the order of execution, which is fixed.

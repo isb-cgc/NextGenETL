@@ -19,7 +19,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 import io
 import yaml
 import pprint
-import json
 import requests
 import time
 from google.cloud import bigquery
@@ -67,23 +66,21 @@ def check_value_type(value):
     try:
         float(value)
         val_is_num = True
+        val_is_float = True if int(float(value)) != float(value) else False
     except ValueError:
         val_is_num = False
         val_is_float = False
-
-    if val_is_num:
-        val_is_float = True if int(float(value)) != float(value) else False
 
     if val_is_none:
         return None
     elif val_is_id:
         return 'STRING'
     elif val_is_decimal or val_is_float:
-        return 'FLOAT64'
+        return 'FLOAT'
     elif val_is_num:
-        return 'INT64'
-    else:
-        return 'STRING'
+        return 'INTEGER'
+
+    return 'STRING'
 
 
 def infer_data_types(flattened_json):
@@ -104,50 +101,12 @@ def infer_data_types(flattened_json):
 
             if not val_type:
                 continue
-            elif val_type == 'FLOAT64' or val_type == 'STRING':
+            elif val_type == 'FLOAT' or val_type == 'STRING':
                 data_types[column] = val_type
-            elif val_type == 'INT64':
-                if not data_types[column]:
-                    data_types[column] = 'INT64'
-            else:
-                print("[ERROR] NO TYPE SET FOR val {}, type {}".format(value, val_type))
+            elif val_type == 'INTEGER' and not data_types[column]:
+                data_types[column] = val_type
 
     return data_types
-
-
-def infer_data_type(data_types_dict, key, value):
-    """
-    Infer data type of fields based on values contained in dataset.
-    :param value:
-    :param key:
-    :param data_types_dict:
-    :return: dict of field names and inferred type (None if no data in value set).
-    """
-    if data_types_dict[key] != 'STRING':
-        val_type = check_value_type(str(value))
-
-        if val_type == 'FLOAT64' or val_type == 'STRING':
-            data_types_dict[key] = val_type
-        elif val_type == 'INT64':
-            if not data_types_dict[key]:
-                data_types_dict[key] = 'INT64'
-
-    return data_types_dict
-
-
-def create_nested_schema_obj(name, field_list):
-    """
-    Create a repeated record for BQ schema.
-    :param name: field's short name (without parent hierarchy)
-    :param field_list: parent list containing field referenced by name
-    :return: BQ schema repeated record
-    """
-    return {
-        "name": name,
-        "type": "RECORD",
-        "mode": "REPEATED",
-        "fields": field_list
-    }
 
 
 def collect_field_values(field_dict, key, parent_dict, prefix):
@@ -203,9 +162,9 @@ def create_mapping_dict(endpoint):
     for field in field_mappings:
         # convert data types from GDC format to formats used in BQ
         if field_mappings[field]['type'] == 'long':
-            field_type = 'INT64'
+            field_type = 'INTEGER'
         elif field_mappings[field]['type'] == 'float':
-            field_type = 'FLOAT64'
+            field_type = 'FLOAT'
         else:
             field_type = 'STRING'
 
@@ -219,102 +178,75 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
-def generate_bq_schema_json(schema_dict, record_type, expand_fields_list, output_fp):
-
-    # create a dict of lists using expand field group names
-    field_groups = expand_fields_list.split(',')
-
+def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     # add field group names to a list, in order to generate a dict
     field_group_names = [record_type]
+    nested_depth = 0
 
-    for field_group in field_groups:
-        field_group_names.append(record_type + '.' + field_group)
+    for field_group in expand_fields_list.split(','):
+        nested_field_name = record_type + '.' + field_group
+        nested_depth = max(nested_depth, len(nested_field_name.split('.')))
+        field_group_names.append(nested_field_name)
 
-    record_lists_dict = {fg:[] for fg in field_group_names}
-
+    record_lists_dict = {fg_name:[] for fg_name in field_group_names}
     # add field to correct field grouping list based on full field name
     for field in schema_dict:
-        split_field_name = field.split('.')
-
         # record_lists_dict key is equal to the parent field components of full field name
-        list_key = '.'.join(split_field_name[:-1])
-        record_lists_dict[list_key].append(schema_dict[field])
-        print(record_lists_dict)
+        json_obj_key = '.'.join(field.split('.')[:-1])
+        record_lists_dict[json_obj_key].append(schema_dict[field])
 
-    # calculate max field depth in order to nest expand field groups in bq schema
-    max_field_depth = 0
+    temp_schema_field_dict = {}
 
-    for list_key in record_lists_dict:
-        curr_depth = len(list_key.split('.'))
-        if max_field_depth < curr_depth:
-            max_field_depth = curr_depth
-
-    curr_level = max_field_depth
-
-    # insert nested field groupings into appropriate parent list
-    while curr_level > 1:
-        field_group_names = list(record_lists_dict.keys())
-
-        for field_group_name in field_group_names:
+    while nested_depth >= 1:
+        for field_group_name in record_lists_dict:
             split_group_name = field_group_name.split('.')
 
             # building from max depth inward, to avoid iterating through entire schema object in order to append
             # child field groupings. Therefore, skip any field groupings at a shallower depth.
-            if len(split_group_name) == curr_level:
-                parent_name = '.'.join(split_group_name[:-1])
-                field_name = split_group_name[-1]
+            if len(split_group_name) != nested_depth:
+                continue
 
-                # pop in order to avoid adding the fields twice
-                field_group_list = record_lists_dict.pop(field_group_name)
-                record_lists_dict[parent_name].append(create_nested_schema_obj(field_name, field_group_list))
+            schema_field_sublist = []
 
-        curr_level -= 1
-
-    schema_base_list = record_lists_dict[record_type]
-
-    with open(output_fp, 'w') as schema_file:
-        json.dump(schema_base_list, schema_file)
-        print("BQ schema file creation is complete--file output at {}.".format(output_fp))
-
-
-def convert_json_schema_to_python_schema(json_schema, schema):
-    for field in json_schema:
-        if 'mode' in field and field['mode'] == 'REPEATED':
-            schema.append(
-                bigquery.SchemaField(
-                    field['name'],
-                    'RECORD',
-                    mode="REPEATED",
-                    fields=convert_json_schema_to_python_schema(field['fields'], list())
+            for record in record_lists_dict[field_group_name]:
+                schema_field_sublist.append(
+                    bigquery.SchemaField(record['name'], record['type'], 'NULLABLE', record['description'], ())
                 )
-            )
-        else:
-            schema.append(
-                bigquery.SchemaField(
-                    field['name'],
-                    field['type'],
-                    mode='NULLABLE'
+
+            parent_name = '.'.join(split_group_name[:-1])
+            field_name = split_group_name[-1]
+
+            if field_group_name in temp_schema_field_dict:
+                schema_field_sublist += temp_schema_field_dict[field_group_name]
+
+            if parent_name:
+                if parent_name not in temp_schema_field_dict:
+                    temp_schema_field_dict[parent_name] = list()
+
+                temp_schema_field_dict[parent_name].append(
+                    bigquery.SchemaField(field_name, 'RECORD', 'REPEATED', '', tuple(schema_field_sublist))
                 )
-            )
+            else:
+                if nested_depth > 1:
+                    raise ValueError("[ERROR] empty parent_name at level {}".format(nested_depth))
+                return schema_field_sublist
 
-    return schema
+        nested_depth -= 1
+    return None
 
 
-def create_table_from_json_schema(params):
-    with open(params['BQ_SCHEMA_FILEPATH']) as schema_file:
-        json_obj = json.load(schema_file)
-    schema = convert_json_schema_to_python_schema(json_obj, list())
-
+def create_and_load_table(bq_params, data_file_name, schema):
     job_config = bigquery.LoadJobConfig()
-    if params['BQ_AS_BATCH']:
+
+    if bq_params['BQ_AS_BATCH']:
         job_config.priority = bigquery.QueryPriority.BATCH
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
     client = bigquery.Client()
-    gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/' + params['DATA_OUTPUT_FILE']
-    table_id = params['WORKING_PROJECT'] + '.' + params['TARGET_DATASET'] + '.' + params['TARGET_TABLE']
+    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + data_file_name
+    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + bq_params['TARGET_TABLE']
     load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
     print('Starting job {}'.format(load_job.job_id))
 
