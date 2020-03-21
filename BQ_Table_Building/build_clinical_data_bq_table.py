@@ -176,7 +176,8 @@ def create_bq_schema_file(params):
         line = data_file.readline()
 
         while line != '':
-            json_obj += line + ', '
+            json_obj += line
+            line = data_file.readline()
 
         json_obj += ']}'
 
