@@ -21,6 +21,7 @@ import requests
 import json
 import time
 import os
+from os.path import expanduser
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
     create_mapping_dict
 
@@ -244,6 +245,14 @@ def validate_params(params):
         exit(1)
 
 
+def convert_filepaths(params):
+    home = expanduser('~')
+
+    params["OUTPUT_FILEPATH"] = params["OUTPUT_FILEPATH"].replace('~', home)
+    params["BQ_SCHEMA_FILEPATH"] = params["BQ_SCHEMA_FILEPATH"].replace('~', home)
+
+    return params
+
 def main(args):
     if len(args) != 2:
         print(" ")
@@ -256,6 +265,7 @@ def main(args):
 
     # Validate YAML config params
     validate_params(params)
+    params = convert_filepaths(params)
 
     if 'retrieve_and_output_cases' in steps:
         # Hits the GDC api endpoint, builds a json output data file
