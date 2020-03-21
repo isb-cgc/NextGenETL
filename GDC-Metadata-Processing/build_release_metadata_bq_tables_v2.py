@@ -836,10 +836,12 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     if 'replace_schema_tags' in steps:
         print('replace_schema_tags')
-        tag_map = {}
-        for tag in schema_tags:
-            val = schema_tags[tag]
-            if val.index('@-') == 0 or val.index('@lc-') == 0:
+        tag_map_list = []
+        for tag_pair in schema_tags:
+            val = tag_pair[tag]
+            use_pair = {}
+            tag_map_list.append(use_pair)
+            if val.index('~-') == 0 or val.index('~lc-') == 0:
                 chunks = val.split('-', 1)
                 if chunks[1] == 'programs':
                     rep_val =  dataset_tuple[0]
@@ -849,15 +851,15 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     rep_val = build_tag
                 else:
                     raise Exception()
-                if val.index('@lc-') == 0:
+                if val.index('~lc-') == 0:
                     rep_val = rep_val.lower()
-                tag_map[tag] = rep_val
+                use_pair[tag] = rep_val
             else:
-                tag_map[tag] = val
+                use_pair[tag] = val
         table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
-        success = customize_labels_and_desc(full_file_prefix, tag_map)
+        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
         if not success:
             print("replace_schema_tags failed")
             return

@@ -1218,7 +1218,7 @@ Take the staging files for a generic BQ metadata load and customize it for a sin
 using tags.
 '''
 
-def customize_labels_and_desc(file_tag, tag_map):
+def customize_labels_and_desc(file_tag, tag_map_list):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1230,11 +1230,12 @@ def customize_labels_and_desc(file_tag, tag_map):
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
             schema = schema_file.read()
 
-        for tag in tag_map:
-            desc = desc.replace(tag, tag_map[tag])
-            labels = labels.replace(tag, tag_map[tag])
-            friendly = friendly.replace(tag, tag_map[tag])
-            schema = schema.replace(tag, tag_map[tag])
+        for tag_val in tag_map_list:
+            for tag in tag_val:
+                desc = desc.replace(tag, tag_val[tag])
+                labels = labels.replace(tag, tag_val[tag])
+                friendly = friendly.replace(tag, tag_val[tag])
+                schema = schema.replace(tag, tag_val[tag])
 
         with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
             desc_file.write(desc)
