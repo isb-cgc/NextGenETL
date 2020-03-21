@@ -11,6 +11,10 @@ popd > /dev/null
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
+
+touch ~/scratch/clinical_data.json
+touch ~/schemaRepo/clinical_schema.json
+
 cd ..
 python3 ./BQ_Table_Building/build_clinical_data_bq_table.py ~/config/ClinicalBQBuild.yaml
 deactivate
