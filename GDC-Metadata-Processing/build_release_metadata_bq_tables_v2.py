@@ -1,6 +1,6 @@
 """
 
-Copyright 2019, Institute for Systems Biology
+Copyright 2019-2020, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,10 +27,14 @@ This is still a work in progress (01/18/2020)
 import yaml
 import sys
 import io
+from git import Repo
+from json import loads as json_loads
 
 from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_harness_with_result, delete_table_bq_job, \
-                               bq_table_exists, bq_table_is_empty
+                               bq_table_exists, bq_table_is_empty, create_clean_target, \
+                               generate_table_detail_files, customize_labels_and_desc, \
+                               update_schema_with_dict, install_labels_and_desc, publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -49,7 +53,7 @@ def load_config(yaml_config):
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], 
             yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
-            yaml_dict['programs'])
+            yaml_dict['programs'], yaml_dict['schema_tags'])
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -682,7 +686,8 @@ Do all the steps for a given dataset and build sequence
 '''
 
 
-def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple, aliquot_map_programs, params):
+def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
+                         aliquot_map_programs, params, schema_tags):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
 
@@ -812,11 +817,113 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple, aliqu
             print("{} {} create_final_table job failed".format(dataset_tuple[0], build))
             return False
 
+    # Stage the schema metadata from the repo copy:
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
+                                        params['GENERIC_SCHEMA_FILE_NAME'])
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    # Customize generic schema to this data program:
+
+    if 'replace_schema_tags' in steps:
+        print('replace_schema_tags')
+        tag_map_list = []
+        for tag_pair in schema_tags:
+            for tag in tag_pair:
+                val = tag_pair[tag]
+                use_pair = {}
+                tag_map_list.append(use_pair)
+                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                    chunks = val.split('-', 1)
+                    if chunks[1] == 'programs':
+                        if val.find('~lcbqs-') == 0:
+                            rep_val = dataset_tuple[1].lower() # can't have "." in a tag...
+                        else:
+                            rep_val = dataset_tuple[0]
+                    elif chunks[1] == 'path_tags':
+                        rep_val = path_tag
+                    elif chunks[1] == 'builds':
+                        rep_val = build
+                    else:
+                        raise Exception()
+                    if val.find('~lc-') == 0:
+                        rep_val = rep_val.lower()
+                    use_pair[tag] = rep_val
+                else:
+                    use_pair[tag] = val
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+        # Write out the details
+        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+        if not success:
+            print("replace_schema_tags failed")
+            return
+
+    #
+    # Update the per-field descriptions:
+    #
+
+    if 'install_field_descriptions' in steps:
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        print('install_field_descriptions: {}'.format(table_name))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            schema_dict[entry['name']] = {'description': entry['description']}
+        success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
+        if not success:
+            print("install_field_descriptions failed")
+            return
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'install_table_description' in steps:
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        print('install_table_description: {}'.format(table_name))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+        success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
+                                          project=params['WORKING_PROJECT'])
+        if not success:
+            print("install_table_description failed")
+            return
+
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        print('publish: {}'.format(table_name))
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish failed")
+            return
+
     #
     # Clear out working temp tables:
     #
 
     if 'dump_working_tables' in steps:
+        print('dump_working_tables')
         dump_tables = []
         dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIQUOT_STEP_1_TABLE',
                            'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
@@ -827,7 +934,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple, aliqu
                 dump_tables.append(table_name)
 
         for table in dump_tables:
-            delete_table_bq_job(params['TARGET_DATASET'], table)
+            success = delete_table_bq_job(params['TARGET_DATASET'], table)
+            if not success:
+                print("problem deleting table {}".format(table))
 
     #
     # Done!
@@ -859,11 +968,25 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags, path_tags, programs = load_config(yaml_file.read())
+        params, steps, builds, build_tags, path_tags, programs, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
         return
+
+    #
+    # Schemas and table descriptions are maintained in the github repo. Only do this once:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
@@ -875,7 +998,7 @@ def main(args):
         for dataset_tuple in dataset_tuples:
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset_tuple[0]))
             ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
-                                      aliquot_map_programs, params)
+                                      aliquot_map_programs, params, schema_tags)
             if not ok:
                 return
             
