@@ -849,7 +849,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     elif chunks[1] == 'path_tags':
                         rep_val = path_tag
                     elif chunks[1] == 'builds':
-                        rep_val = build_tag
+                        rep_val = build
                     else:
                         raise Exception()
                     if val.find('~lc-') == 0:
