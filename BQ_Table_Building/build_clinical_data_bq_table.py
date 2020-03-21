@@ -74,9 +74,6 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
 
     with open(data_fp, api_params['IO_MODE']) as json_output_file:
         curr_index = api_params['START_INDEX']
-
-        print('Starting API calls!')
-
         while not is_last_page:
             res = request_from_api(api_params, curr_index)
 
@@ -123,7 +120,9 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
 
     schema_filename = data_fp.split('/')[-1]
     bucket_target_blob = bq_params['WORKING_BUCKET_DIR'] + '/' + schema_filename
-    # upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
+    
+    if not LOCAL_TEST:
+        upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
 
 def create_field_records_dict(field_mapping_dict, field_data_type_dict):
