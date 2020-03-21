@@ -239,6 +239,7 @@ def generate_bq_schema_json(schema_dict, record_type, expand_fields_list, output
         # record_lists_dict key is equal to the parent field components of full field name
         list_key = '.'.join(split_field_name[:-1])
         record_lists_dict[list_key].append(schema_dict[field])
+        print(record_lists_dict)
 
     # calculate max field depth in order to nest expand field groups in bq schema
     max_field_depth = 0
