@@ -66,12 +66,17 @@ def check_value_type(value):
     try:
         float(value)
         val_is_num = True
-        val_is_float = True if int(float(value)) != float(value) else False
+        # Changing this because google won't accept loss of precision in the data insert job
+        # (won't cast 1.0 as 1)
+        val_is_float = False if value.is_digit() else True
+        # val_is_float = True if int(float(value)) != float(value) else False
     except ValueError:
         val_is_num = False
         val_is_float = False
 
-    if val_is_none:
+    if val_is_num and not value.is_digit():
+        return 'FLOAT'
+    elif val_is_none:
         return None
     elif val_is_id:
         return 'STRING'
