@@ -99,7 +99,8 @@ def retrieve_and_output_cases(params):
             if curr_page == last_page or (params['MAX_PAGES'] and curr_page == params['MAX_PAGES']):
                 is_last_page = True
 
-            print("Inserted page {} of {} ({} records)".format(curr_page, last_page, batch_record_count))
+            print("Inserted page {} of {} ({} records) into jsonlines file"
+                  .format(curr_page, last_page, batch_record_count))
             curr_index += batch_record_count  # todo: verify this tweak ok
 
     # calculate processing time and file size
@@ -170,9 +171,16 @@ def create_bq_schema_file(params):
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
 
     with open(params['OUTPUT_FILEPATH'], 'r') as data_file:
-        json_obj = json.load(data_file)
+        json_obj = "{'cases': ["
 
-        if not json_obj:
+        line = data_file.readline()
+
+        while line != '':
+            json_obj += line + ', '
+
+        json_obj += ']}'
+
+        if not data_file:
             print('[ERROR] Empty result retrieved from dataset file, nothing to generate.')
             exit(1)
 
@@ -244,6 +252,8 @@ def main(args):
         api_and_file_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
 
     # FIXME: Maybe go back and split params up?
+    # FIXME: change file extension to jsonl for clinical dat
+
     params = api_and_file_params.copy()
     params.update(bq_params)
 

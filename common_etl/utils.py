@@ -46,7 +46,7 @@ def load_config(yaml_file, yaml_dict_keys):
     if yaml_dict is None:
         print("Bad YAML load, exiting.")
         exit(1)
-    
+
     # Dynamically generate a list of dictionaries for the return statement, since tuples are immutable
     return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
 
