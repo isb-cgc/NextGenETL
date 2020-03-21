@@ -16,14 +16,13 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-
+import sys
 import requests
 import json
 import time
 import os
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
     create_mapping_dict
-from google.cloud import bigquery
 
 YAML_HEADERS = ('params', 'steps')
 REQUIRED_YAML_PARAMS = ['ENDPOINT', 'EXPAND_FIELD_GROUPS', 'BATCH_SIZE', 'START_INDEX', 'MAX_PAGES', 'IO_MODE',
@@ -268,5 +267,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # main(sys.argv)
-    main(('build_clinical_data_bq_table.py', '../ConfigFiles/ClinicalBQBuild.yaml'))
+    main(sys.argv)

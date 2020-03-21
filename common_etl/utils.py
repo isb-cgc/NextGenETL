@@ -1,3 +1,21 @@
+"""
+Copyright 2020, Institute for Systems Biology
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify,
+merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
 import io
 import yaml
 import pprint
@@ -148,6 +166,39 @@ def collect_field_values(field_dict, key, parent_dict, prefix):
     return field_dict
 
 
+def create_mapping_dict(endpoint):
+    """
+    Creates a dict containing field mappings for given endpoint.
+    Note: only differentiates the GDC API's 'long' type (called 'integer' in GDC data dictionary) and
+    'float' type (called 'number' in GDC data dictionary). All others typed as string.
+    :param endpoint: API endpoint for which to retrieve mapping.
+    :return: dict of field mappings. Each entry object contains field name, type, and description
+    """
+    field_mapping_dict = {}
+
+    # retrieve mappings json object
+    res = requests.get(endpoint + '/_mapping')
+    field_mappings = res.json()['_mapping']
+
+    for field in field_mappings:
+        # convert data types from GDC format to formats used in BQ
+        if field_mappings[field]['type'] == 'long':
+            field_type = 'INT64'
+        elif field_mappings[field]['type'] == 'float':
+            field_type = 'FLOAT64'
+        else:
+            field_type = 'STRING'
+
+        # create json object of field mapping data
+        field_mapping_dict[field] = {
+            'name': field.split('.')[-1],
+            'type': field_type,
+            'description': field_mappings[field]['description']
+        }
+
+    return field_mapping_dict
+
+
 def generate_bq_schema(schema_dict, record_type, expand_fields_list, output_fp):
 
     # create a dict of lists using expand field group names
@@ -203,39 +254,6 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list, output_fp):
     with open(output_fp, 'w') as schema_file:
         json.dump(schema_base_list, schema_file)
         print("BQ schema file creation is complete--file output at {}.".format(output_fp))
-
-
-def create_mapping_dict(endpoint):
-    """
-    Creates a dict containing field mappings for given endpoint.
-    Note: only differentiates the GDC API's 'long' type (called 'integer' in GDC data dictionary) and
-    'float' type (called 'number' in GDC data dictionary). All others typed as string.
-    :param endpoint: API endpoint for which to retrieve mapping.
-    :return: dict of field mappings. Each entry object contains field name, type, and description
-    """
-    field_mapping_dict = {}
-
-    # retrieve mappings json object
-    res = requests.get(endpoint + '/_mapping')
-    field_mappings = res.json()['_mapping']
-
-    for field in field_mappings:
-        # convert data types from GDC format to formats used in BQ
-        if field_mappings[field]['type'] == 'long':
-            field_type = 'INT64'
-        elif field_mappings[field]['type'] == 'float':
-            field_type = 'FLOAT64'
-        else:
-            field_type = 'STRING'
-
-        # create json object of field mapping data
-        field_mapping_dict[field] = {
-            'name': field.split('.')[-1],
-            'type': field_type,
-            'description': field_mappings[field]['description']
-        }
-
-    return field_mapping_dict
 
 
 def pprint_json(json_obj):
