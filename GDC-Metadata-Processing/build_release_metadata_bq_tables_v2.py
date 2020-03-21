@@ -879,7 +879,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             full_schema_list = json_loads(schema_hold_dict.read())
         for entry in full_schema_list:
             schema_dict[entry['name']] = {'description': entry['description']}
-        success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['TARGET_PROJECT'])
+        success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
         if not success:
             print("install_field_descriptions failed")
             return
@@ -893,7 +893,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         print('install_table_description: {}'.format(table_name))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
-                                          project=params['TARGET_PROJECT'])
+                                          project=params['WORKING_PROJECT'])
         if not success:
             print("install_table_description failed")
             return
