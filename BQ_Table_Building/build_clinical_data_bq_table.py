@@ -24,7 +24,7 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table
+    create_mapping_dict, create_and_load_table, arrays_to_str_list
 
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
 API_PARAM_LIST = ['ENDPOINT', 'EXPAND_FIELD_GROUPS', 'BATCH_SIZE', 'START_INDEX', 'MAX_PAGES', 'IO_MODE',
@@ -98,9 +98,9 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                     if field in case_copy:
                         case.pop(field)
 
-                # modified_case = arrays_to_str_list(case)
+                no_list_value_case = arrays_to_str_list(case)
                 # writing in jsonlines format, as required by BQ
-                json.dump(obj=case, fp=json_output_file)
+                json.dump(obj=no_list_value_case, fp=json_output_file)
                 json_output_file.write('\n')
 
             if curr_page == last_page or (api_params['MAX_PAGES'] and curr_page == api_params['MAX_PAGES']):
@@ -161,8 +161,8 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fi
             print("[ERROR] Not adding field {} because no type found".format(key))
             continue
 
-        if key in array_fields:
-            field_type = "ARRAY<" + field_type + ">"
+        # if key in array_fields:
+        #    field_type = "ARRAY<" + field_type + ">"
 
         # this is the format for bq schema json object entries
         schema_dict[key] = {
