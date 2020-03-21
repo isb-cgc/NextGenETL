@@ -270,7 +270,7 @@ def main(args):
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
-        print('Building BQ Table {}'.params['TARGET_TABLE'])
+        print('Building BQ Table {}'.format(params['TARGET_TABLE']))
         create_table_from_json_schema(params)
 
 
