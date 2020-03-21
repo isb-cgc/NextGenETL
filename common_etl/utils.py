@@ -74,9 +74,7 @@ def check_value_type(value):
         val_is_num = False
         val_is_float = False
 
-    if val_is_num and not value.is_digit():
-        return 'FLOAT'
-    elif val_is_none:
+    if val_is_none:
         return None
     elif val_is_id:
         return 'STRING'
