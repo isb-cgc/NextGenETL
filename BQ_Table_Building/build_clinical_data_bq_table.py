@@ -186,6 +186,9 @@ def create_bq_schema_file(params):
     # create a flattened dict of schema fields
     schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
+    print('SCHEMA DICT: ')
+    print(schema_dict)
+
     record_type_name = params['ENDPOINT'].split('/')[-1]
 
     generate_bq_schema_json(schema_dict, record_type_name, params['EXPAND_FIELD_GROUPS'], params['BQ_SCHEMA_FILEPATH'])
