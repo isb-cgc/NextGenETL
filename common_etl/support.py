@@ -1227,15 +1227,16 @@ def customize_labels_and_desc(file_tag, tag_map_list):
             labels = label_file.read()
         with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
             friendly = friendly_file.read()
-        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+        with open("{}_schema.json".format(file_tag), mode='r') as schema_file:
             schema = schema_file.read()
 
         for tag_val in tag_map_list:
             for tag in tag_val:
-                desc = desc.replace(tag, tag_val[tag])
-                labels = labels.replace(tag, tag_val[tag])
-                friendly = friendly.replace(tag, tag_val[tag])
-                schema = schema.replace(tag, tag_val[tag])
+                brack_tag = '{{}}'.format(tag)
+                desc = desc.replace(brack_tag, tag_val[tag])
+                labels = labels.replace(brack_tag, tag_val[tag])
+                friendly = friendly.replace(brack_tag, tag_val[tag])
+                schema = schema.replace(brack_tag, tag_val[tag])
 
         with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
             desc_file.write(desc)
