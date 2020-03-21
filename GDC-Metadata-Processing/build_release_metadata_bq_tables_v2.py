@@ -842,7 +842,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 val = tag_pair[tag]
                 use_pair = {}
                 tag_map_list.append(use_pair)
-                if val.index('~-') == 0 or val.index('~lc-') == 0:
+                if val.find('~-') == 0 or val.find('~lc-') == 0:
                     chunks = val.split('-', 1)
                     if chunks[1] == 'programs':
                         rep_val =  dataset_tuple[0]
@@ -852,7 +852,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                         rep_val = build_tag
                     else:
                         raise Exception()
-                    if val.index('~lc-') == 0:
+                    if val.find('~lc-') == 0:
                         rep_val = rep_val.lower()
                     use_pair[tag] = rep_val
                 else:
