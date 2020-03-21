@@ -251,7 +251,10 @@ def convert_filepaths(params):
     params["OUTPUT_FILEPATH"] = params["OUTPUT_FILEPATH"].replace('~', home)
     params["BQ_SCHEMA_FILEPATH"] = params["BQ_SCHEMA_FILEPATH"].replace('~', home)
 
+    print(params)
+
     return params
+
 
 def main(args):
     if len(args) != 2:
