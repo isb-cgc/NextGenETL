@@ -93,8 +93,9 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                 raise TypeError("[ERROR] 'pagination' key not found in response json, exiting.")
 
             for i in range(len(cases_json)):
+                case = arrays_to_str_lists(cases_json[i])
                 # writing in jsonlines format, as required by BQ
-                json.dump(obj=cases_json[i], fp=json_output_file)
+                json.dump(obj=case, fp=json_output_file)
                 json_output_file.write('\n')
 
             if curr_page == last_page or (api_params['MAX_PAGES'] and curr_page == api_params['MAX_PAGES']):

@@ -178,6 +178,24 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
+def arrays_to_str_list(str_dict):
+    for key in str_dict:
+        if isinstance(str_dict[key], list):
+            if not isinstance(str_dict[key][0], dict):
+                str_list = ', '.join(str_dict[key])
+                str_dict[key] = str_list
+            else:
+                str_dict = arrays_to_str_list(str_dict[key])
+        elif isinstance(str_dict[key], dict):
+            str_dict = arrays_to_str_list(str_dict[key])
+        else:
+            continue
+
+    print(str_dict)
+    return str_dict
+
+
+
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     # add field group names to a list, in order to generate a dict
     field_group_names = [record_type]
