@@ -262,9 +262,11 @@ def main(args):
     params = convert_filepaths(params)
 
     if 'retrieve_and_output_cases' in steps:
+        pass
         # Hits the GDC api endpoint, builds a json output data file
-        print('Starting GDC API calls!')
-        retrieve_and_output_cases(params)
+        # todo: un-comment these
+        # print('Starting GDC API calls!')
+        # retrieve_and_output_cases(params)
 
     if 'create_bq_schema_file' in steps:
         # Creates a BQ schema json file
