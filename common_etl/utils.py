@@ -292,7 +292,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
 def create_and_load_table(bq_params, data_file_name, schema):
     """
-    
+
     :param bq_params:
     :param data_file_name:
     :param schema:
