@@ -109,7 +109,7 @@ def infer_data_types(flattened_json):
     return data_types
 
 
-def collect_field_values(field_dict, key, parent_dict, prefix):
+def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
     """
     Recursively inserts sets of values for a given field into return dict (used to infer field data type)
     :param field_dict: A dict of key:value pairs -- field_name : set(field_values)
@@ -124,10 +124,14 @@ def collect_field_values(field_dict, key, parent_dict, prefix):
     if isinstance(parent_dict[key], list) and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
-                field_dict = collect_field_values(field_dict, dict_key, dict_item, prefix + key + ".")
+                field_dict, array_list = collect_field_values(
+                    field_dict, dict_key, dict_item, prefix + key + ".", array_fields
+                )
     elif isinstance(parent_dict[key], dict):
         for dict_key in parent_dict[key]:
-            field_dict = collect_field_values(field_dict, dict_key, parent_dict[key], prefix + key + ".")
+            field_dict, array_list = collect_field_values(
+                field_dict, dict_key, parent_dict[key], prefix + key + ".", array_fields
+            )
     else:
         field_name = prefix + key
 
@@ -137,12 +141,13 @@ def collect_field_values(field_dict, key, parent_dict, prefix):
         # This type of list can be converted to a comma-separated value string
         if isinstance(parent_dict[key], list):
             value = ", ".join(parent_dict[key])
+            array_fields.add(field_name)
         else:
             value = parent_dict[key]
 
         field_dict[field_name].add(value)
 
-    return field_dict
+    return field_dict, array_fields
 
 
 def create_mapping_dict(endpoint):
@@ -178,22 +183,18 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
-def arrays_to_str_list(str_dict):
-    for key in str_dict:
-        if isinstance(str_dict[key], list):
-            if not isinstance(str_dict[key][0], dict):
-                str_list = ', '.join(str_dict[key])
-                str_dict[key] = str_list
-            else:
-                str_dict = arrays_to_str_list(str_dict[key])
-        elif isinstance(str_dict[key], dict):
-            str_dict = arrays_to_str_list(str_dict[key])
+def arrays_to_str_list(obj):
+    if isinstance(obj, list):
+        if not isinstance(obj[0], dict):
+            str_list = ', '.join(obj)
+            obj = str_list
         else:
-            continue
-
-    print(str_dict)
-    return str_dict
-
+            for i in range(len(obj)):
+                obj[i] = arrays_to_str_list(obj[i])
+    elif isinstance(obj, dict):
+        for key in obj:
+            obj[key] = arrays_to_str_list(obj[key])
+    return obj
 
 
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):

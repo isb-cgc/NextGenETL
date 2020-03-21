@@ -24,14 +24,17 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list
+    create_mapping_dict, create_and_load_table
 
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
 API_PARAM_LIST = ['ENDPOINT', 'EXPAND_FIELD_GROUPS', 'BATCH_SIZE', 'START_INDEX', 'MAX_PAGES', 'IO_MODE',
-              'SCRATCH_DIR', 'DATA_OUTPUT_FILE']
-
-BQ_PARAM_LIST = ['BQ_AS_BATCH', 'WORKING_PROJECT', 'TARGET_DATASET', 'WORKING_BUCKET', 'WORKING_BUCKET_DIR', 'TARGET_TABLE']
+                  'SCRATCH_DIR', 'DATA_OUTPUT_FILE']
+BQ_PARAM_LIST = ['BQ_AS_BATCH', 'WORKING_PROJECT', 'TARGET_DATASET', 'WORKING_BUCKET', 'WORKING_BUCKET_DIR',
+                 'TARGET_TABLE']
 LOCAL_TEST = False
+
+EXCLUDE_FIELDS = ['analyte_ids', 'case_autocomplete', 'portion_ids', 'sample_ids', 'slide_ids', 'submitter_aliquot_ids',
+                  'submitter_analyte_ids', 'submitter_portion_ids', 'submitter_sample_ids', 'submitter_slide_ids']
 
 
 def request_from_api(api_params, curr_index):
@@ -45,19 +48,19 @@ def request_from_api(api_params, curr_index):
         # retrieve and parse a "page" (batch) of case objects
         res = requests.post(url=api_params['ENDPOINT'], data=request_params)
 
-        if res.status_code != 200:
+        if res.status_code == 200:
+            return res
+        else:
             restart_idx = curr_index
 
             print('\n[ERROR] API request returned status code {}, exiting script.'.format(str(res.status_code)))
             if api_params['IO_MODE'] == 'a':
                 print('IO_MODE set to append--set START_INDEX to {} to resume api calls and avoid duplicate entries.'
                       .format(restart_idx))
-            return None
-
-        return res
     except requests.exceptions.MissingSchema as e:
         print('\n[ERROR] ' + str(e) + '(Hint: check the ENDPOINT value supplied in yaml config.)')
-        return None
+
+    exit(1)
 
 
 def retrieve_and_output_cases(api_params, bq_params, data_fp):
@@ -77,9 +80,6 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
         while not is_last_page:
             res = request_from_api(api_params, curr_index)
 
-            if not res:
-                exit(1)
-
             res_json = res.json()['data']
             cases_json = res_json['hits']
 
@@ -92,8 +92,13 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
             else:
                 raise TypeError("[ERROR] 'pagination' key not found in response json, exiting.")
 
-            for i in range(len(cases_json)):
-                case = arrays_to_str_list(cases_json[i])
+            for case in cases_json:
+                case_copy = case.copy()
+                for field in EXCLUDE_FIELDS:
+                    if field in case_copy:
+                        case.pop(field)
+
+                # modified_case = arrays_to_str_list(case)
                 # writing in jsonlines format, as required by BQ
                 json.dump(obj=case, fp=json_output_file)
                 json_output_file.write('\n')
@@ -126,7 +131,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
         upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
 
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields):
     """
     Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
     :param field_mapping_dict:
@@ -156,6 +161,9 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             print("[ERROR] Not adding field {} because no type found".format(key))
             continue
 
+        if key in array_fields:
+            field_type = "ARRAY<" + field_type + ">"
+
         # this is the format for bq schema json object entries
         schema_dict[key] = {
             "name": column_name,
@@ -176,16 +184,19 @@ def create_bq_schema(api_params, data_fp):
 
     with open(data_fp, 'r') as data_file:
         field_dict = dict()
+        array_fields = set()
 
         for line in data_file:
             json_case_obj = json.loads(line)
             for key in json_case_obj:
-                field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
+                field_dict, array_fields = collect_field_values(field_dict, key, json_case_obj, 'cases.', array_fields)
+
+        print(array_fields)
 
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
-    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
+    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields)
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
     
@@ -266,6 +277,7 @@ def main(args):
         # Creates a BQ schema json file
         print('Creating BQ Schema')
         schema = create_bq_schema(api_params, data_fp)
+        print(schema)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
