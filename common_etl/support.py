@@ -1232,7 +1232,7 @@ def customize_labels_and_desc(file_tag, tag_map_list):
 
         for tag_val in tag_map_list:
             for tag in tag_val:
-                brack_tag = '\{{}\}'.format(tag)
+                brack_tag = '{{{}}}'.format(tag)
                 print(tag, brack_tag)
                 desc = desc.replace(brack_tag, tag_val[tag])
                 labels = labels.replace(brack_tag, tag_val[tag])
