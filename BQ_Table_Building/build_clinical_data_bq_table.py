@@ -171,15 +171,10 @@ def create_bq_schema_file(params):
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
 
     with open(params['OUTPUT_FILEPATH'], 'r') as data_file:
-
-        line = data_file.readline()
-
-        while line != '':
+        for line in data_file:
             json_case_obj = json.loads(line)
             for key in json_case_obj:
                 field_dict = collect_field_values(dict(), key, json_case_obj, 'cases.')
-
-            line = data_file.readline()
 
     print('FIELD DICT: ')
     print(field_dict)
