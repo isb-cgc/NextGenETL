@@ -838,24 +838,25 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         print('replace_schema_tags')
         tag_map_list = []
         for tag_pair in schema_tags:
-            val = tag_pair[tag]
-            use_pair = {}
-            tag_map_list.append(use_pair)
-            if val.index('~-') == 0 or val.index('~lc-') == 0:
-                chunks = val.split('-', 1)
-                if chunks[1] == 'programs':
-                    rep_val =  dataset_tuple[0]
-                elif chunks[1] == 'path_tags':
-                    rep_val = path_tag
-                elif chunks[1] == 'builds':
-                    rep_val = build_tag
+            for tag in tag_pair:
+                val = tag_pair[tag]
+                use_pair = {}
+                tag_map_list.append(use_pair)
+                if val.index('~-') == 0 or val.index('~lc-') == 0:
+                    chunks = val.split('-', 1)
+                    if chunks[1] == 'programs':
+                        rep_val =  dataset_tuple[0]
+                    elif chunks[1] == 'path_tags':
+                        rep_val = path_tag
+                    elif chunks[1] == 'builds':
+                        rep_val = build_tag
+                    else:
+                        raise Exception()
+                    if val.index('~lc-') == 0:
+                        rep_val = rep_val.lower()
+                    use_pair[tag] = rep_val
                 else:
-                    raise Exception()
-                if val.index('~lc-') == 0:
-                    rep_val = rep_val.lower()
-                use_pair[tag] = rep_val
-            else:
-                use_pair[tag] = val
+                    use_pair[tag] = val
         table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
