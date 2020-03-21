@@ -245,13 +245,14 @@ def validate_params(params):
 
 
 def convert_filepaths(params):
+    """
+    Convert to vm-friendly file paths
+    :param params: params set in yaml config
+    :return: modified params dict
+    """
     home = expanduser('~')
-
     params["OUTPUT_FILEPATH"] = params["OUTPUT_FILEPATH"].replace('~', home)
     params["BQ_SCHEMA_FILEPATH"] = params["BQ_SCHEMA_FILEPATH"].replace('~', home)
-
-    print(params)
-
     return params
 
 
