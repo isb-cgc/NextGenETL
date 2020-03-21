@@ -845,7 +845,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 if val.find('~-') == 0 or val.find('~lc-') == 0:
                     chunks = val.split('-', 1)
                     if chunks[1] == 'programs':
-                        rep_val =  dataset_tuple[0]
+                        rep_val =  dataset_tuple[1] # can't have "." in a tag...
                     elif chunks[1] == 'path_tags':
                         rep_val = path_tag
                     elif chunks[1] == 'builds':
