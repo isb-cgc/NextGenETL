@@ -305,7 +305,7 @@ def create_table_from_json_schema(params):
     schema = convert_json_schema_to_python_schema(json_obj, list())
 
     job_config = bigquery.LoadJobConfig()
-    if params['DO_BATCH']:
+    if params['BQ_AS_BATCH']:
         job_config.priority = bigquery.QueryPriority.BATCH
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
