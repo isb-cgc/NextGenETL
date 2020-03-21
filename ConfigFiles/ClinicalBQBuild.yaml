@@ -27,12 +27,12 @@ params:
   IO_MODE: 'w'
 
   # File to which to write the cases clinical data json file
-  OUTPUT_FILEPATH: '../GDC-Metadata-Processing/textFiles/clinical_data.json'
+  OUTPUT_FILEPATH: '~/scratch/clinical_data.json'
 
   # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
   BQ_AS_BATCH: False
 
-  BQ_SCHEMA_FILEPATH: '../SchemaFiles/clinical_schema.json'
+  BQ_SCHEMA_FILEPATH: '~/schemaRepo/clinical_schema.json'
 
 
 # Note that although the steps are given in the actual order here as
