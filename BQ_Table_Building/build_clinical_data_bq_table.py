@@ -175,11 +175,11 @@ def create_bq_schema_file(params):
         line = data_file.readline()
 
         while line != '':
-            line = data_file.readline()
-
             json_case_obj = json.loads(line)
             for key in json_case_obj:
                 field_dict = collect_field_values(dict(), key, json_case_obj, 'cases.')
+
+            line = data_file.readline()
 
     field_data_type_dict = infer_data_types(field_dict)
 
