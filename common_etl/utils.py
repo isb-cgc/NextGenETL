@@ -21,6 +21,8 @@ import yaml
 import pprint
 import json
 import requests
+import time
+from google.cloud import bigquery
 
 
 def load_config(yaml_file, yaml_dict_keys):
@@ -82,8 +84,6 @@ def check_value_type(value):
         return 'INT64'
     else:
         return 'STRING'
-
-    print("ERROR NOT FINDING TYPE, value: {}".format(value))
 
 
 def infer_data_types(flattened_json):
@@ -199,7 +199,7 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
-def generate_bq_schema(schema_dict, record_type, expand_fields_list, output_fp):
+def generate_bq_schema_json(schema_dict, record_type, expand_fields_list, output_fp):
 
     # create a dict of lists using expand field group names
     field_groups = expand_fields_list.split(',')
@@ -254,6 +254,74 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list, output_fp):
     with open(output_fp, 'w') as schema_file:
         json.dump(schema_base_list, schema_file)
         print("BQ schema file creation is complete--file output at {}.".format(output_fp))
+
+
+def convert_json_schema_to_python_schema(json_schema, schema):
+    for field in json_schema:
+        if 'mode' in field and field['mode'] == 'REPEATED':
+            schema.append(
+                bigquery.SchemaField(
+                    field['name'],
+                    'RECORD',
+                    mode="REPEATED",
+                    fields=convert_json_schema_to_python_schema(field['fields'], list())
+                )
+            )
+        else:
+            schema.append(
+                bigquery.SchemaField(
+                    field['name'],
+                    field['type'],
+                    mode='NULLABLE'
+                )
+            )
+
+    return schema
+
+
+def create_table_from_json_schema(params):
+    with open(params['BQ_SCHEMA_FILEPATH']) as schema_file:
+        json_obj = json.load(schema_file)
+    schema = convert_json_schema_to_python_schema(json_obj, list())
+
+    job_config = bigquery.LoadJobConfig()
+    if params['DO_BATCH']:
+        job_config.priority = bigquery.QueryPriority.BATCH
+    job_config.schema = schema
+    job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    client = bigquery.Client()
+    gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/' + params['DATA_OUTPUT_FILE']
+    table_id = params['WORKING_PROJECT'] + '.' + params['TARGET_DATASET'] + '.' + params['TARGET_TABLE']
+    load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
+    print('Starting job {}'.format(load_job.job_id))
+
+    location = 'US'
+    job_state = "NOT_STARTED"
+
+    while job_state != 'DONE':
+        load_job = client.get_job(load_job.job_id, location=location)
+
+        print('Job {} is currently in state {}'.format(load_job.job_id, load_job.state))
+
+        job_state = load_job.state
+
+        if job_state != 'DONE':
+            time.sleep(5)
+
+    print('Job {} is done'.format(load_job.job_id))
+
+    load_job = client.get_job(load_job.job_id, location=location)
+    if load_job.error_result is not None:
+        print('[ERROR] While running BQ job: {}'.format(load_job.error_result))
+        for err in load_job.errors:
+            print(err)
+        return False
+
+    destination_table = client.get_table(table_id)
+    print('Loaded {} rows.'.format(destination_table.num_rows))
+    return True
 
 
 def pprint_json(json_obj):
