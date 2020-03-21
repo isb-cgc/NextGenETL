@@ -24,12 +24,33 @@ import time
 from google.cloud import bigquery
 
 
+def has_fatal_error(e, exception=None):
+    """
+    Error handling function, formats error strings or a list of strings, and optionally shares exception info.
+    :param e: error message string
+    :param exception: Exception object relating to the fatal error, defaults to none
+    """
+    err_ = '[ERROR] '
+    error_output = ''
+    if isinstance(e, list):
+        for item in e:
+            error_output += err_ + item
+    else:
+        error_output = err_ + e
+
+    print(error_output)
+
+    if exception:
+        raise exception
+    else:
+        exit(1)
+
+
 def load_config(yaml_file, yaml_dict_keys):
     """
     Opens yaml file and retrieves configuration parameters.
     :param yaml_file: yaml config file name
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's top-level dictionary keys.
-    file
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
     yaml_dict = None
@@ -39,12 +60,9 @@ def load_config(yaml_file, yaml_dict_keys):
     try:
         yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
     except yaml.YAMLError as ex:
-        print(ex)
-        exit(1)
-
+        has_fatal_error(ex, yaml.YAMLError)
     if yaml_dict is None:
-        print("Bad YAML load, exiting.")
-        exit(1)
+        has_fatal_error("Bad YAML load, exiting.", ValueError)
 
     # Dynamically generate a list of dictionaries for the return statement, since tuples are immutable
     return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
@@ -56,7 +74,7 @@ def check_value_type(value):
     """
     Checks value for type (possibilities are string, float and integers)
     :param value: value to type check
-    :return: type in BQ's format
+    :return: type in BQ column format
     """
     # if has leading zero, then should be considered a string, even if only composed of digits
     val_is_none = value == '' or value == 'NA' or value == 'null' or value is None or value == 'None'
@@ -69,6 +87,8 @@ def check_value_type(value):
         # Changing this because google won't accept loss of precision in the data insert job
         # (won't cast 1.0 as 1)
         val_is_float = False if value.isdigit() else True
+        # If this is used, a field with only trivial floats will be cast as Integer. However, BQ errors due to loss
+        # of precision.
         # val_is_float = True if int(float(value)) != float(value) else False
     except ValueError:
         val_is_num = False
@@ -119,7 +139,8 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
     :param key: field name
     :param parent_dict: dict containing field and it's values
     :param prefix: string representation of current location in field hierarchy
-    :return: field_dict
+    :param array_fields: list of fields with array (list) values (that are made up of primitives or strings)
+    :return: field_dict containing field names and a set of its values.
     """
     # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
     # as seen in second conditional statement), iterate over each list element's dictionary entries.
@@ -187,6 +208,11 @@ def create_mapping_dict(endpoint):
 
 
 def arrays_to_str_list(obj):
+    """
+    Converts array/list of primitives or strings to a comma-separated string
+    :param obj: object to converts
+    :return: modified object
+    """
     if isinstance(obj, list):
         if not isinstance(obj[0], dict):
             str_list = ', '.join(obj)
@@ -201,6 +227,13 @@ def arrays_to_str_list(obj):
 
 
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
+    """
+
+    :param schema_dict:
+    :param record_type:
+    :param expand_fields_list:
+    :return:
+    """
     # add field group names to a list, in order to generate a dict
     field_group_names = [record_type]
     nested_depth = 0
@@ -250,7 +283,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                 )
             else:
                 if nested_depth > 1:
-                    raise ValueError("[ERROR] empty parent_name at level {}".format(nested_depth))
+                    has_fatal_error("Empty parent_name at level {}".format(nested_depth), ValueError)
                 return schema_field_sublist
 
         nested_depth -= 1
@@ -258,6 +291,13 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
+    """
+    
+    :param bq_params:
+    :param data_file_name:
+    :param schema:
+    :return:
+    """
     job_config = bigquery.LoadJobConfig()
 
     if bq_params['BQ_AS_BATCH']:
@@ -289,10 +329,10 @@ def create_and_load_table(bq_params, data_file_name, schema):
 
     load_job = client.get_job(load_job.job_id, location=location)
     if load_job.error_result is not None:
-        print('[ERROR] While running BQ job: {}'.format(load_job.error_result))
-        for err in load_job.errors:
-            print(err)
-        return False
+        err_list = ['While running BQ job: {}'.format(load_job.error_result)]
+        for e in load_job.errors:
+            err_list.append(e)
+        has_fatal_error(err_list, ValueError)
 
     destination_table = client.get_table(table_id)
     print('Loaded {} rows.'.format(destination_table.num_rows))

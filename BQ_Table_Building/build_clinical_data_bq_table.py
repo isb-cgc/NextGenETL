@@ -24,20 +24,20 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list
+    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error
 
+# used to capture returned yaml config sections
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
-API_PARAM_LIST = ['ENDPOINT', 'EXPAND_FIELD_GROUPS', 'BATCH_SIZE', 'START_INDEX', 'MAX_PAGES', 'IO_MODE',
-                  'SCRATCH_DIR', 'DATA_OUTPUT_FILE']
-BQ_PARAM_LIST = ['BQ_AS_BATCH', 'WORKING_PROJECT', 'TARGET_DATASET', 'WORKING_BUCKET', 'WORKING_BUCKET_DIR',
-                 'TARGET_TABLE']
-LOCAL_TEST = False
-
-EXCLUDE_FIELDS = ['analyte_ids', 'case_autocomplete', 'portion_ids', 'sample_ids', 'slide_ids', 'submitter_aliquot_ids',
-                  'submitter_analyte_ids', 'submitter_portion_ids', 'submitter_sample_ids', 'submitter_slide_ids']
 
 
 def request_from_api(api_params, curr_index):
+    """
+    Make a POST API request and return response (if valid).
+    :param api_params: api params set in yaml config
+    :param curr_index: current API poll start position
+    :return: response object
+    """
+    err_list = []
     try:
         request_params = {
             'from': curr_index,
@@ -48,19 +48,22 @@ def request_from_api(api_params, curr_index):
         # retrieve and parse a "page" (batch) of case objects
         res = requests.post(url=api_params['ENDPOINT'], data=request_params)
 
-        if res.status_code == 200:
+        # return response body if request was successful
+        if res.status_code == requests.codes.ok:
             return res
-        else:
-            restart_idx = curr_index
 
-            print('\n[ERROR] API request returned status code {}, exiting script.'.format(str(res.status_code)))
-            if api_params['IO_MODE'] == 'a':
-                print('IO_MODE set to append--set START_INDEX to {} to resume api calls and avoid duplicate entries.'
-                      .format(restart_idx))
+        restart_idx = curr_index
+        err_list.append('API request returned status code {}.'.format(str(res.status_code)))
+
+        if api_params['IO_MODE'] == 'a':
+            err_list.append(
+                'Scripts is being run in "append" mode. '
+                'To resume without data loss or duplication, set START_INDEX = {} in your YAML config file.'
+                    .format(restart_idx))
     except requests.exceptions.MissingSchema as e:
-        print('\n[ERROR] ' + str(e) + '(Hint: check the ENDPOINT value supplied in yaml config.)')
+        err_list.append(str(e) + '(Hint: check the ENDPOINT value supplied in yaml config.)')
 
-    exit(1)
+    has_fatal_error(err_list, res.raise_for_status())
 
 
 def retrieve_and_output_cases(api_params, bq_params, data_fp):
@@ -90,11 +93,11 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                 curr_page = res_json['pagination']['page']
                 last_page = res_json['pagination']['pages']
             else:
-                raise TypeError("[ERROR] 'pagination' key not found in response json, exiting.")
+                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
 
             for case in cases_json:
                 case_copy = case.copy()
-                for field in EXCLUDE_FIELDS:
+                for field in api_params['EXCLUDE_FIELDS'].split(','):
                     if field in case_copy:
                         case.pop(field)
 
@@ -124,10 +127,11 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
         "{:.3f} sec to execute script \n".format(curr_index, total_cases_count, file_size, total_time)
     )
 
-    schema_filename = data_fp.split('/')[-1]
-    bucket_target_blob = bq_params['WORKING_BUCKET_DIR'] + '/' + schema_filename
-
-    if not LOCAL_TEST:
+    # Insert the generated jsonl file into google storage bucket, for later ingestion by BQ.
+    # Not used when working locally.
+    if not api_params['IS_LOCAL_MODE']:
+        schema_filename = data_fp.split('/')[-1]
+        bucket_target_blob = bq_params['WORKING_BUCKET_DIR'] + '/' + schema_filename
         upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
 
@@ -158,9 +162,13 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fi
         else:
             # this could happen in the case where a field was added to the cases endpoint with only null values,
             # and no entry for the field exists in mapping
-            print("[ERROR] Not adding field {} because no type found".format(key))
+            print("[INFO] Not adding field {} because no type found".format(key))
             continue
 
+        # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
+        # was that I'd set the FieldSchema object's mode to NULLABLE, which I later read is invalid for ARRAY types.
+        # But, that'll mean more unnesting for the users. So for now, I've converted these lists of ids into
+        # comma-delineated strings of ids.
         # if key in array_fields:
         #    field_type = "ARRAY<" + field_type + ">"
 
@@ -176,8 +184,10 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fi
 
 def create_bq_schema(api_params, data_fp):
     """
-    :param data_fp:
-    :param api_params: YAML config params
+    Generates two dicts (one using data type inference, one using _mapping API endpoint.)
+    Compares their values and builds a python SchemaField object that's used to initialize the db table.
+    :param data_fp: path to API data output file (jsonl format)
+    :param api_params: dict of YAML api and file config params
     """
     # generate dict containing field mapping results
     field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
@@ -191,8 +201,6 @@ def create_bq_schema(api_params, data_fp):
             for key in json_case_obj:
                 field_dict, array_fields = collect_field_values(field_dict, key, json_case_obj, 'cases.', array_fields)
 
-        print(array_fields)
-
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
@@ -204,92 +212,112 @@ def create_bq_schema(api_params, data_fp):
 
 
 def validate_params(api_params, bq_params):
-    err_string = ''
+    """
+    Validates yaml parameters before beginning to execute the script. This checks for reasonable (though not necessarily
+    correct) api request param types and values. It confirms all params are included in specified yaml file.
+    :param api_params: dict of api and file related params from user-provided yaml config
+    :param bq_params: dict of bq related params from user-provided yaml config
+    """
+    err_list = []
 
     def is_valid_idx_param(yaml_param):
-        err_str = ''
-        try:
-            if not isinstance(api_params[yaml_param], int) or int(api_params[yaml_param]) < 0:
-                err_str += '[ERROR] Invalid value for {} in yaml config (supplied value: {}). ' \
-                          'Value should be a non-negative integer'.format(yaml_param, api_params[yaml_param])
-        except ValueError as e:
-            err_str += "\n[ERROR] Non-integer value for {} in yaml config:\n".format(yaml_param)
-            err_str += "[ERROR] " + str(e)
-        return err_str
+        """
+        Verifies that index-type params provided are non-negative integer values.
+        :param yaml_param: value to verify
+        """
+        e_list = []
 
-    # verify all required params exist in yaml config
-    for param in API_PARAM_LIST:
-        if param not in api_params:
-            err_string += '[ERROR] Required param {} not found in yaml config.'.format(param)
-    for param in BQ_PARAM_LIST:
-        if param not in bq_params:
-            err_string += '[ERROR] Required param {} not found in yaml config.'.format(param)
+        try:
+            if int(api_params[yaml_param]) < 0:
+                e_list.append('Invalid value for {} in yaml config (supplied: {}).'
+                              .format(yaml_param, type(api_params[yaml_param])))
+                e_list.append('Value should be a non-negative integer.')
+                has_fatal_error(e_list, ValueError)
+        except TypeError as e:
+            # triggered by casting an inappropriate type to int for testing
+            e_list.append('{} in yaml config should be of type int, not type {}).'
+                          .format(yaml_param, type(api_params[yaml_param])))
+            e_list.append(str(e))
+            has_fatal_error(e_list, TypeError)
+
+    try:
+        with open('../ConfigFiles/ClinicalBQBuild.yaml', mode='r') as yaml_file:
+            default_api_params, default_bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+            default_api_param_keys = [k for k in default_api_params.keys()]
+            default_bq_param_keys = [k for k in default_bq_params.keys()]
+
+            # verify all required params exist in yaml config
+            for param in default_api_param_keys:
+                api_params[param]
+            for param in default_bq_param_keys:
+                bq_params[param]
+    except FileNotFoundError as e:
+        print('Default yaml config file not found, unable to compare with supplied yaml config.\n' + str(e))
+    except ValueError as e:
+        has_fatal_error(str(e), e)
+    except KeyError as e:
+        has_fatal_error('Missing param from yaml config file.', e)
 
     # verify that api index-related params are set to non-negative integers
-    err_string += is_valid_idx_param('BATCH_SIZE')
-    err_string += is_valid_idx_param('START_INDEX')
-    err_string += is_valid_idx_param('MAX_PAGES')
+    is_valid_idx_param('BATCH_SIZE') and is_valid_idx_param('START_INDEX') and is_valid_idx_param('MAX_PAGES')
 
     # BATCH_SIZE must also be positive
     if api_params['BATCH_SIZE'] == 0:
-        err_string += '[ERROR] BATCH_SIZE in yaml_config should be greater than 0.'
-
-    if err_string:
-        print(err_string)
-        exit(1)
+        has_fatal_error('BATCH_SIZE set to 0 in yaml_config, should be > 0.', ValueError)
 
 
-def convert_filepath(file_dir, file_name):
+def construct_filepath(api_params):
     """
-    Convert to vm-friendly file path
-    :param file_dir: path to file
-    :param file_name: name of file
-    :return: filepath
+    Construct filepath for temp local or VM output file
+    :param api_params: api and file params from yaml config
+    :return: output filepath for local machine or VM (depending on LOCAL_DEBUG_MODE)
     """
-    if LOCAL_TEST:
-        return '../temp/' + file_name
-
-    home = expanduser('~')
-    return '/'.join([home, file_dir, file_name])
+    if api_params['IS_LOCAL_MODE']:
+        return api_params['LOCAL_DIR'] + api_params['DATA_OUTPUT_FILE']
+    else:
+        home = expanduser('~')
+        return '/'.join([home, api_params['SCRATCH_DIR'], api_params['DATA_OUTPUT_FILE']])
 
 
 def main(args):
     if len(args) != 2:
-        print(" ")
-        print(" Usage : {} <configuration_yaml>".format(args[0]))
-        return
+        has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
 
     # Load the YAML config file
     with open(args[1], mode='r') as yaml_file:
-        api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+        try:
+            api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+        except ValueError as e:
+            has_fatal_error(str(e), ValueError)
 
     # Validate YAML config params
     validate_params(api_params, bq_params)
-    data_fp = convert_filepath(api_params['SCRATCH_DIR'], api_params['DATA_OUTPUT_FILE'])
+
+    data_fp = construct_filepath(api_params)
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
-        # Hits the GDC api endpoint, builds a json output data file
+        # Hits the GDC api endpoint, outputs data to jsonl file (newline-delineated json, required by BQ)
         print('Starting GDC API calls!')
         retrieve_and_output_cases(api_params, bq_params, data_fp)
 
-    if 'create_bq_schema_file' in steps:
-        # Creates a BQ schema json file
-        print('Creating BQ Schema')
+    if 'create_bq_schema_obj' in steps:
+        # Creates a BQ schema python object consisting of nested SchemaField objects
+        print('Creating BQ schema object!')
         schema = create_bq_schema(api_params, data_fp)
-        print(schema)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
         if not schema:
-            print('[ERROR] Empty SchemaField object')
-            exit(1)
-        print('Building BQ Table')
+            has_fatal_error('Empty SchemaField object', UnboundLocalError)
+        print('Building BQ Table!')
+
+        # don't want the entire fp for 2nd param, just the file name
         create_and_load_table(bq_params, api_params['DATA_OUTPUT_FILE'], schema)
 
 
 if __name__ == '__main__':
-    if LOCAL_TEST:
-        main((sys.argv[0], '../temp/ClinicalBQBuild.yaml'))
-    else:
-        main(sys.argv)
+        my_args = (sys.argv[0], '../temp/ClinicalBQBuild.yaml')
+
+        # main(sys.argv)  #todo uncomment
+        main(my_args)
