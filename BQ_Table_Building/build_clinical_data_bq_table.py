@@ -248,9 +248,9 @@ def validate_params(api_params, bq_params):
 
             # verify all required params exist in yaml config
             for param in default_api_param_keys:
-                api_params[param]
+                val = api_params[param]
             for param in default_bq_param_keys:
-                bq_params[param]
+                val = bq_params[param]
     except FileNotFoundError as e:
         print('Default yaml config file not found, unable to compare with supplied yaml config.\n' + str(e))
     except ValueError as e:
@@ -317,7 +317,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-        my_args = (sys.argv[0], '../temp/ClinicalBQBuild.yaml')
+        # my_args = (sys.argv[0], '../temp/ClinicalBQBuild.yaml')
 
-        # main(sys.argv)  #todo uncomment
-        main(my_args)
+        main(sys.argv)
+        # main(my_args)
