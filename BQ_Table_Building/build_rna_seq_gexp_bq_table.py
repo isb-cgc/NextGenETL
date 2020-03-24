@@ -493,6 +493,10 @@ def main(args):
                 all_files = traversal_list_file.read().splitlines()
                 concat_all_files(all_files, one_big_tsv.format(count_name), header)
 
+    #
+    # Remove function once new schemas function works for pulling the files from the
+    # GitHub Repo
+
     if 'build_the_schema' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
@@ -505,6 +509,39 @@ def main(args):
             #hold_schema_dict_for_count = hold_schema_dict.format(count_name)
             ## build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
             #                       typing_tups, hold_schema_list_for_count, hold_schema_dict_for_count)
+
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
+                              typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob_sets = {}
     for file_set in file_sets:
