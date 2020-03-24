@@ -95,10 +95,9 @@ files_and_buckets_and_tables:
 bq_filters:
    - program_name: TCGA
    - access: open
-   - data_format: TXT
-   - data_type: DATA TYOE
-   - platform: PLATFORM?
-   - data_category: DATA CATEGORY
+   - data_format: bcr biotab
+   - data_type: Clinical Supplement
+   - data_category: Clinical
 
 steps:
   # Empty out the LOCAL_FILES_DIR first:
