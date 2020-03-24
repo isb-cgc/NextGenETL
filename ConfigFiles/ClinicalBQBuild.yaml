@@ -1,0 +1,77 @@
+#
+# YAML Configuration file used for script build_clinical_data_bq_table.py
+# Builds BQ table for clinical data.
+#
+
+version: 1
+
+api_and_file_params:
+  # GDC API endpoint for retrieval of cases dataset
+  # ENDPOINT: 'https://api.gdc.cancer.gov/cases'
+  ENDPOINT: URL_OF_API_ENDPOINT
+
+  # List of 'expand' field groups to include in the clinical data bq table. For example:
+  # EXPAND_FIELD_GROUPS: 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
+  EXPAND_FIELD_GROUPS: your,list,of,expand,field,groups
+
+  # fields that aren't desired for bq. Example:
+  # EXCLUDE_FIELDS: 'analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,
+  # submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids'
+  EXCLUDE_FIELDS: your,list,of,excluded,fields
+
+  # How many case records to retrieve per GDC API call.
+  # Larger batch sizes are more likely to fail before completion, recommend leaving this set to 1000.
+  BATCH_SIZE: 1000
+
+  # Start index for retrieving case records
+  START_INDEX: 0
+
+  # Number of pages to write into json file (0 == all pages after start index)
+  MAX_PAGES: 0
+
+  # 'a' if appending to existing cases json (for continuation of interrupted file build).
+  # 'w' if creating or overwriting existing CASES_JSON_FILE.
+  IO_MODE: 'w'
+
+  # Directory for VM scratch files
+  SCRATCH_DIR: path/from/home/directory
+
+  # Directory for local scratch files
+  LOCAL_DIR: local/directory/path
+
+  DATA_OUTPUT_FILE: your_datafile.json
+
+  IS_LOCAL_MODE: False
+
+bq_params:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_id
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: your_bucket_name
+
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: full/path/in/bucket # DO NOT HAVE A LEADING /
+
+  # Table name:
+  TARGET_TABLE: Final_Clinical_Table_Name
+
+# Note that although the steps are given in the actual order here as
+# a list, changing the order here does not change the order of execution, which is fixed.
+
+steps:
+
+  # Get the manifest from the source data node:
+  - retrieve_and_output_cases
+
+  # Get the table schema/description/tags pulled from git:
+  - create_bq_schema_obj
+
+  # Build BQ Table
+  - build_bq_table

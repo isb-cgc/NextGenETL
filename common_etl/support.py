@@ -1082,6 +1082,9 @@ def delete_table_bq_job(target_dataset, delete_table):
         print('Table {}:{} deleted'.format(target_dataset, delete_table))
     except exceptions.NotFound as ex:
         print('Table {}:{} was not present'.format(target_dataset, delete_table))
+    except Exception as ex:
+        print(ex)
+        return False
 
     return True
 
@@ -1211,11 +1214,52 @@ def generate_table_detail_files(dict_file, file_tag):
 
 '''
 ----------------------------------------------------------------------------------------------
+Take the staging files for a generic BQ metadata load and customize it for a single data set
+using tags.
+'''
+
+def customize_labels_and_desc(file_tag, tag_map_list):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = label_file.read()
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+        with open("{}_schema.json".format(file_tag), mode='r') as schema_file:
+            schema = schema_file.read()
+
+        for tag_val in tag_map_list:
+            for tag in tag_val:
+                brack_tag = '{{{}}}'.format(tag)
+                desc = desc.replace(brack_tag, tag_val[tag])
+                labels = labels.replace(brack_tag, tag_val[tag])
+                friendly = friendly.replace(brack_tag, tag_val[tag])
+                schema = schema.replace(brack_tag, tag_val[tag])
+
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(desc)
+        with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+            label_file.write(labels)
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema_file.write(schema)
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(friendly)
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
 Take the labels and description of a BQ table and get them installed
 '''
 
 
-def install_labels_and_desc(dataset, table, file_tag, project=None):
+def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1228,26 +1272,29 @@ def install_labels_and_desc(dataset, table, file_tag, project=None):
             friendly = friendly_file.read()
 
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
-        table_ref = client.dataset(dataset).table(table)
+        table_ref = client.dataset(dataset).table(table_name)
         table = client.get_table(table_ref)
+
         #
         # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
-        # previous labels to handle label removals.
+        # previous labels to handle label removals. Note that the setting of each existing label
+        # to None is the only way this seems to work to empty them out (i.e. an empty dictionary
+        # does not cut it).
         #
 
-        print("point A")
+        replace_dict = {}
+        for label in table.labels:
+            replace_dict[label] = None
         table.description = None
-        table.labels = {}
+        table.labels = replace_dict
         table.friendly_name = None
         client.update_table(table, ['description', 'labels', 'friendlyName'])
-        print("point B")
-        table_ref = client.dataset(dataset).table(table)
+        table_ref = client.dataset(dataset).table(table_name)
         table = client.get_table(table_ref)
         table.description = desc
         table.labels = labels
         table.friendly_name = friendly
         client.update_table(table, ['description', 'labels', 'friendlyName'])
-        print("point C")
 
     except Exception as ex:
         print(ex)
