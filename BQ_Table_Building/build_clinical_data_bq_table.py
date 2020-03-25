@@ -305,6 +305,7 @@ def main(args):
         # Creates a BQ schema python object consisting of nested SchemaField objects
         print('Creating BQ schema object!')
         schema = create_bq_schema(api_params, data_fp)
+        print(schema)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
