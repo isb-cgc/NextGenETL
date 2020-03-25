@@ -147,7 +147,7 @@ def check_clinical_data(clinical_data_fp, api_params):
 
     no_fg_case_barcodes = {}
 
-    for fg in api_params['EXPAND_FIELD_GROUPS']:
+    for fg in api_params['EXPAND_FIELD_GROUPS'].split(','):
         counts[fg] = 0
         programs_with_field_group[fg] = set()
 
@@ -325,7 +325,7 @@ def validate_params(api_params, bq_params):
             yaml_template_path = '../ConfigFiles/ClinicalBQBuild.yaml'
         else:
             home = expanduser('~')
-            yaml_template_path = home + 'NextGenETL/ConfigFiles/ClinicalBQBuild.yaml'
+            yaml_template_path = home + '/NextGenETL/ConfigFiles/ClinicalBQBuild.yaml'
 
         with open(yaml_template_path, mode='r') as yaml_file:
             default_api_params, default_bq_params, steps = load_config(yaml_file, YAML_HEADERS)
