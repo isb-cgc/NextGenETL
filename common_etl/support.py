@@ -328,7 +328,7 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     """
     return '''
     SELECT b.file_gdc_url
-    FROM `{0}` as a JOIN `{1}` as b ON a.id = b.file_gdc_id
+    FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
     '''.format(manifest_table, indexd_table)
 
 
