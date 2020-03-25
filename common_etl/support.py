@@ -327,7 +327,7 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     Generates SQL for above function
     """
     return '''
-    SELECT b.file_gdc_url
+    SELECT b.gs_url
     FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
     '''.format(manifest_table, indexd_table)
 
