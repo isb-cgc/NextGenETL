@@ -33,8 +33,8 @@ from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
-                               typing_tups_to_schema_list, generic_bq_harness_write_depo
-
+                               typing_tups_to_schema_list, build_combined_schema, generic_bq_harness_write_depo, \
+                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
