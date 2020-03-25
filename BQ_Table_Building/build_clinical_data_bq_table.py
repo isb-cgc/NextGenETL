@@ -366,7 +366,7 @@ def construct_filepath(api_params):
 
 
 def main(args):
-    if len(args) != 2 and len(args) != 3:
+    if len(args) != 2:
         has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
 
     # Load the YAML config file
@@ -381,15 +381,6 @@ def main(args):
 
     data_fp = construct_filepath(api_params)
     schema = None
-
-    # override steps set in yaml via command line arg, sequence of 1/0 flags
-    if len(args) == 3:
-        base_steps = ['retrieve_and_output_cases', 'check_clinical_data', 'create_bq_schema_obj', 'build_bq_table']
-        steps = set()
-        flags = args[2]
-        for i in range(len(flags)):
-            if flags[i]:
-                steps.add(base_steps[i])
 
     if 'retrieve_and_output_cases' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (newline-delineated json, required by BQ)
