@@ -292,7 +292,6 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
 
 def get_program_from_bq(case_barcode):
-    print('lookup program name in bq')
     client = bigquery.Client()
 
     program_name_query = """
@@ -300,6 +299,8 @@ def get_program_from_bq(case_barcode):
         FROM `isb-project-zero.GDC_metadata.rel22_caseData`
         WHERE case_barcode = '{}'
         """.format(case_barcode)
+
+    print(program_name_query)
 
     query_job = client.query(program_name_query)
 
