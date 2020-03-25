@@ -292,6 +292,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
 
 def get_program_from_bq(case_barcode):
+    print('lookup program name in bq')
     client = bigquery.Client()
 
     program_name_query = """
