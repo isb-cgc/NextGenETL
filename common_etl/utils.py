@@ -227,6 +227,7 @@ def arrays_to_str_list(obj):
 
 
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
+
     """
 
     :param schema_dict:
