@@ -160,6 +160,7 @@ def check_clinical_data(clinical_data_fp, api_params):
 
             if counts['total'] < 5:
                 print("program name: ".format(program_name))
+                print()
 
             if 'demographic' in json_line:
                 counts['demographic'] += 1
