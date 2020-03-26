@@ -24,7 +24,7 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error, get_program_from_bq
+    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error, get_programs_from_bq
 
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
@@ -151,6 +151,8 @@ def check_clinical_data(clinical_data_fp, api_params):
         counts[fg] = 0
         programs_with_field_group[fg] = set()
 
+    program_lookup_dict = get_programs_from_bq()
+
     with open(clinical_data_fp, 'r') as file:
         for line in file:
             if counts['total'] % 100 == 0:
@@ -158,7 +160,7 @@ def check_clinical_data(clinical_data_fp, api_params):
             counts['total'] += 1
 
             json_line = json.loads(line)
-            program_name = get_program_from_bq(json_line['submitter_id'])
+            program_name = program_lookup_dict[json_line['submitter_id']]
 
             if 'demographic' in json_line:
                 counts['demographic'] += 1

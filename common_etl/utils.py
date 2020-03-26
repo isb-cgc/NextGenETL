@@ -309,6 +309,27 @@ def get_program_from_bq(case_barcode):
         return program_name
 
 
+def get_programs_from_bq():
+    client = bigquery.Client()
+    program_submitter_dict = {}
+
+    program_names_query = """
+        SELECT case_barcode, program_name
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+    """
+
+    query_job = client.query(program_names_query)
+
+    results = query_job.result()
+
+    for row in results:
+        program_name = row.get('program_name')
+        submitter_id = row.get
+        program_submitter_dict[submitter_id] = program_name
+
+    return program_submitter_dict
+
+
 def create_and_load_table(bq_params, data_file_name, schema):
     """
 
