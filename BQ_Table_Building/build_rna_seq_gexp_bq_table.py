@@ -136,7 +136,7 @@ def table_cleaner(params, file_sets, delete_result):
         dump_tables.append(params['COUNTS_WITH_METADATA_TABLE'].format(count_name))
         dump_tables.append(params['BQ_PULL_LIST_TABLE'].format(count_name))
     if delete_result:
-        delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_FINAL_TABLE'])
+        delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'])
 
     for table in dump_tables:
         delete_table_bq_job(params['TARGET_DATASET'], table)
@@ -689,7 +689,7 @@ def main(args):
 
         success = glue_in_gene_names(three_counts_table, params['GENE_NAMES_TABLE'], 
                                      params['TARGET_DATASET'], 
-                                     params['FINAL_FINAL_TABLE'],
+                                     params['FINAL_TARGET_TABLE'],
                                      True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
