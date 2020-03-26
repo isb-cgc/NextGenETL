@@ -324,7 +324,7 @@ def get_programs_from_bq():
 
     for row in results:
         program_name = row.get('program_name')
-        submitter_id = row.get
+        submitter_id = row.get('case_barcode')
         program_submitter_dict[submitter_id] = program_name
 
     return program_submitter_dict

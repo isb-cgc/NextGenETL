@@ -152,6 +152,7 @@ def check_clinical_data(clinical_data_fp, api_params):
         programs_with_field_group[fg] = set()
 
     program_lookup_dict = get_programs_from_bq()
+    print(program_lookup_dict)
 
     with open(clinical_data_fp, 'r') as file:
         for line in file:
