@@ -300,14 +300,12 @@ def get_program_from_bq(case_barcode):
         WHERE case_barcode = '{}'
         """.format(case_barcode)
 
-    print(program_name_query)
-
     query_job = client.query(program_name_query)
 
     results = query_job.result()
 
     for row in results:
-        print(row)
+        return row.get('program_name')
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
