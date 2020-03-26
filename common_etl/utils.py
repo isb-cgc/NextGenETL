@@ -306,8 +306,7 @@ def get_program_from_bq(case_barcode):
 
     for row in results:
         program_name = row.get('program_name')
-        print(program_name)
-        return str(program_name)
+        return program_name
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
