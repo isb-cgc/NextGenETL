@@ -300,8 +300,6 @@ def get_program_from_bq(case_barcode):
         WHERE case_barcode = '{}'
         """.format(case_barcode)
 
-    print(program_name_query)
-
     query_job = client.query(program_name_query)
 
     results = query_job.result()
