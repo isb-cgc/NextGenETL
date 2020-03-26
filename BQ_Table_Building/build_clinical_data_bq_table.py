@@ -147,7 +147,9 @@ def check_clinical_data(clinical_data_fp, api_params):
 
     no_fg_case_barcodes = {}
 
-    for fg in api_params['EXPAND_FIELD_GROUPS'].split(','):
+    field_groups = api_params['EXPAND_FIELD_GROUPS'].split(',')
+
+    for fg in field_groups:
         counts[fg] = 0
         programs_with_field_group[fg] = set()
 
@@ -200,7 +202,7 @@ def check_clinical_data(clinical_data_fp, api_params):
                 no_fg_case_barcodes[program_name].add(json_line['submitter_id'])
 
         # OUTPUT RESULTS
-        for fg in api_params['EXPAND_FIELD_GROUPS']:
+        for fg in field_groups:
             print_field_group_check(fg, counts, programs_with_field_group)
 
         print("\nPrograms with no clinical data:")
@@ -217,7 +219,7 @@ def print_field_group_check(fg_name, counts, fg_program_list):
 
     print('For {}:'.format(fg_name))
     print('\tfound in {:.2f}% of cases'.format(fg_pct))
-    print('\tprograms with {} field_group: {}'.format(fg_name, str(fg_program_list['fg_name'])))
+    print('\tprograms with {} field_group: {}'.format(fg_name, str(fg_program_list[fg_name])))
 
 
 def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields):
