@@ -545,7 +545,7 @@ def main(args):
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             build_combined_schema(None, schema_dict_loc,
-                                  typing_tups, hold_schema_list, hold_schema_dict)
+                                  typing_tups, hold_schema_list.format(count_name), hold_schema_dict)
 
     bucket_target_blob_sets = {}
     for file_set in file_sets:
