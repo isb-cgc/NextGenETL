@@ -227,6 +227,7 @@ def arrays_to_str_list(obj):
 
 
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
+
     """
 
     :param schema_dict:
@@ -288,6 +289,24 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
         nested_depth -= 1
     return None
+
+
+def get_program_from_bq(case_barcode):
+    client = bigquery.Client()
+
+    program_name_query = """
+        SELECT program_name
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        WHERE case_barcode = '{}'
+        """.format(case_barcode)
+
+    query_job = client.query(program_name_query)
+
+    results = query_job.result()
+
+    for row in results:
+        program_name = row.get('program_name')
+        return program_name
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
