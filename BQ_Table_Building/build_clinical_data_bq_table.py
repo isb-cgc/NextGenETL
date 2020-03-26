@@ -153,12 +153,12 @@ def check_clinical_data(clinical_data_fp, api_params):
 
     with open(clinical_data_fp, 'r') as file:
         for line in file:
+            if counts['total'] % 100 == 0:
+                print(counts['total'])
             counts['total'] += 1
 
             json_line = json.loads(line)
             program_name = get_program_from_bq(json_line['submitter_id'])
-            print(program_name)
-            print()
 
             if 'demographic' in json_line:
                 counts['demographic'] += 1
