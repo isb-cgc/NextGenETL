@@ -697,7 +697,38 @@ def main(args):
         if not success:
             print("glue_gene_names failed")
             return
-            
+
+    #
+    # Update the per-field descriptions:
+    #
+
+    if 'update_field_descriptions' in steps:
+        print('update_field_descriptions')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            schema_dict[entry['name']] = {'description': entry['description']}
+
+        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
+        if not success:
+            print("update_field_descriptions failed")
+            return
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'update_table_description' in steps:
+        print('update_table_description')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        if not success:
+            print("update_table_description failed")
+            return
+
     if 'dump_working_tables' in steps:
         table_cleaner(params, file_sets, False)
             
