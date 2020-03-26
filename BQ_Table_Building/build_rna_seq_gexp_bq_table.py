@@ -25,6 +25,7 @@ import shutil
 import os
 import yaml
 import io
+from git import Repo
 import zipfile
 import gzip
 from os.path import expanduser
@@ -496,6 +497,7 @@ def main(args):
     #
     # Remove function once new schemas function works for pulling the files from the
     # GitHub Repo
+    #
 
     if 'build_the_schema' in steps:
         for file_set in file_sets:
