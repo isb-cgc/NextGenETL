@@ -494,23 +494,6 @@ def main(args):
                 all_files = traversal_list_file.read().splitlines()
                 concat_all_files(all_files, one_big_tsv.format(count_name), header)
 
-    #
-    # Remove function once new schemas function works for pulling the files from the
-    # GitHub Repo
-    #
-
-    if 'build_the_schema' in steps:
-        for file_set in file_sets:
-            count_name, _ = next(iter(file_set.items()))
-            typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
-            for tup in typing_tups:
-                print(tup)
-            hold_schema_list_for_count = hold_schema_list.format(count_name)
-            typing_tups_to_schema_list(typing_tups, hold_schema_list_for_count)
-            #hold_schema_list_for_count = hold_schema_list.format(count_name)
-            #hold_schema_dict_for_count = hold_schema_dict.format(count_name)
-            ## build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
-            #                       typing_tups, hold_schema_list_for_count, hold_schema_dict_for_count)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
