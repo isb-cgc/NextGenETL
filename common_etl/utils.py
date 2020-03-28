@@ -401,5 +401,5 @@ def pprint_json(json_obj):
     Pretty prints json objects.
     :param json_obj: json object to pprint
     """
-    pp = pprint.PrettyPrinter(indent=4)
+    pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(json_obj)
