@@ -358,7 +358,7 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
           a.sample_barcode,
           a.aliquot_barcode,
           b.gene_name,
-          b.gene_biotype AS gene_type,
+          b.gene_type,
           a.Ensembl_gene_id,
           a.Ensembl_gene_id_v,
           a.{0},
