@@ -30,7 +30,7 @@ import zipfile
 import gzip
 from os.path import expanduser
 from json import loads as json_loads
-#from createSchemaP3 import build_schema
+from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
