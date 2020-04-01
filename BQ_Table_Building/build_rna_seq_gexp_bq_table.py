@@ -351,7 +351,17 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
     table_2_vals = sql_dict['table_1']
     table_3_vals = sql_dict['table_2']
     
-    return '''                
+    return '''
+        WITH
+            gene_reference AS (
+        SELECT
+            DISTINCT gene_name,
+                    gene_id,
+                    gene_id_v,
+                    gene_type
+        )
+        FROM
+            `{7}`              
         SELECT 
           a.project_short_name,
           a.case_barcode,
@@ -371,7 +381,7 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
           a.{4},
           a.{5},
           a.platform
-        FROM `{6}` AS a JOIN `{7}` AS b ON a.Ensembl_gene_id = b.gene_id
+        FROM `{6}` AS a JOIN gene_reference AS b ON a.Ensembl_gene_id = b.gene_id
         '''.format(table_1_vals['count_column'], table_2_vals['count_column'], table_3_vals['count_column'],
                    table_1_vals['file_column'], table_2_vals['file_column'], table_3_vals['file_column'],
                    three_counts_table, gene_table)
