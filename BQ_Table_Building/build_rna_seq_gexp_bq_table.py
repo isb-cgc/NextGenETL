@@ -134,6 +134,7 @@ def table_cleaner(params, file_sets, delete_result):
         count_name, _ = next(iter(file_set.items()))
         dump_tables.append(params['TARGET_TABLE'].format(count_name))
         dump_tables.append(params['COUNTS_WITH_METADATA_TABLE'].format(count_name))
+        dump_tables.append(params['BQ_MANIFEST_TABLE'].format(count_name))
         dump_tables.append(params['BQ_PULL_LIST_TABLE'].format(count_name))
     if delete_result:
         delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'])
