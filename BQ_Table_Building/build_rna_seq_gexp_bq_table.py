@@ -747,17 +747,17 @@ def main(args):
         print(archive_file_prefix)
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
-            pull_file = params['LOCAL_PULL_LIST']
+            pull_file_name = params['LOCAL_PULL_LIST']
             archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix.format(count_name),
-                                                  pull_file.format(count_name))
+                                                  pull_file_name)
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_pull_file,
-                             pull_file.format(count_name))
-            manifest_file = params['MANIFEST_FILE']
+                             local_pull_list)
+            manifest_file_name = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix.format(count_name),
-                                                  manifest_file.format(count_name))
+                                                  manifest_file_name.format(count_name))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                             archive_manifest_file,
                              manifest_file.format(count_name))
