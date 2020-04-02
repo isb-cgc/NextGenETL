@@ -745,22 +745,27 @@ def main(args):
         print('archive files from VM')
         archive_file_prefix = "{}_{}_{}".format(date.today(), params['PUBLICATION_DATASET'],
                                    params['PUBLICATION_TABLE'])
+        print(archive_file_prefix)
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             pull_file = params['LOCAL_PULL_LIST']
             archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix,
                                                   pull_file.format(count_name))
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                             archive_pull_file,
-                             pull_file)
+            print(archive_pull_file)
+            print(pull_file)
+            #upload_to_bucket(params['ARCHIVE_BUCKET'],
+            #                 archive_pull_file,
+            #                 pull_file)
             manifest_file = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix,
                                                   manifest_file.format(count_name))
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                             archive_manifest_file,
-                             manifest_file.format(count_name))
+            print(manifest_file)
+            print(archive_manifest_file)
+            #upload_to_bucket(params['ARCHIVE_BUCKET'],
+            #                archive_manifest_file,
+            #                 manifest_file.format(count_name))
 
     #
     # publish table:
