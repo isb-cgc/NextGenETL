@@ -751,20 +751,16 @@ def main(args):
             archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix.format(count_name),
                                                   pull_file.format(count_name))
-            print(archive_pull_file)
-            print(pull_file)
-            #upload_to_bucket(params['ARCHIVE_BUCKET'],
-            #                 archive_pull_file,
-            #                 pull_file)
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_pull_file,
+                             pull_file)
             manifest_file = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix.format(count_name),
                                                   manifest_file.format(count_name))
-            print(manifest_file)
-            print(archive_manifest_file)
-            #upload_to_bucket(params['ARCHIVE_BUCKET'],
-            #                archive_manifest_file,
-            #                 manifest_file.format(count_name))
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                            archive_manifest_file,
+                             manifest_file.format(count_name))
 
     #
     # publish table:
