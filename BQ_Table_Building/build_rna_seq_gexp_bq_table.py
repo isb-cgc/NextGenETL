@@ -753,7 +753,7 @@ def main(args):
                                                   pull_file.format(count_name))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_pull_file,
-                             pull_file)
+                             pull_file.format(count_name))
             manifest_file = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix.format(count_name),
