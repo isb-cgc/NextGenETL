@@ -31,6 +31,7 @@ import gzip
 from os.path import expanduser
 from json import loads as json_loads
 from createSchemaP3 import build_schema
+from datetime import date
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
@@ -728,6 +729,24 @@ def main(args):
 
     if 'dump_working_tables' in steps:
         table_cleaner(params, file_sets, False)
+
+    #
+    # archive files on VM:
+    #
+
+    if 'archive' in steps:
+
+        print('archive files from VM')
+        archive_file_prefix = "{}_{}_{}_".format(date.today(), params['PUBLICATION_DATASET'],
+                                   params['PUBLICATION_TABLE'])
+        for file_set in file_sets:
+            count_name, count_dict = next(iter(file_set.items()))
+            pull_file = local_pull_list.format(count_name)
+            archive_pull_file = archive_file_prefix + pull_file
+            upload_to_bucket(params['ARCHIVE_BUCKET'], archive_pull_file, pull_file)
+            manifest_file = manifest_file.format(count_name)
+            archive_manifest_file = archive_file_prefix + manifest_file
+            upload_to_bucket(params['ARCHIVE_BUCKET'], archive_manifest_file, manifest_file)
 
     #
     # publish table:
