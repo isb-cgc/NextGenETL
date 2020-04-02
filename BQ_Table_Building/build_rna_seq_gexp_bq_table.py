@@ -747,17 +747,17 @@ def main(args):
                                    params['PUBLICATION_TABLE'])
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
-            pull_file = local_pull_list.format(count_name)
+            pull_file = params['LOCAL_PULL_LIST']
             archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix,
-                                                  pull_file)
+                                                  pull_file.format(count_name))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_pull_file,
                              pull_file)
-            manifest_file = manifest_file.format(count_name)
+            manifest_file = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix,
-                                                  manifest_file)
+                                                  manifest_file.format(count_name))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_manifest_file,
                              manifest_file)
