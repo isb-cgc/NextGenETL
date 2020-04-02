@@ -743,14 +743,13 @@ def main(args):
     if 'archive' in steps:
 
         print('archive files from VM')
-        archive_file_prefix = "{}_{}_{}".format(date.today(), params['PUBLICATION_DATASET'],
-                                   params['PUBLICATION_TABLE'])
+        archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
         print(archive_file_prefix)
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             pull_file = params['LOCAL_PULL_LIST']
             archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix,
+                                                  archive_file_prefix.format(count_name),
                                                   pull_file.format(count_name))
             print(archive_pull_file)
             print(pull_file)
@@ -759,7 +758,7 @@ def main(args):
             #                 pull_file)
             manifest_file = params['MANIFEST_FILE']
             archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix,
+                                                  archive_file_prefix.format(count_name),
                                                   manifest_file.format(count_name))
             print(manifest_file)
             print(archive_manifest_file)
