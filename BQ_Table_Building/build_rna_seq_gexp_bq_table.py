@@ -760,7 +760,7 @@ def main(args):
                                                   manifest_file.format(count_name))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_manifest_file,
-                             manifest_file)
+                             manifest_file.format(count_name))
 
     #
     # publish table:
