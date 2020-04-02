@@ -734,19 +734,33 @@ def main(args):
     # archive files on VM:
     #
 
+    bucket_archive_blob_sets = {}
+    for file_set in file_sets:
+        count_name, _ = next(iter(file_set.items()))
+        bucket_target_blob_sets[count_name] = '{}/{}'.format(params['ARCHIVE_BUCKET_DIR'],
+                                                             params['BUCKET_TSV'].format(count_name))
+
     if 'archive' in steps:
 
         print('archive files from VM')
-        archive_file_prefix = "{}_{}_{}_".format(date.today(), params['PUBLICATION_DATASET'],
+        archive_file_prefix = "{}_{}_{}".format(date.today(), params['PUBLICATION_DATASET'],
                                    params['PUBLICATION_TABLE'])
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             pull_file = local_pull_list.format(count_name)
-            archive_pull_file = archive_file_prefix + pull_file
-            upload_to_bucket(params['ARCHIVE_BUCKET'], archive_pull_file, pull_file)
+            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  pull_file)
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_pull_file,
+                             pull_file)
             manifest_file = manifest_file.format(count_name)
-            archive_manifest_file = archive_file_prefix + manifest_file
-            upload_to_bucket(params['ARCHIVE_BUCKET'], archive_manifest_file, manifest_file)
+            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  manifest_file)
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_manifest_file,
+                             manifest_file)
 
     #
     # publish table:
