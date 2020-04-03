@@ -25,16 +25,19 @@ import shutil
 import os
 import yaml
 import io
+from git import Repo
 import zipfile
 import gzip
 from os.path import expanduser
 from json import loads as json_loads
 from createSchemaP3 import build_schema
+from datetime import date
+import re
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
-                               typing_tups_to_schema_list, generic_bq_harness_write_depo
-
+                               build_combined_schema, generic_bq_harness_write_depo, \
+                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -133,9 +136,10 @@ def table_cleaner(params, file_sets, delete_result):
         count_name, _ = next(iter(file_set.items()))
         dump_tables.append(params['TARGET_TABLE'].format(count_name))
         dump_tables.append(params['COUNTS_WITH_METADATA_TABLE'].format(count_name))
+        dump_tables.append(params['BQ_MANIFEST_TABLE'].format(count_name))
         dump_tables.append(params['BQ_PULL_LIST_TABLE'].format(count_name))
     if delete_result:
-        delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_FINAL_TABLE'])
+        delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'])
 
     for table in dump_tables:
         delete_table_bq_job(params['TARGET_DATASET'], table)
@@ -233,7 +237,12 @@ def glue_counts_and_metadata_sql(step3_table, count_table, sql_dict):
                a.file_gdc_id as {1},
                a.platform,
                a.file_name
-        FROM `{2}` AS a JOIN `{3}` AS b ON a.file_gdc_id = b.source_file_id
+        FROM `{2}` AS a JOIN `{3}` AS b ON a.file_gdc_id = b.source_file_id 
+        WHERE Ensembl_gene_id_v <> "__no_feature" 
+            AND Ensembl_gene_id_v <> "__ambiguous" 
+            AND Ensembl_gene_id_v <> "__too_low_aQual" 
+            AND Ensembl_gene_id_v <> "__not_aligned" 
+            AND Ensembl_gene_id_v <> "__alignment_not_unique"
         '''.format(count_col_name, file_col_name, step3_table, count_table)
 
 '''
@@ -350,14 +359,22 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
     table_2_vals = sql_dict['table_1']
     table_3_vals = sql_dict['table_2']
     
-    return '''                
+    return '''
+        WITH gene_reference AS (
+        SELECT
+            DISTINCT gene_name,
+                    gene_id,
+                    gene_id_v,
+                    gene_type
+        FROM
+            `{7}`)              
         SELECT 
           a.project_short_name,
           a.case_barcode,
           a.sample_barcode,
           a.aliquot_barcode,
           b.gene_name,
-          b.gene_biotype AS gene_type,
+          b.gene_type,
           a.Ensembl_gene_id,
           a.Ensembl_gene_id_v,
           a.{0},
@@ -370,7 +387,7 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
           a.{4},
           a.{5},
           a.platform
-        FROM `{6}` AS a JOIN `{7}` AS b ON a.Ensembl_gene_id = b.gene_id
+        FROM `{6}` AS a JOIN gene_reference AS b ON a.Ensembl_gene_id = b.gene_id
         '''.format(table_1_vals['count_column'], table_2_vals['count_column'], table_3_vals['count_column'],
                    table_1_vals['file_column'], table_2_vals['file_column'], table_3_vals['file_column'],
                    three_counts_table, gene_table)
@@ -493,18 +510,41 @@ def main(args):
                 all_files = traversal_list_file.read().splitlines()
                 concat_all_files(all_files, one_big_tsv.format(count_name), header)
 
-    if 'build_the_schema' in steps:
+
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
             typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
-            for tup in typing_tups:
-                print(tup)
-            hold_schema_list_for_count = hold_schema_list.format(count_name)
-            typing_tups_to_schema_list(typing_tups, hold_schema_list_for_count)
-            #hold_schema_list_for_count = hold_schema_list.format(count_name)
-            #hold_schema_dict_for_count = hold_schema_dict.format(count_name)
-            ## build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
-            #                       typing_tups, hold_schema_list_for_count, hold_schema_dict_for_count)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list.format(count_name), hold_schema_dict.format(count_name))
 
     bucket_target_blob_sets = {}
     for file_set in file_sets:
@@ -650,16 +690,103 @@ def main(args):
 
         success = glue_in_gene_names(three_counts_table, params['GENE_NAMES_TABLE'], 
                                      params['TARGET_DATASET'], 
-                                     params['FINAL_FINAL_TABLE'],
+                                     params['FINAL_TARGET_TABLE'],
                                      True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
             print("glue_gene_names failed")
             return
-            
+
+    #
+    # Update the per-field descriptions:
+    #
+
+    if 'update_field_descriptions' in steps:
+        print('update_field_descriptions')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            schema_dict[entry['name']] = {'description': entry['description']}
+
+        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
+        if not success:
+            print("update_field_descriptions failed")
+            return
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'update_table_description' in steps:
+        print('update_table_description')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        if not success:
+            print("update_table_description failed")
+            return
+
     if 'dump_working_tables' in steps:
         table_cleaner(params, file_sets, False)
-            
+
+    #
+    # archive files on VM:
+    #
+
+    bucket_archive_blob_sets = {}
+    for file_set in file_sets:
+        count_name, _ = next(iter(file_set.items()))
+        bucket_target_blob_sets[count_name] = '{}/{}'.format(params['ARCHIVE_BUCKET_DIR'],
+                                                             params['BUCKET_TSV'].format(count_name))
+
+    if 'archive' in steps:
+
+        print('archive files from VM')
+        archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
+        yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
+        archive_yaml = "{}/{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                            params['ARCHIVE_CONFIG'],
+                                            archive_file_prefix,
+                                            yaml_file.group(1))
+        upload_to_bucket(params['ARCHIVE_BUCKET'],
+                         archive_yaml,
+                         args[1])
+        for file_set in file_sets:
+            count_name, count_dict = next(iter(file_set.items()))
+            pull_file_name = params['LOCAL_PULL_LIST']
+            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  pull_file_name.format(count_name))
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_pull_file,
+                             local_pull_list.format(count_name))
+            manifest_file_name = params['MANIFEST_FILE']
+            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  manifest_file_name.format(count_name))
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                            archive_manifest_file,
+                             manifest_file.format(count_name))
+
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
+            return
+
     print('job completed')
 
 if __name__ == "__main__":
