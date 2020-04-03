@@ -746,8 +746,8 @@ def main(args):
         print('archive files from VM')
         archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
         yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
-        archive_yaml = "{}/{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                            params['ARCHIVE_CONFIG'],
+        archive_yaml = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+#                                            params['ARCHIVE_CONFIG'],
                                             archive_file_prefix,
                                             yaml_file.group(1))
         upload_to_bucket(params['ARCHIVE_BUCKET'],
