@@ -747,7 +747,9 @@ def main(args):
         archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
         yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
         archive_yaml = "{}_{}".format(archive_file_prefix, yaml_file.group(1))
-        print(archive_yaml)
+        upload_to_bucket(params['ARCHIVE_BUCKET'],
+                         args[1],
+                         archive_yaml)
 #        for file_set in file_sets:
 #            count_name, count_dict = next(iter(file_set.items()))
 #            pull_file_name = params['LOCAL_PULL_LIST']
