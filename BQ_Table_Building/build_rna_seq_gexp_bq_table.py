@@ -748,10 +748,10 @@ def main(args):
         yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
         archive_yaml = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                             archive_file_prefix,
-                                            args[1])
+                                            yaml_file.group(1))
         upload_to_bucket(params['ARCHIVE_BUCKET'],
-                         args[1],
-                         archive_yaml)
+                         archive_yaml,
+                         args[1])
 #        for file_set in file_sets:
 #            count_name, count_dict = next(iter(file_set.items()))
 #            pull_file_name = params['LOCAL_PULL_LIST']
