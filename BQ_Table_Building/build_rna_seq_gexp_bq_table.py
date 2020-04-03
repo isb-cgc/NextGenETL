@@ -32,6 +32,7 @@ from os.path import expanduser
 from json import loads as json_loads
 from createSchemaP3 import build_schema
 from datetime import date
+import re
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
@@ -744,9 +745,10 @@ def main(args):
 
         print('archive files from VM')
         archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
-        yaml_file = args[1]
+        yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
         print(yaml_file)
-#        archive_yaml = "{}_{}"format(archive_file_prefix, archive_yaml)
+        archive_yaml = "{}_{}"format(archive_file_prefix, archive_yaml)
+        print(archive_yaml)
 #        for file_set in file_sets:
 #            count_name, count_dict = next(iter(file_set.items()))
 #            pull_file_name = params['LOCAL_PULL_LIST']
