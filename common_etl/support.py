@@ -812,6 +812,7 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
     """
     Upload to Google Bucket
     Large files have to be in a bucket for them to be ingested into Big Query. This does this.
+    This function is also used to archive files.
     """
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(target_tsv_bucket)
