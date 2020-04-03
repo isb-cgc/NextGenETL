@@ -747,9 +747,8 @@ def main(args):
         archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
         yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
         archive_yaml = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-#                                            params['ARCHIVE_CONFIG'],
                                             archive_file_prefix,
-                                            yaml_file.group(1))
+                                            args[1])
         upload_to_bucket(params['ARCHIVE_BUCKET'],
                          args[1],
                          archive_yaml)
@@ -757,14 +756,14 @@ def main(args):
 #            count_name, count_dict = next(iter(file_set.items()))
 #            pull_file_name = params['LOCAL_PULL_LIST']
 #            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-#                                                  archive_file_prefix.format(count_name),
+#                                                  archive_file_prefix,
 #                                                  pull_file_name.format(count_name))
 #            upload_to_bucket(params['ARCHIVE_BUCKET'],
 #                             archive_pull_file,
 #                             local_pull_list.format(count_name))
 #            manifest_file_name = params['MANIFEST_FILE']
 #            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-#                                                  archive_file_prefix.format(count_name),
+#                                                  archive_file_prefix,
 #                                                  manifest_file_name.format(count_name))
 #            upload_to_bucket(params['ARCHIVE_BUCKET'],
 #                            archive_manifest_file,
