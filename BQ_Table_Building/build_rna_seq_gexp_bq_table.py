@@ -744,23 +744,25 @@ def main(args):
 
         print('archive files from VM')
         archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
-        print(archive_file_prefix)
-        for file_set in file_sets:
-            count_name, count_dict = next(iter(file_set.items()))
-            pull_file_name = params['LOCAL_PULL_LIST']
-            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix.format(count_name),
-                                                  pull_file_name.format(count_name))
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                             archive_pull_file,
-                             local_pull_list.format(count_name))
-            manifest_file_name = params['MANIFEST_FILE']
-            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix.format(count_name),
-                                                  manifest_file_name.format(count_name))
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                            archive_manifest_file,
-                             manifest_file.format(count_name))
+        yaml_file = args[1]
+        print(yaml_file)
+#        archive_yaml = "{}_{}"format(archive_file_prefix, archive_yaml)
+#        for file_set in file_sets:
+#            count_name, count_dict = next(iter(file_set.items()))
+#            pull_file_name = params['LOCAL_PULL_LIST']
+#            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+#                                                  archive_file_prefix.format(count_name),
+#                                                  pull_file_name.format(count_name))
+#            upload_to_bucket(params['ARCHIVE_BUCKET'],
+#                             archive_pull_file,
+#                             local_pull_list.format(count_name))
+#            manifest_file_name = params['MANIFEST_FILE']
+#            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+#                                                  archive_file_prefix.format(count_name),
+#                                                  manifest_file_name.format(count_name))
+#            upload_to_bucket(params['ARCHIVE_BUCKET'],
+#                            archive_manifest_file,
+#                             manifest_file.format(count_name))
 
     #
     # publish table:
