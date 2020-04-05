@@ -327,8 +327,8 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     Generates SQL for above function
     """
     return '''
-    SELECT b.file_gdc_url
-    FROM `{0}` as a JOIN `{1}` as b ON a.id = b.file_gdc_id
+    SELECT b.gs_url
+    FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
     '''.format(manifest_table, indexd_table)
 
 
@@ -812,6 +812,7 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
     """
     Upload to Google Bucket
     Large files have to be in a bucket for them to be ingested into Big Query. This does this.
+    This function is also used to archive files.
     """
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(target_tsv_bucket)
