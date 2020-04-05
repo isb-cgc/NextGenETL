@@ -327,6 +327,22 @@ def get_programs_from_bq():
     return program_submitter_dict
 
 
+def get_cases_by_program(program_name):
+    results = get_query_results(
+        """
+        SELECT * 
+        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
+        WHERE submitter_id 
+        IN (SELECT case_barcode
+            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+            WHERE program_name = '{}')
+        """.format(program_name)
+    )
+
+    for row in results:
+        print(row)
+
+
 def get_case_from_bq(case_id):
     results = get_query_results(
         """

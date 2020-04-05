@@ -1182,7 +1182,7 @@ def main(args):
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    map_cde_id_to_field_name('../temp/json_schema_from_gdc_full.json')
+    # map_cde_id_to_field_name('../temp/json_schema_from_gdc_full.json')
 
     # output_clinical_data_stats(api_data_fp, api_params)
 
