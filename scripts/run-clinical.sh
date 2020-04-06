@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 source ~/setEnvVars.sh
 
 export MY_VENV=~/virtualEnvETL
