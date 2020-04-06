@@ -57,13 +57,13 @@ def generate_bq_schema(schema_dict, record_type, nested_fields):
     record_lists_dict = {fg_name:[] for fg_name in field_group_names}
     # add field to correct field grouping list based on full field name
 
-    print(record_lists_dict)
-    return
     for field in schema_dict:
+        print(field)
+        continue
         # record_lists_dict key is equal to the parent field components of full field name
         json_obj_key = '.'.join(field.split('.')[:-1])
         record_lists_dict[json_obj_key].append(schema_dict[field])
-
+    return
     temp_schema_field_dict = {}
 
     while nested_depth >= 1:
