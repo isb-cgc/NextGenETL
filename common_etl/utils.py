@@ -340,7 +340,7 @@ def get_cases_by_program(program_name):
     )
 
     for row in results:
-        print(row.items())
+        print(dict(row.items()))
         return
 
 
