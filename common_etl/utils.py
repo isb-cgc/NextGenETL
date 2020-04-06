@@ -137,14 +137,13 @@ def infer_data_types(flattened_json):
     return data_types
 
 
-def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
+def collect_field_values(field_dict, key, parent_dict, prefix):
     """
     Recursively inserts sets of values for a given field into return dict (used to infer field data type)
     :param field_dict: A dict of key:value pairs -- field_name : set(field_values)
     :param key: field name
     :param parent_dict: dict containing field and it's values
     :param prefix: string representation of current location in field hierarchy
-    :param array_fields: list of fields with array (list) values (that are made up of primitives or strings)
     :return: field_dict containing field names and a set of its values.
     """
     # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
@@ -153,14 +152,10 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
     if isinstance(parent_dict[key], list) and len(parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
-                field_dict, array_list = collect_field_values(
-                    field_dict, dict_key, dict_item, prefix + key + ".", array_fields
-                )
+                field_dict = collect_field_values(field_dict, dict_key, dict_item, prefix + key + ".")
     elif isinstance(parent_dict[key], dict):
         for dict_key in parent_dict[key]:
-            field_dict, array_list = collect_field_values(
-                field_dict, dict_key, parent_dict[key], prefix + key + ".", array_fields
-            )
+            field_dict = collect_field_values(field_dict, dict_key, parent_dict[key], prefix + key + ".")
     else:
         field_name = prefix + key
 
@@ -170,13 +165,12 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
         # This type of list can be converted to a comma-separated value string
         if isinstance(parent_dict[key], list):
             value = ", ".join(parent_dict[key])
-            array_fields.add(field_name)
         else:
             value = parent_dict[key]
 
         field_dict[field_name].add(value)
 
-    return field_dict, array_fields
+    return field_dict
 
 
 def create_mapping_dict(endpoint):

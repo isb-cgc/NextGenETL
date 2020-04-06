@@ -33,75 +33,62 @@ def flatten_case_json(program_name):
 
 def get_field_data_types(cases):
     field_dict = dict()
-    array_fields = set()
 
     for case in cases:
         for key in case:
-            field_dict, array_fields = collect_field_values(field_dict, key, case, 'cases.', array_fields)
+            field_dict = collect_field_values(field_dict, key, case, 'cases.')
 
     field_type_dict = infer_data_types(field_dict)
 
     return field_type_dict
 
 
-def generate_bq_schema(schema_dict, record_type, nested_fields):
-    # add field group names to a list, in order to generate a dict representing nested fields
-    field_group_names = [record_type]
-    nested_depth = 0
+def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+    """
+    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
+    :param field_mapping_dict:
+    :param field_data_type_dict:
+    :return: schema fields object dict
+    """
+    schema_dict = {}
 
-    for nested_field in nested_fields:
-        nested_field_name = record_type + '.' + nested_field
-        nested_depth = max(nested_depth, len(nested_field_name.split('.')))
-        field_group_names.append(nested_field_name)
+    for key in field_data_type_dict:
+        try:
+            column_name = field_mapping_dict[key]['name'].split('.')[-1]
+            description = field_mapping_dict[key]['description']
+        except KeyError:
+            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
+            column_name = key.split(".")[-1]
+            description = ""
 
-    record_lists_dict = {fg_name:[] for fg_name in field_group_names}
-    # add field to correct field grouping list based on full field name
+        if field_data_type_dict[key]:
+            # if script was able to infer a data type using field's values, default to using that type
+            field_type = field_data_type_dict[key]
+        elif key in field_mapping_dict:
+            # otherwise, include type from _mapping endpoint
+            field_type = field_mapping_dict[key]['type']
+        else:
+            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # and no entry for the field exists in mapping
+            print("[INFO] Not adding field {} because no type found".format(key))
+            continue
 
-    for field in schema_dict:
-        print(field)
-        continue
-        # record_lists_dict key is equal to the parent field components of full field name
-        json_obj_key = '.'.join(field.split('.')[:-1])
-        record_lists_dict[json_obj_key].append(schema_dict[field])
-    return
-    temp_schema_field_dict = {}
+        # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
+        # was that I'd set the FieldSchema object's mode to NULLABLE, which I later read is invalid for ARRAY types.
+        # But, that'll mean more unnesting for the users. So for now, I've converted these lists of ids into
+        # comma-delineated strings of ids.
+        # if key in array_fields:
+        #    field_type = "ARRAY<" + field_type + ">"
 
-    while nested_depth >= 1:
-        for field_group_name in record_lists_dict:
-            split_group_name = field_group_name.split('.')
+        # this is the format for bq schema json object entries
+        schema_dict[key] = {
+            "name": column_name,
+            "type": field_type,
+            "description": description
+        }
 
-            # building from max depth inward, to avoid iterating through entire schema object in order to append
-            # child field groupings. Therefore, skip any field groupings at a shallower depth.
-            if len(split_group_name) != nested_depth:
-                continue
+    return schema_dict
 
-            schema_field_sublist = []
-
-            for record in record_lists_dict[field_group_name]:
-                schema_field_sublist.append(
-                    bigquery.SchemaField(record['name'], record['type'], 'NULLABLE', record['description'], ())
-                )
-
-            parent_name = '.'.join(split_group_name[:-1])
-            field_name = split_group_name[-1]
-
-            if field_group_name in temp_schema_field_dict:
-                schema_field_sublist += temp_schema_field_dict[field_group_name]
-
-            if parent_name:
-                if parent_name not in temp_schema_field_dict:
-                    temp_schema_field_dict[parent_name] = list()
-
-                temp_schema_field_dict[parent_name].append(
-                    bigquery.SchemaField(field_name, 'RECORD', 'REPEATED', '', tuple(schema_field_sublist))
-                )
-            else:
-                if nested_depth > 1:
-                    has_fatal_error("Empty parent_name at level {}".format(nested_depth), ValueError)
-                return schema_field_sublist
-
-        nested_depth -= 1
-    return None
 
 
 def create_bq_schema_list(field_data_type_dict, nested_keys):
@@ -175,11 +162,19 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
+    fields = set()
+
+    for case in cases:
+        for key in case:
+            fields.add(key)
+
+    print(fields)
+
     field_data_type_dict = get_field_data_types(cases)
 
-    # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
+    print(field_data_type_dict.keys())
 
-    generate_bq_schema(field_data_type_dict, 'cases', nested_key_set)
+    # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
     return
 
