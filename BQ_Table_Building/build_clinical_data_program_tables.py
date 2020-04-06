@@ -3,7 +3,8 @@ from google.cloud import bigquery
 
 
 def main():
-    cases = get_cases_by_program("ORGANOID")
+    program_name = "ORGANOID"
+    cases = get_cases_by_program(program_name)
 
     for case in cases:
         for key in case.copy():
@@ -48,6 +49,8 @@ def main():
 
     schema_parent_field_list = []
     schema_child_field_list = []
+    ordered_parent_keys = []
+    ordered_child_keys = []
 
     for key in sorted(field_data_type_dict.keys()):
         split_name = key.split('.')
@@ -65,12 +68,39 @@ def main():
 
         if len(split_name) == 2:
             schema_parent_field_list.append(schema_field)
+            ordered_parent_keys.append(".".join(split_name[1:]))
         else:
             schema_child_field_list.append(schema_field)
+            ordered_child_keys.append(".".join(split_name[1:]))
 
     schema_field_list = schema_parent_field_list + schema_child_field_list
-    print(schema_field_list)
+    ordered_keys = ordered_parent_keys + ordered_child_keys
 
+    table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
+    client = bigquery.Client()
+
+    table = bigquery.Table(table_id, schema=schema_field_list)
+    table = client.create_table(table)
+
+    case_tuples = []
+
+    for case in cases:
+        case_vals = []
+        for key in ordered_keys:
+            if key in case:
+                case_vals.append(case[key])
+            else:
+                case_vals.append(None)
+        case_tuples.append(tuple(case_vals))
+
+    print(case_tuples)
+
+    errors = client.insert_rows(table, case_tuples)
+
+    if not errors:
+        print("Rows inserted successfully")
+    else:
+        print(errors)
 
 if __name__ == '__main__':
     main()
