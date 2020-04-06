@@ -100,7 +100,7 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     schema_dict = {}
 
     for key in field_data_type_dict:
-        column_name = field_mapping_dict[key]['name'].split('.')[-1]
+        column_name = "__".join(key.split(".")[1:])
 
         try:
             # column_name = field_mapping_dict[key]['name'].split('.')[-1]
