@@ -101,9 +101,10 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
 
     for key in field_data_type_dict:
         column_name = "__".join(key.split(".")[1:])
+        mapping_key = ".".join(key.split("__"))
 
         try:
-            description = field_mapping_dict[key]['description']
+            description = field_mapping_dict[mapping_key]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
             description = ""
@@ -137,10 +138,6 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
     schema_child_field_list = []
     ordered_parent_keys = []
     ordered_child_keys = []
-
-    print(field_data_type_dict)
-    print(nested_keys)
-    return
 
     for key in sorted(field_data_type_dict.keys()):
         split_name = key.split('.')
