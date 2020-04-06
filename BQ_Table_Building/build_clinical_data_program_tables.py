@@ -56,7 +56,7 @@ def main():
         col_type = field_data_type_dict[key]
 
         if key in mapping_dict:
-            description = mapping_dict[key]
+            description = mapping_dict[key]['description']
         else:
             description = ""
 
