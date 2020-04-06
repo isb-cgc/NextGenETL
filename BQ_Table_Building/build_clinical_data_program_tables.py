@@ -117,9 +117,6 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
     print(nested_keys)
     return
 
-    if "follow_ups" in nested_keys:
-
-
     for key in sorted(field_data_type_dict.keys()):
         split_name = key.split('.')
 
