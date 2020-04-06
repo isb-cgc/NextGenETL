@@ -24,8 +24,15 @@ def main():
             else:
                 count_of_case_keys[key] += 1
 
-    print(count_of_case_keys)
+    total_count = count_of_case_keys[id]
 
+    list_of_partial_null_keys = []
+
+    for key in count_of_case_keys.keys():
+        if count_of_case_keys[key] < total_count:
+            list_of_partial_null_keys.append(key)
+
+    print(list_of_partial_null_keys)
 
 if __name__ == '__main__':
     main()
