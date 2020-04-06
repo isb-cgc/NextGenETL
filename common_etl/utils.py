@@ -120,6 +120,10 @@ def infer_data_types(flattened_json):
             if data_types[column] == 'STRING':
                 break
 
+            if column[-2:] == 'id':
+                data_types[column] = 'STRING'
+                break
+
             val_type = check_value_type(str(value))
 
             if not val_type:
