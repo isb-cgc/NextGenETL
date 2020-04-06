@@ -104,7 +104,6 @@ def generate_bq_schema(schema_dict, record_type, nested_fields):
     return None
 
 
-
 def create_bq_schema_list(field_data_type_dict, nested_keys):
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
@@ -180,7 +179,7 @@ def main():
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
-    generate_bq_schema(field_data_type_dict, 'cases.', nested_key_set)
+    generate_bq_schema(field_data_type_dict, 'cases', nested_key_set)
 
     return
 
