@@ -128,7 +128,7 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             "description": description
         }
 
-    print(schema_dict )
+    print(schema_dict)
 
     return schema_dict
 
@@ -209,7 +209,6 @@ def main():
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
-    print(schema_dict)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
