@@ -81,7 +81,12 @@ def create_bq_schema_list(field_data_type_dict):
     return schema_field_list, ordered_keys
 
 
-def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
+def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys, nested_key_set):
+
+    print(ordered_keys)
+
+    return
+
     table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
     client = bigquery.Client()
 
@@ -116,7 +121,7 @@ def main():
 
     schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
 
-    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
+    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys, nested_key_set)
 
 
 if __name__ == '__main__':
