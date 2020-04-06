@@ -120,6 +120,7 @@ def infer_data_types(flattened_json):
             if data_types[column] == 'STRING':
                 break
 
+            # adding this change because organoid sumbitter_ids look like ints, but they should be str for uniformity
             if column[-2:] == 'id':
                 data_types[column] = 'STRING'
                 break
