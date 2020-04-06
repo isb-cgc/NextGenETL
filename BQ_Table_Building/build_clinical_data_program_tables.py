@@ -26,7 +26,7 @@ def flatten_case_json(program_name):
                 for i in range(len(case[key])):
                     for n_key in case[key][i]:
                         if isinstance(case[key][i][n_key], list):
-                            nested_key_set.add(n_key)
+                            nested_key_set.add(key + "." + n_key)
 
     print(nested_key_set)
 
