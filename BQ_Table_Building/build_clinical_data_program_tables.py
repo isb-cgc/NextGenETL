@@ -98,8 +98,9 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
-    print(cases.keys())
-    return
+    for case in cases:
+        print(case.keys())
+        return
 
     field_data_type_dict = get_field_data_types(cases)
 
