@@ -28,8 +28,6 @@ def flatten_case_json(program_name):
                         if isinstance(case[key][i][n_key], list):
                             nested_key_set.add(key + "." + n_key)
 
-    print(nested_key_set)
-
     return cases, nested_key_set
 
 
@@ -46,6 +44,67 @@ def get_field_data_types(cases):
     return field_type_dict
 
 
+def generate_bq_schema(schema_dict, record_type, nested_fields):
+    # add field group names to a list, in order to generate a dict representing nested fields
+    field_group_names = [record_type]
+    nested_depth = 0
+
+    for nested_field in nested_fields:
+        nested_field_name = record_type + '.' + nested_field
+        nested_depth = max(nested_depth, len(nested_field_name.split('.')))
+        field_group_names.append(nested_field_name)
+
+    record_lists_dict = {fg_name:[] for fg_name in field_group_names}
+    # add field to correct field grouping list based on full field name
+
+    print(record_lists_dict)
+    return
+    for field in schema_dict:
+        # record_lists_dict key is equal to the parent field components of full field name
+        json_obj_key = '.'.join(field.split('.')[:-1])
+        record_lists_dict[json_obj_key].append(schema_dict[field])
+
+    temp_schema_field_dict = {}
+
+    while nested_depth >= 1:
+        for field_group_name in record_lists_dict:
+            split_group_name = field_group_name.split('.')
+
+            # building from max depth inward, to avoid iterating through entire schema object in order to append
+            # child field groupings. Therefore, skip any field groupings at a shallower depth.
+            if len(split_group_name) != nested_depth:
+                continue
+
+            schema_field_sublist = []
+
+            for record in record_lists_dict[field_group_name]:
+                schema_field_sublist.append(
+                    bigquery.SchemaField(record['name'], record['type'], 'NULLABLE', record['description'], ())
+                )
+
+            parent_name = '.'.join(split_group_name[:-1])
+            field_name = split_group_name[-1]
+
+            if field_group_name in temp_schema_field_dict:
+                schema_field_sublist += temp_schema_field_dict[field_group_name]
+
+            if parent_name:
+                if parent_name not in temp_schema_field_dict:
+                    temp_schema_field_dict[parent_name] = list()
+
+                temp_schema_field_dict[parent_name].append(
+                    bigquery.SchemaField(field_name, 'RECORD', 'REPEATED', '', tuple(schema_field_sublist))
+                )
+            else:
+                if nested_depth > 1:
+                    has_fatal_error("Empty parent_name at level {}".format(nested_depth), ValueError)
+                return schema_field_sublist
+
+        nested_depth -= 1
+    return None
+
+
+
 def create_bq_schema_list(field_data_type_dict, nested_keys):
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
@@ -57,6 +116,9 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
     print(field_data_type_dict)
     print(nested_keys)
     return
+
+    if "follow_ups" in nested_keys:
+
 
     for key in sorted(field_data_type_dict.keys()):
         split_name = key.split('.')
@@ -81,8 +143,6 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
 
     schema_field_list = schema_parent_field_list + schema_child_field_list
     ordered_keys = ordered_parent_keys + ordered_child_keys
-
-    print(schema_field_list)
 
     return schema_field_list, ordered_keys
 
@@ -121,7 +181,9 @@ def main():
 
     field_data_type_dict = get_field_data_types(cases)
 
-    schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
+    # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
+
+    generate_bq_schema(field_data_type_dict, 'cases.', nested_key_set)
 
     return
 

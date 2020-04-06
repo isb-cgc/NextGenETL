@@ -208,7 +208,13 @@ def create_bq_schema(api_params, data_fp):
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
     
-    return generate_bq_schema(schema_dict, endpoint_name, api_params['EXPAND_FIELD_GROUPS'])
+    bq_schema = generate_bq_schema(
+        schema_dict,
+        record_type=endpoint_name,
+        expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
+    )
+
+    return bq_schema
 
 
 def validate_params(api_params, bq_params):
