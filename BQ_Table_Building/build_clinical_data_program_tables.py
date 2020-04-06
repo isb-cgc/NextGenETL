@@ -54,6 +54,10 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
     ordered_parent_keys = []
     ordered_child_keys = []
 
+    print(field_data_type_dict)
+    print(nested_keys)
+    return
+
     for key in sorted(field_data_type_dict.keys()):
         split_name = key.split('.')
 
