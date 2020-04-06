@@ -15,7 +15,16 @@ def main():
                     case[key].pop(d_key)
                 case.pop(key)
 
-    print(sorted(cases))
+    count_of_case_keys = dict()
+
+    for case in cases:
+        for key in case:
+            if key not in count_of_case_keys:
+                count_of_case_keys[key] = 1
+            else:
+                count_of_case_keys[key] += 1
+
+    print(count_of_case_keys)
 
 
 if __name__ == '__main__':
