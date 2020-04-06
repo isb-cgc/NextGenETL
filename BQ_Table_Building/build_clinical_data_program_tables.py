@@ -53,11 +53,15 @@ def main():
         split_name = key.split('.')
 
         col_name = "__".join(split_name[1:])
-        type = field_data_type_dict[key]
-        description = mapping_dict[key]
+        col_type = field_data_type_dict[key]
+
+        if key in mapping_dict:
+            description = mapping_dict[key]
+        else:
+            description = ""
 
         # todo: this will only work for non-nested
-        schema_field = bigquery.SchemaField(col_name, type, "NULLABLE", description, ())
+        schema_field = bigquery.SchemaField(col_name, col_type, "NULLABLE", description, ())
 
         if len(split_name) == 2:
             schema_parent_field_list.append(schema_field)
