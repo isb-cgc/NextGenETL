@@ -15,7 +15,7 @@ def flatten_case_json(program_name):
 
                     case[key].pop(d_key)
                 case.pop(key)
-            if isinstance(case[key], list):
+            elif isinstance(case[key], list):
                 nested_key_set.add(case[key])
 
     return cases, nested_key_set
