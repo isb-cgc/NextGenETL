@@ -70,9 +70,6 @@ steps:
   # Get the manifest from the source data node:
   - retrieve_and_output_cases
 
-  # Output stats and information about clinical dataset from API
-  - check_clinical_data
-
   # Get the table schema/description/tags pulled from git:
   - create_bq_schema_obj
 

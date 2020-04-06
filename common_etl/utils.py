@@ -310,17 +310,14 @@ def get_program_from_bq(case_barcode):
 
 
 def get_programs_from_bq():
-    client = bigquery.Client()
-    program_submitter_dict = {}
-
-    program_names_query = """
+    results = get_query_results(
+        """
         SELECT case_barcode, program_name
         FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-    """
+        """
+    )
 
-    query_job = client.query(program_names_query)
-
-    results = query_job.result()
+    program_submitter_dict = {}
 
     for row in results:
         program_name = row.get('program_name')
@@ -328,6 +325,42 @@ def get_programs_from_bq():
         program_submitter_dict[submitter_id] = program_name
 
     return program_submitter_dict
+
+
+def get_cases_by_program(program_name):
+    results = get_query_results(
+        """
+        SELECT * 
+        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
+        WHERE submitter_id 
+        IN (SELECT case_barcode
+            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+            WHERE program_name = '{}')
+        """.format(program_name)
+    )
+
+    for row in results:
+        print(row)
+
+
+def get_case_from_bq(case_id):
+    results = get_query_results(
+        """
+        SELECT *
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        WHERE case_id = '{}'
+        """.format(case_id)
+    )
+
+    for row in results:
+        print(row)
+
+
+def get_query_results(query):
+    client = bigquery.Client()
+
+    query_job = client.query(query)
+    return query_job.result()
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
@@ -384,5 +417,5 @@ def pprint_json(json_obj):
     Pretty prints json objects.
     :param json_obj: json object to pprint
     """
-    pp = pprint.PrettyPrinter(indent=4)
+    pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(json_obj)
