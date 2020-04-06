@@ -150,7 +150,7 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
     # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
     # as seen in second conditional statement), iterate over each list element's dictionary entries.
     # (Sometimes lists are composed of strings rather than dicts, and those are later converted to strings.)
-    if isinstance(parent_dict[key], list) and isinstance(parent_dict[key][0], dict):
+    if isinstance(parent_dict[key], list) and len(parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
                 field_dict, array_list = collect_field_values(
