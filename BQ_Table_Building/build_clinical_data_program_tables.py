@@ -99,8 +99,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     """
     schema_dict = {}
 
-    print(field_data_type_dict)
-
     for key in field_data_type_dict:
 
         try:
@@ -129,6 +127,8 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             "type": field_type,
             "description": description
         }
+
+    print(schema_dict )
 
     return schema_dict
 
