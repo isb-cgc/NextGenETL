@@ -1,4 +1,4 @@
-from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types
+from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict
 
 
 def main():
@@ -44,6 +44,10 @@ def main():
     field_data_type_dict = infer_data_types(field_dict)
 
     print(field_data_type_dict)
+
+    mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
+
+    print(mapping_dict)
 
 
 if __name__ == '__main__':
