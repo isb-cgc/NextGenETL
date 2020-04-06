@@ -99,13 +99,10 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 def main():
     program_name = "HCMI"
 
-    cases = flatten_case_json(program_name)
+    cases, nested_key_list = flatten_case_json(program_name)
+    return
 
     field_data_type_dict = get_field_data_types(cases)
-
-    print(field_data_type_dict)
-    return
-    return
 
     schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
 
