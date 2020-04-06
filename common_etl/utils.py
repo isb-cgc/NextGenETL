@@ -333,6 +333,7 @@ def get_programs_from_bq():
 
 def get_cases_by_program(program_name):
     cases = []
+    nested_key_list = []
     results = get_query_results(
         """
         SELECT * 
@@ -356,11 +357,11 @@ def get_cases_by_program(program_name):
                 if len(case_dict[key]) == 1:
                     case_dict[key] = case_dict[key][0]
                 else:
-                    print("Case has > 1 result for key {}".format(key))
+                    nested_key_list.append(key)
 
         cases.append(case_dict)
 
-    return cases
+    return cases, nested_key_list
 
 
 def get_case_from_bq(case_id):
