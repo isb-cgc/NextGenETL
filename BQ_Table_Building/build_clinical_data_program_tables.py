@@ -98,11 +98,11 @@ def main():
 
     cases = flatten_case_json(program_name)
 
-    for i in range(len(cases) - 1, len(cases)):
-        print(cases[i])
-        return
-
     field_data_type_dict = get_field_data_types(cases)
+
+    print(field_data_type_dict)
+    return
+    return
 
     schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
 
