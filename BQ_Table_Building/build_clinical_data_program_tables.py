@@ -24,7 +24,7 @@ def main():
             else:
                 count_of_case_keys[key] += 1
 
-    total_count = count_of_case_keys[id]
+    total_count = count_of_case_keys['id']
 
     list_of_partial_null_keys = []
 
@@ -33,6 +33,7 @@ def main():
             list_of_partial_null_keys.append(key)
 
     print(list_of_partial_null_keys)
+
 
 if __name__ == '__main__':
     main()
