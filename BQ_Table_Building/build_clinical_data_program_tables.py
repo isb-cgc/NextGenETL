@@ -106,7 +106,7 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             description = field_mapping_dict[key]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
-            column_name = key.split(".")[-1]
+            column_name = "__".join(key.split(".")[1:])
             description = ""
 
         if field_data_type_dict[key]:
