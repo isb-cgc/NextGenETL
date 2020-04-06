@@ -7,7 +7,7 @@ def main():
     for case in cases:
         for key in case.copy():
             if isinstance(case[key], dict):
-                for d_key in case[key]:
+                for d_key in case[key].copy():
                     if case[key][d_key]:
                         flat_key = key + "__" + d_key
                         case[flat_key] = case[key][d_key]
