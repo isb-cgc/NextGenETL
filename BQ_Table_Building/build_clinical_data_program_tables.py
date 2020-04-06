@@ -18,6 +18,15 @@ def flatten_case_json(program_name):
             elif isinstance(case[key], list):
                 nested_key_set.add(key)
 
+    print(nested_key_set)
+
+    for case in cases:
+        for key in case:
+            if isinstance(case[key], list):
+                nested_key_set.add(key)
+
+    print(nested_key_set)
+
     return cases, nested_key_set
 
 
@@ -99,14 +108,6 @@ def main():
     program_name = "HCMI"
 
     cases, nested_key_set = flatten_case_json(program_name)
-
-    for key in cases[-1].keys():
-        if isinstance(cases[-1][key], list):
-            print("{} is a list".format(key))
-        if isinstance(cases[-1][key], dict):
-            print("{} is a dict".format(key))
-
-    return
 
     field_data_type_dict = get_field_data_types(cases)
 
