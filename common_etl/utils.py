@@ -348,10 +348,11 @@ def get_cases_by_program(program_name):
                 case_dict.pop(key)
                 continue
 
-            if isinstance(case_dict[key], list) and len(case_dict[key]) == 1:
-                case_dict[key] = case_dict[key][0]
-            else:
-                print("Case has > 1 result for key {}".format(key))
+            if isinstance(case_dict[key], list): 
+                if len(case_dict[key]) == 1:
+                    case_dict[key] = case_dict[key][0]
+                else:
+                    print("Case has > 1 result for key {}".format(key))
 
         cases.append(case_dict)
 
