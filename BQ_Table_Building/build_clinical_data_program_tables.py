@@ -98,8 +98,9 @@ def main():
 
     cases = flatten_case_json(program_name)
 
-    print(cases)
-    return
+    for case in cases:
+        print(case)
+        return
 
     field_data_type_dict = get_field_data_types(cases)
 
