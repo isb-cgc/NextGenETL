@@ -3,9 +3,9 @@ from google.cloud import bigquery
 
 
 def flatten_case_json(program_name):
-    cases, nested_key_list = get_cases_by_program(program_name)
+    cases, nested_key_set = get_cases_by_program(program_name)
 
-    print(nested_key_list)
+    print(nested_key_set)
     return
 
     for case in cases:
