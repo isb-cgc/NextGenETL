@@ -18,12 +18,14 @@ def flatten_case_json(program_name):
             elif isinstance(case[key], list):
                 nested_key_set.add(key)
 
-    print(nested_key_set)
-
+    # catches child-level nested fields for newly-flattened level
     for case in cases:
         for key in case:
             if isinstance(case[key], list):
                 nested_key_set.add(key)
+                for n_key in case[key]:
+                    if isinstance(case[key][n_key], list):
+                        nested_key_set.add(n_key)
 
     print(nested_key_set)
 
