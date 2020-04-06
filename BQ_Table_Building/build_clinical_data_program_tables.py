@@ -1,4 +1,4 @@
-from common_etl.utils import get_cases_by_program, collect_field_values
+from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types
 
 
 def main():
@@ -41,7 +41,9 @@ def main():
         for key in case:
             field_dict, array_fields = collect_field_values(field_dict, key, case, 'cases.', array_fields)
 
-    print(field_dict)
+    field_data_type_dict = infer_data_types(field_dict)
+
+    print(field_data_type_dict)
 
 
 if __name__ == '__main__':
