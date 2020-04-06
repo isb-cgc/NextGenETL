@@ -1,4 +1,5 @@
 from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict
+from google.cloud import bigquery
 
 
 def main():
@@ -43,11 +44,28 @@ def main():
 
     field_data_type_dict = infer_data_types(field_dict)
 
-    print(field_data_type_dict)
-
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
-    print(mapping_dict)
+    schema_parent_field_list = []
+    schema_child_field_list = []
+
+    for key in sorted(field_data_type_dict.keys()):
+        split_name = key.split('.')
+
+        col_name = "__".join(split_name[1:])
+        type = field_data_type_dict[key]
+        description = mapping_dict[key]
+
+        # todo: this will only work for non-nested
+        schema_field = bigquery.SchemaField(col_name, type, "NULLABLE", description, ())
+
+        if len(split_name) == 2:
+            schema_parent_field_list.append(schema_field)
+        else:
+            schema_child_field_list.append(schema_field)
+
+    schema_field_list = schema_parent_field_list + schema_child_field_list
+    print(schema_field_list)
 
 
 if __name__ == '__main__':
