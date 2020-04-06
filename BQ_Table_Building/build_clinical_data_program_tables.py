@@ -1,4 +1,4 @@
-from common_etl.utils import get_cases_by_program
+from common_etl.utils import get_cases_by_program, collect_field_values
 
 
 def main():
@@ -9,7 +9,7 @@ def main():
             if isinstance(case[key], dict):
                 for d_key in case[key].copy():
                     if case[key][d_key]:
-                        flat_key = key + "__" + d_key
+                        flat_key = key + "." + d_key
                         case[flat_key] = case[key][d_key]
 
                     case[key].pop(d_key)
@@ -32,7 +32,16 @@ def main():
         if count_of_case_keys[key] < total_count:
             list_of_partial_null_keys.append(key)
 
-    print(list_of_partial_null_keys)
+    case_columns = count_of_case_keys.keys()
+
+    field_dict = dict()
+    array_fields = set()
+
+    for case in cases:
+        for key in case:
+            field_dict, array_fields = collect_field_values(field_dict, key, case, 'cases.', array_fields)
+
+    print(field_dict)
 
 
 if __name__ == '__main__':
