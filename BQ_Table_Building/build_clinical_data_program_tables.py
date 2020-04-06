@@ -29,12 +29,6 @@ def get_field_data_types(cases):
         for key in case:
             field_dict, array_fields = collect_field_values(field_dict, key, case, 'cases.', array_fields)
 
-    print(cases[-1].keys())
-
-    for key in cases[-1].keys():
-        if isinstance(cases[-1][key], dict):
-            print("{} is a dict".format(key))
-
     field_type_dict = infer_data_types(field_dict)
 
     return field_type_dict
@@ -106,8 +100,15 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
-    field_data_type_dict = get_field_data_types(cases)
+    for key in cases[-1].keys():
+        if isinstance(cases[-1][key], list):
+            print("{} is a list".format(key))
+        if isinstance(cases[-1][key], dict):
+            print("{} is a dict".format(key))
+
     return
+
+    field_data_type_dict = get_field_data_types(cases)
 
     schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
 
