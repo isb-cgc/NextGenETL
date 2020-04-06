@@ -90,6 +90,45 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     return schema_dict
 
 
+def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+    """
+    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
+    :param field_mapping_dict:
+    :param field_data_type_dict:
+    :return: schema fields object dict
+    """
+    schema_dict = {}
+
+    for key in field_data_type_dict:
+        try:
+            column_name = field_mapping_dict[key]['name'].split('.')[-1]
+            description = field_mapping_dict[key]['description']
+        except KeyError:
+            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
+            column_name = key.split(".")[-1]
+            description = ""
+
+        if field_data_type_dict[key]:
+            # if script was able to infer a data type using field's values, default to using that type
+            field_type = field_data_type_dict[key]
+        elif key in field_mapping_dict:
+            # otherwise, include type from _mapping endpoint
+            field_type = field_mapping_dict[key]['type']
+        else:
+            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # and no entry for the field exists in mapping
+            print("[INFO] Not adding field {} because no type found".format(key))
+            continue
+
+        # this is the format for bq schema json object entries
+        schema_dict[key] = {
+            "name": column_name,
+            "type": field_type,
+            "description": description
+        }
+
+    return schema_dict
+
 
 def create_bq_schema_list(field_data_type_dict, nested_keys):
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
@@ -162,17 +201,12 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
-    fields = set()
-
-    for case in cases:
-        for key in case:
-            fields.add(key)
-
-    print(fields)
-
     field_data_type_dict = get_field_data_types(cases)
 
-    print(field_data_type_dict.keys())
+    mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
+
+    schema_dict = create_field_records_dict(field_data_type_dict, mapping_dict)
+    print(schema_dict)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
