@@ -2,8 +2,7 @@ from common_etl.utils import get_cases_by_program, collect_field_values, infer_d
 from google.cloud import bigquery
 
 
-def main():
-    program_name = "ORGANOID"
+def flatten_case_json(program_name):
     cases = get_cases_by_program(program_name)
 
     for case in cases:
@@ -17,25 +16,10 @@ def main():
                     case[key].pop(d_key)
                 case.pop(key)
 
-    count_of_case_keys = dict()
+    return cases
 
-    for case in cases:
-        for key in case:
-            if key not in count_of_case_keys:
-                count_of_case_keys[key] = 1
-            else:
-                count_of_case_keys[key] += 1
 
-    total_count = count_of_case_keys['id']
-
-    list_of_partial_null_keys = []
-
-    for key in count_of_case_keys.keys():
-        if count_of_case_keys[key] < total_count:
-            list_of_partial_null_keys.append(key)
-
-    case_columns = count_of_case_keys.keys()
-
+def get_field_data_types(cases):
     field_dict = dict()
     array_fields = set()
 
@@ -43,8 +27,10 @@ def main():
         for key in case:
             field_dict, array_fields = collect_field_values(field_dict, key, case, 'cases.', array_fields)
 
-    field_data_type_dict = infer_data_types(field_dict)
+    return infer_data_types(field_dict)
 
+
+def create_bq_schema_list(field_data_type_dict):
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
     schema_parent_field_list = []
@@ -76,6 +62,10 @@ def main():
     schema_field_list = schema_parent_field_list + schema_child_field_list
     ordered_keys = ordered_parent_keys + ordered_child_keys
 
+    return schema_field_list, ordered_keys
+
+
+def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
     table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
     client = bigquery.Client()
 
@@ -101,6 +91,22 @@ def main():
         print("Rows inserted successfully")
     else:
         print(errors)
+
+
+def main():
+    program_name = "HCMI"
+
+    cases = flatten_case_json(program_name)
+
+    print(cases)
+    return
+
+    field_data_type_dict = get_field_data_types(cases)
+
+    schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
+
+    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
+
 
 if __name__ == '__main__':
     main()
