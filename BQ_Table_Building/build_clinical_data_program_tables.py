@@ -207,7 +207,17 @@ def main():
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
 
-    print(nested_key_set)
+    divided_schema_dict = dict()
+
+    for nested_key in nested_key_set:
+        divided_schema_dict[nested_key] = dict()
+
+        long_key = 'cases.' + nested_key
+
+        for field in schema_dict.keys():
+            if field.startswith(long_key):
+                divided_schema_dict[nested_key][field] = schema_dict[field]
+    print(divided_schema_dict)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
