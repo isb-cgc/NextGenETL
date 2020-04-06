@@ -5,9 +5,6 @@ from google.cloud import bigquery
 def flatten_case_json(program_name):
     cases, nested_key_set = get_cases_by_program(program_name)
 
-    print(nested_key_set)
-    return
-
     for case in cases:
         for key in case.copy():
             if isinstance(case[key], dict):
@@ -18,8 +15,10 @@ def flatten_case_json(program_name):
 
                     case[key].pop(d_key)
                 case.pop(key)
+            if isinstance(case[key], list):
+                nested_key_set.add(case[key])
 
-    return cases
+    return cases, nested_key_set
 
 
 def get_field_data_types(cases):
@@ -86,8 +85,6 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
                 case_vals.append(None)
         case_tuples.append(tuple(case_vals))
 
-    print(case_tuples)
-
     errors = client.insert_rows(table, case_tuples)
 
     if not errors:
@@ -99,7 +96,9 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 def main():
     program_name = "HCMI"
 
-    cases, nested_key_list = flatten_case_json(program_name)
+    cases, nested_key_set = flatten_case_json(program_name)
+
+    print(nested_key_set)
     return
 
     field_data_type_dict = get_field_data_types(cases)
