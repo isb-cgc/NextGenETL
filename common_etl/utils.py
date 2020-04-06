@@ -345,6 +345,8 @@ def get_cases_by_program(program_name):
         for key in case_dict.copy():
             if not case_dict[key]:
                 case_dict.pop(key)
+                continue
+
             if isinstance(case_dict[key], list) and len(case_dict[key]) == 1:
                 case_dict[key] = case_dict[key][0]
             else:
