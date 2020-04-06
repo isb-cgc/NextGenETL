@@ -103,7 +103,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
         column_name = "__".join(key.split(".")[1:])
 
         try:
-            # column_name = field_mapping_dict[key]['name'].split('.')[-1]
             description = field_mapping_dict[key]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
@@ -127,8 +126,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             "type": field_type,
             "description": description
         }
-
-    print(schema_dict)
 
     return schema_dict
 
@@ -209,6 +206,8 @@ def main():
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
+
+    print(nested_key_set)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
