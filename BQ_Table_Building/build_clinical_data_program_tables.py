@@ -31,6 +31,10 @@ def get_field_data_types(cases):
 
     print(cases[-1].keys())
 
+    for key in cases[-1].keys():
+        if isinstance(cases[-1][key], dict):
+            print("{} is a dict".format(key))
+
     field_type_dict = infer_data_types(field_dict)
 
     return field_type_dict
