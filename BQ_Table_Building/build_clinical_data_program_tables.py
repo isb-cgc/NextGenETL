@@ -15,7 +15,7 @@ def main():
                     case[key].pop(d_key)
                 case.pop(key)
 
-    print(cases)
+    print(sorted(cases))
 
 
 if __name__ == '__main__':
