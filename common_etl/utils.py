@@ -328,6 +328,7 @@ def get_programs_from_bq():
 
 
 def get_cases_by_program(program_name):
+    cases = []
     results = get_query_results(
         """
         SELECT * 
@@ -352,9 +353,7 @@ def get_cases_by_program(program_name):
             else:
                 print("Case has > 1 result for key {}".format(key))
 
-        print(case_dict)
-
-        return
+        cases.append(case_dict)
 
 
 def get_case_from_bq(case_id):
