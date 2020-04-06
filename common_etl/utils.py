@@ -339,8 +339,15 @@ def get_cases_by_program(program_name):
         """.format(program_name)
     )
 
-    for row in results:
-        print(dict(row.items()))
+    for case_row in results:
+        case_dict = dict(case_row.items())
+
+        for key in case_dict.copy():
+            if not case_dict[key]:
+                case_dict.pop(key)
+
+        print(case_dict)
+
         return
 
 
