@@ -46,7 +46,7 @@ def get_field_data_types(cases):
     return field_type_dict
 
 
-def create_bq_schema_list(field_data_type_dict):
+def create_bq_schema_list(field_data_type_dict, nested_keys):
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
     schema_parent_field_list = []
@@ -78,14 +78,12 @@ def create_bq_schema_list(field_data_type_dict):
     schema_field_list = schema_parent_field_list + schema_child_field_list
     ordered_keys = ordered_parent_keys + ordered_child_keys
 
+    print(schema_field_list)
+
     return schema_field_list, ordered_keys
 
 
-def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys, nested_key_set):
-
-    print(ordered_keys)
-
-    return
+def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
 
     table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
     client = bigquery.Client()
@@ -119,9 +117,11 @@ def main():
 
     field_data_type_dict = get_field_data_types(cases)
 
-    schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict)
+    schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
-    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys, nested_key_set)
+    return
+
+    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
 
 
 if __name__ == '__main__':
