@@ -340,7 +340,8 @@ def get_cases_by_program(program_name):
     )
 
     for row in results:
-        print(row)
+        print(row.items())
+        return
 
 
 def get_case_from_bq(case_id):
