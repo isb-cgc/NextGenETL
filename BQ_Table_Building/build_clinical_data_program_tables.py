@@ -197,14 +197,23 @@ def main():
     no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
     nested keys:
     BEATAML1.0: diagnoses__annotations
-    # todo why did MMRF have follow_ups__molecular_tests in the nested list?
     MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
     OHSU: diagnoses__annotations
     CGCI: diagnoses__treatments
     VAREPOP: family_histories, diagnoses__treatments
     HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
+    TCGA: diagnoses__treatments
+
+    diagnoses__annotations: BEATAML1.0, OHSU
+    diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
+    family_histories: MMRF, VAREPOP
+    follow_ups: MMRF, HCMI
+    follow_ups.molecular_tests: MMRF, HCMI
+
+    todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
-    program_name = "TCGA"
+
+    program_name = "BEATAML1.0"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
@@ -215,10 +224,6 @@ def main():
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
 
     divided_schema_dict = dict()
-
-    print(nested_key_set)
-
-    return
 
     depth_ordered_nested_key_list = []
 
@@ -241,6 +246,9 @@ def main():
                 divided_schema_dict[nested_key][field] = schema_dict.pop(field)
 
     divided_schema_dict["non_nested"] = schema_dict
+
+    print(divided_schema_dict)
+    return
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
