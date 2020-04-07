@@ -206,6 +206,8 @@ def main():
 
     divided_schema_dict = dict()
 
+    print(nested_key_set)
+
     for nested_key in nested_key_set:
         divided_schema_dict[nested_key] = dict()
 
