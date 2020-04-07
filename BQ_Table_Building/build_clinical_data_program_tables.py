@@ -166,8 +166,8 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "TCGA"
-    nested_name = "diagnoses__treatments"
+    program_name = "MMRF"
+    nested_name = "family_histories"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
