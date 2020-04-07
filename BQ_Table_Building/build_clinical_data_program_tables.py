@@ -193,8 +193,14 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def main():
+    """
+    no nested keys: FM
+    nested keys:
+        BEATAML1.0: diagnoses__annotations
+
+    """
     # FM, BEATAML1.0, MMRF, NCICCR, CTSP, ORGANOID, CPTAC, OHSU, WCDT, CGCI, TARGET, VAREPOP, HCMI, GENIE, TCGA
-    program_name = "BEATAML1.0"
+    program_name = "MMRF"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
