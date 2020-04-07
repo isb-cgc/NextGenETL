@@ -193,7 +193,7 @@ def main():
                     for mt_record in record['molecular_tests']:
                         for record_key in mt_record.keys():
                             if mt_record[record_key]:
-                                record_fieldset = record_fieldset.add(record_key)
+                                record_fieldset.add(record_key)
 
     print(program_name)
     for field in sorted(record_fieldset):
