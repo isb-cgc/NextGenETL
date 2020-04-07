@@ -186,7 +186,7 @@ def main():
 
         for case in cases:
             for nested_type in nested_types.copy().keys():
-                if nested_name in case.keys():
+                if nested_type in case.keys():
                     print("True")
                     # for record in case[nested_name]:
                     #     for record_key in record.keys():
