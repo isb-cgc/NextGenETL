@@ -174,6 +174,9 @@ def main():
     program_name = "VAREPOP"
     nested_name = "family_histories"
 
+    flatten_case_json(program_name)
+    return
+
     cases, nested_key_set = flatten_case_json(program_name)
 
     if not cases:
