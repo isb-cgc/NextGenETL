@@ -194,10 +194,8 @@ def main():
         nested_types['follow_ups.molecular_tests'] = 0
 
         for case in cases:
-            if program_name == 'MMRF':
-                print(case.keys())
             if 'follow_ups' in case.keys():
-                print("t1")
+                print(case['follow_ups'].keys())
                 if 'molecular_tests' in case['follow_ups']:
                     print("t2")
                     if case['follow_ups']['molecular_tests']:
