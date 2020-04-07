@@ -198,10 +198,11 @@ def main():
     nested keys:
     BEATAML1.0: diagnoses__annotations
     MMRF: follow_ups, follow_ups__molecular_tests, follow_ups.molecular_tests, family_histories, diagnoses__treatments
+    OHSU: diagnoses__annotations
 
     """
-    # OHSU, WCDT, CGCI, TARGET, VAREPOP, HCMI, GENIE, TCGA
-    program_name = "OHSU"
+    # WCDT, CGCI, TARGET, VAREPOP, HCMI, GENIE, TCGA
+    program_name = "WCDT"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
