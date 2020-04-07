@@ -176,7 +176,7 @@ def main():
     for case in cases:
         for key in case:
             if case[key]:
-                record_fieldset = record_fieldset.add(key)
+                record_fieldset.add(key)
 
     '''
     if nested_name not in nested_key_set:
