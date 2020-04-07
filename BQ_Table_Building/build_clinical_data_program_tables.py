@@ -159,7 +159,7 @@ def main():
     """
 
     program_name = "MMRF"
-    nested_name = "family_histories"
+    nested_name = "follow_ups"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
@@ -167,15 +167,19 @@ def main():
         print("[ERROR] no cases found for program {}".format(program_name))
         return
 
-    family_histories_fieldset = set()
+    record_fieldset = set()
+
+    if nested_name not in nested_key_set:
+        print("{} not nested in program {}".format(nested_name, program_name))
+        return
 
     for case in cases:
-        if 'family_histories' in case.keys():
-            for family_history in case['family_histories']:
-                family_histories_fieldset = family_histories_fieldset | set(family_history.keys())
+        if nested_name in case.keys():
+            for record in case[nested_name]:
+                record_fieldset = record_fieldset | set(record.keys())
 
     print(program_name)
-    for field in sorted(family_histories_fieldset):
+    for field in sorted(record_fieldset):
         print(field)
     return
 
