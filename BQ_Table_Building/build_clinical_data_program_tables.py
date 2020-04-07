@@ -177,7 +177,6 @@ def main():
         print("{} not nested in program {}".format(nested_name, program_name))
         return
 
-    '''
     for case in cases:
         if nested_name in case.keys():
             for record in case[nested_name]:
@@ -194,7 +193,7 @@ def main():
                         for record_key in mt_record.keys():
                             if mt_record[record_key]:
                                 record_fieldset.add(record_key)
-
+    '''
     print(program_name)
     for field in sorted(record_fieldset):
         print(field)
