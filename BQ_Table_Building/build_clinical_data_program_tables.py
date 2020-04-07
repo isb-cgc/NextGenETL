@@ -241,6 +241,8 @@ def main():
 
         long_key = 'cases.' + nested_key
 
+        print(schema_dict)
+
         for field in schema_dict.copy().keys():
             if field.startswith(long_key):
                 divided_schema_dict[nested_key][field] = schema_dict.pop(field)
