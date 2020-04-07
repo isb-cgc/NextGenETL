@@ -166,7 +166,7 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "CGCI"
+    program_name = "VAREPOP"
     nested_name = "diagnoses__treatments"
 
     cases, nested_key_set = flatten_case_json(program_name)
