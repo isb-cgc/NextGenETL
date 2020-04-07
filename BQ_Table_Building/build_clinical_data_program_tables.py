@@ -196,11 +196,12 @@ def main():
     """
     no nested keys: FM
     nested keys:
-        BEATAML1.0: diagnoses__annotations
+    BEATAML1.0: diagnoses__annotations
+    MMRF: follow_ups, follow_ups__molecular_tests, follow_ups.molecular_tests, family_histories, diagnoses__treatments
 
     """
     # FM, BEATAML1.0, MMRF, NCICCR, CTSP, ORGANOID, CPTAC, OHSU, WCDT, CGCI, TARGET, VAREPOP, HCMI, GENIE, TCGA
-    program_name = "MMRF"
+    program_name = "NCICCR"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
