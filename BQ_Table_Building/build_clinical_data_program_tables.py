@@ -174,7 +174,9 @@ def main():
             for family_history in case['family_histories']:
                 family_histories_fieldset = family_histories_fieldset | set(family_history.keys())
 
-    print(family_histories_fieldset)
+    print(program_name)
+    for field in sorted(family_histories_fieldset):
+        print(field)
     return
 
     field_data_type_dict = get_field_data_types(cases)
