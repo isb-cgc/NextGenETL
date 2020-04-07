@@ -163,7 +163,7 @@ def main():
     """
 
     program_name = "MMRF"
-    nested_name = "follow_ups"
+    nested_name = "family_histories"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
