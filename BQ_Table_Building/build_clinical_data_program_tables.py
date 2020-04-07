@@ -213,17 +213,19 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "OSHU"
+    program_name = "OHSU"
 
     cases, nested_key_set = flatten_case_json(program_name)
+
+    if not cases:
+        print("[ERROR] no cases found for program {}".format(program_name))
+        return
 
     field_data_type_dict = get_field_data_types(cases)
 
     mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
-
-    print(field_data_type_dict)
 
     divided_schema_dict = dict()
 
