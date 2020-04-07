@@ -201,9 +201,10 @@ def main():
     OHSU: diagnoses__annotations
     CGCI: diagnoses__treatments
     VAREPOP: family_histories, diagnoses__treatments
+    HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
     """
-    # HCMI, GENIE, TCGA
-    program_name = "HCMI"
+    # GENIE, TCGA
+    program_name = "GENIE"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
