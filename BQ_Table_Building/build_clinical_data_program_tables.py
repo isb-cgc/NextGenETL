@@ -176,7 +176,7 @@ def main():
         return
 
     for case in cases:
-        if 'relationship_type' in case.keys():
+        if 'family_histories__relationship_type' in case.keys():
             for key in sorted(case.keys()):
                 print("{}: {}".format(key, case[key]))
 
