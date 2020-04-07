@@ -184,7 +184,16 @@ def main():
 
         total_cases = len(cases)
 
-        for nested_type in nested_types.copy().keys():
+        for case in cases:
+            for nested_type in nested_types.copy().keys():
+                if nested_name in case.keys():
+                    print("True")
+                    # for record in case[nested_name]:
+                    #     for record_key in record.keys():
+                    #        if record[record_key]:
+                    #            record_fieldset.add(record_key)
+                else:
+                    print("False")
             print(nested_type)
             continue
 
@@ -195,6 +204,8 @@ def main():
                     cases_with_type += 1
 
         nested_types['follow_ups.molecular_tests'] = 0
+
+        cases_fieldset = set()
 
         for case in cases:
             if(
