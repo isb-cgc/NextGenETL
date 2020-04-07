@@ -194,6 +194,8 @@ def main():
         else:
             depth_ordered_nested_key_list.append(nested_key)
 
+    print(schema_dict.keys())
+
     for nested_key in depth_ordered_nested_key_list:
         divided_schema_dict[nested_key] = dict()
 
