@@ -230,11 +230,8 @@ def main():
                 divided_schema_dict[nested_key][field] = schema_dict.pop(field)
 
     divided_schema_dict["non_nested"] = schema_dict
-    print(divided_schema_dict)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
-
-    return
 
     create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
 
