@@ -197,7 +197,8 @@ def main():
     no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET
     nested keys:
     BEATAML1.0: diagnoses__annotations
-    MMRF: follow_ups, follow_ups__molecular_tests, follow_ups.molecular_tests, family_histories, diagnoses__treatments
+    # todo why did MMRF have follow_ups__molecular_tests in the nested list?
+    MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
     OHSU: diagnoses__annotations
     CGCI: diagnoses__treatments
     VAREPOP: family_histories, diagnoses__treatments
