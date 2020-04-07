@@ -177,6 +177,7 @@ def main():
 
     for case in cases:
         if 'family_histories' in case.keys():
+            print(case)
             for history in case['family_histories']:
                 print(history)
                 break
