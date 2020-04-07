@@ -162,7 +162,7 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "HCMI"
+    program_name = "MMRF"
     nested_name = "follow_ups"
 
     cases, nested_key_set = flatten_case_json(program_name)
