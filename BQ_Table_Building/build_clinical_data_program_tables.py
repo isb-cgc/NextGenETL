@@ -174,8 +174,9 @@ def main():
     record_fieldset = set()
 
     for case in cases:
-        record_fieldset = record_fieldset | set(case.keys())
-
+        for key in case:
+            if case[key]:
+                record_fieldset = record_fieldset.add(key)
 
     '''
     if nested_name not in nested_key_set:
