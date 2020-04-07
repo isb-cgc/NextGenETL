@@ -251,7 +251,7 @@ def main():
 
     divided_schema_dict["non_nested"] = schema_dict
 
-    print(divided_schema_dict.keys())
+    print(divided_schema_dict['diagnoses__annotations'].keys())
     return
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
