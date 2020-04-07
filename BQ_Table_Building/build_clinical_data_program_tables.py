@@ -188,7 +188,7 @@ def main():
             cases_with_type = 0
 
             for case in cases:
-                if nested_type in case.keys() and case[nested_type]:
+                if nested_type in case.keys(): # and case[nested_type]:
                     cases_with_type += 1
 
         nested_types['follow_ups.molecular_tests'] = 0
