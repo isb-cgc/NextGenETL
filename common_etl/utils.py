@@ -345,9 +345,6 @@ def get_cases_by_program(program_name):
     for case_row in results:
         case_dict = dict(case_row.items())
 
-        if case_dict['days_to_lost_to_followup']:
-            print(case_dict)
-
         for key in case_dict.copy():
             fieldset.add(key)
             # note fields with values
