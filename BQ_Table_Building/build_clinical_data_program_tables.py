@@ -171,7 +171,8 @@ def main():
 
     for case in cases:
         if 'family_histories' in case.keys():
-            family_histories_fieldset = family_histories_fieldset | set(case['family_histories'].keys())
+            for family_history in case['family_histories']:
+                family_histories_fieldset = family_histories_fieldset | set(family_history.keys())
 
     print(family_histories_fieldset)
     return
