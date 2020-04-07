@@ -171,6 +171,10 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
+    for case in cases:
+        print(case)
+        break
+
     if not cases:
         print("[ERROR] no cases found for program {}".format(program_name))
         return
