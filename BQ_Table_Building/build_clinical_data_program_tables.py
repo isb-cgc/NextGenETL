@@ -7,7 +7,7 @@ def flatten_case_json(program_name):
 
     print("nested:")
     print(nested_key_set)
-    print("nulls:"
+    print("nulls:")
     print(null_fields)
 
     return
