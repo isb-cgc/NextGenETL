@@ -5,7 +5,9 @@ from google.cloud import bigquery
 def flatten_case_json(program_name):
     cases, nested_key_set, null_fields = get_cases_by_program(program_name)
 
+    print("nested:")
     print(nested_key_set)
+    print("nulls:"
     print(null_fields)
 
     return
