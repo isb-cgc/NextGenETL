@@ -223,7 +223,7 @@ def main():
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
 
-    print(schema_dict)
+    print(field_data_type_dict)
 
     divided_schema_dict = dict()
 
