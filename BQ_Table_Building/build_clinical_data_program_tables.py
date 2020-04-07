@@ -150,7 +150,6 @@ def create_bq_schema_list(field_data_type_dict, nested_keys):
         else:
             description = ""
 
-        # todo: this will only work for non-nested
         schema_field = bigquery.SchemaField(col_name, col_type, "NULLABLE", description, ())
 
         if len(split_name) == 2:
@@ -194,7 +193,7 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def main():
-    program_name = "HCMI"
+    program_name = "FM"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
@@ -207,6 +206,8 @@ def main():
     divided_schema_dict = dict()
 
     print(nested_key_set)
+
+    return
 
     depth_ordered_nested_key_list = []
 
