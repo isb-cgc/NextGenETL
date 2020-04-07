@@ -215,8 +215,8 @@ def main():
             if field.startswith(long_key):
                 divided_schema_dict[nested_key][field] = schema_dict.pop(field)
 
-    # print(divided_schema_dict)
-    print(schema_dict)
+    print(divided_schema_dict)
+    # print(schema_dict)
 
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
 
