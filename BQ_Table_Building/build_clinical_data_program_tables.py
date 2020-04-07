@@ -3,7 +3,12 @@ from google.cloud import bigquery
 
 
 def flatten_case_json(program_name):
-    cases, nested_key_set = get_cases_by_program(program_name)
+    cases, nested_key_set, null_fields = get_cases_by_program(program_name)
+
+    print(nested_key_set)
+    print(null_fields)
+
+    return
 
     for case in cases:
         for key in case.copy():

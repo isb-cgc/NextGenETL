@@ -339,23 +339,28 @@ def get_cases_by_program(program_name):
         """.format(program_name)
     )
 
+    non_null_fieldset = set()
+    fieldset = set()
+
     for case_row in results:
         case_dict = dict(case_row.items())
 
         for key in case_dict.copy():
-            if not case_dict[key]:
-                case_dict.pop(key)
-                continue
+            fieldset.add(key)
+            # note fields with values
+            if case_dict[key]:
+                non_null_fieldset.add(key)
 
+            # note nested fields with a reason to be nested
             if isinstance(case_dict[key], list):
-                if len(case_dict[key]) == 1:
-                    case_dict[key] = case_dict[key][0]
-                else:
+                if len(case_dict[key]) > 1:
                     nested_key_set.add(key)
 
         cases.append(case_dict)
 
-    return cases, nested_key_set
+    null_parent_fields = fieldset - non_null_fieldset
+
+    return cases, nested_key_set, null_parent_fields
 
 
 def get_case_from_bq(case_id):
