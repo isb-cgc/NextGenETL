@@ -345,6 +345,9 @@ def get_cases_by_program(program_name):
     for case_row in results:
         case_dict = dict(case_row.items())
 
+        if case_dict['days_to_lost_to_followup']:
+            print(case_dict)
+
         for key in case_dict.copy():
             fieldset.add(key)
             # note fields with values
@@ -353,7 +356,7 @@ def get_cases_by_program(program_name):
 
             # note nested fields with a reason to be nested
             if isinstance(case_dict[key], list):
-                print(case_dict)
+                # print(case_dict)
                 if len(case_dict[key]) > 1:
                     nested_key_set.add(key)
 
