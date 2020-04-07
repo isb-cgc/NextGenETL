@@ -173,15 +173,15 @@ def main():
 
     record_fieldset = set()
 
+    for case in cases:
+        record_fieldset = record_fieldset | set(case.keys())
+
+
+    '''
     if nested_name not in nested_key_set:
         print("{} not nested in program {}".format(nested_name, program_name))
         return
 
-
-    for case in cases:
-        record_fieldset = record_fieldset | set(case.keys())
-
-    '''
     for case in cases:
         if nested_name in case.keys():
             for record in case[nested_name]:
