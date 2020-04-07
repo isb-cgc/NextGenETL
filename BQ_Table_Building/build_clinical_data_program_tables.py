@@ -200,9 +200,9 @@ def main():
                 and case['follow_ups']['molecular_tests']
             ):
                 nested_types['follow_ups.molecular_tests'] += 1
-
         print()
-        print(total_cases)
+        print(program_name)
+        print("total cases: {}".format(total_cases))
         print(nested_types)
         print()
 
