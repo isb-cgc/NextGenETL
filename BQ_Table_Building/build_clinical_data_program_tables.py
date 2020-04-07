@@ -172,7 +172,8 @@ def main():
     cases, nested_key_set = flatten_case_json(program_name)
 
     for case in cases:
-        print(case)
+        for key in sorted(case.keys()):
+            print("{}: {}".format(key, case[key]))
         break
 
     if not cases:
