@@ -209,7 +209,7 @@ def main():
     for nested_key in nested_key_set:
         divided_schema_dict[nested_key] = dict()
 
-        long_key = 'cases.' + nested_key
+        long_key = 'cases.' + ".".join(nested_key.split("__"))
 
         for field in schema_dict.keys():
             if field.startswith(long_key):
