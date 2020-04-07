@@ -213,8 +213,7 @@ def main():
 
         for field in schema_dict.keys():
             if field.startswith(long_key):
-                divided_schema_dict[nested_key][field] = schema_dict[field]
-                schema_dict.pop(field)
+                divided_schema_dict[nested_key][field] = schema_dict.pop(field)
 
     # print(divided_schema_dict)
     print(schema_dict)
