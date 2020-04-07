@@ -353,6 +353,7 @@ def get_cases_by_program(program_name):
 
             # note nested fields with a reason to be nested
             if isinstance(case_dict[key], list):
+                print(case_dict)
                 if len(case_dict[key]) > 1:
                     nested_key_set.add(key)
 
