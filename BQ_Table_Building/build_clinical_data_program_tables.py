@@ -162,21 +162,49 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "HCMI"
-    nested_name = "family_histories"
+    program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
+                    'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
-    cases, nested_key_set = flatten_case_json(program_name)
+    nested_types = {
+        "family_histories": 0,
+        'diagnoses__annotations': 0,
+        'diagnoses__treatments': 0,
+        'follow_ups': 0
+    }
 
-    if not cases:
-        print("[ERROR] no cases found for program {}".format(program_name))
-        return
+    for program_name in program_list:
+        cases, nested_key_set = flatten_case_json(program_name)
 
-    record_fieldset = set()
+        if not cases:
+            print("[ERROR] no cases found for program {}".format(program_name))
+            return
 
-    for case in cases:
-        for key in case:
-            if case[key]:
-                record_fieldset.add(key)
+        record_fieldset = set()
+
+        total_cases = len(cases)
+
+        for nested_type in nested_types:
+            cases_with_type = 0
+
+            for case in cases:
+                if nested_type in case and case[nested_type]:
+                    cases_with_type += 1
+
+        nested_types['follow_ups.molecular_tests'] = 0
+
+        for case in cases:
+            if(
+                'follow_ups' in case
+                and case['follow_ups']
+                and 'molecular_tests' in case['follow_ups']
+                and case['follow_ups']['molecular_tests']
+            ):
+                nested_types['follow_ups.molecular_tests'] += 1
+
+        print()
+        print(total_cases)
+        print(nested_types)
+        print()
 
     '''
     if nested_name not in nested_key_set:
