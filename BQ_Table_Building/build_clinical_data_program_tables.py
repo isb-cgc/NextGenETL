@@ -223,6 +223,8 @@ def main():
 
     schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
 
+    print(schema_dict)
+
     divided_schema_dict = dict()
 
     depth_ordered_nested_key_list = []
@@ -240,8 +242,6 @@ def main():
         divided_schema_dict[nested_key] = dict()
 
         long_key = 'cases.' + nested_key
-
-        print(schema_dict)
 
         for field in schema_dict.copy().keys():
             if field.startswith(long_key):
