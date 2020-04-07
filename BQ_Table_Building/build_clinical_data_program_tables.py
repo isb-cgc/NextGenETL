@@ -252,6 +252,7 @@ def main():
 
     divided_schema_dict["non_nested"] = schema_dict
 
+    print(program_name)
     for key in sorted(divided_schema_dict[nested_name].keys()):
         child_key = key.split(".")[-1]
         print(child_key)
