@@ -53,53 +53,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     schema_dict = {}
 
     for key in field_data_type_dict:
-        try:
-            column_name = field_mapping_dict[key]['name'].split('.')[-1]
-            description = field_mapping_dict[key]['description']
-        except KeyError:
-            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
-            column_name = key.split(".")[-1]
-            description = ""
-
-        if field_data_type_dict[key]:
-            # if script was able to infer a data type using field's values, default to using that type
-            field_type = field_data_type_dict[key]
-        elif key in field_mapping_dict:
-            # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
-        else:
-            # this happens in the case where a field was added to the cases endpoint with only null values,
-            # and no entry for the field exists in mapping
-            # print("[INFO] Not adding field {} because no type found".format(key))
-            continue
-
-        # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
-        # was that I'd set the FieldSchema object's mode to NULLABLE, which I later read is invalid for ARRAY types.
-        # But, that'll mean more unnesting for the users. So for now, I've converted these lists of ids into
-        # comma-delineated strings of ids.
-        # if key in array_fields:
-        #    field_type = "ARRAY<" + field_type + ">"
-
-        # this is the format for bq schema json object entries
-        schema_dict[key] = {
-            "name": column_name,
-            "type": field_type,
-            "description": description
-        }
-
-    return schema_dict
-
-
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
-    """
-    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
-    :param field_mapping_dict:
-    :param field_data_type_dict:
-    :return: schema fields object dict
-    """
-    schema_dict = {}
-
-    for key in field_data_type_dict:
         column_name = "__".join(key.split(".")[1:])
         mapping_key = ".".join(key.split("__"))
 
@@ -213,8 +166,8 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "BEATAML1.0"
-    nested_name = "diagnoses__annotations"
+    program_name = "MMRF"
+    nested_name = "diagnoses__treatments"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
