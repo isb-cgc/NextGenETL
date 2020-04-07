@@ -171,14 +171,14 @@ def main():
 
     cases, nested_key_set = flatten_case_json(program_name)
 
-    for case in cases:
-        for key in sorted(case.keys()):
-            print("{}: {}".format(key, case[key]))
-        break
-
     if not cases:
         print("[ERROR] no cases found for program {}".format(program_name))
         return
+
+    for case in cases:
+        if 'relationship_type' in case.keys():
+            for key in sorted(case.keys()):
+                print("{}: {}".format(key, case[key]))
 
     field_data_type_dict = get_field_data_types(cases)
 
@@ -198,8 +198,6 @@ def main():
             depth_ordered_nested_key_list.insert(0, nested_key)
         else:
             depth_ordered_nested_key_list.append(nested_key)
-
-    print(schema_dict.keys())
 
     for nested_key in depth_ordered_nested_key_list:
         divided_schema_dict[nested_key] = dict()
