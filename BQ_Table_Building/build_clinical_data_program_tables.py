@@ -167,16 +167,14 @@ def main():
         print("[ERROR] no cases found for program {}".format(program_name))
         return
 
-    for case in cases:
-        print(case)
-    return
+    family_histories_fieldset = set()
 
     for case in cases:
         if 'family_histories' in case.keys():
-            print(case)
-            for history in case['family_histories']:
-                print(history)
-                break
+            family_histories_fieldset = family_histories_fieldset | set(case.keys())
+
+    print(family_histories_fieldset)
+    return
 
     field_data_type_dict = get_field_data_types(cases)
 
