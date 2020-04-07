@@ -194,9 +194,13 @@ def main():
         nested_types['follow_ups.molecular_tests'] = 0
 
         for case in cases:
-            if 'follow_ups' in case.keys() and case['follow_ups']:
-                if 'molecular_tests' in case['follow_ups'] and case['follow_ups']['molecular_tests']:
-                    nested_types['follow_ups.molecular_tests'] += 1
+            if 'follow_ups' in case.keys():
+                print("t1")
+                if 'molecular_tests' in case['follow_ups']:
+                    print("t2")
+                    if case['follow_ups']['molecular_tests']:
+                        print("t3")
+                        nested_types['follow_ups.molecular_tests'] += 1
 
         print()
         print(program_name)
