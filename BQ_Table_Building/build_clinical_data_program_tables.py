@@ -166,14 +166,16 @@ def main():
 
     program_list = ['MMRF', 'CGCI', 'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
-    nested_types = {
-        "family_histories": 0,
-        'diagnoses__annotations': 0,
-        'diagnoses__treatments': 0,
-        'follow_ups': 0
-    }
 
     for program_name in program_list:
+
+        nested_types = {
+            "family_histories": 0,
+            'diagnoses__annotations': 0,
+            'diagnoses__treatments': 0,
+            'follow_ups': 0
+        }
+
         cases, nested_key_set = flatten_case_json(program_name)
 
         if not cases:
@@ -186,26 +188,10 @@ def main():
 
         for case in cases:
             for nested_type in nested_types.copy().keys():
-                if nested_type in case.keys():
-                    print("True")
-                    # for record in case[nested_name]:
-                    #     for record_key in record.keys():
-                    #        if record[record_key]:
-                    #            record_fieldset.add(record_key)
-                else:
-                    print("False")
-            print(nested_type)
-            continue
-
-            cases_with_type = 0
-
-            for case in cases:
-                if nested_type in case.keys(): # and case[nested_type]:
-                    cases_with_type += 1
+                if nested_type in case.keys() and case[nested_type]:
+                    nested_types[nested_type] += 1
 
         nested_types['follow_ups.molecular_tests'] = 0
-
-        cases_fieldset = set()
 
         for case in cases:
             if(
