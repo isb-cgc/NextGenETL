@@ -167,10 +167,10 @@ def main():
     program_list = ['MMRF', 'CGCI', 'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
     nested_types = {
-        "cases.family_histories": 0,
-        'cases.diagnoses__annotations': 0,
-        'cases.diagnoses__treatments': 0,
-        'cases.follow_ups': 0
+        "family_histories": 0,
+        'diagnoses__annotations': 0,
+        'diagnoses__treatments': 0,
+        'follow_ups': 0
     }
 
     for program_name in program_list:
@@ -184,16 +184,10 @@ def main():
 
         total_cases = len(cases)
 
-        for case in cases:
-            print(case.keys())
-            return
-
         for nested_type in nested_types.copy().keys():
             cases_with_type = 0
 
             for case in cases:
-                print(case.keys())
-
                 if nested_type in case.keys() and case[nested_type]:
                     cases_with_type += 1
 
@@ -201,17 +195,14 @@ def main():
 
         for case in cases:
             if(
-                'follow_ups' in case
+                'follow_ups' in case.keys()
                 and case['follow_ups']
                 and 'molecular_tests' in case['follow_ups']
                 and case['follow_ups']['molecular_tests']
             ):
-                nested_types['cases.follow_ups.molecular_tests'] += 1
+                nested_types['follow_ups.molecular_tests'] += 1
         print()
         print(program_name)
-
-        print(case)
-
         print("total cases: {}".format(total_cases))
         print(nested_types)
         print()
