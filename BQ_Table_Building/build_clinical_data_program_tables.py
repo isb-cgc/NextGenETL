@@ -184,11 +184,17 @@ def main():
 
         total_cases = len(cases)
 
+        for case in cases:
+            print(case.keys())
+            return
+
         for nested_type in nested_types.copy().keys():
             cases_with_type = 0
 
             for case in cases:
-                if nested_type in case and case[nested_type]:
+                print(case.keys())
+
+                if nested_type in case.keys() and case[nested_type]:
                     cases_with_type += 1
 
         nested_types['follow_ups.molecular_tests'] = 0
@@ -203,6 +209,9 @@ def main():
                 nested_types['cases.follow_ups.molecular_tests'] += 1
         print()
         print(program_name)
+
+        print(case)
+
         print("total cases: {}".format(total_cases))
         print(nested_types)
         print()
