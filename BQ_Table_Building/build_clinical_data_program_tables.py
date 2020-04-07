@@ -5,35 +5,20 @@ from google.cloud import bigquery
 def flatten_case_json(program_name):
     cases, nested_key_set, null_fields = get_cases_by_program(program_name)
 
-    print("nested:")
-    print(nested_key_set)
-    print("nulls:")
-    print(null_fields)
-
-    return
-
     for case in cases:
         for key in case.copy():
-            if isinstance(case[key], dict):
-                for d_key in case[key].copy():
-                    if case[key][d_key]:
-                        flat_key = key + "__" + d_key
-                        case[flat_key] = case[key][d_key]
-
-                    case[key].pop(d_key)
+            if key in null_fields:
                 case.pop(key)
+                continue
+            elif key in nested_key_set:
+                continue
             elif isinstance(case[key], list):
-                nested_key_set.add(key)
+                nested_field_group = case.pop(key)
+                nested_field_group = nested_field_group[0]
 
-    # catches child-level nested fields for newly-flattened level
-    for case in cases:
-        for key in case:
-            if isinstance(case[key], list):
-                nested_key_set.add(key)
-                for i in range(len(case[key])):
-                    for n_key in case[key][i]:
-                        if isinstance(case[key][i][n_key], list):
-                            nested_key_set.add(key + "." + n_key)
+                for n_key in nested_field_group:
+                    flat_key = key + "__" + n_key
+                    case[flat_key] = nested_field_group[n_key]
 
     return cases, nested_key_set
 
@@ -176,14 +161,15 @@ def main():
     program_name = "VAREPOP"
     nested_name = "family_histories"
 
-    flatten_case_json(program_name)
-    return
-
     cases, nested_key_set = flatten_case_json(program_name)
 
     if not cases:
         print("[ERROR] no cases found for program {}".format(program_name))
         return
+
+    for case in cases:
+        print(case)
+    return
 
     for case in cases:
         if 'family_histories' in case.keys():
