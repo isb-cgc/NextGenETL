@@ -177,8 +177,8 @@ def main():
 
     for case in cases:
         if 'family_histories' in case.keys():
-            for key in sorted(case['family_histories'].keys()):
-                print("{}: {}".format(key, case[key]))
+            for key in sorted(case['family_histories']):
+                print("{}".format(key))
 
     field_data_type_dict = get_field_data_types(cases)
 
