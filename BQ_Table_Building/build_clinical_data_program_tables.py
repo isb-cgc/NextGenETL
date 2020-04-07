@@ -208,7 +208,18 @@ def main():
 
     print(nested_key_set)
 
+    depth_ordered_nested_key_list = []
+
     for nested_key in nested_key_set:
+        split_key = nested_key.split('.')
+        if len(split_key) > 2:
+            print("[ERROR] One of the nested keys has a depth > 2, is there a 3rd degree of nesting?")
+        elif len(split_key) == 2:
+            depth_ordered_nested_key_list.insert(0, nested_key)
+        else:
+            depth_ordered_nested_key_list.append(nested_key)
+
+    for nested_key in depth_ordered_nested_key_list:
         divided_schema_dict[nested_key] = dict()
 
         long_key = 'cases.' + nested_key
