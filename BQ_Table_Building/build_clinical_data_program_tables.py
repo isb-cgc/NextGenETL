@@ -185,6 +185,9 @@ def main():
         total_cases = len(cases)
 
         for nested_type in nested_types.copy().keys():
+            print(nested_type)
+            continue
+
             cases_with_type = 0
 
             for case in cases:
