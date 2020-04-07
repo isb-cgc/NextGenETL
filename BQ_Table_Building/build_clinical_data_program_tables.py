@@ -194,7 +194,7 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 def main():
     """
-    no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET
+    no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
     nested keys:
     BEATAML1.0: diagnoses__annotations
     # todo why did MMRF have follow_ups__molecular_tests in the nested list?
@@ -204,8 +204,7 @@ def main():
     VAREPOP: family_histories, diagnoses__treatments
     HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
     """
-    # GENIE, TCGA
-    program_name = "GENIE"
+    program_name = "TCGA"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
