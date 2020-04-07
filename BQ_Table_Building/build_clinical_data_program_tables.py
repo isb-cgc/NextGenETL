@@ -14,6 +14,10 @@ def flatten_case_json(program_name):
                 continue
             elif isinstance(case[key], list):
                 nested_field_group = case.pop(key)
+
+                if not nested_field_group:
+                    continue
+
                 nested_field_group = nested_field_group[0]
 
                 for n_key in nested_field_group:
