@@ -180,7 +180,9 @@ def main():
     for case in cases:
         if nested_name in case.keys():
             for record in case[nested_name]:
-                record_fieldset = record_fieldset | set(record.keys())
+                for record_key in record.keys():
+                    if record[record_key]:
+                        record_fieldset = record_fieldset | set(record.keys())
 
     print(program_name)
     for field in sorted(record_fieldset):
