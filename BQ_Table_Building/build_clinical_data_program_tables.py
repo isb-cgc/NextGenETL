@@ -68,9 +68,9 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
             # otherwise, include type from _mapping endpoint
             field_type = field_mapping_dict[key]['type']
         else:
-            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # this happens in the case where a field was added to the cases endpoint with only null values,
             # and no entry for the field exists in mapping
-            print("[INFO] Not adding field {} because no type found".format(key))
+            # print("[INFO] Not adding field {} because no type found".format(key))
             continue
 
         # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
@@ -213,7 +213,8 @@ def main():
     todo: why did MMRF have follow_ups__molecular_tests in the nested list?
     """
 
-    program_name = "OHSU"
+    program_name = "BEATAML1.0"
+    nested_name = "diagnoses__annotations"
 
     cases, nested_key_set = flatten_case_json(program_name)
 
@@ -251,12 +252,12 @@ def main():
 
     divided_schema_dict["non_nested"] = schema_dict
 
-    for key in sorted(divided_schema_dict['diagnoses__annotations'].keys()):
+    for key in sorted(divided_schema_dict[nested_name].keys()):
         child_key = key.split(".")[-1]
         print(child_key)
     print()
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
-
+    return
     create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
 
 
