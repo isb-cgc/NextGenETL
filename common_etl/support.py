@@ -1259,7 +1259,6 @@ def customize_labels_and_desc(file_tag, tag_map_list):
 Take the labels and description of a BQ table and get them installed
 '''
 
-
 def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
     try:
@@ -1332,17 +1331,43 @@ def generate_dataset_desc_file(dict_file, file_tag):
 Take the description of a BQ dataset and get it installed
 '''
 
-
-def install_dataset_desc(dataset_id, file_tag):
+def install_dataset_desc(dataset_id, file_tag, project=None):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
 
-        client = bigquery.Client()
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
         dataset = client.get_dataset(dataset_id)  # Make an API request.
         dataset.description = desc
         client.update_dataset(dataset, ["description"])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+
+'''
+----------------------------------------------------------------------------------------------
+Create a new BQ dataset
+'''
+
+def create_bq_dataset(dataset_id, file_tag, project=None):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+
+        full_dataset_id = "{}.{}".format(client.project, dataset_id)
+
+        dataset = bigquery.Dataset(full_dataset_id)
+        dataset.location = "US"
+        dataset.description = desc
+        client.create_dataset(dataset)
 
     except Exception as ex:
         print(ex)
