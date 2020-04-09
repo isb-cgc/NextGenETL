@@ -27,12 +27,14 @@ sudo apt-get install -y	git
 sudo apt-get install -y python-pip
 
 #
-# We want venv:
+# We want venv. Used to be (pre-Feb 2020) that the second pair of lines did what
+# was needed. But not anymore. Gotta use the apt-get approach.
 #
 
+sudo apt-get install -y python-virtualenv
 
-pip install virtualenv
-sudo /usr/bin/easy_install virtualenv
+#pip install virtualenv
+#sudo /usr/bin/easy_install virtualenv
 
 cd ~
 virtualenv pyVenvForTwo
