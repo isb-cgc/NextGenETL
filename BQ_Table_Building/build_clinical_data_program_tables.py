@@ -193,7 +193,7 @@ def main():
                                 if not m_key:
                                     case.pop(m_key)
 
-             print(case)
+            print(case)
 
         return
 
