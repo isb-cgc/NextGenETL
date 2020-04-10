@@ -179,7 +179,11 @@ def main():
 
         cases, nested_key_set = flatten_case_json(program_name)
 
-        for case in cases:
+        for i in range(len(cases) - 1, len(cases)):
+            case = cases[i]
+            for key in case.copy():
+                if not key:
+                    case.pop(key)
             print(case)
 
         return
