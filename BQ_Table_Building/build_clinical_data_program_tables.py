@@ -184,7 +184,16 @@ def main():
             for key in case.copy():
                 if not key:
                     case.pop(key)
-            print(case)
+                if 'follow_ups' in case.copy().keys():
+                    for f_key in case['follow_ups']:
+                        if not f_key:
+                            case.pop(f_key)
+                        if 'molecular_tests' in case['follow_ups']:
+                            for m_key in case['follow_ups']['molecular_tests']:
+                                if not m_key:
+                                    case.pop(m_key)
+
+             print(case)
 
         return
 
