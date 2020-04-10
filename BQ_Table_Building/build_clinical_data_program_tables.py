@@ -164,8 +164,9 @@ def main():
     # program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
     #                'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
-    program_list = ['MMRF', 'CGCI', 'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
+    # program_list = ['MMRF', 'CGCI', 'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
+    program_list = ['MMRF']
 
     for program_name in program_list:
 
@@ -177,6 +178,11 @@ def main():
         }
 
         cases, nested_key_set = flatten_case_json(program_name)
+
+        for case in cases:
+            print(case)
+
+        return
 
         if not cases:
             print("[ERROR] no cases found for program {}".format(program_name))
