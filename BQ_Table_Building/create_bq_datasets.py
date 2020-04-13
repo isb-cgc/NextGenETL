@@ -20,7 +20,7 @@ import sys
 import yaml
 import io
 from git import Repo
-from common_etl.support import create_clean_target, generate_dataset_desc_file, install_dataset_desc
+from common_etl.support import create_clean_target, generate_dataset_desc_file, create_bq_dataset
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -80,11 +80,11 @@ def main(args):
             print("pull_dataset_info_from_git failed: {}".format(str(ex)))
             return
 
-    for mydict in params['FIX_LIST']:
+    for mydict in params['CREATE_LIST']:
 
         dataset, repo_file = next(iter(mydict.items()))
 
-        if 'process_git_schemas' in steps:
+        if 'process_git_schema' in steps:
             print('process_git_schemas: {}'.format(dataset))
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], repo_file)
@@ -99,13 +99,13 @@ def main(args):
         # Add description and labels to the target table:
         #
 
-        if 'update_dataset_descriptions' in steps:
-            print('update_dataset_descriptions: {}'.format(dataset))
+        if 'create_dataset' in steps:
+            print('create_dataset: {}'.format(dataset))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], dataset)
             full_dataset_id = "{}.{}".format(params['TARGET_PROJECT'], dataset)
-            success = install_dataset_desc(full_dataset_id, full_file_prefix)
+            create_bq_dataset(dataset, full_file_prefix, project=params['TARGET_PROJECT'])
             if not success:
-                print("update_dataset_descriptions failed")
+                print("create_dataset failed")
                 return
 
         print('job completed')
