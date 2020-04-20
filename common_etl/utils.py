@@ -34,7 +34,7 @@ def has_fatal_error(e, exception=None):
     error_output = ''
     if isinstance(e, list):
         for item in e:
-            error_output += err_ + item
+            error_output += err_ + str(item)
     else:
         error_output = err_ + e
 
