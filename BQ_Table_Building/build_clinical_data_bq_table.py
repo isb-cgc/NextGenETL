@@ -205,7 +205,7 @@ def create_bq_schema(api_params, data_fp):
         record_type=endpoint_name,
         expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
     )
-
+    print(bq_schema)
     return bq_schema
 
 
