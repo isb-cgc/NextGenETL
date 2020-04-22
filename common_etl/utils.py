@@ -34,7 +34,7 @@ def has_fatal_error(e, exception=None):
     error_output = ''
     if isinstance(e, list):
         for item in e:
-            error_output += err_ + str(item) + '/n'
+            error_output += err_ + str(item) + '\n'
     else:
         error_output = err_ + e
 
@@ -78,6 +78,7 @@ def check_value_type(value):
     """
     # if has leading zero, then should be considered a string, even if only composed of digits
     val_is_none = value == '' or value == 'NA' or value == 'null' or value is None or value == 'None'
+    val_is_bool = isinstance(value, bool)
     val_is_decimal = value.startswith('0.')
     val_is_id = value.startswith('0') and not val_is_decimal and len(value) > 1
 
@@ -102,6 +103,8 @@ def check_value_type(value):
         return 'FLOAT'
     elif val_is_num:
         return 'INTEGER'
+    elif val_is_bool:
+        return 'BOOLEAN'
 
     return 'STRING'
 
