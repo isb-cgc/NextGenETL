@@ -196,7 +196,7 @@ def create_bq_schema(api_params, data_fp):
                     key_set.add(json_case_obj[key])
                 field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
 
-        print key_set
+        print(key_set)
 
     field_data_type_dict = infer_data_types(field_dict)
 
