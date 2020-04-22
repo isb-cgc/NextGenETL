@@ -135,7 +135,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
         upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
 
-def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields):
+def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     """
     Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
     :param field_mapping_dict:
@@ -165,13 +165,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fi
             print("[INFO] Not adding field {} because no type found".format(key))
             continue
 
-        # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
-        # was that I'd set the FieldSchema object's mode to NULLABLE, which I later read is invalid for ARRAY types.
-        # But, that'll mean more unnesting for the users. So for now, I've converted these lists of ids into
-        # comma-delineated strings of ids.
-        # if key in array_fields:
-        #    field_type = "ARRAY<" + field_type + ">"
-
         # this is the format for bq schema json object entries
         schema_dict[key] = {
             "name": column_name,
@@ -194,21 +187,26 @@ def create_bq_schema(api_params, data_fp):
 
     with open(data_fp, 'r') as data_file:
         field_dict = dict()
-        array_fields = set()
 
         for line in data_file:
             json_case_obj = json.loads(line)
             for key in json_case_obj:
-                field_dict, array_fields = collect_field_values(field_dict, key, json_case_obj, 'cases.', array_fields)
+                field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
 
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
-    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields)
+    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
     
-    return generate_bq_schema(schema_dict, endpoint_name, api_params['EXPAND_FIELD_GROUPS'])
+    bq_schema = generate_bq_schema(
+        schema_dict,
+        record_type=endpoint_name,
+        expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
+    )
+    print(bq_schema)
+    return bq_schema
 
 
 def validate_params(api_params, bq_params):

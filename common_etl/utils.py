@@ -34,7 +34,7 @@ def has_fatal_error(e, exception=None):
     error_output = ''
     if isinstance(e, list):
         for item in e:
-            error_output += err_ + item
+            error_output += err_ + str(item) + '/n'
     else:
         error_output = err_ + e
 
@@ -137,30 +137,25 @@ def infer_data_types(flattened_json):
     return data_types
 
 
-def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
+def collect_field_values(field_dict, key, parent_dict, prefix):
     """
     Recursively inserts sets of values for a given field into return dict (used to infer field data type)
     :param field_dict: A dict of key:value pairs -- field_name : set(field_values)
     :param key: field name
     :param parent_dict: dict containing field and it's values
     :param prefix: string representation of current location in field hierarchy
-    :param array_fields: list of fields with array (list) values (that are made up of primitives or strings)
     :return: field_dict containing field names and a set of its values.
     """
     # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
     # as seen in second conditional statement), iterate over each list element's dictionary entries.
     # (Sometimes lists are composed of strings rather than dicts, and those are later converted to strings.)
-    if isinstance(parent_dict[key], list) and isinstance(parent_dict[key][0], dict):
+    if isinstance(parent_dict[key], list) and len(parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
-                field_dict, array_list = collect_field_values(
-                    field_dict, dict_key, dict_item, prefix + key + ".", array_fields
-                )
+                field_dict = collect_field_values(field_dict, dict_key, dict_item, prefix + key + ".")
     elif isinstance(parent_dict[key], dict):
         for dict_key in parent_dict[key]:
-            field_dict, array_list = collect_field_values(
-                field_dict, dict_key, parent_dict[key], prefix + key + ".", array_fields
-            )
+            field_dict = collect_field_values(field_dict, dict_key, parent_dict[key], prefix + key + ".")
     else:
         field_name = prefix + key
 
@@ -170,13 +165,12 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
         # This type of list can be converted to a comma-separated value string
         if isinstance(parent_dict[key], list):
             value = ", ".join(parent_dict[key])
-            array_fields.add(field_name)
         else:
             value = parent_dict[key]
 
         field_dict[field_name].add(value)
 
-    return field_dict, array_fields
+    return field_dict
 
 
 def create_mapping_dict(endpoint):
@@ -239,7 +233,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     :param expand_fields_list:
     :return:
     """
-    # add field group names to a list, in order to generate a dict
+    # add field group names to a list, in order to generate a dict representing nested fields
     field_group_names = [record_type]
     nested_depth = 0
 
@@ -333,6 +327,7 @@ def get_programs_from_bq():
 
 def get_cases_by_program(program_name):
     cases = []
+    nested_key_set = set()
     results = get_query_results(
         """
         SELECT * 
@@ -344,23 +339,29 @@ def get_cases_by_program(program_name):
         """.format(program_name)
     )
 
+    non_null_fieldset = set()
+    fieldset = set()
+
     for case_row in results:
         case_dict = dict(case_row.items())
 
         for key in case_dict.copy():
-            if not case_dict[key]:
-                case_dict.pop(key)
-                continue
+            fieldset.add(key)
+            # note fields with values
+            if case_dict[key]:
+                non_null_fieldset.add(key)
 
+            # note nested fields with a reason to be nested
             if isinstance(case_dict[key], list):
-                if len(case_dict[key]) == 1:
-                    case_dict[key] = case_dict[key][0]
-                else:
-                    print("Case has > 1 result for key {}".format(key))
+                # print(case_dict)
+                if len(case_dict[key]) > 1:
+                    nested_key_set.add(key)
 
         cases.append(case_dict)
 
-    return cases
+    null_parent_fields = fieldset - non_null_fieldset
+
+    return cases, nested_key_set, null_parent_fields
 
 
 def get_case_from_bq(case_id):
