@@ -134,7 +134,7 @@ def infer_data_types(flattened_json):
                 continue
             elif val_type == 'FLOAT' or val_type == 'STRING':
                 data_types[column] = val_type
-            elif val_type == 'INTEGER' and not data_types[column]:
+            elif (val_type == 'INTEGER' or val_type == 'BOOLEAN') and not data_types[column]:
                 data_types[column] = val_type
 
     return data_types
