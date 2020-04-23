@@ -187,16 +187,11 @@ def create_bq_schema(api_params, data_fp):
 
     with open(data_fp, 'r') as data_file:
         field_dict = dict()
-        key_set = set()
 
         for line in data_file:
             json_case_obj = json.loads(line)
             for key in json_case_obj:
-                if key == 'demographic.age_is_obfuscated' or key == 'age_is_obfuscated':
-                    key_set.add(json_case_obj[key])
                 field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
-
-        print(key_set)
 
     field_data_type_dict = infer_data_types(field_dict)
 
