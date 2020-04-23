@@ -193,8 +193,6 @@ def create_bq_schema(api_params, data_fp):
             for key in json_case_obj:
                 field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
 
-        print(field_dict['cases.demographic.age_is_obfuscated'])
-
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
