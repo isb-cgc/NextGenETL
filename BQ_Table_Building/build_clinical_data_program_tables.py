@@ -2,17 +2,22 @@ from common_etl.utils import get_cases_by_program, collect_field_values, infer_d
 from google.cloud import bigquery
 
 
-def build_case_structure(structure_dict, parent_path, case):
+def build_case_structure(structure_dict, parent_path, prefix, case):
     for field_key in case:
         if not case[field_key]:
             continue
         elif isinstance(case[field_key], list):
-            new_path = parent_path + '.' + field_key
+            if len(case[field_key]) > 1:
+                new_path = parent_path + '.' + field_key
+                prefix = ''
+            else:
+                new_path = parent_path
+                prefix = prefix + field_key + '__'
             for field_group_entry in case[field_key]:
-                structure_dict = build_case_structure(structure_dict, new_path, field_group_entry)
+                structure_dict = build_case_structure(structure_dict, new_path, prefix, field_group_entry)
         elif isinstance(case[field_key], dict):
-            new_path = parent_path + '.' + field_key
-            structure_dict = build_case_structure(structure_dict, new_path, case[field_key])
+            prefix = prefix + field_key + '__'
+            structure_dict = build_case_structure(structure_dict, parent_path, prefix, case[field_key])
         else:
             if parent_path not in structure_dict:
                 structure_dict[parent_path] = set()
