@@ -7,12 +7,12 @@ def build_case_structure(structure_dict, parent_path, case):
         if not case[field_key]:
             continue
         elif isinstance(case[field_key], list):
-            parent_path += '.' + field_key
+            new_path = parent_path + '.' + field_key
             for field_group_entry in case[field_key]:
-                structure_dict = build_case_structure(structure_dict, parent_path, field_group_entry)
+                structure_dict = build_case_structure(structure_dict, new_path, field_group_entry)
         elif isinstance(case[field_key], dict):
-            parent_path += '.' + field_key
-            structure_dict = build_case_structure(structure_dict, parent_path, case[field_key])
+            new_path = parent_path + '.' + field_key
+            structure_dict = build_case_structure(structure_dict, new_path, case[field_key])
         else:
             if parent_path not in structure_dict:
                 structure_dict[parent_path] = set()
