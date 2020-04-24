@@ -9,15 +9,15 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
         elif isinstance(case[field_key], list):
             if len(case[field_key]) > 1:
                 new_path = parent_path + '.' + field_key
-                prefix = ''
+                new_prefix = ''
             else:
                 new_path = parent_path
-                prefix = prefix + field_key + '__'
+                new_prefix = prefix + field_key + '__'
             for field_group_entry in case[field_key]:
-                structure_dict = build_case_structure(structure_dict, new_path, prefix, field_group_entry)
+                structure_dict = build_case_structure(structure_dict, new_path, new_prefix, field_group_entry)
         elif isinstance(case[field_key], dict):
-            prefix = prefix + field_key + '__'
-            structure_dict = build_case_structure(structure_dict, parent_path, prefix, case[field_key])
+            new_prefix = prefix + field_key + '__'
+            structure_dict = build_case_structure(structure_dict, parent_path, new_prefix, case[field_key])
         else:
             if parent_path not in structure_dict:
                 structure_dict[parent_path] = set()
