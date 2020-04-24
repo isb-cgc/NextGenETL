@@ -142,6 +142,7 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def get_programs_list():
+    programs = set()
     results = get_query_results(
         """
         SELECT distinct(program_name)
@@ -150,7 +151,9 @@ def get_programs_list():
     )
 
     for result in results:
-        print(result.program_name)
+        programs.add(result.program_name)
+
+    return programs
 
 
 def main():
@@ -173,7 +176,8 @@ def main():
 
     """
 
-    get_programs_list()
+    programs = get_programs_list()
+    print(programs)
     return
 
     program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
