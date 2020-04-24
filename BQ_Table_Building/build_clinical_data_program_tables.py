@@ -176,14 +176,14 @@ def main():
 
     """
 
-    programs = get_programs_list()
-    print(programs)
-    return
+    program_names = get_programs_list()
 
-    program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
-                    'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
+    for program_name in program_names:
+        cases, nested_key_set, null_parent_fields = get_cases_by_program(program_name)
 
-    for program_name in program_list:
+        print(program_name + '\n')
+        print(nested_key_set)
+        continue
 
         nested_types = {
             "family_histories": 0,
@@ -207,10 +207,6 @@ def main():
                             for m_key in case['follow_ups']['molecular_tests']:
                                 if not case['follow_ups']['molecular_tests'][m_key]:
                                     case.pop(m_key)
-
-            print(case)
-
-        return
 
         if not cases:
             print("[ERROR] no cases found for program {}".format(program_name))
@@ -241,6 +237,8 @@ def main():
         print(nested_types)
         print()
 
+
+    return
     '''
     if nested_name not in nested_key_set:
         print("{} not nested in program {}".format(nested_name, program_name))
