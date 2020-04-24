@@ -31,7 +31,7 @@ def retrieve_program_data(program_name):
     structure_dict = dict()
 
     for case in cases:
-        structure_dict = build_case_structure(structure_dict, 'cases', case)
+        structure_dict = build_case_structure(structure_dict, 'cases', '', case)
 
     return structure_dict
 
