@@ -1,4 +1,4 @@
-from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict
+from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict, get_query_results
 from google.cloud import bigquery
 
 
@@ -141,6 +141,18 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print(errors)
 
 
+def get_programs_list():
+    results = get_query_results(
+        """
+        SELECT distinct(program_name)
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        """
+    )
+
+    for result in results:
+        print(result)
+
+
 def main():
     """
     no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
@@ -161,12 +173,11 @@ def main():
 
     """
 
-    # program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
-    #                'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
+    get_programs_list()
+    return
 
-    # program_list = ['MMRF', 'CGCI', 'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
-
-    program_list = ['MMRF']
+    program_list = ['FM', 'NCICCR', 'CTSP', 'ORGANOID', 'CPTAC', 'WCDT', 'TARGET', 'GENIE', 'MMRF', 'CGCI',
+                    'VAREPOP', 'HCMI', 'TCGA', 'BEATAML1.0', 'OHSU']
 
     for program_name in program_list:
 
