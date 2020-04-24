@@ -364,7 +364,7 @@ def get_cases_by_program(program_name):
 
     null_parent_fields = fieldset - non_null_fieldset
 
-    return cases, nested_key_set, null_parent_fields
+    return cases
 
 
 def get_case_from_bq(case_id):

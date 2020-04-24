@@ -2,9 +2,35 @@ from common_etl.utils import get_cases_by_program, collect_field_values, infer_d
 from google.cloud import bigquery
 
 
-def flatten_case_json(program_name):
-    cases, nested_key_set, null_fields = get_cases_by_program(program_name)
+def build_case_structure(structure_dict, parent_path, case):
+    for field_key in case:
+        if not case[field_key]:
+            continue
+        elif isinstance(case[field_key], list):
+            parent_path += '.' + field_key
+            for field_group_entry in case[field_key]:
+                structure_dict = build_case_structure(structure_dict, parent_path, field_group_entry)
+        elif isinstance(case[field_key], dict):
+            parent_path += '.' + field_key
+            structure_dict = build_case_structure(structure_dict, parent_path, case[field_key])
+        else:
+            if parent_path not in structure_dict:
+                structure_dict[parent_path] = set()
+            structure_dict[parent_path].add(field_key)
+    return structure_dict
 
+
+def retrieve_program_data(program_name):
+    cases = get_cases_by_program(program_name)
+
+    structure_dict = dict()
+
+    for case in cases:
+        structure_dict = build_case_structure(structure_dict, 'cases', case)
+
+    return structure_dict
+
+    """
     for case in cases:
         for key in case.copy():
             if key in null_fields:
@@ -25,6 +51,7 @@ def flatten_case_json(program_name):
                     case[flat_key] = nested_field_group[n_key]
 
     return cases, nested_key_set
+    """
 
 
 def get_field_data_types(cases):
@@ -157,50 +184,20 @@ def get_programs_list():
 
 
 def main():
-    """
-    no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
-    nested keys:
-    BEATAML1.0: diagnoses__annotations
-    MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
-    OHSU: diagnoses__annotations
-    CGCI: diagnoses__treatments
-    VAREPOP: family_histories, diagnoses__treatments
-    HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
-    TCGA: diagnoses__treatments
-
-    diagnoses__annotations: BEATAML1.0, OHSU
-    diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
-    family_histories: MMRF, VAREPOP
-    follow_ups: MMRF, HCMI
-    follow_ups.molecular_tests: MMRF, HCMI
-
-    """
-
     program_names = get_programs_list()
 
     for program_name in program_names:
-        """
-        cases, nested_key_set, null_parent_fields = get_cases_by_program(program_name)
 
-        if 'follow_ups' in nested_key_set:
-            nested_key_set.add('follow_ups.molecular_tests')
+        structure_dict = retrieve_program_data(program_name)
 
-        nested_types = {
-            "family_histories": 0,
-            'diagnoses__annotations': 0,
-            'diagnoses__treatments': 0,
-            'follow_ups': 0
-        }
-        """
-
-        cases, nested_key_set = flatten_case_json(program_name)
-
-        print(nested_key_set)
-        continue
-
-        if not cases:
-            print("[ERROR] no cases found for program {}".format(program_name))
+        if not structure_dict:
+            print("[ERROR] no case structure returned for program {}".format(program_name))
             return
+        else:
+            print(structure_dict)
+            continue
+
+    return
 
         record_fieldset = set()
 
@@ -293,6 +290,25 @@ def main():
     # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
     return
     create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
+
+    """
+    no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
+    nested keys:
+    BEATAML1.0: diagnoses__annotations
+    MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
+    OHSU: diagnoses__annotations
+    CGCI: diagnoses__treatments
+    VAREPOP: family_histories, diagnoses__treatments
+    HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
+    TCGA: diagnoses__treatments
+    
+    diagnoses__annotations: BEATAML1.0, OHSU
+    diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
+    family_histories: MMRF, VAREPOP
+    follow_ups: MMRF, HCMI
+    follow_ups.molecular_tests: MMRF, HCMI
+    
+    """
 
 
 if __name__ == '__main__':
