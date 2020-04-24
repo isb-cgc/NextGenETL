@@ -179,11 +179,11 @@ def main():
     program_names = get_programs_list()
 
     for program_name in program_names:
+        """
         cases, nested_key_set, null_parent_fields = get_cases_by_program(program_name)
 
-        print(program_name + '\n')
-        print(nested_key_set)
-        continue
+        if 'follow_ups' in nested_key_set:
+            nested_key_set.add('follow_ups.molecular_tests')
 
         nested_types = {
             "family_histories": 0,
@@ -191,22 +191,12 @@ def main():
             'diagnoses__treatments': 0,
             'follow_ups': 0
         }
+        """
 
         cases, nested_key_set = flatten_case_json(program_name)
 
-        for i in range(len(cases) - 1, len(cases)):
-            case = cases[i]
-            for key in case.copy():
-                if not case[key]:
-                    case.pop(key)
-                if 'follow_ups' in case.copy().keys():
-                    for f_key in case['follow_ups']:
-                        if not case['follow_ups'][f_key]:
-                            case.pop(f_key)
-                        if 'molecular_tests' in case['follow_ups']:
-                            for m_key in case['follow_ups']['molecular_tests']:
-                                if not case['follow_ups']['molecular_tests'][m_key]:
-                                    case.pop(m_key)
+        print(nested_key_set)
+        continue
 
         if not cases:
             print("[ERROR] no cases found for program {}".format(program_name))
