@@ -21,7 +21,7 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
         else:
             if parent_path not in structure_dict:
                 structure_dict[parent_path] = set()
-            structure_dict[parent_path].add(field_key)
+            structure_dict[parent_path].add(prefix + field_key)
     return structure_dict
 
 
