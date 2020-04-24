@@ -150,7 +150,7 @@ def get_programs_list():
     )
 
     for result in results:
-        print(result)
+        print(result.program_name)
 
 
 def main():
