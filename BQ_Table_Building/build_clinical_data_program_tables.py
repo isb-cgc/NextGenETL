@@ -5,6 +5,7 @@ import sys
 
 YAML_HEADERS = ('bq_params', 'steps')
 
+
 def get_programs_list(bq_params):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
 
@@ -27,7 +28,7 @@ def retrieve_program_data(program_name):
     record_count_dict = {}
     cases = get_cases_by_program(program_name)
 
-    print(cases[-1])
+    print(cases[-5])
 
     for case in cases:
         tables_dict, record_count_dict = build_case_structure(
