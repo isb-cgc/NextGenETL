@@ -234,12 +234,11 @@ def create_bq_tables(program_name, bq_params, tables_dict):
     for table in tables_dict.keys():
         split_path = table.split(".")
 
-        table_name = base_table_name
+        table_name = "_".join(base_table_name)
 
         if len(split_path) > 1:
-            table_name = base_table_name + split_path[1:]
-
-        table_name = "_".join(table_name)
+            table_suffix = "__".split_path[1:]
+            table_name = table_name + table_suffix[1:]
 
         print(table_name)
 
