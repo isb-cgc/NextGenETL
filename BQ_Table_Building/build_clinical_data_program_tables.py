@@ -234,7 +234,7 @@ def create_bq_tables(program_name, bq_params, tables_dict):
         split_path = table.split(".")
 
         if len(split_path) > 1:
-            table_name.append(split_path[1:])
+            table_name.extend(split_path[1:])
 
         table_name = "_".join(table_name)
 
