@@ -238,7 +238,7 @@ def create_bq_tables(program_name, bq_params, tables_dict):
 
         if len(split_path) > 1:
             table_suffix = "__".join(split_path[1:])
-            table_name = table_name + table_suffix[1:]
+            table_name = table_name + '_' + table_suffix
 
         print(table_name)
 
