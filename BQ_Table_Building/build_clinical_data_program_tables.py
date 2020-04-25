@@ -58,7 +58,11 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 """
 
 
-def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
+def generate_table_keysets(tables_dict, parent_path, case):
+    return build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
+
+
+def build_case_structure(tables_dict, parent_path, case, record_count_dict):
     if parent_path not in tables_dict:
         tables_dict[parent_path] = set()
 
@@ -67,8 +71,8 @@ def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
             continue
 
         if not isinstance(case[field_key], list) and not isinstance(case[field_key], dict):
-            if parent_path not in max_record_count_dict:
-                max_record_count_dict[parent_path] = 1
+            if parent_path not in record_count_dict:
+                record_count_dict[parent_path] = 1
 
             tables_dict[parent_path].add(field_key)
             continue
@@ -76,36 +80,47 @@ def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
         # at this point, the field_key references a dict or list
         nested_path = parent_path + '.' + field_key
 
-        if nested_path not in max_record_count_dict:
-            max_record_count_dict[nested_path] = 1
+        if nested_path not in record_count_dict:
+            record_count_dict[nested_path] = 1
 
         if isinstance(case[field_key], dict):
-            tables_dict, max_record_count_dict = build_case_structure(
-                tables_dict, max_record_count_dict, nested_path, case[field_key]
+            tables_dict, record_count_dict = build_case_structure(
+                tables_dict, record_count_dict, nested_path, case[field_key]
             )
         else:
-            max_record_count_dict[nested_path] = max(max_record_count_dict[nested_path], len(case[field_key]))
+            record_count_dict[nested_path] = max(record_count_dict[nested_path], len(case[field_key]))
 
             for field_group_entry in case[field_key]:
-                tables_dict, max_record_count_dict = build_case_structure(
-                    tables_dict, max_record_count_dict, nested_path, field_group_entry
+                tables_dict, record_count_dict = build_case_structure(
+                    tables_dict, record_count_dict, nested_path, field_group_entry
                 )
 
-    return tables_dict, max_record_count_dict
+    for key in record_count_dict:
+        if record_count_dict[key] > 1:
+            continue
+
+        split_key = key.split('.')
+        parent_key = ".".join(split_key[:-1])
+        field_group_name = split_key[-1]
+
+        for column in tables_dict[key]:
+            column_name = field_group_name + "__" + column
+            tables_dict[parent_key].add(column_name)
+
+        tables_dict.pop(key)
+
+    return tables_dict
 
 
 def retrieve_program_data(program_name):
     cases = get_cases_by_program(program_name)
 
-    for case in cases:
-        tables_dict, max_record_count_dict = build_case_structure(
-            tables_dict={},
-            max_record_count_dict=dict(),
-            parent_path='cases',
-            case=case
-        )
+    tables_dict = {}
 
-    return tables_dict, max_record_count_dict
+    for case in cases:
+        tables_dict = generate_table_keysets(tables_dict=tables_dict, parent_path='cases', case=case)
+
+    return tables_dict
 
     """
     for case in cases:
@@ -250,7 +265,7 @@ def main():
 
     for program_name in program_names:
 
-        tables_dict, max_record_count_dict = retrieve_program_data(program_name)
+        tables_dict = retrieve_program_data(program_name)
 
         if not tables_dict:
             has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -258,7 +273,6 @@ def main():
             print()
             print(program_name)
             print(tables_dict)
-            print(max_record_count_dict)
             print()
 
     """
