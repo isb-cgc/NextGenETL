@@ -63,10 +63,8 @@ def generate_table_keysets(tables_dict, parent_path, case):
 
 
 def flatten_tables(tables_dict, record_count_dict):
-    print("Pre-flattened tables")
-    print(tables_dict)
-    print("Record counts")
     print(record_count_dict)
+
     field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
 
     # sort field group keys by depth
@@ -289,10 +287,11 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def main():
-    # program_names = get_programs_list()
-    program_names = ['MMRF']
+    program_names = get_programs_list()
+    # program_names = ['MMRF']
 
     for program_name in program_names:
+        print(program_name)
 
         tables_dict = retrieve_program_data(program_name)
 
@@ -300,7 +299,6 @@ def main():
             has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
         else:
             print()
-            print(program_name)
             print(tables_dict)
             print()
 
