@@ -59,6 +59,9 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 
 
 def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
+    if parent_path not in tables_dict:
+        tables_dict[parent_path] = set()
+
     for field_key in case:
         if not case[field_key]:
             continue
