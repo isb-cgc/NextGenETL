@@ -23,12 +23,9 @@ def get_programs_list(bq_params):
     return programs
 
 
-def retrieve_program_data(program_name):
+def retrieve_program_data(program_name, cases):
     tables_dict = {}
     record_count_dict = {}
-    cases = get_cases_by_program(program_name)
-
-    print(cases[-5])
 
     for case in cases:
         tables_dict, record_count_dict = build_case_structure(
@@ -247,9 +244,11 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-def create_bq_tables(program_name, bq_params, tables_dict):
-    for table in tables_dict.keys():
+def create_bq_tables(program_name, bq_params, table_hierarchy_dict, cases):
+    for table in table_hierarchy_dict.keys():
         table_name = generate_table_name(bq_params, program_name, table)
+
+        print(table_name)
 
         # get table column list
         # infer field type
@@ -285,9 +284,11 @@ def main(args):
     program_names = ['HCMI', 'CTSP']
 
     for program_name in program_names:
-        tables_dict = retrieve_program_data(program_name)
+        cases = get_cases_by_program(program_name)
 
-        create_bq_tables(program_name, bq_params, tables_dict)
+        table_hierarchy_dict = retrieve_program_data(program_name, cases)
+
+        create_bq_tables(program_name, bq_params, table_hierarchy_dict, cases)
 
 
 if __name__ == '__main__':
