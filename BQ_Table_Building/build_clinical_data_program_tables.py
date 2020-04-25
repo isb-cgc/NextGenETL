@@ -85,14 +85,14 @@ def build_case_structure(tables_dict, parent_path, case, record_count_dict):
 
         if isinstance(case[field_key], dict):
             tables_dict, record_count_dict = build_case_structure(
-                tables_dict, record_count_dict, nested_path, case[field_key]
+                tables_dict, nested_path, case[field_key], record_count_dict
             )
         else:
             record_count_dict[nested_path] = max(record_count_dict[nested_path], len(case[field_key]))
 
             for field_group_entry in case[field_key]:
                 tables_dict, record_count_dict = build_case_structure(
-                    tables_dict, record_count_dict, nested_path, field_group_entry
+                    tables_dict, nested_path, field_group_entry, record_count_dict
                 )
 
     for key in record_count_dict:
@@ -116,9 +116,8 @@ def build_case_structure(tables_dict, parent_path, case, record_count_dict):
 
 
 def retrieve_program_data(program_name):
-    cases = get_cases_by_program(program_name)
-
     tables_dict = {}
+    cases = get_cases_by_program(program_name)
 
     for case in cases:
         tables_dict = generate_table_keysets(tables_dict=tables_dict, parent_path='cases', case=case)
