@@ -270,7 +270,8 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def main():
-    program_names = get_programs_list()
+    # program_names = get_programs_list()
+    program_names = ['MMRF']
 
     for program_name in program_names:
 
