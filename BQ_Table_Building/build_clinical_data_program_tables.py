@@ -63,6 +63,10 @@ def generate_table_keysets(tables_dict, parent_path, case):
 
 
 def flatten_tables(tables_dict, record_count_dict):
+    print("Pre-flattened tables")
+    print(tables_dict)
+    print("Record counts")
+    print(record_count_dict)
     field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
 
     # sort field group keys by depth
