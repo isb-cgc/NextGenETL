@@ -59,7 +59,9 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 
 
 def generate_table_keysets(tables_dict, parent_path, case):
-    return build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
+    tables_dict, record_count_dict = build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
+
+    return tables_dict
 
 
 def build_case_structure(tables_dict, parent_path, case, record_count_dict):
@@ -112,7 +114,7 @@ def build_case_structure(tables_dict, parent_path, case, record_count_dict):
 
         tables_dict.pop(key)
 
-    return tables_dict
+    return tables_dict, record_count_dict
 
 
 def retrieve_program_data(program_name):
