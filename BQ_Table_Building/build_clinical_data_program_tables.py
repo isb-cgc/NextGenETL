@@ -61,10 +61,13 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 def generate_table_keysets(tables_dict, parent_path, case):
     tables_dict, record_count_dict = build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
 
-    print(tables_dict)
-    return
+    field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
 
-    for key in {k for k, v in sorted(record_count_dict.items(), key=lambda item: item[1], reverse=True)}:
+    # sort field group keys by depth
+    for key in field_group_keys:
+        field_group_keys[key] = len(key.split("."))
+
+    for key in {k for k, v in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True)}:
         if record_count_dict[key] > 1:
             continue
 
