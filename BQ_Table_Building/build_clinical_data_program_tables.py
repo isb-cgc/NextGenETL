@@ -248,6 +248,7 @@ def create_bq_tables(program_name, bq_params, table_hierarchy_dict, cases):
     for table in table_hierarchy_dict.keys():
         table_name = generate_table_name(bq_params, program_name, table)
 
+        print(table)
         print(table_hierarchy_dict[table])
 
         # get table column list
