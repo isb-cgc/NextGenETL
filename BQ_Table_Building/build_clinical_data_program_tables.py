@@ -28,6 +28,7 @@ def retrieve_program_data(program_name):
     cases = get_cases_by_program(program_name)
 
     for case in cases:
+        print(case)
         tables_dict, record_count_dict = build_case_structure(
             tables_dict=tables_dict,
             parent_path='cases',
@@ -44,8 +45,6 @@ def retrieve_program_data(program_name):
 
 
 def build_case_structure(tables_dict, parent_path, case, record_count_dict):
-    print(case)
-    return
     if parent_path not in tables_dict:
         tables_dict[parent_path] = set()
 
