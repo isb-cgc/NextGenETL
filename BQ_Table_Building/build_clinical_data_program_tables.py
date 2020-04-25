@@ -100,6 +100,9 @@ def build_case_structure(tables_dict, parent_path, case, record_count_dict):
             continue
 
         split_key = key.split('.')
+        if len(split_key) == 1:
+            continue
+
         parent_key = ".".join(split_key[:-1])
         field_group_name = split_key[-1]
 
