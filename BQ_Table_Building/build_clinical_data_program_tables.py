@@ -59,8 +59,10 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 
 
 def generate_table_keysets(tables_dict, parent_path, case):
-    tables_dict, record_count_dict = build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
+    return build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
 
+
+def flatten_tables(tables_dict, record_count_dict):
     field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
 
     # sort field group keys by depth
@@ -134,7 +136,12 @@ def retrieve_program_data(program_name):
     cases = get_cases_by_program(program_name)
 
     for case in cases:
-        tables_dict = generate_table_keysets(tables_dict=tables_dict, parent_path='cases', case=case)
+        tables_dict, record_count_dict = build_case_structure(tables_dict=tables_dict,
+                                                              parent_path='cases',
+                                                              case=case,
+                                                              record_count_dict=record_count_dict)
+
+    tables_dict = flatten_tables(tables_dict, record_count_dict)
 
     return tables_dict
 
