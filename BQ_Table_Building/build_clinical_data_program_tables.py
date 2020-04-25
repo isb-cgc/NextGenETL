@@ -229,13 +229,12 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 
 def create_bq_tables(program_name, bq_params, tables_dict):
-    table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
+    base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
     for table in tables_dict.keys():
         split_path = table.split(".")
-        print(split_path)
 
         if len(split_path) > 1:
-            table_name.extend(split_path[1:])
+            table_name = base_table_name + split_path[1:]
 
         table_name = "_".join(table_name)
 
