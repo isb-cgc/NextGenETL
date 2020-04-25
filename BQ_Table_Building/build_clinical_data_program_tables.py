@@ -44,6 +44,8 @@ def retrieve_program_data(program_name):
 
 
 def build_case_structure(tables_dict, parent_path, case, record_count_dict):
+    print(case)
+    return
     if parent_path not in tables_dict:
         tables_dict[parent_path] = set()
 
@@ -228,19 +230,33 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print(errors)
 
 
-def create_bq_tables(program_name, bq_params, tables_dict):
+def generate_table_name(bq_params, program_name, table):
+    split_table_path = table.split(".")
+
     base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
+    table_name = "_".join(base_table_name)
 
+    if len(split_table_path) > 1:
+        table_suffix = "__".join(split_table_path[1:])
+        table_name = table_name + '_' + table_suffix
+
+    if not table_name:
+        has_fatal_error("generate_table_name returns empty result.")
+
+    return table_name
+
+
+def create_bq_tables(program_name, bq_params, tables_dict):
     for table in tables_dict.keys():
-        split_path = table.split(".")
+        table_name = generate_table_name(bq_params, program_name, table)
 
-        table_name = "_".join(base_table_name)
+        # get table column list
+        # infer field type
+        #
 
-        if len(split_path) > 1:
-            table_suffix = "__".join(split_path[1:])
-            table_name = table_name + '_' + table_suffix
 
-        print(table_name)
+
+
 
 
 def main(args):
