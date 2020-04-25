@@ -62,6 +62,7 @@ def generate_table_keysets(tables_dict, parent_path, case):
     tables_dict, record_count_dict = build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
 
     print(tables_dict)
+    return
 
     for key in {k for k, v in sorted(record_count_dict.items(), key=lambda item: item[1], reverse=True)}:
         if record_count_dict[key] > 1:
@@ -80,6 +81,7 @@ def generate_table_keysets(tables_dict, parent_path, case):
             try:
                 tables_dict[parent_key].add(column_name)
             except KeyError as e:
+                print("ERROR ERROR")
                 print(e)
                 print(tables_dict.keys())
 
