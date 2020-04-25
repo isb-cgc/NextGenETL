@@ -66,6 +66,7 @@ def generate_table_keysets(tables_dict, parent_path, case):
             continue
 
         split_key = key.split('.')
+
         if len(split_key) == 1:
             continue
 
@@ -74,7 +75,11 @@ def generate_table_keysets(tables_dict, parent_path, case):
 
         for column in tables_dict[key]:
             column_name = field_group_name + "__" + column
-            tables_dict[parent_key].add(column_name)
+            try:
+                tables_dict[parent_key].add(column_name)
+            except KeyError as e:
+                print(e)
+                print(tables_dict.keys())
 
         tables_dict.pop(key)
 
