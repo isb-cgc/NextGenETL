@@ -232,6 +232,7 @@ def create_bq_tables(program_name, bq_params, tables_dict):
     table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
     for table in tables_dict.keys():
         split_path = table.split(".")
+        print(split_path)
 
         if len(split_path) > 1:
             table_name.extend(split_path[1:])
