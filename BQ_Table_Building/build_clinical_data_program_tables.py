@@ -199,7 +199,9 @@ def main():
             print("[ERROR] no case structure returned for program {}".format(program_name))
             return
         else:
+            print(program_name)
             print(structure_dict)
+            print()
             continue
 
     return
