@@ -1,15 +1,19 @@
 from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict, \
-    get_query_results, has_fatal_error
+    get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
+import sys
 
+YAML_HEADERS = ('bq_params', 'steps')
 
-def get_programs_list():
+def get_programs_list(bq_params):
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+
     programs = set()
     results = get_query_results(
         """
         SELECT distinct(program_name)
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-        """
+        FROM `{}`
+        """.format(programs_table_id)
     )
 
     for result in results:
@@ -18,81 +22,23 @@ def get_programs_list():
     return programs
 
 
-"""
-def build_case_structure(structure_dict, parent_path, prefix, case):
-    for field_key in case:
-        if not case[field_key]:
-            continue
-        elif isinstance(case[field_key], list):
-            if len(case[field_key]) > 1:
-                new_path = parent_path + '.' + field_key
-                new_prefix = ''
-            else:
-                new_path = parent_path
-                new_prefix = prefix + field_key + '__'
-            for field_group_entry in case[field_key]:
-                structure_dict = build_case_structure(structure_dict, new_path, new_prefix, field_group_entry)
-        elif isinstance(case[field_key], dict):
-            new_prefix = prefix + field_key + '__'
-            structure_dict = build_case_structure(structure_dict, parent_path, new_prefix, case[field_key])
-        else:
-            if parent_path not in structure_dict:
-                structure_dict[parent_path] = set()
-            structure_dict[parent_path].add(prefix + field_key)
+def retrieve_program_data(program_name):
+    tables_dict = {}
+    record_count_dict = {}
+    cases = get_cases_by_program(program_name)
 
-    # This section removes the duplicate key set that's created when some cases have only one record for a field group,
-    # and some have multiples. All of the field group's records will be stored in a separate table.
-    keys = structure_dict.keys()
-    tables = []
+    for case in cases:
+        tables_dict, record_count_dict = build_case_structure(
+            tables_dict=tables_dict,
+            parent_path='cases',
+            case=case,
+            record_count_dict=record_count_dict
+        )
 
-    for key in keys:
-        tables.append(key.split('.')[-1])
+    tables_dict = flatten_tables(tables_dict, record_count_dict)
 
-    duplicates = set([x for x in tables if tables.count(x) > 1])
-
-    for duplicate in duplicates:
-        key = 'cases.' + duplicate
-        structure_dict.pop(key, None)
-
-    return structure_dict
-"""
-
-
-def generate_table_keysets(tables_dict, parent_path, case):
-    return build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
-
-
-def flatten_tables(tables_dict, record_count_dict):
-    print(record_count_dict)
-
-    field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
-
-    # sort field group keys by depth
-    for key in field_group_keys:
-        field_group_keys[key] = len(key.split("."))
-
-    for key in {k for k, v in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True)}:
-        if record_count_dict[key] > 1:
-            continue
-
-        split_key = key.split('.')
-
-        if len(split_key) == 1:
-            continue
-
-        parent_key = ".".join(split_key[:-1])
-        field_group_name = split_key[-1]
-
-        for column in tables_dict[key]:
-            column_name = field_group_name + "__" + column
-            try:
-                tables_dict[parent_key].add(column_name)
-            except KeyError as e:
-                print("ERROR ERROR")
-                print(e)
-                print(tables_dict.keys())
-
-        tables_dict.pop(key)
+    if not tables_dict:
+        has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
     return tables_dict
 
@@ -133,43 +79,39 @@ def build_case_structure(tables_dict, parent_path, case, record_count_dict):
     return tables_dict, record_count_dict
 
 
-def retrieve_program_data(program_name):
-    tables_dict = {}
-    record_count_dict = {}
-    cases = get_cases_by_program(program_name)
+def flatten_tables(tables_dict, record_count_dict):
+    field_group_keys = dict.fromkeys(record_count_dict.keys(), 0)
 
-    for case in cases:
-        tables_dict, record_count_dict = build_case_structure(tables_dict=tables_dict,
-                                                              parent_path='cases',
-                                                              case=case,
-                                                              record_count_dict=record_count_dict)
+    # sort field group keys by depth
+    for key in field_group_keys:
+        field_group_keys[key] = len(key.split("."))
 
-    tables_dict = flatten_tables(tables_dict, record_count_dict)
+    for key in {k for k, v in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True)}:
+        if record_count_dict[key] > 1:
+            continue
 
+        split_key = key.split('.')
+
+        if len(split_key) == 1:
+            continue
+
+        parent_key = ".".join(split_key[:-1])
+        field_group_name = split_key[-1]
+
+        for column in tables_dict[key]:
+            column_name = field_group_name + "__" + column
+            try:
+                tables_dict[parent_key].add(column_name)
+            except KeyError as e:
+                print("ERROR ERROR")
+                print(e)
+                print(tables_dict.keys())
+
+        tables_dict.pop(key)
+
+    if len(tables_dict.keys()) - 1 != sum(val > 1 for val in record_count_dict.values()):
+        has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
     return tables_dict
-
-    """
-    for case in cases:
-        for key in case.copy():
-            if key in null_fields:
-                case.pop(key)
-                continue
-            elif key in nested_key_set:
-                continue
-            elif isinstance(case[key], list):
-                nested_field_group = case.pop(key)
-
-                if not nested_field_group:
-                    continue
-
-                nested_field_group = nested_field_group[0]
-
-                for n_key in nested_field_group:
-                    flat_key = key + "__" + n_key
-                    case[flat_key] = nested_field_group[n_key]
-
-    return cases, nested_key_set
-    """
 
 
 def get_field_data_types(cases):
@@ -286,138 +228,65 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print(errors)
 
 
-def main():
-    program_names = get_programs_list()
-    # program_names = ['MMRF']
+def create_bq_tables(program_name, bq_params, tables_dict):
+    table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
+    for table in tables_dict.keys():
+        split_path = table.split(".")
+
+        if len(split_path) > 1:
+            table_name = table_name + split_path[1:]
+
+        table_name = "_".join(table_name)
+
+        print(table_name)
+
+
+def main(args):
+    """
+    if len(args) != 2:
+        has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
+
+    with open(args[1], mode='r') as yaml_file:
+        try:
+            bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+        except ValueError as e:
+            has_fatal_error(str(e), ValueError)
+
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+    """
+
+    bq_params = {
+        "GDC_RELEASE": 'rel23',
+        "WORKING_PROJECT": 'isb-project-zero',
+        "TARGET_DATASET": 'GDC_Clinical_Data',
+        "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData'
+    }
+
+    # program_names = get_programs_list(bq_params)
+    program_names = ['HCMI', 'CTSP']
 
     for program_name in program_names:
-        print(program_name)
-
         tables_dict = retrieve_program_data(program_name)
 
-        if not tables_dict:
-            has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
-        else:
-            print()
-            print(tables_dict)
-            print()
-
-    """
-
-        record_fieldset = set()
-
-        total_cases = len(cases)
-
-        for case in cases:
-            for nested_type in nested_types.copy().keys():
-                if nested_type in case.keys() and case[nested_type]:
-                    nested_types[nested_type] += 1
-
-        nested_types['follow_ups.molecular_tests'] = 0
-
-        for case in cases:
-            if 'follow_ups' in cases[case]:
-                if 'molecular_tests' in cases[case]['follow_ups']:
-                    print("t2")
-                    if cases[case]['follow_ups']['molecular_tests']:
-                        print("t3")
-                        nested_types['follow_ups.molecular_tests'] += 1
-
-        print()
-        print(program_name)
-        print("total cases: {}".format(total_cases))
-        print(nested_types)
-        print()
-
-
-    return
-    '''
-    if nested_name not in nested_key_set:
-        print("{} not nested in program {}".format(nested_name, program_name))
-        return
-
-    for case in cases:
-        if nested_name in case.keys():
-            for record in case[nested_name]:
-                for record_key in record.keys():
-                    if record[record_key]:
-                        record_fieldset.add(record_key)
-
-    for case in cases:
-        if nested_name in case.keys():
-            for record in case[nested_name]:
-                if 'molecular_tests' in record:
-                    for mt_record in record['molecular_tests']:
-                        for record_key in mt_record.keys():
-                            if mt_record[record_key]:
-                                record_fieldset.add(record_key)
-    '''
-    print(program_name)
-    for field in sorted(record_fieldset):
-        print(field)
-    return
-
-    field_data_type_dict = get_field_data_types(cases)
-
-    mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
-
-    schema_dict = create_field_records_dict(mapping_dict, field_data_type_dict)
-
-    divided_schema_dict = dict()
-
-    depth_ordered_nested_key_list = []
-
-    for nested_key in nested_key_set:
-        split_key = nested_key.split('.')
-        if len(split_key) > 2:
-            print("[ERROR] One of the nested keys has a depth > 2, is there a 3rd degree of nesting?")
-        elif len(split_key) == 2:
-            depth_ordered_nested_key_list.insert(0, nested_key)
-        else:
-            depth_ordered_nested_key_list.append(nested_key)
-
-    for nested_key in depth_ordered_nested_key_list:
-        divided_schema_dict[nested_key] = dict()
-
-        long_key = 'cases.' + nested_key
-
-        for field in schema_dict.copy().keys():
-            if field.startswith(long_key):
-                divided_schema_dict[nested_key][field] = schema_dict.pop(field)
-
-    divided_schema_dict["non_nested"] = schema_dict
-
-    print(program_name)
-    for key in sorted(divided_schema_dict[nested_name].keys()):
-        child_key = key.split(".")[-1]
-        print(child_key)
-    print()
-    # schema_field_list, ordered_keys = create_bq_schema_list(field_data_type_dict, nested_key_set)
-    return
-    create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys)
-    """
-
-
-
-    """
-    no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE
-    nested keys:
-    BEATAML1.0: diagnoses__annotations
-    MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
-    OHSU: diagnoses__annotations
-    CGCI: diagnoses__treatments
-    VAREPOP: family_histories, diagnoses__treatments
-    HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
-    TCGA: diagnoses__treatments
-    
-    diagnoses__annotations: BEATAML1.0, OHSU
-    diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
-    family_histories: MMRF, VAREPOP
-    follow_ups: MMRF, HCMI
-    follow_ups.molecular_tests: MMRF, HCMI
-    
-    """
+        create_bq_tables(program_name, bq_params, tables_dict)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
+
+
+"""
+no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE, BEATAML1.0, OHSU
+
+nested keys:
+MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
+CGCI: diagnoses__treatments
+VAREPOP: family_histories, diagnoses__treatments
+HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
+TCGA: diagnoses__treatments
+
+diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
+family_histories: MMRF, VAREPOP
+follow_ups: MMRF, HCMI
+follow_ups.molecular_tests: MMRF, HCMI
+"""
