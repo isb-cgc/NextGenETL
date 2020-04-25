@@ -61,7 +61,7 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
 def generate_table_keysets(tables_dict, parent_path, case):
     tables_dict, record_count_dict = build_case_structure(tables_dict, parent_path, case, record_count_dict=dict())
 
-    for key in {k for k, v in sorted(tables_dict.items(), key=lambda item: item[1], reverse=True)}:
+    for key in {k for k, v in sorted(record_count_dict.items(), key=lambda item: item[1], reverse=True)}:
         if record_count_dict[key] > 1:
             continue
 
