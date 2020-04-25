@@ -27,6 +27,8 @@ def retrieve_program_data(program_name):
     record_count_dict = {}
     cases = get_cases_by_program(program_name)
 
+    print(cases[-1])
+
     for case in cases:
         tables_dict, record_count_dict = build_case_structure(
             tables_dict=tables_dict,
