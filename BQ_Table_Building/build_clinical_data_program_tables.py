@@ -28,7 +28,7 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
     keys = structure_dict.keys()
     tables = []
 
-    for key in keys.copy():
+    for key in keys:
         tables.append(key.split('.')[-1])
 
     duplicates = set([x for x in tables if tables.count(x) > 1])
