@@ -1,7 +1,24 @@
-from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict, get_query_results
+from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict, \
+    get_query_results, has_fatal_error
 from google.cloud import bigquery
 
 
+def get_programs_list():
+    programs = set()
+    results = get_query_results(
+        """
+        SELECT distinct(program_name)
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        """
+    )
+
+    for result in results:
+        programs.add(result.program_name)
+
+    return programs
+
+
+"""
 def build_case_structure(structure_dict, parent_path, prefix, case):
     for field_key in case:
         if not case[field_key]:
@@ -38,19 +55,50 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
         structure_dict.pop(key, None)
 
     return structure_dict
+"""
+
+
+def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
+    for field_key in case:
+        if not case[field_key]:
+            continue
+
+        if not isinstance(case[field_key], list) and not isinstance(case[field_key], dict):
+            if parent_path not in max_record_count_dict:
+                max_record_count_dict[parent_path] = 1
+
+            tables_dict[parent_path].add(field_key)
+            continue
+
+        # at this point, the field_key references a dict or list
+        nested_path = parent_path + '.' + field_key
+
+        if nested_path not in max_record_count_dict:
+            max_record_count_dict[nested_path] = 1
+
+        if isinstance(case[field_key], dict):
+            tables_dict = build_case_structure(tables_dict, max_record_count_dict, nested_path, case[field_key])
+        else:
+            max_record_count_dict[nested_path] = max(max_record_count_dict[nested_path], len(case[field_key]))
+
+            for field_group_entry in case[field_key]:
+                tables_dict = build_case_structure(tables_dict, max_record_count_dict, nested_path, field_group_entry)
+
+    return tables_dict, max_record_count_dict
 
 
 def retrieve_program_data(program_name):
     cases = get_cases_by_program(program_name)
 
-    structure_dict = dict()
-
     for case in cases:
-        structure_dict = build_case_structure(structure_dict, 'cases', '', case)
+        tables_dict, max_record_count_dict = build_case_structure(
+            tables_dict=dict(),
+            max_record_count_dict=dict(),
+            parent_path='cases',
+            case=case
+        )
 
-    structure_dict.pop('cases.molecular_tests', None)
-
-    return structure_dict
+    return tables_dict, max_record_count_dict
 
     """
     for case in cases:
@@ -190,38 +238,22 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print(errors)
 
 
-def get_programs_list():
-    programs = set()
-    results = get_query_results(
-        """
-        SELECT distinct(program_name)
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-        """
-    )
-
-    for result in results:
-        programs.add(result.program_name)
-
-    return programs
-
-
 def main():
     program_names = get_programs_list()
 
     for program_name in program_names:
 
-        structure_dict = retrieve_program_data(program_name)
+        tables_dict, max_record_count_dict = retrieve_program_data(program_name)
 
-        if not structure_dict:
-            print("[ERROR] no case structure returned for program {}".format(program_name))
-            return
+        if not tables_dict:
+            has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
         else:
-            print(program_name)
-            print(structure_dict)
             print()
-            continue
+            print(program_name)
+            print(tables_dict)
+            print(max_record_count_dict)
+            print()
 
-    return
     """
 
         record_fieldset = set()
