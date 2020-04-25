@@ -22,6 +22,21 @@ def build_case_structure(structure_dict, parent_path, prefix, case):
             if parent_path not in structure_dict:
                 structure_dict[parent_path] = set()
             structure_dict[parent_path].add(prefix + field_key)
+
+    # This section removes the duplicate key set that's created when some cases have only one record for a field group,
+    # and some have multiples. All of the field group's records will be stored in a separate table.
+    keys = structure_dict.keys()
+    tables = []
+
+    for key in keys.copy():
+        tables.append(key.split('.')[-1])
+
+    duplicates = set([x for x in tables if tables.count(x) > 1])
+
+    for duplicate in duplicates:
+        key = 'cases.' + duplicate
+        structure_dict.pop(key, None)
+
     return structure_dict
 
 
@@ -32,6 +47,8 @@ def retrieve_program_data(program_name):
 
     for case in cases:
         structure_dict = build_case_structure(structure_dict, 'cases', '', case)
+
+    structure_dict.pop('cases.molecular_tests', None)
 
     return structure_dict
 
