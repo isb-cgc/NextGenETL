@@ -70,6 +70,9 @@ def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
             if parent_path not in max_record_count_dict:
                 max_record_count_dict[parent_path] = 1
 
+            print(field_key)
+            print(parent_path)
+
             tables_dict[parent_path].add(field_key)
             continue
 
@@ -80,12 +83,16 @@ def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
             max_record_count_dict[nested_path] = 1
 
         if isinstance(case[field_key], dict):
-            tables_dict = build_case_structure(tables_dict, max_record_count_dict, nested_path, case[field_key])
+            tables_dict, max_record_count_dict = build_case_structure(
+                tables_dict, max_record_count_dict, nested_path, case[field_key]
+            )
         else:
             max_record_count_dict[nested_path] = max(max_record_count_dict[nested_path], len(case[field_key]))
 
             for field_group_entry in case[field_key]:
-                tables_dict = build_case_structure(tables_dict, max_record_count_dict, nested_path, field_group_entry)
+                tables_dict, max_record_count_dict = build_case_structure(
+                    tables_dict, max_record_count_dict, nested_path, field_group_entry
+                )
 
     return tables_dict, max_record_count_dict
 
@@ -95,7 +102,7 @@ def retrieve_program_data(program_name):
 
     for case in cases:
         tables_dict, max_record_count_dict = build_case_structure(
-            tables_dict=dict(),
+            tables_dict={},
             max_record_count_dict=dict(),
             parent_path='cases',
             case=case
