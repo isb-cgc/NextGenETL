@@ -70,9 +70,6 @@ def build_case_structure(tables_dict, max_record_count_dict, parent_path, case):
             if parent_path not in max_record_count_dict:
                 max_record_count_dict[parent_path] = 1
 
-            print(field_key)
-            print(parent_path)
-
             tables_dict[parent_path].add(field_key)
             continue
 
