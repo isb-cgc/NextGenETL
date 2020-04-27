@@ -202,6 +202,8 @@ def lookup_column_types():
 
         column_type_dict[vals[0]] = vals[1]
 
+    print(column_type_dict)
+
     single_nested_query_dict = {
         "family_histories": family_histories_query,
         "demographic": demographic_query,
