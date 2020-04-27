@@ -146,15 +146,14 @@ def infer_column_types(cases, table_key, columns):
 
 def lookup_column_types():
     query = """
-    SELECT  column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
     WHERE table_name = 'rel23_clinical_data'
     """
 
     results = get_query_results(query)
 
     for result in results:
-        print(result.column_name)
-        print(result.data_type)
+        print(result.items())
 
 
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases):
