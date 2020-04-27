@@ -202,8 +202,6 @@ def lookup_column_types():
 
         column_type_dict[vals[0]] = vals[1]
 
-    print(column_type_dict)
-
     single_nested_query_dict = {
         "family_histories": family_histories_query,
         "demographic": demographic_query,
@@ -221,6 +219,15 @@ def lookup_column_types():
 
     for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
         print("{} : {}".format(key, value))
+
+    results = get_query_results(follow_ups_query)
+
+    for result in results:
+        vals = result.values()
+        split_vals = vals.split('molecular_tests ')
+
+        for val in split_vals:
+            print(val)
 
     return
 
