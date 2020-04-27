@@ -148,7 +148,7 @@ def lookup_column_types():
     column_type_dict = dict()
     query = """
     SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'follow_ups.molecular_tests'
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'follow_ups'
     """
 
     results = get_query_results(query)
