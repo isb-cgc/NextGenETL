@@ -244,7 +244,7 @@ def lookup_column_types():
         else:
             print('2')
             split_treatments = treatments.split('annotations ')
-            treatments = split_treatments[0][:-1]
+            treatments = split_treatments[0][:-2]
             annotations = split_treatments[1][:-2]
 
         diagnoses = diagnoses[:-2] + '>>'
