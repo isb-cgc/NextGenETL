@@ -152,7 +152,7 @@ def split_datatype_array(col_dict, col_string, name_prefix):
         column_type = column.split(' ')
 
         column_name = name_prefix + column_type[0]
-        col_dict[column_name] = column_type[1]
+        col_dict[column_name] = column_type[1].strip(',')
 
     return col_dict
 
