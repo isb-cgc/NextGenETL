@@ -224,7 +224,7 @@ def lookup_column_types():
 
     for result in results:
         vals = result.values()
-        split_vals = vals.split('molecular_tests ')
+        split_vals = vals[1].split('molecular_tests ')
 
         for val in split_vals:
             print(val)
