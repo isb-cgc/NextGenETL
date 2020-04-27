@@ -154,7 +154,7 @@ def lookup_column_types():
     results = get_query_results(query)
 
     for result in results:
-        columns_types = result.data_type[13:-2].split('molecular_tests')
+        columns_types = result.data_type[13:-2].split('molecular_tests ')
 
         print(columns_types)
 
