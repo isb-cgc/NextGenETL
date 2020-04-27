@@ -217,7 +217,9 @@ def lookup_column_types():
             vals = result.values()
             column_type_dict = split_datatype_array(column_type_dict, vals[1], key + '__')
 
-    print(column_type_dict)
+    for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
+        print("{} : {}".format(key, value))
+
     return
 
     for result in results:
