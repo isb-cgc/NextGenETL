@@ -196,7 +196,7 @@ def lookup_column_types():
     results = get_query_results(base_query)
 
     for result in results:
-        print(result)
+        print(result.values())
 
 
     return
