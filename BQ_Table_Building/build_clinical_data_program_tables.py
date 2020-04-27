@@ -237,12 +237,10 @@ def lookup_column_types():
 
         split_diagnoses = diagnoses.split('annotations ')
         if len(split_diagnoses) > 1:
-            print('1')
             diagnoses = split_diagnoses[0]
-            annotations = split_diagnoses[1][:-1]
+            annotations = split_diagnoses[1][:-2]
             treatments = treatments[:-2]
         else:
-            print('2')
             split_treatments = treatments.split('annotations ')
             treatments = split_treatments[0][:-2]
             annotations = split_treatments[1][:-2]
