@@ -227,7 +227,6 @@ def lookup_column_types():
 
         column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups__molecular_tests__')
 
-
     results = get_query_results(diagnoses_query)
 
     for result in results:
@@ -245,9 +244,9 @@ def lookup_column_types():
             treatments = split_treatments[0]
             annotations = split_treatments[1]
 
-        print(diagnoses.rstrip(','))
-        print(treatments.rstrip(','))
-        print(annotations.rstrip(','))
+    print(diagnoses)
+    print(treatments)
+    print(annotations)
 
     return
 
