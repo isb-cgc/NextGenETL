@@ -253,6 +253,7 @@ def lookup_column_types():
 
 
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
+    exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     for table_key in table_hierarchy.keys():
         print("\n" + table_key)
@@ -266,6 +267,9 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
             prefix = prefix + '__'
 
         for column in table_hierarchy[table_key]:
+            if column in exclude_set:
+                continue
+
             column_name = prefix + column
             column_type = column_type_dict[column_name]
             print("{}: {}".format(column_name, column_type))
@@ -298,7 +302,10 @@ def main(args):
         "GDC_RELEASE": 'rel23',
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
-        "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData'
+        "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData',
+        "EXCLUDE_FIELDS": 'aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
+                          'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
+                          'submitter_slide_ids,diagnosis_ids'
     }
 
     # program_names = get_programs_list(bq_params)
@@ -310,6 +317,7 @@ def main(args):
         table_hierarchy = retrieve_program_data(program_name, cases)
 
         create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict)
+
 
 
 if __name__ == '__main__':
