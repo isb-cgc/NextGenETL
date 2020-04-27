@@ -247,11 +247,9 @@ def lookup_column_types():
 
         diagnoses = diagnoses[:-2] + '>>'
 
-    print(diagnoses)
-    print(treatments)
-    print(annotations)
-
-    return
+    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
+    column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
+    column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
 
     for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
         print("{} : {}".format(key, value))
