@@ -146,7 +146,7 @@ def infer_column_types(cases, table_key, columns):
 
 def split_datatype_array(col_dict, col_string, name_prefix):
 
-    columns = col_string[13:2]
+    columns = col_string[13:-2]
 
     print(columns)
     return col_dict
