@@ -245,9 +245,9 @@ def lookup_column_types():
             treatments = split_treatments[0]
             annotations = split_treatments[1]
 
-        print(diagnoses)
-        print(treatments)
-        print(annotations)
+        print(diagnoses.rstrip(',>'))
+        print(treatments.rstrip(',>'))
+        print(annotations.rstrip(',>'))
 
     return
 
