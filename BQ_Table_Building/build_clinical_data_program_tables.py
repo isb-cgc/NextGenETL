@@ -147,7 +147,7 @@ def infer_column_types(cases, table_key, columns):
 def lookup_column_types():
     query = """
     SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data'
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'family_histories'
     """
 
     results = get_query_results(query)
