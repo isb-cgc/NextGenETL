@@ -217,23 +217,24 @@ def lookup_column_types():
             vals = result.values()
             column_type_dict = split_datatype_array(column_type_dict, vals[1], key + '__')
 
-    for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
-        print("{} : {}".format(key, value))
-
     results = get_query_results(follow_ups_query)
 
     for result in results:
         vals = result.values()
         split_vals = vals[1].split('molecular_tests ')
 
-        for val in split_vals:
-            print(val)
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'follow_ups__')
+
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups__molecular_tests__')
+
+    for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
+        print("{} : {}".format(key, value))
 
     return
 
     for result in results:
         # data_type[13:-2]
-        columns_types = result.values()[1]
+        columns_types = result.values()
 
         print(columns_types)
 
