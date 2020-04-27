@@ -208,8 +208,6 @@ def lookup_column_types():
         "exposures": exposures_query
     }
 
-    double_nested_query_list = [follow_ups_query, diagnoses_query]
-
     for key in single_nested_query_dict.keys():
         results = get_query_results(single_nested_query_dict[key])
 
@@ -251,28 +249,15 @@ def lookup_column_types():
     column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
     column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
 
-    for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
-        print("{} : {}".format(key, value))
-
-    return
-
-    for result in results:
-        # data_type[13:-2]
-        columns_types = result.values()
-
-        print(columns_types)
-
-        #for column_type in columns_types:
-        #    split_col_type = column_type.split(' ')
-        #    column_name = 'follow_ups__molecular_tests__' + split_col_type[0]
-        #    column_type_dict[column_name] = split_col_type[1]
-
-    #print(column_type_dict)
+    return column_type_dict
 
 
-def create_bq_tables(program_name, bq_params, table_hierarchy, cases):
+def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
+
     for table_key in table_hierarchy.keys():
         table_name = generate_table_name(bq_params, program_name, table_key)
+        print(table_name)
+        print(table_hierarchy[table_key])
 
         """
         cases.follow_ups
@@ -281,14 +266,6 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases):
         'disease_response', 'reflux_treatment_type', 'risk_factor', 'progression_or_recurrence', 'created_datetime', 
         'bmi', 'weight', 'days_to_progression', 'progression_or_recurrence_type', 'state'}
         """
-
-        column_types = dict.fromkeys(table_hierarchy[table_key], None)
-
-        column_types = infer_column_types(cases, table_key, table_hierarchy[table_key])
-
-    # get table column list
-    # infer field type
-    #
 
 
 def main(args):
@@ -304,6 +281,7 @@ def main(args):
 
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
+    column_type_dict = lookup_column_types()
 
     bq_params = {
         "GDC_RELEASE": 'rel23',
@@ -311,9 +289,6 @@ def main(args):
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData'
     }
-
-    lookup_column_types()
-    return
 
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
@@ -323,7 +298,7 @@ def main(args):
 
         table_hierarchy = retrieve_program_data(program_name, cases)
 
-        create_bq_tables(program_name, bq_params, table_hierarchy, cases)
+        create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict)
 
 
 if __name__ == '__main__':
