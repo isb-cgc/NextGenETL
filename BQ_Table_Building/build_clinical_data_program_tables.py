@@ -152,7 +152,7 @@ def split_datatype_array(col_dict, col_string, name_prefix):
         column_name = name_prefix + column_type[0]
         col_dict[column_name] = column_type[1]
 
-    return column_name
+    return col_dict
 
 
 def lookup_column_types():
@@ -200,9 +200,23 @@ def lookup_column_types():
 
         column_type_dict[vals[0]] = vals[1]
 
+    single_nested_query_dict = {
+        "family_histories": family_histories_query,
+        "demographic": demographic_query,
+        "exposures": exposures_query
+    }
+
+    double_nested_query_list = [follow_ups_query, diagnoses_query]
+
+    for key in single_nested_query_dict.keys():
+        results = get_query_results(single_nested_query_dict[key])
+
+        for result in results:
+            vals = result.values()
+            column_type_dict = split_datatype_array(column_type_dict, vals, key + '__')
+
     print(column_type_dict)
     return
-
 
     for result in results:
         # data_type[13:-2]
