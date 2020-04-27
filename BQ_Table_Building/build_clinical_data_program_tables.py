@@ -147,6 +147,9 @@ def infer_column_types(cases, table_key, columns):
 def split_datatype_array(col_dict, col_string, name_prefix):
     columns = col_string[13:2].split(', ')
 
+    print(columns)
+    return col_dict
+
     for column in columns:
         column_type = column.split(' ')
         column_name = name_prefix + column_type[0]
@@ -215,7 +218,7 @@ def lookup_column_types():
             vals = result.values()
             column_type_dict = split_datatype_array(column_type_dict, vals[1], key + '__')
 
-    print(column_type_dict)
+    # print(column_type_dict)
     return
 
     for result in results:
