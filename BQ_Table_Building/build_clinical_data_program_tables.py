@@ -233,7 +233,7 @@ def lookup_column_types():
 
     for result in results:
         # data_type[13:-2]
-        columns_types = result.split('molecular_tests ')
+        columns_types = result.values()[1].split('molecular_tests ')
 
         split_datatype_array()
 
