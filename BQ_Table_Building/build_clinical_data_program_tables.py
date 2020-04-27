@@ -196,10 +196,13 @@ def lookup_column_types():
     results = get_query_results(base_query)
 
     for result in results:
-        print(result.values())
+        vals = result.values()
 
+        column_type_dict[vals[0]] = vals[1]
 
+    print(column_type_dict)
     return
+
 
     for result in results:
         # data_type[13:-2]
