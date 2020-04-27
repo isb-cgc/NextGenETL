@@ -123,6 +123,7 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
+"""
 def infer_column_types(cases, table_key, columns):
     aggregated_column_vals = dict.fromkeys(columns, set())
 
@@ -140,6 +141,7 @@ def infer_column_types(cases, table_key, columns):
             field_group = case[split_table_key[1]][split_table_key[2]]
 
             for parent_key in split_table_key[1:]:
+"""
 
 
 def lookup_column_types():
