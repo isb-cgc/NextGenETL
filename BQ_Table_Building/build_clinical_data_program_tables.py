@@ -264,7 +264,8 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
             prefix = '__'.join(split_prefix[1:])
             prefix = prefix + '__'
 
-        print(prefix)
+        for column in table_hierarchy[table_key]:
+            print(prefix + column)
 
         """
         cases.follow_ups
