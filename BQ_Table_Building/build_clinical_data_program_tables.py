@@ -153,7 +153,7 @@ def lookup_column_types():
     results = get_query_results(query)
 
     for result in results:
-        print(list(result.values()))
+        print(dict(result.data_types))
 
 
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases):
