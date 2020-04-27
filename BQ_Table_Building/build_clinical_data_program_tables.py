@@ -227,6 +227,30 @@ def lookup_column_types():
 
         column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups__molecular_tests__')
 
+
+    results = get_query_results(diagnoses_query)
+
+    for result in results:
+        vals = result.values()
+        split_vals = vals[1].split('treatments ')
+        diagnoses = split_vals[0]
+        treatments = split_vals[1]
+
+        split_diagnoses = diagnoses.split('annotations ')
+        if len(split_diagnoses) > 1:
+            diagnoses = split_diagnoses[0]
+            annotations = split_diagnoses[1]
+        else:
+            split_treatments = treatments.split('annotations ')
+            treatments = split_treatments[0]
+            annotations = split_treatments[1]
+
+        print(diagnoses)
+        print(treatments)
+        print(annotations)
+
+    return
+
     for key, value in sorted(column_type_dict.items(), key=lambda x: x[0]):
         print("{} : {}".format(key, value))
 
