@@ -256,7 +256,7 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
 
     for table_key in table_hierarchy.keys():
         table_name = generate_table_name(bq_params, program_name, table_key)
-        print(table_name)
+        print(table_key)
         print(table_hierarchy[table_key])
 
         """
