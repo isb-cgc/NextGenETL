@@ -145,10 +145,11 @@ def infer_column_types(cases, table_key, columns):
 
 
 def split_datatype_array(col_dict, col_string, name_prefix):
+    print(col_string)
+    return col_dict
+
     columns = col_string[13:2].split(', ')
 
-    print(columns)
-    return col_dict
 
     for column in columns:
         column_type = column.split(' ')
