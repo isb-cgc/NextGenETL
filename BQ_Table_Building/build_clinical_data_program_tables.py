@@ -255,6 +255,7 @@ def lookup_column_types():
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
 
     for table_key in table_hierarchy.keys():
+        print("\n" + table_key)
         table_name = generate_table_name(bq_params, program_name, table_key)
         split_prefix = table_key.split('.')
 
@@ -265,7 +266,9 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
             prefix = prefix + '__'
 
         for column in table_hierarchy[table_key]:
-            print(prefix + column)
+            column_name = prefix + column
+            column_type = column_type_dict[column_name]
+            print("{}: {}".format(column_name, column_type))
 
         """
         cases.follow_ups
