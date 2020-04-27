@@ -154,14 +154,16 @@ def lookup_column_types():
     results = get_query_results(query)
 
     for result in results:
-        columns_types = result.data_type[13:-2].split(', ')
+        columns_types = result.data_type[13:-2].split('ARRAY<STRUCT<')
 
-        for column_type in columns_types:
-            split_col_type = column_type.split(' ')
-            column_name = 'follow_ups__molecular_tests__' + split_col_type[0]
-            column_type_dict[column_name] = split_col_type[1]
+        print(columns_types)
 
-    print(column_type_dict)
+        #for column_type in columns_types:
+        #    split_col_type = column_type.split(' ')
+        #    column_name = 'follow_ups__molecular_tests__' + split_col_type[0]
+        #    column_type_dict[column_name] = split_col_type[1]
+
+    #print(column_type_dict)
 
 
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases):
