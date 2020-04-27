@@ -144,17 +144,68 @@ def infer_column_types(cases, table_key, columns):
 """
 
 
+def split_datatype_array(col_dict, col_string, name_prefix):
+    columns = col_string[13:2].split(', ')
+
+    for column in columns:
+        column_type = column.split(' ')
+        column_name = name_prefix + column_type[0]
+        col_dict[column_name] = column_type[1]
+
+    return column_name
+
+
 def lookup_column_types():
     column_type_dict = dict()
-    query = """
+
+    base_query = """
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    WHERE table_name = 'rel23_clinical_data' 
+    and column_name != 'family_histories' 
+    and column_name != 'exposures' 
+    and column_name != 'demographic' 
+    and column_name != 'diagnoses'
+    and column_name != 'follow_ups'
+    """
+
+    follow_ups_query = """
     SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
     WHERE table_name = 'rel23_clinical_data' and column_name = 'follow_ups'
     """
 
-    results = get_query_results(query)
+    exposures_query = """
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'exposures'
+    """
+
+    demographic_query = """
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'demographic'
+    """
+
+    diagnoses_query = """
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'diagnoses'
+    """
+
+    family_histories_query = """
+    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
+    WHERE table_name = 'rel23_clinical_data' and column_name = 'family_histories'
+    """
+
+    results = get_query_results(base_query)
 
     for result in results:
-        columns_types = result.data_type[13:-2].split('molecular_tests ')
+        print(result)
+
+
+    return
+
+    for result in results:
+        # data_type[13:-2]
+        columns_types = result.split('molecular_tests ')
+
+        split_datatype_array()
 
         print(columns_types)
 
