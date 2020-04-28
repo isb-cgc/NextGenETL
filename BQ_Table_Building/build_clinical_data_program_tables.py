@@ -258,7 +258,8 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
     for table_key in table_hierarchy.keys():
         print("\n" + table_key)
-        table_name = generate_table_name(bq_params, program_name, table_key)
+        table_id = generate_table_name(bq_params, program_name, table_key)
+        schema_list = []
         split_prefix = table_key.split('.')
 
         if len(split_prefix) == 1:
@@ -273,9 +274,18 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
             column_name = prefix + column
 
-            print(column)
-            print(schema_dict[column_name])
-            print()
+            schema_field = bigquery.SchemaField(column, schema_dict[column_name]['type'],
+                                                "NULLABLE", schema_dict[column_name]['description'], ())
+            schema_list.append(schema_field)
+
+        print(table_id)
+        print(schema_list)
+        continue
+
+        client = bigquery.Client()
+
+        table = bigquery.Table(table_id, schema=schema_list)
+        table = client.create_table(table)
 
         """
         cases.follow_ups
