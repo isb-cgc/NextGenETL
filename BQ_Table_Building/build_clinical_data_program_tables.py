@@ -294,7 +294,7 @@ def create_schema_dict(field_mapping_dict, column_type_dict):
     schema_dict = {}
 
     for key in column_type_dict:
-        field_map_name = "cases." + ".".join(key)
+        field_map_name = "cases." + ".".join(key.split('__'))
         print(field_map_name)
         continue
 
