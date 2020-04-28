@@ -341,6 +341,13 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
     else:
         print(errors)
 
+"""
+todos:
+- order entries in schema list before creating table
+- insert case data into table 
+- code commenting
+- generate documentation
+"""
 
 def main(args):
     """
@@ -386,7 +393,6 @@ def main(args):
         create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict)
 
 
-
 if __name__ == '__main__':
     main(sys.argv)
 
@@ -406,117 +412,3 @@ follow_ups: MMRF, HCMI
 follow_ups.molecular_tests: MMRF, HCMI
 """
 
-'''
-def get_field_data_types(cases):
-    field_dict = dict()
-
-    for case in cases:
-        for key in case:
-            field_dict = collect_field_values(field_dict, key, case, 'cases.')
-
-    field_type_dict = infer_data_types(field_dict)
-
-    return field_type_dict
-
-
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
-    """
-    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
-    :param field_mapping_dict:
-    :param field_data_type_dict:
-    :return: schema fields object dict
-    """
-    schema_dict = {}
-
-    for key in field_data_type_dict:
-        column_name = "__".join(key.split(".")[1:])
-        mapping_key = ".".join(key.split("__"))
-
-        try:
-            description = field_mapping_dict[mapping_key]['description']
-        except KeyError:
-            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
-            description = ""
-
-        if field_data_type_dict[key]:
-            # if script was able to infer a data type using field's values, default to using that type
-            field_type = field_data_type_dict[key]
-        elif key in field_mapping_dict:
-            # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
-        else:
-            # this could happen in the case where a field was added to the cases endpoint with only null values,
-            # and no entry for the field exists in mapping
-            print("[INFO] Not adding field {} because no type found".format(key))
-            continue
-
-        # this is the format for bq schema json object entries
-        schema_dict[key] = {
-            "name": column_name,
-            "type": field_type,
-            "description": description
-        }
-
-    return schema_dict
-
-
-def create_bq_schema_list(field_data_type_dict, nested_keys):
-    mapping_dict = create_mapping_dict("https://api.gdc.cancer.gov/cases")
-
-    schema_parent_field_list = []
-    schema_child_field_list = []
-    ordered_parent_keys = []
-    ordered_child_keys = []
-
-    for key in sorted(field_data_type_dict.keys()):
-        split_name = key.split('.')
-
-        col_name = "__".join(split_name[1:])
-        col_type = field_data_type_dict[key]
-
-        if key in mapping_dict:
-            description = mapping_dict[key]['description']
-        else:
-            description = ""
-
-        schema_field = bigquery.SchemaField(col_name, col_type, "NULLABLE", description, ())
-
-        if len(split_name) == 2:
-            schema_parent_field_list.append(schema_field)
-            ordered_parent_keys.append(".".join(split_name[1:]))
-        else:
-            schema_child_field_list.append(schema_field)
-            ordered_child_keys.append(".".join(split_name[1:]))
-
-    schema_field_list = schema_parent_field_list + schema_child_field_list
-    ordered_keys = ordered_parent_keys + ordered_child_keys
-
-    return schema_field_list, ordered_keys
-
-
-def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
-
-    table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
-    client = bigquery.Client()
-
-    table = bigquery.Table(table_id, schema=schema_field_list)
-    table = client.create_table(table)
-
-    case_tuples = []
-
-    for case in cases:
-        case_vals = []
-        for key in ordered_keys:
-            if key in case:
-                case_vals.append(case[key])
-            else:
-                case_vals.append(None)
-        case_tuples.append(tuple(case_vals))
-
-    errors = client.insert_rows(table, case_tuples)
-
-    if not errors:
-        print("Rows inserted successfully")
-    else:
-        print(errors)
-'''
