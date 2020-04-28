@@ -252,8 +252,7 @@ def lookup_column_types():
     return column_type_dict
 
 
-def create_bq_tables(program_name, api_params, bq_params, table_hierarchy, cases, column_type_dict):
-    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
 
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
@@ -285,6 +284,47 @@ def create_bq_tables(program_name, api_params, bq_params, table_hierarchy, cases
         """
 
 
+def create_schema_dict(field_mapping_dict, column_type_dict):
+    """
+    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
+    :param field_mapping_dict:
+    :param column_type_dict:
+    :return: schema fields object dict
+    """
+    schema_dict = {}
+
+    for key in column_type_dict:
+        field_map_name = "cases." + ".".join(key)
+        print(field_map_name)
+        continue
+
+        try:
+            description = field_mapping_dict[mapping_key]['description']
+        except KeyError:
+            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
+            description = ""
+
+        if column_type_dict[key]:
+            # if script was able to infer a data type using field's values, default to using that type
+            field_type = column_type_dict[key]
+        elif key in field_mapping_dict:
+            # otherwise, include type from _mapping endpoint
+            field_type = field_mapping_dict[key]['type']
+        else:
+            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # and no entry for the field exists in mapping
+            print("[INFO] Not adding field {} because no type found".format(key))
+            continue
+
+        # this is the format for bq schema json object entries
+        schema_dict[key] = {
+            "name": column_name,
+            "type": field_type,
+            "description": description
+        }
+
+    return schema_dict
+
 def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
 
     table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
@@ -312,45 +352,7 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print(errors)
 
 
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
-    """
-    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
-    :param field_mapping_dict:
-    :param field_data_type_dict:
-    :return: schema fields object dict
-    """
-    schema_dict = {}
 
-    for key in field_data_type_dict:
-        column_name = "__".join(key.split(".")[1:])
-        mapping_key = ".".join(key.split("__"))
-
-        try:
-            description = field_mapping_dict[mapping_key]['description']
-        except KeyError:
-            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
-            description = ""
-
-        if field_data_type_dict[key]:
-            # if script was able to infer a data type using field's values, default to using that type
-            field_type = field_data_type_dict[key]
-        elif key in field_mapping_dict:
-            # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
-        else:
-            # this could happen in the case where a field was added to the cases endpoint with only null values,
-            # and no entry for the field exists in mapping
-            print("[INFO] Not adding field {} because no type found".format(key))
-            continue
-
-        # this is the format for bq schema json object entries
-        schema_dict[key] = {
-            "name": column_name,
-            "type": field_type,
-            "description": description
-        }
-
-    return schema_dict
 
 
 def main(args):
@@ -366,9 +368,6 @@ def main(args):
 
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
-    column_type_dict = lookup_column_types()
-
-
     api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases'
     }
@@ -382,6 +381,12 @@ def main(args):
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
                           'submitter_slide_ids,diagnosis_ids'
     }
+
+    column_type_dict = lookup_column_types()
+
+    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+
+    schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
 
 
     # program_names = get_programs_list(bq_params)
