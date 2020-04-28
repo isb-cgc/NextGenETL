@@ -257,7 +257,6 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     for table_key in table_hierarchy.keys():
-        print("\n" + table_key)
         table_id = generate_table_name(bq_params, program_name, table_key)
         schema_list = []
         split_prefix = table_key.split('.')
@@ -280,22 +279,10 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
         table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_id
 
-        print(table_id)
-        print(schema_list)
-        continue
-
         client = bigquery.Client()
 
         table = bigquery.Table(table_id, schema=schema_list)
         table = client.create_table(table)
-
-        """
-        cases.follow_ups
-        {'progression_or_recurrence_anatomic_site', 'height', 'ecog_performance_status', 'follow_up_id', 
-        'karnofsky_performance_status', 'submitter_id', 'days_to_follow_up', 'comorbidity', 'updated_datetime', 
-        'disease_response', 'reflux_treatment_type', 'risk_factor', 'progression_or_recurrence', 'created_datetime', 
-        'bmi', 'weight', 'days_to_progression', 'progression_or_recurrence_type', 'state'}
-        """
 
 
 def create_schema_dict(field_mapping_dict, column_type_dict):
