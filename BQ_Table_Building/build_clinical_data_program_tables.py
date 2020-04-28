@@ -252,7 +252,7 @@ def lookup_column_types():
     return column_type_dict
 
 
-def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
+def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict):
 
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
@@ -272,8 +272,9 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
                 continue
 
             column_name = prefix + column
-            column_type = column_type_dict[column_name]
-            print("{}: {}".format(column_name, column_type))
+
+            print(schema_dict[column_name])
+            print()
 
         """
         cases.follow_ups
@@ -374,11 +375,6 @@ def main(args):
 
     schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
 
-    for item in schema_dict.items():
-        print('{}: {}'.format(item[0], item[1]))
-
-    return
-
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
 
@@ -387,7 +383,7 @@ def main(args):
 
         table_hierarchy = retrieve_program_data(program_name, cases)
 
-        create_bq_tables(program_name, api_params, bq_params, table_hierarchy, cases, column_type_dict)
+        create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict)
 
 
 
