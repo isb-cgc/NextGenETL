@@ -283,6 +283,74 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_typ
         """
 
 
+def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
+
+    table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
+    client = bigquery.Client()
+
+    table = bigquery.Table(table_id, schema=schema_field_list)
+    table = client.create_table(table)
+
+    case_tuples = []
+
+    for case in cases:
+        case_vals = []
+        for key in ordered_keys:
+            if key in case:
+                case_vals.append(case[key])
+            else:
+                case_vals.append(None)
+        case_tuples.append(tuple(case_vals))
+
+    errors = client.insert_rows(table, case_tuples)
+
+    if not errors:
+        print("Rows inserted successfully")
+    else:
+        print(errors)
+
+
+def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+    """
+    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
+    :param field_mapping_dict:
+    :param field_data_type_dict:
+    :return: schema fields object dict
+    """
+    schema_dict = {}
+
+    for key in field_data_type_dict:
+        column_name = "__".join(key.split(".")[1:])
+        mapping_key = ".".join(key.split("__"))
+
+        try:
+            description = field_mapping_dict[mapping_key]['description']
+        except KeyError:
+            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
+            description = ""
+
+        if field_data_type_dict[key]:
+            # if script was able to infer a data type using field's values, default to using that type
+            field_type = field_data_type_dict[key]
+        elif key in field_mapping_dict:
+            # otherwise, include type from _mapping endpoint
+            field_type = field_mapping_dict[key]['type']
+        else:
+            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # and no entry for the field exists in mapping
+            print("[INFO] Not adding field {} because no type found".format(key))
+            continue
+
+        # this is the format for bq schema json object entries
+        schema_dict[key] = {
+            "name": column_name,
+            "type": field_type,
+            "description": description
+        }
+
+    return schema_dict
+
+
 def main(args):
     """
     if len(args) != 2:
@@ -298,6 +366,11 @@ def main(args):
     """
     column_type_dict = lookup_column_types()
 
+
+    api_params = {
+        'ENDPOINT': 'https://api.gdc.cancer.gov/cases'
+    }
+
     bq_params = {
         "GDC_RELEASE": 'rel23',
         "WORKING_PROJECT": 'isb-project-zero',
@@ -307,6 +380,11 @@ def main(args):
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
                           'submitter_slide_ids,diagnosis_ids'
     }
+
+    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+
+    print(field_mapping_dict)
+    return
 
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
