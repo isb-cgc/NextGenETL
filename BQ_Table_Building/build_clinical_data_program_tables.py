@@ -295,35 +295,24 @@ def create_schema_dict(field_mapping_dict, column_type_dict):
 
     for key in column_type_dict:
         field_map_name = "cases." + ".".join(key.split('__'))
-        print(field_map_name)
-        continue
 
         try:
-            description = field_mapping_dict[mapping_key]['description']
+            description = field_mapping_dict[field_map_name]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
             description = ""
 
-        if column_type_dict[key]:
-            # if script was able to infer a data type using field's values, default to using that type
-            field_type = column_type_dict[key]
-        elif key in field_mapping_dict:
-            # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
-        else:
-            # this could happen in the case where a field was added to the cases endpoint with only null values,
-            # and no entry for the field exists in mapping
-            print("[INFO] Not adding field {} because no type found".format(key))
-            continue
+        field_type = column_type_dict[key]
 
         # this is the format for bq schema json object entries
         schema_dict[key] = {
-            "name": column_name,
+            "name": key,
             "type": field_type,
             "description": description
         }
 
     return schema_dict
+
 
 def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
 
@@ -350,9 +339,6 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
         print("Rows inserted successfully")
     else:
         print(errors)
-
-
-
 
 
 def main(args):
@@ -388,6 +374,10 @@ def main(args):
 
     schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
 
+    for item in schema_dict.items():
+        print('{}: {}'.format(item[0], item[1]))
+
+    return
 
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
