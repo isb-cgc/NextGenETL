@@ -273,6 +273,7 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
             column_name = prefix + column
 
+            print(column)
             print(schema_dict[column_name])
             print()
 
