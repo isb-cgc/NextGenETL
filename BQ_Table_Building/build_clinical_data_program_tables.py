@@ -278,6 +278,8 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
                                                 "NULLABLE", schema_dict[column_name]['description'], ())
             schema_list.append(schema_field)
 
+        table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_id
+
         print(table_id)
         print(schema_list)
         continue
