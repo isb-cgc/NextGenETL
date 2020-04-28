@@ -252,7 +252,9 @@ def lookup_column_types():
     return column_type_dict
 
 
-def create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict):
+def create_bq_tables(program_name, api_params, bq_params, table_hierarchy, cases, column_type_dict):
+    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     for table_key in table_hierarchy.keys():
@@ -381,10 +383,6 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids'
     }
 
-    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
-
-    print(field_mapping_dict)
-    return
 
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
@@ -394,7 +392,7 @@ def main(args):
 
         table_hierarchy = retrieve_program_data(program_name, cases)
 
-        create_bq_tables(program_name, bq_params, table_hierarchy, cases, column_type_dict)
+        create_bq_tables(program_name, api_params, bq_params, table_hierarchy, cases, column_type_dict)
 
 
 
