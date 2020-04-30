@@ -273,7 +273,7 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
 
-            print(column)
+            print(column[0])
             continue
 
             schema_field = bigquery.SchemaField(column, schema_dict[column_name]['type'],
@@ -390,8 +390,8 @@ def main(args):
 
     column_order_list = import_column_order_list(args[2])
 
-    # program_names = get_programs_list(bq_params)
-    program_names = ['HCMI', 'CTSP']
+    program_names = get_programs_list(bq_params)
+    # program_names = ['HCMI', 'CTSP']
 
     for program_name in program_names:
         cases = get_cases_by_program(program_name)
