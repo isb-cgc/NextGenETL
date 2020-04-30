@@ -106,7 +106,7 @@ def flatten_tables(tables, record_counts):
             parent_table_found = False
             parent_key = ''
 
-            while end_idx < (len(split_key) * -1) and not parent_table_found:
+            while end_idx > (len(split_key) * -1) and not parent_table_found:
                 parent_key = ".".join(split_key[:end_idx])
 
                 if parent_key in tables:
