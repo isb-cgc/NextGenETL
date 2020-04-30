@@ -104,7 +104,7 @@ for COLNAME in ${KEEP_COLS}; do
     CUT_COL=`cat ${TRANSPOSE_FILE} | grep $'\t'"${COLNAME}"'$' | cut -f1 | sed 's/ //g'`
     if [ -z "${CUT_COL}" ]; then
         echo "ERROR: ${CUT_COL} not found"
-        exit
+        exit 1
     fi
     if [ -z ${CUT_LIST} ]; then
         CUT_LIST="${CUT_COL}"

@@ -14,24 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ~/setEnvVars.sh
-
-export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
-
-mkdir -p ~/config
-pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ManifestBQBuild.yaml .
-popd > /dev/null
-
-
-
-
-
-
-pushd ${MY_VENV} > /dev/null
-source bin/activate
-popd > /dev/null
-cd ..
-python3 ./DCF-Manifest-Pulls/build_dcf_manifest_bq_tables.py ~/config/ManifestBQBuild.yaml
-deactivate
+CONFIG_BUCKET=your-bucket-for-config-files
+CURRENT_CONFIG_PATH=folder/path/for/config/in/bucket # no leading /!

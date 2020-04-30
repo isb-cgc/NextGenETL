@@ -45,7 +45,7 @@ files_fields = []
 #verboseFlag = 999
 #verboseFlag = 14
 # WJRL 11/10/19 NOW AN ARGUMENT!
-#verboseFlag = 0 # WJRL 11/8/19
+verboseFlag = 0
 
 uuidStr = uuid.uuid1().hex[:8]
 
@@ -63,12 +63,9 @@ fhS = 0
 
 def get_all_case_ids(cases_endpt):
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in get_all_case_ids ... ", cases_endpt
-        print
-        " "
+        print " "
+        print " >>> in get_all_case_ids ... ", cases_endpt
+        print " "
 
     maxSize = 4000
     maxSize = 1000
@@ -85,36 +82,28 @@ def get_all_case_ids(cases_endpt):
                   'size': maxSize}
 
         try:
-            if (verboseFlag >= 9): print
-            " get request ", cases_endpt, params
+            if (verboseFlag >= 9): print " get request ", cases_endpt, params
             response = requests.get(cases_endpt, params=params, timeout=60.0)
         except:
-            print
-            " ERROR !!! requests.get() call FAILED ??? (a) "
+            print " ERROR !!! requests.get() call FAILED ??? (a) "
             continue
 
         ## check response status_code
         try:
-            if (verboseFlag >= 3): print
-            " response status_code : ", response.status_code
+            if (verboseFlag >= 3): print " response status_code : ", response.status_code
             if (response.status_code != 200):
-                print
-                " --> BAD status_code returned !!! ", response.status_code
+                print " --> BAD status_code returned !!! ", response.status_code
                 continue
         except:
-            print
-            " ERROR just in looking for status_code ??? !!! "
+            print " ERROR just in looking for status_code ??? !!! "
             continue
 
         try:
-            if (verboseFlag >= 9): print
-            " now parsing json response ... "
+            if (verboseFlag >= 9): print " now parsing json response ... "
             rj = response.json()
-            if (verboseFlag >= 3): print
-            json.dumps(rj, indent=4)
+            if (verboseFlag >= 3): print json.dumps(rj, indent=4)
         except:
-            print
-            " failed to get information about cases ??? "
+            print " failed to get information about cases ??? "
             continue
 
         ## expecting something like this in each rj['data']['hits']:
@@ -125,54 +114,43 @@ def get_all_case_ids(cases_endpt):
 
         try:
 
-            if (verboseFlag >= 3): print
-            " now parsing info returned ... "
+            if (verboseFlag >= 3): print " now parsing info returned ... "
 
             iCount = rj['data']['pagination']['count']
             iFrom = rj['data']['pagination']['from']
             iPages = rj['data']['pagination']['pages']
             iTotal = rj['data']['pagination']['total']
             iSize = rj['data']['pagination']['size']
-            if (verboseFlag >= 3): print
-            "pagination info: ", iCount, iFrom, iPages, iTotal, iSize
+            if (verboseFlag >= 3): print "pagination info: ", iCount, iFrom, iPages, iTotal, iSize
 
             fromStart += iCount
             if (iCount == 0):
-                if (verboseFlag >= 2): print
-                " got nothing back ... (?) "
+                if (verboseFlag >= 2): print " got nothing back ... (?) "
                 done = 1
 
             for ii in range(iCount):
-                if (verboseFlag >= 3): print
-                ii, rj['data']['hits'][ii]
+                if (verboseFlag >= 3): print ii, rj['data']['hits'][ii]
                 case_id = rj['data']['hits'][ii]['case_id']
                 submitter_id = rj['data']['hits'][ii]['submitter_id']
-                if (verboseFlag >= 3): print
-                case_id, submitter_id
+                if (verboseFlag >= 3): print case_id, submitter_id
                 if (case_id not in caseID_map):
                     caseID_map[case_id] = submitter_id
                 else:
                     if (verboseFlag >= 3):
-                        print
-                        " already have this one in dict ?!?! ", ii, iCount, case_id, submitter_id
+                        print " already have this one in dict ?!?! ", ii, iCount, case_id, submitter_id
 
-            if (verboseFlag >= 1): print
-            "         ", len(caseID_map)
+            if (verboseFlag >= 1): print "         ", len(caseID_map)
 
         except:
-            print
-            " "
-            print
-            " --> setting DONE to TRUE now ... is this OK ??? "
-            print
-            " "
+            print " "
+            print " --> setting DONE to TRUE now ... is this OK ??? "
+            print " "
             done = 1
 
             ## temporary hack for early exit ... remove when not needed ...
             ## if ( len(caseID_map) > 9 ): done = 1
 
-    if (verboseFlag >= 1): print
-    " returning map with %d case ids " % len(caseID_map)
+    if (verboseFlag >= 1): print " returning map with %d case ids " % len(caseID_map)
 
     ## write out this mapping as a two-column output file
     if (cases_endpt.find("legacy") >= 0):
@@ -200,12 +178,9 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
     global numFiles
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in getCaseAndFileInfo ... ", cases_endpt, files_endpt, len(caseID_map)
-        print
-        " "
+        print " "
+        print " >>> in getCaseAndFileInfo ... ", cases_endpt, files_endpt, len(caseID_map)
+        print " "
 
     allCases = caseID_map.keys()
     allCases.sort()
@@ -217,12 +192,9 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
     for case_id in allCases:
 
         if (verboseFlag >= 1):
-            print
-            " "
-            print
-            " "
-            print
-            " in getCaseAndFileInfo ... looping over allCases ... ", case_id
+            print " "
+            print " "
+            print " in getCaseAndFileInfo ... looping over allCases ... ", case_id
 
         check1 = 0
 
@@ -235,17 +207,13 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
 
             if (case_id not in caseID_dict):
                 if (verboseFlag >= 3):
-                    print
-                    case_id
-                    print
-                    " creating caseID_entry for this case ", case_id
+                    print case_id
+                    print " creating caseID_entry for this case ", case_id
                 caseID_dict[case_id] = [caseInfo]
             else:
                 ## this doesn't ever appear to happen, fortunately
-                print
-                " already know about this case ??? !!! "
-                print
-                " --> updating information just in case ... "
+                print " already know about this case ??? !!! "
+                print " --> updating information just in case ... "
                 caseID_dict[case_id] = [caseInfo]
 
             ## write out the information for this case ...
@@ -259,15 +227,13 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
             if (numFiles0 == numFiles1): check1 = 1
 
         if (verboseFlag >= 1):
-            print
-            " --> got back %d files for this CASE " % numFiles1
+            print " --> got back %d files for this CASE " % numFiles1
 
         ## get all files at once for this case ...
         fileInfoVec = get_file_info_by_case(files_endpt, case_id, numFiles1)
         numFiles2 = len(fileInfoVec)
         if (verboseFlag >= 1):
-            print
-            " --> got back INFORMATION for %d files " % numFiles2
+            print " --> got back INFORMATION for %d files " % numFiles2
 
         numFiles += numFiles2
 
@@ -276,14 +242,10 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
             fileInfo = fileInfoVec[ii]
             fileInfo = stripBlanks(fileInfo)
             if (len(fileInfo['file_id']) != 1):
-                print
-                " ERROR ??? HOW CAN THIS BE ??? NO file_id ??? or TOO MANY ??? "
-                print
-                fileInfo['file_id']
-                print
-                fileInfo
-                print
-                " FATAL ERROR in getCaseAndFileInfo "
+                print " ERROR ??? HOW CAN THIS BE ??? NO file_id ??? or TOO MANY ??? "
+                print fileInfo['file_id']
+                print fileInfo
+                print " FATAL ERROR in getCaseAndFileInfo "
                 sys.exit(-1)
 
             file_id = fileInfo['file_id'][0]
@@ -294,30 +256,22 @@ def getCaseAndFileInfo(cases_endpt, files_endpt, caseID_map, \
                 fileID_dict[file_id] = [fileInfo]
                 writeOneFile4BQ(file_fh2, dbName, file_id, fileInfo)
                 if (verboseFlag >= 3):
-                    print
-                    file_id
-                    print
-                    " creating fileID_dict entry for this case and file ", case_id, file_id
-                    print
-                    fileID_dict[file_id]
+                    print file_id
+                    print " creating fileID_dict entry for this case and file ", case_id, file_id
+                    print fileID_dict[file_id]
             else:
 
                 if (verboseFlag >= 3):
-                    print
-                    " already know about this file ... no worries ... ", file_id
+                    print " already know about this file ... no worries ... ", file_id
 
         if (verboseFlag >= 1):
             if (numCases % 100 == 0):
-                print
-                "     working ... in getCaseAndFileInfo ... %d ... %d " % (numCases, numFiles)
+                print "     working ... in getCaseAndFileInfo ... %d ... %d " % (numCases, numFiles)
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " returning dicts with %d cases and %d files " % (len(caseID_dict), len(fileID_dict))
-        print
-        " "
+        print " "
+        print " returning dicts with %d cases and %d files " % (len(caseID_dict), len(fileID_dict))
+        print " "
 
     return (caseID_dict, fileID_dict)
 
@@ -329,29 +283,23 @@ def unpackList(aList):
     outList = []
 
     for aVal in aList:
-        print
-        aVal
+        print aVal
         try:
             aKey = aVal.keys()[0]
             if (len(aVal.keys()) > 1):
-                print
-                " WARNING ??? WHAT IS THIS ??? ", aVal
+                print " WARNING ??? WHAT IS THIS ??? ", aVal
             if (len(outName) < 1):
                 outName = aKey
             else:
                 if (outName != aKey):
-                    print
-                    " WARNING ??? inconsistent values ??? ", outName, aKey
+                    print " WARNING ??? inconsistent values ??? ", outName, aKey
             zVal = aVal[aKey]
             if (zVal not in outList): outList += [zVal]
         except:
-            print
-            " TRY failed in unpackList ??? ", aVal
-            print
-            " "
+            print " TRY failed in unpackList ??? ", aVal
+            print " "
 
-    print
-    " from unpackList : ", outName, outList
+    print " from unpackList : ", outName, outList
     return (outName, outList)
 
 
@@ -370,8 +318,7 @@ def stripBlanks(inD):
                 newD[bKey] += [aItem]
 
     if (newD != inD):
-        print
-        " stripBlanks made a difference! "
+        print " stripBlanks made a difference! "
 
     return (newD)
 
@@ -380,10 +327,8 @@ def stripBlanks(inD):
 
 def flattenJSON(inJ):
     if (verboseFlag >= 77):
-        print
-        " >>> in flattenJSON ... "
-        print
-        json.dumps(inJ, indent=4)
+        print " >>> in flattenJSON ... "
+        print json.dumps(inJ, indent=4)
 
     outJ = {}
 
@@ -410,14 +355,10 @@ def flattenJSON(inJ):
     flatten(inJ)
 
     if (verboseFlag >= 77):
-        print
-        " "
-        print
-        " how does this look ??? "
-        print
-        " "
-        print
-        json.dumps(outJ, indent=4)
+        print " "
+        print " how does this look ??? "
+        print " "
+        print json.dumps(outJ, indent=4)
 
     return (outJ)
 
@@ -428,26 +369,18 @@ def flattenJSON(inJ):
 
 def getCaseTree(caseInfo):
     if (verboseFlag >= 5):
-        print
-        " "
-        print
-        " >>> in getCaseTree ... "
-        print
-        " "
+        print " "
+        print " >>> in getCaseTree ... "
+        print " "
 
     if (verboseFlag >= 33):
-        print
-        " raw dump : "
-        print
-        caseInfo
-        print
-        " ---------- "
-        print
-        " "
+        print " raw dump : "
+        print caseInfo
+        print " ---------- "
+        print " "
 
     cKeys = caseInfo.keys()
-    if (verboseFlag >= 33): print
-    " caseInfo.keys : ", cKeys
+    if (verboseFlag >= 33): print " caseInfo.keys : ", cKeys
 
     program_name = caseInfo['project']['program']['name']
     project_id = caseInfo['project']['project_id']
@@ -456,267 +389,222 @@ def getCaseTree(caseInfo):
     case_barcode = caseInfo['submitter_id'].strip()
 
     if ('sample_ids' not in cKeys):
-        print
-        "     --> this case has no samples, it seems ... ", case_gdc_id, case_barcode
+        print "     --> this case has no samples, it seems ... ", case_gdc_id, case_barcode
         return
 
     ## we should have a matching number of sample_ids and submitter_sample_ids
     sample_gdc_ids = caseInfo['sample_ids']
     sample_barcodes = caseInfo['submitter_sample_ids']
     if (verboseFlag >= 33):
-        print
-        len(sample_gdc_ids), sample_gdc_ids
-        print
-        len(sample_barcodes), sample_barcodes
+        print len(sample_gdc_ids), sample_gdc_ids
+        print len(sample_barcodes), sample_barcodes
 
-    if (verboseFlag >= 33): print
-    " digging into the samples ... "
+    if (verboseFlag >= 33): print " digging into the samples ... "
     v = caseInfo["samples"]
     numSamples = len(v)
-    if (verboseFlag >= 33): print
-    " numSamples : ", numSamples
+    if (verboseFlag >= 33): print " numSamples : ", numSamples
 
     for iSamp in range(numSamples):
-        if (verboseFlag >= 33): print
-        " iSamp : ", iSamp
+        if (verboseFlag >= 33): print " iSamp : ", iSamp
         u = v[iSamp]
         uKeys = u.keys()
 
         if (verboseFlag >= 33):
-            print
-            uKeys
-            print
-            " sample_gdc_id : ", u['sample_id']
-            print
-            " sample_barcode : ", u['submitter_id']
-            print
-            " sample_type : ", u['sample_type']
-            print
-            " sample_type_id : ", u['sample_type_id']
+            print uKeys
+            print " sample_gdc_id : ", u['sample_id']
+            print " sample_barcode : ", u['submitter_id']
+            print " sample_type : ", u['sample_type']
             try:
-                print
-                " sample_is_ffpe : ", u['is_ffpe']
+                print " sample_type_id : ", u['sample_type_id']
             except:
-                print
-                " NO is_ffpe field ... "
+                print " NO sample_type_id field ... "
             try:
-                print
-                " sample_preservation_method : ", u['preservation_method']
+                print " sample_is_ffpe : ", u['is_ffpe']
             except:
-                print
-                " NO preservation_method field ... "
+                print " NO is_ffpe field ... "
+            try:
+                print " sample_preservation_method : ", u['preservation_method']
+            except:
+                print " NO preservation_method field ... "
 
         sample_gdc_id = u['sample_id'].strip()
         sample_barcode = u['submitter_id'].strip()
         sample_type = u['sample_type'].strip()
-        sample_type_id = u['sample_type_id'].strip()
 
-        try:
-            sample_is_ffpe = str(u['is_ffpe'])
-        except:
-            sample_is_ffpe = ''
-
-        try:
-            if (u['preservation_method'] is None):
-                sample_preservation_method = ''
-            else:
-                sample_preservation_method = u['preservation_method'].strip()
-        except:
-            sample_preservation_method = ''
-
-        if ('portions' in uKeys):
+        #
+        # 1/19/2020: Don't use exception catches to handle lack of key. Also, "sample_type_id"
+        # is optional (e.g. FM) so treat it as such
+        # 2/10/2020: Some programs have "None" for sample_type_id. Having "" to create a null
+        # is preferable when value is not present.
+        sample_type_id = str(u['sample_type_id']) if 'sample_type_id' in u else ''
+        sample_is_ffpe = str(u['is_ffpe']) if 'is_ffpe' in u else ''
+        sample_preservation_method = \
+            u['preservation_method'].strip() if 'preservation_method' in u \
+                                                and u['preservation_method'] is not None \
+                                             else ''
+        if 'portions' in uKeys:
             w = u['portions']
             numPortions = len(w)
-            if (verboseFlag >= 33): print
-            " numPortions : ", numPortions
+            if (verboseFlag >= 33): print " numPortions : ", numPortions
 
             for iPort in range(numPortions):
-                if (verboseFlag >= 33): print
-                " iPort : ", iPort
+                if (verboseFlag >= 33): print " iPort : ", iPort
                 x = w[iPort]
                 xKeys = x.keys()
                 if (verboseFlag >= 33):
-                    print
-                    " x : ", x
-                    print
-                    " xKeys : ", xKeys
+                    print " x : ", x
+                    print " xKeys : ", xKeys
 
-                try:
-                    if (verboseFlag >= 33):
-                        print
-                        " portion_gdc_id : ", x['portion_id']
-                        print
-                        " portion_barcode : ", x['submitter_id']
-                    portion_gdc_id = x['portion_id'].strip()
-                    portion_barcode = x['submitter_id'].strip()
-                except:
-                    if (verboseFlag >= 33): print
-                    " failed to get portion_id and submitter_id ??? ", xKeys
-                    portion_gdc_id = "NA"
-                    portion_barcode = "NA"
+                # 1/19/2020: Previous code assumed that these could be treated uniformly: if
+                # one was not there, the other would be missing too. Incorrect (FM). Treat separately.
+                portion_gdc_id = x['portion_id'].strip() if 'portion_id' in xKeys else "NA"
+                portion_barcode = x['submitter_id'].strip() if 'submitter_id' in xKeys else "NA"
+                if (verboseFlag >= 33):
+                    print " portion_gdc_id : ", portion_gdc_id
+                    print " portion_barcode : ", portion_barcode
 
-                if ('slides' in xKeys):
+                if 'slides' in xKeys:
                     y = x['slides']
-                    if (verboseFlag >= 33): print
-                    " y : ", y
+                    if (verboseFlag >= 33): print " y : ", y
                     numSlides = len(y)
-                    if (verboseFlag >= 33): print
-                    " numSlides : ", numSlides
+                    if (verboseFlag >= 33): print " numSlides : ", numSlides
                     if (numSlides == 0):
-                        print
-                        " hmmmm no slides for this portion ? "
+                        # Make the warnings USEFUL with a case ID:
+                        print(" hmmmm no slides for this portion ? case {}".format(case_gdc_id))
                         slide_gdc_id = "NA"
-                        slid_gdc_barcode = "NA"
+                        slide_gdc_barcode = "NA"
                         fhS.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   portion_gdc_id, portion_barcode, \
-                                   slide_gdc_id, slide_barcode))
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   portion_gdc_id, portion_barcode,
+                                   slide_gdc_id, slide_gdc_barcode))
 
                     for iSlide in range(numSlides):
                         if (verboseFlag >= 33):
-                            print
-                            " slide_gdc_id : ", y[iSlide]['slide_id']
-                            print
-                            " slide_barcode : ", y[iSlide]['submitter_id']
+                            print " slide_gdc_id : ", y[iSlide]['slide_id']
+                            print " slide_barcode : ", y[iSlide]['submitter_id']
 
                         slide_gdc_id = y[iSlide]['slide_id'].strip()
                         slide_barcode = y[iSlide]['submitter_id'].strip()
 
                         fhS.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   portion_gdc_id, portion_barcode, \
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   portion_gdc_id, portion_barcode,
                                    slide_gdc_id, slide_barcode))
-                        if (verboseFlag >= 66): print
-                        " done with iSlide ", iSlide
+                        if (verboseFlag >= 66): print " done with iSlide ", iSlide
 
-                if ('analytes' in xKeys):
+                if 'analytes' in xKeys:
                     z = x['analytes']
                     numAnalytes = len(z)
-                    if (verboseFlag >= 33): print
-                    " numAnalytes : ", numAnalytes
+                    if (verboseFlag >= 33): print " numAnalytes : ", numAnalytes
                     if (numAnalytes == 0):
-                        print
-                        " hmmmm no analytes for this portion ? "
+                        print(" hmmmm no analytes for this portion ? case {} proj {}".format(case_gdc_id, project_id))
                         analyte_gdc_id = "NA"
                         analyte_barcode = "NA"
                         aliquot_gdc_id = "NA"
                         aliquot_barcode = "NA"
                         fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                  (program_name, project_id, \
-                                   case_gdc_id, case_barcode, \
-                                   sample_gdc_id, sample_barcode, \
-                                   sample_type_id, sample_type, \
-                                   sample_is_ffpe, sample_preservation_method, \
-                                   portion_gdc_id, portion_barcode, \
-                                   analyte_gdc_id, analyte_barcode, \
+                                  (program_name, project_id,
+                                   case_gdc_id, case_barcode,
+                                   sample_gdc_id, sample_barcode,
+                                   sample_type_id, sample_type,
+                                   sample_is_ffpe, sample_preservation_method,
+                                   portion_gdc_id, portion_barcode,
+                                   analyte_gdc_id, analyte_barcode,
                                    aliquot_gdc_id, aliquot_barcode))
 
                     for iA in range(numAnalytes):
                         a = z[iA]
                         aKeys = a.keys()
                         if (verboseFlag >= 33):
-                            print
-                            iA
-                            print
-                            " a : ", a
-                            print
-                            " aKeys : ", aKeys
-                        try:
-                            if (verboseFlag >= 33):
-                                print
-                                " analyte_gdc_id : ", a['analyte_id']
-                                print
-                                " analyte_barcode : ", a['submitter_id']
-                            analyte_gdc_id = a['analyte_id'].strip()
-                            analyte_barcode = a['submitter_id'].strip()
-                        except:
-                            if (verboseFlag >= 33): print
-                            " failed to get analyte_id and submitter_id ??? ", aKeys
-                            analyte_gdc_id = "NA"
-                            analyte_barcode = "NA"
+                            print iA
+                            print " a : ", a
+                            print " aKeys : ", aKeys
+                        # 1/19/2020: Same problem as elsewhere. Sometimes you have a gdc id where
+                        # there is no submitter barcode, since some projects do not follow the
+                        # GDC data model and only the GDC creates a synthetic entity.
+                        analyte_gdc_id = a['analyte_id'].strip() if 'analyte_id' in a else "NA"
+                        analyte_barcode = a['submitter_id'].strip() if 'submitter_id' in a else "NA"
+                        if (verboseFlag >= 33):
+                            print " analyte_gdc_id : ", analyte_gdc_id
+                            print " analyte_barcode : ", analyte_barcode
 
-                        if ('aliquots' in aKeys):
+                        if 'aliquots' in aKeys:
                             b = a['aliquots']
                             numAliquots = len(b)
-                            if (verboseFlag >= 33): print
-                            " numAliquots : ", numAliquots
-                            if (numAliquots == 0):
-                                print
-                                " hmmmm no aliquots for this analyte ? "
+                            if (verboseFlag >= 33): print " numAliquots : ", numAliquots
+                            if numAliquots == 0:
+                                print(" hmmmm no aliquots for this analyte ? case {} analyte {} proj {}".format(case_gdc_id, analyte_gdc_id, project_id))
                                 aliquot_gdc_id = "NA"
                                 aliquot_barcode = "NA"
                                 fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                          (program_name, project_id, \
-                                           case_gdc_id, case_barcode, \
-                                           sample_gdc_id, sample_barcode, \
-                                           sample_type_id, sample_type, \
-                                           sample_is_ffpe, sample_preservation_method, \
-                                           portion_gdc_id, portion_barcode, \
-                                           analyte_gdc_id, analyte_barcode, \
+                                          (program_name, project_id,
+                                           case_gdc_id, case_barcode,
+                                           sample_gdc_id, sample_barcode,
+                                           sample_type_id, sample_type,
+                                           sample_is_ffpe, sample_preservation_method,
+                                           portion_gdc_id, portion_barcode,
+                                           analyte_gdc_id, analyte_barcode,
                                            aliquot_gdc_id, aliquot_barcode))
 
                             for iB in range(numAliquots):
                                 c = b[iB]
                                 if (verboseFlag >= 33):
-                                    print
-                                    iB
-                                    print
-                                    " c : ", c
-                                    print
-                                    " aliquot_gdc_id : ", c['aliquot_id']
-                                    print
-                                    " aliquot_barcode : ", c['submitter_id']
+                                    print iB
+                                    print " c : ", c
+                                    print " aliquot_gdc_id : ", c['aliquot_id']
+                                    print " aliquot_barcode : ", c['submitter_id']
 
                                 aliquot_gdc_id = c['aliquot_id'].strip()
                                 aliquot_barcode = c['submitter_id'].strip()
                                 fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                          (program_name, project_id, \
-                                           case_gdc_id, case_barcode, \
-                                           sample_gdc_id, sample_barcode, \
-                                           sample_type_id, sample_type, \
-                                           sample_is_ffpe, sample_preservation_method, \
-                                           portion_gdc_id, portion_barcode, \
-                                           analyte_gdc_id, analyte_barcode, \
+                                          (program_name, project_id,
+                                           case_gdc_id, case_barcode,
+                                           sample_gdc_id, sample_barcode,
+                                           sample_type_id, sample_type,
+                                           sample_is_ffpe, sample_preservation_method,
+                                           portion_gdc_id, portion_barcode,
+                                           analyte_gdc_id, analyte_barcode,
                                            aliquot_gdc_id, aliquot_barcode))
 
                         else:
-                            print
-                            " hmmmm no aliquots for this analyte ? "
+                            print(" hmmmm no aliquots for this analyte ? case {} analyte {} proj {}".format(case_gdc_id,
+                                                                                                            analyte_gdc_id, project_id))
                             aliquot_gdc_id = "NA"
                             aliquot_barcode = "NA"
 
                             fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                                      (program_name, project_id, \
-                                       case_gdc_id, case_barcode, \
-                                       sample_gdc_id, sample_barcode, \
-                                       sample_type_id, sample_type, \
-                                       sample_is_ffpe, sample_preservation_method, \
-                                       portion_gdc_id, portion_barcode, \
-                                       analyte_gdc_id, analyte_barcode, \
+                                      (program_name, project_id,
+                                       case_gdc_id, case_barcode,
+                                       sample_gdc_id, sample_barcode,
+                                       sample_type_id, sample_type,
+                                       sample_is_ffpe, sample_preservation_method,
+                                       portion_gdc_id, portion_barcode,
+                                       analyte_gdc_id, analyte_barcode,
                                        aliquot_gdc_id, aliquot_barcode))
 
-                else:
-                    print
-                    " hmmmm no analytes for this portion ? "
+                elif 'slides' not in xKeys:
+                    # 1/19/2020: Previously, this fired off *every* time there was a portion
+                    # with just slides and no analytes. Fix that.
+                    print(" hmmmm no analytes or slides for this portion ? case {} proj {}".format(case_gdc_id, project_id))
                     analyte_gdc_id = "NA"
                     analyte_barcode = "NA"
                     aliquot_gdc_id = "NA"
                     aliquot_barcode = "NA"
 
                     fhQ.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % \
-                              (program_name, project_id, \
-                               case_gdc_id, case_barcode, \
-                               sample_gdc_id, sample_barcode, \
-                               sample_type_id, sample_type, \
-                               sample_is_ffpe, sample_preservation_method, \
-                               portion_gdc_id, portion_barcode, \
-                               analyte_gdc_id, analyte_barcode, \
+                              (program_name, project_id,
+                               case_gdc_id, case_barcode,
+                               sample_gdc_id, sample_barcode,
+                               sample_type_id, sample_type,
+                               sample_is_ffpe, sample_preservation_method,
+                               portion_gdc_id, portion_barcode,
+                               analyte_gdc_id, analyte_barcode,
                                aliquot_gdc_id, aliquot_barcode))
 
 
@@ -724,12 +612,9 @@ def getCaseTree(caseInfo):
 
 def get_case_info(cases_endpt, case_id):
     if (verboseFlag >= 3):
-        print
-        " "
-        print
-        " >>> in get_case_info ... ", cases_endpt, case_id
-        print
-        " "
+        print " "
+        print " >>> in get_case_info ... ", cases_endpt, case_id
+        print " "
 
     global cases_fields
 
@@ -781,93 +666,82 @@ def get_case_info(cases_endpt, case_id):
     params = {'fields': fieldsList,
               'filters': json.dumps(filt)}
 
-    if (verboseFlag >= 9): print
-    " get request ", cases_endpt, params
+    if (verboseFlag >= 9): print " get request ", cases_endpt, params
 
+    # 1/19/2020 See discussion below on revising the retry timing.
     iTry = 0
-    sleepTime = 0.1
-    ## outer loop for multiple retries ...
-    while (iTry < 10):
+    sleepTime = 1
+    while iTry < 11:
 
-        if (iTry == 9):
-            print
-            " HOLY COW WHAT IS GOING ON ??? !!! "
+        if iTry == 10:
+            print " HOLY COW WHAT IS GOING ON ??? !!! "
 
         if (iTry > 0):
-            print
-            " >>>> trying again ... ", iTry + 1, sleepTime
+            print " >>>> trying again ... ", iTry + 1, sleepTime
             time.sleep(sleepTime)
-            sleepTime = sleepTime * 1.5
-            if (sleepTime > 60.): sleepTime = 60.
+            sleepTime = sleepTime * 2
+            if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:
-            if (verboseFlag >= 9): print
-            " get request ", cases_endpt, params
+            if (verboseFlag >= 9): print " get request ", cases_endpt, params
             response = requests.get(cases_endpt, params=params, timeout=60.0)
         except:
-            print
-            " ERROR !!! requests.get() call FAILED ??? (b) "
+            print " ERROR !!! requests.get() call FAILED ??? (b) Going to retry..."
+            response = None
 
-        try:
-            if (verboseFlag >= 9): print
-            " now parsing json response ... "
-            rj = response.json()
-            if (verboseFlag >= 5):
-                print
-                json.dumps(rj, indent=4)
-            if (len(rj['data']['hits']) != 1):
-                if (len(rj['data']['hits']) >= 1):
-                    print
-                    " HOW DID THIS HAPPEN ??? more than one case ??? !!! ", len(rj['data']['hits'])
-                else:
-                    print
-                    " NOTHING came back for this case ??? ", case_id
-            caseInfo = rj['data']['hits'][0]
 
-            ## before we flatten this structure, we need to get the
-            ## complete case -> sample -> aliquot relationship ...
+        # Don't try to parse the response if we never got a response:
+        if response is not None:
             try:
-                caseTree = getCaseTree(caseInfo)
-            except:
-                print
-                " WARNING !!! failed in getCaseTree !!! "
+                if (verboseFlag >= 9): print " now parsing json response ... "
+                rj = response.json()
+                if (verboseFlag >= 5):
+                    print json.dumps(rj, indent=4)
+                if (len(rj['data']['hits']) != 1):
+                    if (len(rj['data']['hits']) >= 1):
+                        print " HOW DID THIS HAPPEN ??? more than one case ??? !!! ", len(rj['data']['hits'])
+                    else:
+                        print " NOTHING came back for this case ??? ", case_id
+                caseInfo = rj['data']['hits'][0]
 
-            if (verboseFlag >= 9): print
-            " calling flattenJSON ... "
-            caseInfo = flattenJSON(caseInfo)
+                ## before we flatten this structure, we need to get the
+                ## complete case -> sample -> aliquot relationship ...
 
-            fields = caseInfo.keys()
-            fields.sort()
+                try:
+                    caseTree = getCaseTree(caseInfo)
+                except Exception, ex:
+                    print(" WARNING !!! failed in getCaseTree !!! case: {}".format(case_id))
+                    print(str(ex))
 
-            for aField in fields:
-                if (aField not in cases_fields):
-                    if (verboseFlag >= 1):
-                        print
-                        " adding new field to cases_fields list : <%s> " % aField
-                    cases_fields += [aField]
+                if (verboseFlag >= 9): print " calling flattenJSON ... "
+                caseInfo = flattenJSON(caseInfo)
 
-            return (caseInfo)
+                fields = caseInfo.keys()
+                fields.sort()
 
-        except:
-            print
-            " ERROR in get_case_info ??? failed to get any information about this case ??? ", case_id
+                for aField in fields:
+                    if (aField not in cases_fields):
+                        if (verboseFlag >= 1):
+                            print " adding new field to cases_fields list : <%s> " % aField
+                        cases_fields += [aField]
+
+                return (caseInfo)
+
+            except Exception, ex:
+                # Note that this error in parsing will cause a retry:
+                print " ERROR in get_case_info ??? failed to get any information about this case ??? ", case_id
+                print(str(ex))
 
     return ({})
-
-    ## sys.exit(-1)
-
 
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 def get_file_info_by_case(files_endpt, case_id, numExpected):
     if (verboseFlag >= 3):
-        print
-        " "
-        print
-        " >>> in get_file_info_by_case ... ", files_endpt, case_id
-        print
-        " "
+        print " "
+        print " >>> in get_file_info_by_case ... ", files_endpt, case_id
+        print " "
 
     global files_fields
 
@@ -906,75 +780,69 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
               'from': 0,
               'size': maxNumFiles}
 
-    if (verboseFlag >= 9): print
-    " get request ", files_endpt, params
+    if (verboseFlag >= 9): print " get request ", files_endpt, params
 
+    # 1/19/2020 We have seen a number of failures in the GDC endpoint that trash the run, which takes
+    # several days. The previous version does the first retry after waiting 1/10 of a second. Then
+    # it increases that number by a factor of 1.5 each round, finally getting to a whopping 3.8 seconds
+    # in the last delay.
+    # If we really are hitting a failed API, we would rather slow *way* down to try and keep the whole
+    # thing going. So start with a 1 second delay, and crank it up to 10 minutes (600 seconds) if that's
+    # what it takes to try and *push through* the problem. If the API is really that dead, we can manually
+    # kill it.
     iTry = 0
-    sleepTime = 0.1
-    while (iTry < 10):
+    sleepTime = 1
+    while iTry < 11:
 
-        if (iTry == 9):
-            print
-            " HOLY COW WHAT IS GOING ON ??? !!! "
+        if iTry == 10:
+            print " HOLY COW WHAT IS GOING ON ??? !!! "
 
         if (iTry > 0):
-            print
-            " >>>> trying again ... ", iTry + 1, sleepTime
+            print " >>>> trying again ... ", iTry + 1, sleepTime
             time.sleep(sleepTime)
-            sleepTime = sleepTime * 1.5
-            if (sleepTime > 60.): sleepTime = 60.
+            sleepTime = sleepTime * 2
+            if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:
-            if (verboseFlag >= 9): print
-            " get request ", files_endpt, params
+            if (verboseFlag >= 9): print " get request ", files_endpt, params
             response = requests.get(files_endpt, params=params, timeout=60.0)
         except:
-            print
-            " ERROR !!! requests.get() call FAILED ??? (c) "
+            print(" ERROR !!! requests.get() call FAILED ??? (c) case: {} ".format(case_id))
             continue
 
         ## check response status_code
         try:
-            if (verboseFlag >= 3): print
-            " response status_code : ", response.status_code
+            if (verboseFlag >= 3): print " response status_code : ", response.status_code
             if (response.status_code != 200):
-                print
-                " --> BAD status_code returned !!! ", response.status_code
+                print " --> BAD status_code returned !!! ", response.status_code
                 continue
         except:
-            print
-            " ERROR just in looking for status_code ??? !!! "
+            print(" ERROR just in looking for status_code ??? !!!  {} ".format(case_id))
             continue
 
         try:
-            if (verboseFlag >= 9): print
-            " now parsing json response ... "
+            if (verboseFlag >= 9): print " now parsing json response ... "
             rj = response.json()
 
             numFiles = len(rj['data']['hits'])
             if (verboseFlag >= 9):
-                print
-                "     --> got back information for %d files " % numFiles
+                print "     --> got back information for %d files " % numFiles
             if (verboseFlag >= 13):
-                print
-                json.dumps(rj, indent=4)
+                print json.dumps(rj, indent=4)
 
             if (numFiles >= maxNumFiles):
-                print
-                " ERROR ??? need to increase maxNumFiles limit !!! ??? "
+                print(" ERROR ??? need to increase maxNumFiles limit !!! ??? {} ".format(case_id))
                 sys.exit(-1)
 
             if (numFiles < numExpected):
-                print
-                " ERROR ??? did not get back all of the files we were expecting ??? !!! "
-                print
-                "     expecting %d ... got back %d " % (numExpected, numFiles)
+                print(" ERROR ??? did not get back all of the files we were expecting ??? !!!  {} ".format(case_id))
+                print("     expecting %d ... got back %d " % (numExpected, numFiles))
                 sys.exit(-1)
 
             if (numFiles != numExpected):
-                print
-                " ERROR ??? number of files does not match expected number ??? (%d,%d) " % (numFiles, numExpected)
+                print " ERROR ??? number of files does not match expected number ??? (%d,%d) " % (numFiles, numExpected)
+                print(" case  {} ".format(case_id))
 
             ## if the number of files we get back is greater than or equal to
             ## what's expected, let's just go with it ...
@@ -995,8 +863,7 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
                     for aField in fields:
                         if (aField not in files_fields):
                             if (verboseFlag >= 1):
-                                print
-                                " adding new field to files_fields list : ", aField
+                                print " adding new field to files_fields list : ", aField
                             files_fields += [aField]
 
                 return (fileInfoVec)
@@ -1004,19 +871,15 @@ def get_file_info_by_case(files_endpt, case_id, numExpected):
                 ## otherwise let's go back and try again ...
 
         except:
-            print
-            " ERROR in get_file_info_by_case ??? failed to get any information about this case ??? ", case_id
+            print " ERROR in get_file_info_by_case ??? failed to get any information about this case ??? ", case_id
 
             ## go back and try again ...
 
     ## returning EMPTY HANDED ???
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " --> returning EMPTY HANDED from get_file_info_by_case ??? ERROR ??? ", case_id, numExpected
-        print
-        " "
+        print " "
+        print " --> returning EMPTY HANDED from get_file_info_by_case ??? ERROR ??? ", case_id, numExpected
+        print " "
 
     return ({})
 
@@ -1036,17 +899,13 @@ def get_fileID_list(caseInfo):
         pass
 
     if (len(fileID_list) != file_count):
-        print
-        " WARNING ??? !!! the number of file IDs returned is not as expected ??? ", file_count, len(fileID_list)
-        print
-        json.dumps(caseInfo, indent=4)
+        print " WARNING ??? !!! the number of file IDs returned is not as expected ??? ", file_count, len(fileID_list)
+        print json.dumps(caseInfo, indent=4)
         return (file_count, fileID_list)
 
     if (verboseFlag >= 7):
-        print
-        len(fileID_list)
-        print
-        fileID_list
+        print len(fileID_list)
+        print fileID_list
 
     return (file_count, fileID_list)
 
@@ -1057,14 +916,10 @@ def examineCasesInfo(caseID_dict):
     cases_fields.sort()
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in examineCasesInfo ... ", len(caseID_dict)
-        print
-        " "
-        print
-        cases_fields
+        print " "
+        print " >>> in examineCasesInfo ... ", len(caseID_dict)
+        print " "
+        print cases_fields
 
     ## let's explore the various properties that have been collected
     ## for each of the CASEs ...
@@ -1076,27 +931,19 @@ def examineCasesInfo(caseID_dict):
     for case_id in caseID_dict:
 
         if (len(caseID_dict[case_id]) > 1):
-            print
-            " WHAT ??? "
-            print
-            len(caseID_dict[case_id])
-            print
-            " FATAL ERROR in examineCasesInfo "
+            print " WHAT ??? "
+            print len(caseID_dict[case_id])
+            print " FATAL ERROR in examineCasesInfo "
             sys.exit(-1)
 
         caseInfo = caseID_dict[case_id][0]
 
         if (verboseFlag >= 9):
-            print
-            " for this case_id : ", case_id
-            print
-            " got this : "
-            print
-            caseInfo
-            print
-            " "
-            print
-            " "
+            print " for this case_id : ", case_id
+            print " got this : "
+            print caseInfo
+            print " "
+            print " "
 
         if (1):
             for aField in cases_fields:
@@ -1121,14 +968,11 @@ def examineCasesInfo(caseID_dict):
     for aField in cases_fields:
         numV = len(caseFieldValues[aField])
         if (numV > 0 and numV < 50):
-            if (verboseFlag >= 2): print
-            aField, caseFieldValues[aField]
+            if (verboseFlag >= 2): print aField, caseFieldValues[aField]
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " "
+        print " "
+        print " "
 
     return
 
@@ -1139,14 +983,10 @@ def examineFilesInfo(fileID_dict):
     files_fields.sort()
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in examineFilesInfo ... ", len(fileID_dict)
-        print
-        " "
-        print
-        files_fields
+        print " "
+        print " >>> in examineFilesInfo ... ", len(fileID_dict)
+        print " "
+        print files_fields
 
     ## and now let's do the same for each of the FILEs ...
 
@@ -1157,27 +997,19 @@ def examineFilesInfo(fileID_dict):
     for file_id in fileID_dict:
 
         if (len(fileID_dict[file_id]) > 1):
-            print
-            " WHAT (file) ??? "
-            print
-            len(fileID_dict[file_id])
-            print
-            " FATAL ERROR in examineFilesInfo "
+            print " WHAT (file) ??? "
+            print len(fileID_dict[file_id])
+            print " FATAL ERROR in examineFilesInfo "
             sys.exit(-1)
 
         fileInfo = fileID_dict[file_id][0]
 
         if (verboseFlag >= 9):
-            print
-            " for this file_id : ", file_id
-            print
-            " got this : "
-            print
-            fileInfo
-            print
-            " "
-            print
-            " "
+            print " for this file_id : ", file_id
+            print " got this : "
+            print fileInfo
+            print " "
+            print " "
 
         for aField in files_fields:
             ## print " "
@@ -1201,14 +1033,11 @@ def examineFilesInfo(fileID_dict):
     for aField in files_fields:
         numV = len(fileFieldValues[aField])
         if (numV > 0 and numV < 50):
-            if (verboseFlag >= 2): print
-            aField, fileFieldValues[aField]
+            if (verboseFlag >= 2): print aField, fileFieldValues[aField]
 
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " "
+        print " "
+        print " "
 
     return
 
@@ -1237,12 +1066,9 @@ def mergeStrings(aVec, nMax):
 
 def writeFileTable4BigQuery(fh, dbName, fileID_dict):
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in writeFileTablesBigQuery ... ", len(fileID_dict)
-        print
-        " "
+        print " "
+        print " >>> in writeFileTablesBigQuery ... ", len(fileID_dict)
+        print " "
 
     hdrFlag = 1
     hdrLine = ''
@@ -1252,20 +1078,13 @@ def writeFileTable4BigQuery(fh, dbName, fileID_dict):
         fileInfo = fileID_dict[file_id][0]
 
         if (verboseFlag >= 1):
-            print
-            " for this file_id : ", file_id
-            print
-            " got this : "
-            print
-            fileInfo
-            print
-            " "
-            print
-            " "
-            print
-            " files_fields : "
-            print
-            files_fields
+            print " for this file_id : ", file_id
+            print " got this : "
+            print fileInfo
+            print " "
+            print " "
+            print " files_fields : "
+            print files_fields
 
         ## build up the output line ...
 
@@ -1298,12 +1117,9 @@ def writeFileTable4BigQuery(fh, dbName, fileID_dict):
 
 def writeCaseTable4BigQuery(fh, dbName, caseID_dict):
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in writeCaseTable4BigQuery ... ", len(caseID_dict)
-        print
-        " "
+        print " "
+        print " >>> in writeCaseTable4BigQuery ... ", len(caseID_dict)
+        print " "
 
     hdrFlag = 1
     hdrLine = ''
@@ -1313,20 +1129,13 @@ def writeCaseTable4BigQuery(fh, dbName, caseID_dict):
         caseInfo = caseID_dict[case_id][0]
 
         if (verboseFlag >= 1):
-            print
-            " for this case_id : ", case_id
-            print
-            " got this : "
-            print
-            caseInfo
-            print
-            " "
-            print
-            " "
-            print
-            " cases_fields : "
-            print
-            cases_fields
+            print " for this case_id : ", case_id
+            print " got this : "
+            print caseInfo
+            print " "
+            print " "
+            print " cases_fields : "
+            print cases_fields
 
         ## build up the output line ...
 
@@ -1359,30 +1168,20 @@ def writeCaseTable4BigQuery(fh, dbName, caseID_dict):
 
 def writeOneFile4BQ(fh, dbName, file_id, fileInfo):
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in writeOneFile4BQ ... ", file_id
-        print
-        " "
+        print " "
+        print " >>> in writeOneFile4BQ ... ", file_id
+        print " "
 
     if (1):
 
         if (verboseFlag >= 1):
-            print
-            " for this file_id : ", file_id
-            print
-            " got this : "
-            print
-            fileInfo
-            print
-            " "
-            print
-            " "
-            print
-            " files_fields : "
-            print
-            files_fields
+            print " for this file_id : ", file_id
+            print " got this : "
+            print fileInfo
+            print " "
+            print " "
+            print " files_fields : "
+            print files_fields
 
         ## build up the output line ...
 
@@ -1406,30 +1205,20 @@ def writeOneFile4BQ(fh, dbName, file_id, fileInfo):
 
 def writeOneCase4BQ(fh, dbName, case_id, caseInfo):
     if (verboseFlag >= 1):
-        print
-        " "
-        print
-        " >>> in writeOneCase4BQ ... ", case_id
-        print
-        " "
+        print " "
+        print " >>> in writeOneCase4BQ ... ", case_id
+        print " "
 
     if (1):
 
         if (verboseFlag >= 1):
-            print
-            " for this case_id : ", case_id
-            print
-            " got this : "
-            print
-            caseInfo
-            print
-            " "
-            print
-            " "
-            print
-            " cases_fields : "
-            print
-            cases_fields
+            print " for this case_id : ", case_id
+            print " got this : "
+            print caseInfo
+            print " "
+            print " "
+            print " cases_fields : "
+            print cases_fields
 
         ## build up the output line ...
 
@@ -1447,8 +1236,7 @@ def writeOneCase4BQ(fh, dbName, case_id, caseInfo):
                     outLine += '\t'
 
         fh.write("%s\n" % outLine)
-        if (verboseFlag >= 1): print
-        " wrote output line "
+        if (verboseFlag >= 1): print " wrote output line "
 
 
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1464,6 +1252,7 @@ def main(args):
         verboseFlag = 0
     else:
         verboseFlag = args.verbosity
+        print("Verbosity level {}".format(verboseFlag))
 
     ## define where the data is going to come from ...
     if (args.endpoint.lower().find("leg") >= 0):
@@ -1481,10 +1270,8 @@ def main(args):
         GDC_endpts['active']['files'] = "https://api.gdc.cancer.gov/files"
 
     else:
-        print
-        " invalid endpoint flag : ", args.endpoint
-        print
-        " should be either legacy or active "
+        print " invalid endpoint flag : ", args.endpoint
+        print " should be either legacy or active "
         sys.exit(-1)
 
     fName = "caseData.bq." + uuidStr + ".tsv"
@@ -1510,15 +1297,13 @@ def main(args):
         if args.case_ids is not None:
             caseID_map = {}
             with open(args.case_ids) as f:
-                caseID_map[f.readline()] = ''
+                for line in f:
+                    caseID_map[line.rstrip()] = ''
 
         elif args.case_id is None:
-            print
-            " "
-            print
-            " "
-            print
-            " Querying GDC database %s for all cases and files " % dbName
+            print " "
+            print " "
+            print " Querying GDC database %s for all cases and files " % dbName
 
             ## the first step is to use the "cases" endpt and get the "case_id"
             ## and "submitter_id" for ALL cases known to this endpt
@@ -1532,31 +1317,21 @@ def main(args):
                                GDC_endpts[dbName]['files'], \
                                caseID_map, dbName, case_fh2, file_fh2)
 
-        print
-        " DONE processing %s database " % dbName
-        print
-        " "
+        print " DONE processing %s database " % dbName
+        print " "
         cases_fields.sort()
         files_fields.sort()
-        print
-        " cases fields : "
+        print " cases fields : "
         for aField in cases_fields:
-            print
-            "     ", aField
-        print
-        " "
-        print
-        " files fields : "
+            print "     ", aField
+        print " "
+        print " files fields : "
         for aField in files_fields:
-            print
-            "     ", aField
-        print
-        " "
+            print "     ", aField
+        print " "
 
-        print
-        " "
-        print
-        " "
+        print " "
+        print " "
 
         examineCasesInfo(caseID_dict)
         examineFilesInfo(fileID_dict)
@@ -1571,15 +1346,12 @@ def main(args):
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 if __name__ == '__main__':
-    print
-    " "
-    print
-    " RUNNING ... ", uuidStr
-    print
-    " "
+    print " "
+    print " RUNNING ... ", uuidStr
+    print " "
 
     parser = argparse.ArgumentParser(description="Query the GDC endpoints for case and file metadata")
-    parser.add_argument("-v", "--verbosity", type=int, help="Verbosity (0 to 999) Can get ginormous if > 0")
+    parser.add_argument("-v", "--verbosity", type=int, help="Verbosity (0 to 999) Can get ginormous (~100M/case) if > 0")
     parser.add_argument("-e", "--endpoint", type=str, help="either legacy or active", required=True)
     parser.add_argument("-i", "--case_id", type=str, help="single case GUID")
     parser.add_argument("-s", "--case_ids", type=str, help="file with multiple case GUIDs")

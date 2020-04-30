@@ -16,10 +16,27 @@
 
 # Set to a release tag (e.g. rel18)
 RELNAME=relXX
+# Set to previous release if doing comparisons of release changes
+PREV_RELNAME=relXXminusOne
 # Where TSV files get written on the way to BQ tables:
 BUCK_TARGET=gs://your-bucket-name-here/etl/${RELNAME}
+# Where the BQ data set lives (dataset_name)
+DATASET=your_dataset_name
+# Project where the etl work is being done
+WORKING_PROJECT=your-etl-project
 # Where the BQ data set lives (project:dataset_name)
-DATASET=your-etl-project:your_dataset_name
+PROJ_AND_DATASET=${WORKING_PROJECT}:${DATASET}
+# Where do we store the compressed tar file of the extracted data:
+TAR_TARGET=gs://your-bucket-name-here/metatars/${RELNAME}
+# The release ID in BQ Schema repo (might be different than RELNAME):
+BQ_SCHEMA_RELNAME=relXX
+# The published release ID (might be different than RELNAME):
+PUB_RELNAME=relXX
+# The publication source:
+SOURCE_PROJ_AND_DATASET_AND_REL=${WORKING_PROJECT}.${DATASET}.${RELNAME}
+# The publication location:
+PUBLISH_PROJ_AND_DATASET_AND_REL=your-publish-project.your-publish-dataset.${PUB_RELNAME}
+
 
 #
 # These have been stable for many releases, so we expect them to stay the
@@ -48,25 +65,43 @@ EXPECTED_LEGACY_FILE_COUNT_COL="30"
 EXPECTED_CURRENT_FILE_COUNT_COL="31"
 EXPECTED_ERROR_COL="30"
 
+ALIQUOT_CHANGE_ID_FIELD="2"
+SLIDE_CHANGE_ID_FIELD="2"
+CASE_CHANGE_ID_FIELD="0"
+CURR_FILE_CHANGE_ID_FIELD="0"
+LEG_FILE_CHANGE_ID_FIELD="0"
+
+ALIQUOT_CHANGE_TSV_ID_FIELD="14"
+SLIDE_CHANGE_TSV_ID_FIELD="10"
+CASE_CHANGE_TSV_ID_FIELD="0"
+CURR_FILE_CHANGE_TSV_ID_FIELD="1"
+LEG_FILE_CHANGE_TSV_ID_FIELD="1"
+
 #
 # These flags tell the script what to do. This allows the user to do the workflow step-by-step as desired.
-# Actual values are set in the setEnvVarsGDCMetadata.sh file, **not here**. This script should, in practice,
-# not need to be edited as things change from release to release!
 #
-# Important! The BUILD_DIR and API_PULL steps (PHASE I) MUST NOT be run with the following steps. The API
+# Important! The BUILD_DIR and API_PULL_* steps (PHASE I) MUST NOT be run with the following steps. The API
 # pull steps runs for days, and will exit immediately after nohupping the jobs
 #
 
-BUILD_DIR=skip
-API_PULL=skip
-HEX_EXTRACT=run
-CURR_FILE_CHECK=run
-LEG_FILE_CHECK=run
-QC_CHECK=run
-GEN_CUT_LISTS=run
-BQ_PREP_CASES=run
-BQ_PREP_OTHER=run
-RAW_SCHEMA_CHECK=run
-COPY_ANNOT_SCHEMA=run
-LOAD_BQ=run
+BUILD_DIR=run
+API_PULL_LEGACY=skip
+API_PULL_CURRENT=run
+HEX_EXTRACT=skip
+CURR_FILE_CHECK=skip
+LEG_FILE_CHECK=skip
+QC_CHECK=skip
+GEN_CUT_LISTS=skip
+BQ_PREP_CASES=skip
+BQ_PREP_OTHER=skip
+RAW_SCHEMA_CHECK=skip
+OUTPUT_LOOK_FILES=skip
+BUILD_NORM_TSVS=skip
+COMPARE_TO_LAST=skip
+DETAILED_DIFFS=skip
+COPY_ANNOT_SCHEMA=skip
+LOAD_BQ=skip
+DESC_AND_LABELS=skip
+PUBLISH_TABLES=skip
+ARCHIVE_TARS=skip
 

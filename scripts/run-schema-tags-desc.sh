@@ -21,17 +21,12 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ManifestBQBuild.yaml .
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/UpdateBQFromSchemas.yaml .
 popd > /dev/null
-
-
-
-
-
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./DCF-Manifest-Pulls/build_dcf_manifest_bq_tables.py ~/config/ManifestBQBuild.yaml
+python3 ./BQ_Table_Building/install_bq_desc_labels_schema.py ~/config/UpdateBQFromSchemas.yaml
 deactivate

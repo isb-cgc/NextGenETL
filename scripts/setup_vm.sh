@@ -50,9 +50,18 @@ python3 -m pip install google-api-python-client
 python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
 python3 -m pip install PyYaml
+python3 -m pip install gitpython
 # used by build_schema:
 python3 -m pip install python-dateutil
 deactivate
+
+# Make a place for schemas to be placed:
+
+mkdir -p ~/schemaRepo
+
+# Make a place for scratch files:
+
+mkdir -p ~/scratch
 
 # Install Libraries From GitHub
 # We need the ISB-CGC schema builder
@@ -74,6 +83,7 @@ chmod u+x *.sh
 
 mv setEnvVars.sh ~
 echo "Be sure to now customize the ~/setEnvVars.sh file to your system!"
+
 
 
 

@@ -1,4 +1,3 @@
-[
     {"name": "dbName", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "file_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "access", "type": "string", "mode": "nullable", "description": "<add description here>"},
@@ -41,4 +40,3 @@
     {"name": "submitter_id", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "type", "type": "string", "mode": "nullable", "description": "<add description here>"},
     {"name": "updated_datetime", "type": "string", "mode": "nullable", "description": "<add description here>"}
-]

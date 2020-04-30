@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./GDC-Metadata-Processing/build_release_metadata_bq_tables.py ~/config/MetadataForRelease.yaml
+python3 ./GDC-Metadata-Processing/build_release_metadata_bq_tables_v2.py ~/config/MetadataForRelease.yaml
 deactivate

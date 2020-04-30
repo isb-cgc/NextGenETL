@@ -1,6 +1,6 @@
 """
 
-Copyright 2019, Institute for Systems Biology
+Copyright 2019-2020, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ limitations under the License.
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import exceptions
+from google.cloud.exceptions import NotFound
 import shutil
 import os
 import requests
@@ -432,6 +433,26 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     blob.download_to_filename(local_file)
     return
 
+
+def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target_bucket_file=None):
+    """
+    Get a Bucket File to another bucket
+    No leading / in bucket_file name!!
+    Target bucket is the same as source, unless provided
+    """
+    storage_client = storage.Client()
+    source_bucket = storage_client.bucket(source_bucket_name)
+    source_blob = source_bucket.blob(bucket_file)  # no leading / in blob name!!
+
+    destination_bucket = storage_client.bucket(target_bucket_name)
+
+    if target_bucket_file is None:
+        target_bucket_file = bucket_file
+    source_bucket.copy_blob(source_blob, destination_bucket, target_bucket_file)
+    return
+
+
+
 def build_manifest_filter(filter_dict_list):
     """
     Build a manifest filter using the list of filter items you can get from a GDC search
@@ -791,6 +812,7 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
     """
     Upload to Google Bucket
     Large files have to be in a bucket for them to be ingested into Big Query. This does this.
+    This function is also used to archive files.
     """
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(target_tsv_bucket)
@@ -985,30 +1007,39 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
+    try:
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema = json_loads(schema_hold_dict.read())
 
-    with open(schema_dict_loc, mode='r') as schema_hold_dict:
-        full_schema = json_loads(schema_hold_dict.read())
+        success = update_schema_with_dict(target_dataset, dest_table, full_schema)
+        if not success:
+            return False
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
 
-    update_schema_with_dict(target_dataset, dest_table, full_schema)
-    return True
-
-
-def update_schema_with_dict(target_dataset, dest_table, full_schema):
+def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
     """
-    client = bigquery.Client()
-    table_ref = client.dataset(target_dataset).table(dest_table)
-    table = client.get_table(table_ref)
-    orig_schema = table.schema
-    new_schema = []
-    for old_sf in orig_schema:
-        new_desc = full_schema[old_sf.name]['description']
-        new_sf = bigquery.SchemaField(old_sf.name, old_sf.field_type, description=new_desc)
-        new_schema.append(new_sf)
-    table.schema = new_schema
-    table = client.update_table(table, ["schema"])
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        orig_schema = table.schema
+        new_schema = []
+        for old_sf in orig_schema:
+            new_desc = full_schema[old_sf.name]['description']
+            new_sf = bigquery.SchemaField(old_sf.name, old_sf.field_type, description=new_desc)
+            new_schema.append(new_sf)
+        table.schema = new_schema
+        table = client.update_table(table, ["schema"])
+    except Exception as ex:
+        print(ex)
+        return False
+
     return True
 
 def update_description(target_dataset, dest_table, desc):
@@ -1023,7 +1054,26 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
+def bq_table_exists(target_dataset, dest_table):
+    """
+    Does table exist?
+    """
+    client = bigquery.Client()
+    table_ref = client.dataset(target_dataset).table(dest_table)
+    try:
+        client.get_table(table_ref)
+        return True
+    except NotFound:
+        return False
 
+def bq_table_is_empty(target_dataset, dest_table):
+    """
+    Is table empty?
+    """
+    client = bigquery.Client()
+    table_ref = client.dataset(target_dataset).table(dest_table)
+    table = client.get_table(table_ref)
+    return table.num_rows == 0
 
 def delete_table_bq_job(target_dataset, delete_table):
     client = bigquery.Client()
@@ -1033,6 +1083,9 @@ def delete_table_bq_job(target_dataset, delete_table):
         print('Table {}:{} deleted'.format(target_dataset, delete_table))
     except exceptions.NotFound as ex:
         print('Table {}:{} was not present'.format(target_dataset, delete_table))
+    except Exception as ex:
+        print(ex)
+        return False
 
     return True
 
@@ -1125,4 +1178,245 @@ def list_schema(source_dataset, source_table):
     src_schema = src_table.schema
     for src_sf in src_schema:
         print(src_sf.name, src_sf.field_type, src_sf.description)
+    return True
+
+
+'''
+----------------------------------------------------------------------------------------------
+Take the BQ Ecosystem json file for the table and break out the pieces into chunks that will
+be arguments to the bq command used to create the table.
+'''
+
+def generate_table_detail_files(dict_file, file_tag):
+
+    #
+    # Read in the chunks and write them out into pieces the bq command can use
+    #
+
+    try:
+        with open(dict_file, mode='r') as bqt_dict_file:
+            bqt_dict = json_loads(bqt_dict_file.read())
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(bqt_dict['description'])
+        with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+            label_file.write(json_dumps(bqt_dict['labels'], sort_keys=True, indent=4, separators=(',', ': ')))
+            label_file.write('\n')
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
+            schema_file.write('\n')
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(bqt_dict['friendlyName'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the staging files for a generic BQ metadata load and customize it for a single data set
+using tags.
+'''
+
+def customize_labels_and_desc(file_tag, tag_map_list):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = label_file.read()
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+        with open("{}_schema.json".format(file_tag), mode='r') as schema_file:
+            schema = schema_file.read()
+
+        for tag_val in tag_map_list:
+            for tag in tag_val:
+                brack_tag = '{{{}}}'.format(tag)
+                desc = desc.replace(brack_tag, tag_val[tag])
+                labels = labels.replace(brack_tag, tag_val[tag])
+                friendly = friendly.replace(brack_tag, tag_val[tag])
+                schema = schema.replace(brack_tag, tag_val[tag])
+
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(desc)
+        with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+            label_file.write(labels)
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema_file.write(schema)
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(friendly)
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the labels and description of a BQ table and get them installed
+'''
+
+def install_labels_and_desc(dataset, table_name, file_tag, project=None):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = json_loads(label_file.read())
+
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(dataset).table(table_name)
+        table = client.get_table(table_ref)
+
+        #
+        # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
+        # previous labels to handle label removals. Note that the setting of each existing label
+        # to None is the only way this seems to work to empty them out (i.e. an empty dictionary
+        # does not cut it).
+        #
+
+        replace_dict = {}
+        for label in table.labels:
+            replace_dict[label] = None
+        table.description = None
+        table.labels = replace_dict
+        table.friendly_name = None
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
+        table_ref = client.dataset(dataset).table(table_name)
+        table = client.get_table(table_ref)
+        table.description = desc
+        table.labels = labels
+        table.friendly_name = friendly
+        client.update_table(table, ['description', 'labels', 'friendlyName'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
+be arguments to the bq command used to update the dataset.
+'''
+
+def generate_dataset_desc_file(dict_file, file_tag):
+
+    #
+    # Read in the chunks and write them out into pieces the bq command can use
+    #
+
+    try:
+        with open(dict_file, mode='r') as bqt_dict_file:
+            bqt_dict = json_loads(bqt_dict_file.read())
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(bqt_dict['description'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Take the description of a BQ dataset and get it installed
+'''
+
+def install_dataset_desc(dataset_id, file_tag, project=None):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        dataset = client.get_dataset(dataset_id)  # Make an API request.
+        dataset.description = desc
+        client.update_dataset(dataset, ["description"])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+
+'''
+----------------------------------------------------------------------------------------------
+Create a new BQ dataset
+'''
+
+def create_bq_dataset(dataset_id, file_tag, project=None):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+
+        full_dataset_id = "{}.{}".format(client.project, dataset_id)
+
+        dataset = bigquery.Dataset(full_dataset_id)
+        dataset.location = "US"
+        dataset.description = desc
+        client.create_dataset(dataset)
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Publish a table by copying it.
+Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
+'''
+
+
+def publish_table(source_table, target_table):
+
+    try:
+        #
+        # 3/11/20: Friendly names not copied across, so do it here!
+        #
+
+        src_toks = source_table.split('.')
+        src_proj = src_toks[0]
+        src_dset = src_toks[1]
+        src_tab = src_toks[2]
+
+        trg_toks = target_table.split('.')
+        trg_proj = trg_toks[0]
+        trg_dset = trg_toks[1]
+        trg_tab = trg_toks[2]
+
+        src_client = bigquery.Client(src_proj)
+        job = src_client.copy_table(source_table, target_table)
+        job.result()
+
+        src_table_ref = src_client.dataset(src_dset).table(src_tab)
+        s_table = src_client.get_table(src_table_ref)
+        src_friendly = s_table.friendly_name
+
+        trg_client = bigquery.Client(trg_proj)
+        trg_table_ref = trg_client.dataset(trg_dset).table(trg_tab)
+        t_table = src_client.get_table(trg_table_ref)
+        t_table.friendly_name = src_friendly
+
+        trg_client.update_table(t_table, ['friendlyName'])
+
+
+    except Exception as ex:
+        print(ex)
+        return False
+
     return True

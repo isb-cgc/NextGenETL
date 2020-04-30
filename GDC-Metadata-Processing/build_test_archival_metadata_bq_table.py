@@ -151,7 +151,7 @@ def extract_file_data_sql_archived_slides(release_table, program_name):
             END as data_type,
             a.data_category,
             CAST(null AS STRING) as experimental_strategy,
-            a.type,
+            a.data_type,
             a.file_size,
             a.data_format,
             a.platform,

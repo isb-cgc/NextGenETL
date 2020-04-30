@@ -52,8 +52,7 @@ def removeSpecialChars(aString):
         doNothing = 1
 
     if (bString != aString):
-        print
-        "     removeSpecialChars : <%s> <%s> " % (aString, bString)
+        print "     removeSpecialChars : <%s> <%s> " % (aString, bString)
 
     return (bString)
 
@@ -101,8 +100,7 @@ def createValidBQfieldName(aString):
     ## print " <%s> " % cString
     try:
         if not letter_or_underscore(cString[0]):
-            print
-            " createValidBQfieldName: first character is not valid <%s> " % cString
+            print " createValidBQfieldName: first character is not valid <%s> " % cString
             sys.exit(-1)
     except:
         doNothing = 1
@@ -110,8 +108,7 @@ def createValidBQfieldName(aString):
     ## check all other characters:
     for ii in range(len(cString)):
         if not valid_char(cString[ii]):
-            print
-            " createValidBQfieldName: invalid character at position %d <%s> " % (ii, cString)
+            print " createValidBQfieldName: invalid character at position %d <%s> " % (ii, cString)
             sys.exit(-1)
 
     return (cString)
@@ -156,24 +153,24 @@ def inferDataTM(dataRow, dataTypes, dataModes, fieldNames):
             aToks = splitListString(aList)
             if (len(aToks) > 0):
                 if (dataModes[ii] == 'NA'):
-                    print
-                    " initially setting field #%d (%s) mode to REPEATED " % (ii, fieldNames[ii])
+                    print " initially setting field #%d (%s) mode to REPEATED " % (ii, fieldNames[ii])
                     dataModes[ii] = "repeated"
                 elif (dataModes[ii] == 'nullable'):
-                    print
-                    " CHANGING field #%d (%s) mode to REPEATED " % (ii, fieldNames[ii])
+                    print " CHANGING field #%d (%s) mode to REPEATED " % (ii, fieldNames[ii])
                     dataModes[ii] = "repeated"
 
         else:
             aToks = [item]
             if (dataModes[ii] == 'NA'):
-                print
-                " initially setting field #%d (%s) mode to NULLABLE " % (ii, fieldNames[ii])
+                print " initially setting field #%d (%s) mode to NULLABLE " % (ii, fieldNames[ii])
                 dataModes[ii] = "nullable"
 
         for jtem in aToks:
 
-            if (jtem == '' or jtem == 'NA'):
+            # Previously was "if (jtem == '' or jtem == 'NA'):", but a field that has an NA in it can switch it
+            # from being an INTEGER to a STRING. Only '' gets interpreted as a null, and can be accomodated in
+            # a pure int field.
+            if jtem == '':
                 ## print " SKIPPING field #%d because it is blank ... " % ii
                 continue
 
@@ -183,14 +180,12 @@ def inferDataTM(dataRow, dataTypes, dataModes, fieldNames):
 
             elif (jtem.lower() == "true" or jtem.lower() == "false"):
                 if (dataTypes[ii] == "NA"):
-                    print
-                    " initially setting field #%d (%s) type to BOOLEAN (%s) " % (ii, fieldNames[ii], jtem)
+                    print " initially setting field #%d (%s) type to BOOLEAN (%s) " % (ii, fieldNames[ii], jtem)
                     dataTypes[ii] = "boolean"
                 elif (dataTypes[ii] == "boolean"):
                     continue
                 else:
-                    print
-                    " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
+                    print " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
                     dataTypes[ii] = "string"
 
             else:
@@ -198,44 +193,37 @@ def inferDataTM(dataRow, dataTypes, dataModes, fieldNames):
                 try:
                     iVal = int(jtem)
                     if (dataTypes[ii] == "NA"):
-                        print
-                        " initially setting field #%d (%s) type to INTEGER (%s) " % (ii, fieldNames[ii], jtem)
+                        print " initially setting field #%d (%s) type to INTEGER (%s) " % (ii, fieldNames[ii], jtem)
                         dataTypes[ii] = "integer"
                     elif (dataTypes[ii] == "integer"):
                         continue
                     elif (dataTypes[ii] == "float"):
                         continue
                     else:
-                        print
-                        " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
+                        print " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
                         dataTypes[ii] = "string"
 
                 except:
                     try:
                         fVal = float(jtem)
                         if (dataTypes[ii] == "NA"):
-                            print
-                            " initially setting field #%d (%s) type to FLOAT (%s) " % (ii, fieldNames[ii], jtem)
+                            print " initially setting field #%d (%s) type to FLOAT (%s) " % (ii, fieldNames[ii], jtem)
                             dataTypes[ii] = "float"
                         elif (dataTypes[ii] == "float"):
                             continue
                         elif (dataTypes[ii] == "integer"):
-                            print
-                            " CHANGING field #%d (%s) from INTEGER to FLOAT (%s) " % (ii, fieldNames[ii], jtem)
+                            print " CHANGING field #%d (%s) from INTEGER to FLOAT (%s) " % (ii, fieldNames[ii], jtem)
                             dataTypes[ii] = "float"
                             continue
                         else:
-                            print
-                            " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
+                            print " ERROR ??? conflicting data types ??? ", jtem, dataTypes[ii]
                             dataTypes[ii] = "string"
 
                     except:
                         if (dataTypes[ii] == "NA"):
-                            print
-                            " initially setting field #%d (%s) type to STRING (%s) " % (ii, fieldNames[ii], jtem)
+                            print " initially setting field #%d (%s) type to STRING (%s) " % (ii, fieldNames[ii], jtem)
                         else:
-                            print
-                            " CHANGING field #%d (%s) to STRING (%s) " % (ii, fieldNames[ii], jtem)
+                            print " CHANGING field #%d (%s) to STRING (%s) " % (ii, fieldNames[ii], jtem)
                         dataTypes[ii] = "string"
 
     ## print dataTypes
@@ -248,20 +236,13 @@ def inferDataTM(dataRow, dataTypes, dataModes, fieldNames):
 # both TSVs and CSVs ... and look at the shlex module/class
 
 if (len(sys.argv) == 1):
-    print
-    " "
-    print
-    " Usage : %s <input-filename> <nSkip> <topSkip> "
-    print
-    "       * nSkip: # of lines skipped between lines that are parsed and checked for data-types; "
-    print
-    "         if the input file is small, you can leave set nSkip to be small, but if the input "
-    print
-    "         file is very large, nSkip should probably be 1000 or more (default value is 1000) "
-    print
-    "       * topSkip: # of lines to be completely skipped at the top of the file (default 0) "
-    print
-    " "
+    print " "
+    print " Usage : %s <input-filename> <nSkip> <topSkip> "
+    print "       * nSkip: # of lines skipped between lines that are parsed and checked for data-types; "
+    print "         if the input file is small, you can leave set nSkip to be small, but if the input "
+    print "         file is very large, nSkip should probably be 1000 or more (default value is 1000) "
+    print "       * topSkip: # of lines to be completely skipped at the top of the file (default 0) "
+    print " "
     sys.exit(-1)
 
 inFilename = sys.argv[1]
@@ -288,25 +269,19 @@ try:
     else:
         dataFile = open(inFilename, "r")
 except:
-    print
-    'requires input filename as command-line parameter'
+    print 'requires input filename as command-line parameter'
     if (len(inFilename) > 0):
-        print
-        ' --> failed to open <%s> ' % inFilename
+        print ' --> failed to open <%s> ' % inFilename
     sys.exit()
 
-print
-" "
-print
-"Parsing input file <%s>." % inFilename
-print
-" "
+print " "
+print "Parsing input file <%s>." % inFilename
+print " "
 
 # start by skipping the specified 'topSkip' lines ...
 for i in range(topSkip):
     aLine = dataFile.readline()
-    print
-    " skipping line %d <%s...> " % ((i + 1), aLine[:16])
+    print " skipping line %d <%s...> " % ((i + 1), aLine[:16])
 
 # first line is expected to be the header
 aLine = dataFile.readline()
@@ -315,10 +290,8 @@ headerRow = aLine.split('\t')
 
 # if any numeric values in this first line, it is likely not a header: hence exit
 if any([isNumeric(x) for x in headerRow]):
-    print
-    'Numeric fields found in the first line. Perhaps the header is missing. Please check input file.'
-    print
-    headerRow
+    print 'Numeric fields found in the first line. Perhaps the header is missing. Please check input file.'
+    print headerRow
     sys.exit()
 
 # build up a list of field names based on the header tokens and make sure they
@@ -330,27 +303,21 @@ for ii in range(len(headerRow)):
     aName = createValidBQfieldName(headerRow[ii].strip())
 
     if (aName.lower() in lowerNames):
-        print
-        " ERROR: repeated header token <%s> " % aName
-        print
-        " --> appending 'X' --> <%sX> " % aName
+        print " ERROR: repeated header token <%s> " % aName
+        print " --> appending 'X' --> <%sX> " % aName
         aName = aName + 'X'
         ## sys.exit(-1)
 
     if (aName == ""):
-        print
-        " ERROR: blank header token ??? "
+        print " ERROR: blank header token ??? "
         sys.exit(-1)
 
     fieldNames += [aName]
     lowerNames += [aName.lower()]
 
-print
-" "
-print
-fieldNames
-print
-" "
+print " "
+print fieldNames
+print " "
 
 dataTypes = ['NA'] * len(fieldNames)
 dataModes = ['NA'] * len(fieldNames)
@@ -368,13 +335,10 @@ while not done:
         continue
 
     if (len(dataRow) != len(fieldNames)):
-        print
-        " ERROR ??? # of values in data row is not as expected ??? ", len(dataRow), len(fieldNames)
-        print
-        " "
+        print " ERROR ??? # of values in data row is not as expected ??? ", len(dataRow), len(fieldNames)
+        print " "
         for ii in range(min(len(dataRow), len(fieldNames))):
-            print
-            " %3d  %s  %s " % (ii, fieldNames[ii], dataRow[ii])
+            print " %3d  %s  %s " % (ii, fieldNames[ii], dataRow[ii])
         sys.exit(-1)
 
     (dataTypes, dataModes) = inferDataTM(dataRow, dataTypes, dataModes, fieldNames)
@@ -392,23 +356,16 @@ schemaFilename = inFilename + ".json"
 try:
     fhOut = file(schemaFilename, 'w')
 except:
-    print
-    " ERROR??? failed to open output schema file??? "
-    print
-    schemaFilename
+    print " ERROR??? failed to open output schema file??? "
+    print schemaFilename
     sys.exit(-1)
 
-print
-" "
-print
-" "
-print
-"writing draft JSON schema to <%s> " % schemaFilename
-print
-" "
+print " "
+print " "
+print "writing draft JSON schema to <%s> " % schemaFilename
+print " "
 
-# print opening bracket
-fhOut.write('[\n')
+# print opening bracketfhOut.write('[\n')
 
 #  the available data types are described in detail at: https://cloud.google.com/bigquery/data-types
 #  and include: STRING, BYTES, INTEGER, FLOAT, BOOLEAN ('true' or 'false'),
@@ -429,8 +386,7 @@ for ii in range(len(fieldNames)):
 
     fhOut.write('%s\n' % outStr)
 
-# print closing bracket
-fhOut.write(']\n')
+# print closing bracketfhOut.write(']\n')
 
 fhOut.close()
 
