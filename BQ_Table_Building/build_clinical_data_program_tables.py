@@ -3,7 +3,7 @@ from common_etl.utils import get_cases_by_program, collect_field_values, infer_d
 from google.cloud import bigquery
 import sys
 
-YAML_HEADERS = ('bq_params', 'steps')
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def get_programs_list(bq_params):
@@ -35,10 +35,13 @@ def retrieve_program_data(program_name, cases):
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    return tables
+    return tables, record_counts
 
 
 def build_case_structure(tables, case, record_counts, parent_path):
+    """
+    Recursive fuction for retrieve_program_data, finds nested fields
+    """
     if parent_path not in tables:
         tables[parent_path] = set()
 
@@ -60,19 +63,20 @@ def build_case_structure(tables, case, record_counts, parent_path):
             record_counts[nested_path] = 1
 
         if isinstance(case[field_key], dict):
-            tables, record_counts = build_case_structure(tables, case[field_key],
-                                                         record_counts, nested_path)
+            tables, record_counts = build_case_structure(tables, case[field_key], record_counts, nested_path)
         else:
             record_counts[nested_path] = max(record_counts[nested_path], len(case[field_key]))
 
             for field_group_entry in case[field_key]:
-                tables, record_counts = build_case_structure(tables, field_group_entry,
-                                                             record_counts, nested_path)
+                tables, record_counts = build_case_structure(tables, field_group_entry, record_counts, nested_path)
 
     return tables, record_counts
 
 
 def flatten_tables(tables, record_counts):
+    """
+    Used by retrieve_program_data
+    """
     field_group_keys = dict.fromkeys(record_counts.keys(), 0)
 
     # sort field group keys by depth
@@ -105,35 +109,6 @@ def flatten_tables(tables, record_counts):
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
     return tables
-
-
-def generate_table_name(bq_params, program_name, table):
-    split_table_path = table.split(".")
-
-    base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
-    table_name = "_".join(base_table_name)
-
-    if len(split_table_path) > 1:
-        table_suffix = "__".join(split_table_path[1:])
-        table_name = table_name + '_' + table_suffix
-
-    if not table_name:
-        has_fatal_error("generate_table_name returns empty result.")
-
-    return table_name
-
-
-def split_datatype_array(col_dict, col_string, name_prefix):
-
-    columns = col_string[13:-2].split(', ')
-
-    for column in columns:
-        column_type = column.split(' ')
-
-        column_name = name_prefix + column_type[0]
-        col_dict[column_name] = column_type[1].strip(',')
-
-    return col_dict
 
 
 def lookup_column_types():
@@ -231,72 +206,23 @@ def lookup_column_types():
     return column_type_dict
 
 
-def import_column_order_list(path):
-    column_list = []
-    with open(path, 'r') as file:
-        columns = file.readlines()
+def split_datatype_array(col_dict, col_string, name_prefix):
 
-        for column in columns:
-            column_list.append(column.strip())
+    columns = col_string[13:-2].split(', ')
 
-    return column_list
+    for column in columns:
+        column_type = column.split(' ')
 
+        column_name = name_prefix + column_type[0]
+        col_dict[column_name] = column_type[1].strip(',')
 
-def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict, column_order_list):
-    exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
-
-    for table_key in table_hierarchy.keys():
-        table_id = generate_table_name(bq_params, program_name, table_key)
-        schema_list = []
-        split_prefix = table_key.split('.')
-
-        if len(split_prefix) == 1:
-            prefix = ''
-        else:
-            prefix = '__'.join(split_prefix[1:])
-            prefix = prefix + '__'
-
-        column_order_dict = {}
-
-        for column in table_hierarchy[table_key]:
-            full_col_name = prefix + column
-
-            if full_col_name in exclude_set:
-                continue
-
-            position = column_order_list.index(full_col_name)
-
-            column_order_dict[full_col_name] = position
-
-        print("\nColumn ordering for {} : {}".format(program_name, table_key))
-        print("(table_id: {})".format(table_id))
-
-        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
-
-            print(column[0])
-            continue
-
-            schema_field = bigquery.SchemaField(column, schema_dict[column_name]['type'],
-                                                "NULLABLE", schema_dict[column_name]['description'], ())
-            schema_list.append(schema_field)
-
-        continue
-
-        table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_id
-
-        client = bigquery.Client()
-
-        table = bigquery.Table(table_id, schema=schema_list)
-        table = client.create_table(table)
+    return col_dict
 
 
-def create_schema_dict(field_mapping_dict, column_type_dict):
-    """
-    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
-    :param field_mapping_dict:
-    :param column_type_dict:
-    :return: schema fields object dict
-    """
+def create_schema_dict(api_params):
+    column_type_dict = lookup_column_types()
+    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+
     schema_dict = {}
 
     for key in column_type_dict:
@@ -318,6 +244,126 @@ def create_schema_dict(field_mapping_dict, column_type_dict):
         }
 
     return schema_dict
+
+
+def import_column_order_list(path):
+    column_list = []
+    with open(path, 'r') as file:
+        columns = file.readlines()
+
+        for column in columns:
+            column_list.append(column.strip())
+
+    return column_list
+
+
+def generate_table_name(bq_params, program_name, table):
+    split_table_path = table.split(".")
+
+    base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
+    table_name = "_".join(base_table_name)
+
+    if len(split_table_path) > 1:
+        table_suffix = "__".join(split_table_path[1:])
+        table_name = table_name + '_' + table_suffix
+
+    if not table_name:
+        has_fatal_error("generate_table_name returns empty result.")
+
+    return table_name
+
+
+def create_bq_tables(program_name, api_params, bq_params, column_order_fp, tables_dict):
+    schema_dict = create_schema_dict(api_params)
+    column_order_list = import_column_order_list(column_order_fp)
+
+    exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
+
+    documentation_dict = dict()
+    documentation_dict[program_name] = dict()
+    documentation_dict[program_name]['tables_overview'] = tables_dict
+    documentation_dict[program_name]['table_schemas'] = dict()
+
+    for table_key in tables_dict.keys():
+        schema_list = []
+
+        table_name = generate_table_name(bq_params, program_name, table_key)
+        table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_name
+
+        split_prefix = table_key.split('.')
+
+        if len(split_prefix) == 1:
+            prefix = ''
+        else:
+            prefix = '__'.join(split_prefix[1:])
+            prefix = prefix + '__'
+
+        column_order_dict = {}
+
+        documentation_dict[program_name]['table_schemas'][table_key] = dict()
+        documentation_dict[program_name]['table_schemas'][table_key]['table_id'] = table_id
+
+        # lookup column position indexes in master list, used to order schema
+        for column in tables_dict[table_key]:
+            full_column_name = prefix + column
+
+            if full_column_name in exclude_set:
+                continue
+            column_order_dict[full_column_name] = column_order_list.index(full_column_name)
+
+        # todo: logic for non-nullable fields
+        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
+
+            schema_field = bigquery.SchemaField(
+                column,
+                schema_dict[column]['type'],
+                "NULLABLE",
+                schema_dict[column]['description'],
+                ()
+            )
+
+            schema_list.append(schema_field)
+
+            documentation_dict[program_name]['table_schemas'][table_key]['table_schema'][column] = schema_dict[column]
+
+        client = bigquery.Client()
+        table = bigquery.Table(table_id, schema=schema_list)
+        table = client.create_table(table)
+
+    return documentation_dict
+
+
+def generate_documentation(api_params, program_name, documentation_dict, record_counts):
+    print("{} \n".format(program_name))
+    print("{}".format(documentation_dict))
+    print("{}".format(record_counts))
+
+    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
+        doc_file.write("{} \n".format(program_name))
+        doc_file.write("{}".format(documentation_dict))
+        doc_file.write("{}".format(record_counts))
+
+    """
+    documentation_dict = {
+        program_name: {
+            'tables_overview': {
+                table1: fields,
+                table2: fields
+                ...
+            },
+            'table_schemas': {
+                table_key: {
+                    'table_id': full table name in BQ,
+                    'table_schema': {
+                        column_name:
+                            'column_type': column_type,
+                            'column_description': description
+                    }
+                }
+            }
+        }
+    }
+    """
 
 
 def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
@@ -348,7 +394,6 @@ def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, orde
 
 """
 todos:
-- order entries in schema list before creating table
 - insert case data into table 
 - code commenting
 - generate documentation
@@ -369,7 +414,8 @@ def main(args):
     # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
     api_params = {
-        'ENDPOINT': 'https://api.gdc.cancer.gov/cases'
+        'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
+        "DOCS_OUTPUT_FILE": 'documentation.txt'
     }
 
     bq_params = {
@@ -382,43 +428,18 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    column_type_dict = lookup_column_types()
-
-    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
-
-    schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
-
-    column_order_list = import_column_order_list(args[2])
-
     program_names = get_programs_list(bq_params)
     # program_names = ['HCMI', 'CTSP']
 
     for program_name in program_names:
         cases = get_cases_by_program(program_name)
 
-        table_hierarchy = retrieve_program_data(program_name, cases)
+        tables_dict, record_counts = retrieve_program_data(program_name, cases)
 
-        create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict, column_order_list)
+        documentation_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
+
+        generate_documentation(api_params, program_name, documentation_dict, record_counts)
 
 
 if __name__ == '__main__':
     main(sys.argv)
-
-
-
-"""
-no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE, BEATAML1.0, OHSU
-
-nested keys:
-MMRF: follow_ups, follow_ups.molecular_tests, family_histories, diagnoses__treatments
-CGCI: diagnoses__treatments
-VAREPOP: family_histories, diagnoses__treatments
-HCMI: follow_ups, diagnoses__treatments, follow_ups.molecular_tests
-TCGA: diagnoses__treatments
-
-diagnoses__treatments: MMRF, CGCI, VAREPOP, HCMI, TCGA
-family_histories: MMRF, VAREPOP
-follow_ups: MMRF, HCMI
-follow_ups.molecular_tests: MMRF, HCMI
-"""
-
