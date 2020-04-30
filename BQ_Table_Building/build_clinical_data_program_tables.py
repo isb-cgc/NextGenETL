@@ -94,18 +94,29 @@ def flatten_tables(tables, record_counts):
         if len(split_key) == 1:
             continue
 
-        parent_key = ".".join(split_key[:-1])
         field_group_name = split_key[-1]
 
         for column in tables[key]:
             column_name = field_group_name + "__" + column
-            try:
-                tables[parent_key].add(column_name)
-            except KeyError as e:
-                print("[ERROR] KeyError")
-                print("Key: {}, record count: {}, parent key: {}, fg name: {}".format(
-                    key, record_counts[key], parent_key, field_group_name))
-                print(e)
+
+            # In the case where a doubly nested field group is also flattened, its direct ancestor won't be a parent.
+            #
+
+            end_idx = -1
+            parent_table_found = False
+            parent_key = ''
+
+            while end_idx < (len(split_key) * -1) and not parent_table_found:
+                parent_key = ".".join(split_key[:end_idx])
+
+                if parent_key in tables:
+                    parent_table_found = True
+                else:
+                    end_idx -= 1
+
+            if not parent_table_found:
+                print("[ERROR] Parent table not found in tables dict.")
+                print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
                 print(tables.keys())
 
         tables.pop(key)
