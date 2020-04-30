@@ -280,9 +280,8 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     documentation_dict = dict()
-    documentation_dict[program_name] = dict()
-    documentation_dict[program_name]['tables_overview'] = tables_dict
-    documentation_dict[program_name]['table_schemas'] = dict()
+    documentation_dict['tables_overview'] = tables_dict
+    documentation_dict['table_schemas'] = dict()
 
     for table_key in tables_dict.keys():
         schema_list = []
@@ -300,8 +299,9 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
         column_order_dict = {}
 
-        documentation_dict[program_name]['table_schemas'][table_key] = dict()
-        documentation_dict[program_name]['table_schemas'][table_key]['table_id'] = table_id
+        documentation_dict['table_schemas'][table_key] = dict()
+        documentation_dict['table_schemas'][table_key]['table_id'] = table_id
+        documentation_dict['table_schemas'][table_key]['table_schema'] = dict()
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
@@ -326,7 +326,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
             schema_list.append(schema_field)
 
-            documentation_dict[program_name]['table_schemas'][table_key]['table_schema'][column_name] = schema_dict[column_name]
+            documentation_dict['table_schemas'][table_key]['table_schema'][column_name] = schema_dict[column_name]
 
         client = bigquery.Client()
         table = bigquery.Table(table_id, schema=schema_list)
