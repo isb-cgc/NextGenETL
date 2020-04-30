@@ -30,6 +30,8 @@ def retrieve_program_data(program_name, cases):
     for case in cases:
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
+    print("Flattening tables for {}".format(program_name))
+
     tables = flatten_tables(tables, record_counts)
 
     if not tables:
