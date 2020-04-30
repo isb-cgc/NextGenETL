@@ -268,8 +268,6 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
             if column in exclude_set:
                 continue
 
-
-
             position = column_order_list.index(column)
 
             column_order_dict[column] = position
@@ -357,20 +355,19 @@ todos:
 
 def main(args):
     """
-    if len(args) != 2:
-        has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
+    if len(args) != 3:
+        has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
 
     with open(args[1], mode='r') as yaml_file:
         try:
-            bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+            api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+    # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
     api_params = {
-        'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
-        'COLUMNS_TXT_PATH': 'files/column_order.txt'
+        'ENDPOINT': 'https://api.gdc.cancer.gov/cases'
     }
 
     bq_params = {
@@ -389,7 +386,7 @@ def main(args):
 
     schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
 
-    column_order_list = import_column_order_list(api_params['COLUMNS_TXT_PATH'])
+    column_order_list = import_column_order_list(args[2])
 
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
