@@ -17,5 +17,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalBQBuild.yaml ~/.config/column_order.txt
+python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalBQBuild.yaml ~/config/column_order.txt
 deactivate
