@@ -268,17 +268,19 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
 
             column_order_dict[full_col_name] = position
 
-        print(column_order_dict)
-
-        continue
+        print("\nColumn ordering for {} : {}".format(program_name, table_key))
+        print("(table_id: {})".format(table_id))
 
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
 
-            column_name = prefix + column
+            print(column)
+            continue
 
             schema_field = bigquery.SchemaField(column, schema_dict[column_name]['type'],
                                                 "NULLABLE", schema_dict[column_name]['description'], ())
             schema_list.append(schema_field)
+
+        continue
 
         table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_id
 
@@ -379,8 +381,6 @@ def main(args):
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
-
-    print(args[2])
 
     column_type_dict = lookup_column_types()
 
