@@ -380,6 +380,8 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids'
     }
 
+    print(args[2])
+
     column_type_dict = lookup_column_types()
 
     field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
