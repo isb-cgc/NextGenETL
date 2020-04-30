@@ -243,12 +243,6 @@ def import_column_order_list(path):
 
 
 def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict, column_order_list):
-
-    print(schema_dict)
-
-    print(column_order_list)
-    return
-
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     for table_key in table_hierarchy.keys():
@@ -265,12 +259,18 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
         column_order_dict = {}
 
         for column in table_hierarchy[table_key]:
-            if column in exclude_set:
+            full_col_name = prefix + column
+
+            if full_col_name in exclude_set:
                 continue
 
-            position = column_order_list.index(column)
+            position = column_order_list.index(full_col_name)
 
-            column_order_dict[column] = position
+            column_order_dict[full_col_name] = position
+
+        print(column_order_dict)
+
+        continue
 
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
 
