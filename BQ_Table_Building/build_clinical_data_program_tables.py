@@ -100,7 +100,9 @@ def flatten_tables(tables, record_counts):
             try:
                 tables[parent_key].add(column_name)
             except KeyError as e:
-                print("ERROR ERROR")
+                print("[ERROR] KeyError")
+                print("Key: {}, record count: {}, parent key: {}, fg name: {}".format(
+                    key, record_counts[key], parent_key, field_group_name))
                 print(e)
                 print(tables.keys())
 
