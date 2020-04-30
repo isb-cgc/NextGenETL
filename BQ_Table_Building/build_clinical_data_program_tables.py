@@ -333,7 +333,8 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
         client = bigquery.Client()
         table = bigquery.Table(table_id, schema=schema_list)
-        table = client.create_table(table)
+        client.delete_table(table_id, not_found_ok=True)
+        client.create_table(table)
 
     return documentation_dict
 
