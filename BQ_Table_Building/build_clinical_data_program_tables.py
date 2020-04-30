@@ -377,7 +377,7 @@ def main(args):
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData',
         "EXCLUDE_FIELDS": 'aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
-                          'submitter_slide_ids,diagnosis_ids'
+                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
     print(args[2])
