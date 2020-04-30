@@ -123,27 +123,6 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-"""
-def infer_column_types(cases, table_key, columns):
-    aggregated_column_vals = dict.fromkeys(columns, set())
-
-    split_table_key = table_key.split('.')
-
-
-    for case in cases:
-        if len(split_table_key) == 1:
-            for column in columns:
-                if column in case:
-                    aggregated_column_vals[column].add(case[column])
-        elif len(split_table_key) == 2:
-            field_group = case[split_table_key[1]]
-        elif len(split_table_key) == 3:
-            field_group = case[split_table_key[1]][split_table_key[2]]
-
-            for parent_key in split_table_key[1:]:
-"""
-
-
 def split_datatype_array(col_dict, col_string, name_prefix):
 
     columns = col_string[13:-2].split(', ')
@@ -252,7 +231,23 @@ def lookup_column_types():
     return column_type_dict
 
 
-def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict):
+def import_column_order_list(path):
+    column_list = []
+    with open(path, 'r') as file:
+        columns = file.readlines()
+
+        for column in columns:
+            column_list.append(column.strip())
+
+    return column_list
+
+
+def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict, column_order_list):
+
+    print(schema_dict)
+
+    print(column_order_list)
+    return
 
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
@@ -267,9 +262,19 @@ def create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dic
             prefix = '__'.join(split_prefix[1:])
             prefix = prefix + '__'
 
+        column_order_dict = {}
+
         for column in table_hierarchy[table_key]:
             if column in exclude_set:
                 continue
+
+
+
+            position = column_order_list.index(column)
+
+            column_order_dict[column] = position
+
+        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
 
             column_name = prefix + column
 
@@ -349,6 +354,7 @@ todos:
 - generate documentation
 """
 
+
 def main(args):
     """
     if len(args) != 2:
@@ -363,7 +369,8 @@ def main(args):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
     api_params = {
-        'ENDPOINT': 'https://api.gdc.cancer.gov/cases'
+        'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
+        'COLUMNS_TXT_PATH': 'files/column_order.txt'
     }
 
     bq_params = {
@@ -382,6 +389,8 @@ def main(args):
 
     schema_dict = create_schema_dict(field_mapping_dict, column_type_dict)
 
+    column_order_list = import_column_order_list(api_params['COLUMNS_TXT_PATH'])
+
     # program_names = get_programs_list(bq_params)
     program_names = ['HCMI', 'CTSP']
 
@@ -390,11 +399,13 @@ def main(args):
 
         table_hierarchy = retrieve_program_data(program_name, cases)
 
-        create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict)
+        create_bq_tables(program_name, bq_params, table_hierarchy, cases, schema_dict, column_order_list)
 
 
 if __name__ == '__main__':
     main(sys.argv)
+
+
 
 """
 no nested keys: FM, NCICCR, CTSP, ORGANOID, CPTAC, WCDT, TARGET, GENIE, BEATAML1.0, OHSU
