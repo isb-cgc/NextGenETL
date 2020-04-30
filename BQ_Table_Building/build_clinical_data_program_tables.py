@@ -280,7 +280,6 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     documentation_dict = dict()
-    documentation_dict['tables_overview'] = tables_dict
     documentation_dict['table_schemas'] = dict()
 
     for table_key in tables_dict.keys():
@@ -301,7 +300,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
         documentation_dict['table_schemas'][table_key] = dict()
         documentation_dict['table_schemas'][table_key]['table_id'] = table_id
-        documentation_dict['table_schemas'][table_key]['table_schema'] = dict()
+        documentation_dict['table_schemas'][table_key]['table_schema'] = list()
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
@@ -326,7 +325,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
             schema_list.append(schema_field)
 
-            documentation_dict['table_schemas'][table_key]['table_schema'][column_name] = schema_dict[column_name]
+            documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column_name])
 
         client = bigquery.Client()
         table = bigquery.Table(table_id, schema=schema_list)
@@ -347,21 +346,21 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
 
     """
     documentation_dict = {
-        program_name: {
-            'tables_overview': {
-                table1: fields,
-                table2: fields
-                ...
-            },
-            'table_schemas': {
-                table_key: {
-                    'table_id': full table name in BQ,
-                    'table_schema': {
-                        column_name:
-                            'column_type': column_type,
-                            'column_description': description
+        'tables_overview': {
+            table1: fields,
+            table2: fields
+            ...
+        },
+        'table_schemas': {
+            table_key: {
+                'table_id': full table name in BQ,
+                'table_schema': [
+                    {
+                        'type': column_type,
+                        'name': name,
+                        'column_description': description
                     }
-                }
+                ]
             }
         }
     }
