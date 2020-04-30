@@ -437,6 +437,10 @@ def main(args):
     program_names = get_programs_list(bq_params)
     # program_names = ['HCMI', 'CTSP']
 
+    with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
+        doc_file.write("New BQ Documentation")
+
+
     for program_name in program_names:
         cases = get_cases_by_program(program_name)
 
