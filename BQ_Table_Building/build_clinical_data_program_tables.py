@@ -326,7 +326,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
             schema_list.append(schema_field)
 
-            documentation_dict[program_name]['table_schemas'][table_key]['table_schema'][column] = schema_dict[column]
+            documentation_dict[program_name]['table_schemas'][table_key]['table_schema'][column_name] = schema_dict[column_name]
 
         client = bigquery.Client()
         table = bigquery.Table(table_id, schema=schema_list)
