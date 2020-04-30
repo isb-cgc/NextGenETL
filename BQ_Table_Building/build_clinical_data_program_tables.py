@@ -313,7 +313,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
         # todo: logic for non-nullable fields
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
 
-            column_name = prefix + column[0]
+            column_name = column[0]
 
             schema_field = bigquery.SchemaField(
                 column_name,
