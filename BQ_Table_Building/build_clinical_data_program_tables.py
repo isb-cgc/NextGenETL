@@ -298,6 +298,8 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     schema_dict = create_schema_dict(api_params)
     column_order_list = import_column_order_list(column_order_fp)
 
+    print(column_order_list)
+
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     documentation_dict = dict()
