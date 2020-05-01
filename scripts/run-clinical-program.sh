@@ -18,4 +18,5 @@ mkdir -p ~/scratch
 
 cd ..
 python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalBQBuild.yaml ~/config/column_order.txt
+gsutil cp ./docs/documentation.txt gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/documentation.txt
 deactivate
