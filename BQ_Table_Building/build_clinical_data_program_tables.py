@@ -275,6 +275,9 @@ def import_column_order_list(path):
 def generate_table_name(bq_params, program_name, table):
     split_table_path = table.split(".")
 
+    # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
+    program_name = "_".join(program_name.split('.'))
+
     base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
     table_name = "_".join(base_table_name)
 
