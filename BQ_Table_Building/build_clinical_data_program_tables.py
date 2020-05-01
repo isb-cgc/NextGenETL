@@ -303,6 +303,8 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
+    print(tables_dict)
+
     for table_key in tables_dict.keys():
         schema_list = []
 
@@ -329,6 +331,8 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
             if full_column_name in exclude_set:
                 continue
+
+            print(full_column_name)
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
         # todo: logic for non-nullable fields
