@@ -32,7 +32,6 @@ def retrieve_program_data(program_name, cases):
     for case in cases:
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
-
     tables = flatten_tables(tables, record_counts)
 
     if not tables:
@@ -392,6 +391,12 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
     """
 
 
+def insert_case_data(program_name, cases, tables_dict):
+    for case in cases:
+        print(case)
+        return
+
+
 def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
 
     table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
@@ -468,6 +473,8 @@ def main(args):
         documentation_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
 
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
+
+        insert_case_data(program_name, cases, tables_dict)
 
 
 if __name__ == '__main__':
