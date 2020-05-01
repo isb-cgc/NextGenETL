@@ -24,13 +24,14 @@ def get_programs_list(bq_params):
 
 
 def retrieve_program_data(program_name, cases):
+    print("\n Processing {}\n".format(program_name))
+
     tables = {}
     record_counts = {}
 
     for case in cases:
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
-    print("Flattening tables for {}".format(program_name))
 
     tables = flatten_tables(tables, record_counts)
 
@@ -113,8 +114,6 @@ def flatten_tables(tables, record_counts):
                 if parent_key in tables:
                     parent_table_found = True
                 else:
-                    print("flattening further")
-                    print(split_key)
                     end_idx -= 1
                     prefix += split_key[end_idx] + "__"
 
@@ -455,12 +454,11 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    # program_names = get_programs_list(bq_params)
-    program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
+    program_names = get_programs_list(bq_params)
+    # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
-
 
     for program_name in program_names:
         cases = get_cases_by_program(program_name)
