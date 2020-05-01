@@ -392,6 +392,8 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
 
 
 def insert_case_data(program_name, cases, tables_dict):
+    print(tables_dict)
+    return
     for case in cases:
         print(case)
         return
