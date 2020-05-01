@@ -119,7 +119,6 @@ def flatten_tables(tables, record_counts):
                 print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
                 print(tables.keys())
             else:
-                print("tables[{}] = {}".format(parent_key, column_name))
                 tables[parent_key].add(column_name)
 
         tables.pop(key)
@@ -298,14 +297,10 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     schema_dict = create_schema_dict(api_params)
     column_order_list = import_column_order_list(column_order_fp)
 
-    print(column_order_list)
-
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
-
-    print(tables_dict)
 
     for table_key in tables_dict.keys():
         schema_list = []
@@ -334,7 +329,6 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
             if full_column_name in exclude_set:
                 continue
 
-            print(full_column_name)
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
         # todo: logic for non-nullable fields
