@@ -120,7 +120,7 @@ def flatten_tables(tables, record_counts):
                 print(tables.keys())
             else:
                 print("tables[{}] = {}".format(parent_key, column_name))
-                tables[parent_key] = column_name
+                tables[parent_key].append(column_name)
 
         tables.pop(key)
 
