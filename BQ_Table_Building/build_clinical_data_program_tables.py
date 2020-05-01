@@ -113,8 +113,10 @@ def flatten_tables(tables, record_counts):
                 if parent_key in tables:
                     parent_table_found = True
                 else:
+                    print("flattening further")
+                    print(split_key)
                     end_idx -= 1
-                    prefix += split_key[end_idx - 1] + "__"
+                    prefix += split_key[end_idx] + "__"
 
             if not parent_table_found:
                 print("[ERROR] Parent table not found in tables dict.")
