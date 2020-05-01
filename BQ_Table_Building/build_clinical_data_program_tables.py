@@ -437,7 +437,7 @@ def main(args):
     """
     api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
-        "DOCS_OUTPUT_FILE": 'documentation.txt'
+        "DOCS_OUTPUT_FILE": 'docs/documentation.txt'
     }
 
     bq_params = {
