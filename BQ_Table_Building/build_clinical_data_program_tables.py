@@ -105,6 +105,7 @@ def flatten_tables(tables, record_counts):
             end_idx = -1
             parent_table_found = False
             parent_key = ''
+            prefix = ''
 
             while end_idx > (len(split_key) * -1) and not parent_table_found:
                 parent_key = ".".join(split_key[:end_idx])
@@ -113,13 +114,14 @@ def flatten_tables(tables, record_counts):
                     parent_table_found = True
                 else:
                     end_idx -= 1
+                    prefix += split_key[end_idx - 1] + "__"
 
             if not parent_table_found:
                 print("[ERROR] Parent table not found in tables dict.")
                 print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
                 print(tables.keys())
             else:
-                tables[parent_key].add(column_name)
+                tables[parent_key].add(prefix + column_name)
 
         tables.pop(key)
 
