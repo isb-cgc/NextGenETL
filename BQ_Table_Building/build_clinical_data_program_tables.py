@@ -118,6 +118,8 @@ def flatten_tables(tables, record_counts):
                 print("[ERROR] Parent table not found in tables dict.")
                 print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
                 print(tables.keys())
+            else:
+                tables[parent_key] = column_name
 
         tables.pop(key)
 
