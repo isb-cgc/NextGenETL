@@ -119,6 +119,7 @@ def flatten_tables(tables, record_counts):
                 print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
                 print(tables.keys())
             else:
+                print("tables[{}] = {}".format(parent_key, column_name))
                 tables[parent_key] = column_name
 
         tables.pop(key)
