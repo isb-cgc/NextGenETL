@@ -453,8 +453,8 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    program_names = get_programs_list(bq_params)
-    # program_names = ['HCMI', 'CTSP']
+    # program_names = get_programs_list(bq_params)
+    program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
