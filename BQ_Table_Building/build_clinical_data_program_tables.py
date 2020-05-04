@@ -320,7 +320,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
         schema_list = []
 
         table_name = generate_table_name(bq_params, program_name, table_key)
-        table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_name
+        table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
         table_names_dict[table_key] = table_id
 
         split_prefix = table_key.split('.')
@@ -388,8 +388,8 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case):
-    case_list_dict = flatten_case_recursive(case, dict(), 'cases__')
-    return case_list_dict
+    flattened_case_dict = flatten_case_recursive(case, dict(), 'cases__')
+    return flattened_case_dict
 
 
 def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
@@ -445,17 +445,23 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
 
 
 def insert_case_data(program_name, cases, table_names_dict):
-    print()
-    print(table_names_dict)
+    {'cases.diagnoses.treatments': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_diagnoses__treatments',
+     'cases': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI',
+     'cases.follow_ups.molecular_tests': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_follow_ups__molecular_tests',
+     'cases.follow_ups': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_follow_ups'}
 
+    for case in cases:
+        flattened_case_dict = flatten_case(case)
+        print(flattened_case_dict)
+        return
 
 ##
 #  Functions for creating documentation
 ##
 def generate_documentation(api_params, program_name, documentation_dict, record_counts):
-    print("{} \n".format(program_name))
-    print("{}".format(documentation_dict))
-    print("{}".format(record_counts))
+    # print("{} \n".format(program_name))
+    # print("{}".format(documentation_dict))
+    # print("{}".format(record_counts))
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
         doc_file.write("{} \n".format(program_name))
@@ -521,7 +527,7 @@ def main(args):
 
     for program_name in program_names:
         print("\n*** Running script for {} ***".format(program_name))
-        print("- Retrieving cases... ")
+        print("- Retrieving cases... ", end='')
         cases = get_cases_by_program(program_name)
 
         print("DONE.\n- Determining program table structure... ", end='')
