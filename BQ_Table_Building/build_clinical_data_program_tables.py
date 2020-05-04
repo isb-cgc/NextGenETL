@@ -455,6 +455,7 @@ def insert_case_data(program_name, cases, table_names_dict):
         print(flattened_case_dict)
         return
 
+
 ##
 #  Functions for creating documentation
 ##
@@ -527,10 +528,10 @@ def main(args):
 
     for program_name in program_names:
         print("\n*** Running script for {} ***".format(program_name))
-        print("- Retrieving cases... ", end='')
+        print(" - Retrieving cases... ", end='')
         cases = get_cases_by_program(program_name)
 
-        print("DONE.\n- Determining program table structure... ", end='')
+        print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
