@@ -241,7 +241,6 @@ def glue_counts_and_metadata_sql(step3_table, count_table, sql_dict):
                a.file_gdc_id as {1},
                a.platform,
                a.file_name
-               a.file_name
         FROM `{2}` AS a JOIN `{3}` AS b ON a.file_gdc_id = b.source_file_id 
         WHERE Ensembl_gene_id_v <> "__no_feature" 
             AND Ensembl_gene_id_v <> "__ambiguous" 
