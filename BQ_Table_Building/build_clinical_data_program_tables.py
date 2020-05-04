@@ -27,8 +27,6 @@ def get_programs_list(bq_params):
 
 
 def retrieve_program_case_structure(program_name, cases):
-    print("\n Processing {}\n".format(program_name))
-
     tables = {}
     record_counts = {}
 
@@ -372,6 +370,9 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     return documentation_dict
 
 
+##
+#  Functions for inserting case entries into BQ tables
+##
 def create_table_mapping(tables_dict):
     table_mapping_dict = dict()
 
@@ -385,9 +386,6 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-##
-#  Functions for inserting case entries into BQ tables
-##
 def flatten_case(case):
     case_list_dict = flatten_case_recursive(case, dict(), 'cases__')
     return case_list_dict
@@ -447,10 +445,10 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
 
 
 def insert_case_data(program_name, cases, tables_dict):
-    table_mapping_dict = create_table_mapping(tables_dict)
+    # table_mapping_dict = create_table_mapping(tables_dict)
 
     print()
-    print(table_mapping_dict)
+    print(tables_dict)
 
 
 ##
