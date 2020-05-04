@@ -11,7 +11,13 @@ api_and_file_params:
   ENDPOINT: URL_OF_API_ENDPOINT
 
   # List of 'expand' field groups to include in the clinical data bq table. For example:
-  # EXPAND_FIELD_GROUPS: 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories'
+  # EXPAND_FIELD_GROUPS: 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,'
+  # 'exposures, family_histories, follow_ups, follow_ups.molecular_tests'
+  # Note -- if a new type of doubly-nested field group is added here,
+  # it will be necessary to edit flatten_case_recursive() in build_clinical_data_program_tables.py.
+  # Otherwise, the script won't store the doubly-nested group's direct ancestor id.
+  # This won't impact how build_clinical_data_bq_table.py (which this yaml configures) runs.
+  # (Currently, it will automatically work for child field groups of follow_ups and diagnoses.)
   EXPAND_FIELD_GROUPS: your,list,of,expand,field,groups
 
   # fields that aren't desired for bq. Example:

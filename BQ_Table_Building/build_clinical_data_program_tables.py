@@ -6,6 +6,10 @@ import sys
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+##
+#  Functions for creating the BQ table schema dictionary
+##
+
 def get_programs_list(bq_params):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
 
@@ -23,7 +27,7 @@ def get_programs_list(bq_params):
     return programs
 
 
-def retrieve_program_data(program_name, cases):
+def retrieve_program_case_structure(program_name, cases):
     print("\n Processing {}\n".format(program_name))
 
     tables = {}
@@ -265,6 +269,11 @@ def create_schema_dict(api_params):
     return schema_dict
 
 
+##
+#  Functions for ordering the BQ table schema and creating BQ tables
+##
+
+
 def import_column_order_list(path):
     column_list = []
     with open(path, 'r') as file:
@@ -296,15 +305,15 @@ def generate_table_name(bq_params, program_name, table):
 
 
 def create_bq_tables(program_name, api_params, bq_params, column_order_fp, tables_dict):
+    print(tables_dict)
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
     If creating diagnoses__treatments table, cases has field with diagnoses__treatments_ids
     If creating diagnoses__annotations table, cases has field with diagnoses__annotations_ids
     If creating family_histories table, cases has field with family_histories_ids
-
-
     """
+
     schema_dict = create_schema_dict(api_params)
     column_order_list = import_column_order_list(column_order_fp)
 
@@ -414,330 +423,67 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case):
-    """
-    {
-        'diagnosis_ids': '78f75aac-8d68-4525-a68e-0336f44737f6',
-        'submitter_diagnosis_ids': 'HCM-CSHL-0063-C18_diagnosis',
-        'exposures': [
-            {
-                'tobacco_smoking_onset_year': None,
-                'environmental_tobacco_smoke_exposure': None,
-                'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                'state': 'released',
-                'pack_years_smoked': None,
-                'bmi': None,
-                'tobacco_smoking_status': 1,
-                'cigarettes_per_day': None,
-                'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                'smoking_frequency': None,
-                'tobacco_smoking_quit_year': None,
-                'asbestos_exposure': None,
-                'alcohol_days_per_week': None,
-                'alcohol_intensity': None,
-                'weight': None,
-                'type_of_smoke_exposure': None,
-                'coal_dust_exposure': None,
-                'height': None,
-                'type_of_tobacco_used': None,
-                'radon_exposure': None,
-                'time_between_waking_and_first_smoke': None,
-                'years_smoked': None,
-                'alcohol_drinks_per_day': None,
-                'submitter_id': 'HCM-CSHL-0063-C18_exposure',
-                'exposure_id': 'd12e9c38-9d56-462c-a876-ba8e416fe4be',
-                'alcohol_history': None,
-                'respirable_crystalline_silica_exposure': None
-            }
-        ],
-        'id': 'e802e579-5293-465c-a867-74e290268299',
-        'updated_datetime': '2019-09-20T15:18:28.629227-05:00',
-        'demographic': [
-            {
-                'ethnicity': 'not hispanic or latino',
-                'year_of_birth': 1942,
-                'occupation_duration_years': None,
-                'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                'age_is_obfuscated': None,
-                'cause_of_death': 'Not Reported',
-                'state': 'released',
-                'weeks_gestation_at_birth': None,
-                'gender': 'male',
-                'race': 'black or african american',
-                'year_of_death': None,
-                'cause_of_death_source': None,
-                'premature_at_birth': None,
-                'days_to_birth': None,
-                'vital_status': 'Not Reported',
-                'submitter_id': 'HCM-CSHL-0063-C18_demographic',
-                'days_to_death': None,
-                'demographic_id': '3b1f3a97-094b-4389-b71b-c6575ea2158c',
-                'age_at_index': 27438,
-                'created_datetime': '2019-05-15T14:59:45.171654-05:00'
-            }
-        ],
-        'state': 'released',
-        'index_date': 'Diagnosis',
-        'case_id': 'e802e579-5293-465c-a867-74e290268299',
-        'disease_type': 'Adenomas and Adenocarcinomas',
-        'created_datetime': '2018-10-02T15:55:34.328011-05:00',
-        'lost_to_followup': None,
-        'diagnoses': [
-            {
-                'morphology': '8140/3',
-                'vascular_invasion_type': None,
-                'mitotic_count': None,
-                'treatments': [
-                    {
-                        'regimen_or_line_of_therapy': None,
-                        'treatment_outcome': None,
-                        'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                        'treatment_or_therapy': 'no',
-                        'therapeutic_agents': None,
-                        'state': 'released',
-                        'treatment_anatomic_site': None,
-                        'initial_disease_status': None,
-                        'treatment_intent_type': 'Neoadjuvant',
-                        'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                        'treatment_id': 'ca2e0503-f096-456e-b6ea-7f6743d8707d',
-                        'days_to_treatment_start': None,
-                        'submitter_id': 'HCM-CSHL-0063-C18_treatment',
-                        'treatment_effect': None,
-                        'days_to_treatment_end': None,
-                        'treatment_type': None
-                    }
-                ],
-                'vascular_invasion_present': 'No',
-                'ovarian_surface_involvement': None
-            }
-        ],
-        'follow_ups': [
-            {
-                'barretts_esophagus_goblet_cells_present': None,
-                'molecular_tests': [
-                    {
-                        'aa_change': None,
-                        'cell_count': None,
-                        'variant_origin': None,
-                        'submitter_id': 'HCM-CSHL-0063-C18_molecular_test5',
-                        'second_exon': None,
-                        'state': 'released',
-                        'test_result': 'Negative',
-                        'test_value': None,
-                        'laboratory_test': None,
-                        'molecular_consequence': None,
-                        'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                        'variant_type': None,
-                        'exon': None,
-                        'copy_number': None,
-                        'locus': None,
-                        'transcript': None,
-                        'biospecimen_type': None,
-                        'molecular_analysis_method': 'Not Reported',
-                        'molecular_test_id': '7b078ef1-140e-4490-90a5-108fc9c79a6e',
-                        'gene_symbol': 'Not Applicable',
-                        'zygosity': None,
-                        'loci_abnormal_count': None,
-                        'loci_count': None,
-                        'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                        'ploidy': None,
-                        'test_units': None,
-                        'intron': None,
-                        'cytoband': None,
-                        'histone_variant': None,
-                        'mismatch_repair_mutation': 'Yes',
-                        'blood_test_normal_range_lower': None,
-                        'second_gene_symbol': None,
-                        'test_analyte_type': None,
-                        'chromosome': None,
-                        'antigen': None,
-                        'histone_family': None,
-                        'specialized_molecular_test': None,
-                        'blood_test_normal_range_upper': None
-                    },
-                    {
-                        'aa_change': None,
-                        'cell_count': None,
-                        'variant_origin': None,
-                        'submitter_id': 'HCM-CSHL-0063-C18_molecular_test6',
-                        'second_exon': None,
-                        'state': 'released',
-                        'test_result': 'Negative',
-                        'test_value': None,
-                        'laboratory_test': None,
-                        'molecular_consequence': None,
-                        'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                        'variant_type': None,
-                        'exon': None,
-                        'copy_number': None,
-                        'locus': None,
-                        'transcript': None,
-                        'biospecimen_type': None,
-                        'molecular_analysis_method': 'IHC',
-                        'molecular_test_id': 'be89c31f-7ef2-4673-9005-cf3beedc7159',
-                        'gene_symbol': 'MLH1',
-                        'zygosity': None,
-                        'loci_abnormal_count': None,
-                        'loci_count': None,
-                        'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                        'ploidy': None,
-                        'test_units': None,
-                        'intron': None,
-                        'cytoband': None,
-                        'histone_variant': None,
-                        'mismatch_repair_mutation': None,
-                        'blood_test_normal_range_lower': None,
-                        'second_gene_symbol': None,
-                        'test_analyte_type': None,
-                        'chromosome': None,
-                        'antigen': None,
-                        'histone_family': None,
-                        'specialized_molecular_test': None,
-                        'blood_test_normal_range_upper': None
-                    },
-                    {
-                        'aa_change': None,
-                        'cell_count': None,
-                        'variant_origin': None,
-                        'submitter_id': 'HCM-CSHL-0063-C18_molecular_test',
-                        'second_exon': None,
-                        'state': 'released',
-                        'test_result': 'Negative',
-                        'test_value': None,
-                        'laboratory_test': None,
-                        'molecular_consequence': None,
-                        'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                        'variant_type': None,
-                        'exon': None,
-                        'copy_number': None,
-                        'locus': None,
-                        'transcript': None,
-                        'biospecimen_type': None,
-                        'molecular_analysis_method': 'Not Reported',
-                        'molecular_test_id': '54e8627d-d911-40fa-a748-18186458f164',
-                        'gene_symbol': 'BRAF',
-                        'zygosity': None,
-                        'loci_abnormal_count': None,
-                        'loci_count': None,
-                        'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                        'ploidy': None,
-                        'test_units': None,
-                        'intron': None,
-                        'cytoband': None,
-                        'histone_variant': None,
-                        'mismatch_repair_mutation': None,
-                        'blood_test_normal_range_lower': None,
-                        'second_gene_symbol': None,
-                        'test_analyte_type': None,
-                        'chromosome': None,
-                        'antigen': None,
-                        'histone_family': None,
-                        'specialized_molecular_test': None,
-                        'blood_test_normal_range_upper': None
-                    }
-                ],
-                'progression_or_recurrence': None,
-                'days_to_progression_free': None
-            },
-            {
-                'diabetes_treatment_type': None,
-                'days_to_adverse_event': None,
-                'fev1_fvc_post_bronch_percent': None,
-                'fev1_fvc_pre_bronch_percent': None,
-                'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                'days_to_recurrence': None,
-                'cause_of_response': None,
-                'state': 'released',
-                'days_to_progression': None,
-                'adverse_event': None,
-                'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                'menopause_status': None,
-                'comorbidity': None,
-                'viral_hepatitis_serologies': None,
-                'dlco_ref_predictive_percent': None,
-                'fev1_ref_post_bronch_percent': None,
-                'bmi': None,
-                'progression_or_recurrence_type': 'Not Reported',
-                'height': None,
-                'weight': None,
-                'reflux_treatment_type': None,
-                'pancreatitis_onset_year': None,
-                'days_to_follow_up': 0.0,
-                'karnofsky_performance_status': None,
-                'comorbidity_method_of_diagnosis': None,
-                'progression_or_recurrence_anatomic_site': None,
-                'fev1_ref_pre_bronch_percent': None,
-                'ecog_performance_status': None,
-                'disease_response': None,
-                'days_to_comorbidity': None,
-                'hepatitis_sustained_virological_response': None,
-                'submitter_id': 'HCM-CSHL-0063-C18_follow_up2',
-                'follow_up_id': 'cd4800c3-bdb1-487a-b3bf-95d49297686c',
-                'risk_factor': None,
-                'risk_factor_treatment': None,
-                'hpv_positive_type': None,
-                'barretts_esophagus_goblet_cells_present': None,
-                'molecular_tests': [],
-                'progression_or_recurrence': None,
-                'days_to_progression_free': None
-            }
-        ],
-        'submitter_id': 'HCM-CSHL-0063-C18',
-        'primary_site': 'Colon',
-        'days_to_lost_to_followup': None,
-        'family_histories': [
-            {
-                'created_datetime': '2019-05-15T14:59:45.171654-05:00',
-                'relationship_age_at_diagnosis': None,
-                'relative_with_cancer_history': 'no',
-                'relationship_primary_diagnosis': None,
-                'submitter_id': 'HCM-CSHL-0063-C18_family_history',
-                'relationship_type': None,
-                'relationship_gender': None,
-                'updated_datetime': '2019-05-24T12:11:41.511797-05:00',
-                'family_history_id': '42382b47-ed18-4d5c-bfa9-0f82632a0dc0',
-                'state': 'released'
-            }
-        ]
-    }
-    """
+    case_list_dict = flatten_case_recursive(case, dict(), 'cases__')
+    return case_list_dict
+
+
+def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
+    if isinstance(case, list):
+        print("{}: {}".format(parent_id_key, parent_id))
+        entry_list = []
+
+        for entry in case:
+            entry_dict = dict()
+
+            if case_id != parent_id:
+                entry_dict['case_id'] = case_id
+                entry_dict[parent_id_key] = parent_id
+            else:
+                entry_dict[parent_id_key] = parent_id
+
+            for key in entry:
+                if isinstance(entry[key], list):
+                    # note -- If you're here because you've added a new doubly-nested field group,
+                    # this is where you'll want to capture the parent field group's id.
+                    if prefix == 'cases__diagnoses__':
+                        new_parent_id = entry['diagnosis_id']
+                        new_parent_id_key = 'diagnosis_id'
+                    elif prefix == 'cases__follow_ups__':
+                        new_parent_id = entry['follow_up_id']
+                        new_parent_id_key = 'follow_up_id'
+                    else:
+                        new_parent_id = parent_id
+                        new_parent_id_key = parent_id_key
+
+                    case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + key + '__',
+                                                            case_id, new_parent_id, new_parent_id_key)
+                else:
+                    entry_dict[key] = entry[key]
+            entry_list.append(entry_dict)
+        if prefix in case_list_dict:
+            case_list_dict[prefix] = case_list_dict[prefix] + entry_list
+        else:
+            if entry_list:
+                case_list_dict[prefix] = entry_list
+    else:
+        if prefix not in case_list_dict:
+            case_list_dict[prefix] = dict()
+        for key in case:
+            parent_id = case['case_id']
+            parent_id_key = 'case_id'
+            if isinstance(case[key], list):
+                case_list_dict = flatten_case_recursive(case[key], case_list_dict, prefix + key + '__',
+                                                        parent_id, parent_id, parent_id_key)
+            else:
+                case_list_dict[prefix][key] = case[key]
+
+    return case_list_dict
 
 
 def insert_case_data(program_name, cases, tables_dict):
     table_mapping_dict = create_table_mapping(tables_dict)
 
-
-def create_bq_table_and_insert_rows(program_name, cases, schema_field_list, ordered_keys):
-
-    table_id = "isb-project-zero.GDC_Clinical_Data.rel22_clinical_data_{}".format(program_name.lower())
-    client = bigquery.Client()
-
-    table = bigquery.Table(table_id, schema=schema_field_list)
-    table = client.create_table(table)
-
-    case_tuples = []
-
-    for case in cases:
-        case_vals = []
-        for key in ordered_keys:
-            if key in case:
-                case_vals.append(case[key])
-            else:
-                case_vals.append(None)
-        case_tuples.append(tuple(case_vals))
-
-    errors = client.insert_rows(table, case_tuples)
-
-    if not errors:
-        print("Rows inserted successfully")
-    else:
-        print(errors)
-
-"""
-todos:
-- insert case data into table 
-- code commenting
-- generate documentation
-"""
+    # print(table_mapping_dict)
 
 
 def main(args):
@@ -768,8 +514,8 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    program_names = get_programs_list(bq_params)
-    # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
+    # program_names = get_programs_list(bq_params)
+    program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
@@ -777,7 +523,7 @@ def main(args):
     for program_name in program_names:
         cases = get_cases_by_program(program_name)
 
-        tables_dict, record_counts = retrieve_program_data(program_name, cases)
+        tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
 
         documentation_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
 
