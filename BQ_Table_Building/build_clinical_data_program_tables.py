@@ -9,7 +9,6 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
-
 def get_programs_list(bq_params):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
 
@@ -272,8 +271,6 @@ def create_schema_dict(api_params):
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
-
-
 def import_column_order_list(path):
     column_list = []
     with open(path, 'r') as file:
@@ -305,7 +302,6 @@ def generate_table_name(bq_params, program_name, table):
 
 
 def create_bq_tables(program_name, api_params, bq_params, column_order_fp, tables_dict):
-    print(tables_dict)
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
@@ -376,39 +372,6 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     return documentation_dict
 
 
-def generate_documentation(api_params, program_name, documentation_dict, record_counts):
-    print("{} \n".format(program_name))
-    print("{}".format(documentation_dict))
-    print("{}".format(record_counts))
-
-    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
-        doc_file.write("{} \n".format(program_name))
-        doc_file.write("{}".format(documentation_dict))
-        doc_file.write("{}".format(record_counts))
-
-    """
-    documentation_dict = {
-        'tables_overview': {
-            table1: fields,
-            table2: fields
-            ...
-        },
-        'table_schemas': {
-            table_key: {
-                'table_id': full table name in BQ,
-                'table_schema': [
-                    {
-                        'type': column_type,
-                        'name': name,
-                        'column_description': description
-                    }
-                ]
-            }
-        }
-    }
-    """
-
-
 def create_table_mapping(tables_dict):
     table_mapping_dict = dict()
 
@@ -422,6 +385,9 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
+##
+#  Functions for inserting case entries into BQ tables
+##
 def flatten_case(case):
     case_list_dict = flatten_case_recursive(case, dict(), 'cases__')
     return case_list_dict
@@ -483,7 +449,44 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
 def insert_case_data(program_name, cases, tables_dict):
     table_mapping_dict = create_table_mapping(tables_dict)
 
-    # print(table_mapping_dict)
+    print()
+    print(table_mapping_dict)
+
+
+##
+#  Functions for creating documentation
+##
+def generate_documentation(api_params, program_name, documentation_dict, record_counts):
+    print("{} \n".format(program_name))
+    print("{}".format(documentation_dict))
+    print("{}".format(record_counts))
+
+    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
+        doc_file.write("{} \n".format(program_name))
+        doc_file.write("{}".format(documentation_dict))
+        doc_file.write("{}".format(record_counts))
+
+    """
+    documentation_dict = {
+        'tables_overview': {
+            table1: fields,
+            table2: fields
+            ...
+        },
+        'table_schemas': {
+            table_key: {
+                'table_id': full table name in BQ,
+                'table_schema': [
+                    {
+                        'type': column_type,
+                        'name': name,
+                        'column_description': description
+                    }
+                ]
+            }
+        }
+    }
+    """
 
 
 def main(args):
@@ -539,7 +542,7 @@ def main(args):
 
         print("- Inserting documentation", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
-        print("...DONE.")
+        print("...DONE.\n")
 
 
 if __name__ == '__main__':
