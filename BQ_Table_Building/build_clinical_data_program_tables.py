@@ -388,7 +388,7 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case):
-    flattened_case_dict = flatten_case_recursive(case, dict(), 'cases__')
+    flattened_case_dict = flatten_case_recursive(case, dict(), 'cases')
     return flattened_case_dict
 
 
@@ -409,17 +409,17 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    if prefix == 'cases__diagnoses__':
+                    if prefix == 'cases.diagnoses':
                         new_parent_id = entry['diagnosis_id']
                         new_parent_id_key = 'diagnosis_id'
-                    elif prefix == 'cases__follow_ups__':
+                    elif prefix == 'cases.follow_ups':
                         new_parent_id = entry['follow_up_id']
                         new_parent_id_key = 'follow_up_id'
                     else:
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
 
-                    case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + key + '__',
+                    case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + '.' + key,
                                                             case_id, new_parent_id, new_parent_id_key)
                 else:
                     entry_dict[key] = entry[key]
@@ -436,7 +436,7 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
             parent_id = case['case_id']
             parent_id_key = 'case_id'
             if isinstance(case[key], list):
-                case_list_dict = flatten_case_recursive(case[key], case_list_dict, prefix + key + '__',
+                case_list_dict = flatten_case_recursive(case[key], case_list_dict, prefix + '.' + key,
                                                         parent_id, parent_id, parent_id_key)
             else:
                 case_list_dict[prefix][key] = case[key]
@@ -445,10 +445,66 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
 
 
 def insert_case_data(program_name, cases, table_names_dict):
-    {'cases.diagnoses.treatments': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_diagnoses__treatments',
-     'cases': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI',
-     'cases.follow_ups.molecular_tests': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_follow_ups__molecular_tests',
-     'cases.follow_ups': 'isb-project-zero.GDC_Clinical_Data.rel23_clin_HCMI_follow_ups'}
+    """
+    {
+        'cases.diagnoses.treatments': table_id,
+        'cases': table_id
+    }
+     """
+
+    {'cases__diagnoses__': [
+        {'cog_neuroblastoma_risk_group': None, 'classification_of_tumor': None, 'age_at_diagnosis': 20380,
+         'ajcc_pathologic_stage': None, 'created_datetime': '2018-02-23T20:12:56.272563-06:00', 'ajcc_clinical_m': None,
+         'year_of_diagnosis': None, 'updated_datetime': '2019-08-19T08:47:10.172187-05:00',
+         'wilms_tumor_histologic_subtype': None, 'ann_arbor_b_symptoms': 'Unknown', 'ovarian_specimen_status': None,
+         'diagnosis_id': '2bd60abb-7ba1-43a5-ab19-89d2de7b50c6', 'best_overall_response': None,
+         'days_to_last_known_disease_status': 2009.0, 'prior_malignancy': 'unknown',
+         'gastric_esophageal_junction_involvement': None, 'percent_tumor_invasion': None, 'enneking_msts_stage': None,
+         'ajcc_clinical_t': None, 'case_id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4', 'ishak_fibrosis_score': None,
+         'cog_liver_stage': None, 'method_of_diagnosis': 'Biopsy', 'enneking_msts_tumor_site': None,
+         'tissue_or_organ_of_origin': 'Not Reported', 'days_to_last_follow_up': 2009.0, 'vascular_invasion_type': None,
+         'burkitt_lymphoma_clinical_variant': None, 'ajcc_staging_system_edition': None, 'prior_treatment': None,
+         'metastasis_at_diagnosis': None, 'ann_arbor_pathologic_stage': 'Stage III',
+         'circumferential_resection_margin': None, 'tumor_confined_to_organ_of_origin': None,
+         'lymphatic_invasion_present': None, 'anaplasia_present': None, 'esophageal_columnar_metaplasia_present': None,
+         'days_to_diagnosis': None, 'masaoka_stage': None, 'morphology': '9680/3',
+         'international_prognostic_index': 'High-Intermediate Risk', 'weiss_assessment_score': None,
+         'non_nodal_tumor_deposits': None, 'supratentorial_localization': None, 'iss_stage': None,
+         'last_known_disease_status': 'Unknown tumor status', 'ovarian_surface_involvement': None,
+         'days_to_best_overall_response': None, 'site_of_resection_or_biopsy': 'Not Reported', 'laterality': None,
+         'tumor_regression_grade': None, 'gross_tumor_weight': None, 'irs_group': None, 'synchronous_malignancy': None,
+         'medulloblastoma_molecular_classification': None, 'peritoneal_fluid_cytological_status': None,
+         'lymph_nodes_positive': None, 'ann_arbor_clinical_stage': None, 'ajcc_pathologic_t': None,
+         'micropapillary_features': None, 'child_pugh_classification': None, 'cog_rhabdomyosarcoma_risk_group': None,
+         'icd_10_code': None, 'gleason_grade_group': None, 'primary_diagnosis': 'Diffuse large B-cell lymphoma, NOS',
+         'enneking_msts_grade': None, 'esophageal_columnar_dysplasia_degree': None, 'ajcc_pathologic_n': None,
+         'ajcc_clinical_n': None, 'first_symptom_prior_to_diagnosis': None, 'irs_stage': None,
+         'secondary_gleason_grade': None, 'tumor_largest_dimension_diameter': None, 'primary_gleason_grade': None,
+         'goblet_cells_columnar_mucosa_present': None, 'residual_disease': None, 'ajcc_clinical_stage': None,
+         'ajcc_pathologic_m': None, 'metastasis_at_diagnosis_site': None, 'inpc_grade': None, 'figo_stage': None,
+         'non_nodal_regional_disease': None, 'cog_renal_stage': None, 'vascular_invasion_present': None,
+         'progression_or_recurrence': 'no', 'state': 'released', 'inss_stage': None,
+         'peripancreatic_lymph_nodes_tested': None, 'ann_arbor_extranodal_involvement': 'No',
+         'anaplasia_present_type': None, 'igcccg_stage': None, 'breslow_thickness': None,
+         'perineural_invasion_present': None, 'largest_extrapelvic_peritoneal_focus': None,
+         'enneking_msts_metastasis': None, 'submitter_id': 'DLBCL11282-diagnosis', 'inrg_stage': None,
+         'mitotic_count': None, 'tumor_focality': None, 'mitosis_karyorrhexis_index': None, 'lymph_nodes_tested': None,
+         'peripancreatic_lymph_nodes_positive': None, 'tumor_stage': None, 'tumor_grade': 'Not Reported',
+         'days_to_recurrence': None, 'inpc_histologic_group': None}], 'cases__demographic__': [
+        {'year_of_death': None, 'weeks_gestation_at_birth': None, 'submitter_id': 'DLBCL11282_1698929-demographic',
+         'race': 'white', 'age_is_obfuscated': None, 'age_at_index': 20380, 'cause_of_death': None,
+         'cause_of_death_source': None, 'state': 'released', 'created_datetime': '2018-02-23T13:36:12.278625-06:00',
+         'case_id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4', 'occupation_duration_years': None,
+         'updated_datetime': '2019-08-19T08:47:10.172187-05:00', 'days_to_birth': -20380.0, 'gender': 'female',
+         'vital_status': 'Alive', 'ethnicity': 'not hispanic or latino', 'premature_at_birth': None,
+         'year_of_birth': 1949, 'days_to_death': None, 'demographic_id': '73d8a76f-7e08-49df-bc28-439716586d69'}],
+     'cases__': {'index_date': 'Diagnosis', 'submitter_id': 'CTSP-ACY5', 'id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4',
+                 'updated_datetime': '2019-08-19T08:47:10.172187-05:00',
+                 'diagnosis_ids': '2bd60abb-7ba1-43a5-ab19-89d2de7b50c6',
+                 'created_datetime': '2018-02-20T16:11:27.193958-06:00', 'days_to_lost_to_followup': None,
+                 'state': 'released', 'case_id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4', 'primary_site': 'Unknown',
+                 'submitter_diagnosis_ids': 'DLBCL11282-diagnosis', 'lost_to_followup': 'No',
+                 'disease_type': 'Mature B-Cell Lymphomas'}}
 
     for case in cases:
         flattened_case_dict = flatten_case(case)
@@ -543,7 +599,6 @@ def main(args):
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
         print("DONE.\n")
-
 
 if __name__ == '__main__':
     main(sys.argv)
