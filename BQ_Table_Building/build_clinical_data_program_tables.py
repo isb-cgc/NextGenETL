@@ -307,7 +307,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     If creating diagnoses__annotations table, cases has field with diagnoses__annotations_ids
     If creating family_histories table, cases has field with family_histories_ids
     """
-
+    table_names_dict = dict()
     schema_dict = create_schema_dict(api_params)
     column_order_list = import_column_order_list(column_order_fp)
 
@@ -321,6 +321,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
 
         table_name = generate_table_name(bq_params, program_name, table_key)
         table_id = 'isb-project-zero.GDC_Clinical_Data.' + table_name
+        table_names_dict[table_key] = table_id
 
         split_prefix = table_key.split('.')
 
@@ -367,7 +368,7 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
         client.delete_table(table_id, not_found_ok=True)
         client.create_table(table)
 
-    return documentation_dict
+    return documentation_dict, table_names_dict
 
 
 ##
@@ -444,11 +445,9 @@ def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id
     return case_list_dict
 
 
-def insert_case_data(program_name, cases, tables_dict):
-    # table_mapping_dict = create_table_mapping(tables_dict)
-
+def insert_case_data(program_name, cases, table_names_dict):
     print()
-    print(tables_dict)
+    print(table_names_dict)
 
 
 ##
@@ -523,24 +522,25 @@ def main(args):
 
     for program_name in program_names:
         print("\n*** Running script for {} ***".format(program_name))
-        print("- Retrieving cases")
+        print("- Retrieving cases... ")
         cases = get_cases_by_program(program_name)
+        print("DONE.")
 
-        print("- Determining program table structure", end='')
+        print("- Determining program table structure... ", end='')
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
-        print("...DONE.")
+        print("DONE.")
 
-        print("- Creating empty BQ tables", end='')
-        documentation_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
-        print("...DONE.")
+        print("- Creating empty BQ tables... ", end='')
+        documentation_dict, table_names_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
+        print("DONE.")
 
-        print("- Inserting case records", end='')
-        insert_case_data(program_name, cases, tables_dict)
-        print("...DONE.")
+        print("- Inserting case records... ", end='')
+        insert_case_data(program_name, cases, table_names_dict)
+        print("DONE.")
 
-        print("- Inserting documentation", end='')
+        print("- Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
-        print("...DONE.\n")
+        print("DONE.\n")
 
 
 if __name__ == '__main__':
