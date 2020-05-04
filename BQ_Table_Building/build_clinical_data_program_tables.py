@@ -394,7 +394,6 @@ def flatten_case(case):
 
 def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
     if isinstance(case, list):
-        print("{}: {}".format(parent_id_key, parent_id))
         entry_list = []
 
         for entry in case:
@@ -524,21 +523,17 @@ def main(args):
         print("\n*** Running script for {} ***".format(program_name))
         print("- Retrieving cases... ")
         cases = get_cases_by_program(program_name)
-        print("DONE.")
 
-        print("- Determining program table structure... ", end='')
+        print("DONE.\n- Determining program table structure... ", end='')
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
-        print("DONE.")
 
-        print("- Creating empty BQ tables... ", end='')
+        print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
-        print("DONE.")
 
-        print("- Inserting case records... ", end='')
+        print("DONE.\n - Inserting case records... ", end='')
         insert_case_data(program_name, cases, table_names_dict)
-        print("DONE.")
 
-        print("- Inserting documentation... ", end='')
+        print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
         print("DONE.\n")
 
