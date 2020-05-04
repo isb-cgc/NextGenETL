@@ -521,15 +521,25 @@ def main(args):
         doc_file.write("New BQ Documentation")
 
     for program_name in program_names:
+        print("\n*** Running script for {} ***".format(program_name))
+        print("- Retrieving cases")
         cases = get_cases_by_program(program_name)
 
+        print("- Determining program table structure", end='')
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
+        print("...DONE.")
 
+        print("- Creating empty BQ tables", end='')
         documentation_dict = create_bq_tables(program_name, api_params, bq_params, args[2], tables_dict)
+        print("...DONE.")
 
-        generate_documentation(api_params, program_name, documentation_dict, record_counts)
-
+        print("- Inserting case records", end='')
         insert_case_data(program_name, cases, tables_dict)
+        print("...DONE.")
+
+        print("- Inserting documentation", end='')
+        generate_documentation(api_params, program_name, documentation_dict, record_counts)
+        print("...DONE.")
 
 
 if __name__ == '__main__':
