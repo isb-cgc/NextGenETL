@@ -189,6 +189,8 @@ def attach_barcodes(step2_table, aliquot_table, target_dataset, output_table, do
 ----------------------------------------------------------------------------------------------
 SQL code for above
 Get the barcodes for the aliquot and case IDs
+Except statement removes one duplicated column 
+GDC creates a randomized analyte + portion id for TARGET
 '''
 def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
     return '''
@@ -202,9 +204,11 @@ def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
                a.file_gdc_id,
                a.platform,
                a.file_name
-        FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
+        FROM `{0}` AS a JOIN SELECT DISTINCT * FROM (
+        SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) #EXCEPT to drop the randomized fields
+        FROM `{1}` 
+        WHERE program_name = "TARGET") AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
         '''.format(step2_table, aliquot_table)
-
 '''
 ----------------------------------------------------------------------------------------------
 Merge Counts and Metadata
