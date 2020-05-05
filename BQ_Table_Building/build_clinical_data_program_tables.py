@@ -457,9 +457,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.diagnoses.annotations'].add('case_id')
         schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
 
-    print("add reference columns on key {}".format(table_key))
-    print("{}\n".format(tables_dict))
-
     return tables_dict, schema_dict
 
 
@@ -788,10 +785,12 @@ def insert_case_data(cases, table_names_dict, record_counts):
             """.format(table, table_names_dict[table]))
 
             if parent_fg:
+                print("create_child_ids for {}, table {}".format(parent_fg, table))
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-                ordered_print(flattened_case_dict)
-                return
-
+                # ordered_print(flattened_case_dict)
+                # return
+            else:
+                print("no parent fg, so no child ids for child {}, table {}".format(child_fg, table))
 
         """
         for field_group in table_names_dict:
@@ -811,7 +810,6 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
         """
-
 
 
 def ordered_print(flattened_case_dict):
