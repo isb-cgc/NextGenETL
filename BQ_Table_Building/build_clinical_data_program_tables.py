@@ -731,8 +731,7 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-            ordered_print(flattened_case_dict)
-
+        ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
@@ -784,6 +783,7 @@ def ordered_print(flattened_case_dict):
     tables_string += "\n}"
 
     print(tables_string)
+    # todo remove this
     time.sleep(1)
 
 
