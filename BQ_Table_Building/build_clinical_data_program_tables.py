@@ -353,9 +353,9 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-def create_bq_tables(program_name, api_params, bq_params, tables_dict, column_order_list):
+def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_counts, column_order_list):
     print("CREATE_BQ")
-    print(tables_dict)
+    print(record_counts)
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
@@ -363,11 +363,14 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, column_or
     If creating diagnoses__annotations table, cases has field with diagnoses__annotations_ids
     If creating family_histories table, cases has field with family_histories_ids
     """
-    table_names_dict = dict()
     schema_dict = create_schema_dict(api_params)
 
-    exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
+    exclude_set = set()
 
+    for field in bq_params["EXCLUDE_FIELDS"].split(','):
+        exclude_set.add('cases.' + field)
+
+    table_names_dict = dict()
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
@@ -504,8 +507,6 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
-    print("MERGE")
-    print(table_names_dict)
     for field_group_key in flattened_case_dict.copy():
         if field_group_key in table_names_dict:
             # this group is meant to be a one-to-many table, don't merge
@@ -813,8 +814,10 @@ def main(args):
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
+        column_order_list = import_column_order_list(args[2])
         documentation_dict, table_names_dict = create_bq_tables(
-            program_name, api_params, bq_params, tables_dict, column_order_list=import_column_order_list(args[2]))
+            program_name, api_params, bq_params, tables_dict, record_counts, column_order_list
+        )
 
         print("DONE.\n - Inserting case records... ", end='')
         insert_case_data(cases, table_names_dict)
