@@ -587,7 +587,9 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
         child_ids_dict[parent_id].append(child_id)
 
-    for parent_record in flattened_case_dict[parent_table][0]:
+    for parent_record in flattened_case_dict[parent_table]:
+        print(parent_record)
+        continue
         parent_id = parent_record[parent_id_key]
         if parent_id in child_ids_dict:
             child_ids = ", ".join(child_ids_dict[parent_id])
