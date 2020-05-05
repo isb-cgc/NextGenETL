@@ -631,6 +631,10 @@ def insert_case_data(cases, table_names_dict, column_order_list):
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
+        # cases is dict, the rest are [], todo
+        for table in flattened_case_dict:
+            if isinstance(flattened_case_dict[table], dict):
+                flattened_case_dict[table] = [flattened_case_dict[table]]
 
         for field_group in table_names_dict:
             print()
