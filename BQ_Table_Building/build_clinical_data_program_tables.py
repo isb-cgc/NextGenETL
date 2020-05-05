@@ -323,6 +323,16 @@ def create_schema_dict(api_params):
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
+def get_table_names(record_counts):
+    table_keys = set()
+
+    for table in record_counts:
+        if record_counts[table] > 1 or table == 'cases':
+            table_keys.add(table)
+
+    return table_keys
+
+
 def import_column_order_list(path):
     column_list = []
     with open(path, 'r') as file:
@@ -456,11 +466,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
-    table_keys = set()
-
-    for table in record_counts:
-        if record_counts[table] != 1 or table == 'cases':
-            table_keys.add(table)
+    table_keys = get_table_names(record_counts)
 
     column_order_dict = {}
     created_table_set = set()
