@@ -630,6 +630,7 @@ def insert_case_data(cases, table_names_dict, column_order_list):
 
     # todo: return this to normal
     for case in cases[-4:-3]:
+        # todo this will start to error once id is actually being excluded in main cases script
         case.pop('id')
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
