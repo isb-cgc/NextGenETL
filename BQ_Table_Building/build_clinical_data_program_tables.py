@@ -348,7 +348,7 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-def create_bq_tables(program_name, api_params, bq_params, column_order_fp, tables_dict):
+def create_bq_tables(program_name, api_params, bq_params, column_order_list, tables_dict):
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
@@ -358,7 +358,6 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_fp, table
     """
     table_names_dict = dict()
     schema_dict = create_schema_dict(api_params)
-    column_order_list = import_column_order_list(column_order_fp)
 
     exclude_set = set(bq_params["EXCLUDE_FIELDS"].split(','))
 
@@ -508,47 +507,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
     return flattened_case_dict
 
 
-"""
-def create_child_table_id_lists(flattened_case_dict, parameter_list):
-    for parameters in parameter_list:
-        child_ids_dict = dict()
-        parent_records_list = []
-
-        parent_table = 'cases'
-
-        if parameters['parent_fg'] != 'cases':
-            parent_table += '.' + parameters['parent_fg']
-            
-        child_table = parent_table + '.' + parameters['child_fg'] 
-
-        # remove pluralization from field group name to make id keys
-        parent_id_key = parameters['parent_fg'][:-1] + 'id'
-        child_id_key = parameters['child_fg'][:-1] + '_id'
-        child_id_list_key = child_id_key + 's'
-        
-        for child_record in flattened_case_dict[child_table]:
-            parent_id = child_record[parent_id_key]
-            child_id = child_record[child_id_key]
-    
-            if parent_id not in child_ids_dict:
-                child_ids_dict[parent_id] = []
-    
-            child_ids_dict[parent_id].append(child_id)
-    
-        for parent_record in flattened_case_dict[parent_table]:
-            parent_id = parent_record[parent_id_key]
-            if parent_id in child_ids_dict:
-                child_ids = ", ".join(child_ids_dict[parent_id])
-                parent_record[child_id_list_key] = child_ids
-    
-            parent_records_list.append(parent_record) 
-
-        flattened_case_dict[parent_table] = parent_records_list
-
-    return flattened_case_dict
-"""
-
-
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     def create_id_key(field_name):
         if field_name == 'diagnoses':
@@ -560,7 +518,6 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
             id_key = field_name[:-1] + '_id'
         else:
             id_key = field_name + '_id'
-
         return id_key
 
     child_ids_dict = dict()
@@ -615,7 +572,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, table_names_dict):
+def insert_case_data(cases, table_names_dict, column_order_list):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
@@ -670,7 +627,7 @@ def insert_case_data(cases, table_names_dict):
     }
     """
 
-    # todo: return to normal
+    # todo: return this to normal
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
@@ -697,7 +654,21 @@ def insert_case_data(cases, table_names_dict):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        print(flattened_case_dict)
+        ordered_print(flattened_case_dict, column_order_list)
+
+
+def ordered_print(flattened_case_dict, column_order_list):
+    for table in flattened_case_dict:
+        field_order_dict = dict()
+
+        for key in table:
+            col_order_lookup_key = key + '.' + flattened_case_dict[key]
+            field_order_dict[key] = column_order_list[col_order_lookup_key]
+
+        for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+            print(flattened_case_dict[table][field_key])
+
+    return
 
 
 ##
@@ -747,6 +718,8 @@ def main(args):
 
     # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
+
+
     api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
@@ -768,6 +741,8 @@ def main(args):
     # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
     program_names = ['HCMI']
 
+    column_order_list = import_column_order_list(args[2])
+
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
 
@@ -782,10 +757,10 @@ def main(args):
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(
-            program_name, api_params, bq_params, args[2], tables_dict)
+            program_name, api_params, bq_params, column_order_list, tables_dict)
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict)
+        insert_case_data(cases, table_names_dict, column_order_list)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
