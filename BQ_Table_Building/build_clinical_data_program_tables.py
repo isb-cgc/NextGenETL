@@ -779,7 +779,7 @@ def ordered_print(flattened_case_dict):
     tables_string = tables_string.rstrip(',')
     tables_string += "\n}"
 
-    pprint_json(json.dumps(tables_string))
+    print(tables_string)
 
 
 ##
