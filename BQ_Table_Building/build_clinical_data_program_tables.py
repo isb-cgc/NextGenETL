@@ -594,6 +594,8 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         child_ids_dict[parent_id].append(child_id)
 
     for parent_record in flattened_case_dict[parent_table]:
+        print(parent_record)
+        continue
         parent_id = parent_record[parent_id_key]
         if parent_id in child_ids_dict:
             child_ids = ", ".join(child_ids_dict[parent_id])
@@ -667,6 +669,9 @@ def insert_case_data(cases, table_names_dict):
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
         for field_group in table_names_dict:
+            print()
+            print(field_group)
+
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
                 print("DOES THIS EVER HAPPEN?")
@@ -685,7 +690,7 @@ def insert_case_data(cases, table_names_dict):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        print(flattened_case_dict)
+        # print(flattened_case_dict)
 
 
 ##
