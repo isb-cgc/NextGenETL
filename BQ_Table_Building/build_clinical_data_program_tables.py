@@ -330,6 +330,8 @@ def get_table_names(record_counts):
         if record_counts[table] > 1 or table == 'cases':
             table_keys.add(table)
 
+    print("TABLE NAMES! {}".format(table_keys))
+
     return table_keys
 
 
@@ -707,8 +709,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
         'cases.diagnoses.treatments': table_id,
         'cases': table_id
     }
-    """
-    """
+
     case_record = {
         'cases.diagnoses': [
             {}
@@ -756,15 +757,10 @@ def insert_case_data(cases, table_names_dict, record_counts):
     }
     """
 
-    table_keys = set()
-    for table in record_counts:
-        if record_counts[table] != 1 or table == 'cases':
-            table_keys.add(table)
+    table_keys = get_table_names(record_counts)
 
-    # todo: return this to normal
-    for case in cases[-4:-3]:
+    for case in cases:
         flattened_case_dict = flatten_case(case, 'cases')
-        cases = flattened_case_dict['cases'][0]
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         # cases is dict, the rest are [], todo
