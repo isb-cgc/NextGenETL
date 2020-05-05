@@ -524,20 +524,21 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             table_columns = tables_dict[table_key]
 
-            if field_name in table_columns:
-                schema_field = bigquery.SchemaField(
-                    field_name,
-                    schema_dict[column]['type'],
-                    "NULLABLE",
-                    schema_dict[column]['description'],
-                    ()
-                )
-                schema_list.append(schema_field)
+            if field_name not in table_columns:
+                continue
 
-            else:
-                print("Not found. Column: {}, cols: {}".format(full_column_name, table_columns))
+            schema_field = bigquery.SchemaField(
+                field_name,
+                schema_dict[column]['type'],
+                "NULLABLE",
+                schema_dict[column]['description'],
+                ()
+            )
+            schema_list.append(schema_field)
 
             documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+
+            print(schema_list)
 
             client = bigquery.Client()
             table = bigquery.Table(table_id, schema=schema_list)
