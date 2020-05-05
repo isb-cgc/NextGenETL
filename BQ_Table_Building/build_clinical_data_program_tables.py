@@ -466,6 +466,9 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
     created_table_set = set()
 
     for table_key in table_keys:
+        tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
+
+    for table_key in table_keys:
         schema_list = []
 
         table_name = generate_table_name(bq_params, program_name, table_key)
@@ -481,14 +484,6 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
         if len(split_prefix) > 1:
             prefix = '__'.join(split_prefix[1:]) + '__'
-
-        tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
-
-        print("""
-        \n\ntables dict: {}
-        \nschema dict: {}
-        \ncolumn order list: {}\n
-        """.format(tables_dict, schema_dict, column_order_dict))
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
