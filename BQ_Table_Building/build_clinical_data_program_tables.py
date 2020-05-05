@@ -656,7 +656,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     child_ids_dict = dict()
 
-    print("\n{} -> {}\n{}".format(child_fg, parent_fg, flattened_case_dict))
+    print("\n{} -> {}\n{}".format(child_fg, parent_fg, flattened_case_dict.keys()))
 
     if parent_fg not in flattened_case_dict:
         print("parent fg not in flattened_case_dict")
