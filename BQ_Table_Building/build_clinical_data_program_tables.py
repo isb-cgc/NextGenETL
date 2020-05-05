@@ -375,66 +375,69 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
     if table_key == 'cases.follow_ups':
         tables_dict['cases'].add('follow_up_ids')
-        schema_dict['cases.follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
+        schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
     elif table_key == 'cases.follow_ups.molecular_tests':
         tables_dict['cases.follow_ups'].add('molecular_test_ids')
-        schema_dict['cases.follow_ups.molecular_test_ids'] = generate_ids_schema_entry(
+        schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
             '*_follow_ups__molecular_tests', 'molecular test')
 
         tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
-        schema_dict['cases.follow_ups.molecular_tests.follow_up_id'] = generate_id_schema_entry(
+        schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
             '*_follow_ups', 'follow up', 'follow_up_id')
 
         tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
-        schema_dict['cases.follow_ups.molecular_tests.case_id'] = generate_id_schema_entry()
+        schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.family_histories':
         tables_dict['cases'].add('family_history_ids')
-        schema_dict['cases.family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
+        schema_dict['family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
 
         tables_dict['cases.family_histories'].add('case_id')
-        schema_dict['cases.family_histories.case_id'] = generate_id_schema_entry()
+        schema_dict['family_histories__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.demographic':
         tables_dict['cases'].add('demographic_ids')
-        schema_dict['cases.demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
+        schema_dict['demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
 
         tables_dict['cases.demographic'].add('case_id')
-        schema_dict['cases.demographic.case_id'] = generate_id_schema_entry()
+        schema_dict['demographic__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.exposures':
         tables_dict['cases.exposures'].add('case_id')
-        schema_dict['cases.exposures.case_id'] = generate_id_schema_entry()
+        schema_dict['exposures__case_id'] = generate_id_schema_entry()
 
         tables_dict['cases'].add('exposure_ids')
-        schema_dict['cases.exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
+        schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
     elif table_key == 'cases.diagnoses.treatments':
         if 'cases.diagnoses' in table_keys:
             tables_dict['cases.diagnoses'].add('treatment_ids')
         else:
             tables_dict['cases'].add('diagnoses__treatment_ids')
-        schema_dict['cases.diagnoses.treatment_ids'] = generate_ids_schema_entry('*_diagnoses__treatments', 'treatment')
+
+        schema_dict['diagnoses__treatment_ids'] = generate_ids_schema_entry('*_diagnoses__treatments', 'treatment')
 
         tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
-        parent_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-        schema_dict['cases.diagnoses.treatments.diagnosis_id'] = generate_id_schema_entry(
-            parent_table, 'diagnosis', 'diagnosis_id')
+        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+
+        schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
+            ancestor_table, 'diagnosis', 'diagnosis_id')
 
         tables_dict['cases.diagnoses.treatments'].add('case_id')
-        schema_dict['cases.diagnoses.treatments.case_id'] = generate_id_schema_entry()
+        schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
         if 'cases.diagnoses' in table_keys:
             tables_dict['cases.diagnoses'].add('annotation_ids')
         else:
             tables_dict['cases'].add('diagnoses__annotation_ids')
 
-        schema_dict['cases.diagnoses.annotation_ids'] = generate_ids_schema_entry(
+        schema_dict['diagnoses__annotation_ids'] = generate_ids_schema_entry(
             '*_diagnoses__annotations', 'annotation')
 
         tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
-        parent_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-        schema_dict['cases.diagnoses.annotations.diagnosis_id'] = generate_id_schema_entry(
-            parent_table, 'diagnosis', 'diagnosis_id')
+        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+
+        schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
+            ancestor_table, 'diagnosis', 'diagnosis_id')
 
         tables_dict['cases.diagnoses.annotations'].add('case_id')
-        schema_dict['cases.diagnoses.annotations.case_id'] = generate_id_schema_entry()
+        schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
 
     return tables_dict, schema_dict
 
