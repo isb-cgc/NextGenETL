@@ -561,7 +561,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     if parent_field_name == 'diagnoses':
         parent_id_key = 'diagnosis_id'
     elif parent_field_name == 'family_histories':
-        parent_id_key = 'family_history'
+        parent_id_key = 'family_history_id'
     elif parent_field_name[-1] == 's':
         # remove pluralization from field group name to make id keys
         parent_id_key = parent_field_name[:-1] + '_id'
@@ -571,7 +571,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     if child_field_name == 'diagnoses':
         child_id_key = 'diagnosis_id'
     elif child_field_name == 'family_histories':
-        child_id_key = 'family_history'
+        child_id_key = 'family_history_id'
     elif child_field_name[-1] == 's':
         child_id_key = child_field_name[:-1] + '_id'
     else:
@@ -594,8 +594,6 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         child_ids_dict[parent_id].append(child_id)
 
     for parent_record in flattened_case_dict[parent_table]:
-        print(parent_record)
-        continue
         parent_id = parent_record[parent_id_key]
         if parent_id in child_ids_dict:
             child_ids = ", ".join(child_ids_dict[parent_id])
@@ -669,9 +667,6 @@ def insert_case_data(cases, table_names_dict):
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
         for field_group in table_names_dict:
-            print()
-            print(field_group)
-
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
                 print("DOES THIS EVER HAPPEN?")
