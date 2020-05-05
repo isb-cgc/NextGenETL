@@ -779,37 +779,14 @@ def insert_case_data(cases, table_names_dict, record_counts):
 
             parent_fg = ".".join(split_table[:-1])
             child_fg = split_table[-1]
-
-            print("""
-            table: {} - {}\n
-            """.format(table, table_names_dict[table]))
+            print("parent_fg {}, child {}".format(parent_fg, child_fg))
 
             if parent_fg:
-                print("create_child_ids for {}, table {}".format(parent_fg, table))
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
                 # ordered_print(flattened_case_dict)
                 # return
             else:
-                print("no parent fg, so no child ids for child {}, table {}".format(child_fg, table))
-
-        """
-        for field_group in table_names_dict:
-            if field_group not in flattened_case_dict:
-                has_fatal_error("fg {} not in flattened_case_dict:\n{}".format(field_group, flattened_case_dict.keys()))
-
-            split_fg = field_group.split('.')
-
-            if len(split_fg) > 3:
-                has_fatal_error("The expand field group list contains a field group name with nested depth > 3. "
-                                "This script is not set up to handle that.", ValueError)
-
-            parent_fg = ".".join(split_fg[:-1])
-            child_fg = split_fg[-1]
-
-            # if not parent_fg, current table iteration is 'cases', the base table
-            if parent_fg:
-                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-        """
+                print("No child ids for child {}, table {}".format(child_fg, table))
 
 
 def ordered_print(flattened_case_dict):
