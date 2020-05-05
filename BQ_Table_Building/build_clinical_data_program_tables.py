@@ -1,6 +1,7 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, pprint_json
 from google.cloud import bigquery
 import sys
+import json
 
 YAML_HEADERS = ('api_params', 'bq_params')
 COLUMN_ORDER_DICT = dict()
@@ -727,9 +728,6 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        pprint_json(json.dumps(flattened_case_dict))
-
-
 def ordered_print(flattened_case_dict):
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
@@ -778,7 +776,7 @@ def ordered_print(flattened_case_dict):
     tables_string = tables_string.rstrip(',')
     tables_string += "\n}"
 
-    print(tables_string)
+    pprint_json(json.dumps(tables_string))
 
 ##
 #  Functions for creating documentation
