@@ -507,9 +507,9 @@ def insert_case_data(program_name, cases, table_names_dict):
                 prefix = "__".join(field_group_key.split(".")[1:])
                 prefix = prefix + "__"
 
-                field_group = flattened_case_dict.pop(field_group_key)
+                field_group = flattened_case_dict.pop(field_group_key)[0]
 
-                for key in field_group[0]:
+                for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
 
             else:
