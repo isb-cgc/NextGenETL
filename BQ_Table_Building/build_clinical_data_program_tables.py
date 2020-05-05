@@ -593,6 +593,9 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
         child_ids_dict[parent_id].append(child_id)
 
+    print(len(flattened_case_dict[parent_table]))
+    return flattened_case_dict
+
     for parent_record in flattened_case_dict[parent_table]:
         print(parent_record)
         continue
