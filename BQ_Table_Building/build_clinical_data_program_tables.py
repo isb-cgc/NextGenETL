@@ -52,8 +52,7 @@ def get_programs_list(bq_params):
 
 
 def strip_null_fields(case):
-
-
+    pass
 
 
 def retrieve_program_case_structure(program_name, cases):
