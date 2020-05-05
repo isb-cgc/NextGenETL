@@ -708,9 +708,9 @@ def ordered_print(flattened_case_dict, column_order_list):
             entry_string = entry_string.rstrip(',')
             tables_string += entry_string + '\n'
             tables_string += "{}}},\n".format(make_tabs(indent + 1))
-            tables_string = tables_string.rstrip('\n')
-            tables_string = tables_string.rstrip(',')
-            tables_string += '\n'
+        tables_string = tables_string.rstrip('\n')
+        tables_string = tables_string.rstrip(',')
+        tables_string += '\n'
         tables_string += "{}],\n".format(make_tabs(indent))
     tables_string = tables_string.rstrip('\n')
     tables_string = tables_string.rstrip(',')
