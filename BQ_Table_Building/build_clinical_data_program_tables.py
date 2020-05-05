@@ -483,6 +483,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
     for table_key in table_keys:
         schema_list = []
+        schema_field_keys = set()
 
         table_name = generate_table_name(bq_params, program_name, table_key)
         table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
@@ -528,7 +529,9 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             schema_field = bigquery.SchemaField(
                 field_name, schema_dict[column]['type'], "NULLABLE", schema_dict[column]['description'], ())
-            schema_list.append(schema_field)
+
+            if field_name not in schema_field_keys:
+                schema_list.append(schema_field)
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
         print(schema_list)
