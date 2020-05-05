@@ -483,9 +483,6 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
-        print("TABLES DICT")
-        print(tables_dict)
-
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
 
@@ -493,6 +490,9 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             if full_column_name in exclude_set:
                 continue
+
+            if full_column_name not in column_order_list:
+                has_fatal_error('{} not in column_order_list!'.format(full_column_name))
 
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
