@@ -553,22 +553,24 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     print("{}, {}".format(parent_fg, child_fg))
     child_ids_dict = dict()
     parent_records_list = []
+    parent_field_name = parent_fg.split(".")[-1]
+    child_field_name = child_fg
+    parent_table = parent_fg.split(".")
+    child_table = parent_fg + '.' + child_fg
 
-    parent_table = 'cases'
-    if parent_fg != 'cases':
-        parent_table += '.' + parent_fg
-
-    child_table = parent_table + '.' + child_fg
-
-    if parent_fg == 'diagnoses':
+    if parent_field_name == 'diagnoses':
         parent_id_key = 'diagnosis_id'
     elif parent_fg[-1] == 's':
         # remove pluralization from field group name to make id keys
-        parent_id_key = parent_fg[:-1] + '_id'
+        parent_id_key = parent_field_name[:-1] + '_id'
     else:
-        parent_id_key = parent_fg + '_id'
+        parent_id_key = parent_field_name + '_id'
 
-    child_id_key = child_fg[:-1] + '_id'
+    if child_field_name[-1] == 's':
+        child_id_key = child_field_name[:-1] + '_id'
+    else:
+        child_id_key = child_field_name + '_id'
+
     child_id_list_key = child_id_key + 's'
 
     if parent_table not in flattened_case_dict or child_table not in flattened_case_dict:
@@ -702,13 +704,8 @@ def insert_case_data(cases, table_names_dict):
                 has_fatal_error("The expand field group list contains a field group name with nested depth > 3. "
                                 "This script is not set up to handle that.", ValueError)
 
-            parent_fg = 'cases'
-
-            if len(split_fg) == 2:
-                child_fg = field_group
-            else:
-                parent_fg = split_fg[0]
-                child_fg = split_fg[1]
+            parent_fg = ".".join(split_fg[:-1])
+            child_fg = split_fg[-1]
 
             flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
