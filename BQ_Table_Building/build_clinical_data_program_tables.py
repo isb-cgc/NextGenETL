@@ -463,7 +463,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_counts, column_order_list):
     schema_dict = create_schema_dict(api_params)
-    print(schema_dict)
 
     exclude_set = set()
 
@@ -528,23 +527,17 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
                 continue
 
             schema_field = bigquery.SchemaField(
-                field_name,
-                schema_dict[column]['type'],
-                "NULLABLE",
-                schema_dict[column]['description'],
-                ()
-            )
+                field_name, schema_dict[column]['type'], "NULLABLE", schema_dict[column]['description'], ())
             schema_list.append(schema_field)
 
-            documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+        documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+        print(schema_list)
 
-            print(schema_list)
-
-            client = bigquery.Client()
-            table = bigquery.Table(table_id, schema=schema_list)
-            client.delete_table(table_id, not_found_ok=True)
-            client.create_table(table)
-            created_table_set.add(table_key)
+        client = bigquery.Client()
+        table = bigquery.Table(table_id, schema=schema_list)
+        client.delete_table(table_id, not_found_ok=True)
+        client.create_table(table)
+        created_table_set.add(table_key)
 
     if len(created_table_set) != len(table_names_dict.keys()):
         has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
