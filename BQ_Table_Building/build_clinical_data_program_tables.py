@@ -775,18 +775,24 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
-            parent_fg = ".".join(table[:-1])
-            child_fg = table[-1]
+            split_table = table.split('.')
+
+            if len(split_table) > 3:
+                has_fatal_error("Expand field group list contains a nested field group with depth > 3.", ValueError)
+
+            parent_fg = ".".join(split_table[:-1])
+            child_fg = split_table[-1]
 
             print("""
-            table: {}\n
-            table_name: {}\n
-            parent_fg: {}\n
-            child_fg: {}\n
-            """.format(table, table_names_dict[table], parent_fg, child_fg))
+            table: {} - {}\n
+            """.format(table, table_names_dict[table]))
 
-        continue
+            if parent_fg:
+                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+                ordered_print(flattened_case_dict)
 
+
+        """
         for field_group in table_names_dict:
             if field_group not in flattened_case_dict:
                 has_fatal_error("fg {} not in flattened_case_dict:\n{}".format(field_group, flattened_case_dict.keys()))
@@ -803,8 +809,8 @@ def insert_case_data(cases, table_names_dict, record_counts):
             # if not parent_fg, current table iteration is 'cases', the base table
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+        """
 
-        # ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
