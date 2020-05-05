@@ -353,16 +353,97 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
+def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
+    description = "Reference to the {} field of the {} record to which this record belongs. " \
+                  "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
+
+    return {
+        "name": column_name,
+        "type": 'STRING',
+        "description": description
+    }
+
+
+def generate_ids_schema_entry(child_table, child_field_name):
+    column_name = "_".join(child_field_name.split(" ")) + '_id'
+    description = "List of {} ids, referencing associated records located in the program's {} " \
+                  "table.".format(child_field_name, child_table)
+
+    return {
+        "name": column_name,
+        "type": 'STRING',
+        "description": description
+    }
+
+
+def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
+    if table_key == 'cases.follow_ups':
+        tables_dict['cases'].add('follow_up_ids')
+        schema_dict['cases.follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
+    elif table_key == 'cases.follow_ups.molecular_tests':
+        tables_dict['cases.follow_ups'].add('molecular_test_ids')
+        schema_dict['cases.follow_ups.molecular_test_ids'] = generate_ids_schema_entry(
+            '*_follow_ups__molecular_tests', 'molecular test')
+
+        tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
+        schema_dict['cases.follow_ups.molecular_tests.follow_up_id'] = generate_id_schema_entry(
+            '*_follow_ups', 'follow up', 'follow_up_id')
+
+        tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
+        schema_dict['cases.follow_ups.molecular_tests.case_id'] = generate_id_schema_entry()
+    elif table_key == 'cases.family_histories':
+        tables_dict['cases'].add('family_history_ids')
+        schema_dict['cases.family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
+
+        tables_dict['cases.family_histories'].add('case_id')
+        schema_dict['cases.family_histories.case_id'] = generate_id_schema_entry()
+    elif table_key == 'cases.demographic':
+        tables_dict['cases'].add('demographic_ids')
+        schema_dict['cases.demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
+
+        tables_dict['cases.demographic'].add('case_id')
+        schema_dict['cases.demographic.case_id'] = generate_id_schema_entry()
+    elif table_key == 'cases.exposures':
+        tables_dict['cases.exposures'].add('case_id')
+        schema_dict['cases.exposures.case_id'] = generate_id_schema_entry()
+
+        tables_dict['cases'].add('exposure_ids')
+        schema_dict['cases.exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
+    elif table_key == 'cases.diagnoses.treatments':
+        if 'cases.diagnoses' in table_keys:
+            tables_dict['cases.diagnoses'].add('treatment_ids')
+        else:
+            tables_dict['cases'].add('diagnoses__treatment_ids')
+        schema_dict['cases.diagnoses.treatment_ids'] = generate_ids_schema_entry('*_diagnoses__treatments', 'treatment')
+
+        tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
+        parent_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        schema_dict['cases.diagnoses.treatments.diagnosis_id'] = generate_id_schema_entry(
+            parent_table, 'diagnosis', 'diagnosis_id')
+
+        tables_dict['cases.diagnoses.treatments'].add('case_id')
+        schema_dict['cases.diagnoses.treatments.case_id'] = generate_id_schema_entry()
+    elif table_key == 'cases.diagnoses.annotations':
+        if 'cases.diagnoses' in table_keys:
+            tables_dict['cases.diagnoses'].add('annotation_ids')
+        else:
+            tables_dict['cases'].add('diagnoses__annotation_ids')
+
+        schema_dict['cases.diagnoses.annotation_ids'] = generate_ids_schema_entry(
+            '*_diagnoses__annotations', 'annotation')
+
+        tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
+        parent_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        schema_dict['cases.diagnoses.annotations.diagnosis_id'] = generate_id_schema_entry(
+            parent_table, 'diagnosis', 'diagnosis_id')
+
+        tables_dict['cases.diagnoses.annotations'].add('case_id')
+        schema_dict['cases.diagnoses.annotations.case_id'] = generate_id_schema_entry()
+
+    return tables_dict, schema_dict
+
+
 def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_counts, column_order_list):
-    print("CREATE_BQ")
-    print(record_counts)
-    """
-    If creating follow_ups table, cases has field with follow_ups_ids string list
-    If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
-    If creating diagnoses__treatments table, cases has field with diagnoses__treatments_ids
-    If creating diagnoses__annotations table, cases has field with diagnoses__annotations_ids
-    If creating family_histories table, cases has field with family_histories_ids
-    """
     schema_dict = create_schema_dict(api_params)
 
     exclude_set = set()
@@ -374,39 +455,42 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
-    for table_key in tables_dict.keys():
+    table_keys = set()
+
+    for table in record_counts:
+        if record_counts[table] != 1 or table == 'cases':
+            table_keys.add(table)
+
+    column_order_dict = {}
+
+    for table_key in table_keys:
         schema_list = []
 
         table_name = generate_table_name(bq_params, program_name, table_key)
         table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
         table_names_dict[table_key] = table_id
 
-        split_prefix = table_key.split('.')
-
-        if len(split_prefix) == 1:
-            prefix = ''
-        else:
-            prefix = '__'.join(split_prefix[1:])
-            prefix = prefix + '__'
-
-        column_order_dict = {}
-
         documentation_dict['table_schemas'][table_key] = dict()
         documentation_dict['table_schemas'][table_key]['table_id'] = table_id
         documentation_dict['table_schemas'][table_key]['table_schema'] = list()
 
+        split_prefix = table_key.split('.')
+        prefix = ''
+
+        if len(split_prefix) > 1:
+            prefix = '__'.join(split_prefix[1:]) + '__'
+
+        tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
+
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
+
             full_column_name = prefix + column
 
             if full_column_name in exclude_set:
                 continue
 
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
-
-        # making dict available for print and insert functions
-        global COLUMN_ORDER_DICT
-        COLUMN_ORDER_DICT = column_order_dict
 
         # todo: logic for non-nullable fields
         for column in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
@@ -428,6 +512,10 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
         table = bigquery.Table(table_id, schema=schema_list)
         client.delete_table(table_id, not_found_ok=True)
         client.create_table(table)
+
+    # make column order dict available for print/case insert functions.
+    global COLUMN_ORDER_DICT
+    COLUMN_ORDER_DICT = column_order_dict
 
     return documentation_dict, table_names_dict
 
