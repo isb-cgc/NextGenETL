@@ -102,7 +102,7 @@ def retrieve_program_case_structure(program_name, cases):
                 record_counts_[nested_path] = 1
 
             if isinstance(case_[field_key], dict):
-                print("HEREEEE")
+                # is this actually hit? I don't think so
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, nested_path)
             else:
                 record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
@@ -123,6 +123,8 @@ def retrieve_program_case_structure(program_name, cases):
         null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
+        print("case_id: {}".format(case['case_id']))
+        print(record_counts)
 
     tables = flatten_tables(tables, record_counts)
 
