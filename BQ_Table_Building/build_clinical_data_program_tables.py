@@ -667,7 +667,7 @@ def ordered_print(flattened_case_dict, column_order_list):
 
         for key in flattened_case_dict[table]:
             split_prefix = table.split(".")
-            if split_prefix <= 2:
+            if len(split_prefix) == 1:
                 prefix = ''
             else:
                 prefix = '__'.join(split_prefix[1:])
