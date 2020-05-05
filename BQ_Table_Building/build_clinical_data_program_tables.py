@@ -669,6 +669,9 @@ def insert_case_data(cases, table_names_dict, api_params):
     }
     """
 
+    print(api_params["EXPAND_FIELD_GROUPS"])
+    return
+
     # todo: return to normal
     for case in cases[-5:-3]:
         flattened_case_dict = flatten_case(case)
