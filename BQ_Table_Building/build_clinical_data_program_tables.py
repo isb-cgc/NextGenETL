@@ -514,7 +514,6 @@ def insert_case_data(program_name, cases, table_names_dict):
 
                 for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
-
             else:
                 pass
         if count < 3:
