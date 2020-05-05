@@ -3,6 +3,7 @@ from google.cloud import bigquery
 import sys
 
 YAML_HEADERS = ('api_params', 'bq_params')
+COLUMN_ORDER_DICT = dict()
 
 ##
 #  Functions for retrieving programs and cases
@@ -488,7 +489,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
         # todo: logic for non-nullable fields
-        for column in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
+        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
             column_name = column[0]
 
             schema_field = bigquery.SchemaField(
