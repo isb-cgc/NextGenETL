@@ -700,11 +700,14 @@ def ordered_print(flattened_case_dict, column_order_list):
                 except KeyError:
                     print("[ERROR] {} not in column order list".format(col_order_lookup_key))
                     entry.pop(key)
-
+            entry_string = ""
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print("{}{}: {}".format(make_tabs(indent + 2), field_key, entry[field_key]))
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            entry_string = entry_string.rstrip('\n')
+            entry_string = entry_string.rstrip(',')
+            print(entry_string)
             print("{}}}".format(make_tabs(indent + 1)))
-        print("{}]".format(make_tabs(indent)))
+        print("{}],".format(make_tabs(indent)))
     print("}}".format())
 
 
