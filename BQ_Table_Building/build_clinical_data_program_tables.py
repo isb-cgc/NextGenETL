@@ -366,6 +366,9 @@ def generate_table_name(bq_params, program_name, table):
 
 
 def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
+    print("add reference columns on key {}".format(table_key))
+    print("{}\n{}\n".format(table_keys, tables_dict))
+
     def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
         description = "Reference to the {} field of the {} record to which this record belongs. " \
                       "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
