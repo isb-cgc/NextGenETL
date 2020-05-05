@@ -728,6 +728,9 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
+        ordered_print(flattened_case_dict)
+
+
 def ordered_print(flattened_case_dict):
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
@@ -777,6 +780,7 @@ def ordered_print(flattened_case_dict):
     tables_string += "\n}"
 
     pprint_json(json.dumps(tables_string))
+
 
 ##
 #  Functions for creating documentation
