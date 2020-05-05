@@ -675,7 +675,6 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     for child_record in flattened_case_dict[child_table_name]:
         child_id = child_record[child_id_key]
-
         child_ids_set.add(child_id)
 
     flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(list(sorted(child_ids_set)))
@@ -707,8 +706,9 @@ def insert_case_data(cases, record_counts, tables_dict):
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
             table_id = tables_dict[table]
-            print(table_id)
-            print(tables_dict)
+
+            print("table_id: {}".format(table_id))
+            print("tables_d: {}".format(tables_dict))
 
             client = bigquery.Client()
             table = client.get_table(table_id)
