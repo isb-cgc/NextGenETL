@@ -713,9 +713,8 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
-        if 'cases.follow_ups' in flattened_case_dict:
-            print("1 len(flattened_case_dict['cases.follow_ups']) = {}".format(
-                len(flattened_case_dict['cases.follow_ups'])))
+        if 'follow_ups' in case:
+            print("1 len(case['follow_ups']) = {}".format(len(case['follow_ups'])))
 
         flattened_case_dict = flatten_case(case, 'cases')
 
@@ -728,7 +727,6 @@ def insert_case_data(cases, record_counts):
         if 'cases.follow_ups' in flattened_case_dict:
             print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
-
 
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict.copy():
