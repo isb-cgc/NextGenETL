@@ -59,12 +59,8 @@ def retrieve_program_case_structure(program_name, cases):
     tables = {}
     record_counts = {}
 
-    count = 0
-
     for case in cases:
-        if count == 0:
-            print(case)
-            count += 1
+        print(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
@@ -548,7 +544,7 @@ def insert_case_data(program_name, cases, table_names_dict):
                 for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
 
-        print(flattened_case_dict)
+        # print(flattened_case_dict)
 
 
 ##
