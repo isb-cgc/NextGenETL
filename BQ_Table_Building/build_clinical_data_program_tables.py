@@ -56,9 +56,6 @@ def get_cases_by_program(program_name, bq_params):
     return cases
 
 
-##
-#  Functions for creating the BQ table schema dictionary
-##
 def strip_null_fields(case):
     def strip_null_fields_recursive(sub_case):
         for key in sub_case.copy():
@@ -76,6 +73,9 @@ def strip_null_fields(case):
     return strip_null_fields_recursive(case)
 
 
+##
+#  Functions for creating the BQ table schema dictionary
+##
 def retrieve_program_case_structure(program_name, cases):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
@@ -187,6 +187,17 @@ def flatten_tables(tables, record_counts):
 
 
 def lookup_column_types():
+    def split_datatype_array(col_dict, col_string, name_prefix):
+        columns = col_string[13:-2].split(', ')
+
+        for column in columns:
+            column_type = column.split(' ')
+
+            column_name = name_prefix + column_type[0]
+            col_dict[column_name] = column_type[1].strip(',')
+
+        return col_dict
+
     column_type_dict = dict()
 
     base_query = """
@@ -281,18 +292,6 @@ def lookup_column_types():
     return column_type_dict
 
 
-def split_datatype_array(col_dict, col_string, name_prefix):
-    columns = col_string[13:-2].split(', ')
-
-    for column in columns:
-        column_type = column.split(' ')
-
-        column_name = name_prefix + column_type[0]
-        col_dict[column_name] = column_type[1].strip(',')
-
-    return col_dict
-
-
 def create_schema_dict(api_params):
     column_type_dict = lookup_column_types()
     field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
@@ -353,30 +352,28 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
-    description = "Reference to the {} field of the {} record to which this record belongs. " \
-                  "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
-
-    return {
-        "name": column_name,
-        "type": 'STRING',
-        "description": description
-    }
-
-
-def generate_ids_schema_entry(child_table, child_field_name):
-    column_name = "_".join(child_field_name.split(" ")) + '_id'
-    description = "List of {} ids, referencing associated records located in the program's {} " \
-                  "table.".format(child_field_name, child_table)
-
-    return {
-        "name": column_name,
-        "type": 'STRING',
-        "description": description
-    }
-
-
 def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
+    def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
+        description = "Reference to the {} field of the {} record to which this record belongs. " \
+                      "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
+
+        return {
+            "name": column_name,
+            "type": 'STRING',
+            "description": description
+        }
+
+    def generate_ids_schema_entry(child_table, child_field_name):
+        column_name = "_".join(child_field_name.split(" ")) + '_id'
+        description = "List of {} ids, referencing associated records located in the program's {} " \
+                      "table.".format(child_field_name, child_table)
+
+        return {
+            "name": column_name,
+            "type": 'STRING',
+            "description": description
+        }
+
     if table_key == 'cases.follow_ups':
         tables_dict['cases'].add('follow_up_ids')
         schema_dict['cases.follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
