@@ -707,8 +707,12 @@ def insert_case_data(cases, record_counts, tables_dict):
         if isinstance(flattened_case_dict['cases'], dict):
             flattened_case_dict['cases'] = [flattened_case_dict['cases']]
 
+        print("case: {}, table list: {}".format(
+            flattened_case_dict['cases'][0]['case_id'],
+            flattened_case_dict.keys())
+        )
+
         for table in flattened_case_dict.keys():
-            print("for table: {}".format(table))
             split_table = table.split('.')
 
             if len(split_table) > 3:
