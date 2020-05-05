@@ -666,7 +666,13 @@ def ordered_print(flattened_case_dict, column_order_list):
         field_order_dict = dict()
 
         for key in flattened_case_dict[table][0]:
-            col_order_lookup_key = table + '.' + key
+            split_prefix = table.split(".")
+            if split_prefix == 1:
+                prefix = ''
+            else:
+                prefix = '__'.join(split_prefix[1:]) + '__'
+
+            col_order_lookup_key = prefix + key
             field_order_dict[key] = column_order_dict[col_order_lookup_key]
 
         for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
