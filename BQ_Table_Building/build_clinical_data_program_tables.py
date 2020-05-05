@@ -573,6 +573,11 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_id_key = child_fg[:-1] + '_id'
     child_id_list_key = child_id_key + 's'
 
+    if parent_table not in flattened_case_dict or child_table not in flattened_case_dict:
+        print("No entry in flattened_dict for either {} or {}".format(parent_table, child_table))
+        print(flattened_case_dict.keys())
+        return flattened_case_dict
+
     for child_record in flattened_case_dict[child_table]:
         parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
