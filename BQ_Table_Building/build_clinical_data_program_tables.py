@@ -560,7 +560,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     if parent_field_name == 'diagnoses':
         parent_id_key = 'diagnosis_id'
-    elif parent_fg[-1] == 's':
+    elif parent_field_name[-1] == 's':
         # remove pluralization from field group name to make id keys
         parent_id_key = parent_field_name[:-1] + '_id'
     else:
