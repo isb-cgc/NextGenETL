@@ -25,17 +25,21 @@ def get_programs_list(bq_params):
     return programs
 
 
-def get_cases_by_program(program_name):
+def get_cases_by_program(program_name, bq_params):
     cases = []
+
+    table_name = bq_params["GDC_RELEASE"] + '_clinical_data'
+    table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
+
     results = get_query_results(
         """
         SELECT * 
-        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
+        FROM `{}`
         WHERE submitter_id 
         IN (SELECT case_barcode
             FROM `isb-project-zero.GDC_metadata.rel22_caseData`
             WHERE program_name = '{}')
-        """.format(program_name)
+        """.format(table_id, program_name)
     )
 
     for case_row in results:
@@ -102,7 +106,8 @@ def retrieve_program_case_structure(program_name, cases):
                 record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
 
                 for field_group_entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_, nested_path)
+                    tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_,
+                                                                   nested_path)
 
         return tables_, record_counts_
 
@@ -276,7 +281,6 @@ def lookup_column_types():
 
 
 def split_datatype_array(col_dict, col_string, name_prefix):
-
     columns = col_string[13:-2].split(', ')
 
     for column in columns:
@@ -396,7 +400,6 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_list, tab
 
         # todo: logic for non-nullable fields
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
-
             column_name = column[0]
 
             schema_field = bigquery.SchemaField(
@@ -743,7 +746,6 @@ def main(args):
     # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
 
-
     api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
@@ -774,7 +776,7 @@ def main(args):
         print("\n*** Running script for {} ***".format(program_name))
 
         print(" - Retrieving cases... ", end='')
-        cases = get_cases_by_program(program_name)
+        cases = get_cases_by_program(program_name, bq_params)
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
