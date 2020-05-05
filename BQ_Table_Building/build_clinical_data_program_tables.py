@@ -719,9 +719,6 @@ def insert_case_data(cases, record_counts):
             flattened_case_dict['cases'] = [flattened_case_dict['cases']]
 
         for table in flattened_case_dict.keys():
-            print(table)
-            print(flattened_case_dict[table])
-
             split_table = table.split('.')
 
             if len(split_table) > 3:
