@@ -482,8 +482,10 @@ def flatten_case(case):
                 if entry_list:
                     case_list_dict[prefix] = entry_list
         else:
+            entry_list = []
+            entry_dict = dict()
             if prefix not in case_list_dict:
-                case_list_dict[prefix] = dict()
+                case_list_dict[prefix] = []
             for key in case_:
                 parent_id = case_['case_id']
                 parent_id_key = 'case_id'
@@ -491,8 +493,12 @@ def flatten_case(case):
                     case_list_dict = flatten_case_recursive(case_[key], case_list_dict, prefix + '.' + key,
                                                             parent_id, parent_id, parent_id_key)
                 else:
-                    case_list_dict[prefix][key] = case_[key]
-
+                    # case_list_dict[prefix][key] = case_[key]
+                    entry_dict[key] = case_[key]
+            if entry_dict:
+                entry_list.append(entry_dict)
+            if entry_list:
+                case_list_dict[prefix] = entry_list
         return case_list_dict
 
     flattened_case_dict = flatten_case_recursive(case, dict(), 'cases')
