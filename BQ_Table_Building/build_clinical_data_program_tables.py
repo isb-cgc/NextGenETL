@@ -564,6 +564,9 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=None, parent_id_key=None):
+    if 'case_id' in case:
+        print(case['case_id'])
+
     if isinstance(case, list):
         entry_list = []
 
@@ -600,7 +603,7 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
         else:
             if entry_list:
                 case_list_dict[prefix] = entry_list
-        print("end of list loop: {}".format(case_list_dict))
+
     else:
         entry_list = []
         entry_dict = dict()
@@ -619,7 +622,6 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
             entry_list.append(entry_dict)
         if entry_list:
             case_list_dict[prefix] = entry_list
-    print("end: {}".format(case_list_dict))
     return case_list_dict
 
 
@@ -711,8 +713,15 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
+        if 'cases.follow_ups' in case:
+            print("1 len(flattened_case_dict['cases.follow_ups']) = {}".format(len(case['cases.follow_ups'])))
         flattened_case_dict = flatten_case(case, 'cases')
+        if 'cases.follow_ups' in case:
+            print("2 len(flattened_case_dict['cases.follow_ups']) = {}".format(len(case['cases.follow_ups'])))
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        if 'cases.follow_ups' in case:
+            print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(len(case['cases.follow_ups'])))
+
 
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict.copy():
