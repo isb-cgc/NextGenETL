@@ -712,8 +712,6 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
-        case_id = case['case_id']
-
         flattened_case_dict = flatten_case(case, 'cases', dict())
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
@@ -733,9 +731,8 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        # ordered_print(flattened_case_dict)
 
-
+"""
 def ordered_print(flattened_case_dict):
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
@@ -785,6 +782,8 @@ def ordered_print(flattened_case_dict):
     tables_string += "\n}"
 
     print(tables_string)
+"""
+
 
 ##
 #  Functions for creating documentation
