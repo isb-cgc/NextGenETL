@@ -364,9 +364,6 @@ def generate_table_name(bq_params, program_name, table):
 
 
 def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
-    print("add reference columns on key {}".format(table_key))
-    print("{}\n{}\n".format(table_keys, tables_dict))
-
     def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
         description = "Reference to the {} field of the {} record to which this record belongs. " \
                       "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
@@ -391,6 +388,9 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     if table_key == 'cases.follow_ups':
         tables_dict['cases'].add('follow_up_ids')
         schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
+
+        tables_dict['cases.follow_ups'].add('case_id')
+        schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.follow_ups.molecular_tests':
         tables_dict['cases.follow_ups'].add('molecular_test_ids')
         schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
@@ -423,6 +423,9 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     elif table_key == 'cases.diagnoses':
         tables_dict['cases'].add('diagnosis_ids')
         schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
+
+        tables_dict['cases.diagnoses'].add('case_id')
+        schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.treatments':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
         child_table = ancestor_table + '__treatments' if 'case.diagnoses' in table_keys else ancestor_table
@@ -453,6 +456,10 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
             ancestor_table, 'diagnosis', 'diagnosis_id')
         tables_dict['cases.diagnoses.annotations'].add('case_id')
         schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
+
+    print("add reference columns on key {}".format(table_key))
+    print("{}\n{}\n".format(tables_dict))
+
 
     return tables_dict, schema_dict
 
