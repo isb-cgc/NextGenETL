@@ -702,7 +702,7 @@ def ordered_print(flattened_case_dict, column_order_list):
                     entry.pop(key)
 
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print("\{}{}: {}".format(make_tabs(indent + 2), field_key, entry[field_key]))
+                print("{}{}: {}".format(make_tabs(indent + 2), field_key, entry[field_key]))
             print("{}}}".format(make_tabs(indent + 1)))
         print("{}]".format(make_tabs(indent)))
     print("}}".format())
