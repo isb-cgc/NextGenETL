@@ -711,7 +711,9 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
+        flattened_case_dict = None
         flattened_case_dict = flatten_case(case, 'cases')
+        print(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         # cases is dict, the rest are [], todo
@@ -728,7 +730,6 @@ def insert_case_data(cases, record_counts):
             child_fg = split_table[-1]
 
             if parent_fg:
-                print(flattened_case_dict)
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
                 # ordered_print(flattened_case_dict)
                 # return
