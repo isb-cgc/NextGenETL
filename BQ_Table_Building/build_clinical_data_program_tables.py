@@ -492,14 +492,136 @@ def flatten_case(case):
     return flattened_case_dict
 
 
-def insert_case_data(cases, table_names_dict):
+def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
+    for field_group_key in flattened_case_dict.copy():
+        if field_group_key not in table_names_dict:
+            prefix = "__".join(field_group_key.split(".")[1:])
+            prefix = prefix + "__"
+
+            field_group = flattened_case_dict.pop(field_group_key)[0]
+
+            field_group.pop('case_id')
+
+            for key in field_group:
+                flattened_case_dict['cases'][prefix + key] = field_group[key]
+
+    return flattened_case_dict
+
+
+"""
+def create_child_table_id_lists(flattened_case_dict, parameter_list):
+    for parameters in parameter_list:
+        child_ids_dict = dict()
+        parent_records_list = []
+
+        parent_table = 'cases'
+
+        if parameters['parent_fg'] != 'cases':
+            parent_table += '.' + parameters['parent_fg']
+            
+        child_table = parent_table + '.' + parameters['child_fg'] 
+
+        # remove pluralization from field group name to make id keys
+        parent_id_key = parameters['parent_fg'][:-1] + 'id'
+        child_id_key = parameters['child_fg'][:-1] + '_id'
+        child_id_list_key = child_id_key + 's'
+        
+        for child_record in flattened_case_dict[child_table]:
+            parent_id = child_record[parent_id_key]
+            child_id = child_record[child_id_key]
+    
+            if parent_id not in child_ids_dict:
+                child_ids_dict[parent_id] = []
+    
+            child_ids_dict[parent_id].append(child_id)
+    
+        for parent_record in flattened_case_dict[parent_table]:
+            parent_id = parent_record[parent_id_key]
+            if parent_id in child_ids_dict:
+                child_ids = ", ".join(child_ids_dict[parent_id])
+                parent_record[child_id_list_key] = child_ids
+    
+            parent_records_list.append(parent_record) 
+
+        flattened_case_dict[parent_table] = parent_records_list
+
+    return flattened_case_dict
+"""
+
+
+def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
+    child_ids_dict = dict()
+    parent_records_list = []
+
+    parent_table = 'cases'
+    if parent_fg != 'cases':
+        parent_table += '.' + parent_fg
+
+    child_table = parent_table + '.' + child_fg
+    # remove pluralization from field group name to make id keys
+    parent_id_key = parent_fg[:-1] + 'id'
+    child_id_key = child_fg[:-1] + '_id'
+    child_id_list_key = child_id_key + 's'
+
+    for child_record in flattened_case_dict[child_table]:
+        parent_id = child_record[parent_id_key]
+        child_id = child_record[child_id_key]
+
+        if parent_id not in child_ids_dict:
+            child_ids_dict[parent_id] = []
+
+        child_ids_dict[parent_id].append(child_id)
+
+    for parent_record in flattened_case_dict[parent_table]:
+        parent_id = parent_record[parent_id_key]
+        if parent_id in child_ids_dict:
+            child_ids = ", ".join(child_ids_dict[parent_id])
+            parent_record[child_id_list_key] = child_ids
+
+        parent_records_list.append(parent_record)
+
+    flattened_case_dict[parent_table] = parent_records_list
+
+    return flattened_case_dict
+
+"""
+def create_child_table_id_lists(flattened_case_dict, parent_table, child_table, parent_id_key, child_id_key):
+    {"parent_fg": "follow_ups", "child_fg": "molecular_tests", "prefix": True}
+
+    child_ids_dict = dict()
+    parent_records_list = []
+
+    for child_record in flattened_case_dict[child_table]:
+        parent_id = child_record[parent_id_key]
+        child_id = child_record[child_id_key]
+
+        if parent_id not in child_ids_dict:
+            child_ids_dict[parent_id] = []
+
+        child_ids_dict[parent_id].append(child_id)
+
+    for parent_record in flattened_case_dict[parent_table]:
+        parent_id = parent_record[parent_id_key]
+        if parent_id in child_ids_dict:
+            child_ids = ", ".join(child_ids_dict[parent_id])
+            child_ids_list_key = child_id_key + 's'
+            parent_record[child_ids_list_key] = child_ids
+
+        parent_records_list.append(parent_record)
+
+    flattened_case_dict[parent_table] = parent_records_list
+    return flattened_case_dict
+"""
+
+
+def insert_case_data(cases, table_names_dict, bq_params):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
         'cases': table_id
     }
     """
-
+    """
     case_record = {
         'cases.diagnoses': [
             {}
@@ -545,23 +667,31 @@ def insert_case_data(cases, table_names_dict):
             'primary_site': 'Unknown'
         }
     }
+    """
 
     # todo: return to normal
-    for case in cases[-3:-2]:
+    for case in cases[-5:-3]:
         flattened_case_dict = flatten_case(case)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
-        for field_group_key in flattened_case_dict.copy():
-            if field_group_key not in table_names_dict:
-                prefix = "__".join(field_group_key.split(".")[1:])
-                prefix = prefix + "__"
+        for field_group in bq_params["EXPAND_FIELD_GROUPS"]:
+            split_fg = field_group.split('.')
 
-                field_group = flattened_case_dict.pop(field_group_key)[0]
+            if len(split_fg) == 1:
+                parent_fg = 'cases'
+                child_fg = field_group
+            elif len(split_fg) == 2:
+                parent_fg = split_fg[0]
+                child_fg = split_fg[1]
+            else:
+                has_fatal_error("The expand field group list contains a field group name with nested depth > 3. "
+                                "This script is not set up to handle that.", ValueError)
 
-                field_group.pop('case_id')
+            flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-                for key in field_group:
-                    flattened_case_dict['cases'][prefix + key] = field_group[key]
+        print(flattened_case_dict)
 
+        """
         if 'cases.follow_ups.molecular_tests' in flattened_case_dict:
             molecular_tests_keys = dict()
             follow_up_cases = []
@@ -578,14 +708,15 @@ def insert_case_data(cases, table_names_dict):
             for follow_up_record in flattened_case_dict['cases.follow_ups']:
                 follow_up_id = follow_up_record['follow_up_id']
                 if follow_up_id in molecular_tests_keys:
-                    molecular_tests_keys_string = ", ".join(molecular_tests_keys[follow_up_id])
-                    follow_up_record['molecular_test_keys'] = molecular_tests_keys_string
+                    molecular_test_ids = ", ".join(molecular_tests_keys[follow_up_id])
+                    follow_up_record['molecular_test_ids'] = molecular_test_ids
 
                 follow_up_cases.append(follow_up_record)
 
             flattened_case_dict['cases.follow_ups'] = follow_up_cases
 
         print(flattened_case_dict)
+        """
 
 
 ##
@@ -637,7 +768,9 @@ def main(args):
     """
     api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
-        "DOCS_OUTPUT_FILE": 'docs/documentation.txt'
+        "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
+        "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,'
+                               'family_histories,follow_ups,follow_ups.molecular_tests'
     }
 
     bq_params = {
@@ -671,7 +804,7 @@ def main(args):
             program_name, api_params, bq_params, args[2], tables_dict)
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict)
+        insert_case_data(cases, table_names_dict, bq_params)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
