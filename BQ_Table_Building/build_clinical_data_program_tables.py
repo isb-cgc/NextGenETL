@@ -546,7 +546,7 @@ def insert_case_data(cases, table_names_dict):
         }
     }
 
-    for case in cases:
+    for case in cases[-2:]:
         flattened_case_dict = flatten_case(case)
 
         for field_group_key in flattened_case_dict.copy():
