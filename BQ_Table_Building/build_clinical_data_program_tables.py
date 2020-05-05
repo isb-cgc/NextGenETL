@@ -683,11 +683,11 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     child_ids_list.sort()
 
-    parent_fg = flattened_case_dict.pop(parent_fg)
+    parent_fg_entries = flattened_case_dict.pop(parent_fg)
 
     entry_list = []
 
-    for entry in parent_fg.copy():
+    for entry in parent_fg_entries.copy():
         if entry[parent_id_key] == parent_id:
             entry[child_id_list_key] = ", ".join(child_ids_list)
         entry_list.append(entry)
