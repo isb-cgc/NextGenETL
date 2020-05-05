@@ -902,6 +902,11 @@ def main(args):
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
 
+        for case in cases:
+            if len(case['diagnoses']) > 1:
+                print("WHAT?!")
+                print(case)
+
         print("DONE.\n - Creating empty BQ tables... ", end='')
         column_order_list = import_column_order_list(args[2])
         documentation_dict, table_names_dict = create_bq_tables(
