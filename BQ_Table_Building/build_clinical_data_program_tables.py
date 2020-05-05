@@ -511,21 +511,23 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
-        # todo: logic for non-nullable fields
         for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
-            column_name = column[0]
+            table_columns = tables_dict[table_key]
+            if column in table_columns:
 
-            schema_field = bigquery.SchemaField(
-                column_name,
-                schema_dict[column_name]['type'],
-                "NULLABLE",
-                schema_dict[column_name]['description'],
-                ()
-            )
+                column_name = column[0]
 
-            schema_list.append(schema_field)
+                schema_field = bigquery.SchemaField(
+                    column_name,
+                    schema_dict[column_name]['type'],
+                    "NULLABLE",
+                    schema_dict[column_name]['description'],
+                    ()
+                )
 
-            documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column_name])
+                schema_list.append(schema_field)
+
+                documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column_name])
 
         client = bigquery.Client()
         table = bigquery.Table(table_id, schema=schema_list)
