@@ -669,6 +669,8 @@ def insert_case_data(cases, table_names_dict):
 
 
 def ordered_print(flattened_case_dict):
+    print(COLUMN_ORDER_DICT)
+
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
         return "".join(tab_list)
