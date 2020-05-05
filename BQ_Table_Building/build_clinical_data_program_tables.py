@@ -555,7 +555,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     parent_records_list = []
     parent_field_name = parent_fg.split(".")[-1]
     child_field_name = child_fg
-    parent_table = parent_fg.split(".")
+    parent_table = parent_fg
     child_table = parent_fg + '.' + child_fg
 
     if parent_field_name == 'diagnoses':
@@ -598,35 +598,6 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     flattened_case_dict[parent_table] = parent_records_list
 
     return flattened_case_dict
-
-"""
-def create_child_table_id_lists(flattened_case_dict, parent_table, child_table, parent_id_key, child_id_key):
-    {"parent_fg": "follow_ups", "child_fg": "molecular_tests", "prefix": True}
-
-    child_ids_dict = dict()
-    parent_records_list = []
-
-    for child_record in flattened_case_dict[child_table]:
-        parent_id = child_record[parent_id_key]
-        child_id = child_record[child_id_key]
-
-        if parent_id not in child_ids_dict:
-            child_ids_dict[parent_id] = []
-
-        child_ids_dict[parent_id].append(child_id)
-
-    for parent_record in flattened_case_dict[parent_table]:
-        parent_id = parent_record[parent_id_key]
-        if parent_id in child_ids_dict:
-            child_ids = ", ".join(child_ids_dict[parent_id])
-            child_ids_list_key = child_id_key + 's'
-            parent_record[child_ids_list_key] = child_ids
-
-        parent_records_list.append(parent_record)
-
-    flattened_case_dict[parent_table] = parent_records_list
-    return flattened_case_dict
-"""
 
 
 def insert_case_data(cases, table_names_dict):
@@ -712,33 +683,6 @@ def insert_case_data(cases, table_names_dict):
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
         print(flattened_case_dict)
-
-        """
-        if 'cases.follow_ups.molecular_tests' in flattened_case_dict:
-            molecular_tests_keys = dict()
-            follow_up_cases = []
-
-            for molecular_test in flattened_case_dict['cases.follow_ups.molecular_tests']:
-                follow_up_id = molecular_test['follow_up_id']
-                mol_test_id = molecular_test['molecular_test_id']
-
-                if follow_up_id not in molecular_tests_keys:
-                    molecular_tests_keys[follow_up_id] = []
-
-                molecular_tests_keys[follow_up_id].append(mol_test_id)
-
-            for follow_up_record in flattened_case_dict['cases.follow_ups']:
-                follow_up_id = follow_up_record['follow_up_id']
-                if follow_up_id in molecular_tests_keys:
-                    molecular_test_ids = ", ".join(molecular_tests_keys[follow_up_id])
-                    follow_up_record['molecular_test_ids'] = molecular_test_ids
-
-                follow_up_cases.append(follow_up_record)
-
-            flattened_case_dict['cases.follow_ups'] = follow_up_cases
-
-        print(flattened_case_dict)
-        """
 
 
 ##
