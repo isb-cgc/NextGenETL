@@ -6,7 +6,7 @@ YAML_HEADERS = ('api_params', 'bq_params')
 
 
 ##
-#  Functions for creating the BQ table schema dictionary
+#  Functions for retrieving programs and cases
 ##
 def get_programs_list(bq_params):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
@@ -51,6 +51,9 @@ def get_cases_by_program(program_name):
     return cases
 
 
+##
+#  Functions for creating the BQ table schema dictionary
+##
 def strip_null_fields(case):
     def strip_null_fields_recursive(sub_case):
         for key in sub_case.copy():
@@ -544,8 +547,6 @@ def insert_case_data(cases, table_names_dict):
     }
 
     for case in cases:
-        print(case)
-
         flattened_case_dict = flatten_case(case)
 
         for field_group_key in flattened_case_dict.copy():
@@ -560,7 +561,28 @@ def insert_case_data(cases, table_names_dict):
                 for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
 
-        print(flattened_case_dict)
+        if 'cases.follow_ups.molecular_tests' in flattened_case_dict:
+            molecular_tests_keys = dict()
+            follow_up_cases = []
+
+            for molecular_test in flattened_case_dict['cases.follow_ups.molecular_tests'][0]:
+                follow_up_id = molecular_test['follow_up_id']
+                mol_test_id = molecular_test['molecular_test_id']
+
+                if follow_up_id not in molecular_tests_keys:
+                    molecular_tests_keys[follow_up_id] = []
+
+                molecular_tests_keys[follow_up_id].append(mol_test_id)
+
+            for follow_up_record in flattened_case_dict['cases.follow_ups'][0]:
+                follow_up_id = follow_up_record['follow_up_id']
+                if follow_up_id in molecular_tests_keys:
+                    molecular_tests_keys_string = ", ".join(molecular_tests_keys[follow_up_id])
+                    follow_up_record['molecular_test_keys'] = molecular_tests_keys_string
+
+                follow_up_cases.append(follow_up_record)
+
+            flattened_case_dict['cases.follow_ups'][0] = follow_up_cases
 
 
 ##
