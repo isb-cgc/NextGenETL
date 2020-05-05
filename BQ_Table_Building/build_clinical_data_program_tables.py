@@ -672,10 +672,12 @@ def ordered_print(flattened_case_dict, column_order_list):
             prefix += '__'
 
         for entry in flattened_case_dict[table]:
+            print("table: {}, entry: {}".format(table, entry))
             field_order_dict = dict()
 
             for key in entry:
                 col_order_lookup_key = prefix + key
+                print("key: {}, col_l_key: {}".format(key, col_order_lookup_key))
                 field_order_dict[key] = column_order_dict[col_order_lookup_key]
 
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
