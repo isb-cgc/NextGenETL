@@ -3,8 +3,6 @@ from google.cloud import bigquery
 import sys
 
 YAML_HEADERS = ('api_params', 'bq_params')
-COLUMN_ORDER_DICT = None
-
 
 ##
 #  Functions for retrieving programs and cases
