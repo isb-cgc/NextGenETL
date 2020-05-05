@@ -658,12 +658,16 @@ def insert_case_data(cases, table_names_dict, column_order_list):
 
 
 def ordered_print(flattened_case_dict, column_order_list):
+    column_order_dict = dict()
+    for i in range(len(column_order_list)):
+        column_order_dict[column_order_list[i]] = i
+
     for table in flattened_case_dict.keys():
         field_order_dict = dict()
 
         for key in flattened_case_dict[table][0]:
             col_order_lookup_key = table + '.' + key
-            field_order_dict[key] = column_order_list[col_order_lookup_key]
+            field_order_dict[key] = column_order_dict[col_order_lookup_key]
 
         for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
             print(flattened_case_dict[table][field_key])
