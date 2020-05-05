@@ -1,6 +1,7 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
 import sys
+import time
 
 YAML_HEADERS = ('api_params', 'bq_params')
 COLUMN_ORDER_DICT = dict()
@@ -709,22 +710,8 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
-        if 'case_id' in case:
-            print("Starting case: {}".format(case['case_id']))
-        if 'follow_ups' in case:
-            print("1 len(case['follow_ups']) = {}".format(len(case['follow_ups'])))
-
         flattened_case_dict = flatten_case(case, 'cases', dict())
-        if 'cases.follow_ups' in flattened_case_dict:
-            print("2 len(flattened_case_dict['cases.follow_ups']) = {}".format(
-                len(flattened_case_dict['cases.follow_ups'])))
-
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-
-        if 'cases.follow_ups' in flattened_case_dict:
-            print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(
-                len(flattened_case_dict['cases.follow_ups'])))
-
 
         if isinstance(flattened_case_dict['cases'], dict):
             flattened_case_dict['cases'] = [flattened_case_dict['cases']]
@@ -743,6 +730,9 @@ def insert_case_data(cases, record_counts):
             
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+
+            ordered_print(flattened_case_dict)
+
 
 
 def ordered_print(flattened_case_dict):
@@ -794,6 +784,7 @@ def ordered_print(flattened_case_dict):
     tables_string += "\n}"
 
     print(tables_string)
+    time.sleep(1)
 
 
 ##
