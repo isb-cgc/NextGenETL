@@ -655,15 +655,13 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
             id_key = field_name + '_id'
         return id_key
 
-    child_ids_dict = dict()
     child_table_name = parent_fg + '.' + child_fg
-
-    parent_id_key = create_id_key(parent_fg.split(".")[-1])
     child_id_key = create_id_key(child_fg)
     child_id_list_key = child_id_key + 's'
 
     if child_table_name not in flattened_case_dict:
-        return flattened_case_dict
+        has_fatal_error("{} does not appear to be a table. There shouldn't be a situation in which the child_fg"
+                        "passed doesn't exist in the flat case dictionary.".format(child_table_name))
 
     while parent_fg not in flattened_case_dict:
         split_parent = parent_fg.split('.')
@@ -673,37 +671,15 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         if len(split_parent) == 1 and parent_fg not in flattened_case_dict:
             return flattened_case_dict
 
+    child_ids_set = set()
+
     for child_record in flattened_case_dict[child_table_name]:
-        parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
 
-        if parent_id not in child_ids_dict:
-            child_ids_dict[parent_id] = []
+        child_ids_set.add(child_id)
 
-        child_ids_dict[parent_id].append(child_id)
+    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(sorted(child_ids_set))
 
-    print("cids: {}".format(child_ids_dict))
-
-    """
-    if parent_fg == 'cases':
-        # todo this might end up being unnecessary
-        parent_id = flattened_case_dict[parent_fg][0]['case_id']
-        if parent_id in child_ids_dict:
-            child_ids = ", ".join(child_ids_dict[parent_id])
-
-            flattened_case_dict[parent_fg][0][child_id_list_key] = child_ids
-    else:
-        parent_records_list = []
-
-        for parent_record in flattened_case_dict[parent_fg]:
-            parent_id = parent_record[parent_id_key]
-            if parent_id in child_ids_dict:
-                child_ids = ", ".join(child_ids_dict[parent_id])
-                parent_record[child_id_list_key] = child_ids
-            parent_records_list.append(parent_record)
-
-        flattened_case_dict[parent_fg] = parent_records_list
-    """
     return flattened_case_dict
 
 
@@ -729,6 +705,8 @@ def insert_case_data(cases, record_counts):
             
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+
+        print(flattened_case_dict)
 
 
 """
