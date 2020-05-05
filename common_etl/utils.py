@@ -236,6 +236,10 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     :param expand_fields_list:
     :return:
     """
+
+    print(schema_dict)
+    return
+
     # add field group names to a list, in order to generate a dict representing nested fields
     field_group_names = [record_type]
     nested_depth = 0
