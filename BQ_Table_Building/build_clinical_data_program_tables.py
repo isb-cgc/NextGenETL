@@ -1,3 +1,5 @@
+import google
+
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, pprint_json
 from google.cloud import bigquery
 import sys
@@ -536,11 +538,17 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
         print(schema_list)
 
-        client = bigquery.Client()
-        table = bigquery.Table(table_id, schema=schema_list)
-        client.delete_table(table_id, not_found_ok=True)
-        client.create_table(table)
-        created_table_set.add(table_key)
+        try:
+            client = bigquery.Client()
+            client.delete_table(table_id, not_found_ok=True)
+
+            table = bigquery.Table(table_id, schema=schema_list)
+            table = client.create_table(table_id)
+
+            created_table_set.add(table_key)
+        except google.api_core.exceptions.BadRequest:
+            print("".format(table_id, schema_list))
+
 
     if len(created_table_set) != len(table_names_dict.keys()):
         has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
