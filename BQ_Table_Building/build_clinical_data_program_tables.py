@@ -635,6 +635,7 @@ def insert_case_data(cases, table_names_dict, column_order_list):
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
+        ordered_print(flattened_case_dict, table_names_dict)
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict:
             if isinstance(flattened_case_dict[table], dict):
@@ -665,12 +666,12 @@ def insert_case_data(cases, table_names_dict, column_order_list):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        ordered_print(flattened_case_dict, column_order_list)
+        # ordered_print(flattened_case_dict, column_order_list)
 
 
 def ordered_print(flattened_case_dict, column_order_list):
-    def make_tabs(indent):
-        tab_list = indent * ['\t']
+    def make_tabs(indent_):
+        tab_list = indent_ * ['\t']
         return "".join(tab_list)
 
     column_order_dict = dict()
