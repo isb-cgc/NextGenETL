@@ -627,7 +627,7 @@ def create_child_table_id_lists(flattened_case_dict, parent_table, child_table, 
 """
 
 
-def insert_case_data(cases, table_names_dict, api_params):
+def insert_case_data(cases, table_names_dict):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
@@ -692,7 +692,8 @@ def insert_case_data(cases, table_names_dict, api_params):
             print(field_group)
 
             # skip field groups which aren't included in this program's set of one-to-many tables
-            if 'cases.' + field_group not in flattened_case_dict:
+            if field_group not in flattened_case_dict:
+                print("DOES THIS EVER HAPPEN?")
                 continue
 
             split_fg = field_group.split('.')
@@ -826,7 +827,7 @@ def main(args):
             program_name, api_params, bq_params, args[2], tables_dict)
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict, api_params)
+        insert_case_data(cases, table_names_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
