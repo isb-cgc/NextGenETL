@@ -771,9 +771,22 @@ def insert_case_data(cases, table_names_dict, record_counts):
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         # cases is dict, the rest are [], todo
-        for table in flattened_case_dict:
+        for table in flattened_case_dict.copy():
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
+
+            parent_fg = ".".join(table[:-1])
+            child_fg = table[-1]
+
+            print("""
+            table: {}\n
+            table_name: {}\n
+            parent_fg: {}\n
+            child_fg: {}\n
+            """.format(table, table_names_dict[table], parent_fg, child_fg))
+
+
+        continue
 
         for field_group in table_names_dict:
             if field_group not in flattened_case_dict:
