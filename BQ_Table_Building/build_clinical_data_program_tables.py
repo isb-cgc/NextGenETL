@@ -502,7 +502,7 @@ def insert_case_data(program_name, cases, table_names_dict):
         flattened_case_dict = flatten_case(case)
         print(flattened_case_dict)
 
-        for field_group_key in flattened_case_dict:
+        for field_group_key in flattened_case_dict.copy():
             if field_group_key not in table_names_dict:
                 prefix = "__".join(field_group_key.split(".")[1:])
                 prefix = prefix + "__"
