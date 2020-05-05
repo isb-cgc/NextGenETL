@@ -669,16 +669,15 @@ def insert_case_data(cases, table_names_dict, api_params):
     }
     """
 
-    print(api_params["EXPAND_FIELD_GROUPS"])
-    return
-
     # todo: return to normal
-    for case in cases[-5:-3]:
+    for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
         for field_group in api_params["EXPAND_FIELD_GROUPS"]:
+            print()
             print(field_group)
+
             split_fg = field_group.split('.')
 
             if len(split_fg) > 2:
