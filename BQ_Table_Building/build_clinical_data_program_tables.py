@@ -330,8 +330,6 @@ def get_table_names(record_counts):
         if record_counts[table] > 1 or table == 'cases':
             table_keys.add(table)
 
-    print("TABLE NAMES! {}".format(table_keys))
-
     return table_keys
 
 
@@ -772,9 +770,8 @@ def insert_case_data(cases, table_names_dict, record_counts):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
         for field_group in table_names_dict:
-            # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
-                has_fatal_error("DOES THIS EVER HAPPEN?")
+                has_fatal_error("fg {} not in flattened_case_dict:\n{}".format(field_group, flattened_case_dict.keys()))
 
             split_fg = field_group.split('.')
 
