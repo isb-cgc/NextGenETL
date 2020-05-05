@@ -663,22 +663,23 @@ def ordered_print(flattened_case_dict, column_order_list):
         column_order_dict[column_order_list[i]] = i
 
     for table in sorted(flattened_case_dict.keys()):
-        field_order_dict = dict()
+
+        split_prefix = table.split(".")
+        if len(split_prefix) == 1:
+            prefix = ''
+        else:
+            prefix = '__'.join(split_prefix[1:])
+            prefix += '__'
 
         for entry in flattened_case_dict[table]:
+            field_order_dict = dict()
 
-            split_prefix = table.split(".")
-            if len(split_prefix) == 1:
-                prefix = ''
-            else:
-                prefix = '__'.join(split_prefix[1:])
-                prefix += '__'
+            for key in entry:
+                col_order_lookup_key = prefix + key
+                field_order_dict[key] = column_order_dict[col_order_lookup_key]
 
-            col_order_lookup_key = prefix + key
-            field_order_dict[key] = column_order_dict[col_order_lookup_key]
-
-        for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-            print(flattened_case_dict[table][field_key])
+            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+                print(entry[field_key])
 
 
 ##
