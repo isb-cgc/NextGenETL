@@ -709,7 +709,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
-    for case in cases[-1:]:
+    for case in cases:
         if 'case_id' in case:
             print("Starting case: {}".format(case['case_id']))
         if 'follow_ups' in case:
