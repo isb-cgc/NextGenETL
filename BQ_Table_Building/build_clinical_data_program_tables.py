@@ -640,15 +640,17 @@ def insert_case_data(cases, table_names_dict, column_order_list):
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
+        print(table_names_dict)
+
         for field_group in table_names_dict:
-            print()
-            print(field_group)
             continue
 
+            """
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
                 print("DOES THIS EVER HAPPEN?")
                 continue
+            """
 
             split_fg = field_group.split('.')
 
