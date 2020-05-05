@@ -566,6 +566,7 @@ def insert_case_data(cases, table_names_dict):
             follow_up_cases = []
 
             for molecular_test in flattened_case_dict['cases.follow_ups.molecular_tests'][0]:
+                print(molecular_test)
                 follow_up_id = molecular_test['follow_up_id']
                 mol_test_id = molecular_test['molecular_test_id']
 
