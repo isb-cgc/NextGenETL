@@ -671,13 +671,15 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         if len(split_parent) == 1 and parent_fg not in flattened_case_dict:
             return flattened_case_dict
 
-    child_ids_set = set()
+    child_ids_list = []
 
     for child_record in flattened_case_dict[child_table_name]:
         child_id = child_record[child_id_key]
-        child_ids_set.add(child_id)
+        child_ids_list.append(child_id)
 
-    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(list(sorted(child_ids_set)))
+    child_ids_list.sort()
+
+    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(child_ids_list)
 
     return flattened_case_dict
 
