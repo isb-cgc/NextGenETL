@@ -21,8 +21,9 @@ api_and_file_params:
   EXPAND_FIELD_GROUPS: your,list,of,expand,field,groups
 
   # fields that aren't desired for bq. Example:
-  # EXCLUDE_FIELDS: 'analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,
-  # submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids'
+  # EXCLUDE_FIELDS: 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
+  #                   'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
+  #                   'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
   EXCLUDE_FIELDS: your,list,of,excluded,fields
 
   # How many case records to retrieve per GDC API call.
