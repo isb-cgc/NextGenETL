@@ -463,6 +463,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             table_keys.add(table)
 
     column_order_dict = {}
+    created_table_set = set()
 
     for table_key in table_keys:
         schema_list = []
@@ -516,6 +517,15 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
         table = bigquery.Table(table_id, schema=schema_list)
         client.delete_table(table_id, not_found_ok=True)
         client.create_table(table)
+        created_table_set.add(table_key)
+
+    if len(created_table_set) != len(table_names_dict.keys()):
+        has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
+            len(created_table_set),
+            len(table_names_dict.keys()),
+            created_table_set,
+            table_names_dict.keys()
+        ))
 
     # make column order dict available for print/case insert functions.
     global COLUMN_ORDER_DICT
@@ -773,7 +783,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        # ordered_print(flattened_case_dict)
+        ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
