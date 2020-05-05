@@ -683,7 +683,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, record_counts):
+def insert_case_data(cases, record_counts, tables_dict):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
@@ -706,7 +706,11 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        print(flattened_case_dict)
+            table_id = tables_dict[table]
+
+            client = bigquery.Client()
+            table = client.get_table(table_id)
+            client.insert_rows(table, flattened_case_dict[table])
 
 
 """
@@ -851,7 +855,7 @@ def main(args):
         )
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, record_counts)
+        insert_case_data(cases, record_counts, tables_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
