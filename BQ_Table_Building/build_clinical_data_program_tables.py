@@ -857,7 +857,7 @@ def main(args):
         )
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, record_counts, tables_dict)
+        insert_case_data(cases, record_counts, table_names_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
