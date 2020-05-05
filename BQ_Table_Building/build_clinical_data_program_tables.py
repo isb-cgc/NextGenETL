@@ -443,66 +443,62 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-def flatten_case(case):
-    def flatten_case_recursive(case_, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
-        if isinstance(case_, list):
-            entry_list = []
+def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=None, parent_id_key=None):
+    if isinstance(case, list):
+        entry_list = []
 
-            for entry in case_:
-                entry_dict = dict()
-
-                if case_id != parent_id:
-                    entry_dict['case_id'] = case_id
-                    entry_dict[parent_id_key] = parent_id
-                else:
-                    entry_dict[parent_id_key] = parent_id
-
-                for key in entry:
-                    if isinstance(entry[key], list):
-                        # note -- If you're here because you've added a new doubly-nested field group,
-                        # this is where you'll want to capture the parent field group's id.
-                        if prefix == 'cases.diagnoses':
-                            new_parent_id = entry['diagnosis_id']
-                            new_parent_id_key = 'diagnosis_id'
-                        elif prefix == 'cases.follow_ups':
-                            new_parent_id = entry['follow_up_id']
-                            new_parent_id_key = 'follow_up_id'
-                        else:
-                            new_parent_id = parent_id
-                            new_parent_id_key = parent_id_key
-
-                        case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + '.' + key,
-                                                                case_id, new_parent_id, new_parent_id_key)
-                    else:
-                        entry_dict[key] = entry[key]
-                entry_list.append(entry_dict)
-            if prefix in case_list_dict:
-                case_list_dict[prefix] = case_list_dict[prefix] + entry_list
-            else:
-                if entry_list:
-                    case_list_dict[prefix] = entry_list
-        else:
-            entry_list = []
+        for entry in case:
             entry_dict = dict()
-            if prefix not in case_list_dict:
-                case_list_dict[prefix] = []
-            for key in case_:
-                parent_id = case_['case_id']
-                parent_id_key = 'case_id'
-                if isinstance(case_[key], list):
-                    case_list_dict = flatten_case_recursive(case_[key], case_list_dict, prefix + '.' + key,
-                                                            parent_id, parent_id, parent_id_key)
+
+            if case_id != parent_id:
+                entry_dict['case_id'] = case_id
+                entry_dict[parent_id_key] = parent_id
+            else:
+                entry_dict[parent_id_key] = parent_id
+
+            for key in entry:
+                if isinstance(entry[key], list):
+                    # note -- If you're here because you've added a new doubly-nested field group,
+                    # this is where you'll want to capture the parent field group's id.
+                    if prefix == 'cases.diagnoses':
+                        new_parent_id = entry['diagnosis_id']
+                        new_parent_id_key = 'diagnosis_id'
+                    elif prefix == 'cases.follow_ups':
+                        new_parent_id = entry['follow_up_id']
+                        new_parent_id_key = 'follow_up_id'
+                    else:
+                        new_parent_id = parent_id
+                        new_parent_id_key = parent_id_key
+
+                    case_list_dict = flatten_case(entry[key], prefix + '.' + key, case_list_dict, case_id,
+                                                  new_parent_id, new_parent_id_key)
                 else:
-                    # case_list_dict[prefix][key] = case_[key]
-                    entry_dict[key] = case_[key]
-            if entry_dict:
-                entry_list.append(entry_dict)
+                    entry_dict[key] = entry[key]
+            entry_list.append(entry_dict)
+        if prefix in case_list_dict:
+            case_list_dict[prefix] = case_list_dict[prefix] + entry_list
+        else:
             if entry_list:
                 case_list_dict[prefix] = entry_list
-        return case_list_dict
-
-    flattened_case_dict = flatten_case_recursive(case, dict(), 'cases')
-    return flattened_case_dict
+    else:
+        entry_list = []
+        entry_dict = dict()
+        if prefix not in case_list_dict:
+            case_list_dict[prefix] = []
+        for key in case:
+            parent_id = case['case_id']
+            parent_id_key = 'case_id'
+            if isinstance(case[key], list):
+                case_list_dict = flatten_case(case[key], prefix + '.' + key, case_list_dict, parent_id,
+                                              parent_id, parent_id_key)
+            else:
+                # case_list_dict[prefix][key] = case_[key]
+                entry_dict[key] = case[key]
+        if entry_dict:
+            entry_list.append(entry_dict)
+        if entry_list:
+            case_list_dict[prefix] = entry_list
+    return case_list_dict
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
@@ -644,7 +640,7 @@ def insert_case_data(cases, table_names_dict):
 
     # todo: return this to normal
     for case in cases[-4:-3]:
-        flattened_case_dict = flatten_case(case)
+        flattened_case_dict = flatten_case(case, 'cases')
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
         # cases is dict, the rest are [], todo
@@ -794,7 +790,6 @@ def main(args):
     # program_names = get_programs_list(bq_params)
     # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
     program_names = ['HCMI']
-
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
