@@ -105,7 +105,6 @@ def retrieve_program_case_structure(program_name, cases):
                 print("HEREEEE")
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, nested_path)
             else:
-                print("TTTHEREEEE")
                 record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
 
                 for field_group_entry in case_[field_key]:
@@ -771,7 +770,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        ordered_print(flattened_case_dict)
+        # ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
