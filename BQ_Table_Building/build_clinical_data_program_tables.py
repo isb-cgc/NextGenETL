@@ -661,13 +661,12 @@ def ordered_print(flattened_case_dict, column_order_list):
     for table in flattened_case_dict.keys():
         field_order_dict = dict()
 
-        for entry in flattened_case_dict[table]:
-            for key in entry:
-                col_order_lookup_key = table + '.' + key
-                field_order_dict[key] = column_order_list[col_order_lookup_key]
+        for key in flattened_case_dict[table][0]:
+            col_order_lookup_key = table + '.' + key
+            field_order_dict[key] = column_order_list[col_order_lookup_key]
 
-            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print(flattened_case_dict[table][field_key])
+        for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+            print(flattened_case_dict[table][field_key])
 
 
 ##
