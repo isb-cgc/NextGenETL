@@ -672,8 +672,9 @@ def ordered_print(flattened_case_dict, column_order_list):
     column_order_dict = dict()
     for i in range(len(column_order_list)):
         column_order_dict[column_order_list[i]] = i
-
+    print("{")
     for table in sorted(flattened_case_dict.keys()):
+        print("\t'{}': [".format(table))
 
         split_prefix = table.split(".")
         if len(split_prefix) == 1:
@@ -696,7 +697,9 @@ def ordered_print(flattened_case_dict, column_order_list):
                     entry.pop(key)
 
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print(entry[field_key])
+                print("\t\t{}: {}".format(field_key, entry[field_key]))
+        print("\t]".format())
+    print("}")
 
 
 ##
