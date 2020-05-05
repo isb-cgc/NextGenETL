@@ -550,6 +550,7 @@ def create_child_table_id_lists(flattened_case_dict, parameter_list):
 
 
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
+    print("{}, {}".format(parent_fg, child_fg))
     child_ids_dict = dict()
     parent_records_list = []
 
