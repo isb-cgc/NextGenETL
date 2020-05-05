@@ -563,7 +563,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_id_key = child_fg[:-1] + '_id'
     child_id_list_key = child_id_key + 's'
 
-    for child_record in flattened_case_dict[child_table]:
+    for child_record in flattened_case_dict[child_table][0]:
         parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
 
