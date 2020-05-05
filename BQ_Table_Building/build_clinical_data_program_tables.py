@@ -478,6 +478,8 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
+        print("SCHEMA DICT: {}".format(schema_dict))
+
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
 
