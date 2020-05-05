@@ -687,7 +687,7 @@ def insert_case_data(cases, table_names_dict, api_params):
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
-        for field_group in api_params["EXPAND_FIELD_GROUPS"].split(','):
+        for field_group in table_names_dict:
             print()
             print(field_group)
 
