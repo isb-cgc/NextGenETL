@@ -680,7 +680,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, table_names_dict):
+def insert_case_data(cases, table_names_dict, record_counts):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
@@ -735,11 +735,17 @@ def insert_case_data(cases, table_names_dict):
     }
     """
 
+    table_keys = set()
+
+    for table in record_counts:
+        if record_counts[table] != 1 or table == 'cases':
+            table_keys.add(table)
+
     # todo: return this to normal
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case, 'cases')
         cases = flattened_case_dict['cases'][0]
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict:
@@ -902,7 +908,7 @@ def main(args):
         )
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict)
+        insert_case_data(cases, table_names_dict, record_counts)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
