@@ -570,7 +570,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         # Therefore, the list of child_ids needs to be included in the distant ancestor's record dictionary,
         # and the direct ancestor's name becomes prefix of the child_id_list_key.
         child_table = parent_fg + '.' + child_fg
-        split_parent_fg = parent_fg.split()
+        split_parent_fg = parent_fg.split('.')
         parent_fg = split_parent_fg[0]
         child_fg = split_parent_fg[-1]
 
