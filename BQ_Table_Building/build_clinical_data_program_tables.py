@@ -714,12 +714,12 @@ def insert_case_data(cases, record_counts):
             print("Starting case: {}".format(case['case_id']))
         if 'follow_ups' in case:
             print("1 len(case['follow_ups']) = {}".format(len(case['follow_ups'])))
+        continue
         flattened_case_dict = flatten_case(case, 'cases')
         if 'cases.follow_ups' in flattened_case_dict:
             print("2 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
 
-        continue
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if 'cases.follow_ups' in flattened_case_dict:
