@@ -458,8 +458,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
 
     print("add reference columns on key {}".format(table_key))
-    print("{}\n{}\n".format(tables_dict))
-
+    print("{}\n".format(tables_dict))
 
     return tables_dict, schema_dict
 
