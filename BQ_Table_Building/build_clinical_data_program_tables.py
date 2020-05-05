@@ -698,13 +698,13 @@ def insert_case_data(cases, table_names_dict):
 
             split_fg = field_group.split('.')
 
-            if len(split_fg) > 2:
+            if len(split_fg) > 3:
                 has_fatal_error("The expand field group list contains a field group name with nested depth > 3. "
                                 "This script is not set up to handle that.", ValueError)
 
             parent_fg = 'cases'
 
-            if len(split_fg) == 1:
+            if len(split_fg) == 2:
                 child_fg = field_group
             else:
                 parent_fg = split_fg[0]
