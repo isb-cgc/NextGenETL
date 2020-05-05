@@ -725,10 +725,6 @@ def insert_case_data(cases, record_counts, tables_dict):
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
             table_id = tables_dict[table]
-
-            print("table_id: {}".format(table_id))
-            print("tables_d: {}".format(tables_dict))
-
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
             client.insert_rows(bq_table, flattened_case_dict[table])
