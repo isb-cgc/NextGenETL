@@ -643,6 +643,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
 
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
+    if flattened_case_dict
     # p_fg either cases or cases.sub_fg
     # c_fg field group name only
     def create_id_key(field_name):
@@ -658,28 +659,19 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         return id_key
 
     child_ids_dict = dict()
+    child_table_name = parent_fg + '.' + child_fg
 
-    if parent_fg not in flattened_case_dict:
-        print("p_fg not in fcd")
-        # case: direct ancestor (e.g. cases.diagnoses) was flattened/incorporated into its own ancestor.
-        # Therefore, the list of child_ids needs to be included in the distant ancestor's record dictionary,
-        # and the direct ancestor's name becomes prefix of the child_id_list_key.
-        child_table = parent_fg + '.' + child_fg
-        split_parent_fg = parent_fg.split('.')
-        parent_fg = split_parent_fg[0]
-        child_fg = split_parent_fg[-1]
-        parent_id_key = create_id_key(parent_fg)
-        child_id_key = create_id_key(child_fg)
-        child_id_list_key = split_parent_fg[-1] + '__' + child_id_key + 's'
+    parent_id_key = create_id_key(parent_fg.split(".")[-1])
+    child_id_key = create_id_key(child_fg)
+    child_id_list_key = child_id_key + 's'
+
+    if child_table_name in flattened_case_dict and parent_fg in flattened_case_dict:
+        print('Both in the case dict! {} - {}'.format(parent_fg, child_table_name))
     else:
-        print("p_fg else")
-        child_table = parent_fg + '.' + child_fg
-        parent_id_key = create_id_key(parent_fg.split(".")[-1])
-        child_id_key = create_id_key(child_fg)
-        child_id_list_key = child_id_key + 's'
+        print('NOT both in the case dict! {} - {}'.format(parent_fg, child_table_name))
 
-    print("child record: {}".format(child_table))
-    for child_record in flattened_case_dict[child_table]:
+
+    for child_record in flattened_case_dict[child_table_name]:
         parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
 
