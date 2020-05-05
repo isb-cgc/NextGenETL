@@ -511,7 +511,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
-        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
+        for column, value in sorted(column_order_dict.items(), key=lambda x: x[1]):
             table_columns = tables_dict[table_key]
             if column in table_columns:
 
@@ -524,6 +524,8 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
                     schema_dict[column_name]['description'],
                     ()
                 )
+            else:
+                print("column: {}, cols: {}".format(column, table_columns))
 
                 schema_list.append(schema_field)
 
