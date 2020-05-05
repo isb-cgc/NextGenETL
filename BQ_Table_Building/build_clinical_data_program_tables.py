@@ -1,7 +1,6 @@
-from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
+from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, pprint_json
 from google.cloud import bigquery
 import sys
-import time
 
 YAML_HEADERS = ('api_params', 'bq_params')
 COLUMN_ORDER_DICT = dict()
@@ -728,7 +727,7 @@ def insert_case_data(cases, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        ordered_print(flattened_case_dict)
+        pprint_json(json.dumps(flattened_case_dict))
 
 
 def ordered_print(flattened_case_dict):
