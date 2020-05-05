@@ -8,6 +8,23 @@ YAML_HEADERS = ('api_params', 'bq_params')
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
+def get_programs_list(bq_params):
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+
+    programs = set()
+    results = get_query_results(
+        """
+        SELECT distinct(program_name)
+        FROM `{}`
+        """.format(programs_table_id)
+    )
+
+    for result in results:
+        programs.add(result.program_name)
+
+    return programs
+
+
 def get_cases_by_program(program_name):
     cases = []
     results = get_query_results(
@@ -34,33 +51,66 @@ def get_cases_by_program(program_name):
     return cases
 
 
-def get_programs_list(bq_params):
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
-
-    programs = set()
-    results = get_query_results(
-        """
-        SELECT distinct(program_name)
-        FROM `{}`
-        """.format(programs_table_id)
-    )
-
-    for result in results:
-        programs.add(result.program_name)
-
-    return programs
-
-
 def strip_null_fields(case):
-    pass
+    def strip_null_fields_recursive(sub_case):
+        for key in sub_case.copy():
+            if not sub_case[key]:
+                sub_case.pop(key)
+
+            elif isinstance(sub_case[key], list):
+                new_sub_case = []
+                for entry in sub_case[key].copy():
+                    new_sub_case.append(strip_null_fields_recursive(entry))
+                sub_case[key] = new_sub_case
+
+        return sub_case
+
+    return strip_null_fields_recursive(case)
 
 
 def retrieve_program_case_structure(program_name, cases):
+    def build_case_structure(tables_, case_, record_counts_, parent_path):
+        """
+        Recursive fuction for retrieve_program_data, finds nested fields
+        """
+        if parent_path not in tables_:
+            tables_[parent_path] = set()
+
+        for field_key in case_:
+            if not case_[field_key]:
+                continue
+
+            if not isinstance(case_[field_key], list) and not isinstance(case_[field_key], dict):
+                if parent_path not in record_counts_:
+                    record_counts_[parent_path] = 1
+
+                tables_[parent_path].add(field_key)
+                continue
+
+            # at this point, the field_key references a dict or list
+            nested_path = parent_path + '.' + field_key
+
+            if nested_path not in record_counts_:
+                record_counts_[nested_path] = 1
+
+            if isinstance(case_[field_key], dict):
+                tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, nested_path)
+            else:
+                record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
+
+                for field_group_entry in case_[field_key]:
+                    tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_, nested_path)
+
+        return tables_, record_counts_
+
     tables = {}
     record_counts = {}
 
+    null_stripped_cases = []
+
     for case in cases:
-        print(case)
+        case = strip_null_fields(case)
+        null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
@@ -69,47 +119,12 @@ def retrieve_program_case_structure(program_name, cases):
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    return tables, record_counts
-
-
-def build_case_structure(tables, case, record_counts, parent_path):
-    """
-    Recursive fuction for retrieve_program_data, finds nested fields
-    """
-    if parent_path not in tables:
-        tables[parent_path] = set()
-
-    for field_key in case:
-        if not case[field_key]:
-            continue
-
-        if not isinstance(case[field_key], list) and not isinstance(case[field_key], dict):
-            if parent_path not in record_counts:
-                record_counts[parent_path] = 1
-
-            tables[parent_path].add(field_key)
-            continue
-
-        # at this point, the field_key references a dict or list
-        nested_path = parent_path + '.' + field_key
-
-        if nested_path not in record_counts:
-            record_counts[nested_path] = 1
-
-        if isinstance(case[field_key], dict):
-            tables, record_counts = build_case_structure(tables, case[field_key], record_counts, nested_path)
-        else:
-            record_counts[nested_path] = max(record_counts[nested_path], len(case[field_key]))
-
-            for field_group_entry in case[field_key]:
-                tables, record_counts = build_case_structure(tables, field_group_entry, record_counts, nested_path)
-
-    return tables, record_counts
+    return tables, record_counts, null_stripped_cases
 
 
 def flatten_tables(tables, record_counts):
     """
-    Used by retrieve_program_data
+    Used by retrieve_program_case_structure
     """
     field_group_keys = dict.fromkeys(record_counts.keys(), 0)
 
@@ -419,63 +434,62 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case):
+    def flatten_case_recursive(case_, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
+        if isinstance(case_, list):
+            entry_list = []
+
+            for entry in case_:
+                entry_dict = dict()
+
+                if case_id != parent_id:
+                    entry_dict['case_id'] = case_id
+                    entry_dict[parent_id_key] = parent_id
+                else:
+                    entry_dict[parent_id_key] = parent_id
+
+                for key in entry:
+                    if isinstance(entry[key], list):
+                        # note -- If you're here because you've added a new doubly-nested field group,
+                        # this is where you'll want to capture the parent field group's id.
+                        if prefix == 'cases.diagnoses':
+                            new_parent_id = entry['diagnosis_id']
+                            new_parent_id_key = 'diagnosis_id'
+                        elif prefix == 'cases.follow_ups':
+                            new_parent_id = entry['follow_up_id']
+                            new_parent_id_key = 'follow_up_id'
+                        else:
+                            new_parent_id = parent_id
+                            new_parent_id_key = parent_id_key
+
+                        case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + '.' + key,
+                                                                case_id, new_parent_id, new_parent_id_key)
+                    else:
+                        entry_dict[key] = entry[key]
+                entry_list.append(entry_dict)
+            if prefix in case_list_dict:
+                case_list_dict[prefix] = case_list_dict[prefix] + entry_list
+            else:
+                if entry_list:
+                    case_list_dict[prefix] = entry_list
+        else:
+            if prefix not in case_list_dict:
+                case_list_dict[prefix] = dict()
+            for key in case_:
+                parent_id = case_['case_id']
+                parent_id_key = 'case_id'
+                if isinstance(case_[key], list):
+                    case_list_dict = flatten_case_recursive(case_[key], case_list_dict, prefix + '.' + key,
+                                                            parent_id, parent_id, parent_id_key)
+                else:
+                    case_list_dict[prefix][key] = case_[key]
+
+        return case_list_dict
+
     flattened_case_dict = flatten_case_recursive(case, dict(), 'cases')
     return flattened_case_dict
 
 
-def flatten_case_recursive(case, case_list_dict, prefix, case_id=None, parent_id=None, parent_id_key=None):
-    if isinstance(case, list):
-        entry_list = []
-
-        for entry in case:
-            entry_dict = dict()
-
-            if case_id != parent_id:
-                entry_dict['case_id'] = case_id
-                entry_dict[parent_id_key] = parent_id
-            else:
-                entry_dict[parent_id_key] = parent_id
-
-            for key in entry:
-                if isinstance(entry[key], list):
-                    # note -- If you're here because you've added a new doubly-nested field group,
-                    # this is where you'll want to capture the parent field group's id.
-                    if prefix == 'cases.diagnoses':
-                        new_parent_id = entry['diagnosis_id']
-                        new_parent_id_key = 'diagnosis_id'
-                    elif prefix == 'cases.follow_ups':
-                        new_parent_id = entry['follow_up_id']
-                        new_parent_id_key = 'follow_up_id'
-                    else:
-                        new_parent_id = parent_id
-                        new_parent_id_key = parent_id_key
-
-                    case_list_dict = flatten_case_recursive(entry[key], case_list_dict, prefix + '.' + key,
-                                                            case_id, new_parent_id, new_parent_id_key)
-                else:
-                    entry_dict[key] = entry[key]
-            entry_list.append(entry_dict)
-        if prefix in case_list_dict:
-            case_list_dict[prefix] = case_list_dict[prefix] + entry_list
-        else:
-            if entry_list:
-                case_list_dict[prefix] = entry_list
-    else:
-        if prefix not in case_list_dict:
-            case_list_dict[prefix] = dict()
-        for key in case:
-            parent_id = case['case_id']
-            parent_id_key = 'case_id'
-            if isinstance(case[key], list):
-                case_list_dict = flatten_case_recursive(case[key], case_list_dict, prefix + '.' + key,
-                                                        parent_id, parent_id, parent_id_key)
-            else:
-                case_list_dict[prefix][key] = case[key]
-
-    return case_list_dict
-
-
-def insert_case_data(program_name, cases, table_names_dict):
+def insert_case_data(cases, table_names_dict):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
@@ -530,6 +544,8 @@ def insert_case_data(program_name, cases, table_names_dict):
     }
 
     for case in cases:
+        print(case)
+
         flattened_case_dict = flatten_case(case)
 
         for field_group_key in flattened_case_dict.copy():
@@ -544,7 +560,7 @@ def insert_case_data(program_name, cases, table_names_dict):
                 for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
 
-        # print(flattened_case_dict)
+        print(flattened_case_dict)
 
 
 ##
@@ -623,14 +639,14 @@ def main(args):
         cases = get_cases_by_program(program_name)
 
         print("DONE.\n - Determining program table structure... ", end='')
-        tables_dict, record_counts = retrieve_program_case_structure(program_name, cases)
+        tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(
             program_name, api_params, bq_params, args[2], tables_dict)
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(program_name, cases, table_names_dict)
+        insert_case_data(cases, table_names_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
