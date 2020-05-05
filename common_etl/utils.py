@@ -328,45 +328,6 @@ def get_programs_from_bq():
     return program_submitter_dict
 
 
-def get_cases_by_program(program_name):
-    cases = []
-    nested_key_set = set()
-    results = get_query_results(
-        """
-        SELECT * 
-        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
-        WHERE submitter_id 
-        IN (SELECT case_barcode
-            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-            WHERE program_name = '{}')
-        """.format(program_name)
-    )
-
-    non_null_fieldset = set()
-    fieldset = set()
-
-    for case_row in results:
-        case_dict = dict(case_row.items())
-
-        for key in case_dict.copy():
-            fieldset.add(key)
-            # note fields with values
-            if case_dict[key]:
-                non_null_fieldset.add(key)
-
-            # note nested fields with a reason to be nested
-            if isinstance(case_dict[key], list):
-                # print(case_dict)
-                if len(case_dict[key]) > 1:
-                    nested_key_set.add(key)
-
-        cases.append(case_dict)
-
-    null_parent_fields = fieldset - non_null_fieldset
-
-    return cases
-
-
 def get_case_from_bq(case_id):
     results = get_query_results(
         """

@@ -1,14 +1,39 @@
-from common_etl.utils import get_cases_by_program, collect_field_values, infer_data_types, create_mapping_dict, \
-    get_query_results, has_fatal_error, load_config
+from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
 import sys
 
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+YAML_HEADERS = ('api_params', 'bq_params')
 
 
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
+def get_cases_by_program(program_name):
+    cases = []
+    results = get_query_results(
+        """
+        SELECT * 
+        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
+        WHERE submitter_id 
+        IN (SELECT case_barcode
+            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+            WHERE program_name = '{}')
+        """.format(program_name)
+    )
+
+    for case_row in results:
+        case_dict = dict(case_row.items())
+
+        for key in case_dict.copy():
+            # note fields with values
+            if not case_dict[key]:
+                case_dict.pop(key)
+
+        cases.append(case_dict)
+
+    return cases
+
+
 def get_programs_list(bq_params):
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
 
@@ -516,7 +541,6 @@ def insert_case_data(program_name, cases, table_names_dict):
         print(flattened_case_dict)
 
 
-
 ##
 #  Functions for creating documentation
 ##
@@ -524,12 +548,6 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
     # print("{}".format(record_counts))
-
-    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
-        doc_file.write("{} \n".format(program_name))
-        doc_file.write("{}".format(documentation_dict))
-        doc_file.write("{}".format(record_counts))
-
     """
     documentation_dict = {
         'tables_overview': {
@@ -551,6 +569,10 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
         }
     }
     """
+    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
+        doc_file.write("{} \n".format(program_name))
+        doc_file.write("{}".format(documentation_dict))
+        doc_file.write("{}".format(record_counts))
 
 
 def main(args):
