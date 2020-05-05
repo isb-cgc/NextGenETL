@@ -674,6 +674,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
             return flattened_case_dict
 
     child_ids_list = []
+    parent_id = ""
 
     for child_record in flattened_case_dict[child_table_name]:
         parent_id = child_record[parent_id_key]
@@ -683,10 +684,15 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_ids_list.sort()
 
     parent_fg = flattened_case_dict.pop(parent_fg)
-    for entry in parent_fg:
-        if entry[]
 
-    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(child_ids_list)
+    entry_list = []
+
+    for entry in parent_fg.copy():
+        if entry[parent_id_key] == parent_id:
+            entry[child_id_list_key] = ", ".join(child_ids_list)
+        entry_list.append(entry)
+
+    flattened_case_dict[parent_fg] = entry_list
 
     return flattened_case_dict
 
