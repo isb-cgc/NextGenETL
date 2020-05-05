@@ -560,8 +560,16 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     child_table = parent_table + '.' + child_fg
 
-    # remove pluralization from field group name to make id keys
-    parent_id_key = parent_fg[:-1] + 'id'
+    if parent_fg == 'diagnoses':
+        parent_id_key = 'diagnosis_id'
+    elif parent_fg[-2:] == 'es':
+        has_fatal_error("Added a new field group with an irregular pluralization, edit create_child_table_id_list().")
+    elif parent_fg[-1] == 's':
+        # remove pluralization from field group name to make id keys
+        parent_id_key = parent_fg[:-1] + '_id'
+    else:
+        parent_id_key = parent_fg + '_id'
+
     child_id_key = child_fg[:-1] + '_id'
     child_id_list_key = child_id_key + 's'
 
