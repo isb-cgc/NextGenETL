@@ -584,6 +584,8 @@ def insert_case_data(cases, table_names_dict):
 
             flattened_case_dict['cases.follow_ups'][0] = follow_up_cases
 
+        print(flattened_case_dict)
+
 
 ##
 #  Functions for creating documentation
