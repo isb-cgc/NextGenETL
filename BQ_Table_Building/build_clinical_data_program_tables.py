@@ -678,7 +678,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
         child_ids_set.add(child_id)
 
-    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(sorted(child_ids_set))
+    flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(list(sorted(child_ids_set)))
 
     return flattened_case_dict
 
