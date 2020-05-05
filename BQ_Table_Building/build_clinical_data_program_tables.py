@@ -522,7 +522,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
                 schema_dict, column_order_dict keys, flattened_case_dict keys: diagnoses__annotations__case_id 
                     - syntax that conforms with BQ's naming conventions
             '''
-            full_column_name = 'cases.' + '.'.join(column.split("__"))
+            # full_column_name = 'cases.' + '.'.join(column.split("__"))
             field_name = column.split("__")[-1]
 
             table_columns = tables_dict[table_key]
@@ -804,9 +804,9 @@ def ordered_print(flattened_case_dict):
 #  Functions for creating documentation
 ##
 def generate_documentation(api_params, program_name, documentation_dict, record_counts):
-    # print("{} \n".format(program_name))
-    # print("{}".format(documentation_dict))
-    # print("{}".format(record_counts))
+    print("{} \n".format(program_name))
+    print("{}".format(documentation_dict))
+    print("{}".format(record_counts))
 
     """
     documentation_dict = {
@@ -867,8 +867,8 @@ def main(args):
     }
 
     # program_names = get_programs_list(bq_params)
-    # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
-    program_names = ['HCMI']
+    program_names = ['TCGA', 'TARGET']
+    # program_names = ['HCMI']
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
