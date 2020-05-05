@@ -3,6 +3,7 @@ from google.cloud import bigquery
 import sys
 
 YAML_HEADERS = ('api_params', 'bq_params')
+COLUMN_ORDER_DICT = None
 
 
 ##
@@ -352,7 +353,7 @@ def generate_table_name(bq_params, program_name, table):
     return table_name
 
 
-def create_bq_tables(program_name, api_params, bq_params, column_order_list, tables_dict):
+def create_bq_tables(program_name, api_params, bq_params, tables_dict, column_order_list):
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
@@ -398,8 +399,12 @@ def create_bq_tables(program_name, api_params, bq_params, column_order_list, tab
 
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
+        # making dict available for print and insert functions
+        global COLUMN_ORDER_DICT
+        COLUMN_ORDER_DICT = column_order_dict
+
         # todo: logic for non-nullable fields
-        for column in sorted(column_order_dict.items(), key=lambda x: x[1]):
+        for column in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
             column_name = column[0]
 
             schema_field = bigquery.SchemaField(
@@ -576,7 +581,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, table_names_dict, column_order_list):
+def insert_case_data(cases, table_names_dict):
     """
     table_names_dict = {
         'cases.diagnoses.treatments': table_id,
@@ -635,7 +640,7 @@ def insert_case_data(cases, table_names_dict, column_order_list):
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
-        ordered_print(flattened_case_dict, column_order_list)
+        ordered_print(flattened_case_dict)
 
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict:
@@ -660,17 +665,13 @@ def insert_case_data(cases, table_names_dict, column_order_list):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        # ordered_print(flattened_case_dict, column_order_list)
+        # ordered_print(flattened_case_dict)
 
 
-def ordered_print(flattened_case_dict, column_order_list):
+def ordered_print(flattened_case_dict):
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
         return "".join(tab_list)
-
-    column_order_dict = dict()
-    for i in range(len(column_order_list)):
-        column_order_dict[column_order_list[i]] = i
 
     tables_string = '{\n'
     indent = 1
@@ -693,7 +694,7 @@ def ordered_print(flattened_case_dict, column_order_list):
             for key in entry.copy():
                 col_order_lookup_key = prefix + key
                 try:
-                    field_order_dict[key] = column_order_dict[col_order_lookup_key]
+                    field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
                 except KeyError:
                     print("[ERROR] {} not in column order list".format(col_order_lookup_key))
                     entry.pop(key)
@@ -783,7 +784,6 @@ def main(args):
     # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
     program_names = ['HCMI']
 
-    column_order_list = import_column_order_list(args[2])
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
@@ -799,10 +799,10 @@ def main(args):
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(
-            program_name, api_params, bq_params, column_order_list, tables_dict)
+            program_name, api_params, bq_params, tables_dict, column_order_list=import_column_order_list(args[2]))
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict, column_order_list)
+        insert_case_data(cases, table_names_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
