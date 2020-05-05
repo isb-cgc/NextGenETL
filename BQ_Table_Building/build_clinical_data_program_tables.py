@@ -643,6 +643,7 @@ def insert_case_data(cases, table_names_dict, column_order_list):
         for field_group in table_names_dict:
             print()
             print(field_group)
+            continue
 
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
