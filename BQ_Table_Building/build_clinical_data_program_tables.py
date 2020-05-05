@@ -693,7 +693,10 @@ def ordered_print(flattened_case_dict):
             field_order_dict = dict()
 
             if isinstance(entry, str):
-                entry_string += "{}{},\n".format(make_tabs(indent + 2), entry)
+                print(flattened_case_dict)
+                print(entry)
+                return
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), entry, flattened_case_dict[table])
             else:
                 for key in entry.copy():
                     col_order_lookup_key = prefix + key
