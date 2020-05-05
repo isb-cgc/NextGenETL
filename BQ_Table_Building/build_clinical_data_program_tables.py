@@ -354,6 +354,8 @@ def generate_table_name(bq_params, program_name, table):
 
 
 def create_bq_tables(program_name, api_params, bq_params, tables_dict, column_order_list):
+    print("CREATE_BQ")
+    print(tables_dict)
     """
     If creating follow_ups table, cases has field with follow_ups_ids string list
     If creating follow_ups__molecular_tests table, follow_ups has field with molecular_tests_ids string list
