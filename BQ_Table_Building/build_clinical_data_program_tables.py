@@ -503,7 +503,7 @@ def insert_case_data(program_name, cases, table_names_dict):
     for case in cases:
         flattened_case_dict = flatten_case(case)
         if count == 0:
-            print(flattened_case_dict)
+            print(flattened_case_dict.keys())
 
         for field_group_key in flattened_case_dict.copy():
             if field_group_key not in table_names_dict:
@@ -519,9 +519,10 @@ def insert_case_data(program_name, cases, table_names_dict):
                 pass
         if count < 3:
             print("\nafter: ")
-            print(flattened_case_dict)
+            print(flattened_case_dict.keys())
 
         count += 1
+
 
 ##
 #  Functions for creating documentation
