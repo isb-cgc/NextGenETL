@@ -564,6 +564,9 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=None, parent_id_key=None):
+    if prefix == 'cases':
+        print(case)
+
     if isinstance(case, list):
         entry_list = []
 
@@ -711,9 +714,7 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
-        flattened_case_dict = None
         flattened_case_dict = flatten_case(case, 'cases')
-        print(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         # cases is dict, the rest are [], todo
