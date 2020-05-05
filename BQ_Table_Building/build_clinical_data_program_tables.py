@@ -780,9 +780,6 @@ def ordered_print(flattened_case_dict):
     tables_string += "\n}"
 
     print(tables_string)
-    # todo remove this
-    time.sleep(2)
-
 
 ##
 #  Functions for creating documentation
