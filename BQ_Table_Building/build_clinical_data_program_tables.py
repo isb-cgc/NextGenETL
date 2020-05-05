@@ -810,12 +810,15 @@ def ordered_print(flattened_case_dict):
 
             for key in entry.copy():
                 col_order_lookup_key = prefix + key
+
                 try:
                     field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
                 except KeyError:
                     print("[ERROR] {} not in column order dict".format(col_order_lookup_key))
-                    print(COLUMN_ORDER_DICT)
+                    for k, v in sorted(COLUMN_ORDER_DICT.items(), key=lambda item: item[0]):
+                        print("{}: {}".format(k, v))
                     field_order_dict[key] = 0
+
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
                 entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
             entry_string = entry_string.rstrip('\n')
