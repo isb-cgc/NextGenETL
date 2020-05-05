@@ -635,23 +635,17 @@ def insert_case_data(cases, table_names_dict, column_order_list):
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
-        ordered_print(flattened_case_dict, table_names_dict)
+        ordered_print(flattened_case_dict, column_order_list)
+
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict:
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
-        print(table_names_dict)
-
         for field_group in table_names_dict:
-            continue
-
-            """
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
-                print("DOES THIS EVER HAPPEN?")
-                continue
-            """
+                has_fatal_error("DOES THIS EVER HAPPEN?")
 
             split_fg = field_group.split('.')
 
