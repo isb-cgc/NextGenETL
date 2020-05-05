@@ -676,11 +676,12 @@ def ordered_print(flattened_case_dict, column_order_list):
     column_order_dict = dict()
     for i in range(len(column_order_list)):
         column_order_dict[column_order_list[i]] = i
-    print("{{".format())
 
+    tables_string = '{\n'
     indent = 1
+
     for table in sorted(flattened_case_dict.keys()):
-        print("{}'{}': [".format(make_tabs(indent), table))
+        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
 
         split_prefix = table.split(".")
         if len(split_prefix) == 1:
@@ -690,7 +691,8 @@ def ordered_print(flattened_case_dict, column_order_list):
             prefix += '__'
 
         for entry in flattened_case_dict[table]:
-            print("{} {{".format(make_tabs(indent + 1)))
+            entry_string = ""
+            entry_string += "{} {{\n".format(make_tabs(indent + 1))
             field_order_dict = dict()
 
             for key in entry.copy():
@@ -700,15 +702,19 @@ def ordered_print(flattened_case_dict, column_order_list):
                 except KeyError:
                     print("[ERROR] {} not in column order list".format(col_order_lookup_key))
                     entry.pop(key)
-            entry_string = ""
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
                 entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
-            entry_string = entry_string.rstrip('\n')
             entry_string = entry_string.rstrip(',')
-            print(entry_string)
-            print("{}}}".format(make_tabs(indent + 1)))
-        print("{}],".format(make_tabs(indent)))
-    print("}}".format())
+            tables_string += entry_string
+            tables_string += "{}}},\n".format(make_tabs(indent + 1))
+            tables_string = tables_string.rstrip('\n')
+            tables_string = tables_string.rstrip(',')
+        tables_string += "{}],\n".format(make_tabs(indent))
+        tables_string = tables_string.rstrip('\n')
+        tables_string = tables_string.rstrip(',')
+    tables_string += "}"
+
+    print(tables_string)
 
 
 ##
