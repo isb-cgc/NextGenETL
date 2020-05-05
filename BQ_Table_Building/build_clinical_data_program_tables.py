@@ -520,12 +520,13 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
                     - syntax that conforms with BQ's naming conventions
             '''
             full_column_name = 'cases.' + '.'.join(column.split("__"))
+            field_name = column.split("__")[-1]
 
             table_columns = tables_dict[table_key]
 
-            if full_column_name in table_columns:
+            if field_name in table_columns:
                 schema_field = bigquery.SchemaField(
-                    column,
+                    field_name,
                     schema_dict[column]['type'],
                     "NULLABLE",
                     schema_dict[column]['description'],
@@ -538,11 +539,11 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
             documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[full_column_name])
 
-        client = bigquery.Client()
-        table = bigquery.Table(table_id, schema=schema_list)
-        client.delete_table(table_id, not_found_ok=True)
-        client.create_table(table)
-        created_table_set.add(table_key)
+            client = bigquery.Client()
+            table = bigquery.Table(table_id, schema=schema_list)
+            client.delete_table(table_id, not_found_ok=True)
+            client.create_table(table)
+            created_table_set.add(table_key)
 
     if len(created_table_set) != len(table_names_dict.keys()):
         has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
