@@ -572,7 +572,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_id_list_key = child_id_key + 's'
 
     if parent_table not in flattened_case_dict or child_table not in flattened_case_dict:
-        print("No entry in flattened_dict for either {} or {}".format(parent_table, child_table))
+        print("No entry in flattened_dict (either for {} or {})".format(parent_table, child_table))
         print(flattened_case_dict.keys())
         return flattened_case_dict
 
