@@ -569,8 +569,12 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_id_key = create_id_key(child_fg)
     child_id_list_key = child_id_key + 's'
 
-    if parent_fg not in flattened_case_dict or child_table not in flattened_case_dict:
-        print("No entry in flattened_dict (either for {} or {})".format(parent_fg, child_table))
+    if parent_fg not in flattened_case_dict:
+        print("{} not in in flattened_dict".format(parent_fg))
+        print(flattened_case_dict.keys())
+        return flattened_case_dict
+    if child_table not in flattened_case_dict:
+        print("{} not in in flattened_dict".format(child_table))
         print(flattened_case_dict.keys())
         return flattened_case_dict
 
