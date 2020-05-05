@@ -719,7 +719,7 @@ def insert_case_data(cases, record_counts):
             print("2 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
 
-        # flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if 'cases.follow_ups' in flattened_case_dict:
             print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(
@@ -738,9 +738,10 @@ def insert_case_data(cases, record_counts):
             parent_fg = ".".join(split_table[:-1])
             child_fg = split_table[-1]
 
+            """
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-
+            """
 
 
 def ordered_print(flattened_case_dict):
