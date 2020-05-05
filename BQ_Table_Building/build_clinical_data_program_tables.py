@@ -552,7 +552,6 @@ def create_child_table_id_lists(flattened_case_dict, parameter_list):
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     print("{}, {}".format(parent_fg, child_fg))
     child_ids_dict = dict()
-    parent_records_list = []
     parent_field_name = parent_fg.split(".")[-1]
     child_field_name = child_fg
     parent_table = parent_fg
@@ -593,20 +592,23 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
         child_ids_dict[parent_id].append(child_id)
 
-    print(flattened_case_dict[parent_table])
-    return flattened_case_dict
-
-    for parent_record in flattened_case_dict[parent_table]:
-        print(parent_record)
-        continue
-        parent_id = parent_record[parent_id_key]
+    if parent_table == 'cases':
+        parent_id = flattened_case_dict[parent_table]['case_id']
         if parent_id in child_ids_dict:
             child_ids = ", ".join(child_ids_dict[parent_id])
-            parent_record[child_id_list_key] = child_ids
 
-        parent_records_list.append(parent_record)
+            flattened_case_dict[parent_table][child_id_list_key] = child_ids
+    else:
+        parent_records_list = []
 
-    flattened_case_dict[parent_table] = parent_records_list
+        for parent_record in flattened_case_dict[parent_table]:
+            parent_id = parent_record[parent_id_key]
+            if parent_id in child_ids_dict:
+                child_ids = ", ".join(child_ids_dict[parent_id])
+                parent_record[child_id_list_key] = child_ids
+            parent_records_list.append(parent_record)
+
+        flattened_case_dict[parent_table] = parent_records_list
 
     return flattened_case_dict
 
