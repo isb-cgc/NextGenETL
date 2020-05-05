@@ -656,6 +656,8 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         return id_key
 
     child_table_name = parent_fg + '.' + child_fg
+
+    parent_id_key = create_id_key(parent_fg.split(".")[-1])
     child_id_key = create_id_key(child_fg)
     child_id_list_key = child_id_key + 's'
 
@@ -674,10 +676,15 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_ids_list = []
 
     for child_record in flattened_case_dict[child_table_name]:
+        parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
         child_ids_list.append(child_id)
 
     child_ids_list.sort()
+
+    parent_fg = flattened_case_dict.pop(parent_fg)
+    for entry in parent_fg:
+        if entry[]
 
     flattened_case_dict[parent_fg][child_id_list_key] = ", ".join(child_ids_list)
 
@@ -715,7 +722,6 @@ def insert_case_data(cases, record_counts, tables_dict):
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
             client.insert_rows(bq_table, flattened_case_dict[table])
-
 
 """
 def ordered_print(flattened_case_dict):
