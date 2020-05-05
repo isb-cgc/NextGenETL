@@ -51,11 +51,22 @@ def get_programs_list(bq_params):
     return programs
 
 
+def strip_null_fields(case):
+
+
+
+
 def retrieve_program_case_structure(program_name, cases):
     tables = {}
     record_counts = {}
 
+    count = 0
+
     for case in cases:
+        if count == 0:
+            print(case)
+            count += 1
+
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
     tables = flatten_tables(tables, record_counts)
