@@ -79,7 +79,7 @@ def strip_null_fields(case):
 def retrieve_program_case_structure(program_name, cases):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
-        Recursive fuction for retrieve_program_data, finds nested fields
+        Recursive function for retrieve_program_data, finds nested fields
         """
         if parent_path not in tables_:
             tables_[parent_path] = set()
@@ -102,8 +102,10 @@ def retrieve_program_case_structure(program_name, cases):
                 record_counts_[nested_path] = 1
 
             if isinstance(case_[field_key], dict):
+                print("HEREEEE")
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, nested_path)
             else:
+                print("TTTHEREEEE")
                 record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
 
                 for field_group_entry in case_[field_key]:
@@ -595,7 +597,6 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys):
-    print(table_keys)
     for field_group_key in flattened_case_dict.copy():
         if field_group_key in table_keys:
             # this group is meant to be a one-to-many table, don't merge
@@ -737,7 +738,6 @@ def insert_case_data(cases, table_names_dict, record_counts):
     """
 
     table_keys = set()
-    print("REC CNTS: {}".format(record_counts))
     for table in record_counts:
         if record_counts[table] != 1 or table == 'cases':
             table_keys.add(table)
@@ -902,10 +902,6 @@ def main(args):
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
 
-        for case in cases:
-            if len(case['diagnoses']) > 1:
-                print("WHAT?!")
-                print(case)
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         column_order_list = import_column_order_list(args[2])
