@@ -513,24 +513,28 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             column_order_dict[full_column_name] = column_order_list.index(full_column_name)
 
         for column, value in sorted(column_order_dict.items(), key=lambda x: x[1]):
-            field_name = column.split("__")[-1]
+            '''
+                tables_dict, record_counts keys: cases.diagnoses.annotations, 
+                    - they indicate table structures
+                schema_dict, column_order_dict keys, flattened_case_dict keys: diagnoses__annotations__case_id 
+                    - syntax that conforms with BQ's naming conventions
+            '''
             full_column_name = 'cases.' + '.'.join(column.split("__"))
 
             table_columns = tables_dict[table_key]
 
-            if field_name in table_columns:
+            if full_column_name in table_columns:
                 schema_field = bigquery.SchemaField(
                     column,
-                    schema_dict[full_column_name]['type'],
+                    schema_dict[column]['type'],
                     "NULLABLE",
-                    schema_dict[full_column_name]['description'],
+                    schema_dict[column]['description'],
                     ()
                 )
                 schema_list.append(schema_field)
 
             else:
-                print("column: {}, cols: {}".format(column, table_columns))
-                continue
+                print("Not found. Column: {}, cols: {}".format(full_column_name, table_columns))
 
             documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[full_column_name])
 
