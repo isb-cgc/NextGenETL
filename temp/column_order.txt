@@ -1,9 +1,9 @@
 case_id
 submitter_id
 demographic_ids
-exposures_ids
-diagnoses_ids
-family_histories_ids
+exposure_ids
+diagnosis_ids
+family_history_ids
 follow_up_ids
 primary_site
 disease_type

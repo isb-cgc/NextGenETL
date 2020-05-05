@@ -365,7 +365,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         }
 
     def generate_ids_schema_entry(child_table, child_field_name):
-        column_name = "_".join(child_field_name.split(" ")) + '_id'
+        column_name = "_".join(child_field_name.split(" ")) + '_ids'
         description = "List of {} ids, referencing associated records located in the program's {} " \
                       "table.".format(child_field_name, child_table)
 
@@ -407,37 +407,37 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
         tables_dict['cases'].add('exposure_ids')
         schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
+    elif table_key == 'cases.diagnoses':
+        tables_dict['cases'].add('diagnosis_ids')
+        schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
     elif table_key == 'cases.diagnoses.treatments':
+        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        child_table = ancestor_table + '__treatments' if 'case.diagnoses' in table_keys else ancestor_table
+
         if 'cases.diagnoses' in table_keys:
             tables_dict['cases.diagnoses'].add('treatment_ids')
         else:
             tables_dict['cases'].add('diagnoses__treatment_ids')
-
-        schema_dict['diagnoses__treatment_ids'] = generate_ids_schema_entry('*_diagnoses__treatments', 'treatment')
+        schema_dict['diagnoses__treatment_ids'] = generate_ids_schema_entry(child_table, 'treatment')
 
         tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
-        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-
         schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
             ancestor_table, 'diagnosis', 'diagnosis_id')
-
         tables_dict['cases.diagnoses.treatments'].add('case_id')
         schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
+        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        child_table = ancestor_table + '__annotations' if 'case.diagnoses' in table_keys else ancestor_table
+
         if 'cases.diagnoses' in table_keys:
             tables_dict['cases.diagnoses'].add('annotation_ids')
         else:
             tables_dict['cases'].add('diagnoses__annotation_ids')
-
-        schema_dict['diagnoses__annotation_ids'] = generate_ids_schema_entry(
-            '*_diagnoses__annotations', 'annotation')
+        schema_dict['diagnoses__annotation_ids'] = generate_ids_schema_entry(child_table, 'annotation')
 
         tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
-        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-
         schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
             ancestor_table, 'diagnosis', 'diagnosis_id')
-
         tables_dict['cases.diagnoses.annotations'].add('case_id')
         schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
 
