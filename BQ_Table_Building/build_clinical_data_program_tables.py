@@ -564,9 +564,6 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=None, parent_id_key=None):
-    if 'case_id' in case:
-        print(case['case_id'])
-
     if isinstance(case, list):
         entry_list = []
 
@@ -713,6 +710,9 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
+        if 'case_id' in case:
+            print("Starting case: {}".format(case['case_id']))
+
         if 'follow_ups' in case:
             print("1 len(case['follow_ups']) = {}".format(len(case['follow_ups'])))
 
@@ -729,7 +729,7 @@ def insert_case_data(cases, record_counts):
                 len(flattened_case_dict['cases.follow_ups'])))
 
         # cases is dict, the rest are [], todo
-        for table in flattened_case_dict.copy():
+        for table in flattened_case_dict.keys():
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
@@ -743,8 +743,6 @@ def insert_case_data(cases, record_counts):
 
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-                # ordered_print(flattened_case_dict)
-                # return
 
 
 def ordered_print(flattened_case_dict):
