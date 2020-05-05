@@ -656,7 +656,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
     child_ids_dict = dict()
 
-    print("\n{} -> {}\n{}".format(child_fg, parent_fg, flattened_case_dict.keys()))
+    print("\n{} -> {}\n{}".format(child_fg, parent_fg, flattened_case_dict))
 
     if parent_fg not in flattened_case_dict:
         print("parent fg not in flattened_case_dict")
@@ -728,6 +728,7 @@ def insert_case_data(cases, record_counts):
             child_fg = split_table[-1]
 
             if parent_fg:
+                print(flattened_case_dict)
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
                 # ordered_print(flattened_case_dict)
                 # return
