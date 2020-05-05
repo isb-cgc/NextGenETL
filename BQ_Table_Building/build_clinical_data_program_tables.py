@@ -479,7 +479,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
     table_keys = get_table_names(record_counts)
 
     column_order_dict = {}
-    created_table_set = set()
+    schema_field_set = set()
 
     for table_key in table_keys:
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
@@ -530,13 +530,24 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             if field_name not in table_columns:
                 continue
 
-            schema_field = bigquery.SchemaField(
-                field_name, schema_dict[column]['type'], "NULLABLE", schema_dict[column]['description'], ())
+            # schema_field = bigquery.SchemaField(
+            #    field_name, schema_dict[column]['type'], "NULLABLE", schema_dict[column]['description'], ())
 
-            if field_name not in schema_field_keys:
-                schema_list.append(schema_field)
+            schema_field_keys.add(column)
 
-        documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+        # documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+
+        for field_key in schema_field_keys:
+            short_field_name = column.split("__")[-1]
+
+            schema_list.append(
+                bigquery.SchemaField(
+                    short_field_name,
+                    schema_dict[column]['type'],
+                    "NULLABLE",
+                    schema_dict[column]['description'],
+                    ()
+                ))
 
         try:
             client = bigquery.Client()
@@ -545,15 +556,16 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
 
-            created_table_set.add(table_key)
+            schema_field_set.add(table_key)
         except exceptions.BadRequest:
+            print("[ERROR] BadRequest")
             print("{} {}".format(table_id, schema_list))
 
-    if len(created_table_set) != len(table_names_dict.keys()):
+    if len(schema_field_set) != len(table_names_dict.keys()):
         has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
-            len(created_table_set),
+            len(schema_field_set),
             len(table_names_dict.keys()),
-            created_table_set,
+            schema_field_set,
             table_names_dict.keys()
         ))
 
@@ -804,9 +816,9 @@ def ordered_print(flattened_case_dict):
 #  Functions for creating documentation
 ##
 def generate_documentation(api_params, program_name, documentation_dict, record_counts):
-    print("{} \n".format(program_name))
-    print("{}".format(documentation_dict))
-    print("{}".format(record_counts))
+    # print("{} \n".format(program_name))
+    # print("{}".format(documentation_dict))
+    # print("{}".format(record_counts))
 
     """
     documentation_dict = {
