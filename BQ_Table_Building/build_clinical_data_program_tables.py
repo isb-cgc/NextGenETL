@@ -684,12 +684,11 @@ def ordered_print(flattened_case_dict, column_order_list):
             prefix += '__'
 
         for entry in flattened_case_dict[table]:
-            # print("table: {}, entry: {}".format(table, entry))
+            print("\t\t{")
             field_order_dict = dict()
 
             for key in entry.copy():
                 col_order_lookup_key = prefix + key
-                # print("key: {}, col_l_key: {}".format(key, col_order_lookup_key))
                 try:
                     field_order_dict[key] = column_order_dict[col_order_lookup_key]
                 except KeyError:
@@ -697,7 +696,8 @@ def ordered_print(flattened_case_dict, column_order_list):
                     entry.pop(key)
 
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print("\t\t{}: {}".format(field_key, entry[field_key]))
+                print("\t\t\t{}: {}".format(field_key, entry[field_key]))
+            print("\t\t}")
         print("\t]".format())
     print("}")
 
