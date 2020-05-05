@@ -643,6 +643,9 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
 
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
+    print(parent_fg)
+    print(child_fg)
+    return
     def create_id_key(field_name):
         if field_name == 'diagnoses':
             id_key = 'diagnosis_id'
@@ -658,7 +661,6 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_ids_dict = dict()
 
     if parent_fg not in flattened_case_dict:
-        print("parent fg not in flattened_case_dict")
         # case: direct ancestor (e.g. cases.diagnoses) was flattened/incorporated into its own ancestor.
         # Therefore, the list of child_ids needs to be included in the distant ancestor's record dictionary,
         # and the direct ancestor's name becomes prefix of the child_id_list_key.
