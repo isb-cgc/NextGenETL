@@ -790,6 +790,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
                 ordered_print(flattened_case_dict)
+                return
 
 
         """
