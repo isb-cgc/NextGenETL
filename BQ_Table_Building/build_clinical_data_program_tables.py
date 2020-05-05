@@ -737,7 +737,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
     """
 
     table_keys = set()
-
+    print("REC CNTS: {}".format(record_counts))
     for table in record_counts:
         if record_counts[table] != 1 or table == 'cases':
             table_keys.add(table)
