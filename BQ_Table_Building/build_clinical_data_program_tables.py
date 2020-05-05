@@ -713,8 +713,8 @@ def insert_case_data(cases, record_counts, tables_dict):
             print("tables_d: {}".format(tables_dict))
 
             client = bigquery.Client()
-            table = client.get_table(table_id)
-            client.insert_rows(table, flattened_case_dict[table])
+            bq_table = client.get_table(table_id)
+            client.insert_rows(bq_table, flattened_case_dict[table])
 
 
 """
