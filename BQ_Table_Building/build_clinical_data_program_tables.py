@@ -574,6 +574,8 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         parent_fg = split_parent_fg[0]
         child_fg = split_parent_fg[-1]
 
+        print("HERE {} {}".format(parent_fg, child_fg))
+
         parent_id_key = create_id_key(parent_fg)
         child_id_key = create_id_key(child_fg)
         child_id_list_key = split_parent_fg[-1] + '__' + child_id_key + 's'
