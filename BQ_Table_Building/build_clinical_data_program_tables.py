@@ -498,14 +498,8 @@ def insert_case_data(program_name, cases, table_names_dict):
         }
     }
 
-    count = 0
-
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        if count == 0:
-            print(flattened_case_dict)
-            print(flattened_case_dict.keys())
-            print("\nafter: ")
 
         for field_group_key in flattened_case_dict.copy():
             if field_group_key not in table_names_dict:
@@ -514,13 +508,13 @@ def insert_case_data(program_name, cases, table_names_dict):
 
                 field_group = flattened_case_dict.pop(field_group_key)[0]
 
+                field_group.pop('case_id')
+
                 for key in field_group:
                     flattened_case_dict['cases'][prefix + key] = field_group[key]
-            else:
-                pass
-        print(flattened_case_dict.keys())
 
-        count += 1
+        print(flattened_case_dict)
+
 
 
 ##
