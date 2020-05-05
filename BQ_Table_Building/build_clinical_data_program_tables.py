@@ -707,7 +707,9 @@ def insert_case_data(cases, table_names_dict):
             parent_fg = ".".join(split_fg[:-1])
             child_fg = split_fg[-1]
 
-            flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+            # if not parent_fg, current table iteration is 'cases', the base table
+            if parent_fg:
+                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
         print(flattened_case_dict)
 
