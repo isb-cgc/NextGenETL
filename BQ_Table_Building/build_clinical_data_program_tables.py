@@ -640,12 +640,13 @@ def insert_case_data(cases, table_names_dict):
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
-        ordered_print(flattened_case_dict)
 
         # cases is dict, the rest are [], todo
         for table in flattened_case_dict:
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
+
+        ordered_print(flattened_case_dict)
 
         for field_group in table_names_dict:
             # skip field groups which aren't included in this program's set of one-to-many tables
