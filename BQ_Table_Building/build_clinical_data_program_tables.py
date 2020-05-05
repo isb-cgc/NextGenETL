@@ -662,10 +662,11 @@ def ordered_print(flattened_case_dict, column_order_list):
     for i in range(len(column_order_list)):
         column_order_dict[column_order_list[i]] = i
 
-    for table in flattened_case_dict.keys():
+    for table in sorted(flattened_case_dict.keys()):
         field_order_dict = dict()
 
-        for key in flattened_case_dict[table]:
+        for entry in flattened_case_dict[table]:
+
             split_prefix = table.split(".")
             if len(split_prefix) == 1:
                 prefix = ''
