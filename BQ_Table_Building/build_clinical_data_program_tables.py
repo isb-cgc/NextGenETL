@@ -537,7 +537,7 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             else:
                 print("Not found. Column: {}, cols: {}".format(full_column_name, table_columns))
 
-            documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[full_column_name])
+            documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
 
             client = bigquery.Client()
             table = bigquery.Table(table_id, schema=schema_list)
