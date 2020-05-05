@@ -564,19 +564,24 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         return id_key
 
     child_ids_dict = dict()
-    child_table = parent_fg + '.' + child_fg
-    parent_id_key = create_id_key(parent_fg.split(".")[-1])
-    child_id_key = create_id_key(child_fg)
-    child_id_list_key = child_id_key + 's'
 
     if parent_fg not in flattened_case_dict:
-        print("{} not in in flattened_dict".format(parent_fg))
-        print(flattened_case_dict.keys())
-        return flattened_case_dict
-    if child_table not in flattened_case_dict:
-        print("{} not in in flattened_dict".format(child_table))
-        print(flattened_case_dict.keys())
-        return flattened_case_dict
+        # case: direct ancestor (e.g. cases.diagnoses) was flattened/incorporated into its own ancestor.
+        # Therefore, the list of child_ids needs to be included in the distant ancestor's record dictionary,
+        # and the direct ancestor's name becomes prefix of the child_id_list_key.
+        child_table = parent_fg + '.' + child_fg
+        split_parent_fg = parent_fg.split()
+        parent_fg = split_parent_fg[0]
+        child_fg = split_parent_fg[-1]
+
+        parent_id_key = create_id_key(parent_fg)
+        child_id_key = create_id_key(child_fg)
+        child_id_list_key = split_parent_fg[-1] + '__' + child_id_key + 's'
+    else:
+        child_table = parent_fg + '.' + child_fg
+        parent_id_key = create_id_key(parent_fg.split(".")[-1])
+        child_id_key = create_id_key(child_fg)
+        child_id_list_key = child_id_key + 's'
 
     for child_record in flattened_case_dict[child_table]:
         parent_id = child_record[parent_id_key]
