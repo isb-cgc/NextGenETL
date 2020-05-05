@@ -588,7 +588,8 @@ def main(args):
     }
 
     # program_names = get_programs_list(bq_params)
-    program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
+    # program_names = ['BEATAML1.0', 'HCMI', 'CTSP']
+    program_names = ['HCMI']
 
     with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
