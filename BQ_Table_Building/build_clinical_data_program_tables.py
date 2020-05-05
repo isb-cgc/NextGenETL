@@ -643,9 +643,10 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
 
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
-    print(parent_fg)
-    print(child_fg)
+    print("p: {}".format(parent_fg))
+    print("p: {}".format(child_fg))
     return
+
     def create_id_key(field_name):
         if field_name == 'diagnoses':
             id_key = 'diagnosis_id'
