@@ -669,12 +669,18 @@ def insert_case_data(cases, table_names_dict, column_order_list):
 
 
 def ordered_print(flattened_case_dict, column_order_list):
+    def make_tabs(indent):
+        tab_list = indent * ['\t']
+        return "".join(tab_list)
+
     column_order_dict = dict()
     for i in range(len(column_order_list)):
         column_order_dict[column_order_list[i]] = i
-    print("{")
+    print("{{".format())
+
+    indent = 1
     for table in sorted(flattened_case_dict.keys()):
-        print("\t'{}': [".format(table))
+        print("{}'{}': [".format(make_tabs(indent), table))
 
         split_prefix = table.split(".")
         if len(split_prefix) == 1:
@@ -684,7 +690,7 @@ def ordered_print(flattened_case_dict, column_order_list):
             prefix += '__'
 
         for entry in flattened_case_dict[table]:
-            print("\t\t{")
+            print("{} {{".format(make_tabs(indent + 1)))
             field_order_dict = dict()
 
             for key in entry.copy():
@@ -696,10 +702,10 @@ def ordered_print(flattened_case_dict, column_order_list):
                     entry.pop(key)
 
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                print("\t\t\t{}: {}".format(field_key, entry[field_key]))
-            print("\t\t}")
-        print("\t]".format())
-    print("}")
+                print("\{}{}: {}".format(make_tabs(indent + 2), field_key, entry[field_key]))
+            print("{}}}".format(make_tabs(indent + 1)))
+        print("{}]".format(make_tabs(indent)))
+    print("}}".format())
 
 
 ##
