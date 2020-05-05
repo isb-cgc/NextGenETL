@@ -670,6 +670,8 @@ def insert_case_data(cases, table_names_dict):
 
 def ordered_print(flattened_case_dict):
     print(COLUMN_ORDER_DICT)
+    print(flattened_case_dict)
+    return
 
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
@@ -692,21 +694,15 @@ def ordered_print(flattened_case_dict):
             entry_string = "{}{{\n".format(make_tabs(indent + 1))
             field_order_dict = dict()
 
-            if isinstance(entry, str):
-                print(flattened_case_dict)
-                print(entry)
-                return
-                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), entry, flattened_case_dict[table])
-            else:
-                for key in entry.copy():
-                    col_order_lookup_key = prefix + key
-                    try:
-                        field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
-                    except KeyError:
-                        print("[ERROR] {} not in column order list".format(col_order_lookup_key))
-                        entry.pop(key)
-                for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                    entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            for key in entry.copy():
+                col_order_lookup_key = prefix + key
+                try:
+                    field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
+                except KeyError:
+                    print("[ERROR] {} not in column order list".format(col_order_lookup_key))
+                    entry.pop(key)
+            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
             entry_string = entry_string.rstrip('\n')
             entry_string = entry_string.rstrip(',')
 
