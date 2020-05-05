@@ -463,6 +463,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_counts, column_order_list):
     schema_dict = create_schema_dict(api_params)
+    print(schema_dict)
 
     exclude_set = set()
 
