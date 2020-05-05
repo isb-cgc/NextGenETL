@@ -364,10 +364,10 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
             "description": description
         }
 
-    def generate_ids_schema_entry(child_table, child_field_name):
+    def generate_ids_schema_entry(child_table_, child_field_name):
         column_name = "_".join(child_field_name.split(" ")) + '_ids'
         description = "List of {} ids, referencing associated records located in the program's {} " \
-                      "table.".format(child_field_name, child_table)
+                      "table.".format(child_field_name, child_table_)
 
         return {
             "name": column_name,
@@ -483,6 +483,12 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             prefix = '__'.join(split_prefix[1:]) + '__'
 
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
+
+        print("""
+        \n\ntables dict: {}
+        \nschema dict: {}
+        \ncolumn order list: {}\n
+        """.format(tables_dict, schema_dict, column_order_dict))
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
@@ -783,7 +789,7 @@ def insert_case_data(cases, table_names_dict, record_counts):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        ordered_print(flattened_case_dict)
+        # ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
@@ -814,7 +820,7 @@ def ordered_print(flattened_case_dict):
                 try:
                     field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
                 except KeyError:
-                    print("[ERROR] {} not in column order dict".format(col_order_lookup_key))
+                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
                     for k, v in sorted(COLUMN_ORDER_DICT.items(), key=lambda item: item[0]):
                         print("{}: {}".format(k, v))
                     field_order_dict[key] = 0
