@@ -724,11 +724,13 @@ def insert_case_data(cases, record_counts):
         if 'cases.follow_ups' in flattened_case_dict:
             print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
-        """
-        # cases is dict, the rest are [], todo
+
+        if isinstance(flattened_case_dict['cases'], dict):
+            flattened_case_dict['cases'] = [flattened_case_dict['cases']]
+
         for table in flattened_case_dict.keys():
-            if isinstance(flattened_case_dict[table], dict):
-                flattened_case_dict[table] = [flattened_case_dict[table]]
+            print(table)
+            continue
 
             split_table = table.split('.')
 
