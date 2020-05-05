@@ -662,20 +662,29 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     child_id_key = create_id_key(child_fg)
     child_id_list_key = child_id_key + 's'
 
-    if child_table_name in flattened_case_dict and parent_fg in flattened_case_dict:
-        print('Both in the case dict! {} - {}'.format(parent_fg, child_table_name))
-    else:
-        print('NOT both in the case dict! {} - {}'.format(parent_fg, child_table_name))
+    if child_table_name not in flattened_case_dict:
+        return flattened_case_dict
 
+    while parent_fg not in flattened_case_dict:
+        split_parent = parent_fg.split('.')
+        parent_fg = '.'.join(split_parent[:-1])
+        child_id_list_key = split_parent[-1] + '__' + child_id_list_key
+
+        if len(split_parent) == 1 and parent_fg not in flattened_case_dict:
+            return flattened_case_dict
 
     for child_record in flattened_case_dict[child_table_name]:
         parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
+        print("pid: {}, cid: {}".format(parent_id, child_id))
+        continue
 
         if parent_id not in child_ids_dict:
             child_ids_dict[parent_id] = []
 
         child_ids_dict[parent_id].append(child_id)
+
+    return flattened_case_dict
 
     if parent_fg == 'cases':
         # todo this might end up being unnecessary
@@ -703,7 +712,7 @@ def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
-        print("\nfor case: {}".format(case['case_id']))
+        case_id = case['case_id']
 
         flattened_case_dict = flatten_case(case, 'cases', dict())
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
@@ -722,7 +731,7 @@ def insert_case_data(cases, record_counts):
             child_fg = split_table[-1]
             
             if parent_fg:
-                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg, case_id)
 
         # ordered_print(flattened_case_dict)
 
