@@ -739,11 +739,9 @@ def insert_case_data(cases, record_counts):
 
             parent_fg = ".".join(split_table[:-1])
             child_fg = split_table[-1]
-
             
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-        """
 
 
 def ordered_print(flattened_case_dict):
@@ -804,6 +802,7 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
     # print("{}".format(record_counts))
+
     """
     documentation_dict = {
         'tables_overview': {
