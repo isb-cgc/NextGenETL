@@ -724,6 +724,7 @@ def insert_case_data(cases, record_counts):
         if 'cases.follow_ups' in flattened_case_dict:
             print("3 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
+        continue
 
         if isinstance(flattened_case_dict['cases'], dict):
             flattened_case_dict['cases'] = [flattened_case_dict['cases']]
