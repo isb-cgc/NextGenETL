@@ -199,6 +199,8 @@ def create_bq_schema(api_params, data_fp):
     schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
+
+    print("EXPAND FIELDS: {}".format(api_params['EXPAND_FIELD_GROUPS']))
     
     bq_schema = generate_bq_schema(
         schema_dict,
