@@ -676,16 +676,13 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     for child_record in flattened_case_dict[child_table_name]:
         parent_id = child_record[parent_id_key]
         child_id = child_record[child_id_key]
-        print("pid: {}, cid: {}".format(parent_id, child_id))
-        continue
 
         if parent_id not in child_ids_dict:
             child_ids_dict[parent_id] = []
 
         child_ids_dict[parent_id].append(child_id)
 
-    return flattened_case_dict
-
+    """
     if parent_fg == 'cases':
         # todo this might end up being unnecessary
         parent_id = flattened_case_dict[parent_fg][0]['case_id']
@@ -704,8 +701,10 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
             parent_records_list.append(parent_record)
 
         flattened_case_dict[parent_fg] = parent_records_list
+    """
 
     return flattened_case_dict
+
 
 
 def insert_case_data(cases, record_counts):
