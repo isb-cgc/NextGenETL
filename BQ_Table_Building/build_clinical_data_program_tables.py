@@ -785,7 +785,6 @@ def insert_case_data(cases, table_names_dict, record_counts):
             child_fg: {}\n
             """.format(table, table_names_dict[table], parent_fg, child_fg))
 
-
         continue
 
         for field_group in table_names_dict:
