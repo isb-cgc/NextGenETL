@@ -670,7 +670,8 @@ def ordered_print(flattened_case_dict, column_order_list):
             if split_prefix == 1:
                 prefix = ''
             else:
-                prefix = '__'.join(split_prefix[1:]) + '__'
+                prefix = '__'.join(split_prefix[1:])
+                prefix += '__'
 
             col_order_lookup_key = prefix + key
             field_order_dict[key] = column_order_dict[col_order_lookup_key]
