@@ -481,8 +481,6 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
 
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
-        print("SCHEMA DICT: {}".format(schema_dict))
-
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
 
@@ -747,8 +745,6 @@ def insert_case_data(cases, table_names_dict):
             if isinstance(flattened_case_dict[table], dict):
                 flattened_case_dict[table] = [flattened_case_dict[table]]
 
-        ordered_print(flattened_case_dict)
-
         for field_group in table_names_dict:
             # skip field groups which aren't included in this program's set of one-to-many tables
             if field_group not in flattened_case_dict:
@@ -767,14 +763,10 @@ def insert_case_data(cases, table_names_dict):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        # ordered_print(flattened_case_dict)
+        ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
-    print(COLUMN_ORDER_DICT)
-    print(flattened_case_dict)
-    return
-
     def make_tabs(indent_):
         tab_list = indent_ * ['\t']
         return "".join(tab_list)

@@ -4,7 +4,7 @@ demographic_ids
 exposures_ids
 diagnoses_ids
 family_histories_ids
-follow_ups_ids
+follow_up_ids
 primary_site
 disease_type
 index_date
@@ -70,6 +70,8 @@ exposures__state
 exposures__created_datetime
 exposures__updated_datetime
 diagnoses__diagnosis_id
+diagnoses__annotation_ids
+diagnoses__treatment_ids
 diagnoses__case_id
 diagnoses__submitter_id
 diagnoses__treatments_ids
