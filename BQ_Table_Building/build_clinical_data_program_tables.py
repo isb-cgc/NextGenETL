@@ -123,8 +123,6 @@ def retrieve_program_case_structure(program_name, cases):
         null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
-        print("case_id: {}".format(case['case_id']))
-        print(record_counts)
 
     tables = flatten_tables(tables, record_counts)
 
@@ -144,7 +142,7 @@ def flatten_tables(tables, record_counts):
     for key in field_group_keys:
         field_group_keys[key] = len(key.split("."))
 
-    for key in {k for k, v in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True)}:
+    for key, value in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
         if record_counts[key] > 1:
             continue
 
@@ -484,6 +482,9 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
             prefix = '__'.join(split_prefix[1:]) + '__'
 
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
+
+        print("TABLES DICT")
+        print(tables_dict)
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
@@ -902,7 +903,6 @@ def main(args):
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
-
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         column_order_list = import_column_order_list(args[2])
