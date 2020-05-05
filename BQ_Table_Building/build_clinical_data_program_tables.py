@@ -594,6 +594,7 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
+    print(table_names_dict)
     for field_group_key in flattened_case_dict.copy():
         if field_group_key in table_names_dict:
             # this group is meant to be a one-to-many table, don't merge
@@ -763,7 +764,7 @@ def insert_case_data(cases, table_names_dict):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
-        ordered_print(flattened_case_dict)
+        # ordered_print(flattened_case_dict)
 
 
 def ordered_print(flattened_case_dict):
