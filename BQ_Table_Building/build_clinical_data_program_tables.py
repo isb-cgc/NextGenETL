@@ -600,7 +600,6 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
         else:
             if entry_list:
                 case_list_dict[prefix] = entry_list
-
     else:
         entry_list = []
         entry_dict = dict()
@@ -714,8 +713,8 @@ def insert_case_data(cases, record_counts):
             print("Starting case: {}".format(case['case_id']))
         if 'follow_ups' in case:
             print("1 len(case['follow_ups']) = {}".format(len(case['follow_ups'])))
-        continue
-        flattened_case_dict = flatten_case(case, 'cases')
+
+        flattened_case_dict = flatten_case(case, 'cases', dict())
         if 'cases.follow_ups' in flattened_case_dict:
             print("2 len(flattened_case_dict['cases.follow_ups']) = {}".format(
                 len(flattened_case_dict['cases.follow_ups'])))
