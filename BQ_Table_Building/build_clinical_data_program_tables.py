@@ -503,16 +503,19 @@ def flatten_case(case, prefix, case_list_dict=dict(), case_id=None, parent_id=No
 
 def merge_single_entry_field_groups(flattened_case_dict, table_names_dict):
     for field_group_key in flattened_case_dict.copy():
+        field_group = flattened_case_dict[field_group_key]
         if field_group_key not in table_names_dict:
+            # don't need multiple case_id keys in the same table
+            field_group.pop('case_id')
+
+            # avoids name collisions by specifying source field group
             prefix = "__".join(field_group_key.split(".")[1:])
             prefix = prefix + "__"
 
-            field_group = flattened_case_dict.pop(field_group_key)[0]
-
-            field_group.pop('case_id')
-
             for key in field_group:
-                flattened_case_dict['cases'][prefix + key] = field_group[key]
+                flattened_case_dict['cases'][0][prefix + key] = field_group[key]
+
+        flattened_case_dict.pop(field_group_key)
 
     return flattened_case_dict
 
@@ -641,6 +644,7 @@ def insert_case_data(cases, table_names_dict):
     # todo: return this to normal
     for case in cases[-4:-3]:
         flattened_case_dict = flatten_case(case, 'cases')
+        cases = flattened_case_dict['cases'][0]
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_names_dict)
 
         # cases is dict, the rest are [], todo
