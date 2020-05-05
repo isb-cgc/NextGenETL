@@ -707,60 +707,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, table_names_dict, record_counts):
-    """
-    table_names_dict = {
-        'cases.diagnoses.treatments': table_id,
-        'cases': table_id
-    }
-
-    case_record = {
-        'cases.diagnoses': [
-            {}
-        ],
-        'cases.demographic': [
-            {
-                'gender': 'female',
-                'race': 'white',
-                'year_of_birth': 1949,
-                'created_datetime': '2018-02-23T13:36:12.278625-06:00',
-                'cause_of_death': None,
-                'demographic_id': '73d8a76f-7e08-49df-bc28-439716586d69',
-                'state': 'released',
-                'updated_datetime': '2019-08-19T08:47:10.172187-05:00',
-                'occupation_duration_years': None,
-                'vital_status': 'Alive',
-                'ethnicity': 'not hispanic or latino',
-                'premature_at_birth': None,
-                'age_at_index': 20380,
-                'submitter_id': 'DLBCL11282_1698929-demographic',
-                'case_id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4',
-                'days_to_birth': -20380.0,
-                'days_to_death': None,
-                'weeks_gestation_at_birth': None,
-                'cause_of_death_source': None,
-                'year_of_death': None,
-                'age_is_obfuscated': None
-            }
-        ],
-        'cases': {
-            'created_datetime': '2018-02-20T16:11:27.193958-06:00',
-            'disease_type': 'Mature B-Cell Lymphomas',
-            'state': 'released',
-            'updated_datetime': '2019-08-19T08:47:10.172187-05:00',
-            'id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4',
-            'index_date': 'Diagnosis',
-            'submitter_id': 'CTSP-ACY5',
-            'submitter_diagnosis_ids': 'DLBCL11282-diagnosis',
-            'case_id': '4234a18e-c1ae-4f16-a7c4-259d7db8bab4',
-            'days_to_lost_to_followup': None,
-            'lost_to_followup': 'No',
-            'diagnosis_ids': '2bd60abb-7ba1-43a5-ab19-89d2de7b50c6',
-            'primary_site': 'Unknown'
-        }
-    }
-    """
-
+def insert_case_data(cases, record_counts):
     table_keys = get_table_names(record_counts)
 
     for case in cases:
@@ -779,14 +726,14 @@ def insert_case_data(cases, table_names_dict, record_counts):
 
             parent_fg = ".".join(split_table[:-1])
             child_fg = split_table[-1]
-            print("parent_fg {}, child {}".format(parent_fg, child_fg))
+            print("{} <- {}".format(parent_fg, child_fg))
 
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
                 # ordered_print(flattened_case_dict)
                 # return
             else:
-                print("No child ids for child {}, table {}".format(child_fg, table))
+                print("\t\t\tNo child ids for child {} ({})".format(child_fg, table))
 
 
 def ordered_print(flattened_case_dict):
@@ -928,7 +875,7 @@ def main(args):
         )
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, table_names_dict, record_counts)
+        insert_case_data(cases, record_counts)
 
         print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(api_params, program_name, documentation_dict, record_counts)
