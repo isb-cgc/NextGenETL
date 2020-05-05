@@ -558,6 +558,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
         parent_table += '.' + parent_fg
 
     child_table = parent_table + '.' + child_fg
+
     # remove pluralization from field group name to make id keys
     parent_id_key = parent_fg[:-1] + 'id'
     child_id_key = child_fg[:-1] + '_id'
@@ -677,6 +678,10 @@ def insert_case_data(cases, table_names_dict, api_params):
         for field_group in api_params["EXPAND_FIELD_GROUPS"].split(','):
             print()
             print(field_group)
+
+            # skip field groups which aren't included in this program's set of one-to-many tables
+            if 'cases.' + field_group not in flattened_case_dict:
+                continue
 
             split_fg = field_group.split('.')
 
