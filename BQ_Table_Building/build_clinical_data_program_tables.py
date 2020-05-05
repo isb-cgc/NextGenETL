@@ -550,36 +550,27 @@ def create_child_table_id_lists(flattened_case_dict, parameter_list):
 
 
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
-    print("{}, {}".format(parent_fg, child_fg))
+    def create_id_key(field_name):
+        if field_name == 'diagnoses':
+            id_key = 'diagnosis_id'
+        elif field_name == 'family_histories':
+            id_key = 'family_history_id'
+        elif field_name[-1] == 's':
+            # remove pluralization from field group name to make id keys
+            id_key = field_name[:-1] + '_id'
+        else:
+            id_key = field_name + '_id'
+
+        return id_key
+
     child_ids_dict = dict()
-    parent_field_name = parent_fg.split(".")[-1]
-    child_field_name = child_fg
-    parent_table = parent_fg
     child_table = parent_fg + '.' + child_fg
-
-    if parent_field_name == 'diagnoses':
-        parent_id_key = 'diagnosis_id'
-    elif parent_field_name == 'family_histories':
-        parent_id_key = 'family_history_id'
-    elif parent_field_name[-1] == 's':
-        # remove pluralization from field group name to make id keys
-        parent_id_key = parent_field_name[:-1] + '_id'
-    else:
-        parent_id_key = parent_field_name + '_id'
-
-    if child_field_name == 'diagnoses':
-        child_id_key = 'diagnosis_id'
-    elif child_field_name == 'family_histories':
-        child_id_key = 'family_history_id'
-    elif child_field_name[-1] == 's':
-        child_id_key = child_field_name[:-1] + '_id'
-    else:
-        child_id_key = child_field_name + '_id'
-
+    parent_id_key = create_id_key(parent_fg.split(".")[-1])
+    child_id_key = create_id_key(child_fg)
     child_id_list_key = child_id_key + 's'
 
-    if parent_table not in flattened_case_dict or child_table not in flattened_case_dict:
-        print("No entry in flattened_dict (either for {} or {})".format(parent_table, child_table))
+    if parent_fg not in flattened_case_dict or child_table not in flattened_case_dict:
+        print("No entry in flattened_dict (either for {} or {})".format(parent_fg, child_table))
         print(flattened_case_dict.keys())
         return flattened_case_dict
 
@@ -592,23 +583,23 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
         child_ids_dict[parent_id].append(child_id)
 
-    if parent_table == 'cases':
-        parent_id = flattened_case_dict[parent_table]['case_id']
+    if parent_fg == 'cases':
+        parent_id = flattened_case_dict[parent_fg]['case_id']
         if parent_id in child_ids_dict:
             child_ids = ", ".join(child_ids_dict[parent_id])
 
-            flattened_case_dict[parent_table][child_id_list_key] = child_ids
+            flattened_case_dict[parent_fg][child_id_list_key] = child_ids
     else:
         parent_records_list = []
 
-        for parent_record in flattened_case_dict[parent_table]:
+        for parent_record in flattened_case_dict[parent_fg]:
             parent_id = parent_record[parent_id_key]
             if parent_id in child_ids_dict:
                 child_ids = ", ".join(child_ids_dict[parent_id])
                 parent_record[child_id_list_key] = child_ids
             parent_records_list.append(parent_record)
 
-        flattened_case_dict[parent_table] = parent_records_list
+        flattened_case_dict[parent_fg] = parent_records_list
 
     return flattened_case_dict
 
