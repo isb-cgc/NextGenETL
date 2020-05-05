@@ -704,13 +704,17 @@ def ordered_print(flattened_case_dict, column_order_list):
                     entry.pop(key)
             for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
                 entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            entry_string = entry_string.rstrip('\n')
             entry_string = entry_string.rstrip(',')
-            tables_string += entry_string
+            tables_string += entry_string + '\n'
             tables_string += "{}}},\n".format(make_tabs(indent + 1))
+            tables_string = tables_string.rstrip('\n')
             tables_string = tables_string.rstrip(',')
+            tables_string += '\n'
         tables_string += "{}],\n".format(make_tabs(indent))
-        tables_string = tables_string.rstrip(',')
-    tables_string += "}"
+    tables_string = tables_string.rstrip('\n')
+    tables_string = tables_string.rstrip(',')
+    tables_string += "\n}"
 
     print(tables_string)
 
