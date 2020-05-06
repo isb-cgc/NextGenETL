@@ -512,7 +512,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     for table_key in table_keys:
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
         table_order_dict = dict()
-        schema_field_keys = set()
+        schema_field_keys = []
 
         table_name, table_id = generate_table_name_and_id(params, program_name, table_key)
 
@@ -539,7 +539,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys 
             bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
             '''
-            schema_field_keys.add(column)
+            schema_field_keys.append(column)
 
         schema_list = []
 
