@@ -760,16 +760,15 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
+                print("\nSuccessfully inserted {} rows, idx {} to {}, into {}".format(
+                    len(insert_lists[table]), start_idx, end_idx, table_id))
                 start_idx = end_idx
                 end_idx += params["INSERT_BATCH_SIZE"]
 
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
-
-            print("Successfully inserted {} rows into {}".format(len(insert_lists[table]), table_id))
-        except exceptions.BadRequest as err:
-            print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
-            has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
+            print("\nSuccessfully inserted lest {} rows, starting at idx {}, into {}".format(
+                len(insert_lists[table]), start_idx, table_id))
         except Exception as err:
             print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
