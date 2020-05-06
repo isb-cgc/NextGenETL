@@ -378,7 +378,7 @@ def import_column_order(path):
     return column_dict
 
 
-def generate_table_name(params, program_name, table):
+def generate_table_names(params, program_name, table):
     split_table_path = table.split(".")
     # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
     program_name = "_".join(program_name.split('.'))
@@ -392,7 +392,9 @@ def generate_table_name(params, program_name, table):
     if not table_name:
         has_fatal_error("generate_table_name returns empty result.")
 
-    return table_name
+    table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
+
+    return table_name, table_id
 
 
 def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
@@ -500,7 +502,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     for field in params["EXCLUDE_FIELDS"].split(','):
         exclude_set.add('cases.' + field)
 
-    table_names_dict = dict()
+    table_ids = dict()
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
@@ -513,37 +515,27 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
     for table_key in table_keys:
-        schema_list = []
         schema_field_keys = set()
 
-        table_name = generate_table_name(params, program_name, table_key)
-        table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
-        table_names_dict[table_key] = table_id
+        table_name, table_id = generate_table_names(params, program_name, table_key)
+
+        table_ids[table_key] = table_id
 
         # documentation_dict['table_schemas'][table_key] = dict()
         # documentation_dict['table_schemas'][table_key]['table_id'] = table_id
         # documentation_dict['table_schemas'][table_key]['table_schema'] = list()
 
-        split_prefix = table_key.split('.')
-        prefix = ''
-
-        if len(split_prefix) > 1:
-            prefix = '__'.join(split_prefix[1:]) + '__'
-
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
-
-            full_column_name = prefix + column
+            full_column_name = get_bq_name(column)
 
             if full_column_name in exclude_set:
                 continue
 
-            if full_column_name not in column_order_list:
-                has_fatal_error('{} not in column_order_list!'.format(full_column_name))
+            if full_column_name not in COLUMN_ORDER_DICT:
+                has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
-            column_order_dict[full_column_name] = column_order_list.index(full_column_name)
-
-        for column, value in sorted(column_order_dict.items(), key=lambda x: x[1]):
+        for column, value in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
             '''
                 tables_dict, record_counts keys: cases.diagnoses.annotations, 
                     - they indicate table structures
@@ -558,24 +550,15 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             if field_name not in table_columns:
                 continue
 
-            # schema_field = bigquery.SchemaField(
-            #    field_name, schema_dict[column]['type'], "NULLABLE", schema_dict[column]['description'], ())
-
             schema_field_keys.add(column)
 
-        # documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_dict[column])
+        schema_list = []
 
-        for field_key in schema_field_keys:
-            short_field_name = column.split("__")[-1]
+        for schema_key in schema_field_keys:
+            field_name = get_field_name(schema_key)
 
-            schema_list.append(
-                bigquery.SchemaField(
-                    short_field_name,
-                    schema_dict[column]['type'],
-                    "NULLABLE",
-                    schema_dict[column]['description'],
-                    ()
-                ))
+            schema_list.append(bigquery.SchemaField(
+                field_name, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
 
         try:
             client = bigquery.Client()
@@ -589,19 +572,9 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             print("[ERROR] BadRequest")
             print("{} {}".format(table_id, schema_list))
 
-    if len(schema_field_set) != len(table_names_dict.keys()):
-        has_fatal_error("len(created_table_set) = {}, len(table_names_dict) = {}, unequal!\n{}\n{}".format(
-            len(schema_field_set),
-            len(table_names_dict.keys()),
-            schema_field_set,
-            table_names_dict.keys()
-        ))
+        documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
 
-    # make column order dict available for print/case insert functions.
-    global COLUMN_ORDER_DICT
-    COLUMN_ORDER_DICT = column_order_dict
-
-    return documentation_dict, table_names_dict
+    return documentation_dict, table_ids
 
 
 ##
