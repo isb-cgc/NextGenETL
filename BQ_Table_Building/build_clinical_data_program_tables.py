@@ -214,7 +214,7 @@ def lookup_column_types(params):
     field_groups = []
     child_field_groups = {}
 
-    for fg in params['EXPAND_FIELD_GROUPS']:
+    for fg in params['EXPAND_FIELD_GROUPS'].split(','):
         if len(fg.split(".")) == 1:
             field_groups.append(fg)
         elif len(fg.split(".")) == 2:
