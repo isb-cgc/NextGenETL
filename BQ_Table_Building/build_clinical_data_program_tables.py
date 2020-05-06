@@ -2,7 +2,6 @@ from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_e
 from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
-import math
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -280,9 +279,10 @@ def lookup_column_types():
 
         diagnoses = diagnoses[:-2] + '>>'
 
-    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
-    column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
-    column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
+        # Indenting this because it seems to make sense to do so, making a note so I don't break anything
+        column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
+        column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
+        column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
 
     return column_type_dict
 
@@ -409,6 +409,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
             "description": description
         }
 
+    """
     def generate_ids_schema_entry(child_table_, child_field_name):
         column_name = "_".join(child_field_name.split(" ")) + '_ids'
         description = "List of {} ids, referencing associated records located in the program's {} " \
@@ -419,17 +420,18 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
             "type": 'STRING',
             "description": description
         }
+    """
 
     if table_key == 'cases.follow_ups':
-        tables_dict['cases'].add('follow_up_ids')
-        schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
+        # tables_dict['cases'].add('follow_up_ids')
+        # schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
 
         tables_dict['cases.follow_ups'].add('case_id')
         schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.follow_ups.molecular_tests':
-        tables_dict['cases.follow_ups'].add('molecular_test_ids')
-        schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
-            '*_follow_ups__molecular_tests', 'molecular test')
+        # tables_dict['cases.follow_ups'].add('molecular_test_ids')
+        # schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
+        #    '*_follow_ups__molecular_tests', 'molecular test')
 
         tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
         schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
@@ -438,14 +440,14 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
         schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.family_histories':
-        tables_dict['cases'].add('family_history_ids')
-        schema_dict['family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
+        # tables_dict['cases'].add('family_history_ids')
+        # schema_dict['family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
 
         tables_dict['cases.family_histories'].add('case_id')
         schema_dict['family_histories__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.demographic':
-        tables_dict['cases'].add('demographic_ids')
-        schema_dict['demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
+        # tables_dict['cases'].add('demographic_ids')
+        # schema_dict['demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
 
         tables_dict['cases.demographic'].add('case_id')
         schema_dict['demographic__case_id'] = generate_id_schema_entry()
@@ -453,16 +455,17 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.exposures'].add('case_id')
         schema_dict['exposures__case_id'] = generate_id_schema_entry()
 
-        tables_dict['cases'].add('exposure_ids')
-        schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
+        # tables_dict['cases'].add('exposure_ids')
+        # schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
     elif table_key == 'cases.diagnoses':
-        tables_dict['cases'].add('diagnosis_ids')
-        schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
+        # tables_dict['cases'].add('diagnosis_ids')
+        # schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
 
         tables_dict['cases.diagnoses'].add('case_id')
         schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.treatments':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        """
         child_table = ancestor_table + '__treatments' if 'case.diagnoses' in table_keys else ancestor_table
 
         if 'cases.diagnoses' in table_keys:
@@ -470,6 +473,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         else:
             tables_dict['cases'].add('diagnoses__treatment_ids')
         schema_dict['diagnoses__treatment_ids'] = generate_ids_schema_entry(child_table, 'treatment')
+        """
 
         tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
         schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
@@ -478,13 +482,15 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
+        """
         child_table = ancestor_table + '__annotations' if 'case.diagnoses' in table_keys else ancestor_table
-
+        
         if 'cases.diagnoses' in table_keys:
             tables_dict['cases.diagnoses'].add('annotation_ids')
         else:
             tables_dict['cases'].add('diagnoses__annotation_ids')
         schema_dict['diagnoses__annotation_ids'] = generate_ids_schema_entry(child_table, 'annotation')
+        """
 
         tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
         schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
@@ -658,6 +664,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     return flattened_case_dict
 
 
+"""
 def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     def create_id_key(field_name):
         if field_name == 'diagnoses':
@@ -712,6 +719,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     flattened_case_dict[parent_fg] = entry_list
 
     return flattened_case_dict
+"""
 
 
 def insert_case_data(cases, record_counts, tables_dict, params):
@@ -734,11 +742,13 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             if len(split_table) > 3:
                 has_fatal_error("Expand field group list contains a nested field group with depth > 3.", ValueError)
 
+            """
             parent_fg = ".".join(split_table[:-1])
             child_fg = split_table[-1]
             
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
+            """
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
@@ -764,6 +774,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         except exceptions.BadRequest as err:
             print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
+
 
 """
 def ordered_print(flattened_case_dict):
