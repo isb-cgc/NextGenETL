@@ -200,8 +200,8 @@ def lookup_column_types(params):
 
     def generate_base_query(field_groups_):
         exclude_column_query_str = ''
-        for fg in field_groups_:
-            exclude_column_query_str += "AND column_name != '{}' ".format(fg)
+        for fg_ in field_groups_:
+            exclude_column_query_str += "AND column_name != '{}' ".format(fg_)
 
         query = """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
@@ -269,6 +269,10 @@ def lookup_column_types(params):
         column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups__molecular_tests__')
 
     results = get_query_results(diagnoses_query)
+
+    diagnoses = None
+    treatments = None
+    annotations = None
 
     # create field list string
     for result in results:
@@ -741,7 +745,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params)
-        flattened_case_dict = remove_unwanted_fields(flattened_case_dict, params)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if isinstance(flattened_case_dict['cases'], dict):
@@ -787,7 +790,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
             print("Successfully inserted last {} records\n".format(len(insert_lists[table]) - start_idx))
         except Exception as err:
-            print("[ERROR] exception for table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
+            print("[ERROR] exception for table: {}, table_id: {}, row count: {}".format(table, table_id,
+                                                                                        len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
 
 
