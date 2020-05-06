@@ -275,10 +275,10 @@ def lookup_column_types(params):
 
         diagnoses = diagnoses[:-2] + '>>'
 
-        # Indenting this because it seems to make sense to do so, making a note so I don't break anything
-        column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
-        column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
-        column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
+    # Indenting this because it seems to make sense to do so, making a note so I don't break anything
+    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
+    column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
+    column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
 
     return column_type_dict
 
