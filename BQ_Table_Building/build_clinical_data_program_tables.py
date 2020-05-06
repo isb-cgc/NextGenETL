@@ -863,8 +863,8 @@ def main(args):
         "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    # program_names = get_programs_list(params)
-    program_names = ['TCGA', 'TARGET']
+    program_names = get_programs_list(params)
+    # program_names = ['TCGA', 'TARGET']
     # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
