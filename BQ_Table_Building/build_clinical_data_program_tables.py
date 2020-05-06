@@ -131,13 +131,13 @@ def remove_unwanted_fields(record, table_name, params):
     print("From table {}, removed:".format(table_name), end=' ')
 
     if isinstance(record, dict):
-        for field in record:
+        for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
                 print(field, end=', ')
 
     elif isinstance(record, set):
-        for field in record:
+        for field in record.copy():
             if field in excluded_fields:
                 print(field, end=', ')
                 record.remove(field)
