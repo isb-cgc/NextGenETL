@@ -420,14 +420,12 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         }
 
     if table_key == 'cases.follow_ups':
-        print("1")
         tables_dict['cases'].add('follow_up_ids')
         schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
 
         tables_dict['cases.follow_ups'].add('case_id')
         schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.follow_ups.molecular_tests':
-        print("2")
         tables_dict['cases.follow_ups'].add('molecular_test_ids')
         schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
             '*_follow_ups__molecular_tests', 'molecular test')
@@ -439,35 +437,30 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
         schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.family_histories':
-        print("3")
         tables_dict['cases'].add('family_history_ids')
         schema_dict['family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
 
         tables_dict['cases.family_histories'].add('case_id')
         schema_dict['family_histories__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.demographic':
-        print("4")
         tables_dict['cases'].add('demographic_ids')
         schema_dict['demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
 
         tables_dict['cases.demographic'].add('case_id')
         schema_dict['demographic__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.exposures':
-        print("5")
         tables_dict['cases.exposures'].add('case_id')
         schema_dict['exposures__case_id'] = generate_id_schema_entry()
 
         tables_dict['cases'].add('exposure_ids')
         schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
     elif table_key == 'cases.diagnoses':
-        print("6")
         tables_dict['cases'].add('diagnosis_ids')
         schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
 
         tables_dict['cases.diagnoses'].add('case_id')
         schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.treatments':
-        print("7")
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
         child_table = ancestor_table + '__treatments' if 'case.diagnoses' in table_keys else ancestor_table
 
@@ -483,7 +476,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.diagnoses.treatments'].add('case_id')
         schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
-        print("8")
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
         child_table = ancestor_table + '__annotations' if 'case.diagnoses' in table_keys else ancestor_table
 
@@ -555,6 +547,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             schema_list.append(bigquery.SchemaField(
                 schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
         try:
+            print(schema_list)
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
@@ -894,12 +887,12 @@ def main(args):
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
         print("table_names: {} \n\n".format(table_names_dict))
 
-        print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, record_counts, table_names_dict)
+        # print("DONE.\n - Inserting case records... ", end='')
+        # insert_case_data(cases, record_counts, table_names_dict)
 
-        print("DONE.\n - Inserting documentation... ", end='')
-        generate_documentation(params, program_name, documentation_dict, record_counts)
-        print("DONE.\n")
+        # print("DONE.\n - Inserting documentation... ", end='')
+        # generate_documentation(params, program_name, documentation_dict, record_counts)
+        # print("DONE.\n")
 
 
 if __name__ == '__main__':
