@@ -914,9 +914,9 @@ def main(args):
                 "submitter_id"
             },
             'cases.diagnoses.annotations': {
-                "submitter_id",
                 "case_submitter_id",
-                "entity_submitter_id"
+                "entity_submitter_id",
+                "submitter_id"
             },
             'cases.exposures': {
                 "submitter_id"
@@ -931,20 +931,20 @@ def main(args):
                 "submitter_id"
             },
             'cases': {
-                "diagnosis_ids",
-                "sample_ids",
-                "submitter_slide_ids",
-                "submitter_diagnosis_ids",
-                "analyte_ids",
-                "portion_ids",
                 "aliquot_ids",
-                "submitter_aliquot_ids",
-                "submitter_portion_ids",
-                "submitter_analyte_ids",
+                "analyte_ids",
                 "case_autocomplete",
-                "submitter_sample_ids",
+                "diagnosis_ids",
+                "id",
+                "portion_ids",
+                "sample_ids",
                 "slide_ids",
-                "id"
+                "submitter_aliquot_ids",
+                "submitter_analyte_ids",
+                "submitter_diagnosis_ids",
+                "submitter_portion_ids",
+                "submitter_sample_ids",
+                "submitter_slide_ids"
             }
         },
         # Note: broken pipe/too large at 5000
