@@ -1,6 +1,4 @@
-import google
-
-from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, pprint_json
+from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
@@ -504,7 +502,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     exclude_set = set()
 
     for field in params["EXCLUDE_FIELDS"].split(','):
-        exclude_set.add(convert_bq_name_to_fg_name(field, params))
+        exclude_set.add(convert_bq_name_to_fg_name(field))
 
     table_ids = dict()
     documentation_dict = dict()
@@ -530,7 +528,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
-            full_column_name = get_bq_name(column, params)
+            full_column_name = get_bq_name(column)
 
             if full_column_name in exclude_set:
                 continue
@@ -758,6 +756,7 @@ def insert_case_data(cases, record_counts, tables_dict):
             client.insert_rows(bq_table, flattened_case_dict[table])
 
             print("Inserted data into {}.\nDATA: {}".format(table_id, flattened_case_dict[table]))
+
 
 """
 def ordered_print(flattened_case_dict):
