@@ -193,6 +193,7 @@ def lookup_column_types(params):
         return col_dict
 
     def generate_base_query(field_groups_):
+        print(field_groups)
         exclude_column_query_str = ''
         for fg in field_groups_:
             exclude_column_query_str += "AND column_name != '{}' ".format(fg)
