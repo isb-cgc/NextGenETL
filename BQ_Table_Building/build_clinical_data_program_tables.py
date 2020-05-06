@@ -973,7 +973,7 @@ def main(args):
         print("\n(Case count = {})...".format(len(cases)), end='')
 
         print("DONE.\n - Determining program table structure... ", end='')
-        tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
+        tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
         tables_dict = remove_unwanted_fields(tables_dict, params)
         print("\nrecord_counts: {} \n".format(record_counts))
 
