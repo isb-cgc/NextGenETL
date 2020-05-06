@@ -37,8 +37,8 @@ def get_cases_by_program(program_name, params):
         """
         SELECT * 
         FROM `{}`
-        WHERE submitter_id 
-        IN (SELECT case_barcode
+        WHERE case_id 
+        IN (SELECT gdc_case_id
             FROM `isb-project-zero.GDC_metadata.rel22_caseData`
             WHERE program_name = '{}')
         """.format(table_id, program_name)
@@ -855,12 +855,15 @@ def main(args):
     params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
-        "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories,follow_ups,follow_ups.molecular_tests',
+        "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,'
+                               'family_histories,follow_ups,follow_ups.molecular_tests',
         "GDC_RELEASE": 'rel23',
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
-        "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
+        "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
+                          'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
+                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
     # program_names = get_programs_list(params)
