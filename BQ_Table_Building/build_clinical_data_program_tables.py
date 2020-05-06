@@ -760,6 +760,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         table_id = tables_dict[table]
 
         try:
+            print("Inserting rows into {}".format(table_id))
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
 
@@ -768,15 +769,15 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
-                print("\nSuccessfully inserted {} rows, records {}->{}, into {}".format(
-                    end_idx - start_idx, start_idx, end_idx, table_id))
+                print("Successfully inserted records {}->{}".format(
+                    end_idx - start_idx, start_idx, end_idx))
                 start_idx = end_idx
                 end_idx += params["INSERT_BATCH_SIZE"]
 
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
-            print("\nSuccessfully inserted last {} rows into {}".format(
-                len(insert_lists[table]) - start_idx, table_id))
+            print("\nSuccessfully inserted last {} rows".format(
+                len(insert_lists[table]) - start_idx))
         except Exception as err:
             print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
@@ -927,12 +928,12 @@ def main(args):
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
         print("\ntable_names: {} \n".format(table_names_dict))
 
-        print("DONE.\n - Inserting case records... ", end='')
+        print("DONE.\n - Inserting case records... ")
         insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
         # generate_documentation(params, program_name, documentation_dict, record_counts)ß
-        # print("DONE.\n")
+        print("DONE.\n")
 
 
 if __name__ == '__main__':
