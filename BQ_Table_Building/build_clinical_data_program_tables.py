@@ -128,18 +128,21 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 def remove_unwanted_fields(record, table_name, params):
     excluded_fields = params["EXCLUDED_FIELDS"][table_name]
-    print("From table {}, removed:".format(table_name), end='')
+    print("From table {}, removed:".format(table_name), end=' ')
 
-    for field in excluded_fields:
-        print(field, end=', ')
-
-        if field in record:
-            if isinstance(record, set):
-                record.remove(field)
-            elif isinstance(record, dict):
+    if isinstance(record, dict):
+        for field in record:
+            if field in excluded_fields or not record[field]:
                 record.pop(field)
-            else:
-                print("Wrong type of data structure for remove_unwanted_fields")
+                print(field, end=', ')
+
+    elif isinstance(record, set):
+        for field in record:
+            if field in excluded_fields:
+                print(field, end=', ')
+                record.remove(field)
+    else:
+        print("Wrong type of data structure for remove_unwanted_fields")
 
     print()
     return record
