@@ -199,7 +199,7 @@ def lookup_column_types(params):
 
         query = """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_clinical_data ' 
+        WHERE table_name = '{}_clinical_data' 
         """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"])
 
         return query + exclude_column_query_str
