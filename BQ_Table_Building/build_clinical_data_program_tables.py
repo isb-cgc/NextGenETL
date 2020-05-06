@@ -527,7 +527,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
-            full_column_name = get_bq_name(column)
+            full_column_name = get_bq_name(column, params)
 
             if full_column_name in exclude_set:
                 continue
@@ -581,6 +581,9 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 #  Functions for inserting case entries into BQ tables
 ##
 def create_table_mapping(tables_dict):
+    # string manipulation for bigquery result which looks like an object but doesn't seem to have methods.
+    # Parsing this so we can avoid explicitly selecting all the table's columns (which would otherwise be required due
+    # to naming collisions.
     table_mapping_dict = dict()
 
     for table in tables_dict:
