@@ -378,7 +378,7 @@ def import_column_order(path):
     return column_dict
 
 
-def generate_table_names(params, program_name, table):
+def generate_table_name_and_id(params, program_name, table):
     split_table_path = table.split(".")
     # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
     program_name = "_".join(program_name.split('.'))
@@ -518,15 +518,11 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     schema_field_set = set()
 
     for table_key in table_keys:
-        print(table_key)
-        continue
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
-
-    for table_key in table_keys:
         table_order_dict = dict()
         schema_field_keys = set()
 
-        table_name, table_id = generate_table_names(params, program_name, table_key)
+        table_name, table_id = generate_table_name_and_id(params, program_name, table_key)
 
         table_ids[table_key] = table_id
 
@@ -566,6 +562,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             client.create_table(table)
             schema_field_set.add(table_key)
         except exceptions.BadRequest as err:
+            print(schema_list)
             has_fatal_error("Fatal error for table_id: {}\n{}".format(table_id, err))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
