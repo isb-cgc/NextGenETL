@@ -866,8 +866,8 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    # program_names = get_programs_list(params)
-    program_names = ['TCGA', 'TARGET']
+    program_names = get_programs_list(params)
+    # program_names = ['TCGA', 'TARGET']
     # program_names = ['CCLE']
 
     global COLUMN_ORDER_DICT
