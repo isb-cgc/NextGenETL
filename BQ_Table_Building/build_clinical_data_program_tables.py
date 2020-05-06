@@ -526,9 +526,9 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         table_ids[table_key] = table_id
 
-        # documentation_dict['table_schemas'][table_key] = dict()
-        # documentation_dict['table_schemas'][table_key]['table_id'] = table_id
-        # documentation_dict['table_schemas'][table_key]['table_schema'] = list()
+        documentation_dict['table_schemas'][table_key] = dict()
+        documentation_dict['table_schemas'][table_key]['table_id'] = table_id
+        documentation_dict['table_schemas'][table_key]['table_schema'] = list()
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
