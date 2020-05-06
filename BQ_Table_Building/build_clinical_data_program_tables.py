@@ -30,8 +30,9 @@ def get_programs_list(params):
 def get_cases_by_program(program_name, params):
     cases = []
 
-    table_name = params["GDC_RELEASE"] + '_clinical_data'
-    table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
+    dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
+    main_table_id = dataset_path + '.' + params["GDC_RELEASE"] + '_clinical_data'
+    programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
 
     results = get_query_results(
         """
@@ -39,21 +40,13 @@ def get_cases_by_program(program_name, params):
         FROM `{}`
         WHERE case_id 
         IN (SELECT case_gdc_id
-            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+            FROM `{}`
             WHERE program_name = '{}')
-        """.format(table_id, program_name)
+        """.format(main_table_id, programs_table_id, program_name)
     )
 
     for case_row in results:
-        case_dict = dict(case_row.items())
-
-        for key in case_dict.copy():
-            # note fields with values
-            if not case_dict[key]:
-                case_dict.pop(key)
-
-        cases.append(case_dict)
-
+        cases.append(dict(case_row.items()))
     return cases
 
 
@@ -180,20 +173,12 @@ def flatten_tables(tables, record_counts):
     return tables
 
 
-def remove_unwanted_fields(tables_dict):
-    for table in tables_dict.copy():
-        exclude_fields = ['entity_submitter_id', 'case_submitter_id', 'case_id']
-        if table == 'cases':
-            for field in table:
-                if field.endswith('_submitter_id') or field in exclude_fields:
-                    table.remove(field)
-        else:
-            for field in table:
-                if field == 'submitter_id' or field in exclude_fields:
-                    table.remove(field)
-
-    return tables_dict
-
+def remove_unwanted_fields(record, table_name, params):
+    excluded_fields = params["excluded_fields"][table_name]
+    for field in excluded_fields:
+        if field in record:
+            record[table_name].remove(field)
+    return record
 
 
 def lookup_column_types(params):
@@ -606,13 +591,12 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-def flatten_case(case, prefix, case_list_dict, case_id=None, parent_id=None, parent_id_key=None):
+def flatten_case(case, prefix, case_list_dict, params, case_id=None, parent_id=None, parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
 
         for entry in case:
             entry_dict = dict()
-
             if case_id != parent_id:
                 entry_dict['case_id'] = case_id
                 entry_dict[parent_id_key] = parent_id
@@ -633,11 +617,12 @@ def flatten_case(case, prefix, case_list_dict, case_id=None, parent_id=None, par
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
 
-                    case_list_dict = flatten_case(entry[key], prefix + '.' + key, case_list_dict, case_id,
+                    case_list_dict = flatten_case(entry[key], prefix + '.' + key, case_list_dict, params, case_id,
                                                   new_parent_id, new_parent_id_key)
                 else:
-                    if prefe
                     entry_dict[key] = entry[key]
+
+            remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
         if prefix in case_list_dict:
             case_list_dict[prefix] = case_list_dict[prefix] + entry_list
@@ -645,6 +630,7 @@ def flatten_case(case, prefix, case_list_dict, case_id=None, parent_id=None, par
             if entry_list:
                 case_list_dict[prefix] = entry_list
     else:
+        print("HEREEEEEE")
         entry_list = []
         entry_dict = dict()
         if prefix not in case_list_dict:
@@ -653,10 +639,9 @@ def flatten_case(case, prefix, case_list_dict, case_id=None, parent_id=None, par
             parent_id = case['case_id']
             parent_id_key = 'case_id'
             if isinstance(case[key], list):
-                case_list_dict = flatten_case(case[key], prefix + '.' + key, case_list_dict, parent_id,
-                                              parent_id, parent_id_key)
+                case_list_dict = flatten_case(case[key], prefix + '.' + key, case_list_dict, params, parent_id, parent_id,
+                                              parent_id_key)
             else:
-                # case_list_dict[prefix][key] = case_[key]
                 entry_dict[key] = case[key]
         if entry_dict:
             entry_list.append(entry_dict)
@@ -749,8 +734,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     insert_lists = dict()
 
     for case in cases:
-        flattened_case_dict = flatten_case(case, 'cases', dict())
-        flattened_case_dict = remove_unwanted_fields(flattened_case_dict)
+        flattened_case_dict = flatten_case(case, 'cases', dict(), params)
+        flattened_case_dict = remove_unwanted_fields(flattened_case_dict, params)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if isinstance(flattened_case_dict['cases'], dict):
@@ -915,6 +900,48 @@ def main(args):
         "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids',
+        "EXCLUDED_FIELDS": {
+            'cases.diagnoses': {
+                "submitter_id"
+            },
+            'cases.diagnoses.treatments': {
+                "submitter_id"
+            },
+            'cases.diagnoses.annotations': {
+                "submitter_id",
+                "case_submitter_id",
+                "entity_submitter_id"
+            },
+            'cases.exposures': {
+                "submitter_id"
+            },
+            'cases.family_histories': {
+                "submitter_id"
+            },
+            'cases.follow_ups': {
+                "submitter_id"
+            },
+            'cases.follow_ups.molecular_tests': {
+                "submitter_id"
+            },
+            'cases': {
+                "diagnosis_ids",
+                "sample_ids",
+                "submitter_slide_ids",
+                "submitter_diagnosis_ids",
+                "analyte_ids",
+                "portion_ids",
+                "aliquot_ids",
+                "submitter_aliquot_ids",
+                "submitter_portion_ids",
+                "submitter_analyte_ids",
+                "case_autocomplete",
+                "submitter_sample_ids",
+                "slide_ids",
+                "id"
+            }
+        },
+        # Note: broken pipe/too large at 5000
         "INSERT_BATCH_SIZE": 1000
     }
 
@@ -939,7 +966,7 @@ def main(args):
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
-        tables_dict = remove_unwanted_fields(tables_dict)
+        tables_dict = remove_unwanted_fields(tables_dict, params)
         print("\nrecord_counts: {} \n".format(record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
