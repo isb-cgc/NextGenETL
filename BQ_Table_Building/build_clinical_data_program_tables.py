@@ -765,7 +765,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
 
-
 """
 def ordered_print(flattened_case_dict):
     def make_tabs(indent_):
