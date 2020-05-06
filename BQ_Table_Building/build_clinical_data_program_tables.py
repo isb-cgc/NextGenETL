@@ -552,9 +552,8 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
         schema_list = []
 
         for schema_key in schema_field_keys:
-            field_name = get_field_name(schema_key)
             schema_list.append(bigquery.SchemaField(
-                field_name, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
+                schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
         try:
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
