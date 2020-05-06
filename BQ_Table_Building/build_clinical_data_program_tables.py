@@ -172,9 +172,7 @@ def flatten_tables(tables, record_counts, params):
             for i in range(len(split_field_group) - 1, 0, -1):
                 parent_key = '.'.join(split_field_group[:i])
 
-                if parent_key in tables:
-                    break
-                else:
+                if parent_key not in tables:
                     prefix += split_field_group[i] + '__'
 
             if not parent_key:
