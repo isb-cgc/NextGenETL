@@ -716,19 +716,18 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 def insert_case_data(cases, record_counts, tables_dict):
     table_keys = get_tables(record_counts)
 
+    insert_lists = dict()
+
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict())
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if isinstance(flattened_case_dict['cases'], dict):
             flattened_case_dict['cases'] = [flattened_case_dict['cases']]
-
-        print("case: {}, table list: {}".format(
-            flattened_case_dict['cases'][0]['case_id'],
-            flattened_case_dict.keys())
-        )
-
         for table in flattened_case_dict.keys():
+            if table not in insert_lists:
+                insert_lists[table] = []
+
             split_table = table.split('.')
 
             if len(split_table) > 3:
@@ -740,12 +739,17 @@ def insert_case_data(cases, record_counts, tables_dict):
             if parent_fg:
                 flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
 
+            insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
+
+    for table in insert_lists:
+        try:
             table_id = tables_dict[table]
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
-            client.insert_rows(bq_table, flattened_case_dict[table])
-
-            # print("Inserted data into {}.\nDATA: {}".format(table_id, flattened_case_dict[table]))
+            client.insert_rows(bq_table, insert_lists[table])
+            print("Inserted data into {}.\n row count: {}".format(table_id, len(insert_lists[table])))
+        except exceptions.BadRequest as err:
+            has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
 
 
 """
