@@ -508,6 +508,8 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     schema_field_set = set()
 
     for table_key in table_keys:
+        print(table_key)
+        continue
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
     for table_key in table_keys:
