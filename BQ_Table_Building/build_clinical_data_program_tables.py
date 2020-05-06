@@ -180,6 +180,22 @@ def flatten_tables(tables, record_counts):
     return tables
 
 
+def remove_unwanted_fields(tables_dict):
+    for table in tables_dict.copy():
+        exclude_fields = ['entity_submitter_id', 'case_submitter_id', 'case_id']
+        if table == 'cases':
+            for field in table:
+                if field.endswith('_submitter_id') or field in exclude_fields:
+                    table.remove(field)
+        else:
+            for field in table:
+                if field == 'submitter_id' or field in exclude_fields:
+                    table.remove(field)
+
+    return tables_dict
+
+
+
 def lookup_column_types(params):
     def split_datatype_array(col_dict, col_string, name_prefix):
         columns = col_string[13:-2].split(', ')
@@ -620,6 +636,7 @@ def flatten_case(case, prefix, case_list_dict, case_id=None, parent_id=None, par
                     case_list_dict = flatten_case(entry[key], prefix + '.' + key, case_list_dict, case_id,
                                                   new_parent_id, new_parent_id_key)
                 else:
+                    if prefe
                     entry_dict[key] = entry[key]
             entry_list.append(entry_dict)
         if prefix in case_list_dict:
@@ -733,6 +750,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict())
+        flattened_case_dict = remove_unwanted_fields(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         if isinstance(flattened_case_dict['cases'], dict):
@@ -776,7 +794,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
-            print("\nSuccessfully inserted last {} rows\n".format(len(insert_lists[table]) - start_idx))
+            print("Successfully inserted last {} records\n".format(len(insert_lists[table]) - start_idx))
         except Exception as err:
             print("[ERROR] exception for table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
@@ -921,6 +939,7 @@ def main(args):
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
+        tables_dict = remove_unwanted_fields(tables_dict)
         print("\nrecord_counts: {} \n".format(record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
