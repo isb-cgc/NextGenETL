@@ -754,7 +754,7 @@ def insert_case_data(cases, record_counts, tables_dict):
             bq_table = client.get_table(table_id)
             client.insert_rows(bq_table, flattened_case_dict[table])
 
-            print("Inserted data into {}.\nDATA: {}".format(table_id, flattened_case_dict[table]))
+            # print("Inserted data into {}.\nDATA: {}".format(table_id, flattened_case_dict[table]))
 
 
 """
