@@ -332,10 +332,13 @@ def get_fg_name(column, params):
     field_name = get_field_name(column)
     field_map_dict = dict()
 
-    field_group_list = params['EXPAND_FIELD_GROUPS'].split(',')
-    field_map_dict[field_group_list[-1]] = 'cases.' + ".".join(field_group_list)
+    for field_group in params['EXPAND_FIELD_GROUPS'].split(','):
+        field_map_dict[get_field_name(field_group)] = 'cases.' + field_group
 
-    return field_map_dict[field_name]
+    if field_name in field_map_dict:
+        return field_map_dict[field_name]
+    else:
+        return None
 
 
 def get_bq_name(column, params):
@@ -347,7 +350,6 @@ def get_bq_name(column, params):
 
     if len(split_name) < 2:
         has_fatal_error("get_fg_name not returning correct value in get_bq_name.")
-
 
     if not fg_name:
         return None
@@ -563,7 +565,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
-
             schema_field_set.add(table_key)
         except exceptions.BadRequest as err:
             has_fatal_error("Fatal error for table_id: {}\n{}".format(table_id, err))
