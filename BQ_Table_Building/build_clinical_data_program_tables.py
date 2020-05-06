@@ -866,9 +866,9 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    # program_names = get_programs_list(params)
+    program_names = get_programs_list(params)
     # program_names = ['TCGA', 'TARGET']
-    program_names = ['CCLE']
+    # program_names = ['CCLE']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
@@ -881,7 +881,7 @@ def main(args):
         print(" - Retrieving cases... ", end='')
         cases = get_cases_by_program(program_name, params)
         if len(cases) == 0:
-            print("No cases found for program {}, no tables created.".format(program_name))
+            print("\nNo cases found for program {}, no tables created.".format(program_name))
             continue
         print("(Case count = {})...".format(len(cases)), end='')
 
