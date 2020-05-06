@@ -180,7 +180,7 @@ def flatten_tables(tables, record_counts):
     return tables
 
 
-def lookup_column_types():
+def lookup_column_types(params):
     def split_datatype_array(col_dict, col_string, name_prefix):
         columns = col_string[13:-2].split(', ')
 
@@ -192,48 +192,44 @@ def lookup_column_types():
 
         return col_dict
 
+    def generate_base_query(field_groups_):
+        exclude_column_query_str = ''
+        for fg in field_groups_:
+            exclude_column_query_str += "AND column_name != '{}' ".format(fg)
+
+        query = """
+        SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
+        WHERE table_name = '{}_clinical_data ' 
+        """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"])
+
+        return query + exclude_column_query_str
+
+    def generate_field_group_query(field_group_):
+        return """
+        SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
+        WHERE table_name = '{}_clinical_data' and column_name = '{}'
+        """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"], field_group_)
+
+    field_groups = []
+
+    for fg in params['EXPAND_FIELD_GROUPS']:
+        if len(fg.split(".")) == 1:
+            field_groups.append(fg)
+
     column_type_dict = dict()
 
-    base_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' 
-    and column_name != 'family_histories' 
-    and column_name != 'exposures' 
-    and column_name != 'demographic' 
-    and column_name != 'diagnoses'
-    and column_name != 'follow_ups'
-    """
-
-    follow_ups_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'follow_ups'
-    """
-
-    exposures_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'exposures'
-    """
-
-    demographic_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'demographic'
-    """
-
-    diagnoses_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'diagnoses'
-    """
-
-    family_histories_query = """
-    SELECT column_name, data_type FROM `isb-project-zero.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMNS`
-    WHERE table_name = 'rel23_clinical_data' and column_name = 'family_histories'
-    """
+    # todo there's more to optimize here in terms of automation
+    base_query = generate_base_query(field_groups)
+    follow_ups_query = generate_field_group_query("follow_ups")
+    exposures_query = generate_field_group_query("exposures")
+    demographic_query = generate_field_group_query("demographic")
+    diagnoses_query = generate_field_group_query("diagnoses")
+    family_histories_query = generate_field_group_query("family_histories")
 
     results = get_query_results(base_query)
 
     for result in results:
         vals = result.values()
-
         column_type_dict[vals[0]] = vals[1]
 
     single_nested_query_dict = {
@@ -288,7 +284,7 @@ def lookup_column_types():
 
 
 def create_schema_dict(params):
-    column_type_dict = lookup_column_types()
+    column_type_dict = lookup_column_types(params)
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
 
     schema_dict = {}
