@@ -130,8 +130,8 @@ def remove_unwanted_fields(record, table_name, params):
     excluded_fields = params["EXCLUDED_FIELDS"][table_name]
     print("From table {}, removed:".format(table_name), end='')
     for field in excluded_fields:
-        if field in record:
-            record.remove(field)
+        if field in record.copy():
+            record.pop(field)
             print(field, end=', ')
     print()
     return record
@@ -763,6 +763,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for table in insert_lists:
         table_id = tables_dict[table]
+
+        # todo insert by batch size sys.getsizeof(insert_lists) / (1024*1024)
 
         try:
             print("Inserting rows into {}".format(table_id))
