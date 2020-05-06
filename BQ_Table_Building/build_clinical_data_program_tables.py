@@ -532,11 +532,9 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
         for column, value in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
-            '''
-                tables_dict, record_counts keys: cases.diagnoses.annotations, 
-                    - they indicate table structures
-                schema_dict, column_order_dict keys, flattened_case_dict keys: diagnoses__annotations__case_id 
-                    - syntax that conforms with BQ's naming conventions
+            ''' 
+            fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys 
+            bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
             '''
             field_name = get_field_name(column)
 
