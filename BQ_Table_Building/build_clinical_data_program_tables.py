@@ -768,7 +768,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
-                print("\nSuccessfully inserted {} rows, idx {} to {}, into {}".format(
+                print("\nSuccessfully inserted {} rows, records {}->{}, into {}".format(
                     end_idx - start_idx, start_idx, end_idx, table_id))
                 start_idx = end_idx
                 end_idx += params["INSERT_BATCH_SIZE"]
