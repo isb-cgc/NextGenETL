@@ -859,7 +859,7 @@ def main(args):
         "GDC_RELEASE": 'rel23',
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
-        "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData',
+        "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
         "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
