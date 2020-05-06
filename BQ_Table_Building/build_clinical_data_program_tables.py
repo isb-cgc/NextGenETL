@@ -879,6 +879,9 @@ def main(args):
         cases = get_cases_by_program(program_name, params)
         print("(Case count = {})...".format(len(cases)), end='')
 
+        for case in cases:
+            print(case['case_id'])
+
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
         print("record_counts: {} \n\n".format(record_counts))
