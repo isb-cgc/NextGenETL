@@ -888,7 +888,7 @@ def main(args):
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
-        print("tables dict: {} \n\n record_counts: {} \n\n".format(tables_dict, record_counts))
+        print("record_counts: {} \n\n".format(record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
