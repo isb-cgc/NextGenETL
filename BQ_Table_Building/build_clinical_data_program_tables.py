@@ -193,7 +193,6 @@ def lookup_column_types(params):
         return col_dict
 
     def generate_base_query(field_groups_):
-        print(field_groups)
         exclude_column_query_str = ''
         for fg in field_groups_:
             exclude_column_query_str += "AND column_name != '{}' ".format(fg)
@@ -235,9 +234,6 @@ def lookup_column_types(params):
     family_histories_query = generate_field_group_query("family_histories")
 
     results = get_query_results(base_query)
-
-    print(base_query)
-    print(results)
 
     for result in results:
         vals = result.values()
