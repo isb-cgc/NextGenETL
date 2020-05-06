@@ -216,7 +216,7 @@ def lookup_column_types(params):
     for fg in params['EXPAND_FIELD_GROUPS']:
         if len(fg.split(".")) == 1:
             field_groups.append(fg)
-        elif len(fg.split(".") == 2):
+        elif len(fg.split(".")) == 2:
             parent_fg = fg.split(".")[0]
             child_fg = fg.split(".")[1]
             if parent_fg not in child_field_groups:
@@ -234,6 +234,9 @@ def lookup_column_types(params):
     family_histories_query = generate_field_group_query("family_histories")
 
     results = get_query_results(base_query)
+
+    print(base_query)
+    print(results)
 
     for result in results:
         vals = result.values()
