@@ -776,10 +776,9 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
-            print("\nSuccessfully inserted last {} rows".format(
-                len(insert_lists[table]) - start_idx))
+            print("\nSuccessfully inserted last {} rows\n".format(len(insert_lists[table]) - start_idx))
         except Exception as err:
-            print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
+            print("[ERROR] exception for table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
 
 
@@ -898,7 +897,7 @@ def main(args):
         "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids',
-        "INSERT_BATCH_SIZE": 5000
+        "INSERT_BATCH_SIZE": 1000
     }
 
     # program_names = get_programs_list(params)
