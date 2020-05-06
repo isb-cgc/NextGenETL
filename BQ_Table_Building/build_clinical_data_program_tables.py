@@ -149,6 +149,11 @@ def flatten_tables(tables, record_counts, params):
         field_group_keys[fg_key] = len(fg_key.split("."))
 
     for field_group, depth in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
+        if field_group in tables:
+            tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
+        else:
+            print("\n{} not in {}, can't remove fields.".format(field_group, tables.keys()))
+
         if depth == 1:
             break
         # this fg represents a one-to-many table grouping
@@ -158,8 +163,6 @@ def flatten_tables(tables, record_counts, params):
         split_field_group = field_group.split('.')
 
         parent_fg_name = split_field_group[-1]
-
-        tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
 
         for field in tables[field_group]:
             prefix = ''
@@ -517,11 +520,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
     schema_dict = create_schema_dict(params)
-    exclude_set = set()
-
-    for field in params["EXCLUDE_FIELDS"].split(','):
-        exclude_set.add(get_fg_name(field))
-
     table_ids = dict()
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
@@ -546,9 +544,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
             full_column_name = get_bq_name(table_key + '.' + column)
-
-            if full_column_name in exclude_set:
-                continue
 
             try:
                 table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
