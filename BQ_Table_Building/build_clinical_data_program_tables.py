@@ -542,35 +542,29 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
                 schema_dict, column_order_dict keys, flattened_case_dict keys: diagnoses__annotations__case_id 
                     - syntax that conforms with BQ's naming conventions
             '''
-            # full_column_name = 'cases.' + '.'.join(column.split("__"))
-            field_name = column.split("__")[-1]
+            field_name = get_field_name(column)
 
             table_columns = tables_dict[table_key]
 
-            if field_name not in table_columns:
-                continue
-
-            schema_field_keys.add(column)
+            if field_name in table_columns:
+                schema_field_keys.add(column)
 
         schema_list = []
 
         for schema_key in schema_field_keys:
             field_name = get_field_name(schema_key)
-
             schema_list.append(bigquery.SchemaField(
                 field_name, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
 
         try:
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
-
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
 
             schema_field_set.add(table_key)
-        except exceptions.BadRequest:
-            print("[ERROR] BadRequest")
-            print("{} {}".format(table_id, schema_list))
+        except exceptions.BadRequest as err:
+            has_fatal_error("Fatal error for table_id: {}\n{}".format(table_id, err))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
 
