@@ -523,6 +523,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
 
     for table_key in table_keys:
+        table_order_dict = dict()
         schema_field_keys = set()
 
         table_name, table_id = generate_table_names(params, program_name, table_key)
@@ -540,20 +541,17 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             if full_column_name in exclude_set:
                 continue
 
-            if full_column_name not in COLUMN_ORDER_DICT:
+            try:
+                table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
+            except KeyError:
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
-        for column, value in sorted(COLUMN_ORDER_DICT.items(), key=lambda x: x[1]):
+        for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             ''' 
             fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys 
             bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
             '''
-            field_name = get_field_name(column)
-
-            table_columns = tables_dict[table_key]
-
-            if field_name in table_columns:
-                schema_field_keys.add(column)
+            schema_field_keys.add(column)
 
         schema_list = []
 
