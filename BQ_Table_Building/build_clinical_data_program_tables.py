@@ -316,10 +316,14 @@ def create_schema_dict(params):
 
 
 def get_field_name(column):
-    if column:
-        return column.split('.').split("__")[-1]
-    else:
+    if '.' in column:
+        return column.split('.')[-1]
+    elif '__' in column:
+        return column.split('__')[-1]
+    elif not column:
         return None
+    else:
+        return column
 
 
 def get_fg_name(column, params):
@@ -496,11 +500,10 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
     schema_dict = create_schema_dict(params)
-
     exclude_set = set()
 
     for field in params["EXCLUDE_FIELDS"].split(','):
-        exclude_set.add('cases.' + field)
+        exclude_set.add(get_fg_name(field, params))
 
     table_ids = dict()
     documentation_dict = dict()
@@ -508,7 +511,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
     table_keys = get_tables(record_counts)
 
-    column_order_dict = {}
     schema_field_set = set()
 
     for table_key in table_keys:
