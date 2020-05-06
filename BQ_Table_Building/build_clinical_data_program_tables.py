@@ -778,8 +778,11 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         table_mb = table_bytes / (1024 * 1024)
         table_len = len(insert_lists[table])
         pages = math.ceil(table_len / params["INSERT_BATCH_SIZE"])
+        page_size = table_mb / pages
 
-        if table_mb / pages > 10:
+        if page_size > 10:
+            print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
+
 
 
 
