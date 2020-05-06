@@ -38,7 +38,7 @@ def get_cases_by_program(program_name, params):
         SELECT * 
         FROM `{}`
         WHERE case_id 
-        IN (SELECT gdc_case_id
+        IN (SELECT case_gdc_id
             FROM `isb-project-zero.GDC_metadata.rel22_caseData`
             WHERE program_name = '{}')
         """.format(table_id, program_name)
@@ -884,9 +884,6 @@ def main(args):
             print("No cases found for program {}, no tables created.".format(program_name))
             continue
         print("(Case count = {})...".format(len(cases)), end='')
-
-        for case in cases:
-            print(case['case_id'])
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
