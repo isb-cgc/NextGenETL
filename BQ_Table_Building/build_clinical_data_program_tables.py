@@ -2,6 +2,7 @@ from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_e
 from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
+import math
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -713,7 +714,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
     return flattened_case_dict
 
 
-def insert_case_data(cases, record_counts, tables_dict):
+def insert_case_data(cases, record_counts, tables_dict, params):
     table_keys = get_tables(record_counts)
 
     insert_lists = dict()
@@ -746,7 +747,18 @@ def insert_case_data(cases, record_counts, tables_dict):
             table_id = tables_dict[table]
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
-            client.insert_rows(bq_table, insert_lists[table])
+
+            start_idx = 0
+            end_idx = params["INSERT_BATCH_SIZE"]
+
+            while len(insert_lists[table]) > end_idx:
+                client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
+                start_idx = end_idx
+                end_idx += params["INSERT_BATCH_SIZE"]
+
+            # insert remainder
+            client.insert_rows(bq_table, insert_lists[table][start_idx:])
+
             print("Inserted data into {}.\n row count: {}".format(table_id, len(insert_lists[table])))
         except exceptions.BadRequest as err:
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
@@ -865,7 +877,8 @@ def main(args):
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
         "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
                           'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
-                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
+                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids',
+        "INSERT_BATCH_SIZE": 10000
     }
 
     # program_names = get_programs_list(params)
@@ -896,7 +909,7 @@ def main(args):
         print("\ntable_names: {} \n".format(table_names_dict))
 
         print("DONE.\n - Inserting case records... ", end='')
-        insert_case_data(cases, record_counts, table_names_dict)
+        insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
         # generate_documentation(params, program_name, documentation_dict, record_counts)ß
