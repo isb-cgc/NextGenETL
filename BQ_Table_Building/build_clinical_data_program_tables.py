@@ -774,16 +774,16 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
         # todo insert by batch size sys.getsizeof(insert_lists) / (1024*1024)
 
-        table_bytes = sys.get_size_of(insert_lists[table])
+        table_bytes = sys.getsizeof(insert_lists[table])
         table_mb = table_bytes / (1024 * 1024)
         table_len = len(insert_lists[table])
-        pages = math.ceil(table_len / params["INSERT_BATCH_SIZE"])
+        batch_size = params["INSERT_BATCH_SIZE"]
+        pages = math.ceil(table_len / batch_size)
         page_size = table_mb / pages
 
         if page_size > 10:
             print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
-
-
+            new_page_size = math.floor(table_mb / 10)
 
 
         try:
@@ -792,14 +792,14 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             bq_table = client.get_table(table_id)
 
             start_idx = 0
-            end_idx = params["INSERT_BATCH_SIZE"]
+            end_idx = batch_size
 
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
                 print("Successfully inserted records {}->{}".format(
                     end_idx - start_idx, start_idx, end_idx))
                 start_idx = end_idx
-                end_idx += params["INSERT_BATCH_SIZE"]
+                end_idx += batch_size
 
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
