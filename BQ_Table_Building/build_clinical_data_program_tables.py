@@ -864,9 +864,9 @@ def main(args):
                           'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    program_names = get_programs_list(params)
+    # program_names = get_programs_list(params)
     # program_names = ['TCGA', 'TARGET']
-    # program_names = ['CCLE']
+    program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
