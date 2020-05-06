@@ -127,10 +127,11 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 
 def remove_unwanted_fields(record, table_name, params):
+    print(record)
     excluded_fields = params["EXCLUDED_FIELDS"][table_name]
     print("From table {}, removed:".format(table_name), end='')
     for field in excluded_fields:
-        if field in record.copy():
+        if field in record:
             record.pop(field)
             print(field, end=', ')
     print()
@@ -765,6 +766,11 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         table_id = tables_dict[table]
 
         # todo insert by batch size sys.getsizeof(insert_lists) / (1024*1024)
+
+        table_bytes = sys.get_size_of(insert_lists[table])
+        table_mb = table_bytes / (1024 * 1024)
+        table_len = len(insert_lists[table])
+        pages = table_len / params["INSERT_BATCH_SIZE"]
 
         try:
             print("Inserting rows into {}".format(table_id))
