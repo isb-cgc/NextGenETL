@@ -339,20 +339,14 @@ def convert_bq_name_to_fg_name(column):
 
 
 def get_bq_name(column):
-    fg_name = convert_bq_name_to_fg_name(column)
-    split_name = fg_name.split('.')
-
-    if not fg_name:
+    if not column:
         return None
-
-    if len(split_name) < 2:
-        has_fatal_error("get_fg_name not returning correct value in get_bq_name.")
-
-    if not fg_name:
-        return None
+    elif '.' in column:
+        split_name = column.split('.')
+        if split_name[0] == 'cases':
+            return '__'.join(split_name[1:])
     else:
-        return "__".join(fg_name.split('.')[1:])
-
+        return column
 
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
