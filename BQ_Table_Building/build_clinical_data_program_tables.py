@@ -211,10 +211,17 @@ def lookup_column_types(params):
         """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"], field_group_)
 
     field_groups = []
+    child_field_groups = {}
 
     for fg in params['EXPAND_FIELD_GROUPS']:
         if len(fg.split(".")) == 1:
             field_groups.append(fg)
+        elif len(fg.split(".") == 2):
+            parent_fg = fg.split(".")[0]
+            child_fg = fg.split(".")[1]
+            if parent_fg not in child_field_groups:
+                child_field_groups[parent_fg] = set()
+            child_field_groups[parent_fg].add(child_fg)
 
     column_type_dict = dict()
 
@@ -257,6 +264,7 @@ def lookup_column_types(params):
 
     results = get_query_results(diagnoses_query)
 
+    # create field list string
     for result in results:
         vals = result.values()
         split_vals = vals[1].split('treatments ')
@@ -275,7 +283,7 @@ def lookup_column_types(params):
 
         diagnoses = diagnoses[:-2] + '>>'
 
-    # Indenting this because it seems to make sense to do so, making a note so I don't break anything
+    # parse field list strings
     column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
     column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
     column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
