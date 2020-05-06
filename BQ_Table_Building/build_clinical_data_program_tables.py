@@ -70,7 +70,7 @@ def strip_null_fields(case):
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
-def retrieve_program_case_structure(program_name, cases):
+def retrieve_program_case_structure(program_name, cases, params):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
         Recursive function for retrieve_program_data, finds nested fields
@@ -118,7 +118,7 @@ def retrieve_program_case_structure(program_name, cases):
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
-    tables = flatten_tables(tables, record_counts)
+    tables = flatten_tables(tables, record_counts, params)
 
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -126,7 +126,18 @@ def retrieve_program_case_structure(program_name, cases):
     return tables, record_counts, null_stripped_cases
 
 
-def flatten_tables(tables, record_counts):
+def remove_unwanted_fields(record, table_name, params):
+    excluded_fields = params["excluded_fields"][table_name]
+    print("From table {}, removed:".format(table_name), end='')
+    for field in excluded_fields:
+        if field in record:
+            record[table_name].remove(field)
+            print(field, end=', ')
+    print()
+    return record
+
+
+def flatten_tables(tables, record_counts, params):
     """
     Used by retrieve_program_case_structure
     """
@@ -147,6 +158,8 @@ def flatten_tables(tables, record_counts):
         split_field_group = field_group.split('.')
 
         parent_fg_name = split_field_group[-1]
+
+        tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
 
         for field in tables[field_group]:
             prefix = ''
@@ -173,12 +186,6 @@ def flatten_tables(tables, record_counts):
     return tables
 
 
-def remove_unwanted_fields(record, table_name, params):
-    excluded_fields = params["excluded_fields"][table_name]
-    for field in excluded_fields:
-        if field in record:
-            record[table_name].remove(field)
-    return record
 
 
 def lookup_column_types(params):
@@ -622,7 +629,7 @@ def flatten_case(case, prefix, case_list_dict, params, case_id=None, parent_id=N
                 else:
                     entry_dict[key] = entry[key]
 
-            remove_unwanted_fields(entry_dict, prefix, params)
+            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
         if prefix in case_list_dict:
             case_list_dict[prefix] = case_list_dict[prefix] + entry_list
@@ -630,22 +637,23 @@ def flatten_case(case, prefix, case_list_dict, params, case_id=None, parent_id=N
             if entry_list:
                 case_list_dict[prefix] = entry_list
     else:
-        print("HEREEEEEE")
         entry_list = []
         entry_dict = dict()
         if prefix not in case_list_dict:
             case_list_dict[prefix] = []
+
+        parent_id = case_id = case['case_id']
+        parent_id_key = 'case_id'
+
         for key in case:
-            parent_id = case['case_id']
-            parent_id_key = 'case_id'
             if isinstance(case[key], list):
-                case_list_dict = flatten_case(case[key], prefix + '.' + key, case_list_dict, params, parent_id, parent_id,
-                                              parent_id_key)
+                case_list_dict = flatten_case(case[key], prefix + '.' + key, case_list_dict, params,
+                                              case_id, parent_id, parent_id_key)
             else:
                 entry_dict[key] = case[key]
         if entry_dict:
+            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
-        if entry_list:
             case_list_dict[prefix] = entry_list
     return case_list_dict
 
