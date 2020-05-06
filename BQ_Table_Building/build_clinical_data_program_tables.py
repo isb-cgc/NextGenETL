@@ -131,7 +131,7 @@ def remove_unwanted_fields(record, table_name, params):
     print("From table {}, removed:".format(table_name), end='')
     for field in excluded_fields:
         if field in record:
-            record[table_name].remove(field)
+            record.remove(field)
             print(field, end=', ')
     print()
     return record
