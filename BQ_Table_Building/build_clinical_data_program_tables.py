@@ -4,17 +4,16 @@ from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_e
 from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
-import json
 
-YAML_HEADERS = ('api_params', 'bq_params')
-COLUMN_ORDER_DICT = dict()
+YAML_HEADERS = 'params'
+COLUMN_ORDER_DICT = None
 
 
 ##
 #  Functions for retrieving programs and cases
 ##
-def get_programs_list(bq_params):
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+def get_programs_list(params):
+    programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
 
     programs = set()
     results = get_query_results(
@@ -30,11 +29,11 @@ def get_programs_list(bq_params):
     return programs
 
 
-def get_cases_by_program(program_name, bq_params):
+def get_cases_by_program(program_name, params):
     cases = []
 
-    table_name = bq_params["GDC_RELEASE"] + '_clinical_data'
-    table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
+    table_name = params["GDC_RELEASE"] + '_clinical_data'
+    table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
 
     results = get_query_results(
         """
@@ -140,51 +139,43 @@ def flatten_tables(tables, record_counts):
     """
     Used by retrieve_program_case_structure
     """
+    # record_counts uses fg naming convention
     field_group_keys = dict.fromkeys(record_counts.keys(), 0)
 
     # sort field group keys by depth
-    for key in field_group_keys:
-        field_group_keys[key] = len(key.split("."))
+    for fg_key in field_group_keys:
+        field_group_keys[fg_key] = len(fg_key.split("."))
 
-    for key, value in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
-        if record_counts[key] > 1:
+    for field_group, depth in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
+        if depth == 1:
+            break
+        # this fg represents a one-to-many table grouping
+        if record_counts[field_group] > 1:
             continue
 
-        split_key = key.split('.')
+        split_field_group = field_group.split('.')
 
-        if len(split_key) == 1:
-            continue
+        parent_fg_name = split_field_group[-1]
 
-        field_group_name = split_key[-1]
-
-        for column in tables[key]:
-            column_name = field_group_name + "__" + column
-
-            # In the case where a doubly nested field group is also flattened, its direct ancestor won't be a parent.
-            #
-
-            end_idx = -1
-            parent_table_found = False
-            parent_key = ''
+        for field in tables[field_group]:
             prefix = ''
+            column_name = parent_fg_name + "__" + field
+            parent_key = None
 
-            while end_idx > (len(split_key) * -1) and not parent_table_found:
-                parent_key = ".".join(split_key[:end_idx])
+            for i in range(len(split_field_group) - 1, 1, -1):
+                parent_key = '.'.join(split_field_group[:i])
 
                 if parent_key in tables:
-                    parent_table_found = True
+                    break
                 else:
-                    end_idx -= 1
-                    prefix += split_key[end_idx] + "__"
+                    prefix += split_field_group[i] + '__'
 
-            if not parent_table_found:
-                print("[ERROR] Parent table not found in tables dict.")
-                print("Key: {}, record count: {}, parent key: {}".format(key, record_counts[key], parent_key))
-                print(tables.keys())
+            if not parent_key:
+                has_fatal_error("Cases should be the default parent key for any column without another table.")
             else:
                 tables[parent_key].add(prefix + column_name)
 
-        tables.pop(key)
+        tables.pop(field_group)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
@@ -297,9 +288,9 @@ def lookup_column_types():
     return column_type_dict
 
 
-def create_schema_dict(api_params):
+def create_schema_dict(params):
     column_type_dict = lookup_column_types()
-    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+    field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
 
     schema_dict = {}
 
@@ -324,10 +315,46 @@ def create_schema_dict(api_params):
     return schema_dict
 
 
+def get_field_name(column):
+    if column:
+        return column.split('.').split("__")[-1]
+    else:
+        return None
+
+
+def get_fg_name(column, params):
+    if not column:
+        return None
+    field_name = get_field_name(column)
+    field_map_dict = dict()
+
+    field_group_list = params['EXPAND_FIELD_GROUPS'].split(',')
+    field_map_dict[field_group_list[-1]] = 'cases.' + ".".join(field_group_list)
+
+    return field_map_dict[field_name]
+
+
+def get_bq_name(column, params):
+    fg_name = get_fg_name(column, params)
+    split_name = fg_name.split('.')
+
+    if not fg_name:
+        return None
+
+    if len(split_name) < 2:
+        has_fatal_error("get_fg_name not returning correct value in get_bq_name.")
+
+
+    if not fg_name:
+        return None
+    else:
+        return "__".fg_name.split('.')[1:]
+
+
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
-def get_table_names(record_counts):
+def get_tables(record_counts):
     table_keys = set()
 
     for table in record_counts:
@@ -337,24 +364,25 @@ def get_table_names(record_counts):
     return table_keys
 
 
-def import_column_order_list(path):
-    column_list = []
+def import_column_order(path):
+    column_dict = dict()
+    count = 0
+
     with open(path, 'r') as file:
         columns = file.readlines()
 
         for column in columns:
-            column_list.append(column.strip())
+            column_dict[column.strip()] = count
+            count += 1
 
-    return column_list
+    return column_dict
 
 
-def generate_table_name(bq_params, program_name, table):
+def generate_table_name(params, program_name, table):
     split_table_path = table.split(".")
-
     # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
     program_name = "_".join(program_name.split('.'))
-
-    base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
+    base_table_name = [params["GDC_RELEASE"], 'clin', program_name]
     table_name = "_".join(base_table_name)
 
     if len(split_table_path) > 1:
@@ -464,19 +492,19 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     return tables_dict, schema_dict
 
 
-def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_counts, column_order_list):
-    schema_dict = create_schema_dict(api_params)
+def create_bq_tables(program_name, params, tables_dict, record_counts):
+    schema_dict = create_schema_dict(params)
 
     exclude_set = set()
 
-    for field in bq_params["EXCLUDE_FIELDS"].split(','):
+    for field in params["EXCLUDE_FIELDS"].split(','):
         exclude_set.add('cases.' + field)
 
     table_names_dict = dict()
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
 
-    table_keys = get_table_names(record_counts)
+    table_keys = get_tables(record_counts)
 
     column_order_dict = {}
     schema_field_set = set()
@@ -488,13 +516,13 @@ def create_bq_tables(program_name, api_params, bq_params, tables_dict, record_co
         schema_list = []
         schema_field_keys = set()
 
-        table_name = generate_table_name(bq_params, program_name, table_key)
-        table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
+        table_name = generate_table_name(params, program_name, table_key)
+        table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
         table_names_dict[table_key] = table_id
 
-        documentation_dict['table_schemas'][table_key] = dict()
-        documentation_dict['table_schemas'][table_key]['table_id'] = table_id
-        documentation_dict['table_schemas'][table_key]['table_schema'] = list()
+        # documentation_dict['table_schemas'][table_key] = dict()
+        # documentation_dict['table_schemas'][table_key]['table_id'] = table_id
+        # documentation_dict['table_schemas'][table_key]['table_schema'] = list()
 
         split_prefix = table_key.split('.')
         prefix = ''
@@ -726,7 +754,7 @@ def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
 
 
 def insert_case_data(cases, record_counts, tables_dict):
-    table_keys = get_table_names(record_counts)
+    table_keys = get_tables(record_counts)
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict())
@@ -815,7 +843,7 @@ def ordered_print(flattened_case_dict):
 ##
 #  Functions for creating documentation
 ##
-def generate_documentation(api_params, program_name, documentation_dict, record_counts):
+def generate_documentation(params, program_name, documentation_dict, record_counts):
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
     # print("{}".format(record_counts))
@@ -841,7 +869,7 @@ def generate_documentation(api_params, program_name, documentation_dict, record_
         }
     }
     """
-    with open(api_params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
+    with open(params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
         doc_file.write("{} \n".format(program_name))
         doc_file.write("{}".format(documentation_dict))
         doc_file.write("{}".format(record_counts))
@@ -854,57 +882,50 @@ def main(args):
 
     with open(args[1], mode='r') as yaml_file:
         try:
-            api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+            params = load_config(yaml_file, YAML_HEADERS)
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+    # programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
     """
 
-    api_params = {
+    params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
-        "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,'
-                               'family_histories,follow_ups,follow_ups.molecular_tests'
-    }
-
-    bq_params = {
+        "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,family_histories,follow_ups,follow_ups.molecular_tests',
         "GDC_RELEASE": 'rel23',
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel22_caseData',
-        "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
-                          'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
-                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
+        "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids'
     }
 
-    # program_names = get_programs_list(bq_params)
+    # program_names = get_programs_list(params)
     program_names = ['TCGA', 'TARGET']
     # program_names = ['HCMI']
 
-    with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
+    global COLUMN_ORDER_DICT
+    COLUMN_ORDER_DICT = import_column_order(args[2])
+
+    with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
 
     for program_name in program_names:
         print("\n*** Running script for {} ***".format(program_name))
-
         print(" - Retrieving cases... ", end='')
-        cases = get_cases_by_program(program_name, bq_params)
+        cases = get_cases_by_program(program_name, params)
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
-        column_order_list = import_column_order_list(args[2])
-        documentation_dict, table_names_dict = create_bq_tables(
-            program_name, api_params, bq_params, tables_dict, record_counts, column_order_list
-        )
+        documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
 
         print("DONE.\n - Inserting case records... ", end='')
         insert_case_data(cases, record_counts, table_names_dict)
 
         print("DONE.\n - Inserting documentation... ", end='')
-        generate_documentation(api_params, program_name, documentation_dict, record_counts)
+        generate_documentation(params, program_name, documentation_dict, record_counts)
         print("DONE.\n")
 
 
