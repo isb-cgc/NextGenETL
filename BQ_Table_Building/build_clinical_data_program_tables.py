@@ -324,7 +324,7 @@ def get_field_name(column):
         return column
 
 
-def convert_bq_name_to_fg_name(column):
+def get_fg_name(column):
     if not column:
         return None
 
@@ -347,6 +347,7 @@ def get_bq_name(column):
             return '__'.join(split_name[1:])
     else:
         return column
+
 
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
@@ -496,7 +497,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     exclude_set = set()
 
     for field in params["EXCLUDE_FIELDS"].split(','):
-        exclude_set.add(convert_bq_name_to_fg_name(field))
+        exclude_set.add(get_fg_name(field))
 
     table_ids = dict()
     documentation_dict = dict()
@@ -522,7 +523,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
-            full_column_name = get_bq_name(column)
+            full_column_name = get_bq_name(table_key + '.' + column)
 
             if full_column_name in exclude_set:
                 continue
@@ -550,7 +551,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             field_name = get_field_name(schema_key)
             schema_list.append(bigquery.SchemaField(
                 field_name, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
-
         try:
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
