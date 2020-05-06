@@ -326,23 +326,22 @@ def get_field_name(column):
         return column
 
 
-def get_fg_name(column, params):
+def convert_bq_name_to_fg_name(column):
     if not column:
         return None
-    field_name = get_field_name(column)
-    field_map_dict = dict()
 
-    for field_group in params['EXPAND_FIELD_GROUPS'].split(','):
-        field_map_dict[get_field_name(field_group)] = 'cases.' + field_group
+    split_col = column.split('__')
 
-    if field_name in field_map_dict:
-        return field_map_dict[field_name]
-    else:
+    if not split_col:
         return None
+    elif len(split_col) == 1:
+        return 'cases.' + column
+    else:
+        return 'cases.' + '.'.join(split_col)
 
 
-def get_bq_name(column, params):
-    fg_name = get_fg_name(column, params)
+def get_bq_name(column):
+    fg_name = convert_bq_name_to_fg_name(column)
     split_name = fg_name.split('.')
 
     if not fg_name:
@@ -354,7 +353,7 @@ def get_bq_name(column, params):
     if not fg_name:
         return None
     else:
-        return "__".fg_name.split('.')[1:]
+        return "__".join(fg_name.split('.')[1:])
 
 
 ##
@@ -505,7 +504,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     exclude_set = set()
 
     for field in params["EXCLUDE_FIELDS"].split(','):
-        exclude_set.add(get_fg_name(field, params))
+        exclude_set.add(convert_bq_name_to_fg_name(field, params))
 
     table_ids = dict()
     documentation_dict = dict()
