@@ -162,7 +162,7 @@ def flatten_tables(tables, record_counts):
             column_name = parent_fg_name + "__" + field
             parent_key = None
 
-            for i in range(len(split_field_group) - 1, 1, -1):
+            for i in range(len(split_field_group) - 1, 0, -1):
                 parent_key = '.'.join(split_field_group[:i])
 
                 if parent_key in tables:
