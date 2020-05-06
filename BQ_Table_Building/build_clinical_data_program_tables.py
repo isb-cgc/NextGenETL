@@ -356,8 +356,10 @@ def get_tables(record_counts):
     table_keys = set()
 
     for table in record_counts:
-        if record_counts[table] > 1 or table == 'cases':
+        if record_counts[table] > 1:
             table_keys.add(table)
+
+    table_keys.add('cases')
 
     return table_keys
 
