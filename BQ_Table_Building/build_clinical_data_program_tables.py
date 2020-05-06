@@ -743,8 +743,9 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
     for table in insert_lists:
+        table_id = tables_dict[table]
+
         try:
-            table_id = tables_dict[table]
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
 
@@ -759,8 +760,9 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             # insert remainder
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
 
-            print("Inserted data into {}.\n row count: {}".format(table_id, len(insert_lists[table])))
+            print("Successfully inserted {} rows into {}".format(len(insert_lists[table]), table_id))
         except exceptions.BadRequest as err:
+            print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
 
 
