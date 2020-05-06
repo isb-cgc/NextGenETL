@@ -547,15 +547,13 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             schema_list.append(bigquery.SchemaField(
                 schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
         try:
-            print(schema_list)
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
             schema_field_set.add(table_key)
         except exceptions.BadRequest as err:
-            print(schema_list)
-            has_fatal_error("Fatal error for table_id: {}\n{}".format(table_id, err))
+            has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
 
