@@ -774,6 +774,10 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         except exceptions.BadRequest as err:
             print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
             has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
+        except Exception as err:
+            print("table: {}, table_id: {}, row count: {}".format(table, table_id, len(insert_lists[table])))
+            has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
+
 
 
 """
