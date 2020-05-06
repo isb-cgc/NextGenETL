@@ -1,7 +1,7 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
 from google.api_core import exceptions
-import sys
+import sys, math
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -127,13 +127,20 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 
 def remove_unwanted_fields(record, table_name, params):
-    print(record)
     excluded_fields = params["EXCLUDED_FIELDS"][table_name]
     print("From table {}, removed:".format(table_name), end='')
+
     for field in excluded_fields:
+        print(field, end=', ')
+
         if field in record:
-            record.pop(field)
-            print(field, end=', ')
+            if isinstance(record, set):
+                record.remove(field)
+            elif isinstance(record, dict):
+                record.pop(field)
+            else:
+                print("Wrong type of data structure for remove_unwanted_fields")
+
     print()
     return record
 
@@ -770,7 +777,11 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         table_bytes = sys.get_size_of(insert_lists[table])
         table_mb = table_bytes / (1024 * 1024)
         table_len = len(insert_lists[table])
-        pages = table_len / params["INSERT_BATCH_SIZE"]
+        pages = math.ceil(table_len / params["INSERT_BATCH_SIZE"])
+
+        if table_mb / pages > 10:
+
+
 
         try:
             print("Inserting rows into {}".format(table_id))
