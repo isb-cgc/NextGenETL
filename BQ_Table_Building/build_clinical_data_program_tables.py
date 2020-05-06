@@ -914,12 +914,15 @@ def main(args):
         print("\n*** Running script for {} ***".format(program_name))
         print(" - Retrieving cases... ", end='')
         cases = get_cases_by_program(program_name, params)
+        print("(Case count = {})...".format(len(cases)), end='')
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases)
+        print("tables dict: {} \n\n record_counts: {} \n\n".format(tables_dict, record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
+        print("table_names: {} \n\n".format(table_names_dict))
 
         print("DONE.\n - Inserting case records... ", end='')
         insert_case_data(cases, record_counts, table_names_dict)
