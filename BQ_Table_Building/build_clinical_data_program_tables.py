@@ -907,6 +907,9 @@ def main(args):
             'cases.diagnoses': {
                 "submitter_id"
             },
+            'cases.demographic': {
+                "submitter_id"
+            },
             'cases.diagnoses.treatments': {
                 "submitter_id"
             },
