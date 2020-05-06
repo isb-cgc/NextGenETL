@@ -880,6 +880,9 @@ def main(args):
         print("\n*** Running script for {} ***".format(program_name))
         print(" - Retrieving cases... ", end='')
         cases = get_cases_by_program(program_name, params)
+        if len(cases) == 0:
+            print("No cases found for program {}, no tables created.".format(program_name))
+            continue
         print("(Case count = {})...".format(len(cases)), end='')
 
         for case in cases:
