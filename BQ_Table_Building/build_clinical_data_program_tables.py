@@ -127,7 +127,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 
 def remove_unwanted_fields(record, table_name, params):
-    excluded_fields = params["excluded_fields"][table_name]
+    excluded_fields = params["EXCLUDED_FIELDS"][table_name]
     print("From table {}, removed:".format(table_name), end='')
     for field in excluded_fields:
         if field in record:
@@ -184,8 +184,6 @@ def flatten_tables(tables, record_counts, params):
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
     return tables
-
-
 
 
 def lookup_column_types(params):
