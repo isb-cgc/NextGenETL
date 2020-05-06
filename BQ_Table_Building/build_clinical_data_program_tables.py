@@ -974,7 +974,6 @@ def main(args):
 
         print("DONE.\n - Determining program table structure... ", end='')
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
-        tables_dict = remove_unwanted_fields(tables_dict, params)
         print("\nrecord_counts: {} \n".format(record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ", end='')
@@ -985,7 +984,7 @@ def main(args):
         insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
-        # generate_documentation(params, program_name, documentation_dict, record_counts)ß
+        # generate_documentation(params, program_name, documentation_dict, record_counts)
         print("DONE.\n")
 
 
