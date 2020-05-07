@@ -833,7 +833,7 @@ def main(args):
                 'table_id_key': 'family_history_id'
             },
             'cases.follow_ups': {
-                'record_count_id_key': 'follow_ups__count',
+                'record_count_id_key': 'follow_ups_count',
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
