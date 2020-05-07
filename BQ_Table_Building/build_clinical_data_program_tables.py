@@ -749,7 +749,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
                 has_fatal_error("no parent")
 
             record_count_key = get_record_count_id_key(field_group_key, params)
-            flattened_case_dict[parent_table_key][record_count_key] = record_count
+            flattened_case_dict[parent_table_key][0][record_count_key] = record_count
         else:
             if len(flattened_case_dict[field_group_key]) > 1:
                 has_fatal_error("{} in flattened_dict has > 1 record, but not a table.".format(field_group_key))
