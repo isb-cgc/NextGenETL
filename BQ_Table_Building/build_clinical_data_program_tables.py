@@ -369,11 +369,15 @@ def get_bq_name(column):
     else:
         return column
 
+
 def get_parent_table(table_key):
     if not table_key:
         return None
 
-    return '.'.join(table_key.split('.'))[:-1]
+    split_key = table_key.split('.')
+    parent_table = ".".join(split_key[:-1])
+
+    return parent_table
 
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
@@ -808,8 +812,8 @@ def main(args):
         table_columns, record_counts, schema_dict = retrieve_program_case_structure(
             program_name, cases, params, schema_dict)
 
-        documentation_dict, table_names_dict = create_bq_tables(program_name, params, table_columns, record_counts,
-                                                                schema_dict)
+        documentation_dict, table_names_dict = create_bq_tables(
+            program_name, params, table_columns, record_counts, schema_dict)
 
         insert_case_data(cases, record_counts, table_names_dict, params)
 
