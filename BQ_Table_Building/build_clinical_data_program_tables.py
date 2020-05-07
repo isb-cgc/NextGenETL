@@ -106,7 +106,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
 
         return tables_, record_counts_
 
-    print("Determining program table structure... ")
+    # print("Determining program table structure... ")
 
     table_columns = {}
     record_counts = {}
@@ -119,7 +119,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    print("... DONE.")
+    # print("... DONE.")
     print("Record counts for each field group: {}".format(record_counts))
 
     table_keys = get_tables(record_counts)
@@ -799,13 +799,13 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             else:
                 frequency_dict[table][record_count] = 1
         """
-
-    print("Frequency of records per case for one-to-many tables:")
-    for table in frequency_dict:
-        if table in frequency_dict and frequency_dict[table]:
-            print("{}".format(table))
-            for value in frequency_dict[table]:
-                print("\t{}: {}".format(value, frequency_dict[table][value]))
+    if frequency_dict:
+        print("Frequency of records per case for one-to-many tables:\n")
+        for table in frequency_dict:
+            if table in frequency_dict and frequency_dict[table]:
+                print("{}".format(table))
+                for value in frequency_dict[table]:
+                    print("\t{}: {}".format(value, frequency_dict[table][value]))
 
 
 ##
