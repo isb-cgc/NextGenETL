@@ -731,19 +731,18 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
+    frequency_dict = dict.fromkeys(record_counts, dict())
+
     for case in cases:
-        table_dict = get_tables(record_counts)
+        # table_dict = get_tables(record_counts)
 
         base_level = case
 
         depth_dict = dict.fromkeys(record_counts, 0)
-        frequency_dict = dict.fromkeys(record_counts, dict())
         for depth_key in depth_dict.copy():
             depth_dict[depth_key] = len(depth_key.split('.'))
 
         record_keys = dict()
-
-
 
         for table_key, depth in depth_dict.items():
             current_level = base_level
@@ -780,7 +779,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             else:
                 frequency_dict[table][record_count] = 1
 
-        print(frequency_dict)
+    print(frequency_dict)
 ##
 #  Functions for creating documentation
 ##
