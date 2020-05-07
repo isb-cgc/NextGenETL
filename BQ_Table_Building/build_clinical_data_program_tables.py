@@ -740,7 +740,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     for field_group_key, field_group in flattened_case_dict.copy().items():
-        if field_group_key in table_keys:
+        if field_group_key in table_keys and field_group_key != 'cases':
             record_count = len(field_group)
             parent_table_key = get_parent_table(field_group_key)
             if parent_table_key not in table_keys:
