@@ -777,8 +777,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-        print(flattened_case_dict)
-        return
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 # print(record_counts)
