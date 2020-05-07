@@ -57,7 +57,7 @@ def get_cases_by_program(program_name, params):
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
-def retrieve_program_case_structure(program_name, cases, params):
+def retrieve_program_case_structure(program_name, cases, params, schema_dict):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
         Recursive function for retrieve_program_data, finds nested fields
@@ -89,27 +89,32 @@ def retrieve_program_case_structure(program_name, cases, params):
 
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
             else:
-                tables[parent_path].add(field_key)
+                table_columns[parent_path].add(field_key)
 
         return tables_, record_counts_
 
     print("Determining program table structure... ")
 
-    tables = {}
+    table_columns = {}
     record_counts = {}
 
     for case in cases:
-        tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
+        table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    tables = flatten_tables(tables, record_counts, params)
+    table_columns = flatten_tables(table_columns, record_counts, params)
 
-    if not tables:
+    if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
     print("... DONE.\n")
     print("Record counts for each field group: {}\n".format(record_counts))
 
-    return tables, record_counts
+    table_keys = get_tables(record_counts)
+
+    for table_key in table_keys:
+        table_columns, schema_dict = add_reference_columns(table_columns, schema_dict, table_keys, table_key)
+
+    return table_columns, record_counts, schema_dict
 
 
 def remove_unwanted_fields(record, table_name, params):
@@ -460,9 +465,8 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     return tables_dict, schema_dict
 
 
-def create_bq_tables(program_name, params, tables_dict, record_counts):
+def create_bq_tables(program_name, params, tables_dict, record_counts, schema_dict):
     print("Adding tables to {}.{} dataset...".format(params['WORKING_PROJECT'], params['TARGET_DATASET']))
-    schema_dict = create_schema_dict(params)
 
     table_ids = dict()
     documentation_dict = dict()
@@ -471,7 +475,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     table_keys = get_tables(record_counts)
 
     for table_key in table_keys:
-        tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
+        # tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
         table_order_dict = dict()
         schema_field_keys = []
 
@@ -669,6 +673,13 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     print("... DONE.\n")
 
 
+def check_data_integrity(params, cases):
+    for case in cases:
+        case_id = case['case_id']
+
+
+
+
 ##
 #  Functions for creating documentation
 ##
@@ -730,9 +741,6 @@ def main(args):
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
-        "EXCLUDE_FIELDS": 'id,aliquot_ids,analyte_ids,case_autocomplete,portion_ids,sample_ids,slide_ids,'
-                          'submitter_aliquot_ids,submitter_analyte_ids,submitter_portion_ids,submitter_sample_ids,'
-                          'submitter_slide_ids,diagnosis_ids,submitter_diagnosis_ids',
         "EXCLUDED_FIELDS": {
             'cases.diagnoses': {
                 "submitter_id"
@@ -782,8 +790,6 @@ def main(args):
     }
 
     program_names = get_programs_list(params)
-    # program_names = ['BEATAML1.0']
-    # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
@@ -800,13 +806,19 @@ def main(args):
             print("No case records found for {}, skipping.".format(program_name))
             continue
 
-        tables_dict, record_counts = retrieve_program_case_structure(program_name, cases, params)
+        schema_dict = create_schema_dict(params)
 
-        documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
+        table_columns, record_counts, schema_dict = retrieve_program_case_structure(
+            program_name, cases, params, schema_dict)
+
+        documentation_dict, table_names_dict = create_bq_tables(program_name, params, table_columns, record_counts,
+                                                                schema_dict)
 
         insert_case_data(cases, record_counts, table_names_dict, params)
 
         generate_documentation(params, program_name, documentation_dict, record_counts)
+
+        check_data_integrity(params, cases, record_counts, table_columns)
 
 
 if __name__ == '__main__':
