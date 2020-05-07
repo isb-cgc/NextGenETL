@@ -122,7 +122,6 @@ def retrieve_program_case_structure(program_name, cases, params):
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
     tables = flatten_tables(tables, record_counts, params)
-    print(tables)
 
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -163,10 +162,8 @@ def flatten_tables(tables, record_counts, params):
         field_group_keys[fg_key] = len(fg_key.split("."))
 
     for field_group, depth in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
-        if field_group in tables:
-            tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
-        else:
-            print("\n{} not in {}, can't remove fields.".format(field_group, tables.keys()))
+        tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
+        print(tables)
 
         if depth == 1:
             break
