@@ -572,6 +572,9 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         schema_list = []
 
+        if 'created_datetime' not in schema_list:
+            print("No created datetime in create_bq tables")
+
         for schema_key in schema_field_keys:
             schema_list.append(bigquery.SchemaField(
                 schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
@@ -805,7 +808,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
                 print("Successfully inserted records {}->{}".format(
-                    end_idx - start_idx, start_idx, end_idx))
+                    start_idx, end_idx))
                 start_idx = end_idx
                 end_idx += batch_size
 
@@ -1002,8 +1005,6 @@ def main(args):
         for case in cases:
             if 'created_datetime' not in case:
                 print("NO DATETIME")
-            else:
-                print("YES DATETIME")
             break
 
         print("\n(Case count = {})...".format(len(cases)))
@@ -1011,6 +1012,9 @@ def main(args):
         print("DONE.\n - Determining program table structure... ")
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
         print("\nrecord_counts: {} \n".format(record_counts))
+
+        if 'created_datetime' not in tables_dict['cases']:
+            print('created_datetime not in tables dict')
 
         print("DONE.\n - Creating empty BQ tables... ")
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
