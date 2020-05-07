@@ -744,6 +744,8 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         return
 
     for case in cases:
+        print(case.keys())
+        return
         table_dict = get_tables(record_counts)
 
         count_dict = dict()
@@ -772,15 +774,18 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             }
         }
 
+
+
         for key in hierarchy['cases'].keys():
-            if hierarchy['cases'][key]:
+            if not hierarchy['cases'][key]:
+
                 record_count = len(hierarchy['cases'][key])
 
                 if key not in count_dict:
                     count_dict[key] = record_count
                 else:
                     count_dict[key] += record_count
-                for entry in hierarchy['cases'][key]:
+                for entry in hierarchy['cases'][0]:
                     for s_key in entry:
                         if entry[s_key]:
                             if s_key not in count_dict:
