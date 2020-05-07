@@ -450,6 +450,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
             if parent_table_key in params["SINGULAR_ID_NAMES"]:
                 parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
             else:
+                parent_id_key = None
                 has_fatal_error("No id field name defined for parent table {} of table {}".format(
                     parent_table_key, table_key))
 
