@@ -781,7 +781,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
     if frequency_dict:
         print("Frequency of records per case for one-to-many tables:\n")
-        for fg_key in frequency_dict:
+        for fg_key in frequency_dict.copy():
             if not frequency_dict[fg_key]:
                 frequency_dict.pop(fg_key)
             if len(frequency_dict[fg_key].keys()) == 1 and 1 in frequency_dict[fg_key].keys():
