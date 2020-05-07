@@ -381,13 +381,41 @@ def get_parent_table(table_key):
 
 
 def get_table_id_key(table_key, params, fatal=False):
+    if not params["FIELD_GROUP_METADATA"]:
+        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
     if 'table_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
         if fatal:
-            has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA'][{}]".format(
+            has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(
                 table_key))
         else:
             return None
     return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
+
+
+def get_excluded_fields(table_key, params, fatal=False):
+    if not params["FIELD_GROUP_METADATA"]:
+        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
+
+    if 'excluded_fields' not in params["FIELD_GROUP_METADATA"][table_key]:
+        if fatal:
+            has_fatal_error("excluded_fields not found in params['FIELD_GROUP_METADATA']['{}']".format(
+                table_key))
+        else:
+            return None
+    return params["FIELD_GROUP_METADATA"][table_key]['excluded_fields']
+
+
+def get_record_count_id_key(table_key, params, fatal=False):
+    if not params["FIELD_GROUP_METADATA"]:
+        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
+
+    if 'record_count_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
+        if fatal:
+            has_fatal_error("record_count_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(
+                table_key))
+        else:
+            return None
+    return params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
 
 
 ##
@@ -459,14 +487,8 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
     if len(table_key.split('.')) > 1:
-        if table_key not in params["FIELD_GROUP_METADATA"]:
-            has_fatal_error("{} key not found in params['FIELD_GROUP_METADATA'], "
-                            "cannot add columns.".format(table_key))
-        elif 'record_count_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
-            has_fatal_error("{} key not found in params['FIELD_GROUP_METADATA']['{}'], "
-                            "cannot add columns.".format('record_count_id_key', table_key))
+        record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
         parent_table_key = get_parent_table(table_key)
-        record_count_id_key = params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
 
         while parent_table_key and parent_table_key not in table_keys:
             parent_table_key = get_parent_table(parent_table_key)
@@ -533,7 +555,8 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
         for schema_key in schema_field_keys:
             try:
                 schema_list.append(bigquery.SchemaField(
-                    schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
+                    schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'],
+                    ()))
             except KeyError as err:
                 has_fatal_error('{}\n{}'.format(err, schema_dict))
         try:
@@ -588,7 +611,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     # this is where you'll want to capture the parent field group's id.
                     if prefix not in params["FIELD_GROUP_METADATA"]:
                         has_fatal_error("{} not found in params['FIELD_GROUP_METADATA'][{}]".format(prefix))
-
                     table_id_key = get_table_id_key(prefix, params, fatal=False)
 
                     if table_id_key:
@@ -645,7 +667,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
             field_group = flattened_case_dict.pop(field_group_key)
             field_group = field_group[0]
 
-
             parent_table_key = field_group_key
 
             while parent_table_key and parent_table_key not in table_keys:
@@ -653,11 +674,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
             if not parent_table_key:
                 has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
 
-
-
             if 'case_id' in field_group:
                 field_group.pop('case_id')
-
 
             for entry in field_group.copy():
                 # don't need multiple case_id keys in the same table
@@ -767,7 +785,6 @@ def main(args):
     bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
     '''
 
-
     """
     if len(args) != 3:
         has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
@@ -793,76 +810,49 @@ def main(args):
         "FIELD_GROUP_METADATA": {
             'cases.diagnoses': {
                 'record_count_id_key': 'diagnoses_count',
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'table_id_key': 'diagnosis_id'
             },
             'cases.demographic': {
                 'record_count_id_key': 'demographic_count',
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'table_id_key': 'demographic_id'
             },
             'cases.exposures': {
                 'record_count_id_key': 'exposures_count',
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'table_id_key': 'exposure_id'
             },
             'cases.family_histories': {
                 'record_count_id_key': 'family_histories_count',
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'table_id_key': 'family_history_id'
             },
             'cases.follow_ups': {
                 'record_count_id_key': 'follow_ups_count',
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'record_count_id_key': 'follow_ups__molecular_tests_count'
             },
             'cases.diagnoses.treatments': {
-                'excluded_fields': {
-                    "submitter_id"
-                },
+                'excluded_fields': ["submitter_id"],
                 'record_count_id_key': 'diagnoses__treatments_count'
             },
             'cases.diagnoses.annotations': {
-                'excluded_fields': {
-                    "submitter_id",
-                    "case_submitter_id",
-                    "entity_submitter_id"
-                },
+                'excluded_fields': [
+                    "submitter_id", "case_submitter_id", "entity_submitter_id"
+                ],
                 'record_count_id_key': 'diagnoses__annotations_count'
             },
             'cases': {
-                'excluded_fields': {
-                    "aliquot_ids",
-                    "analyte_ids",
-                    "case_autocomplete",
-                    "diagnosis_ids",
-                    "id",
-                    "portion_ids",
-                    "sample_ids",
-                    "slide_ids",
-                    "submitter_aliquot_ids",
-                    "submitter_analyte_ids",
-                    "submitter_diagnosis_ids",
-                    "submitter_portion_ids",
-                    "submitter_sample_ids",
-                    "submitter_slide_ids"
-                }
+                'excluded_fields': [
+                    "aliquot_ids", "analyte_ids", "case_autocomplete", "diagnosis_ids", "id", "portion_ids",
+                    "sample_ids", "slide_ids", "submitter_aliquot_ids", "submitter_analyte_ids",
+                    "submitter_diagnosis_ids", "submitter_portion_ids", "submitter_sample_ids", "submitter_slide_ids"
+                ]
             }
         },
         "INSERT_BATCH_SIZE": 1000}
