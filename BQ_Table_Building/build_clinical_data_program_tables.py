@@ -707,7 +707,26 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
                 flattened_case_dict[parent_table_key][0][key] = field_group[key]
     return flattened_case_dict
 
+def insert_case_data(cases, record_counts, tables_dict, params):
+    print("Inserting case records... ")
 
+    table_keys = get_tables(record_counts)
+
+    client = bigquery.Client()
+
+    for case in cases:
+        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
+        for table in flattened_case_dict.keys():
+            if table not in table_keys:
+                has_fatal_error("Table {} not found in table keys".format(table))
+
+            table_obj = client.get_table(tables_dict[table])
+            errors = client.insert_rows(table_obj, flattened_case_dict[table])
+
+            print(errors)
+
+"""
 def insert_case_data(cases, record_counts, tables_dict, params):
     print("Inserting case records... ")
 
@@ -765,7 +784,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         except IndexError as err:
             has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
                 start_idx, end_idx, table, len(insert_lists[table]), err))
-
+"""
 
 def check_data_integrity(params, cases, record_counts, table_columns):
     for case in cases:
