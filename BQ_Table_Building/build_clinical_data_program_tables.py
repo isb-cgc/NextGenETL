@@ -773,17 +773,18 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         }
 
         for key in hierarchy['cases'].keys():
-            record_count = len(hierarchy['cases'][key])
+            if hierarchy['cases'][key]:
+                record_count = len(hierarchy['cases'][key])
 
-            if key not in count_dict:
-                count_dict[key] = record_count
-            else:
-                count_dict[key] += record_count
-            for s_key in hierarchy['cases'][key][s_key]:
-                if s_key not in count_dict:
-                    count_dict[s_key] = record_count
+                if key not in count_dict:
+                    count_dict[key] = record_count
                 else:
                     count_dict[key] += record_count
+                for s_key in hierarchy['cases'][key][s_key]:
+                    if s_key not in count_dict:
+                        count_dict[s_key] = record_count
+                    else:
+                        count_dict[key] += record_count
         """
         for table_key, depth in depth_dict.items():
             current_level = base_level
