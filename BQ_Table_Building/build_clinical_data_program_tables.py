@@ -75,6 +75,7 @@ def strip_null_fields(case):
 ##
 def retrieve_program_case_structure(program_name, cases, params):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
+        print(tables_)
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
@@ -995,12 +996,6 @@ def main(args):
         if len(cases) == 0:
             print("\nNo cases found for program {}, no tables created.".format(program_name))
             continue
-
-        for case in cases:
-            if 'created_datetime' not in case:
-                print("NO DATETIME")
-            break
-
         print("\n(Case count = {})...".format(len(cases)))
 
         print("DONE.\n - Determining program table structure... ")
