@@ -758,13 +758,12 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                     end_idx += batch_size
                 client.insert_rows(table_obj, records[start_idx:])
             client.close()
+            print("... DONE.\n")
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
         except IndexError as err:
             has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
                 start_idx, end_idx, table, len(insert_lists[table]), err))
-
-    print("... DONE.\n")
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
