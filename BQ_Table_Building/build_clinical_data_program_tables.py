@@ -733,7 +733,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             end_idx = batch_size
 
             print("batch {}".format(batch_size))
-            print("insert_lists len {}".format(insert_lists[table]))
+            print("insert_lists len {}".format(len(insert_lists[table])))
 
             while len(insert_lists[table]) > end_idx:
                 print("start_idx: {}".format())
