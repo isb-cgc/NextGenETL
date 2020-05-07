@@ -93,7 +93,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         return tables_, record_counts_
 
-    print("\nDetermining program table structure... ")
+    print("Determining program table structure... ")
 
     tables = {}
     record_counts = {}
@@ -140,13 +140,16 @@ def flatten_tables(tables, record_counts, params):
     Used by retrieve_program_case_structure
     """
     # record_counts uses fg naming convention
-    field_group_keys = dict.fromkeys(record_counts.keys(), 0)
+    field_group_counts = dict.fromkeys(record_counts.keys(), 0)
 
     # sort field group keys by depth
-    for fg_key in field_group_keys:
-        field_group_keys[fg_key] = len(fg_key.split("."))
+    for fg_key in field_group_counts:
+        field_group_counts[fg_key] = len(fg_key.split("."))
 
-    for field_group, depth in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
+    for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
+        # parent_fg = '.'.join(field_group.split('.')[:-1])
+        # if field_group_counts[parent_fg] == 1:
+
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
 
         if depth == 1:
@@ -160,6 +163,8 @@ def flatten_tables(tables, record_counts, params):
         parent_fg_name = split_field_group[-1]
 
         for field in tables[field_group]:
+            # check field naming on doubly-nested fields
+
             prefix = ''
             column_name = parent_fg_name + "__" + field
             parent_key = None
@@ -168,7 +173,7 @@ def flatten_tables(tables, record_counts, params):
                 parent_key = '.'.join(split_field_group[:i])
 
                 if parent_key not in tables:
-                    prefix += split_field_group[i] + '__'
+                    prefix += get_field_name(parent_key) + '__'
 
             if not parent_key:
                 has_fatal_error("Cases should be the default parent key for any column without another table.")
@@ -485,7 +490,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             try:
                 table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
             except KeyError:
-                print(column)
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
