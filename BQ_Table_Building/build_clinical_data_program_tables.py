@@ -743,20 +743,48 @@ def check_data_integrity(params, cases, record_counts, table_columns):
     if len(tables) < 2:
         return
 
-    for table in tables:
-        frequency_dict[table] = {}
-
     for case in cases:
         table_dict = get_tables(record_counts)
 
-        base_level = case
+        count_dict = dict()
 
+        base_level = case
+        """
         depth_dict = dict.fromkeys(table_dict, 0)
         for depth_key in depth_dict.copy():
             depth_dict[depth_key] = len(depth_key.split('.'))
+        """
 
         record_keys = dict()
 
+        hierarchy = {
+            'cases': {
+                'follow_ups': {
+                    'molecular_tests'
+                },
+                'exposures': None,
+                'family_histories': None,
+                'demographic': None,
+                'diagnoses': {
+                    'treatments',
+                    'annotations'
+                }
+            }
+        }
+
+        for key in hierarchy['cases'].keys():
+            record_count = len(hierarchy['cases'][key])
+
+            if key not in count_dict:
+                count_dict[key] = record_count
+            else:
+                count_dict[key] += record_count
+            for s_key in hierarchy['cases'][key][s_key]:
+                if s_key not in count_dict:
+                    count_dict[s_key] = record_count
+                else:
+                    count_dict[key] += record_count
+        """
         for table_key, depth in depth_dict.items():
             current_level = base_level
             record_keys[table_key] = []
@@ -792,6 +820,8 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         # print(record_keys)
 
         """
+
+        """
         for table in record_keys:
             record_count = len(record_keys[table])
             if record_count in frequency_dict[table]:
@@ -799,10 +829,22 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             else:
                 frequency_dict[table][record_count] = 1
         """
+
+        for field in count_dict:
+            record_cnt = count_dict[field]
+
+            if field not in frequency_dict:
+                frequency_dict[field] = dict()
+            else:
+                if record_cnt in frequency_dict[field]:
+                    frequency_dict[field][record_cnt] += 1
+                else:
+                    frequency_dict[field][record_cnt] = 1
+
     if frequency_dict:
         print("Frequency of records per case for one-to-many tables:\n")
         for table in frequency_dict:
-            if table in frequency_dict and frequency_dict[table]:
+            if frequency_dict[table]:
                 print("{}".format(table))
                 for value in frequency_dict[table]:
                     print("\t{}: {}".format(value, frequency_dict[table][value]))
@@ -955,12 +997,10 @@ def main(args):
         table_columns, record_counts, schema_dict = retrieve_program_case_structure(
             program_name, cases, params, schema_dict)
 
-        print()
+        # documentation_dict, table_names_dict = create_bq_tables(
+        #   program_name, params, table_columns, record_counts, schema_dict)
 
-        documentation_dict, table_names_dict = create_bq_tables(
-           program_name, params, table_columns, record_counts, schema_dict)
-
-        insert_case_data(cases, record_counts, table_names_dict, params)
+        # insert_case_data(cases, record_counts, table_names_dict, params)
 
         """
         for table in table_names_dict:
@@ -970,9 +1010,9 @@ def main(args):
             print("{} has {} rows".format(table_id, count))
         """
 
-        generate_documentation(params, program_name, documentation_dict, record_counts)
+        # generate_documentation(params, program_name, documentation_dict, record_counts)
 
-        # check_data_integrity(params, cases, record_counts, table_columns)
+        check_data_integrity(params, cases, record_counts, table_columns)
 
 
 if __name__ == '__main__':
