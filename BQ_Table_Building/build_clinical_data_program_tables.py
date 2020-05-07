@@ -533,15 +533,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
-    if 'created_datetime' not in tables_dict['cases']:
-        print('created_datetime not in tables dict')
-        print(tables_dict['cases'])
-
     schema_dict = create_schema_dict(params)
-
-    if 'cases.created_datetime' not in schema_dict:
-        print('created_datetime not in schema_dict ')
-        print(schema_dict)
 
     table_ids = dict()
     documentation_dict = dict()
