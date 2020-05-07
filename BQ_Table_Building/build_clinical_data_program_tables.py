@@ -735,46 +735,38 @@ def check_data_integrity(params, cases, record_counts, table_columns):
     for case in cases:
         print(case)
 
-        case_id = case['case_id']
-
         table_dict = get_tables(record_counts)
 
-        depth_table = {}
-        for key in table_dict:
-            split_key = key.split('.')
-            depth_table[key] = len(split_key)
+        current_level = case
 
-            level = 1
+        depth_dict = dict.fromkeys(record_counts, 0)
+        for depth_key in depth_dict.copy():
+            depth_dict[depth_key] = len(depth_key.split('.'))
 
-            current_level = case
+        record_keys = dict()
 
-            depth_dict = dict.fromkeys(record_counts, 0)
-            for depth_key in depth_dict.copy():
-                depth_dict[depth_key] = len(depth_key.split('.'))
+        for table_key, depth in depth_dict.items():
+            record_keys[table_key] = []
+            if depth == 1:
+                if 'case_id' in current_level:
+                    record_keys[table_key].append(current_level['case_id'])
+            else:
+                for i in range(1, depth):
+                    record_key = table_key.split('.')[i]
+                    if record_key in current_level:
+                        current_level = current_level[record_key]
 
-            record_keys = dict()
+                table_id_key = record_key[:-1] + '_id'
 
-            for table_key, depth in depth_dict.items():
+                for entry in current_level:
+                    if table_id_key in entry:
+                        record_keys[table_key].append(entry[table_id_key])
 
-                record_keys[table_key] = []
-                if depth == 1:
-                    if 'case_id' in current_level:
-                        record_keys[table_key].append(current_level['case_id'])
-                else:
-                    for i in range(1, depth):
-                        record_key = table_key.split('.')[i]
-                        if record_key in current_level:
-                            current_level = current_level[record_key]
-                    table_id_key = record_key[:-1] + '_id'
+        for key in record_keys.copy():
+            if not record_keys[key]:
+                record_keys.pop(key)
 
-                    for entry in current_level:
-                        if table_id_key in entry:
-                            record_keys[table_key].append(entry[table_id_key])
-
-            for key in record_keys.copy():
-                if not record_keys[key]:
-                    record_keys.pop(key)
-            print(record_keys)
+        print(record_keys)
 
 ##
 #  Functions for creating documentation
