@@ -721,6 +721,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         pages = math.ceil(len(insert_lists[table]) / batch_size)
         page_size = table_mb / pages
 
+        print(table_id)
+
         if page_size > 10:
             print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
             new_page_size = math.floor(table_mb / 10)
@@ -735,6 +737,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             end_idx = batch_size
 
             while len(insert_lists[table]) > end_idx:
+                print("start_idx: {}".format())
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
                 start_idx = end_idx
                 end_idx += batch_size
@@ -795,7 +798,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
 
 def main(args):
     '''
-    fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys
+    fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
     bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
     '''
 
