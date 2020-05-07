@@ -50,7 +50,7 @@ def get_cases_by_program(program_name, params):
 
     for case_row in results:
         cases.append(dict(case_row.items()))
-    print("DONE. {} cases retrieved.".format(len(cases)))
+    print("DONE. {} cases retrieved.\n".format(len(cases)))
     return cases
 
 
@@ -106,7 +106,7 @@ def retrieve_program_case_structure(program_name, cases, params):
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    print("... DONE.")
+    print("... DONE.\n")
     print("Record counts for each field group: {}\n".format(record_counts))
 
     return tables, record_counts
@@ -128,7 +128,7 @@ def remove_unwanted_fields(record, table_name, params):
         if not excluded_fields_list:
             print("\tno fields removed from {}".format(table_name))
         else:
-            print("\tremoved: {} from {}".format(", ".join(excluded_fields_list), table_name))
+            print("\tremoved {} from {}".format(", ".join(excluded_fields_list), table_name))
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
@@ -504,12 +504,12 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
-            print("\t- added {} table".format(table_id))
+            print("\t- {} table added successfully".format(table_id.split('.')[-1]))
         except exceptions.BadRequest as err:
             has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
-        print("DONE.")
+    print("... DONE.\n")
     return documentation_dict, table_ids
 
 
@@ -645,7 +645,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             batch_size = math.floor(batch_size * ratio)
 
         try:
-            print("\t- inserting rows into {}... ".format(table_id), end='')
+            print("\t- inserting rows into {}... ".format(table_id.split('.')[-1]), end='')
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
             start_idx = 0
@@ -661,6 +661,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             print("{} records inserted.".format(len(insert_lists[table]), table))
         except Exception as err:
             has_fatal_error("Failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
+    print("... DONE.\n")
 
 
 ##
@@ -697,6 +698,8 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
         doc_file.write("{} \n".format(program_name))
         doc_file.write("{}".format(documentation_dict))
         doc_file.write("{}".format(record_counts))
+
+    print("... DONE.\n")
 
 
 def main(args):
