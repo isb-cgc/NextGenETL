@@ -730,7 +730,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     for table in insert_lists.copy():
         client = bigquery.Client()
         records = insert_lists[table]
-        print(records)
         table_id = tables_dict[table]
         table_mb = sys.getsizeof(records) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
