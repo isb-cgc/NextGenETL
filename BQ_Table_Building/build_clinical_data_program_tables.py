@@ -68,6 +68,7 @@ def strip_null_fields(case):
     return strip_null_fields_recursive(case)
 """
 
+
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
@@ -115,7 +116,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
     for case in cases:
         # case = strip_null_fields(case)
-        null_stripped_cases.append(case)
+        # null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
