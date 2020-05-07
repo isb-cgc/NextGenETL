@@ -85,7 +85,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         for field_key in case_:
             # Hits for cases
-            if isinstance(case_, dict):
+            if isinstance(field_key, dict):
                 for key in case_[field_key]:
                     tables_[parent_path].add(key)
             elif isinstance(field_key, list):
