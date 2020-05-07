@@ -178,7 +178,7 @@ def flatten_tables(tables, record_counts, params):
             if not parent_key:
                 has_fatal_error("Cases should be the default parent key for any column without another table.")
             else:
-                tables[parent_key].add(get_bq_name(split_field_group + '.' . field))
+                tables[parent_key].add(get_bq_name(split_field_group + '.' field))
 
         tables.pop(field_group)
 
