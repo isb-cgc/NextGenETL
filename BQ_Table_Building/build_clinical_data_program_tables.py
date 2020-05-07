@@ -54,6 +54,18 @@ def get_cases_by_program(program_name, params):
     return cases
 
 
+def get_row_count(table_id):
+    results = get_query_results(
+        """
+        SELECT count(*)
+        FROM `{}`
+        """.format(table_id)
+    )
+
+    for result in results:
+        return result
+
+
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
@@ -377,6 +389,7 @@ def get_parent_table(table_key):
     split_key = table_key.split('.')
     parent_table = ".".join(split_key[:-1])
     return parent_table
+
 
 
 def get_table_id_key(table_key, params, fatal=False):
@@ -733,21 +746,25 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
         try:
             print("\t- inserting rows into {}... ".format(table_id.split('.')[-1]), end='')
-            bq_table = client.get_table(table_id)
+            table_obj = client.get_table(table_id)
             if batch_size > len(records):
-                client.insert_rows(bq_table, records)
+                client.insert_rows(table_obj, records)
+                print("row count {} for {}".format(get_row_count(table_id), table_id))
                 continue
             else:
                 start_idx = 0
                 end_idx = batch_size
 
                 while len(records) > end_idx:
-                    client.insert_rows(bq_table, records[start_idx:end_idx])
+                    client.insert_rows(table_obj, records[start_idx:end_idx])
+                    print("row count {} for {}".format(get_row_count(table_id), table_id))
+
+                    get_row_count()
                     start_idx = end_idx
                     end_idx += batch_size
 
-                client.insert_rows(bq_table, records[start_idx:])
-
+                client.insert_rows(table_obj, records[start_idx:])
+                print("row count {} for {}".format(get_row_count(table_id), table_id))
                 print("{} records inserted.".format(len(insert_lists[table]), table))
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
