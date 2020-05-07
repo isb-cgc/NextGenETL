@@ -118,13 +118,11 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         # case = strip_null_fields(case)
         # null_stripped_cases.append(case)
-        if 'created_datetime' not in case:
-            print('created_datetime not in case. \n{}'.format(case))
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
-        print(tables)
 
     tables = flatten_tables(tables, record_counts, params)
+    print(tables)
 
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
