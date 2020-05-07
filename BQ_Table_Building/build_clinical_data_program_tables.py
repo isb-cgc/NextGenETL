@@ -711,15 +711,13 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                 insert_lists[table] = []
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
-    print(flattened_case_dict.keys())
-    print(insert_lists.keys())
-    print(tables_dict)
 
-    for table in insert_lists:
+    for table in insert_lists.copy():
+        records = insert_lists[table]
         table_id = tables_dict[table]
-        table_mb = sys.getsizeof(insert_lists[table]) / (1024 * 1024)
+        table_mb = sys.getsizeof(records) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
-        pages = math.ceil(len(insert_lists[table]) / batch_size)
+        pages = math.ceil(len(records) / batch_size)
         page_size = table_mb / pages
 
         if page_size > 10:
@@ -732,20 +730,21 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             print("\t- inserting rows into {}... ".format(table_id.split('.')[-1]), end='')
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
-            start_idx = 0
-            end_idx = batch_size
-            while len(insert_lists[table]) > end_idx:
-                client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
-                start_idx = end_idx
-                end_idx += batch_size
+            if batch_size > len(records):
+                client.insert_rows(bq_table, records)
+                continue
+            else:
+                start_idx = 0
+                end_idx = batch_size
 
+                while len(records) > end_idx:
+                    client.insert_rows(bq_table, records[start_idx:end_idx])
+                    start_idx = end_idx
+                    end_idx += batch_size
 
-            # insert the last set of records
-            sub_list = insert_lists[table][start_idx:]
-            if table == 'cases':
-                print(sub_list)
-            client.insert_rows(bq_table, sub_list)
-            print("{} records inserted.".format(len(insert_lists[table]), table))
+                client.insert_rows(bq_table, records[start_idx:])
+
+                print("{} records inserted.".format(len(insert_lists[table]), table))
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
         except IndexError as err:
