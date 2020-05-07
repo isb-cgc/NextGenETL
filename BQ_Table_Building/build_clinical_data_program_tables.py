@@ -566,21 +566,18 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
 
         for schema_key in schema_field_keys:
             if schema_key in params["REQUIRED_COLUMNS"]:
-                mode = "REQUIRED"
+                mode = 'REQUIRED'
             else:
                 mode = "NULLABLE"
 
-            try:
-                schema_list.append(bigquery.SchemaField(
-                    schema_key, schema_dict[schema_key]['type'], mode, schema_dict[schema_key]['description'],
-                    ()))
-            except KeyError as err:
-                has_fatal_error('{}\n{}'.format(err, schema_dict))
+            schema_list.append(bigquery.SchemaField(schema_key, schema_dict[schema_key]['type'], mode,
+                                                    schema_dict[schema_key]['description'], ()))
         try:
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
+            client.close()
             print("\t- {} table added successfully".format(table_id.split('.')[-1]))
         except exceptions.BadRequest as err:
             has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
@@ -759,8 +756,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                 start_idx = 0
                 end_idx = batch_size
 
-
-
                 while len(records) > end_idx:
                     client.insert_rows(table_obj, records[start_idx:end_idx])
                     get_row_count()
@@ -896,13 +891,11 @@ def main(args):
             }
         },
         "REQUIRED_COLUMNS": {
-            """
             'case_id',
             'diagnoses__diagnosis_id',
             'diagnoses__treatments__treatment_id',
             'follow_ups__follow_up_id',
             "follow_ups__molecular_tests__molecular_test_id"
-            """
         },
         "INSERT_BATCH_SIZE": 1000}
 
