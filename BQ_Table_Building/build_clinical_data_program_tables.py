@@ -102,7 +102,6 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
     table_columns = flatten_tables(table_columns, record_counts, params)
-    print(table_columns)
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -630,7 +629,6 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
-    return flattened_case_dict
     if isinstance(case, list):
         entry_list = []
 
@@ -780,8 +778,10 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
+        print(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-
+        print(flattened_case_dict)
+        return
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 # print(record_counts)
