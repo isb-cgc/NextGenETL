@@ -769,7 +769,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     id_key = table_key.split('.')[depth - 1]
                     id_key = id_key[:-1] + '_id'
 
-                magnitude = str(len(current_level))
+                magnitude = len(current_level)
 
                 if magnitude not in frequency_dict[table_key]:
                     frequency_dict[table_key][magnitude] = 1
@@ -796,7 +796,8 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
     for table in frequency_dict:
         if table in frequency_dict and frequency_dict[table]:
-            print('{}: {}'.format(table, frequency_dict[table]))
+            print("For {}".format(table))
+            pp.pprint(frequency_dict[table])
 
 
 ##
