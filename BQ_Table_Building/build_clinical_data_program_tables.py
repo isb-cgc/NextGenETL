@@ -521,8 +521,8 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
             try:
                 schema_list.append(bigquery.SchemaField(
                     schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'], ()))
-            except KeyError:
-                has_fatal_error('{}'.format(schema_dict))
+            except KeyError as err:
+                has_fatal_error('{}\n{}'.format(err, schema_dict))
         try:
             client = bigquery.Client()
             client.delete_table(table_id, not_found_ok=True)
