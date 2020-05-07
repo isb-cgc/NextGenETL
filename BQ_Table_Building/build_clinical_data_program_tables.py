@@ -128,7 +128,7 @@ def remove_unwanted_fields(record, table_name, params):
         if not excluded_fields_list:
             print("\t- for {}: none removed".format(table_name))
         else:
-            print("\t- for {}: removed {}".format(", ".join(excluded_fields_list), table_name))
+            print("\t- for {}: removed {}".format(table_name, ", ".join(excluded_fields_list)))
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
@@ -178,7 +178,7 @@ def flatten_tables(tables, record_counts, params):
             if not parent_key:
                 has_fatal_error("Cases should be the default parent key for any column without another table.")
             else:
-                tables[parent_key].add(get_bq_name(field))
+                tables[parent_key].add(get_bq_name(split_field_group + '.' . field))
 
         tables.pop(field_group)
 
