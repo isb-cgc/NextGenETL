@@ -81,18 +81,17 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         if not case_:
             return tables_, record_counts_
-        else:
-            if parent_path not in tables_:
-                tables_[parent_path] = set()
-            if parent_path not in record_counts_:
-                record_counts_[parent_path] = 1
+
+        if parent_path not in tables_:
+            tables_[parent_path] = set()
+        if parent_path not in record_counts_:
+            record_counts_[parent_path] = 1
 
         for field_key in case_:
-            # skips emp
-            if not field_key:
+            if not case_[field_key]:
                 continue
             # Hits for cases
-            if isinstance(case_[field_key], list):
+            elif isinstance(case_[field_key], list):
                 new_path = parent_path + '.' + field_key
                 if new_path not in record_counts_:
                     record_counts_[new_path] = 1
@@ -103,6 +102,7 @@ def retrieve_program_case_structure(program_name, cases, params):
                 for entry in case_[field_key]:
                     tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, new_path)
             elif isinstance(case_[field_key], dict):
+
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
             else:
                 tables[parent_path].add(field_key)
