@@ -3,6 +3,7 @@ from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
 import math
+import pprint
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -731,6 +732,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
+    pp = pprint.PrettyPrinter(indent=4)
     frequency_dict = dict.fromkeys(record_counts, dict())
 
     for case in cases:
@@ -779,7 +781,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             else:
                 frequency_dict[table][record_count] = 1
 
-    print(frequency_dict)
+    pp.pprint(frequency_dict)
 ##
 #  Functions for creating documentation
 ##
