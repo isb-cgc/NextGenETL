@@ -1011,8 +1011,8 @@ def main(args):
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
         print("\ntable_names: {} \n".format(table_names_dict))
 
-        print("DONE.\n - Inserting case records... ")
-        insert_case_data(cases, record_counts, table_names_dict, params)
+        # print("DONE.\n - Inserting case records... ")
+        # insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
         # generate_documentation(params, program_name, documentation_dict, record_counts)
