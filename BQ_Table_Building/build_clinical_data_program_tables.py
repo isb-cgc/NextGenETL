@@ -760,94 +760,47 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         record_keys = dict()
 
         hierarchy = {
-            'cases': {
-                'follow_ups': {
-                    'molecular_tests'
-                },
-                'exposures': None,
-                'family_histories': None,
-                'demographic': None,
-                'diagnoses': {
-                    'treatments',
-                    'annotations'
-                }
+            'follow_ups': {
+                'molecular_tests'
+            },
+            'exposures': None,
+            'family_histories': None,
+            'demographic': None,
+            'diagnoses': {
+                'treatments',
+                'annotations'
             }
         }
 
+        for key in hierarchy:
+            if key in case and case[key] and isinstance(case[key], list):
+                cnt = len(case[key])
 
-
-        for key in hierarchy['cases'].keys():
-            if not hierarchy['cases'][key]:
-
-                record_count = len(hierarchy['cases'][key])
-
-                if key not in count_dict:
-                    count_dict[key] = record_count
+                if key in record_dict:
+                    count_dict[key] += cnt
                 else:
-                    count_dict[key] += record_count
-                for entry in hierarchy['cases'][0]:
-                    for s_key in entry:
-                        if entry[s_key]:
-                            if s_key not in count_dict:
-                                count_dict[s_key] = record_count
+                    count_dict[key] = cnt
+
+                for entry in case[key]:
+                    for c_key in hierarchy[key]:
+                        if c_key in entry and entry[c_key] and isinstance(c_key, list):
+                            cnt = len(entry[c_key])
+
+                            if c_key in record_dict:
+                                count_dict[c_key] += cnt
                             else:
-                                count_dict[s_key] += record_count
-        """
-        for table_key, depth in depth_dict.items():
-            current_level = base_level
-            record_keys[table_key] = []
-            if depth == 1:
-                if 'case_id' in current_level:
-                    record_keys[table_key].append(current_level['case_id'])
-                    continue
-            else:
-                for i in range(1, depth):
-                    record_key = table_key.split('.')[i]
-                    if record_key in current_level:
-                        current_level = current_level[record_key]
-
-                id_key = get_table_id_key(table_key, params)
-                if not id_key:
-                    id_key = table_key.split('.')[depth - 1]
-                    id_key = id_key[:-1] + '_id'
-
-                magnitude = len(current_level)
-
-                if magnitude not in frequency_dict[table_key]:
-                    frequency_dict[table_key][magnitude] = 1
-                else:
-                    frequency_dict[table_key][magnitude] += 1
-
-            for entry in current_level:
-                if id_key in entry:
-                    record_keys[table_key].append(entry[id_key])
-
-        for key in record_keys.copy():
-            if not record_keys[key]:
-                record_keys.pop(key)
-        # print(record_keys)
-
-        """
-
-        """
-        for table in record_keys:
-            record_count = len(record_keys[table])
-            if record_count in frequency_dict[table]:
-                frequency_dict[table][record_count] += 1
-            else:
-                frequency_dict[table][record_count] = 1
-        """
+                                count_dict[c_key] = cnt
 
         for field in count_dict:
-            record_cnt = count_dict[field]
+            frequency_key = count_dict[field]
 
             if field not in frequency_dict:
                 frequency_dict[field] = dict()
+
+            if frequency_key in frequency_dict[field]:
+                frequency_dict[field][frequency_key] += 1
             else:
-                if record_cnt in frequency_dict[field]:
-                    frequency_dict[field][record_cnt] += 1
-                else:
-                    frequency_dict[field][record_cnt] = 1
+                frequency_dict[field][frequency_key] = 1
 
     if frequency_dict:
         print("Frequency of records per case for one-to-many tables:\n")
