@@ -656,7 +656,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
                                                        case_id, new_parent_id, new_parent_id_key)
                 else:
-                    entry_dict[key] = entry[key]
+                    col_name = get_bq_name(prefix + '.' + key)
+                    entry_dict[col_name] = entry[key]
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
@@ -679,7 +680,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
                                                    case_id, parent_id, parent_id_key)
             else:
-                entry_dict[key] = case[key]
+                col_name = get_bq_name(prefix + '.' + key)
+                entry_dict[col_name] = case[key]
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
@@ -787,11 +789,13 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                 if table not in insert_lists:
                     insert_lists[table] = []
 
+                """
                 for entry in flattened_case_dict[table]:
                     for key in entry.copy():
                         column_name = get_bq_name(table + '.' + key)
                         entry[column_name] = entry[key]
                         entry.pop(key)
+                """
 
                 insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
