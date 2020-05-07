@@ -427,7 +427,7 @@ def generate_table_name_and_id(params, program_name, table):
 
 
 def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, params):
-    def generate_id_schema_entry(column_name='case_id', parent_table_key_):
+    def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in table_keys:
             parent_field_name = get_field_name(parent_table_key_)
             ancestor_table = '*_{}'.format(parent_field_name)
@@ -441,10 +441,11 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
+    if 'case_id' not in schema_dict:
+        schema_dict['case_id'] = generate_id_schema_entry('case_id', 'main')
+
     if len(table_key.split('.')) > 1:
-        case_id_col_name = get_bq_name(table_key) + 'case_id'
-        tables_dict[table_key].add(case_id_col_name)
-        schema_dict[case_id_col_name] = generate_id_schema_entry(case_id_col_name, 'main')
+        tables_dict[table_key].add('case_id')
 
         if len(table_key.split('.')) > 2:
             # insert parent id into child table
