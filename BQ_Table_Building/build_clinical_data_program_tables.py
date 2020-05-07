@@ -455,11 +455,14 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         elif 'record_count_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
             has_fatal_error("{} key not found in params['FIELD_GROUP_METADATA']['{}'], "
                             "cannot add columns.".format('record_count_id_key', table_key))
-        parent_table_key = get_parent_table(table_key[:-1])
+        parent_table_key = get_parent_table(table_key)
         record_count_id_key = params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
 
-        if parent_table_key not in table_keys:
-            parent_table_key = 'cases'
+        while parent_table_key and parent_table_key not in table_keys:
+            parent_table_key = get_parent_table(parent_table_key)
+
+        if not parent_table_key:
+            has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
 
         tables_dict[parent_table_key].add(record_count_id_key)
         schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
@@ -625,17 +628,20 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     for field_group_key in flattened_case_dict.copy():
-        if field_group_key not in table_keys and len(flattened_case_dict[field_group_key]) == 1:
-            for entry in flattened_case_dict[field_group_key][0].copy():
+        # not a one-to-many table
+        if field_group_key not in table_keys:
+            field_group = flattened_case_dict.pop(field_group_key)
+            field_group.pop('case_id')
+            merge_table = get_parent_table(field_group_key)
+
+            for entry in field_group.copy():
                 # don't need multiple case_id keys in the same table
-                entry.pop('case_id')
                 # avoids name collisions by specifying source field group
-                prefix = "__".join(field_group_key.split(".")[1:]) + "__"
+                bq_table_name = get_bq_name(field_group_key + '.' + entry)
 
                 for key in entry:
-                    flattened_case_dict['cases'][0][prefix + key] = entry[key]
+                    flattened_case_dict[field_group_key][0][bq_table_name] = entry[key]
 
-            flattened_case_dict.pop(field_group_key)
 
     return flattened_case_dict
 
