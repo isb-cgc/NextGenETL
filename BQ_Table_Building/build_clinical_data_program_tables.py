@@ -755,7 +755,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
                 while len(records) > end_idx:
                     client.insert_rows(table_obj, records[start_idx:end_idx])
-                    get_row_count()
                     start_idx = end_idx
                     end_idx += batch_size
                 client.insert_rows(table_obj, records[start_idx:])
@@ -831,6 +830,7 @@ def main(args):
     """
 
     params = {
+        "INSERT_BATCH_SIZE": 1000,
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
         "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,'
@@ -888,15 +888,13 @@ def main(args):
             }
         },
         "REQUIRED_COLUMNS": {
-            """
             'case_id',
             'diagnoses__diagnosis_id',
             'diagnoses__treatments__treatment_id',
             'follow_ups__follow_up_id',
-            "follow_ups__molecular_tests__molecular_test_id"
-            """
-        },
-        "INSERT_BATCH_SIZE": 1000}
+            'follow_ups__molecular_tests__molecular_test_id'
+        }
+    }
 
     # program_names = get_programs_list(params)
     program_names = ['HCMI']
