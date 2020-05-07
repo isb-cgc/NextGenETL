@@ -131,9 +131,9 @@ def remove_unwanted_fields(record, table_name, params):
                 excluded_fields_list.append(field)
                 record.remove(field)
         if not excluded_fields_list:
-            print("\t- for {}: none removed".format(table_name))
+            print("\tRemoved for {}:\n\t\tnone".format(table_name))
         else:
-            print("\t- for {}: removed {}".format(table_name, ", ".join(excluded_fields_list)))
+            print("\tRemoved for {}:\n\t\t{}".format(table_name, ", ".join(excluded_fields_list)))
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
@@ -647,8 +647,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys)
 
-        if isinstance(flattened_case_dict['cases'], dict):
-            flattened_case_dict['cases'] = [flattened_case_dict['cases']]
         for table in flattened_case_dict.keys():
             if table not in insert_lists:
                 insert_lists[table] = []
