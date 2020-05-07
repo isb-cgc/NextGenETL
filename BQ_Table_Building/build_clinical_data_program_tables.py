@@ -565,9 +565,14 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
         schema_list = []
 
         for schema_key in schema_field_keys:
+            if schema_key in params["REQUIRED_COLUMNS"]:
+                mode = "REQUIRED"
+            else:
+                mode = "NULLABLE"
+
             try:
                 schema_list.append(bigquery.SchemaField(
-                    schema_key, schema_dict[schema_key]['type'], "NULLABLE", schema_dict[schema_key]['description'],
+                    schema_key, schema_dict[schema_key]['type'], mode, schema_dict[schema_key]['description'],
                     ()))
             except KeyError as err:
                 has_fatal_error('{}\n{}'.format(err, schema_dict))
@@ -892,6 +897,13 @@ def main(args):
                     "submitter_diagnosis_ids", "submitter_portion_ids", "submitter_sample_ids", "submitter_slide_ids"
                 ]
             }
+        },
+        "REQUIRED_COLUMNS": {
+            'case_id',
+            'diagnoses__diagnosis_id',
+            'diagnoses__treatments__treatment_id',
+            'follow_ups__follow_up_id',
+            "follow_ups__molecular_tests__molecular_test_id"
         },
         "INSERT_BATCH_SIZE": 1000}
 
