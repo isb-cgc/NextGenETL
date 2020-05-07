@@ -84,22 +84,18 @@ def retrieve_program_case_structure(program_name, cases, params):
             record_counts_[parent_path] = 1
 
         for field_key in case_:
-            if not isinstance(case_[field_key], list) and not isinstance(case_[field_key], dict):
+            # Hits for cases
+            if isinstance(case_[field_key], dict):
                 tables_[parent_path].add(field_key)
             else:
-                if isinstance(case_[field_key], dict):
-                    # is this actually hit? I don't think so
-                    print("HITS!")
-                    tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
-                else:
-                    # at this point, the field_key references a dict or list
-                    nested_path = parent_path + '.' + field_key
+                # at this point, the field_key references a dict or list
+                nested_path = parent_path + '.' + field_key
 
-                    record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
+                record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
 
-                    for field_group_entry in case_[field_key]:
-                        tables_, record_counts_ = build_case_structure(
-                            tables_, field_group_entry, record_counts_, nested_path)
+                for field_group_entry in case_[field_key]:
+                    tables_, record_counts_ = build_case_structure(
+                        tables_, field_group_entry, record_counts_, nested_path)
 
         return tables_, record_counts_
 
