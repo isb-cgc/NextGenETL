@@ -781,7 +781,8 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             else:
                 frequency_dict[table][record_count] = 1
 
-    pp.pprint(frequency_dict)
+    for table in frequency_dict:
+        pp.pprint(frequency_dict[table])
 ##
 #  Functions for creating documentation
 ##
