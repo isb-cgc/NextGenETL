@@ -619,17 +619,9 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
-        if prefix in flattened_case_dict:
-            flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
-        else:
-            if entry_list:
-                flattened_case_dict[prefix] = entry_list
     else:
         entry_list = []
         entry_dict = dict()
-        if prefix not in flattened_case_dict:
-            flattened_case_dict[prefix] = []
-
         parent_id = case_id = case['case_id']
         parent_id_key = 'case_id'
 
@@ -643,7 +635,12 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
+
+    if entry_list:
+        if prefix not in flattened_case_dict:
             flattened_case_dict[prefix] = entry_list
+        else:
+            flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
 
     flattened_case_dict['cases'] = [flattened_case_dict['cases']]
     flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
