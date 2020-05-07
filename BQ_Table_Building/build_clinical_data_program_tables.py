@@ -957,10 +957,10 @@ def main(args):
 
         print()
 
-        # documentation_dict, table_names_dict = create_bq_tables(
-        #    program_name, params, table_columns, record_counts, schema_dict)
+        documentation_dict, table_names_dict = create_bq_tables(
+           program_name, params, table_columns, record_counts, schema_dict)
 
-        # insert_case_data(cases, record_counts, table_names_dict, params)
+        insert_case_data(cases, record_counts, table_names_dict, params)
 
         """
         for table in table_names_dict:
@@ -970,9 +970,9 @@ def main(args):
             print("{} has {} rows".format(table_id, count))
         """
 
-        # generate_documentation(params, program_name, documentation_dict, record_counts)
+        generate_documentation(params, program_name, documentation_dict, record_counts)
 
-        check_data_integrity(params, cases, record_counts, table_columns)
+        # check_data_integrity(params, cases, record_counts, table_columns)
 
 
 if __name__ == '__main__':
