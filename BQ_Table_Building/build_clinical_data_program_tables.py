@@ -761,14 +761,14 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
                 for entry in case[key]:
                     if hierarchy[key]:
-                    for c_key in hierarchy[key]:
-                        if c_key in entry and entry[c_key] and isinstance(c_key, list):
-                            cnt = len(entry[c_key])
+                        for c_key in hierarchy[key]:
+                            if c_key in entry and entry[c_key] and isinstance(c_key, list):
+                                cnt = len(entry[c_key])
 
-                            if c_key in count_dict:
-                                count_dict[c_key] += cnt
-                            else:
-                                count_dict[c_key] = cnt
+                                if c_key in count_dict:
+                                    count_dict[c_key] += cnt
+                                else:
+                                    count_dict[c_key] = cnt
 
         for field in count_dict:
             frequency_key = count_dict[field]
