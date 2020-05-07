@@ -441,16 +441,14 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
-    if 'case_id' not in schema_dict:
-        schema_dict['case_id'] = generate_id_schema_entry('case_id', 'main')
+    parent_table_key = get_parent_table(table_key[:-1])
 
     if len(table_key.split('.')) > 1:
+        schema_dict[parent_table_key + '__' + 'case_id'] = generate_id_schema_entry('case_id', 'main')
         tables_dict[table_key].add('case_id')
 
         if len(table_key.split('.')) > 2:
             # insert parent id into child table
-            parent_table_key = get_parent_table(table_key[:-1])
-
             if parent_table_key in params["SINGULAR_ID_NAMES"]:
                 parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
             else:
