@@ -733,7 +733,12 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 def check_data_integrity(params, cases, record_counts, table_columns):
     pp = pprint.PrettyPrinter(indent=4)
-    frequency_dict = dict.fromkeys(record_counts, dict())
+    frequency_dict = {}
+
+    tables = get_tables(record_counts)
+
+    for table in tables:
+        frequency_dict[table] = {}
 
     for case in cases:
         # table_dict = get_tables(record_counts)
@@ -764,6 +769,13 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     id_key = table_key.split('.')[depth - 1]
                     id_key = id_key[:-1] + '_id'
 
+                magnitude = str(len(current_level))
+
+                if magnitude not in frequency_dict[table_key]:
+                    frequency_dict[table_key][magnitude] = 1
+                else:
+                    frequency_dict[table_key][magnitude] += 1
+
             for entry in current_level:
                 if id_key in entry:
                     record_keys[table_key].append(entry[id_key])
@@ -771,18 +783,21 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         for key in record_keys.copy():
             if not record_keys[key]:
                 record_keys.pop(key)
-
         # print(record_keys)
 
+        """
         for table in record_keys:
             record_count = len(record_keys[table])
             if record_count in frequency_dict[table]:
                 frequency_dict[table][record_count] += 1
             else:
                 frequency_dict[table][record_count] = 1
+        """
 
     for table in frequency_dict:
         print('{}: {}'.format(table, frequency_dict[table]))
+
+
 ##
 #  Functions for creating documentation
 ##
