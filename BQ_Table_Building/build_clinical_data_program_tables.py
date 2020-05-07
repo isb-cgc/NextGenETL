@@ -564,7 +564,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
     if isinstance(case, list):
         entry_list = []
 
-
         for entry in case:
             entry_dict = dict()
             if case_id != parent_id:
@@ -631,7 +630,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
         # not a one-to-many table
         if field_group_key not in table_keys:
             entry_dict = dict()
-            field_group = flattened_case_dict.pop(field_group_key)[0]
+            field_group = flattened_case_dict.pop(field_group_key)
+            field_group = field_group[0]
             field_group.pop('case_id')
 
             parent_table_key = field_group_key
@@ -639,7 +639,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
             while parent_table_key and parent_table_key not in table_keys:
                 parent_table_key = get_parent_table(parent_table_key)
             if not parent_table_key:
-                has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
+                has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
 
             for entry in field_group.copy():
                 # don't need multiple case_id keys in the same table
