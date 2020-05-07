@@ -105,8 +105,8 @@ def retrieve_program_case_structure(program_name, cases, params):
                 record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
 
                 for field_group_entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_,
-                                                                   nested_path)
+                    tables_, record_counts_ = build_case_structure(
+                        tables_, field_group_entry, record_counts_, nested_path)
 
         return tables_, record_counts_
 
@@ -152,8 +152,6 @@ def remove_unwanted_fields(record, table_name, params):
 
 
 def flatten_tables(tables, record_counts, params):
-    print("flatten_tables")
-    print(tables)
     """
     Used by retrieve_program_case_structure
     """
@@ -166,7 +164,6 @@ def flatten_tables(tables, record_counts, params):
 
     for field_group, depth in sorted(field_group_keys.items(), key=lambda item: item[1], reverse=True):
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
-        print(tables)
 
         if depth == 1:
             break
@@ -571,9 +568,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             schema_field_keys.append(column)
 
         schema_list = []
-
-        if 'created_datetime' not in schema_field_keys:
-            print("No created datetime in create_bq tables")
 
         for schema_key in schema_field_keys:
             schema_list.append(bigquery.SchemaField(
