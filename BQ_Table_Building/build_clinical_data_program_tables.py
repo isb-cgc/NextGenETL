@@ -128,7 +128,7 @@ def remove_unwanted_fields(record, table_name, params):
         if not excluded_fields_list:
             print("\t- for {}: none removed".format(table_name))
         else:
-            print("\t- for {}: removed {}".format(", ".join(table_name, excluded_fields_list)))
+            print("\t- for {}: removed {}".format(", ".join(excluded_fields_list), table_name))
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
