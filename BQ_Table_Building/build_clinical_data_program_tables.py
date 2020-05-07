@@ -520,9 +520,11 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
             if len(table_key.split('.')) > 2:
                 reference_id_key = get_table_id_key(parent_table_key, params)
-                tables_dict[table_key].add(reference_id_key)
-                schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
-                schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
+
+                if reference_id_key:
+                    tables_dict[table_key].add(reference_id_key)
+                    schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
+                    schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
 
     return tables_dict, schema_dict
 
@@ -926,7 +928,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['VAREPOP', 'CGCI']
+    program_names = ['VAREPOP', 'CGCI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
