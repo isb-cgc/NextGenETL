@@ -404,3 +404,54 @@ def pprint_json(json_obj):
     """
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(json_obj)
+
+
+def ordered_print(flattened_case_dict, order_dict):
+    def make_tabs(indent_):
+        tab_list = indent_ * ['\t']
+        return "".join(tab_list)
+
+    tables_string = '{\n'
+    indent = 1
+
+    for table in sorted(flattened_case_dict.keys()):
+        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
+
+        split_prefix = table.split(".")
+        if len(split_prefix) == 1:
+            prefix = ''
+        else:
+            prefix = '__'.join(split_prefix[1:])
+            prefix += '__'
+
+        for entry in flattened_case_dict[table]:
+            entry_string = "{}{{\n".format(make_tabs(indent + 1))
+            field_order_dict = dict()
+
+            for key in entry.copy():
+                col_order_lookup_key = prefix + key
+
+                try:
+                    field_order_dict[key] = order_dict[col_order_lookup_key]
+                except KeyError:
+                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
+                    for k, v in sorted(order_dict.items(), key=lambda item: item[0]):
+                        print("{}: {}".format(k, v))
+                    field_order_dict[key] = 0
+
+            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            entry_string = entry_string.rstrip('\n')
+            entry_string = entry_string.rstrip(',')
+
+            entry_string += '{}}}\n'.format(make_tabs(indent + 1))
+            tables_string += entry_string
+        tables_string = tables_string.rstrip('\n')
+        tables_string = tables_string.rstrip(',')
+        tables_string += '\n'
+        tables_string += "{}],\n".format(make_tabs(indent))
+    tables_string = tables_string.rstrip('\n')
+    tables_string = tables_string.rstrip(',')
+    tables_string += "\n}"
+
+    print(tables_string)

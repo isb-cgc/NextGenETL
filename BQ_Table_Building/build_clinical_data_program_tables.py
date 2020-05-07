@@ -29,6 +29,8 @@ def get_programs_list(params):
 
 
 def get_cases_by_program(program_name, params):
+    print(" - Retrieving cases... ", end='')
+
     cases = []
 
     dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
@@ -48,6 +50,7 @@ def get_cases_by_program(program_name, params):
 
     for case_row in results:
         cases.append(dict(case_row.items()))
+    print("DONE. {} cases retrieved.".format(len(cases)))
     return cases
 
 
@@ -90,6 +93,8 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         return tables_, record_counts_
 
+    print("Determining program table structure... ", end='')
+
     tables = {}
     record_counts = {}
 
@@ -100,6 +105,9 @@ def retrieve_program_case_structure(program_name, cases, params):
 
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
+
+    print("DONE.")
+    print("Record counts for each field group: {}".format(record_counts))
 
     return tables, record_counts
 
@@ -446,6 +454,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
+    print("Adding tables to BigQuery dataset {}...".format(params['TARGET_DATASET']))
     schema_dict = create_schema_dict(params)
 
     table_ids = dict()
@@ -453,8 +462,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
     documentation_dict['table_schemas'] = dict()
 
     table_keys = get_tables(record_counts)
-
-    schema_field_set = set()
 
     for table_key in table_keys:
         tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
@@ -495,12 +502,12 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             client.delete_table(table_id, not_found_ok=True)
             table = bigquery.Table(table_id, schema=schema_list)
             client.create_table(table)
-            schema_field_set.add(table_key)
+            print("\t- added {} table".format(table_id))
         except exceptions.BadRequest as err:
             has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
-
+        print("DONE.")
     return documentation_dict, table_ids
 
 
@@ -604,6 +611,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
 
 def insert_case_data(cases, record_counts, tables_dict, params):
+    print("Inserting case records... ")
+
     table_keys = get_tables(record_counts)
 
     insert_lists = dict()
@@ -634,7 +643,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             batch_size = math.floor(batch_size * ratio)
 
         try:
-            print("Inserting rows into {}".format(table_id))
+            print("\t- inserting rows into {}... ".format(table_id), end='')
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
             start_idx = 0
@@ -642,78 +651,25 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             while len(insert_lists[table]) > end_idx:
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
-                print("Successfully inserted records {}->{}".format(
-                    start_idx, end_idx))
                 start_idx = end_idx
                 end_idx += batch_size
 
-            # insert remainder
+            # insert the last set of records
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
-            print("Successfully inserted last {} records\n".format(len(insert_lists[table]) - start_idx))
+            print("{} records inserted.".format(len(insert_lists[table]), table))
         except Exception as err:
-            print("[ERROR] exception for table: {}, table_id: {}, row count: {}".format(table, table_id,
-                                                                                        len(insert_lists[table])))
-            has_fatal_error("Fatal error for table: {}\n{}".format(table, err))
+            has_fatal_error("Failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
 
 
 
-"""
-def ordered_print(flattened_case_dict):
-    def make_tabs(indent_):
-        tab_list = indent_ * ['\t']
-        return "".join(tab_list)
 
-    tables_string = '{\n'
-    indent = 1
-
-    for table in sorted(flattened_case_dict.keys()):
-        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
-
-        split_prefix = table.split(".")
-        if len(split_prefix) == 1:
-            prefix = ''
-        else:
-            prefix = '__'.join(split_prefix[1:])
-            prefix += '__'
-
-        for entry in flattened_case_dict[table]:
-            entry_string = "{}{{\n".format(make_tabs(indent + 1))
-            field_order_dict = dict()
-
-            for key in entry.copy():
-                col_order_lookup_key = prefix + key
-
-                try:
-                    field_order_dict[key] = COLUMN_ORDER_DICT[col_order_lookup_key]
-                except KeyError:
-                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
-                    for k, v in sorted(COLUMN_ORDER_DICT.items(), key=lambda item: item[0]):
-                        print("{}: {}".format(k, v))
-                    field_order_dict[key] = 0
-
-            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
-            entry_string = entry_string.rstrip('\n')
-            entry_string = entry_string.rstrip(',')
-
-            entry_string += '{}}}\n'.format(make_tabs(indent + 1))
-            tables_string += entry_string
-        tables_string = tables_string.rstrip('\n')
-        tables_string = tables_string.rstrip(',')
-        tables_string += '\n'
-        tables_string += "{}],\n".format(make_tabs(indent))
-    tables_string = tables_string.rstrip('\n')
-    tables_string = tables_string.rstrip(',')
-    tables_string += "\n}"
-
-    print(tables_string)
-"""
 
 
 ##
 #  Functions for creating documentation
 ##
 def generate_documentation(params, program_name, documentation_dict, record_counts):
+    print("Inserting documentation", end='')
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
     # print("{}".format(record_counts))
@@ -831,27 +787,19 @@ def main(args):
 
     for program_name in program_names:
         print("\n*** Running script for {} ***".format(program_name))
-        print(" - Retrieving cases... ", end='')
+
         cases = get_cases_by_program(program_name, params)
+
         if len(cases) == 0:
-            print("\nNo cases found for program {}, no tables created.".format(program_name))
             continue
-        print("\n(Case count = {})...".format(len(cases)))
 
-        print("DONE.\n - Determining program table structure... ")
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases, params)
-        print("\nrecord_counts: {} \n".format(record_counts))
 
-        print("DONE.\n - Creating empty BQ tables... ")
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
-        print("\ntable_names: {} \n".format(table_names_dict))
 
-        # print("DONE.\n - Inserting case records... ")
         insert_case_data(cases, record_counts, table_names_dict, params)
 
-        # print("DONE.\n - Inserting documentation... ", end='')
         generate_documentation(params, program_name, documentation_dict, record_counts)
-        print("DONE.\n")
 
 
 if __name__ == '__main__':
