@@ -461,7 +461,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
 
         if len(table_key.split('.')) > 1:
-            schema_dict[parent_table_key + '__case_id'] = generate_id_schema_entry('case_id', 'main')
+            schema_dict[get_bq_name(table_key) + '__case_id'] = generate_id_schema_entry('case_id', 'main')
             tables_dict[table_key].add('case_id')
             # create a column containing a count of records associated, in child table
             # in cases
