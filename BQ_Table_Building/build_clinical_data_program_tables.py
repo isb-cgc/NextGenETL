@@ -789,31 +789,13 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
         print(flattened_case_dict)
         for table in flattened_case_dict.keys():
-            count = len(flattened_case_dict[table])
-            parent_table = get_parent_table(table)
-            if parent_table in flattened_case_dict:
-
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            if table == 'cases':
-                continue
-                insert_lists['cases'] = flattened_case_dict['cases']
-            else:
-                if table not in insert_lists:
-                    insert_lists[table] = []
+            if table not in insert_lists:
+                insert_lists[table] = []
 
-
-
-                """
-                for entry in flattened_case_dict[table]:
-                    for key in entry.copy():
-                        column_name = get_bq_name(table + '.' + key)
-                        entry[column_name] = entry[key]
-                        entry.pop(key)
-                """
-
-                insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
+            insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
     for table in insert_lists:
 
