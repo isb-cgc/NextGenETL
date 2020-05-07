@@ -928,7 +928,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['VAREPOP', 'CGCI']
+    program_names = ['VAREPOP', 'CGCI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
