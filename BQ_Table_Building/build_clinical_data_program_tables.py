@@ -742,6 +742,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             # insert the last set of records
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
+            print("start_idx: {}".format())
             print("{} records inserted.".format(len(insert_lists[table]), table))
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
