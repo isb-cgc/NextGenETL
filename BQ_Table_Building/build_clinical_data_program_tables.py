@@ -533,7 +533,14 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
+    if 'created_datetime' not in tables_dict['cases']:
+        print('created_datetime not in tables dict')
+
     schema_dict = create_schema_dict(params)
+
+    if 'cases.created_datetime' not in schema_dict:
+        print('created_datetime not in schema_dict ')
+
     table_ids = dict()
     documentation_dict = dict()
     documentation_dict['table_schemas'] = dict()
@@ -573,7 +580,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
 
         schema_list = []
 
-        if 'created_datetime' not in schema_list:
+        if 'created_datetime' not in schema_field_keys:
             print("No created datetime in create_bq tables")
 
         for schema_key in schema_field_keys:
@@ -1013,9 +1020,6 @@ def main(args):
         print("DONE.\n - Determining program table structure... ")
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
         print("\nrecord_counts: {} \n".format(record_counts))
-
-        if 'created_datetime' not in tables_dict['cases']:
-            print('created_datetime not in tables dict')
 
         print("DONE.\n - Creating empty BQ tables... ")
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
