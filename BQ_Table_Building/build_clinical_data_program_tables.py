@@ -93,8 +93,7 @@ def retrieve_program_case_structure(program_name, cases, params):
                     nested_path = parent_path + '.' + field_key
                     tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, nested_path)
             if isinstance(field_key, dict):
-                for entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, parent_path)
+                tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
             else:
                 tables[parent_path].add(field_key)
 
