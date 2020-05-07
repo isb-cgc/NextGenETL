@@ -118,11 +118,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
 
 
 def remove_unwanted_fields(record, table_name, params):
-    if table_name not in params["FIELD_GROUP_METADATA"] or 'excluded_fields' \
-            not in params["FIELD_GROUP_METADATA"][table_name]:
-        has_fatal_error("{} or a child key not found in params['FIELD_GROUP_METADATA'][{}]".format(table_name))
-
-    excluded_fields = params["FIELD_GROUP_METADATA"][table_name]['excluded_fields']
+    excluded_fields = get_excluded_fields(table_name, params, fatal=True)
 
     if isinstance(record, dict):
         for field in record.copy():
@@ -731,8 +727,11 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             # insert the last set of records
             client.insert_rows(bq_table, insert_lists[table][start_idx:])
             print("{} records inserted.".format(len(insert_lists[table]), table))
-        except Exception as err:
-            has_fatal_error("Failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
+        except exceptions.BadRequest as err:
+            has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
+        except IndexError as err:
+            has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
+                start_idx, end_idx, table, len(insert_lists[table]), err))
     print("... DONE.\n")
 
 
