@@ -78,12 +78,19 @@ def retrieve_program_case_structure(program_name, cases, params):
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
-        if parent_path not in tables_:
-            tables_[parent_path] = set()
-        if parent_path not in record_counts_:
-            record_counts_[parent_path] = 1
+
+        if not case_:
+            return tables_, record_counts_
+        else:
+            if parent_path not in tables_:
+                tables_[parent_path] = set()
+            if parent_path not in record_counts_:
+                record_counts_[parent_path] = 1
 
         for field_key in case_:
+            # skips emp
+            if not field_key:
+                continue
             # Hits for cases
             if isinstance(case_[field_key], list):
                 new_path = parent_path + '.' + field_key
