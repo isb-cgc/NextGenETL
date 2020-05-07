@@ -658,10 +658,10 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     for field_group_key in flattened_case_dict.copy():
         # not a one-to-many table
-        if field_group_key not in table_keys:
+        if field_group_key not in table_keys and flattened_case_dict[field_group] \
+                and len(flattened_case_dict[field_group]) == 1:
             entry_dict = dict()
-            field_group = flattened_case_dict.pop(field_group_key)
-            field_group = field_group[0]
+            field_group = flattened_case_dict.pop(field_group_key)[0]
 
             parent_table_key = field_group_key
 
@@ -691,7 +691,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     insert_lists = dict()
 
     for case in cases:
-        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
+        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys,
+                                           case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         for table in flattened_case_dict.keys():
