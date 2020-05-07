@@ -731,9 +731,11 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
-    print(table_columns)
     for case in cases:
+        print(case)
         case_id = case['case_id']
+
+
 
 
 
