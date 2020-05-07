@@ -795,7 +795,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         """
 
     for table in frequency_dict:
-        if frequency_dict[table]:
+        if table in frequency_dict and frequency_dict[table]:
             print('{}: {}'.format(table, frequency_dict[table]))
 
 
