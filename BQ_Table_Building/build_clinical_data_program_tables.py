@@ -133,7 +133,12 @@ def remove_unwanted_fields(record, table_name, params):
 
     if isinstance(record, dict):
         for field in record.copy():
+            if field == 'updated_datetime':
+                print("IT's here")
+
             if field in excluded_fields or not record[field]:
+                if field == 'updated_datetime':
+                    print("IT's being removed!!")
                 record.pop(field)
 
     elif isinstance(record, set):
@@ -142,7 +147,11 @@ def remove_unwanted_fields(record, table_name, params):
         excluded_fields_list = []
 
         for field in record.copy():
+            if field == 'updated_datetime':
+                print("IT's here")
             if field in excluded_fields:
+                if field == 'updated_datetime':
+                    print("IT's being removed!!")
                 excluded_fields_list.append(field)
                 record.remove(field)
 
