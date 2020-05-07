@@ -684,9 +684,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
             flattened_case_dict[prefix] = entry_list
-
-#    flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-
     return flattened_case_dict
 
 """
@@ -778,7 +775,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
-        print(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
         print(flattened_case_dict)
         return
