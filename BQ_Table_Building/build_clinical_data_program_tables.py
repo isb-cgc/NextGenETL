@@ -577,8 +577,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    if prefix in params["SINGULAR_ID_NAMES"]:
-                        new_parent_id_key = params['SINGULAR_ID_NAMES'][prefix]
+                    if prefix in params["FIELD_GROUP_METADATA"]:
+                        new_parent_id_key = params['FIELD_GROUP_METADATA']['table_id_key']
                         new_parent_id = entry[new_parent_id_key]
                     else:
                         new_parent_id = parent_id
@@ -756,50 +756,6 @@ def main(args):
         "WORKING_PROJECT": 'isb-project-zero',
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
-        "EXCLUDED_FIELDS": {
-            'cases.diagnoses': {
-                "submitter_id"
-            },
-            'cases.demographic': {
-                "submitter_id"
-            },
-            'cases.diagnoses.treatments': {
-                "submitter_id"
-            },
-            'cases.diagnoses.annotations': {
-                "case_submitter_id",
-                "entity_submitter_id",
-                "submitter_id"
-            },
-            'cases.exposures': {
-                "submitter_id"
-            },
-            'cases.family_histories': {
-                "submitter_id"
-            },
-            'cases.follow_ups': {
-                "submitter_id"
-            },
-            'cases.follow_ups.molecular_tests': {
-                "submitter_id"
-            },
-            'cases': {
-                "aliquot_ids",
-                "analyte_ids",
-                "case_autocomplete",
-                "diagnosis_ids",
-                "id",
-                "portion_ids",
-                "sample_ids",
-                "slide_ids",
-                "submitter_aliquot_ids",
-                "submitter_analyte_ids",
-                "submitter_diagnosis_ids",
-                "submitter_portion_ids",
-                "submitter_sample_ids",
-                "submitter_slide_ids"
-            }
-        },
         "FIELD_GROUP_METADATA": {
             'cases.diagnoses': {
                 'record_count_id_key': 'diagnoses_count',
