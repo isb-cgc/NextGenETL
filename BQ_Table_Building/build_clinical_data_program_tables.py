@@ -615,6 +615,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             flattened_case_dict[prefix] = entry_list
 
     flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+    flattened_case_dict['cases'] = [flattened_case_dict['cases']]
 
     return flattened_case_dict
 
