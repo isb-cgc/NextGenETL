@@ -738,34 +738,42 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
     return flattened_case_dict
 """
 
-def merge_single_entry_field_groups(flattened_case_dict, table_keys):
-
-    for field_group_key in flattened_case_dict.copy():
+def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
+    for field_group_key, field_group in flattened_case_dict.copy().items():
         if field_group_key in table_keys:
-            continue
-        if len(flattened_case_dict[field_group_key]) > 1:
-            has_fatal_error("{} in flattened_dict has > 1 record, but not a table.".format(field_group_key))
+            record_count = len(field_group)
+            parent_table_key = get_parent_table(field_group_key)
+            if parent_table_key not in table_keys:
+                parent_table_key = get_parent_table(parent_table_key)
+            if parent_table_key not in table_keys:
+                has_fatal_error("no parent")
 
-        field_group = flattened_case_dict.pop(field_group_key)[0]
+            record_count_key = get_record_count_id_key(field_group_key, params)
+            flattened_case_dict[parent_table_key][record_count_key] = record_count
+        else:
+            if len(flattened_case_dict[field_group_key]) > 1:
+                has_fatal_error("{} in flattened_dict has > 1 record, but not a table.".format(field_group_key))
 
-        parent_table_key = field_group_key
+            field_group = flattened_case_dict.pop(field_group_key)[0]
 
-        while parent_table_key and parent_table_key not in table_keys:
-            parent_table_key = get_parent_table(parent_table_key)
+            parent_table_key = field_group_key
 
-        if not parent_table_key:
-            has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
+            while parent_table_key and parent_table_key not in table_keys:
+                parent_table_key = get_parent_table(parent_table_key)
 
-        if 'case_id' in field_group:
-            field_group.pop('case_id')
+            if not parent_table_key:
+                has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
 
-        if len(flattened_case_dict[parent_table_key]) > 1:
-            print("PARENT LENGTH")
-        for key in field_group.keys():
-            if not field_group[key]:
-                continue
-            column_name = get_bq_name(field_group_key + '.' + key)
-            flattened_case_dict[parent_table_key][0][column_name] = field_group[key]
+            if 'case_id' in field_group:
+                field_group.pop('case_id')
+
+            if len(flattened_case_dict[parent_table_key]) > 1:
+                print("PARENT LENGTH")
+            for key in field_group.keys():
+                if not field_group[key]:
+                    continue
+                column_name = get_bq_name(field_group_key + '.' + key)
+                flattened_case_dict[parent_table_key][0][column_name] = field_group[key]
     return flattened_case_dict
 
 
@@ -778,16 +786,23 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
         for table in flattened_case_dict.keys():
+            count = len(flattened_case_dict[table])
+            parent_table = get_parent_table(table)
+            if parent_table in flattened_case_dict:
+
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
             if table == 'cases':
+                continue
                 insert_lists['cases'] = flattened_case_dict['cases']
             else:
                 if table not in insert_lists:
                     insert_lists[table] = []
+
+
 
                 """
                 for entry in flattened_case_dict[table]:
