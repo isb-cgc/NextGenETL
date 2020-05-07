@@ -731,18 +731,43 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
+    table_ids = dict()
     for case in cases:
         print(case)
+
         case_id = case['case_id']
 
         table_dict = get_tables(record_counts)
 
-        print(table_dict)
+        depth_table = {}
+        for key in table_dict:
+            split_key = key.split('.')
+            depth_table[key] = len(split_key)
 
+            level = 1
 
+            current_level = case['cases']
 
+            depth_dict = dict.fromkeys(table_dict, len(table_dict.keys().split('.')))
 
+            record_keys = dict()
 
+            for table_key, depth in depth_dict:
+                record_keys[table_key] = []
+                if depth == 1:
+                    if 'case_id' in current_level:
+                        record_keys[table_key].append(current_level['case_id'])
+                else:
+                    for i in range(1, depth):
+                        record_key = table_key.split('.')[i]
+                        if record_key in current_level:
+                            current_level = current_level[record_key][0]
+                            table_id_key = record_key[:-1] + '_id'
+
+                            for entry in current_level:
+                                if table_id_key in entry:
+                                    record_keys[table_key].append(entry[table_id_key])
+            print(record_keys)
 
 ##
 #  Functions for creating documentation
@@ -835,7 +860,6 @@ def main(args):
             'cases.follow_ups': {
                 'record_count_id_key': 'follow_ups_count',
                 'excluded_fields': ["submitter_id"],
-
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
@@ -857,7 +881,7 @@ def main(args):
                     "aliquot_ids", "analyte_ids", "case_autocomplete", "diagnosis_ids", "id", "portion_ids",
                     "sample_ids", "slide_ids", "submitter_aliquot_ids", "submitter_analyte_ids",
                     "submitter_diagnosis_ids", "submitter_portion_ids", "submitter_sample_ids", "submitter_slide_ids"
-                ]
+                ],
             }
         },
         "REQUIRED_COLUMNS": {
