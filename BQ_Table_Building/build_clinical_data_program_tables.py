@@ -121,6 +121,8 @@ def retrieve_program_case_structure(program_name, cases, params):
         # null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
+        if 'updated_datetime' not in tables['case']:
+            print('updated_datetime not in case. 2 \n{}'.format(case))
 
     tables = flatten_tables(tables, record_counts, params)
 
