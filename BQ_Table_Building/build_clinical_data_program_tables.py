@@ -186,6 +186,7 @@ def flatten_tables(tables, record_counts, params):
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
+    print("flat tables: {}".format(tables))
     return tables
 
 
