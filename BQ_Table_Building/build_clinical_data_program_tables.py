@@ -93,7 +93,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         return tables_, record_counts_
 
-    print("\nDetermining program table structure... ", end='')
+    print("\nDetermining program table structure... ")
 
     tables = {}
     record_counts = {}
@@ -126,9 +126,9 @@ def remove_unwanted_fields(record, table_name, params):
                 excluded_fields_list.append(field)
                 record.remove(field)
         if not excluded_fields_list:
-            print("\tno fields removed from {}".format(table_name))
+            print("\t- for {}: none removed".format(table_name))
         else:
-            print("\tremoved {} from {}".format(", ".join(excluded_fields_list), table_name))
+            print("\t- for {}: removed {}".format(", ".join(table_name, excluded_fields_list)))
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
@@ -456,7 +456,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 
 
 def create_bq_tables(program_name, params, tables_dict, record_counts):
-    print("Adding tables to BigQuery dataset {}...".format(params['TARGET_DATASET']))
+    print("Adding tables to {}.{} dataset...".format(params['WORKING_PROJECT'], params['TARGET_DATASET']))
     schema_dict = create_schema_dict(params)
 
     table_ids = dict()
@@ -485,6 +485,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts):
             try:
                 table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
             except KeyError:
+                print(column)
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
@@ -699,7 +700,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
         doc_file.write("{}".format(documentation_dict))
         doc_file.write("{}".format(record_counts))
 
-    print("... DONE.\n")
+    print("... DONE.")
 
 
 def main(args):
@@ -777,7 +778,7 @@ def main(args):
     }
 
     program_names = get_programs_list(params)
-    # program_names = ['TCGA']
+    program_names = ['BEATML1.0']
     # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
