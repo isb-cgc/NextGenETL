@@ -630,18 +630,23 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     for field_group_key in flattened_case_dict.copy():
         # not a one-to-many table
         if field_group_key not in table_keys:
-            field_group = flattened_case_dict.pop(field_group_key)
+            entry_dict = dict()
+            field_group = flattened_case_dict.pop(field_group_key)[0]
             field_group.pop('case_id')
-            merge_table = get_parent_table(field_group_key)
+
+            parent_table_key = field_group_key
+
+            while parent_table_key and parent_table_key not in table_keys:
+                parent_table_key = get_parent_table(parent_table_key)
+            if not parent_table_key:
+                has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
 
             for entry in field_group.copy():
                 # don't need multiple case_id keys in the same table
                 # avoids name collisions by specifying source field group
-                bq_table_name = get_bq_name(field_group_key + '.' + entry)
-
-                for key in entry:
-                    flattened_case_dict[field_group_key][0][bq_table_name] = entry[key]
-
+                column_name = get_bq_name(field_group_key + '.' + entry)
+                entry_dict[column_name] = field_group[entry]
+            flattened_case_dict[field_group_key] = [entry_dict]
 
     return flattened_case_dict
 
