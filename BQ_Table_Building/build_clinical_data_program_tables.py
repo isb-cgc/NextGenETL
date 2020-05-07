@@ -445,8 +445,13 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         if len(table_key.split('.')) > 2:
             # insert parent id into child table
-            parent_table_key = get_parent_table(table_key)
-            parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
+            parent_table_key = get_parent_table(table_key[:-1])
+
+            if parent_table_key in params["SINGULAR_ID_NAMES"]:
+                parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
+            else:
+                has_fatal_error("No id field name defined for parent table {} of table {}".format(
+                    parent_table_key, table_key))
 
             # insert case_id into child table
             tables_dict[table_key].add(parent_id_key)
@@ -466,7 +471,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
     table_keys = get_tables(record_counts)
 
     for table_key in table_keys:
-        # tables_dict, schema_dict = add_reference_columns(tables_dict, schema_dict, table_keys, table_key)
         table_order_dict = dict()
         schema_field_keys = []
 
