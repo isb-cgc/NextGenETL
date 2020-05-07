@@ -780,12 +780,13 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     count_dict[key] = record_count
                 else:
                     count_dict[key] += record_count
-                for s_key in hierarchy['cases'][key].keys():
-                    if hierarchy['cases'][key][s_key]:
-                        if s_key not in count_dict:
-                            count_dict[s_key] = record_count
-                        else:
-                            count_dict[key] += record_count
+                for entry in hierarchy['cases'][key]:
+                    for s_key in entry:
+                        if entry[s_key]:
+                            if s_key not in count_dict:
+                                count_dict[s_key] = record_count
+                            else:
+                                count_dict[s_key] += record_count
         """
         for table_key, depth in depth_dict.items():
             current_level = base_level
