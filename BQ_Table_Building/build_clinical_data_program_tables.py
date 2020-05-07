@@ -380,6 +380,13 @@ def get_parent_table(table_key):
     return parent_table
 
 
+def get_table_id_key(table_key, params):
+    if 'table_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
+        has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA'][{}]".format(
+            table_key))
+
+    return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
+
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
@@ -473,8 +480,8 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
             # create a column containing a count of records associated, in child table
             # in cases
 
-            if len(table_key.split('.')) > 2 and 'record_count_id_key' in params["FIELD_GROUP_METADATA"][table_key]:
-                reference_id_key = params["FIELD_GROUP_METADATA"][parent_table_key]['table_id_key']
+            if len(table_key.split('.')) > 2:
+                reference_id_key = get_table_id_key(parent_table_key)
                 tables_dict[table_key].add(reference_id_key)
                 schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
                 schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
@@ -633,8 +640,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
             field_group = flattened_case_dict.pop(field_group_key)
             field_group = field_group[0]
 
-            if 'case_id' in field_group:
-                field_group.pop('case_id')
 
             parent_table_key = field_group_key
 
@@ -642,6 +647,12 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
                 parent_table_key = get_parent_table(parent_table_key)
             if not parent_table_key:
                 has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
+
+
+
+            if 'case_id' in field_group:
+                field_group.pop('case_id')
+
 
             for entry in field_group.copy():
                 # don't need multiple case_id keys in the same table
