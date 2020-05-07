@@ -615,7 +615,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
 
-                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
+                    flattened_case_dict = flatten_case(entry[key], key, flattened_case_dict, params,
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
                     entry_dict[key] = entry[key]
@@ -633,7 +633,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
         for key in case:
             if isinstance(case[key], list):
-                flattened_case_dict = flatten_case(case[key], prefix, flattened_case_dict, params,
+                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
                 entry_dict[key] = case[key]
