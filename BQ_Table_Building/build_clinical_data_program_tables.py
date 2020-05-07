@@ -86,15 +86,15 @@ def retrieve_program_case_structure(program_name, cases, params):
         for field_key in case_:
             # Hits for cases
             if isinstance(case_[field_key], list):
-                parent_path = parent_path + '.' + field_key
-                if parent_path not in record_counts_:
-                    record_counts_[parent_path] = 1
+                new_path = parent_path + '.' + field_key
+                if new_path not in record_counts_:
+                    record_counts_[new_path] = 1
 
                 # find needed one-to-many tables
-                record_counts_[parent_path] = max(record_counts_[parent_path], len(case_[field_key]))
+                record_counts_[new_path] = max(record_counts_[new_path], len(case_[new_path]))
 
                 for entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, parent_path)
+                    tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, new_path)
             elif isinstance(case_[field_key], dict):
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
             else:
