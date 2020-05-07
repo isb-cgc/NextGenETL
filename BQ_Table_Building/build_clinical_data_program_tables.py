@@ -691,10 +691,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     insert_lists = dict()
 
     for case in cases:
-        """
-        case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None,
-                 parent_id_key=None"""
-        flattened_case_dict = flatten_case(case, '', dict(), params, table_keys)
+        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
         for table in flattened_case_dict.keys():
