@@ -391,7 +391,6 @@ def get_parent_table(table_key):
     return parent_table
 
 
-
 def get_table_id_key(table_key, params, fatal=False):
     if not params["FIELD_GROUP_METADATA"]:
         has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
@@ -614,10 +613,11 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         for entry in case:
             entry_dict = dict()
             if case_id != parent_id:
-                entry_dict['case_id'] = case_id
-                entry_dict[parent_id_key] = parent_id
+                case_id_key = get_bq_name(prefix) + '__case_id'
+                entry_dict[case_id_key] = case_id
+                entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
             else:
-                entry_dict[parent_id_key] = parent_id
+                entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
 
             for key in entry:
                 if isinstance(entry[key], list):
@@ -732,8 +732,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 def check_data_integrity(params, cases, record_counts, table_columns):
     for case in cases:
-        case_id = case['case_id']
-
+        pass
 
 ##
 #  Functions for creating documentation
@@ -826,6 +825,7 @@ def main(args):
             'cases.follow_ups': {
                 'record_count_id_key': 'follow_ups_count',
                 'excluded_fields': ["submitter_id"],
+
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
