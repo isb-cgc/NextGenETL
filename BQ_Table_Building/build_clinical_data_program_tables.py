@@ -85,17 +85,18 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         for field_key in case_:
             # Hits for cases
-            if isinstance(field_key, dict):
-                for key in case_[field_key]:
-                    tables_[parent_path].add(key)
-            elif isinstance(field_key, list):
+            if isinstance(field_key, list):
                 record_counts_[parent_path] = max(record_counts_[parent_path], len(case_[field_key]))
 
                 for entry in case_[field_key]:
                     nested_path = parent_path + '.' + field_key
                     tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, nested_path)
+
+            if isinstance(field_key, dict):
+                tables[parent_path] = tables[parent_path] | case_[field_key]
             else:
                 tables[parent_path].add(field_key)
+
         return tables_, record_counts_
 
     tables = {}
