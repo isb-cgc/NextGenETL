@@ -711,9 +711,10 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                 insert_lists[table] = []
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
-
+    print(flattened_case_dict.keys())
     print(insert_lists.keys())
-     for table in insert_lists:
+
+    for table in insert_lists:
         table_id = tables_dict[table]
         table_mb = sys.getsizeof(insert_lists[table]) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
