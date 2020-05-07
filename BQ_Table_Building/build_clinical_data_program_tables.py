@@ -91,7 +91,7 @@ def retrieve_program_case_structure(program_name, cases, params):
                     record_counts_[new_path] = 1
 
                 # find needed one-to-many tables
-                record_counts_[new_path] = max(record_counts_[new_path], len(case_[new_path]))
+                record_counts_[new_path] = max(record_counts_[new_path], len(case_[field_key]))
 
                 for entry in case_[field_key]:
                     tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_, new_path)
