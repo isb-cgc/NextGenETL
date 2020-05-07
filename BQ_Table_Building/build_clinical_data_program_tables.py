@@ -165,13 +165,10 @@ def flatten_tables(tables, record_counts, params):
 
         split_field_group = field_group.split('.')
 
-        parent_fg_name = split_field_group[-1]
-
         for field in tables[field_group]:
             # check field naming on doubly-nested fields
 
             prefix = ''
-            column_name = parent_fg_name + "__" + field
             parent_key = None
 
             for i in range(len(split_field_group) - 1, 0, -1):
@@ -442,10 +439,10 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
-    def generate_child_record_count_schema_entry(record_count_id_key):
-        child_table = record_count_id_key[:-7]
+    def generate_child_record_count_schema_entry(record_count_id_key_):
+        child_table = record_count_id_key_[:-7]
         description = "Total count of records associated with this case, located in {} table".format(child_table)
-        return {"name": record_count_id_key, "type": 'INTEGER', "description": description}
+        return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
     if len(table_key.split('.')) > 1:
         if table_key not in params["REFERENCE_FIELD_KEYS"]:
