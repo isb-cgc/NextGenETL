@@ -755,6 +755,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             record_keys = dict()
 
             for table_key, depth in depth_dict.items():
+
                 record_keys[table_key] = []
                 if depth == 1:
                     if 'case_id' in current_level:
@@ -764,11 +765,11 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                         record_key = table_key.split('.')[i]
                         if record_key in current_level:
                             current_level = current_level[record_key]
-                            table_id_key = record_key[:-1] + '_id'
+                    table_id_key = record_key[:-1] + '_id'
 
-                            for entry in current_level:
-                                if table_id_key in entry:
-                                    record_keys[table_key].append(entry[table_id_key])
+                    for entry in current_level:
+                        if table_id_key in entry:
+                            record_keys[table_key].append(entry[table_id_key])
             print(record_keys)
 
 ##
