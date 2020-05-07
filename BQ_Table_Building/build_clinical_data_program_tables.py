@@ -627,7 +627,9 @@ def create_table_mapping(tables_dict):
     """
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None,
                  parent_id_key=None):
-    if isinstance(case, list):
+    if not isinstance(case, list) or not isinstance(case, dict):
+        flattened_case_dict[prefix] = case
+    elif isinstance(case, list):
         for entry in case:
             flattened_case_dict = flatten_case(entry, prefix, flattened_case_dict, params,
                                                table_keys, case_id, parent_id, parent_id_key)
@@ -650,8 +652,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             flattened_case_dict[prefix] = entry_list
         else:
             flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
-    else:
-        print("Primitives happen")
 
     return flattened_case_dict
 
