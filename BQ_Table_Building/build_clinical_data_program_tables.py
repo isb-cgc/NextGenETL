@@ -741,11 +741,11 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         frequency_dict[table] = {}
 
     for case in cases:
-        # table_dict = get_tables(record_counts)
+        table_dict = get_tables(record_counts)
 
         base_level = case
 
-        depth_dict = dict.fromkeys(record_counts, 0)
+        depth_dict = dict.fromkeys(table_dict, 0)
         for depth_key in depth_dict.copy():
             depth_dict[depth_key] = len(depth_key.split('.'))
 
