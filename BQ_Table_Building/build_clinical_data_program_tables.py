@@ -626,6 +626,67 @@ def create_table_mapping(tables_dict):
                 else:
                     flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
     """
+
+def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
+    if isinstance(case, list):
+        entry_list = []
+
+        for entry in case:
+            entry_dict = dict()
+            if case_id != parent_id:
+                entry_dict['case_id'] = case_id
+                entry_dict[parent_id_key] = parent_id
+            else:
+                entry_dict[parent_id_key] = parent_id
+
+            for key in entry:
+                if isinstance(entry[key], list):
+                    # note -- If you're here because you've added a new doubly-nested field group,
+                    # this is where you'll want to capture the parent field group's id.
+                    if prefix in params["SINGULAR_ID_NAMES"]:
+                        new_parent_id_key = params['SINGULAR_ID_NAMES'][prefix]
+                        new_parent_id = entry[new_parent_id_key]
+                    else:
+                        new_parent_id = parent_id
+                        new_parent_id_key = parent_id_key
+
+                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
+                                                       case_id, new_parent_id, new_parent_id_key)
+                else:
+                    entry_dict[key] = entry[key]
+
+            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+            entry_list.append(entry_dict)
+        if prefix in flattened_case_dict:
+            flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
+        else:
+            if entry_list:
+                flattened_case_dict[prefix] = entry_list
+    else:
+        entry_list = []
+        entry_dict = dict()
+        if prefix not in flattened_case_dict:
+            flattened_case_dict[prefix] = []
+
+        parent_id = case_id = case['case_id']
+        parent_id_key = 'case_id'
+
+        for key in case:
+            if isinstance(case[key], list):
+                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
+                                                   case_id, parent_id, parent_id_key)
+            else:
+                entry_dict[key] = case[key]
+        if entry_dict:
+            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+            entry_list.append(entry_dict)
+            flattened_case_dict[prefix] = entry_list
+
+    flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+
+    return flattened_case_dict
+
+"""
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None,
                  parent_id_key=None):
     if not isinstance(case, list) or not isinstance(case, dict):
@@ -635,18 +696,36 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             flattened_case_dict = flatten_case(entry, prefix, flattened_case_dict, params,
                                                table_keys, case_id, parent_id, parent_id_key)
     elif isinstance(case, dict):
+
         entry_list = []
         entry_dict = dict()
 
         for key in case:
             if isinstance(case[key], list):
+
                 for entry in case[key]:
+                    if case_id and 'case_id' not in entry:
+                        entry['case_id'] = case_id
+                    if case_id != parent_id:
+                        entry[parent_id_key] = parent_id
+
+                    new_parent_id_key = get_table_id_key(prefix + '.' + entry, params)
+
+                    if new_parent_id_key and new_parent_id_key in entry:
+                        new_parent_id = entry[new_parent_id_key]
+
                     entry_dict = flatten_case(entry, prefix + '.' + key, flattened_case_dict, params, table_keys, case_id, parent_id, parent_id_key)
                     if entry_dict:
                         entry_list.append(entry_dict)
             else:
                 entry_dict[key] = case[key]
         if entry_dict:
+
+
+            if case_id and 'case_id' not in case:
+                entry['case_id'] = case_id
+            if case_id != parent_id:
+                entry[parent_id_key] = parent_id
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
         if prefix not in flattened_case_dict:
@@ -655,7 +734,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
 
     return flattened_case_dict
-
+"""
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     for field_group_key in flattened_case_dict.copy():
