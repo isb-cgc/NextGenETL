@@ -713,7 +713,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
     for table in insert_lists:
-        print(table)
+        print(insert_lists[table])
 
         table_id = tables_dict[table]
 
