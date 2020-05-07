@@ -782,7 +782,7 @@ def main(args):
     }
 
     program_names = get_programs_list(params)
-    program_names = ['BEATAML1.0']
+    # program_names = ['BEATAML1.0']
     # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
