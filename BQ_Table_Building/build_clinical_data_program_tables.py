@@ -813,7 +813,7 @@ def main(args):
             'cases.follow_ups.molecular_tests': 'follow_ups__molecular_tests_count',
             'cases.diagnoses.treatments': 'diagnoses__treatments_count',
             'cases.diagnoses.annotations': 'diagnoses__annotations_count'
-        }
+        },
         "INSERT_BATCH_SIZE": 1000
     }
 
