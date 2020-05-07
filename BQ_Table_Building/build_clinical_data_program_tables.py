@@ -75,54 +75,40 @@ def strip_null_fields(case):
 ##
 def retrieve_program_case_structure(program_name, cases, params):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
-        print(tables_)
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
         if parent_path not in tables_:
             tables_[parent_path] = set()
+        if parent_path not in record_counts_:
+            record_counts_[parent_path] = 1
 
         for field_key in case_:
-            if not case_[field_key]:
-                continue
-
             if not isinstance(case_[field_key], list) and not isinstance(case_[field_key], dict):
-                if parent_path not in record_counts_:
-                    record_counts_[parent_path] = 1
-
                 tables_[parent_path].add(field_key)
-                continue
-
-            # at this point, the field_key references a dict or list
-            nested_path = parent_path + '.' + field_key
-
-            if nested_path not in record_counts_:
-                record_counts_[nested_path] = 1
-
-            if isinstance(case_[field_key], dict):
-                # is this actually hit? I don't think so
-                tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, nested_path)
             else:
-                record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
+                if isinstance(case_[field_key], dict):
+                    # is this actually hit? I don't think so
+                    print("HITS!")
+                    tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
+                else:
+                    # at this point, the field_key references a dict or list
+                    nested_path = parent_path + '.' + field_key
 
-                for field_group_entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(
-                        tables_, field_group_entry, record_counts_, nested_path)
+                    record_counts_[nested_path] = max(record_counts_[nested_path], len(case_[field_key]))
+
+                    for field_group_entry in case_[field_key]:
+                        tables_, record_counts_ = build_case_structure(
+                            tables_, field_group_entry, record_counts_, nested_path)
 
         return tables_, record_counts_
 
     tables = {}
     record_counts = {}
 
-    print_now = True
-
     for case in cases:
-        if print_now:
-            print(case)
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
-        if print_now:
-            print(tables)
-        print_now = False
+
     tables = flatten_tables(tables, record_counts, params)
 
     if not tables:
