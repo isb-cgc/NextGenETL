@@ -1,7 +1,8 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
 from google.cloud import bigquery
 from google.api_core import exceptions
-import sys, math
+import sys
+import math
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -117,10 +118,11 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         # case = strip_null_fields(case)
         # null_stripped_cases.append(case)
-        if 'updated_datetime' not in case:
-            print('updated_datetime not in case. \n{}'.format(case))
+        if 'created_datetime' not in case:
+            print('created_datetime not in case. \n{}'.format(case))
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
+        print(tables)
 
     tables = flatten_tables(tables, record_counts, params)
 
@@ -137,12 +139,9 @@ def remove_unwanted_fields(record, table_name, params):
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
-
     elif isinstance(record, set):
         print("From table {}, removed:".format(table_name), end=' ')
-
         excluded_fields_list = []
-
         for field in record.copy():
             if field in excluded_fields:
                 excluded_fields_list.append(field)
