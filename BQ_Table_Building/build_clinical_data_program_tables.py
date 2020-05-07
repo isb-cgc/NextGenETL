@@ -737,10 +737,13 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         base_level = case
 
         depth_dict = dict.fromkeys(record_counts, 0)
+        frequency_dict = dict.fromkeys(record_counts, dict())
         for depth_key in depth_dict.copy():
             depth_dict[depth_key] = len(depth_key.split('.'))
 
         record_keys = dict()
+
+
 
         for table_key, depth in depth_dict.items():
             current_level = base_level
@@ -768,8 +771,16 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             if not record_keys[key]:
                 record_keys.pop(key)
 
-        print(record_keys)
+        # print(record_keys)
 
+        for table in record_keys:
+            record_count = len(record_keys[table])
+            if record_count in frequency_dict[table]:
+                frequency_dict[table][record_count] += 1
+            else:
+                frequency_dict[table][record_count] = 1
+
+        print(frequency_dict)
 ##
 #  Functions for creating documentation
 ##
