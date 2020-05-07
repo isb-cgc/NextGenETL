@@ -750,17 +750,21 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             if depth == 1:
                 if 'case_id' in current_level:
                     record_keys[table_key].append(current_level['case_id'])
+                    continue
             else:
                 for i in range(1, depth):
                     record_key = table_key.split('.')[i]
                     if record_key in current_level:
                         current_level = current_level[record_key]
 
-                table_id_key = record_key[:-1] + '_id'
+                id_key = get_table_id_key(table_key, params)
+                if not id_key:
+                    id_key = table_key.split('.')[depth - 1]
+                    id_key = id_key[:-1] + '_id'
 
-                for entry in current_level:
-                    if table_id_key in entry:
-                        record_keys[table_key].append(entry[table_id_key])
+            for entry in current_level:
+                if id_key in entry:
+                    record_keys[table_key].append(entry[id_key])
 
         for key in record_keys.copy():
             if not record_keys[key]:
