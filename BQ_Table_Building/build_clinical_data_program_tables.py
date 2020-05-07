@@ -315,7 +315,7 @@ def lookup_column_types(params):
 
     return column_type_dict
 
-730
+
 def create_schema_dict(params):
     column_type_dict = lookup_column_types(params)
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
@@ -341,7 +341,7 @@ def create_schema_dict(params):
         }
 
     return schema_dict
-730
+
 
 def get_field_name(column):
     if '.' in column:
@@ -634,10 +634,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
                                                        case_id, new_parent_id, new_parent_id_key)
                 else:
-                    if key.endswith('_id'):
-                        col_name = key
-                    else:
-                        col_name = get_bq_name(prefix + '.' + key)
+
+                    col_name = get_bq_name(prefix + '.' + key)
                     entry_dict[col_name] = entry[key]
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
@@ -661,10 +659,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
                                                    case_id, parent_id, parent_id_key)
             else:
-                if key.endswith('_id'):
-                    col_name = key
-                else:
-                    col_name = get_bq_name(prefix + '.' + key)
+                col_name = get_bq_name(prefix + '.' + key)
                 entry_dict[col_name] = case[key]
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
