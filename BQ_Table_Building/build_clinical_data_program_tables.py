@@ -787,6 +787,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
+        print(flattened_case_dict)
         for table in flattened_case_dict.keys():
             count = len(flattened_case_dict[table])
             parent_table = get_parent_table(table)
