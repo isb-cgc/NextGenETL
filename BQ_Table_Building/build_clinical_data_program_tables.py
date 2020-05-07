@@ -481,7 +481,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
             # in cases
 
             if len(table_key.split('.')) > 2:
-                reference_id_key = get_table_id_key(parent_table_key)
+                reference_id_key = get_table_id_key(parent_table_key, params)
                 tables_dict[table_key].add(reference_id_key)
                 schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
                 schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
