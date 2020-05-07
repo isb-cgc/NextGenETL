@@ -461,7 +461,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         if parent_table_key not in table_keys:
             parent_table_key = 'cases'
 
-        tables_dict[parent_table_key].add([record_count_id_key])
+        tables_dict[parent_table_key].add(record_count_id_key)
         schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
 
         if len(table_key.split('.')) > 1:
