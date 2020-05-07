@@ -380,12 +380,15 @@ def get_parent_table(table_key):
     return parent_table
 
 
-def get_table_id_key(table_key, params):
+def get_table_id_key(table_key, params, fatal=False):
     if 'table_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
-        has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA'][{}]".format(
-            table_key))
-
+        if fatal:
+            has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA'][{}]".format(
+                table_key))
+        else:
+            return None
     return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
+
 
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
@@ -586,8 +589,10 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     if prefix not in params["FIELD_GROUP_METADATA"]:
                         has_fatal_error("{} not found in params['FIELD_GROUP_METADATA'][{}]".format(prefix))
 
-                    if 'table_id_key' in params['FIELD_GROUP_METADATA'][prefix]:
-                        new_parent_id_key = params['FIELD_GROUP_METADATA'][prefix]['table_id_key']
+                    table_id_key = get_table_id_key(prefix, params, fatal=False)
+
+                    if table_id_key:
+                        new_parent_id_key = table_id_key
                         new_parent_id = entry[new_parent_id_key]
                     else:
                         new_parent_id = parent_id
