@@ -719,8 +719,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         pages = math.ceil(len(insert_lists[table]) / batch_size)
         page_size = table_mb / pages
 
-        print(table_id)
-
         if page_size > 10:
             print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
             new_page_size = math.floor(table_mb / 10)
@@ -733,6 +731,9 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             bq_table = client.get_table(table_id)
             start_idx = 0
             end_idx = batch_size
+
+            print("batch {}".format(batch_size))
+            print("insert_lists len {}".format(insert_lists[table]))
 
             while len(insert_lists[table]) > end_idx:
                 print("start_idx: {}".format())
