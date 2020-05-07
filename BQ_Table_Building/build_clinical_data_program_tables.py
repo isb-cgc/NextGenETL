@@ -108,26 +108,26 @@ def retrieve_program_case_structure(program_name, cases, params):
                     tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_,
                                                                    nested_path)
 
-        print("case structure build")
-        print(tables_)
         return tables_, record_counts_
 
     tables = {}
     record_counts = {}
 
-    null_stripped_cases = []
+    print_now = True
 
     for case in cases:
-        # case = strip_null_fields(case)
-        # null_stripped_cases.append(case)
-
+        if print_now:
+            print(case)
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
+        if print_now:
+            print(tables)
+        print_now = False
     tables = flatten_tables(tables, record_counts, params)
 
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    return tables, record_counts, null_stripped_cases
+    return tables, record_counts
 
 
 def remove_unwanted_fields(record, table_name, params):
@@ -1010,7 +1010,7 @@ def main(args):
         print("\n(Case count = {})...".format(len(cases)))
 
         print("DONE.\n - Determining program table structure... ")
-        tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
+        tables_dict, record_counts = retrieve_program_case_structure(program_name, cases, params)
         print("\nrecord_counts: {} \n".format(record_counts))
 
         print("DONE.\n - Creating empty BQ tables... ")
