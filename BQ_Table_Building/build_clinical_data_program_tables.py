@@ -760,6 +760,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     count_dict[key] = cnt
 
                 for entry in case[key]:
+                    if hierarchy[key]:
                     for c_key in hierarchy[key]:
                         if c_key in entry and entry[c_key] and isinstance(c_key, list):
                             cnt = len(entry[c_key])
