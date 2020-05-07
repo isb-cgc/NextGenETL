@@ -512,8 +512,9 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
 
         if len(table_key.split('.')) > 1:
-            schema_dict[get_bq_name(table_key) + '__case_id'] = generate_id_schema_entry('case_id', 'main')
-            tables_dict[table_key].add('case_id')
+            case_id_key = get_bq_name(table_key) + '__case_id'
+            schema_dict[case_id_key] = generate_id_schema_entry(case_id_key, 'main')
+            tables_dict[table_key].add(case_id_key)
             # create a column containing a count of records associated, in child table
             # in cases
 
@@ -707,6 +708,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
                 flattened_case_dict[parent_table_key][0][key] = field_group[key]
     return flattened_case_dict
 
+
 def insert_case_data(cases, record_counts, tables_dict, params):
     print("Inserting case records... ")
 
@@ -727,65 +729,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             if errors:
                 print(errors)
 
-"""
-def insert_case_data(cases, record_counts, tables_dict, params):
-    print("Inserting case records... ")
-
-    table_keys = get_tables(record_counts)
-
-    insert_lists = dict()
-
-    for case in cases:
-        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
-        for table in flattened_case_dict.keys():
-            if table not in table_keys:
-                has_fatal_error("Table {} not found in table keys".format(table))
-
-            if table not in insert_lists:
-                insert_lists[table] = []
-
-            insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
-
-    for table in insert_lists.copy():
-        records = insert_lists[table]
-        table_id = tables_dict[table]
-        table_mb = sys.getsizeof(records) / (1024 * 1024)
-        batch_size = params["INSERT_BATCH_SIZE"]
-        pages = math.ceil(len(records) / batch_size)
-        page_size = table_mb / pages
-
-        if page_size > 10:
-            print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
-            new_page_size = math.floor(table_mb / 10)
-            ratio = new_page_size / page_size
-            batch_size = math.floor(batch_size * ratio)
-
-        try:
-            client = bigquery.Client()
-            print("\t- inserting rows into {}... ".format(table_id.split('.')[-1]))
-            table_obj = client.get_table(table_id)
-            if batch_size > len(records):
-                print(table_obj)
-                print(records)
-                errors = client.insert_rows(table_obj, records)
-                if errors:
-                    print(errors)
-            else:
-                start_idx = 0
-                end_idx = batch_size
-
-                while len(records) > end_idx:
-                    client.insert_rows(table_obj, records[start_idx:end_idx])
-                    start_idx = end_idx
-                    end_idx += batch_size
-                client.insert_rows(table_obj, records[start_idx:])
-        except exceptions.BadRequest as err:
-            has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
-        except IndexError as err:
-            has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
-                start_idx, end_idx, table, len(insert_lists[table]), err))
-"""
 
 def check_data_integrity(params, cases, record_counts, table_columns):
     for case in cases:
