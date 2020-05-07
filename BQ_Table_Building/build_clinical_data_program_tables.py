@@ -357,14 +357,18 @@ def get_fg_name(column):
 
 
 def get_bq_name(column):
-    if not column:
+    if not column or '.' not in column:
         return None
-    elif '.' in column:
-        split_name = column.split('.')
-        if split_name[0] == 'cases':
-            return '__'.join(split_name[1:])
-    else:
-        return column
+
+    split_name = column.split('.')
+
+    if split_name[0] == 'cases':
+        if len(split_name) == 1:
+            return None
+        split_name = split_name[1:]
+
+    return '__'.join(split_name)
+
 
 
 def get_parent_table(table_key):
