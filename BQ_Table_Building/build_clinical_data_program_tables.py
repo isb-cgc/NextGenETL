@@ -735,6 +735,11 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         print(case)
         case_id = case['case_id']
 
+        table_dict = get_tables(record_counts)
+
+        print(table_dict)
+
+
 
 
 
