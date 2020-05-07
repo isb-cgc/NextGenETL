@@ -469,8 +469,8 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
             if len(table_key.split('.')) > 2 and 'record_count_id_key' in params["REFERENCE_FIELD_KEYS"][table_key]:
                 reference_id_key = params["REFERENCE_FIELD_KEYS"][parent_table_key]['table_id_key']
                 tables_dict[table_key].add(reference_id_key)
-                parent_id_col_name = get_bq_name(parent_table_key) + '_' + reference_id_key
-                schema_dict[parent_id_col_name] = generate_id_schema_entry(parent_id_col_name, parent_table_key)
+                schema_column_name = get_bq_name(table_key) + '_' + reference_id_key
+                schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
 
     return tables_dict, schema_dict
 
