@@ -793,11 +793,12 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                 frequency_dict[table][record_count] = 1
         """
 
+    print("Frequency of records per case for one-to-many tables:")
     for table in frequency_dict:
         if table in frequency_dict and frequency_dict[table]:
-            print("For {}".format(table))
+            print("{}".format(table))
             for value in frequency_dict[table]:
-                print("{}: {}".format(value, frequency_dict[table][value]))
+                print("\t{}: {}".format(value, frequency_dict[table][value]))
 
 
 ##
@@ -925,7 +926,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['HCMI']
+    program_names = ['VAREPOP', 'CGCI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
