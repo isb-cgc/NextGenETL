@@ -51,25 +51,6 @@ def get_cases_by_program(program_name, params):
     return cases
 
 
-"""
-def strip_null_fields(case):
-    def strip_null_fields_recursive(sub_case):
-        for key in sub_case.copy():
-            if not sub_case[key]:
-                sub_case.pop(key)
-
-            elif isinstance(sub_case[key], list):
-                new_sub_case = []
-                for entry in sub_case[key].copy():
-                    new_sub_case.append(strip_null_fields_recursive(entry))
-                sub_case[key] = new_sub_case
-
-        return sub_case
-
-    return strip_null_fields_recursive(case)
-"""
-
-
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
@@ -421,78 +402,31 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
         description = "Reference to the {} field of the {} record to which this record belongs. " \
                       "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
-
-        return {
-            "name": column_name,
-            "type": 'STRING',
-            "description": description
-        }
-
-    """
-    def generate_ids_schema_entry(child_table_, child_field_name):
-        column_name = "_".join(child_field_name.split(" ")) + '_ids'
-        description = "List of {} ids, referencing associated records located in the program's {} " \
-                      "table.".format(child_field_name, child_table_)
-
-        return {
-            "name": column_name,
-            "type": 'STRING',
-            "description": description
-        }
-    """
+        return {"name": column_name, "type": 'STRING', "description": description}
 
     if table_key == 'cases.follow_ups':
-        # tables_dict['cases'].add('follow_up_ids')
-        # schema_dict['follow_up_ids'] = generate_ids_schema_entry('*_follow_ups', 'follow up')
-
         tables_dict['cases.follow_ups'].add('case_id')
         schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.follow_ups.molecular_tests':
-        # tables_dict['cases.follow_ups'].add('molecular_test_ids')
-        # schema_dict['follow_ups__molecular_test_ids'] = generate_ids_schema_entry(
-        #    '*_follow_ups__molecular_tests', 'molecular test')
-
         tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
         schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
             '*_follow_ups', 'follow up', 'follow_up_id')
-
         tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
         schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.family_histories':
-        # tables_dict['cases'].add('family_history_ids')
-        # schema_dict['family_history_ids'] = generate_ids_schema_entry('*_family_histories', 'family history')
-
         tables_dict['cases.family_histories'].add('case_id')
         schema_dict['family_histories__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.demographic':
-        # tables_dict['cases'].add('demographic_ids')
-        # schema_dict['demographic_ids'] = generate_ids_schema_entry('*_demographic', 'demographic')
-
         tables_dict['cases.demographic'].add('case_id')
         schema_dict['demographic__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.exposures':
         tables_dict['cases.exposures'].add('case_id')
         schema_dict['exposures__case_id'] = generate_id_schema_entry()
-
-        # tables_dict['cases'].add('exposure_ids')
-        # schema_dict['exposure_ids'] = generate_ids_schema_entry('*_exposures', 'exposure')
     elif table_key == 'cases.diagnoses':
-        # tables_dict['cases'].add('diagnosis_ids')
-        # schema_dict['diagnosis_ids'] = generate_ids_schema_entry('*_diagnoses', 'diagnosis')
-
         tables_dict['cases.diagnoses'].add('case_id')
         schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.treatments':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-        """
-        child_table = ancestor_table + '__treatments' if 'case.diagnoses' in table_keys else ancestor_table
-
-        if 'cases.diagnoses' in table_keys:
-            tables_dict['cases.diagnoses'].add('treatment_ids')
-        else:
-            tables_dict['cases'].add('diagnoses__treatment_ids')
-        schema_dict['diagnoses__treatment_ids'] = generate_ids_schema_entry(child_table, 'treatment')
-        """
 
         tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
         schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
@@ -501,15 +435,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-        """
-        child_table = ancestor_table + '__annotations' if 'case.diagnoses' in table_keys else ancestor_table
-        
-        if 'cases.diagnoses' in table_keys:
-            tables_dict['cases.diagnoses'].add('annotation_ids')
-        else:
-            tables_dict['cases'].add('diagnoses__annotation_ids')
-        schema_dict['diagnoses__annotation_ids'] = generate_ids_schema_entry(child_table, 'annotation')
-        """
 
         tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
         schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
@@ -678,64 +603,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
     return flattened_case_dict
 
 
-"""
-def create_child_table_id_list(flattened_case_dict, parent_fg, child_fg):
-    def create_id_key(field_name):
-        if field_name == 'diagnoses':
-            id_key = 'diagnosis_id'
-        elif field_name == 'family_histories':
-            id_key = 'family_history_id'
-        elif field_name[-1] == 's':
-            # remove pluralization from field group name to make id keys
-            id_key = field_name[:-1] + '_id'
-        else:
-            id_key = field_name + '_id'
-        return id_key
-
-    child_table_name = parent_fg + '.' + child_fg
-
-    parent_id_key = create_id_key(parent_fg.split(".")[-1])
-    child_id_key = create_id_key(child_fg)
-    child_id_list_key = child_id_key + 's'
-
-    if child_table_name not in flattened_case_dict:
-        has_fatal_error("{} does not appear to be a table. There shouldn't be a situation in which the child_fg"
-                        "passed doesn't exist in the flat case dictionary.".format(child_table_name))
-
-    while parent_fg not in flattened_case_dict:
-        split_parent = parent_fg.split('.')
-        parent_fg = '.'.join(split_parent[:-1])
-        child_id_list_key = split_parent[-1] + '__' + child_id_list_key
-
-        if len(split_parent) == 1 and parent_fg not in flattened_case_dict:
-            return flattened_case_dict
-
-    child_ids_list = []
-    parent_id = ""
-
-    for child_record in flattened_case_dict[child_table_name]:
-        parent_id = child_record[parent_id_key]
-        child_id = child_record[child_id_key]
-        child_ids_list.append(child_id)
-
-    child_ids_list.sort()
-
-    parent_fg_entries = flattened_case_dict.pop(parent_fg)
-
-    entry_list = []
-
-    for entry in parent_fg_entries.copy():
-        if parent_id_key in entry:
-            if entry[parent_id_key] == parent_id:
-                entry[child_id_list_key] = ", ".join(child_ids_list)
-        entry_list.append(entry)
-
-    flattened_case_dict[parent_fg] = entry_list
-
-    return flattened_case_dict
-"""
-
-
 def insert_case_data(cases, record_counts, tables_dict, params):
     table_keys = get_tables(record_counts)
 
@@ -750,32 +617,14 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         for table in flattened_case_dict.keys():
             if table not in insert_lists:
                 insert_lists[table] = []
-
-            split_table = table.split('.')
-
-            if len(split_table) > 3:
-                has_fatal_error("Expand field group list contains a nested field group with depth > 3.", ValueError)
-
-            """
-            parent_fg = ".".join(split_table[:-1])
-            child_fg = split_table[-1]
-            
-            if parent_fg:
-                flattened_case_dict = create_child_table_id_list(flattened_case_dict, parent_fg, child_fg)
-            """
-
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
     for table in insert_lists:
         table_id = tables_dict[table]
 
-        # todo insert by batch size sys.getsizeof(insert_lists) / (1024*1024)
-
-        table_bytes = sys.getsizeof(insert_lists[table])
-        table_mb = table_bytes / (1024 * 1024)
-        table_len = len(insert_lists[table])
+        table_mb = sys.getsizeof(insert_lists[table]) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
-        pages = math.ceil(table_len / batch_size)
+        pages = math.ceil(len(insert_lists[table]) / batch_size)
         page_size = table_mb / pages
 
         if page_size > 10:
@@ -788,7 +637,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             print("Inserting rows into {}".format(table_id))
             client = bigquery.Client()
             bq_table = client.get_table(table_id)
-
             start_idx = 0
             end_idx = batch_size
 
@@ -971,8 +819,8 @@ def main(args):
         "INSERT_BATCH_SIZE": 1000
     }
 
-    # program_names = get_programs_list(params)
-    program_names = ['TCGA']
+    program_names = get_programs_list(params)
+    # program_names = ['TCGA']
     # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
@@ -1002,7 +850,7 @@ def main(args):
         insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
-        # generate_documentation(params, program_name, documentation_dict, record_counts)
+        generate_documentation(params, program_name, documentation_dict, record_counts)
         print("DONE.\n")
 
 
