@@ -108,6 +108,8 @@ def retrieve_program_case_structure(program_name, cases, params):
                     tables_, record_counts_ = build_case_structure(tables_, field_group_entry, record_counts_,
                                                                    nested_path)
 
+        print("case structure build")
+        print(tables_)
         return tables_, record_counts_
 
     tables = {}
