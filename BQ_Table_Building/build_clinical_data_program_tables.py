@@ -724,7 +724,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             table_obj = client.get_table(tables_dict[table])
             errors = client.insert_rows(table_obj, flattened_case_dict[table])
 
-            print(errors)
+            if errors:
+                print(errors)
 
 """
 def insert_case_data(cases, record_counts, tables_dict, params):
