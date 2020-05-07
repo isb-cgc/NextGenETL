@@ -791,6 +791,7 @@ def main(args):
         cases = get_cases_by_program(program_name, params)
 
         if len(cases) == 0:
+            print("No case records found for {}, skipping.".format(program_name))
             continue
 
         tables_dict, record_counts = retrieve_program_case_structure(program_name, cases, params)
