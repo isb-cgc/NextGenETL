@@ -793,9 +793,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                         entry[column_name] = entry[key]
                         entry.pop(key)
 
-                insert_lists[table] = flattened_case_dict[table]
-
-    print(insert_lists)
+                insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
     for table in insert_lists:
 
