@@ -151,6 +151,8 @@ def remove_unwanted_fields(record, table_name, params):
 
 
 def flatten_tables(tables, record_counts, params):
+    print("flatten_tables")
+    print(tables)
     """
     Used by retrieve_program_case_structure
     """
