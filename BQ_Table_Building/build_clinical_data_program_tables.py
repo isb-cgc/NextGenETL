@@ -115,14 +115,12 @@ def retrieve_program_case_structure(program_name, cases, params):
     null_stripped_cases = []
 
     for case in cases:
-        if 'updated_datetime' not in case:
-            print('updated_datetime not in case. \n{}'.format(case))
         # case = strip_null_fields(case)
         # null_stripped_cases.append(case)
+        if 'updated_datetime' not in case:
+            print('updated_datetime not in case. \n{}'.format(case))
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
-        if 'updated_datetime' not in tables['case']:
-            print('updated_datetime not in case. 2 \n{}'.format(case))
 
     tables = flatten_tables(tables, record_counts, params)
 
