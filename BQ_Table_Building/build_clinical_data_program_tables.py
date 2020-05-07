@@ -887,11 +887,13 @@ def main(args):
             }
         },
         "REQUIRED_COLUMNS": {
+            """
             'case_id',
             'diagnoses__diagnosis_id',
             'diagnoses__treatments__treatment_id',
             'follow_ups__follow_up_id',
             "follow_ups__molecular_tests__molecular_test_id"
+            """
         },
         "INSERT_BATCH_SIZE": 1000}
 
