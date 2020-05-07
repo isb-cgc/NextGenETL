@@ -599,7 +599,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 entry_dict['case_id'] = case_id
                 entry_dict[parent_id_key] = parent_id
             else:
-                entry_dict[parent_id_key] = parent_id
+                entry_dict['case_id'] = case_id
 
             for key in entry:
                 if isinstance(entry[key], list):
