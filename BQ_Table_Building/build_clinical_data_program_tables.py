@@ -616,9 +616,14 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
                     entry_dict[key] = entry[key]
+            if entry_dict:
+                entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+                entry_list.append(entry_dict)
 
-            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
-            entry_list.append(entry_dict)
+                if prefix not in flattened_case_dict:
+                    flattened_case_dict[prefix] = entry_list
+                else:
+                    flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
     elif isinstance(case, dict):
         entry_list = []
         entry_dict = dict()
@@ -632,16 +637,14 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
-    else:
-        has_fatal_error("case parameter is wrong type in recursion of flatten_case, should be dict or list")
-
-    if entry_list:
         if prefix not in flattened_case_dict:
             flattened_case_dict[prefix] = entry_list
         else:
             flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
+    else:
+        has_fatal_error("case parameter is wrong type in recursion of flatten_case, should be dict or list")
 
-    flattened_case_dict['cases'] = [flattened_case_dict['cases']]
+    # flattened_case_dict['cases'] = [flattened_case_dict['cases']]
     flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
 
     return flattened_case_dict
