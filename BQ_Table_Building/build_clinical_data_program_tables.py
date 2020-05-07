@@ -737,6 +737,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
     for table in insert_lists.copy():
         records = insert_lists[table]
+        print(records)
         table_id = tables_dict[table]
         table_mb = sys.getsizeof(records) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
@@ -754,20 +755,18 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             table_obj = client.get_table(table_id)
             if batch_size > len(records):
                 client.insert_rows(table_obj, records)
-                continue
             else:
                 start_idx = 0
                 end_idx = batch_size
 
+
+
                 while len(records) > end_idx:
                     client.insert_rows(table_obj, records[start_idx:end_idx])
-
                     get_row_count()
                     start_idx = end_idx
                     end_idx += batch_size
-
                 client.insert_rows(table_obj, records[start_idx:])
-                print("row count {} for {}".format(get_row_count(table_id), table_id))
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
         except IndexError as err:
