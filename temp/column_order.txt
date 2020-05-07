@@ -1,10 +1,10 @@
 case_id
 submitter_id
-demographic_ids
-exposure_ids
-diagnosis_ids
-family_history_ids
-follow_up_ids
+demographic_count
+exposures_count
+diagnoses_count
+family_histories_count
+follow_ups_count
 primary_site
 disease_type
 index_date
@@ -70,8 +70,8 @@ exposures__state
 exposures__created_datetime
 exposures__updated_datetime
 diagnoses__diagnosis_id
-diagnoses__annotation_ids
-diagnoses__treatment_ids
+diagnoses__treatments_count
+diagnoses__annotations_count
 diagnoses__case_id
 diagnoses__submitter_id
 diagnoses__treatments_ids
@@ -249,7 +249,7 @@ family_histories__updated_datetime
 follow_ups__follow_up_id
 follow_ups__case_id
 follow_ups__submitter_id
-follow_ups__molecular_test_ids
+follow_ups__molecular_tests_count
 follow_ups__days_to_follow_up
 follow_ups__days_to_progression_free
 follow_ups__height

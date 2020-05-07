@@ -451,7 +451,6 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         elif 'record_count_id_key' not in params["REFERENCE_FIELD_KEYS"][table_key]:
             has_fatal_error("{} key not found in params['REFERENCE_FIELD_KEYS']['{}'], "
                             "cannot add columns.".format('record_count_id_key', table_key))
-
         parent_table_key = get_parent_table(table_key[:-1])
         record_count_id_key = params["REFERENCE_FIELD_KEYS"][table_key]['record_count_id_key']
 
@@ -499,7 +498,10 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
 
         # lookup column position indexes in master list, used to order schema
         for column in tables_dict[table_key]:
-            full_column_name = get_bq_name(table_key + '.' + column)
+            if "__" not in column:
+                full_column_name = get_bq_name(table_key + '.' + column)
+            else:
+                full_column_name = column
 
             try:
                 table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
