@@ -30,7 +30,7 @@ def get_programs_list(params):
 
 
 def get_cases_by_program(program_name, params):
-    print("\nRetrieving cases... ", end='')
+    print("Retrieving cases... ", end='')
 
     cases = []
 
@@ -51,7 +51,7 @@ def get_cases_by_program(program_name, params):
 
     for case_row in results:
         cases.append(dict(case_row.items()))
-    print("DONE. {} cases retrieved.\n".format(len(cases)))
+    print("DONE. {} cases retrieved.".format(len(cases)))
     return cases
 
 
@@ -119,8 +119,8 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    print("... DONE.\n")
-    print("Record counts for each field group: {}\n".format(record_counts))
+    print("... DONE.")
+    print("Record counts for each field group: {}".format(record_counts))
 
     table_keys = get_tables(record_counts)
 
@@ -588,7 +588,7 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
             has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
-    print("... DONE.\n")
+    print("... DONE.")
     return documentation_dict, table_ids
 
 
@@ -739,6 +739,9 @@ def check_data_integrity(params, cases, record_counts, table_columns):
     frequency_dict = {}
 
     tables = get_tables(record_counts)
+
+    if len(tables) < 2:
+        return
 
     for table in tables:
         frequency_dict[table] = {}
@@ -939,7 +942,7 @@ def main(args):
         doc_file.write("New BQ Documentation")
 
     for program_name in program_names:
-        print("\n\n*** Running script for {} ***".format(program_name))
+        print("\n*** Running script for {} ***".format(program_name))
 
         cases = get_cases_by_program(program_name, params)
 
