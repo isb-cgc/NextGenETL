@@ -738,7 +738,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
-    for field_group_key in flattened_case_dict.keys():
+    for field_group_key in flattened_case_dict.copy():
         if field_group_key in table_keys:
             continue
         if len(flattened_case_dict[field_group_key]) > 1:
