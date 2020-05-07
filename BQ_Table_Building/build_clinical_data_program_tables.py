@@ -698,6 +698,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             if table not in table_keys:
                 print(record_counts)
                 print(table_keys)
+                print(flattened_case_dict.keys())
                 has_fatal_error("Table {} not found in table keys".format(table))
             elif table not in insert_lists:
                 insert_lists[table] = []
