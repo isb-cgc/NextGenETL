@@ -590,6 +590,7 @@ def create_table_mapping(tables_dict):
 
     return table_mapping_dict
 
+
     """
     else:
         entry_list = []
