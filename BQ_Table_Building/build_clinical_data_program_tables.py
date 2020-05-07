@@ -768,14 +768,12 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
                 client.insert_rows(table_obj, records[start_idx:])
                 print("row count {} for {}".format(get_row_count(table_id), table_id))
-                print("{} records inserted.".format(len(insert_lists[table]), table))
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
         except IndexError as err:
             has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
                 start_idx, end_idx, table, len(insert_lists[table]), err))
 
-        print("{} has {} rows".format(table_id, get_row_count(table_id)))
     print("... DONE.\n")
 
 
@@ -936,6 +934,12 @@ def main(args):
             program_name, params, table_columns, record_counts, schema_dict)
 
         insert_case_data(cases, record_counts, table_names_dict, params)
+
+        for table in table_names_dict:
+            table_id = table_names_dict[table]
+
+            count = get_row_count(table_id)
+            print("{} has {} rows".format(table_id, count))
 
         generate_documentation(params, program_name, documentation_dict, record_counts)
 
