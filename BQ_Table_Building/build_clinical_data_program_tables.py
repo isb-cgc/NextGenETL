@@ -50,6 +50,7 @@ def get_cases_by_program(program_name, params):
     return cases
 
 
+"""
 def strip_null_fields(case):
     def strip_null_fields_recursive(sub_case):
         for key in sub_case.copy():
@@ -65,7 +66,7 @@ def strip_null_fields(case):
         return sub_case
 
     return strip_null_fields_recursive(case)
-
+"""
 
 ##
 #  Functions for creating the BQ table schema dictionary
@@ -113,7 +114,7 @@ def retrieve_program_case_structure(program_name, cases, params):
     null_stripped_cases = []
 
     for case in cases:
-        case = strip_null_fields(case)
+        # case = strip_null_fields(case)
         null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
@@ -997,13 +998,21 @@ def main(args):
         if len(cases) == 0:
             print("\nNo cases found for program {}, no tables created.".format(program_name))
             continue
-        print("\n(Case count = {})...".format(len(cases)), end='')
 
-        print("DONE.\n - Determining program table structure... ", end='')
+        for case in cases:
+            if 'created_datetime' not in case:
+                print("NO DATETIME")
+            else:
+                print("YES DATETIME")
+            break
+
+        print("\n(Case count = {})...".format(len(cases)))
+
+        print("DONE.\n - Determining program table structure... ")
         tables_dict, record_counts, cases = retrieve_program_case_structure(program_name, cases, params)
         print("\nrecord_counts: {} \n".format(record_counts))
 
-        print("DONE.\n - Creating empty BQ tables... ", end='')
+        print("DONE.\n - Creating empty BQ tables... ")
         documentation_dict, table_names_dict = create_bq_tables(program_name, params, tables_dict, record_counts)
         print("\ntable_names: {} \n".format(table_names_dict))
 
