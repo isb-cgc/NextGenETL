@@ -63,9 +63,7 @@ def get_row_count(table_id):
     )
 
     for result in results:
-        print(result)
-        print(result[0])
-
+        return result.values()[0]
 
 
 ##
