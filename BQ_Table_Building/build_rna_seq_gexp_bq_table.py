@@ -204,10 +204,10 @@ def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
                a.file_gdc_id,
                a.platform,
                a.file_name
-        FROM `{0}` AS a JOIN SELECT DISTINCT * FROM (
-        SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) #EXCEPT to drop the randomized fields
-        FROM `{1}` 
-        WHERE program_name = "TARGET") AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
+        FROM `{0}` AS a 
+        JOIN (SELECT DISTINCT * FROM 
+            (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
+        ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
         '''.format(step2_table, aliquot_table)
 '''
 ----------------------------------------------------------------------------------------------
