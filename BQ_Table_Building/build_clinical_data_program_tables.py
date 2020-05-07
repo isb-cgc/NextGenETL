@@ -644,8 +644,10 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
     else:
         has_fatal_error("case parameter is wrong type in recursion of flatten_case, should be dict or list")
 
-    # flattened_case_dict['cases'] = [flattened_case_dict['cases']]
+    print(flattened_case_dict)
+
     flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+    print(flattened_case_dict)
 
     return flattened_case_dict
 
@@ -686,9 +688,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     insert_lists = dict()
 
     for case in cases:
-        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys,
-                                           case['case_id'], case['case_id'])
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
