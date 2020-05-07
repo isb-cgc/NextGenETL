@@ -629,6 +629,8 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
+    print(case)
+    return flattened_case_dict
     if isinstance(case, list):
         entry_list = []
 
