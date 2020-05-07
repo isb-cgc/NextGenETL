@@ -727,8 +727,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
-        has_fatal_error(err)
-
     for table in insert_lists.copy():
         client = bigquery.Client()
         records = insert_lists[table]
