@@ -621,7 +621,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 else:
 
                     col_name = get_bq_name(prefix + '.' + key)
-                    print("here : {}".format(col_name))
                     entry_dict[col_name] = entry[key]
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
@@ -646,7 +645,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                                                    case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(prefix + '.' + key)
-                print("there : {}".format(col_name))
                 entry_dict[col_name] = case[key]
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
@@ -705,7 +703,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
-        print(flattened_case_dict)
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
@@ -896,6 +893,8 @@ def main(args):
 
         table_columns, record_counts, schema_dict = retrieve_program_case_structure(
             program_name, cases, params, schema_dict)
+
+        print()
 
         documentation_dict, table_names_dict = create_bq_tables(
             program_name, params, table_columns, record_counts, schema_dict)
