@@ -628,16 +628,6 @@ def create_table_mapping(tables_dict):
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None,
                  parent_id_key=None):
     if isinstance(case, list):
-        case_is = 'list'
-    elif isinstance(case, dict):
-        case_is = 'dict'
-    elif not case:
-        case_is = 'None'
-    else:
-        case_is = 'value'
-    print("prefix: {}, case type = {}".format(prefix, case_is))
-
-    if isinstance(case, list):
         for entry in case:
             flattened_case_dict = flatten_case(entry, prefix, flattened_case_dict, params,
                                                table_keys, case_id, parent_id, parent_id_key)
@@ -648,17 +638,18 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         for key in case:
             if isinstance(case[key], list):
                 for entry in case[key]:
-                    flattened_case_dict = flatten_case(entry, prefix + '.' + key, flattened_case_dict, params,
-                                                       table_keys, case_id, parent_id, parent_id_key)
+                    entry_dict = flatten_case(entry, prefix + '.' + key, flattened_case_dict, params, table_keys, case_id, parent_id, parent_id_key)
+                    if entry_dict:
+                        entry_list.append(entry_dict)
             else:
                 entry_dict[key] = case[key]
-            if entry_dict:
-                entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
-                entry_list.append(entry_dict)
-            if prefix not in flattened_case_dict:
-                flattened_case_dict[prefix] = entry_list
-            else:
-                flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
+        if entry_dict:
+            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+            entry_list.append(entry_dict)
+        if prefix not in flattened_case_dict:
+            flattened_case_dict[prefix] = entry_list
+        else:
+            flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
     else:
         print("Primitives happen")
 
