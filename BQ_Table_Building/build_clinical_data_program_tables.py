@@ -770,6 +770,10 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     for entry in current_level:
                         if table_id_key in entry:
                             record_keys[table_key].append(entry[table_id_key])
+
+            for key in record_keys.copy():
+                if not record_keys[key]:
+                    record_keys.pop(key)
             print(record_keys)
 
 ##
