@@ -746,7 +746,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
             if parent_table_key not in table_keys:
                 parent_table_key = get_parent_table(parent_table_key)
             if parent_table_key not in table_keys:
-                has_fatal_error("no parent")
+                has_fatal_error("no parent {}".format(table_keys))
 
             record_count_key = get_record_count_id_key(field_group_key, params)
             flattened_case_dict[parent_table_key][0][record_count_key] = record_count
