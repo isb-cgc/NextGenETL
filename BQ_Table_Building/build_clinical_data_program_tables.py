@@ -63,7 +63,7 @@ def get_row_count(table_id):
     )
 
     for result in results:
-        return result
+        return result.value
 
 
 ##
