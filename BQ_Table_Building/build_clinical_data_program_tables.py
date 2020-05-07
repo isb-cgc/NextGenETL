@@ -619,22 +619,21 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
-    else:
+    elif isinstance(case, dict):
         entry_list = []
         entry_dict = dict()
-        parent_id = case_id = case['case_id']
-        parent_id_key = 'case_id'
 
         for key in case:
             if isinstance(case[key], list):
                 flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
-                                                   table_keys,
-                                                   case_id, parent_id, parent_id_key)
+                                                   table_keys, case_id, parent_id, parent_id_key)
             else:
                 entry_dict[key] = case[key]
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
+    else:
+        has_fatal_error("case parameter is wrong type in recursion of flatten_case, should be dict or list")
 
     if entry_list:
         if prefix not in flattened_case_dict:
