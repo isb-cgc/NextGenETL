@@ -782,7 +782,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                 frequency_dict[table][record_count] = 1
 
     for table in frequency_dict:
-        pp.pprint(frequency_dict[table])
+        print('{}: {}'.format(table, frequency_dict[table]))
 ##
 #  Functions for creating documentation
 ##
