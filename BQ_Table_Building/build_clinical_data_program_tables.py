@@ -378,6 +378,7 @@ def get_parent_table(table_key):
     parent_table = ".".join(split_key[:-1])
     return parent_table
 
+
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
@@ -441,44 +442,39 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
-
     def generate_child_record_count_schema_entry(record_count_id_key):
         child_table = record_count_id_key[:-7]
         description = "Total count of records associated with this case, located in {} table".format(child_table)
         return {"name": record_count_id_key, "type": 'INTEGER', "description": description}
 
-    if len(table_key.split('.')) == 1:
-        return tables_dict, schema_dict
-
-    parent_table_key = get_parent_table(table_key[:-1])
-    record_count_id_key = get_bq_name(table_key) + '__count'
-
-    if parent_table_key not in table_keys:
-        parent_table_key = 'cases'
-
-    tables_dict[parent_table_key].add([record_count_id_key])
-    schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
-
     if len(table_key.split('.')) > 1:
-        schema_dict[parent_table_key + '__case_id'] = generate_id_schema_entry('case_id', 'main')
-        tables_dict[table_key].add('case_id')
-        # create a column containing a count of records associated, in child table
-        # in cases
+        if table_key not in params["REFERENCE_FIELD_KEYS"]:
+            has_fatal_error("{} key not found in params['REFERENCE_FIELD_KEYS'], "
+                            "cannot add columns.".format(table_key))
+        elif 'record_count_id_key' not in params["REFERENCE_FIELD_KEYS"][table_key]:
+            has_fatal_error("{} key not found in params['REFERENCE_FIELD_KEYS']['{}'], "
+                            "cannot add columns.".format('record_count_id_key', table_key))
 
-        if len(table_key.split('.')) > 2:
-            # insert parent id into child table
-            if parent_table_key in params["SINGULAR_ID_NAMES"]:
-                parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
-            else:
-                parent_id_key = None
+        parent_table_key = get_parent_table(table_key[:-1])
+        record_count_id_key = params["REFERENCE_FIELD_KEYS"][table_key]['record_count_id_key']
 
-                has_fatal_error("No id field name defined for parent table {} of table {}".format(
-                    parent_table_key, table_key))
+        if parent_table_key not in table_keys:
+            parent_table_key = 'cases'
 
-            # insert case_id into child table
-            tables_dict[table_key].add(parent_id_key)
-            parent_id_col_name = get_bq_name(parent_table_key) + '_' + parent_id_key
-            schema_dict[parent_id_col_name] = generate_id_schema_entry(parent_id_col_name, parent_table_key)
+        tables_dict[parent_table_key].add([record_count_id_key])
+        schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
+
+        if len(table_key.split('.')) > 1:
+            schema_dict[parent_table_key + '__case_id'] = generate_id_schema_entry('case_id', 'main')
+            tables_dict[table_key].add('case_id')
+            # create a column containing a count of records associated, in child table
+            # in cases
+
+            if len(table_key.split('.')) > 2 and 'record_count_id_key' in params["REFERENCE_FIELD_KEYS"][table_key]:
+                parent_id_key = params["REFERENCE_FIELD_KEYS"][table_key]['table_id_key']
+                tables_dict[table_key].add(parent_id_key)
+                parent_id_col_name = get_bq_name(parent_table_key) + '_' + parent_id_key
+                schema_dict[parent_id_col_name] = generate_id_schema_entry(parent_id_col_name, parent_table_key)
 
     return tables_dict, schema_dict
 
@@ -558,7 +554,8 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
+def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None,
+                 parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
 
@@ -581,7 +578,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
 
-                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
+                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
+                                                       table_keys,
                                                        case_id, new_parent_id, new_parent_id_key)
                 else:
                     entry_dict[key] = entry[key]
@@ -604,7 +602,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
         for key in case:
             if isinstance(case[key], list):
-                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
+                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
+                                                   table_keys,
                                                    case_id, parent_id, parent_id_key)
             else:
                 entry_dict[key] = case[key]
@@ -814,8 +813,38 @@ def main(args):
             'cases.diagnoses.treatments': 'diagnoses__treatments_count',
             'cases.diagnoses.annotations': 'diagnoses__annotations_count'
         },
-        "INSERT_BATCH_SIZE": 1000
-    }
+        "REFERENCE_FIELD_KEYS": {
+            'cases.diagnoses': {
+                'record_count_id_key': 'diagnoses_count',
+                'table_id_key': 'diagnosis_id'
+            },
+            'cases.demographic': {
+                'record_count_id_key': 'demographic_count',
+                'table_id_key': 'demographic_id'
+            },
+            'cases.exposures': {
+                'record_count_id_key': 'exposures_count',
+                'table_id_key': 'exposure_id'
+            },
+            'cases.family_histories': {
+                'record_count_id_key': 'family_histories_count',
+                'table_id_key': 'family_history_id'
+            },
+            'cases.follow_ups': {
+                'record_count_id_key': 'follow_ups__count',
+                'table_id_key': 'follow_up_id'
+            },
+            'cases.follow_ups.molecular_tests': {
+                'record_count_id_key': 'follow_ups__molecular_tests_count'
+            },
+            'cases.diagnoses.treatments': {
+                'record_count_id_key': 'diagnoses__treatments_count'
+            },
+            'cases.diagnoses.annotations': {
+                'record_count_id_key': 'diagnoses__annotations_count'
+            }
+        },
+        "INSERT_BATCH_SIZE": 1000}
 
     # program_names = get_programs_list(params)
     program_names = ['HCMI']
