@@ -746,7 +746,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
             level = 1
 
-            current_level = case['cases']
+            current_level = case
 
             depth_dict = dict.fromkeys(table_dict, len(table_dict.keys().split('.')))
 
