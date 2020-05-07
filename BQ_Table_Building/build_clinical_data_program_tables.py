@@ -513,10 +513,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
-            ''' 
-            fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys 
-            bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
-            '''
             schema_field_keys.append(column)
 
         schema_list = []
@@ -565,6 +561,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
     if isinstance(case, list):
         entry_list = []
 
+
         for entry in case:
             entry_dict = dict()
             if case_id != parent_id:
@@ -578,7 +575,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
                     if prefix in params["FIELD_GROUP_METADATA"]:
-                        new_parent_id_key = params['FIELD_GROUP_METADATA']['table_id_key']
+                        new_parent_id_key = params['FIELD_GROUP_METADATA'][prefix]['table_id_key']
                         new_parent_id = entry[new_parent_id_key]
                     else:
                         new_parent_id = parent_id
@@ -734,6 +731,12 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
 
 
 def main(args):
+    '''
+    fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys
+    bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
+    '''
+
+
     """
     if len(args) != 3:
         has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
