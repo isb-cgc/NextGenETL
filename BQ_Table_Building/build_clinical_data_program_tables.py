@@ -115,8 +115,6 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
 
-    print(tables)
-
     tables = flatten_tables(tables, record_counts, params)
 
     if not tables:
@@ -1001,7 +999,7 @@ def main(args):
         print("\ntable_names: {} \n".format(table_names_dict))
 
         # print("DONE.\n - Inserting case records... ")
-        # insert_case_data(cases, record_counts, table_names_dict, params)
+        insert_case_data(cases, record_counts, table_names_dict, params)
 
         # print("DONE.\n - Inserting documentation... ", end='')
         # generate_documentation(params, program_name, documentation_dict, record_counts)
