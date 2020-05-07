@@ -785,7 +785,8 @@ def main(args):
         "INSERT_BATCH_SIZE": 1000
     }
 
-    program_names = get_programs_list(params)
+    # program_names = get_programs_list(params)
+    program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
