@@ -29,7 +29,7 @@ def get_programs_list(params):
 
 
 def get_cases_by_program(program_name, params):
-    print(" - Retrieving cases... ", end='')
+    print("\nRetrieving cases... ", end='')
 
     cases = []
 
@@ -93,7 +93,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
         return tables_, record_counts_
 
-    print("Determining program table structure... ", end='')
+    print("\nDetermining program table structure... ", end='')
 
     tables = {}
     record_counts = {}
@@ -106,8 +106,8 @@ def retrieve_program_case_structure(program_name, cases, params):
     if not tables:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
 
-    print("DONE.")
-    print("Record counts for each field group: {}".format(record_counts))
+    print("... DONE.")
+    print("Record counts for each field group: {}\n".format(record_counts))
 
     return tables, record_counts
 
@@ -120,15 +120,17 @@ def remove_unwanted_fields(record, table_name, params):
             if field in excluded_fields or not record[field]:
                 record.pop(field)
     elif isinstance(record, set):
-        print("From table {}, removed:".format(table_name), end=' ')
         excluded_fields_list = []
         for field in record.copy():
             if field in excluded_fields:
                 excluded_fields_list.append(field)
                 record.remove(field)
-        print(", ".join(excluded_fields_list))
+        if not excluded_fields_list:
+            print("\tno fields removed from {}".format(table_name))
+        else:
+            print("\tremoved: {} from {}".format(", ".join(excluded_fields_list), table_name))
     else:
-        print("Wrong type of data structure for remove_unwanted_fields")
+        has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
     return record
 
@@ -661,10 +663,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             has_fatal_error("Failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
 
 
-
-
-
-
 ##
 #  Functions for creating documentation
 ##
@@ -786,7 +784,7 @@ def main(args):
         doc_file.write("New BQ Documentation")
 
     for program_name in program_names:
-        print("\n*** Running script for {} ***".format(program_name))
+        print("\n\n*** Running script for {} ***".format(program_name))
 
         cases = get_cases_by_program(program_name, params)
 
