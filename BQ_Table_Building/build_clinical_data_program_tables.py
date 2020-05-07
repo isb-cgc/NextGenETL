@@ -115,6 +115,8 @@ def retrieve_program_case_structure(program_name, cases, params):
     null_stripped_cases = []
 
     for case in cases:
+        if 'updated_datetime' not in case:
+            print('updated_datetime not in case. \n{}'.format(case))
         # case = strip_null_fields(case)
         # null_stripped_cases.append(case)
 
