@@ -732,7 +732,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
-    pp = pprint.PrettyPrinter(indent=4)
     frequency_dict = {}
 
     tables = get_tables(record_counts)
@@ -797,7 +796,8 @@ def check_data_integrity(params, cases, record_counts, table_columns):
     for table in frequency_dict:
         if table in frequency_dict and frequency_dict[table]:
             print("For {}".format(table))
-            pp.pprint(frequency_dict[table])
+            for value in frequency_dict[table]:
+                print("{}: {}".format(value, frequency_dict[table][value]))
 
 
 ##
