@@ -118,7 +118,11 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
 
 
 def remove_unwanted_fields(record, table_name, params):
-    excluded_fields = params["EXCLUDED_FIELDS"][table_name]
+    if table_name not in params["FIELD_GROUP_METADATA"] or 'excluded_fields' \
+            not in params["FIELD_GROUP_METADATA"][table_name]:
+        has_fatal_error("{} or a child key not found in params['FIELD_GROUP_METADATA'][{}]".format(table_name))
+
+    excluded_fields = params["FIELD_GROUP_METADATA"][table_name]['excluded_fields']
 
     if isinstance(record, dict):
         for field in record.copy():
@@ -445,14 +449,14 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
     if len(table_key.split('.')) > 1:
-        if table_key not in params["REFERENCE_FIELD_KEYS"]:
-            has_fatal_error("{} key not found in params['REFERENCE_FIELD_KEYS'], "
+        if table_key not in params["FIELD_GROUP_METADATA"]:
+            has_fatal_error("{} key not found in params['FIELD_GROUP_METADATA'], "
                             "cannot add columns.".format(table_key))
-        elif 'record_count_id_key' not in params["REFERENCE_FIELD_KEYS"][table_key]:
-            has_fatal_error("{} key not found in params['REFERENCE_FIELD_KEYS']['{}'], "
+        elif 'record_count_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
+            has_fatal_error("{} key not found in params['FIELD_GROUP_METADATA']['{}'], "
                             "cannot add columns.".format('record_count_id_key', table_key))
         parent_table_key = get_parent_table(table_key[:-1])
-        record_count_id_key = params["REFERENCE_FIELD_KEYS"][table_key]['record_count_id_key']
+        record_count_id_key = params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
 
         if parent_table_key not in table_keys:
             parent_table_key = 'cases'
@@ -466,8 +470,8 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
             # create a column containing a count of records associated, in child table
             # in cases
 
-            if len(table_key.split('.')) > 2 and 'record_count_id_key' in params["REFERENCE_FIELD_KEYS"][table_key]:
-                reference_id_key = params["REFERENCE_FIELD_KEYS"][parent_table_key]['table_id_key']
+            if len(table_key.split('.')) > 2 and 'record_count_id_key' in params["FIELD_GROUP_METADATA"][table_key]:
+                reference_id_key = params["FIELD_GROUP_METADATA"][parent_table_key]['table_id_key']
                 tables_dict[table_key].add(reference_id_key)
                 schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
                 schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
@@ -796,53 +800,79 @@ def main(args):
                 "submitter_slide_ids"
             }
         },
-
-        "SINGULAR_ID_NAMES": {
-            'cases.diagnoses': 'diagnosis_id',
-            'cases.demographic': 'demographic_id',
-            'cases.exposures': 'exposure_id',
-            'cases.family_histories': 'family_history_id',
-            'cases.follow_ups': 'follow_up_id'
-        },
-        "COUNT_FIELD_NAMES": {
-            'cases.diagnoses': 'diagnoses_count',
-            'cases.demographic': 'demographic_count',
-            'cases.exposures': 'exposures_count',
-            'cases.family_histories': 'family_histories_count',
-            'cases.follow_ups': 'follow_ups__count_count',
-            'cases.follow_ups.molecular_tests': 'follow_ups__molecular_tests_count',
-            'cases.diagnoses.treatments': 'diagnoses__treatments_count',
-            'cases.diagnoses.annotations': 'diagnoses__annotations_count'
-        },
-        "REFERENCE_FIELD_KEYS": {
+        "FIELD_GROUP_METADATA": {
             'cases.diagnoses': {
                 'record_count_id_key': 'diagnoses_count',
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'table_id_key': 'diagnosis_id'
             },
             'cases.demographic': {
                 'record_count_id_key': 'demographic_count',
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'table_id_key': 'demographic_id'
             },
             'cases.exposures': {
                 'record_count_id_key': 'exposures_count',
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'table_id_key': 'exposure_id'
             },
             'cases.family_histories': {
                 'record_count_id_key': 'family_histories_count',
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'table_id_key': 'family_history_id'
             },
             'cases.follow_ups': {
                 'record_count_id_key': 'follow_ups_count',
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'record_count_id_key': 'follow_ups__molecular_tests_count'
             },
             'cases.diagnoses.treatments': {
+                'excluded_fields': {
+                    "submitter_id"
+                },
                 'record_count_id_key': 'diagnoses__treatments_count'
             },
             'cases.diagnoses.annotations': {
+                'excluded_fields': {
+                    "submitter_id",
+                    "case_submitter_id",
+                    "entity_submitter_id"
+                },
                 'record_count_id_key': 'diagnoses__annotations_count'
+            },
+            'cases': {
+                'excluded_fields': {
+                    "aliquot_ids",
+                    "analyte_ids",
+                    "case_autocomplete",
+                    "diagnosis_ids",
+                    "id",
+                    "portion_ids",
+                    "sample_ids",
+                    "slide_ids",
+                    "submitter_aliquot_ids",
+                    "submitter_analyte_ids",
+                    "submitter_diagnosis_ids",
+                    "submitter_portion_ids",
+                    "submitter_sample_ids",
+                    "submitter_slide_ids"
+                }
             }
         },
         "INSERT_BATCH_SIZE": 1000}
