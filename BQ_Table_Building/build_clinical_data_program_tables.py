@@ -460,7 +460,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
             # insert case_id into child table
             tables_dict[table_key].add(parent_id_key)
-            parent_id_col_name = get_bq_name(table_key) + parent_id_key
+            parent_id_col_name = get_bq_name(parent_table_key) + '_' + parent_id_key
             schema_dict[parent_id_col_name] = generate_id_schema_entry(parent_id_col_name, parent_table_key)
 
     return tables_dict, schema_dict
