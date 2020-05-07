@@ -627,6 +627,7 @@ def create_table_mapping(tables_dict):
                     flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
     """
 
+
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
@@ -643,8 +644,10 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    if prefix in params["SINGULAR_ID_NAMES"]:
-                        new_parent_id_key = params['SINGULAR_ID_NAMES'][prefix]
+                    id_key = get_table_id_key(prefix, params)
+
+                    if id_key:
+                        new_parent_id_key = id_key
                         new_parent_id = entry[new_parent_id_key]
                     else:
                         new_parent_id = parent_id
