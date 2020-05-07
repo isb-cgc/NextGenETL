@@ -122,8 +122,6 @@ def retrieve_program_case_structure(program_name, cases, params):
         # null_stripped_cases.append(case)
 
         tables, record_counts = build_case_structure(tables, case, record_counts, parent_path='cases')
-    print('pre flatten_tables')
-    print(tables)
     tables = flatten_tables(tables, record_counts, params)
 
     if not tables:
@@ -987,7 +985,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['TCGA', 'TARGET']
+    program_names = ['TCGA']
     # program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
