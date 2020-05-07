@@ -763,7 +763,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                     for i in range(1, depth):
                         record_key = table_key.split('.')[i]
                         if record_key in current_level:
-                            current_level = current_level[record_key][0]
+                            current_level = current_level[record_key]
                             table_id_key = record_key[:-1] + '_id'
 
                             for entry in current_level:
