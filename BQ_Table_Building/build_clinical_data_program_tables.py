@@ -671,6 +671,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
                 field_group.pop('case_id')
 
             for entry in field_group.copy():
+                if not entry:
+                    continue
                 # don't need multiple case_id keys in the same table
                 # avoids name collisions by specifying source field group
                 column_name = get_bq_name(field_group_key + '.' + entry)
