@@ -441,11 +441,29 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
+
+    def generate_child_record_count_schema_entry(record_count_id_key):
+        child_table = record_count_id_key[:-7]
+        description = "Total count of records associated with this case, located in {} table".format(child_table)
+        return {"name": record_count_id_key, "type": 'INTEGER', "description": description}
+
+    if len(table_key.split('.')) == 1:
+        return tables_dict, schema_dict
+
     parent_table_key = get_parent_table(table_key[:-1])
+    record_count_id_key = get_bq_name(table_key) + '__count'
+
+    if parent_table_key not in table_keys:
+        parent_table_key = 'cases'
+
+    tables_dict[parent_table_key].add([record_count_id_key])
+    schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
 
     if len(table_key.split('.')) > 1:
-        schema_dict[parent_table_key + '__' + 'case_id'] = generate_id_schema_entry('case_id', 'main')
+        schema_dict[parent_table_key + '__case_id'] = generate_id_schema_entry('case_id', 'main')
         tables_dict[table_key].add('case_id')
+        # create a column containing a count of records associated, in child table
+        # in cases
 
         if len(table_key.split('.')) > 2:
             # insert parent id into child table
@@ -453,6 +471,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
                 parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
             else:
                 parent_id_key = None
+
                 has_fatal_error("No id field name defined for parent table {} of table {}".format(
                     parent_table_key, table_key))
 
@@ -777,6 +796,7 @@ def main(args):
                 "submitter_slide_ids"
             }
         },
+
         "SINGULAR_ID_NAMES": {
             'cases.diagnoses': 'diagnosis_id',
             'cases.demographic': 'demographic_id',
@@ -784,6 +804,16 @@ def main(args):
             'cases.family_histories': 'family_history_id',
             'cases.follow_ups': 'follow_up_id'
         },
+        "COUNT_FIELD_NAMES": {
+            'cases.diagnoses': 'diagnoses_count',
+            'cases.demographic': 'demographic_count',
+            'cases.exposures': 'exposures_count',
+            'cases.family_histories': 'family_histories_count',
+            'cases.follow_ups': 'follow_ups__count_count',
+            'cases.follow_ups.molecular_tests': 'follow_ups__molecular_tests_count',
+            'cases.diagnoses.treatments': 'diagnoses__treatments_count',
+            'cases.diagnoses.annotations': 'diagnoses__annotations_count'
+        }
         "INSERT_BATCH_SIZE": 1000
     }
 
