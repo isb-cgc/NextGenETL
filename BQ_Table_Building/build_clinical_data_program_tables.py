@@ -603,10 +603,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
             for key in entry:
                 if isinstance(entry[key], list):
-                    # note -- If you're here because you've added a new doubly-nested field group,
-                    # this is where you'll want to capture the parent field group's id.
-                    if prefix not in params["FIELD_GROUP_METADATA"]:
-                        has_fatal_error("{} not found in params['FIELD_GROUP_METADATA'][{}]".format(prefix))
                     table_id_key = get_table_id_key(prefix, params, fatal=False)
 
                     if table_id_key:
@@ -699,7 +695,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             if table not in table_keys:
                 print(record_counts)
                 print(table_keys)
-                print(flattened_case_dict.keys())
+                print(flattened_case_dict)
                 has_fatal_error("Table {} not found in table keys".format(table))
             elif table not in insert_lists:
                 insert_lists[table] = []
