@@ -632,7 +632,9 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
             entry_dict = dict()
             field_group = flattened_case_dict.pop(field_group_key)
             field_group = field_group[0]
-            field_group.pop('case_id')
+
+            if 'case_id' in field_group:
+                field_group.pop('case_id')
 
             parent_table_key = field_group_key
 
