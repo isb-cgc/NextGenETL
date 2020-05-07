@@ -656,6 +656,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
                                                        case_id, new_parent_id, new_parent_id_key)
                 else:
+                    print("here : {}".format(col_name))
+
                     col_name = get_bq_name(prefix + '.' + key)
                     entry_dict[col_name] = entry[key]
 
@@ -681,6 +683,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                                                    case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(prefix + '.' + key)
+                print("there : {}".format(col_name))
                 entry_dict[col_name] = case[key]
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
@@ -737,6 +740,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
     return flattened_case_dict
 """
+
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     for field_group_key, field_group in flattened_case_dict.copy().items():
