@@ -712,7 +712,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
-    for table in insert_lists:
+    print(insert_lists.keys())
+     for table in insert_lists:
         table_id = tables_dict[table]
         table_mb = sys.getsizeof(insert_lists[table]) / (1024 * 1024)
         batch_size = params["INSERT_BATCH_SIZE"]
@@ -732,15 +733,12 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             start_idx = 0
             end_idx = batch_size
             while len(insert_lists[table]) > end_idx:
-                print("start_idx: {}".format())
                 client.insert_rows(bq_table, insert_lists[table][start_idx:end_idx])
                 start_idx = end_idx
                 end_idx += batch_size
 
             # insert the last set of records
             sub_list = insert_lists[table][start_idx:]
-            print("start_idx: {}".format(start_idx))
-            print(sub_list)
             client.insert_rows(bq_table, sub_list)
             print("{} records inserted.".format(len(insert_lists[table]), table))
         except exceptions.BadRequest as err:
