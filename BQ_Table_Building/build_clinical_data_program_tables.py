@@ -102,6 +102,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
     table_columns = flatten_tables(table_columns, record_counts, params)
+    print(table_columns)
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -186,7 +187,6 @@ def flatten_tables(tables, record_counts, params):
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
-    print("flat tables: {}".format(tables))
     return tables
 
 
@@ -630,7 +630,6 @@ def create_table_mapping(tables_dict):
 
 
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
-    print(case)
     return flattened_case_dict
     if isinstance(case, list):
         entry_list = []
@@ -785,9 +784,9 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
-                print(record_counts)
-                print(table_keys)
-                print(flattened_case_dict)
+                # print(record_counts)
+                # print(table_keys)
+                # print(flattened_case_dict)
                 has_fatal_error("Table {} not found in table keys".format(table))
             elif table not in insert_lists:
                 insert_lists[table] = []
