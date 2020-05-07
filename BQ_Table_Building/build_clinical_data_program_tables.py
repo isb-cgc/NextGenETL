@@ -112,7 +112,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
     table_keys = get_tables(record_counts)
 
     for table_key in table_keys:
-        table_columns, schema_dict = add_reference_columns(table_columns, schema_dict, table_keys, table_key)
+        table_columns, schema_dict = add_reference_columns(table_columns, schema_dict, table_keys, table_key, params)
 
     return table_columns, record_counts, schema_dict
 
@@ -423,68 +423,35 @@ def generate_table_name_and_id(params, program_name, table):
     return table_name, table_id
 
 
-def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
-    def generate_id_schema_entry(parent_table='main', parent_field='case', column_name='case_id'):
+def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, params):
+    def generate_id_schema_entry(parent_table_key_='main', column_name='case_id'):
+        if parent_table_key_ in table_keys:
+            parent_field_name = get_field_name(parent_table_key_)
+            ancestor_table = '*_{}'.format(parent_field_name)
+        else:
+            ancestor_table = 'main'
+
+        # [:-3] to remove "_id" from key
+        parent_fg = column_name[:-3]
         description = "Reference to the {} field of the {} record to which this record belongs. " \
-                      "Parent record found in the program's {} table.".format(column_name, parent_field, parent_table)
+                      "Parent record found in the program's {} table.".format(column_name, parent_fg, ancestor_table)
+
         return {"name": column_name, "type": 'STRING', "description": description}
 
-    if table_key == 'cases.follow_ups':
-        tables_dict['cases.follow_ups'].add('case_id')
-        schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
+    if len(table_key.split('.')) > 1:
+        case_id_col_name = get_bq_name(table_key) + 'case_id'
+        tables_dict[table_key].add('case_id')
+        schema_dict[case_id_col_name] = generate_id_schema_entry()
 
-    elif table_key == 'cases.family_histories':
-        tables_dict['cases.family_histories'].add('case_id')
-        schema_dict['family_histories__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.demographic':
-        tables_dict['cases.demographic'].add('case_id')
-        schema_dict['demographic__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.exposures':
-        tables_dict['cases.exposures'].add('case_id')
-        schema_dict['exposures__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.diagnoses':
-        tables_dict['cases.diagnoses'].add('case_id')
-        schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.follow_ups.molecular_tests':
+        if len(table_key.split('.')) > 2:
+            # insert parent id into child table
+            parent_table_key = get_parent_table(table_key)
+            parent_id_key = params['SINGULAR_ID_NAMES'][parent_table_key]
 
-        tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
-        schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
-            '*_follow_ups', 'follow up', 'follow_up_id')
-
-        tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
-        schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.diagnoses.treatments':
-        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-
-        tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
-        schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
-            ancestor_table, 'diagnosis', 'diagnosis_id')
-
-        tables_dict['cases.diagnoses.treatments'].add('case_id')
-        schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.diagnoses.annotations':
-        ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
-
-        tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
-        schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
-            ancestor_table, 'diagnosis', 'diagnosis_id')
-
-        tables_dict['cases.diagnoses.annotations'].add('case_id')
-        schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
-
-    if len(table_key.split('.') == 3):
-        parent_table_key = get_parent_table(table_key)
-        parent_field_name = get_field_name(parent_table_key)
-        ancestor_table = '*_{}'.format(parent_field_name) if parent_table_key in table_keys else 'main'
-
-        # doubly nested table
-        pass
-    elif len(table_key.split('.') == 2):
-        # nested table
-        pass
-    elif len(table_key.split('.') == 1):
-        # cases table
-        pass
+            # insert case_id into child table
+            tables_dict[table_key].add(parent_id_key)
+            parent_id_col_name = get_bq_name(table_key) + parent_id_key
+            schema_dict[parent_id_col_name] = generate_id_schema_entry(parent_table_key, parent_id_key)
 
     return tables_dict, schema_dict
 
