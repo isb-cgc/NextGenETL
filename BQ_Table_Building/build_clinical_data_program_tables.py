@@ -133,12 +133,7 @@ def remove_unwanted_fields(record, table_name, params):
 
     if isinstance(record, dict):
         for field in record.copy():
-            if field == 'updated_datetime':
-                print("IT's here")
-
             if field in excluded_fields or not record[field]:
-                if field == 'updated_datetime':
-                    print("IT's being removed!!")
                 record.pop(field)
 
     elif isinstance(record, set):
@@ -147,14 +142,9 @@ def remove_unwanted_fields(record, table_name, params):
         excluded_fields_list = []
 
         for field in record.copy():
-            if field == 'updated_datetime':
-                print("IT's here")
             if field in excluded_fields:
-                if field == 'updated_datetime':
-                    print("IT's being removed!!")
                 excluded_fields_list.append(field)
                 record.remove(field)
-
         print(", ".join(excluded_fields_list))
     else:
         print("Wrong type of data structure for remove_unwanted_fields")
@@ -544,11 +534,13 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
 def create_bq_tables(program_name, params, tables_dict, record_counts):
     if 'created_datetime' not in tables_dict['cases']:
         print('created_datetime not in tables dict')
+        print(tables_dict['cases'])
 
     schema_dict = create_schema_dict(params)
 
     if 'cases.created_datetime' not in schema_dict:
         print('created_datetime not in schema_dict ')
+        print(schema_dict)
 
     table_ids = dict()
     documentation_dict = dict()
