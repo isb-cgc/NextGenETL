@@ -727,12 +727,10 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
             insert_lists[table] = insert_lists[table] + flattened_case_dict[table]
 
-    try:
-        client = bigquery.Client()
-    except Exception as err:
         has_fatal_error(err)
 
     for table in insert_lists.copy():
+        client = bigquery.Client()
         records = insert_lists[table]
         print(records)
         table_id = tables_dict[table]
@@ -762,6 +760,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
                     start_idx = end_idx
                     end_idx += batch_size
                 client.insert_rows(table_obj, records[start_idx:])
+            client.close()
         except exceptions.BadRequest as err:
             has_fatal_error("Bad Request -- failed to insert into {} ({} records)\n{}".format(table, len(insert_lists[table]), err))
         except IndexError as err:
