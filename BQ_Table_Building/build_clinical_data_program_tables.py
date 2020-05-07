@@ -638,8 +638,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
     print("prefix: {}, case type = {}".format(prefix, case_is))
 
     if isinstance(case, list):
-        for key in case:
-            flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
+        for entry in case:
+            flattened_case_dict = flatten_case(entry, prefix, flattened_case_dict, params,
                                                table_keys, case_id, parent_id, parent_id_key)
     elif isinstance(case, dict):
         entry_list = []
@@ -660,7 +660,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             else:
                 flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
     else:
-        flattened_case_dict[prefix] = case
+        print("Primitives happen")
 
     return flattened_case_dict
 
