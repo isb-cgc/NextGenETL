@@ -746,6 +746,7 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             print("\t- inserting rows into {}... ".format(table_id.split('.')[-1]), end='')
             table_obj = client.get_table(table_id)
             if batch_size > len(records):
+                print("HERE")
                 client.insert_rows(table_obj, records)
                 client.close()
             else:
