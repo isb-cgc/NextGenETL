@@ -295,13 +295,13 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 def get_program_from_bq(params, case_id):
     client = bigquery.Client()
 
-    table_id = params[""]
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
 
     program_name_query = """
         SELECT program_name
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        FROM `{}`
         WHERE case_gdc_id = '{}'
-        """.format(case_id)
+        """.format(source_table, case_id)
 
     query_job = client.query(program_name_query)
 

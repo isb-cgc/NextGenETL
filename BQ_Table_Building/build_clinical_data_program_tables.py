@@ -369,6 +369,11 @@ def get_bq_name(column):
     else:
         return column
 
+def get_parent_table(table_key):
+    if not table_key:
+        return None
+
+    return '.'.join(table_key.split('.'))[:-1]
 
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
@@ -427,12 +432,7 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     if table_key == 'cases.follow_ups':
         tables_dict['cases.follow_ups'].add('case_id')
         schema_dict['follow_ups__case_id'] = generate_id_schema_entry()
-    elif table_key == 'cases.follow_ups.molecular_tests':
-        tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
-        schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
-            '*_follow_ups', 'follow up', 'follow_up_id')
-        tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
-        schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
+
     elif table_key == 'cases.family_histories':
         tables_dict['cases.family_histories'].add('case_id')
         schema_dict['family_histories__case_id'] = generate_id_schema_entry()
@@ -445,12 +445,21 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
     elif table_key == 'cases.diagnoses':
         tables_dict['cases.diagnoses'].add('case_id')
         schema_dict['diagnoses__case_id'] = generate_id_schema_entry()
+    elif table_key == 'cases.follow_ups.molecular_tests':
+
+        tables_dict['cases.follow_ups.molecular_tests'].add('follow_up_id')
+        schema_dict['follow_ups__molecular_tests__follow_up_id'] = generate_id_schema_entry(
+            '*_follow_ups', 'follow up', 'follow_up_id')
+
+        tables_dict['cases.follow_ups.molecular_tests'].add('case_id')
+        schema_dict['follow_ups__molecular_tests__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.treatments':
         ancestor_table = '*_diagnoses' if 'case.diagnoses' in table_keys else 'main'
 
         tables_dict['cases.diagnoses.treatments'].add('diagnosis_id')
         schema_dict['diagnoses__treatments__diagnosis_id'] = generate_id_schema_entry(
             ancestor_table, 'diagnosis', 'diagnosis_id')
+
         tables_dict['cases.diagnoses.treatments'].add('case_id')
         schema_dict['diagnoses__treatments__case_id'] = generate_id_schema_entry()
     elif table_key == 'cases.diagnoses.annotations':
@@ -459,8 +468,23 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key):
         tables_dict['cases.diagnoses.annotations'].add('diagnosis_id')
         schema_dict['diagnoses__annotations__diagnosis_id'] = generate_id_schema_entry(
             ancestor_table, 'diagnosis', 'diagnosis_id')
+
         tables_dict['cases.diagnoses.annotations'].add('case_id')
         schema_dict['diagnoses__annotations__case_id'] = generate_id_schema_entry()
+
+    if len(table_key.split('.') == 3):
+        parent_table_key = get_parent_table(table_key)
+        parent_field_name = get_field_name(parent_table_key)
+        ancestor_table = '*_{}'.format(parent_field_name) if parent_table_key in table_keys else 'main'
+
+        # doubly nested table
+        pass
+    elif len(table_key.split('.') == 2):
+        # nested table
+        pass
+    elif len(table_key.split('.') == 1):
+        # cases table
+        pass
 
     return tables_dict, schema_dict
 
@@ -557,12 +581,9 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    if prefix == 'cases.diagnoses':
-                        new_parent_id = entry['diagnosis_id']
-                        new_parent_id_key = 'diagnosis_id'
-                    elif prefix == 'cases.follow_ups':
-                        new_parent_id = entry['follow_up_id']
-                        new_parent_id_key = 'follow_up_id'
+                    if prefix in params["SINGULAR_ID_NAMES"]:
+                        new_parent_id_key = params['SINGULAR_ID_NAMES'][prefix]
+                        new_parent_id = entry[new_parent_id_key]
                     else:
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
@@ -782,7 +803,13 @@ def main(args):
                 "submitter_slide_ids"
             }
         },
-        # Note: broken pipe/too large at 5000
+        "SINGULAR_ID_NAMES": {
+            'cases.diagnoses': 'diagnosis_id',
+            'cases.demographic': 'demographic_id',
+            'cases.exposures': 'exposure_id',
+            'cases.family_histories': 'family_history_id',
+            'cases.follow_ups': 'follow_up_id'
+        },
         "INSERT_BATCH_SIZE": 1000
     }
 
