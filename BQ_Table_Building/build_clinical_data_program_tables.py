@@ -106,8 +106,6 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
 
         return tables_, record_counts_
 
-    # print("Determining program table structure... ")
-
     table_columns = {}
     record_counts = {}
 
@@ -143,12 +141,6 @@ def remove_unwanted_fields(record, table_name, params):
             if field in excluded_fields:
                 excluded_fields_list.append(field)
                 record.remove(field)
-        """
-        if not excluded_fields_list:
-            print("\tRemoved for {}:\n\t\tnone".format(table_name))
-        else:
-            print("\tRemoved for {}:\n\t\t{}".format(table_name, ", ".join(excluded_fields_list)))
-        """
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
 
@@ -588,7 +580,6 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
             has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
         documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
-    print("... DONE.")
     return documentation_dict, table_ids
 
 
@@ -744,20 +735,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
         return
 
     for case in cases:
-        print(case.keys())
-        return
-        table_dict = get_tables(record_counts)
-
         count_dict = dict()
-
-        base_level = case
-        """
-        depth_dict = dict.fromkeys(table_dict, 0)
-        for depth_key in depth_dict.copy():
-            depth_dict[depth_key] = len(depth_key.split('.'))
-        """
-
-        record_keys = dict()
 
         hierarchy = {
             'follow_ups': {
@@ -776,7 +754,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
             if key in case and case[key] and isinstance(case[key], list):
                 cnt = len(case[key])
 
-                if key in record_dict:
+                if key in count_dict:
                     count_dict[key] += cnt
                 else:
                     count_dict[key] = cnt
@@ -786,17 +764,15 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                         if c_key in entry and entry[c_key] and isinstance(c_key, list):
                             cnt = len(entry[c_key])
 
-                            if c_key in record_dict:
+                            if c_key in count_dict:
                                 count_dict[c_key] += cnt
                             else:
                                 count_dict[c_key] = cnt
 
         for field in count_dict:
             frequency_key = count_dict[field]
-
             if field not in frequency_dict:
                 frequency_dict[field] = dict()
-
             if frequency_key in frequency_dict[field]:
                 frequency_dict[field][frequency_key] += 1
             else:
