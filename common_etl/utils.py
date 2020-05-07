@@ -331,12 +331,14 @@ def get_programs_from_bq():
 
 
 def get_case_from_bq(params, case_id):
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
+
     results = get_query_results(
         """
         SELECT *
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        FROM `{}`
         WHERE case_id = '{}'
-        """.format(case_id)
+        """.format(source_table, case_id)
     )
 
     for row in results:
