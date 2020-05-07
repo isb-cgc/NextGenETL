@@ -128,23 +128,26 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 def remove_unwanted_fields(record, table_name, params):
     excluded_fields = params["EXCLUDED_FIELDS"][table_name]
-    print("From table {}, removed:".format(table_name), end=' ')
 
     if isinstance(record, dict):
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
-                print(field, end=', ')
 
     elif isinstance(record, set):
+        print("From table {}, removed:".format(table_name), end=' ')
+
+        excluded_fields_list = []
+
         for field in record.copy():
             if field in excluded_fields:
-                print(field, end=', ')
+                excluded_fields_list.append(field)
                 record.remove(field)
+
+        print(", ".join(excluded_fields_list))
     else:
         print("Wrong type of data structure for remove_unwanted_fields")
 
-    print()
     return record
 
 
@@ -787,7 +790,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         if page_size > 10:
             print("INSERT_BATCH_SIZE is too large. Batch size should be 10 mb maximum, actual: {}".format(page_size))
             new_page_size = math.floor(table_mb / 10)
-
+            ratio = new_page_size / page_size
+            batch_size = math.floor(batch_size * ratio)
 
         try:
             print("Inserting rows into {}".format(table_id))
