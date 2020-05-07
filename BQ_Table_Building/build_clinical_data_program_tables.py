@@ -754,7 +754,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
             table_obj = client.get_table(table_id)
             if batch_size > len(records):
                 client.insert_rows(table_obj, records)
-                print("row count {} for {}".format(get_row_count(table_id), table_id))
                 continue
             else:
                 start_idx = 0
@@ -762,7 +761,6 @@ def insert_case_data(cases, record_counts, tables_dict, params):
 
                 while len(records) > end_idx:
                     client.insert_rows(table_obj, records[start_idx:end_idx])
-                    print("row count {} for {}".format(get_row_count(table_id), table_id))
 
                     get_row_count()
                     start_idx = end_idx
@@ -776,6 +774,8 @@ def insert_case_data(cases, record_counts, tables_dict, params):
         except IndexError as err:
             has_fatal_error("Index out of range for {} or {} -- failed to insert into {} ({} records)\n{}".format(
                 start_idx, end_idx, table, len(insert_lists[table]), err))
+
+        print("{} has {} rows".format(table_id, get_row_count(table_id)))
     print("... DONE.\n")
 
 
