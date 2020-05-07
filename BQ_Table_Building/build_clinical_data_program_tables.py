@@ -574,7 +574,10 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    if prefix in params["FIELD_GROUP_METADATA"]:
+                    if prefix not in params["FIELD_GROUP_METADATA"]:
+                        has_fatal_error("{} not found in params['FIELD_GROUP_METADATA'][{}]".format(prefix))
+
+                    if 'table_id_key' in params['FIELD_GROUP_METADATA'][prefix]:
                         new_parent_id_key = params['FIELD_GROUP_METADATA'][prefix]['table_id_key']
                         new_parent_id = entry[new_parent_id_key]
                     else:
@@ -582,8 +585,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                         new_parent_id_key = parent_id_key
 
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
-                                                       table_keys,
-                                                       case_id, new_parent_id, new_parent_id_key)
+                                                       table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
                     entry_dict[key] = entry[key]
 
