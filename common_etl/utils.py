@@ -292,24 +292,6 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
-def get_program_from_bq(case_barcode):
-    client = bigquery.Client()
-
-    program_name_query = """
-        SELECT program_name
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-        WHERE case_barcode = '{}'
-        """.format(case_barcode)
-
-    query_job = client.query(program_name_query)
-
-    results = query_job.result()
-
-    for row in results:
-        program_name = row.get('program_name')
-        return program_name
-
-
 def get_programs_from_bq():
     results = get_query_results(
         """
@@ -328,52 +310,35 @@ def get_programs_from_bq():
     return program_submitter_dict
 
 
-def get_cases_by_program(program_name):
-    cases = []
-    nested_key_set = set()
-    results = get_query_results(
-        """
-        SELECT * 
-        FROM `isb-project-zero.GDC_Clinical_Data.rel22_clinical_data`
-        WHERE submitter_id 
-        IN (SELECT case_barcode
-            FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-            WHERE program_name = '{}')
-        """.format(program_name)
-    )
+def get_program_from_bq(params, case_id):
+    client = bigquery.Client()
 
-    non_null_fieldset = set()
-    fieldset = set()
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
 
-    for case_row in results:
-        case_dict = dict(case_row.items())
+    program_name_query = """
+        SELECT program_name
+        FROM `{}`
+        WHERE case_gdc_id = '{}'
+        """.format(source_table, case_id)
 
-        for key in case_dict.copy():
-            fieldset.add(key)
-            # note fields with values
-            if case_dict[key]:
-                non_null_fieldset.add(key)
+    query_job = client.query(program_name_query)
 
-            # note nested fields with a reason to be nested
-            if isinstance(case_dict[key], list):
-                # print(case_dict)
-                if len(case_dict[key]) > 1:
-                    nested_key_set.add(key)
+    results = query_job.result()
 
-        cases.append(case_dict)
-
-    null_parent_fields = fieldset - non_null_fieldset
-
-    return cases, nested_key_set, null_parent_fields
+    for row in results:
+        program_name = row.get('program_name')
+        return program_name
 
 
-def get_case_from_bq(case_id):
+def get_case_from_bq(params, case_id):
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
+
     results = get_query_results(
         """
         SELECT *
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        FROM `{}`
         WHERE case_id = '{}'
-        """.format(case_id)
+        """.format(source_table, case_id)
     )
 
     for row in results:
@@ -441,5 +406,56 @@ def pprint_json(json_obj):
     Pretty prints json objects.
     :param json_obj: json object to pprint
     """
-    pp = pprint.PrettyPrinter(indent=2)
+    pp = pprint.PrettyPrinter(indent=1)
     pp.pprint(json_obj)
+
+
+def ordered_print(flattened_case_dict, order_dict):
+    def make_tabs(indent_):
+        tab_list = indent_ * ['\t']
+        return "".join(tab_list)
+
+    tables_string = '{\n'
+    indent = 1
+
+    for table in sorted(flattened_case_dict.keys()):
+        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
+
+        split_prefix = table.split(".")
+        if len(split_prefix) == 1:
+            prefix = ''
+        else:
+            prefix = '__'.join(split_prefix[1:])
+            prefix += '__'
+
+        for entry in flattened_case_dict[table]:
+            entry_string = "{}{{\n".format(make_tabs(indent + 1))
+            field_order_dict = dict()
+
+            for key in entry.copy():
+                col_order_lookup_key = prefix + key
+
+                try:
+                    field_order_dict[key] = order_dict[col_order_lookup_key]
+                except KeyError:
+                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
+                    for k, v in sorted(order_dict.items(), key=lambda item: item[0]):
+                        print("{}: {}".format(k, v))
+                    field_order_dict[key] = 0
+
+            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            entry_string = entry_string.rstrip('\n')
+            entry_string = entry_string.rstrip(',')
+
+            entry_string += '{}}}\n'.format(make_tabs(indent + 1))
+            tables_string += entry_string
+        tables_string = tables_string.rstrip('\n')
+        tables_string = tables_string.rstrip(',')
+        tables_string += '\n'
+        tables_string += "{}],\n".format(make_tabs(indent))
+    tables_string = tables_string.rstrip('\n')
+    tables_string = tables_string.rstrip(',')
+    tables_string += "\n}"
+
+    print(tables_string)
