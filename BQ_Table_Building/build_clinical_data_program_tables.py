@@ -682,7 +682,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     return flattened_case_dict
 
 
-def create_and_load_tables(cases, params, table_schemas):
+def create_and_load_tables(program_name, cases, params, table_schemas):
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
     for case in cases:
@@ -691,18 +691,15 @@ def create_and_load_tables(cases, params, table_schemas):
 
         gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
 
-        print(table_ids)
         print(table_schemas)
-        return
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            print(table_ids[table])
+            jsonl_filename = params['GDC_RELEASE'] + '_clin_' + program_name + '__'.join(table.split('.')) + '.jsonl'
+            print(jsonl_filename)
             continue
-
-            jsonl_filename = params['GDC_RELEASE'] + '_clin_' + table + '.jsonl'
 
             with open(gs_uri + jsonl_filename, 'w') as jsonl_file:
                 json.dump(obj=flattened_case_dict[table], fp=jsonl_file)
@@ -936,7 +933,7 @@ def main(args):
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        create_and_load_tables(cases, params, table_schemas)
+        create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
