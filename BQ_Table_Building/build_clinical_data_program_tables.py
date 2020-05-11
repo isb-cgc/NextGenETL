@@ -691,6 +691,9 @@ def create_and_load_tables(cases, table_ids, params, table_schemas):
 
         gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
 
+        print(flattened_case_dict.keys())
+        return
+
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
