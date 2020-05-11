@@ -697,7 +697,9 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            file_name_parts = [params['GDC_RELEASE'], 'clin', program_name, get_bq_name(table)]
+            file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
+
+            file_name_parts.append(get_bq_name(table)) if get_bq_name(table) else None
 
             jsonl_filename = '_'.join(file_name_parts) + '.jsonl'
 
