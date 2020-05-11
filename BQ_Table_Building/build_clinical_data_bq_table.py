@@ -24,7 +24,7 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error
+    create_mapping_dict, create_and_load_table, convert_dict_to_string, has_fatal_error
 
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
@@ -101,7 +101,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                     if field in case_copy:
                         case.pop(field)
 
-                no_list_value_case = arrays_to_str_list(case)
+                no_list_value_case = convert_dict_to_string(case)
                 # writing in jsonlines format, as required by BQ
                 json.dump(obj=no_list_value_case, fp=json_output_file)
                 json_output_file.write('\n')
@@ -319,7 +319,10 @@ def main(args):
         print('Building BQ Table!')
 
         # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(bq_params, api_params['DATA_OUTPUT_FILE'], schema)
+        create_and_load_table(bq_params,
+                              jsonl_rows_file=api_params['DATA_OUTPUT_FILE'],
+                              schema=schema,
+                              table_name=bq_params['GDC_RELEASE'] + '_clinical_data')
 
 
 if __name__ == '__main__':

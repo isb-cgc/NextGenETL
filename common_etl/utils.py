@@ -209,9 +209,9 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
-def arrays_to_str_list(obj):
+def convert_dict_to_string(obj):
     """
-    Converts array/list of primitives or strings to a comma-separated string
+    Converts dict/list of primitives or strings to a comma-separated string
     :param obj: object to converts
     :return: modified object
     """
@@ -221,10 +221,10 @@ def arrays_to_str_list(obj):
             obj = str_list
         else:
             for i in range(len(obj)):
-                obj[i] = arrays_to_str_list(obj[i])
+                obj[i] = convert_dict_to_string(obj[i])
     elif isinstance(obj, dict):
         for key in obj:
-            obj[key] = arrays_to_str_list(obj[key])
+            obj[key] = convert_dict_to_string(obj[key])
     return obj
 
 
@@ -352,14 +352,7 @@ def get_query_results(query):
     return query_job.result()
 
 
-def create_and_load_table(bq_params, data_file_name, schema):
-    """
-
-    :param bq_params:
-    :param data_file_name:
-    :param schema:
-    :return:
-    """
+def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     job_config = bigquery.LoadJobConfig()
 
     if bq_params['BQ_AS_BATCH']:
@@ -369,8 +362,8 @@ def create_and_load_table(bq_params, data_file_name, schema):
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
     client = bigquery.Client()
-    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + data_file_name
-    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + bq_params['TARGET_TABLE']
+    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
+    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + table_name
     load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
     print('Starting job {}'.format(load_job.job_id))
 

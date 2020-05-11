@@ -1,9 +1,10 @@
-from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config
+from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, create_and_load_table
 from google.cloud import bigquery
 from google.api_core import exceptions
 import sys
 import math
 import pprint
+import json
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -70,12 +71,11 @@ def get_row_count(table_id):
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
-def retrieve_program_case_structure(program_name, cases, params, schema_dict):
+def retrieve_program_case_structure(program_name, cases, params):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
-
         if not case_:
             return tables_, record_counts_
 
@@ -120,12 +120,7 @@ def retrieve_program_case_structure(program_name, cases, params, schema_dict):
     # print("... DONE.")
     print("Record counts for each field group: {}".format(record_counts))
 
-    table_keys = get_tables(record_counts)
-
-    for table_key in table_keys:
-        table_columns, schema_dict = add_reference_columns(table_columns, schema_dict, table_keys, table_key, params)
-
-    return table_columns, record_counts, schema_dict
+    return table_columns, record_counts
 
 
 def remove_unwanted_fields(record, table_name, params):
@@ -453,26 +448,34 @@ def import_column_order(path):
     return column_dict
 
 
-def generate_table_name_and_id(params, program_name, table):
-    split_table_path = table.split(".")
-    # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
+def generate_table_ids(params, program_name, record_counts):
+    table_keys = get_tables(record_counts)
+
+    table_ids = dict()
     program_name = "_".join(program_name.split('.'))
     base_table_name = [params["GDC_RELEASE"], 'clin', program_name]
-    table_name = "_".join(base_table_name)
 
-    if len(split_table_path) > 1:
-        table_suffix = "__".join(split_table_path[1:])
-        table_name = table_name + '_' + table_suffix
+    for table in table_keys:
+        # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
+        split_table_path = table.split(".")
+        table_name = "_".join(base_table_name)
 
-    if not table_name:
-        has_fatal_error("generate_table_name returns empty result.")
+        if len(split_table_path) > 1:
+            table_suffix = "__".join(split_table_path[1:])
+            table_name = table_name + '_' + table_suffix
 
-    table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
+        if not table_name:
+            has_fatal_error("generate_table_name returns empty result.")
 
-    return table_name, table_id
+        table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
+
+        table_ids[table] = table_id
+
+    return table_ids
 
 
-def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, params):
+def add_reference_columns(tables_dict, table_schema_list, table_keys, table_key, params):
+
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in table_keys:
             parent_field_name = get_field_name(parent_table_key_)
@@ -480,81 +483,62 @@ def add_reference_columns(tables_dict, schema_dict, table_keys, table_key, param
         else:
             ancestor_table = 'main'
 
-        # [:-3] to remove "_id" from key
-        parent_fg = column_name[:-3]
         description = "Reference to the {} field of the {} record to which this record belongs. " \
-                      "Parent record found in the program's {} table.".format(column_name, parent_fg, ancestor_table)
+                      "Parent record found in the program's {} table.".format(column_name, column_name[:-3],
+                                                                              ancestor_table)
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
-    def generate_child_record_count_schema_entry(record_count_id_key_):
+    def generate_record_count_schema_entry(record_count_id_key_):
         child_table = record_count_id_key_[:-7]
         description = "Total count of records associated with this case, located in {} table".format(child_table)
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
-    if len(table_key.split('.')) > 1:
-        record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
-        parent_table_key = get_parent_table(table_key)
+    schema_dict = table_schema_list[table_key]
 
-        while parent_table_key and parent_table_key not in table_keys:
-            parent_table_key = get_parent_table(parent_table_key)
+    if len(table_key.split('.')) == 1:
+        return table_schema_list, tables_dict
 
-        if not parent_table_key:
-            has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
+    record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
+    parent_table_key = get_parent_table(table_key)
 
-        tables_dict[parent_table_key].add(record_count_id_key)
-        schema_dict[record_count_id_key] = generate_child_record_count_schema_entry(record_count_id_key)
+    while parent_table_key and parent_table_key not in table_keys:
+        parent_table_key = get_parent_table(parent_table_key)
 
-        if len(table_key.split('.')) > 1:
-            case_id_key = get_bq_name(table_key) + '__case_id'
-            schema_dict[case_id_key] = generate_id_schema_entry(case_id_key, 'main')
-            tables_dict[table_key].add(case_id_key)
-            # create a column containing a count of records associated, in child table
-            # in cases
+    if not parent_table_key:
+        has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
 
-            if len(table_key.split('.')) > 2:
-                reference_id_key = get_table_id_key(parent_table_key, params)
+    tables_dict[parent_table_key].add(record_count_id_key)
+    schema_dict[record_count_id_key] = generate_record_count_schema_entry(record_count_id_key)
 
-                if reference_id_key:
-                    tables_dict[table_key].add(reference_id_key)
-                    schema_column_name = get_bq_name(table_key) + '__' + reference_id_key
-                    schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
+    case_id_key = get_bq_name(table_key) + '__case_id'
+    schema_dict[case_id_key] = generate_id_schema_entry(case_id_key, 'main')
+    tables_dict[table_key].add(case_id_key)
 
-    return tables_dict, schema_dict
+    if len(table_key.split('.')) > 2:
+        reference_id_key = get_table_id_key(parent_table_key, params)
+
+        if reference_id_key:
+            tables_dict[table_key].add(reference_id_key)
+            schema_column_name = get_bq_name(table_key + '.' + reference_id_key)
+            schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
+
+    table_schema_list[table_key] = schema_dict
+
+    return tables_dict, table_schema_list
 
 
-def create_bq_tables(program_name, params, tables_dict, record_counts, schema_dict):
-    print("Adding tables to {}.{} dataset...".format(params['WORKING_PROJECT'], params['TARGET_DATASET']))
-
-    table_ids = dict()
-    documentation_dict = dict()
-    documentation_dict['table_schemas'] = dict()
-
-    table_keys = get_tables(record_counts)
-
-    for table_key in table_keys:
+def create_schemas(table_schema_fields, table_columns, params, schema_dict):
+    for table_key in table_columns:
         table_order_dict = dict()
         schema_field_keys = []
 
-        table_name, table_id = generate_table_name_and_id(params, program_name, table_key)
+        for column in table_columns[table_key]:
+            bq_column_name = get_bq_name(table_key + '.' + column)
 
-        table_ids[table_key] = table_id
-
-        documentation_dict['table_schemas'][table_key] = dict()
-        documentation_dict['table_schemas'][table_key]['table_id'] = table_id
-        documentation_dict['table_schemas'][table_key]['table_schema'] = list()
-
-        # lookup column position indexes in master list, used to order schema
-        for column in tables_dict[table_key]:
-            if "__" not in column:
-                full_column_name = get_bq_name(table_key + '.' + column)
-            else:
-                full_column_name = column
-
-            try:
-                table_order_dict[full_column_name] = COLUMN_ORDER_DICT[full_column_name]
-            except KeyError:
-                has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(full_column_name))
+            if not bq_column_name or bq_column_name not in COLUMN_ORDER_DICT:
+                has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
+            table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
@@ -568,19 +552,12 @@ def create_bq_tables(program_name, params, tables_dict, record_counts, schema_di
                 mode = "NULLABLE"
 
             schema_list.append(bigquery.SchemaField(
-                schema_key, schema_dict[schema_key]['type'], "NULLABLE",
+                schema_key, schema_dict[schema_key]['type'], mode,
                 schema_dict[schema_key]['description'], ()))
-        try:
-            client = bigquery.Client()
-            client.delete_table(table_id, not_found_ok=True)
-            table = bigquery.Table(table_id, schema=schema_list)
-            client.create_table(table)
-            print("\t- {} table added successfully".format(table_id.split('.')[-1]))
-        except exceptions.BadRequest as err:
-            has_fatal_error("Fatal error for table_id: {}\n{}\n{}".format(table_id, err, schema_list))
 
-        documentation_dict['table_schemas'][table_key]['table_schema'].append(schema_list)
-    return documentation_dict, table_ids
+        table_schema_fields[table_key] = schema_list
+
+    return table_schema_fields
 
 
 ##
@@ -705,25 +682,26 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     return flattened_case_dict
 
 
-def insert_case_data(cases, record_counts, tables_dict, params):
+def create_and_load_tables(cases, table_ids, params, table_schemas):
     print("Inserting case records... ")
-
-    table_keys = get_tables(record_counts)
-
-    client = bigquery.Client()
-
+    table_keys = table_ids.keys()
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
+
+        file_path = params['WORKING_BUCKET_DIR'] + '/'
+
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            table_obj = client.get_table(tables_dict[table])
-            errors = client.insert_rows(table_obj, flattened_case_dict[table])
+            jsonl_filename = params['GDC_RELEASE'] + '_clin_' + table + '.jsonl'
 
-            if errors:
-                print(errors)
+            with open(file_path + jsonl_filename, 'w') as jsonl_file:
+                json.dump(obj=flattened_case_dict[table], fp=jsonl_file)
+                jsonl_file.write('\n')
+
+            create_and_load_table(params, jsonl_filename, table_schemas[table], table)
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
@@ -913,7 +891,10 @@ def main(args):
             'diagnoses__treatments__treatment_id',
             'follow_ups__follow_up_id',
             'follow_ups__molecular_tests__molecular_test_id'
-        }
+        },
+        "BQ_AS_BATCH": False,
+        'WORKING_BUCKET': 'next-gen-etl-scratch',
+        'WORKING_BUCKET_DIR': 'law'
     }
 
     program_names = get_programs_list(params)
@@ -925,32 +906,31 @@ def main(args):
     with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
 
-    for program_name in program_names:
-        print("\n*** Running script for {} ***".format(program_name))
+    schema_dict = create_schema_dict(params)
 
+    for program_name in program_names:
+        table_schemas = dict()
+        print("\n*** Running script for {} ***".format(program_name))
         cases = get_cases_by_program(program_name, params)
 
-        if len(cases) == 0:
+        if not cases:
             print("No case records found for {}, skipping.".format(program_name))
             continue
 
-        schema_dict = create_schema_dict(params)
+        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        table_columns, record_counts, schema_dict = retrieve_program_case_structure(
-            program_name, cases, params, schema_dict)
+        table_ids = generate_table_ids(params, program_name, record_counts)
+
+        table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
+
+        for table_key in table_ids.keys():
+            table_columns, table_schemas = add_reference_columns(table_columns, table_schemas,
+                                                                      table_ids.keys(), table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        # insert_case_data(cases, record_counts, table_names_dict, params)
-
-        """
-        for table in table_names_dict:
-            table_id = table_names_dict[table]
-
-            count = get_row_count(table_id)
-            print("{} has {} rows".format(table_id, count))
-        """
+        create_and_load_tables(cases, table_ids, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
