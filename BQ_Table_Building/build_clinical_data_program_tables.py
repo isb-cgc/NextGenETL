@@ -691,7 +691,8 @@ def create_and_load_tables(cases, table_ids, params, table_schemas):
 
         gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
 
-        print(flattened_case_dict.keys())
+        print(table_ids.keys())
+        print(table_schemas.keys())
         return
 
         for table in flattened_case_dict.keys():
