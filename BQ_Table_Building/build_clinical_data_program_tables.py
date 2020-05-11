@@ -903,8 +903,8 @@ def main(args):
         'WORKING_BUCKET_DIR': 'law'
     }
 
-    program_names = get_programs_list(params)
-    # program_names = ['VAREPOP', 'CGCI']
+    # program_names = get_programs_list(params)
+    program_names = ['ORGANOID']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
