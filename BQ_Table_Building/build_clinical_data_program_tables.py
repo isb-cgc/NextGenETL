@@ -360,7 +360,7 @@ def get_fg_name(column):
 
 def get_bq_name(column):
     if not column or '.' not in column:
-        return None
+        return ''
 
     split_name = column.split('.')
 
