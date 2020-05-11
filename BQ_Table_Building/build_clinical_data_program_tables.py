@@ -926,13 +926,13 @@ def main(args):
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        table_ids = generate_table_ids(params, program_name, record_counts)
+        # table_ids = generate_table_ids(params, program_name, record_counts)
 
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
-        for table_key in table_ids.keys():
+        for table_key in table_columns.keys():
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas,
-                                                                      table_ids.keys(), table_key, params)
+                                                                      table_columns.keys(), table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
