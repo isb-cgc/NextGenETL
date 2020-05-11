@@ -474,10 +474,10 @@ def generate_table_ids(params, program_name, record_counts):
     return table_ids
 
 
-def add_reference_columns(tables_dict, table_schema_list, table_keys, table_key, params):
+def add_reference_columns(tables_dict, table_schema_list, table_key, params):
 
     def generate_id_schema_entry(column_name, parent_table_key_):
-        if parent_table_key_ in table_keys:
+        if parent_table_key_ in tables_dict:
             parent_field_name = get_field_name(parent_table_key_)
             ancestor_table = '*_{}'.format(parent_field_name)
         else:
@@ -502,7 +502,7 @@ def add_reference_columns(tables_dict, table_schema_list, table_keys, table_key,
     record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
     parent_table_key = get_parent_table(table_key)
 
-    while parent_table_key and parent_table_key not in table_keys:
+    while parent_table_key and parent_table_key not in tables_dict:
         parent_table_key = get_parent_table(parent_table_key)
 
     if not parent_table_key:
@@ -682,9 +682,9 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     return flattened_case_dict
 
 
-def create_and_load_tables(cases, table_ids, params, table_schemas):
+def create_and_load_tables(cases, params, table_schemas):
     print("Inserting case records... ")
-    table_keys = table_ids.keys()
+    table_keys = table_schemas.keys()
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
@@ -931,13 +931,12 @@ def main(args):
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
         for table_key in table_columns.keys():
-            table_columns, table_schemas = add_reference_columns(table_columns, table_schemas,
-                                                                      table_columns.keys(), table_key, params)
+            table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        create_and_load_tables(cases, table_ids, params, table_schemas)
+        create_and_load_tables(cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
