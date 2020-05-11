@@ -689,15 +689,18 @@ def create_and_load_tables(cases, table_ids, params, table_schemas):
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
 
-        file_path = params['WORKING_BUCKET_DIR'] + '/'
+        gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
+            print(table_ids[table])
+            continue
+
             jsonl_filename = params['GDC_RELEASE'] + '_clin_' + table + '.jsonl'
 
-            with open(file_path + jsonl_filename, 'w') as jsonl_file:
+            with open(gs_uri + jsonl_filename, 'w') as jsonl_file:
                 json.dump(obj=flattened_case_dict[table], fp=jsonl_file)
                 jsonl_file.write('\n')
 
@@ -934,7 +937,7 @@ def main(args):
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
-        check_data_integrity(params, cases, record_counts, table_columns)
+        # check_data_integrity(params, cases, record_counts, table_columns)
 
 
 if __name__ == '__main__':
