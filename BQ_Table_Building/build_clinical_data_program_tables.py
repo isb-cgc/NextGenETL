@@ -699,16 +699,18 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
             file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
 
+            # if one-to-many table, append suffix
             file_name_parts.append(get_bq_name(table)) if get_bq_name(table) else None
 
             jsonl_filename = '_'.join(file_name_parts) + '.jsonl'
 
             print(jsonl_filename)
-            continue
 
             with open(gs_uri + jsonl_filename, 'w') as jsonl_file:
-                json.dump(obj=flattened_case_dict[table], fp=jsonl_file)
-                jsonl_file.write('\n')
+                for row in flattened_case_dict[table]:
+                    print(row)
+                    json.dump(obj=row, fp=jsonl_file)
+                    jsonl_file.write('\n')
 
             create_and_load_table(params, jsonl_filename, table_schemas[table], table)
 
