@@ -67,10 +67,27 @@ def get_row_count(table_id):
 
 def print_key_sorted_dict(dict_to_print):
     for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
-
         # if not isinstance(value, dict) and not isinstance(value, list):
         # print("{}: {}".format(key, value))
         print("{}".format(key))
+
+        """
+        else:
+            print("{}:".format(key))
+            if isinstance(value, dict):
+                for v_key, v_value in sorted(value.items(), key=lambda item: item[0]):
+                    print("{}: {}".format(v_key, v_value))
+            else:
+                value.sort()
+                for v in value:
+                    print(v)
+        """
+
+
+def print_val_sorted_dict(dict_to_print):
+    for key, value in sorted(dict_to_print.items(), key=lambda item: item[1]):
+        # if not isinstance(value, dict) and not isinstance(value, list):
+        print("{:>3}: {}".format(key))
 
         """
         else:
@@ -688,6 +705,11 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
                                                                           params, column_order_dict)
+
+    print_key_sorted_dict(schema_dict)
+    print(list(table_columns).sort())
+    print_val_sorted_dict(column_order_dict)
+    exit()
 
     for table_key in table_columns:
         table_order_dict = dict()
