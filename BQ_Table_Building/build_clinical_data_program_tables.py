@@ -70,8 +70,10 @@ def get_row_count(table_id):
 def print_key_sorted_dict(dict_to_print):
     for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
 
-        if not isinstance(value, dict) and not isinstance(value, list):
-            print("{}: {}".format(key, value))
+        # if not isinstance(value, dict) and not isinstance(value, list):
+        print("{}: {}".format(key, value))
+
+        """
         else:
             print("{}:".format(key))
             if isinstance(value, dict):
@@ -81,7 +83,7 @@ def print_key_sorted_dict(dict_to_print):
                 value.sort()
                 for v in value:
                     print(v)
-
+        """
 
 ##
 #  Functions for creating the BQ table schema dictionary
