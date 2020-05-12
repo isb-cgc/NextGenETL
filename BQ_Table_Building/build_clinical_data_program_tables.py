@@ -1076,7 +1076,7 @@ def test_table_output(params):
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg, params)
 
-            full_parent_id_key = get_bq_name('parent_table_fg' + '.' + parent_id_key)
+            full_parent_id_key = get_bq_name(parent_table_fg + '.' + parent_id_key)
 
             record_count_list = get_record_count_list(table, table_fg, full_parent_id_key, params)
 
