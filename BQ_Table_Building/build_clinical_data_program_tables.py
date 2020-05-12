@@ -1079,6 +1079,7 @@ def test_table_output(params):
 
             parent_fg = get_parent_field_group(table_fg)
             parent_fg_id_key = get_table_id_key(parent_fg, params)
+            parent_fg_field = get_field_name(parent_fg)
 
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg, params)
@@ -1094,7 +1095,7 @@ def test_table_output(params):
             max_count, max_count_id = get_max_count(record_count_list)
 
             mt_case_id, mt_child_id, mt_max_count = get_main_table_count(params, program_name, table_id_key,
-                                                   table_field, parent_fg_id_key, parent_fg)
+                                                   table_field, parent_fg_id_key, parent_fg_field)
 
             print("case_id: {}, child_id: {}: max_count: {}".format(mt_case_id, mt_child_id, mt_max_count))
 
