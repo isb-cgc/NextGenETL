@@ -925,7 +925,7 @@ def main(args):
         "BQ_AS_BATCH": False,
         'WORKING_BUCKET': 'next-gen-etl-scratch',
         'WORKING_BUCKET_DIR': 'law',
-        "SCRATCH_PATH": '~/scratch'
+        "SCRATCH_PATH": 'temp'
     }
 
     # program_names = get_programs_list(params)
