@@ -38,9 +38,9 @@ def get_dataset_table_list(params):
     table_ids = []
 
     for table in results:
-        table_id = table.table_id
-        if table_id_prefix in table_id:
-            table_ids.append(table_id)
+        table_id_name = table.table_id
+        if table_id_prefix in table_id_name:
+            table_ids.append(table_id_name)
 
     return table_ids.sort()
 
