@@ -1105,6 +1105,9 @@ def get_main_table_count(table, max_count_entry, params):
     table_fg = convert_bq_table_id_to_fg(table)
     parent_table = get_parent_field_group(table_fg)
     entry_id_key = get_table_id_key(table_fg, params)
+
+    print(parent_table)
+
     parent_id_key = get_table_id_key(parent_table, params)
     entry_id = max_count_entry[entry_id_key]
 
