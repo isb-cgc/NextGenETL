@@ -515,8 +515,6 @@ def generate_table_ids(params, program_name, record_counts):
 
 
 def add_reference_columns(tables_dict, table_schema_list, table_key, params):
-    print(table_key)
-
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in tables_dict:
             parent_field_name = get_field_name(parent_table_key_)
@@ -536,7 +534,17 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
         description = "Total count of records associated with this case, located in {} table".format(child_table)
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
+    # get table name
+    # get parent table name
+    # parent table id field added to schema
+    # count reference added to parent table:
+    #   if parent one_to_many table exists:
+    #       add count there
+    #   else:
+    #       add count to grandparent
+
     schema_dict = table_schema_list[table_key]
+    print(schema_dict.keys())
 
     if len(table_key.split('.')) == 1:
         return tables_dict, table_schema_list
@@ -981,8 +989,10 @@ def main(args):
 
         print("Add ref columns")
         print(table_schemas.keys())
-        for table_key in table_schemas.keys():
-            table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
+
+        if len(table_schemas.keys()) > 1:
+            for table_key in table_schemas.keys():
+                table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
