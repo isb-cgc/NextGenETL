@@ -1084,7 +1084,7 @@ def test_table_output(params):
 
             max_count, max_count_id = get_max_count(record_count_list)
 
-            main_max_count = get_main_table_count(table, max_count_id)
+            main_max_count = get_main_table_count(table_fg, max_count_id, params)
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1101,8 +1101,13 @@ def test_table_output(params):
                 cases_tally_max_counts[key] = count
 
 
-def get_main_table_count(table, max_count_id):
-    print("table name: {} max count id: {}".format(table, max_count_id))
+def get_main_table_count(table, max_count_entry, params):
+    entry_id_key = get_table_id_key(table, params)
+    entry_id = max_count_entry[entry_id_key]
+
+
+
+    print("table name: {} max count id: {}".format(table, entry_id))
 
     return None
 
