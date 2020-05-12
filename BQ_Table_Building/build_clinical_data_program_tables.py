@@ -1107,7 +1107,7 @@ def get_main_table_count(table, max_count_entry, params):
 
 
 
-    print("table name: {} max count id: {}".format(table, entry_id))
+    print("table name: {} max count id: {}".format(entry_id_key, entry_id))
 
     return None
 
