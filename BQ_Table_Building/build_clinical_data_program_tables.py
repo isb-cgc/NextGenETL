@@ -1054,7 +1054,7 @@ def test_table_output(params):
         program_table_lists[main_table_id] = []
 
         for table in table_ids:
-            if main_table_id in table:
+            if main_table_id in table and main_table_id != table:
                 program_table_lists[main_table_id].append(table)
 
         print("Tables: {}".format(program_table_lists[main_table_id]))
@@ -1063,7 +1063,13 @@ def test_table_output(params):
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        print("Record counts: {}".format(record_counts))
+        dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
+
+        treatment_counts = get_query_results("""
+            SELECT distinct(case_id), count({}) as record_count 
+            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clin_VAREPOP_diagnoses__treatments` 
+            GROUP BY case_id
+            """.format('diagnoses__treatments__treatment_id', ))
 
 
 ##
