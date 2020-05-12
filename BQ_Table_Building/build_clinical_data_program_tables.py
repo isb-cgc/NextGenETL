@@ -1094,9 +1094,7 @@ def test_table_output(params):
                 params, program_name, table_id_key, table_field, parent_fg_id_key, parent_fg_field)
 
             if max_count != mt_max_count:
-                print("NOT A MATCH")
-            else:
-                print("mt_max_count and max_count match.")
+                has_fatal_error("NOT A MATCH for {}. {} != {}".format(table_fg, max_count, mt_max_count))
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1112,8 +1110,14 @@ def test_table_output(params):
             if count > 1:
                 cases_tally_max_counts[key] = count
 
-        print(cases_tally_max_counts)
-        print(program_table_query_max_counts)
+        for key in cases_tally_max_counts:
+            if key not in program_table_query_max_counts:
+                has_fatal_error("No match found for {} in program_table_query_max_counts: {}".format(
+                    key, program_table_query_max_counts))
+            elif cases_tally_max_counts[key] != program_table_query_max_counts[key]:
+                has_fatal_error("NOT A MATCH for {}. {} != {}".format(
+                    key, cases_tally_max_counts[key], program_table_query_max_counts[key]))
+        print("Counts all match! Moving on.")
 
 
 def get_main_table_count(params, program_name, table_id_key, field_name,
