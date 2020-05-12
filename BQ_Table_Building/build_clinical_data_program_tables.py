@@ -711,6 +711,9 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
         table_schema_fields[table_key] = schema_list
 
+    for key, value in sorted(column_order_dict.items(), key=lambda item: item[1]):
+        print("{:>3} {}".format(value, key))
+
     return table_schema_fields
 
 
@@ -1189,9 +1192,6 @@ def main(args):
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
         table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict.copy())
-
-        for key, value in sorted(table_schemas.items(), key=lambda item: item[1]):
-            print("{:>3} {}".format(value, key))
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
