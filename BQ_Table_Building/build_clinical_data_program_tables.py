@@ -1172,8 +1172,6 @@ def main(args):
     program_names = ['VAREPOP']
 
     column_order_dict = build_column_order_dict(params)
-    print(column_order_dict)
-    return
 
     with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
