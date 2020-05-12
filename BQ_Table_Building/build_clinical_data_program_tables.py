@@ -1076,7 +1076,9 @@ def test_table_output(params):
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg, params)
 
-            record_count_list = get_record_count_list(table, table_fg, parent_id_key, params)
+            full_parent_id_key = get_bq_name('parent_table_fg' + '.' + parent_id_key)
+
+            record_count_list = get_record_count_list(table, table_fg, full_parent_id_key, params)
 
             max_count = get_max_count(record_count_list)
 
@@ -1110,8 +1112,9 @@ def get_max_count(record_count_list):
     return max_count
 
 
-def get_record_count_list(table, table_fg_key, table_id_key, params):
+def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
     dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
+    table_id_key = get_table_id_key(table_fg_key, params)
 
     table_id_column = get_bq_name(table_fg_key + '.' + table_id_key)
 
@@ -1120,7 +1123,7 @@ def get_record_count_list(table, table_fg_key, table_id_key, params):
         SELECT distinct({}), count({}) as record_count 
         FROM `{}.{}` 
         GROUP BY {}
-        """.format(table_id_key, table_id_column, dataset_path, table, table_id_key)
+        """.format(parent_table_id_key, table_id_column, dataset_path, table, parent_table_id_key)
     )
 
     record_count_list = []
