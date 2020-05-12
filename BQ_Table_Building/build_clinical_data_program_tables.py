@@ -846,7 +846,14 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
-    for field_group_key, field_group in flattened_case_dict.copy().items():
+    field_group_counts = dict.fromkeys(flattened_case_dict.keys(), 0)
+
+    # sort field group keys by depth
+    for fg_key in field_group_counts:
+        field_group_counts[fg_key] = len(fg_key.split("."))
+
+    for field_group_key, fg_depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
+        field_group = flattened_case_dict[field_group_key].copy()
         # skip merge for cases
         if field_group_key == 'cases':
             continue
@@ -874,9 +881,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
                 parent_id = record[bq_parent_id_column]
 
                 record_count_dict[parent_id]['record_count'] += 1
-
-            print(record_count_dict)
-
 
             for parent_id in record_count_dict:
                 entry_idx = record_count_dict[parent_id]['entry_idx']
