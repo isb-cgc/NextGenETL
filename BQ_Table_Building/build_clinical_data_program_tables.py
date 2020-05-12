@@ -629,7 +629,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                         entry_dict['case_id'] = case_id
                         entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
                     else:
-                        entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
+                        entry_dict['case_id'] = case_id
 
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
