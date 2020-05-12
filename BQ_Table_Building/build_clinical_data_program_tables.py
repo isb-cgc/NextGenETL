@@ -3,6 +3,7 @@ from google.cloud import bigquery, storage
 import sys
 import json
 import os
+import time
 
 YAML_HEADERS = 'params'
 
@@ -1057,6 +1058,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
 
 
 def main(args):
+    start = time.time()
     # fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
     # bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
 
@@ -1278,6 +1280,12 @@ def main(args):
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
         # check_data_integrity(params, cases, record_counts, table_columns)
+
+    end = time.time()
+
+    total = end - start
+
+    print("Program completed in {} seconds".format(total))
 
 
 if __name__ == '__main__':
