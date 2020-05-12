@@ -601,7 +601,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
     # modify schema dict, add reference columns for this program
     schema_dict, column_order_dict = add_reference_columns(table_columns, schema_dict, params, column_order_dict)
-    print_key_sorted_dict(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -1019,6 +1018,8 @@ def main(args):
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
         table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict.copy())
+
+        print(table_schemas)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
