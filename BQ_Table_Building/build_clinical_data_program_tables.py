@@ -1174,8 +1174,8 @@ def main(args):
         test_table_output()
         exit()
 
-    program_names = get_programs_list()
-    # program_names = ['VAREPOP']
+    # program_names = get_programs_list()
+    program_names = ['VAREPOP', 'HCMI']
 
     column_order_dict = build_column_order_dict()
 
