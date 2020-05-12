@@ -1112,6 +1112,9 @@ def test_table_output(params):
             if count > 1:
                 cases_tally_max_counts[key] = count
 
+        print(cases_tally_max_counts)
+        print(program_table_query_max_counts)
+
 
 def get_main_table_count(params, program_name, table_id_key, field_name,
                          parent_table_id_key=None, parent_field_name=None):
