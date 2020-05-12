@@ -34,7 +34,7 @@ def get_dataset_table_list(params):
     results = client.list_tables(dataset)
 
     for table in results:
-        print(table)
+        print(table.table_id)
 
 
 def get_cases_by_program(program_name, params):
