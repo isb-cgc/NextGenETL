@@ -616,18 +616,20 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
             table_id_key = get_table_id_key(table_key, params)
             bq_table_id_name = get_bq_name(table_key + '.' + table_id_key)
-            count_column_idx = table_order_dict[bq_table_id_name] + COUNT_COLUMN_OFFSET
 
-            count_keys = []
-            count_key_idx = count_column_idx
+            count_columns = []
+            count_column_position = column_order_dict[bq_table_id_name] + COUNT_COLUMN_OFFSET
 
             for key, value in table_order_dict.items():
-                if value == count_column_idx:
-                    count_keys.append(key)
+                if value == count_column_position:
+                    count_columns.append(key)
 
-            for count_key in count_keys:
-                table_order_dict[count_key] = count_key_idx
-                count_key_idx += 1
+            # index in alpha order
+            count_columns.sort()
+
+            for count_column in count_columns:
+                table_order_dict[count_column] = count_column_position
+                count_column_position += 1
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
@@ -1016,7 +1018,7 @@ def main(args):
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict)
+        table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict.copy())
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
