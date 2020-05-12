@@ -677,11 +677,12 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
             reference_col_position += 1
 
-        case_id_column = get_bq_name(table_key + '.case_id')
+        case_id_key = 'case_id'
+        case_id_column = get_bq_name(table_key + '.' + case_id_key)
 
         # add case_id to one-to-many table
-        schema_dict[case_id_column] = generate_id_schema_entry('case_id', 'main')
-        table_columns[table_key].add(case_id_column)
+        schema_dict[case_id_column] = generate_id_schema_entry(case_id_key, 'main')
+        table_columns[table_key].add(case_id_key)
         column_order_dict[case_id_column] = reference_col_position
 
         reference_col_position += 1
@@ -715,8 +716,8 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         column_list.sort()
         print("{}: \n{}".format(table, ", ".join(column_list)))
 
-    print("*** Column Orders ***")
-    print_val_sorted_dict(column_order_dict)
+    # print("*** Column Orders ***")
+    # print_val_sorted_dict(column_order_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
