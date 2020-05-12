@@ -551,6 +551,12 @@ def get_record_count_id_key(table_key, params, fatal=False):
     return params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
 
 
+def get_id_column_position(table_key, column_order_dict, params):
+    table_id_key = get_table_id_key(table_key, params)
+    id_column = get_bq_name(table_key + '.' + table_id_key)
+    return column_order_dict[id_column]
+
+
 ##
 #  Functions for ordering the BQ table schema and creating BQ tables
 ##
@@ -633,43 +639,37 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
     for table_key in table_columns.keys():
         table_depth = len(table_key.split('.'))
-        table_id_key = get_table_id_key(table_key, params)
-        bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
 
-        id_column_position = column_order_dict[bq_table_id_column_name]
+        id_column_position = get_id_column_position(table_key, column_order_dict, params)
         reference_col_position = id_column_position + 1
-        count_columns_position = reference_col_position + len(params['FIELD_GROUP_ORDER'])
 
         if table_depth > 2:
-            # add reference to parent field group id (even if flattened)
-            parent_table_key = get_parent_field_group(table_key)
-            parent_id_key = get_table_id_key(parent_table_key, params)
+            # add to this table: reference to direct ancestor record's id
+            parent_fg = get_parent_field_group(table_key)
+            parent_id_key = get_table_id_key(parent_fg, params)
+            parent_id_column_name = get_bq_name(table_key + '.' + parent_id_key)
 
-            parent_id_column_name = get_bq_name(table_key) + '__' + parent_id_key
-            schema_dict[parent_id_column_name] = generate_id_schema_entry(parent_id_key, parent_table_key)
+            schema_dict[parent_id_column_name] = generate_id_schema_entry(parent_id_key, parent_fg)
             column_order_dict[parent_id_column_name] = reference_col_position
-
             reference_col_position += 1
 
         if table_depth > 1:
+            # insert count field entry in parent table
+            parent_table_key = get_parent_table(table_columns.keys(), table_key)
+            parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict, params)
+            count_columns_position = parent_id_column_position + len(params['FIELD_GROUP_ORDER'])
+
             # add case id to one-to-many table
             case_id_key = get_bq_name(table_key) + '__case_id'
             schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
             column_order_dict[case_id_key] = reference_col_position
-
             reference_col_position += 1
-
-            # Find actual parent table (may not be direct ancestor, which might've been flattened)
-            parent_table_key = get_parent_table(table_columns.keys(), table_key)
 
             # add one-to-many count column to parent table
             count_id_key = get_bq_name(table_key) + '__count'
             schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
             table_columns[parent_table_key].add(count_id_key)
-
-            # dictate table ordering for count fields
-            parent_id_column_position = column_order_dict[get_table_id_key(parent_table_key, params)]
-            column_order_dict[count_id_key] = parent_id_column_position + count_columns_position
+            column_order_dict[count_id_key] = count_columns_position
 
     return schema_dict, column_order_dict
 
@@ -681,7 +681,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     schema_dict, column_order_dict = add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
     for table_key in table_columns:
-        required_columns = get_required_columns(table_key, params)
         table_order_dict = dict()
         schema_field_keys = []
 
@@ -712,8 +711,9 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
         schema_list = []
 
+        required_columns = get_required_columns(table_key, params)
+
         for schema_key in schema_field_keys:
-            # todo change to params-metadata-id key
             if schema_key in required_columns:
                 mode = 'REQUIRED'
             else:
