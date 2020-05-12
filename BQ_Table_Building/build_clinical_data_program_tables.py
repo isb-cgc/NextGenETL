@@ -715,9 +715,10 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         column_list = list(table_columns[table])
         column_list.sort()
         print("{}: \n{}".format(table, ", ".join(column_list)))
-    """
+    
     print("*** Column Orders ***")
     print_val_sorted_dict(column_order_dict)
+    """
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -977,7 +978,7 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 #  Functions for creating documentation
 ##
 def generate_documentation(params, program_name, documentation_dict, record_counts):
-    print("Inserting documentation", end='')
+    print("Inserting documentation... ")
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
     # print("{}".format(record_counts))
@@ -1003,20 +1004,23 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
         }
     }
     """
-    with open(params['DOCS_OUTPUT_FILE'], 'a') as doc_file:
+
+    docs_filename = params['DOCS_OUTPUT_FILE']
+    with open(docs_filename, 'a') as doc_file:
         doc_file.write("{} \n".format(program_name))
         doc_file.write("{}".format(documentation_dict))
         doc_file.write("{}".format(record_counts))
 
     print("... DONE.")
 
+    upload_to_bucket(params, docs_filename)
+
 
 def main(args):
 
-    '''
-    fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
-    bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
-    '''
+
+    # fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
+    # bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
 
     """
     if len(args) != 3:
@@ -1217,7 +1221,7 @@ def main(args):
     schema_dict = create_schema_dict(params)
 
     for program_name in program_names:
-        print("\n*** Running script for {} ***".format(program_name))
+        print("\n*** Running script for program {} ***".format(program_name))
         cases = get_cases_by_program(program_name, params)
 
         if not cases:
