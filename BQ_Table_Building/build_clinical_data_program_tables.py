@@ -5,6 +5,7 @@ import sys
 import math
 import pprint
 import json
+import os
 
 YAML_HEADERS = 'params'
 COLUMN_ORDER_DICT = None
@@ -711,6 +712,12 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
 def create_and_load_tables(program_name, cases, params, table_schemas):
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
+
+    for table in table_keys:
+        fp = get_temp_filepath(params, program_name, table)
+        if os.path.exists(fp):
+            os.remove(fp)
+
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
@@ -721,7 +728,7 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
             jsonl_fp = get_temp_filepath(params, program_name, table)
 
-            with open(jsonl_fp, 'w') as jsonl_file:
+            with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flattened_case_dict[table]:
                     print(row)
                     json.dump(obj=row, fp=jsonl_file)
