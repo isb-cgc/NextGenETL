@@ -1070,6 +1070,8 @@ def test_table_output(params):
         for table in program_table_lists[main_table_id]:
             table_fg_list.append(convert_bq_table_id_to_fg(table))
 
+        program_table_query_max_counts = dict()
+
         for table in program_table_lists[main_table_id]:
             table_fg = convert_bq_table_id_to_fg(table)
 
@@ -1082,14 +1084,28 @@ def test_table_output(params):
 
             max_count = get_max_count(record_count_list)
 
-            print("{} max record count: {}".format(table_fg, max_count))
+            for key, value in sorted(record_count_list.items(), key=lambda item: item[1], reverse=True):
+                main_max_count = get_main_table_count(key, value)
+
+            program_table_query_max_counts[table_fg] = max_count
 
         cases = get_cases_by_program(program_name, params)
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        for record_count in record_counts:
-            print("{}: {}".format(record_count, record_counts[record_count]))
+        cases_tally_max_counts = dict()
+
+        for key in record_counts:
+            count = record_counts[key]
+
+            if count > 1:
+                cases_tally_max_counts[key] = count
+
+
+def get_main_table_count(key, value):
+    print("main table key: {} value: {}".format(key, value))
+
+    return None
 
 
 def convert_bq_table_id_to_fg(table_id):
