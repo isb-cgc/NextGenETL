@@ -1059,16 +1059,19 @@ def test_table_output(params):
             if main_table_id in table and main_table_id != table:
                 program_table_lists[main_table_id].append(table)
 
+        if not program_table_lists[main_table_id]:
+            print("... no one-to-many tables")
+            continue
+
         print("Tables: {}".format(program_table_lists[main_table_id]))
 
         for table in program_table_lists[main_table_id]:
-            print(table)
             distinct_col = 'case_id'
             record_count_list = get_record_count_list(table, main_table_id, distinct_col, program_name, params)
 
             max_count = get_max_count(record_count_list)
 
-            print(max_count)
+            print("{} max record count: {}".format(table, max_count))
 
         continue
 
