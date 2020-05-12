@@ -514,7 +514,7 @@ def generate_table_ids(params, program_name, record_counts):
     return table_ids
 
 
-def add_reference_columns(tables_dict, table_schema_list, table_key, params):
+def add_reference_columns(tables_dict, schema_dict, params):
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in tables_dict:
             parent_field_name = get_field_name(parent_table_key_)
@@ -543,8 +543,9 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
     #   else:
     #       add count to grandparent
 
-    schema_dict = table_schema_list[table_key]
-    print(table_schema_list)
+    print(tables_dict.keys())
+    print(schema_dict.keys())
+    return
 
     if len(table_key.split('.')) == 1:
         return tables_dict, table_schema_list
@@ -579,6 +580,8 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
 
 
 def create_schemas(table_schema_fields, table_columns, params, schema_dict):
+    add_reference_columns(table_columns.keys(), schema_dict, params)
+
     for table_key in table_columns:
         table_order_dict = dict()
         schema_field_keys = []
@@ -987,17 +990,15 @@ def main(args):
 
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
-        print("Add ref columns")
-        print(table_schemas.keys())
 
-        if len(table_schemas.keys()) > 1:
-            for table_key in table_schemas.keys():
-                table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
+        # if len(table_schemas.keys()) > 1:
+        #    for table_key in table_schemas.keys():
+        #        table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        create_and_load_tables(program_name, cases, params, table_schemas)
+        # create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
