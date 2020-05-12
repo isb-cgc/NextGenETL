@@ -1102,12 +1102,13 @@ def test_table_output(params):
 
 
 def get_main_table_count(table, max_count_entry, params):
-    entry_id_key = get_table_id_key(table, params)
+    parent_table = get_parent_field_group(table)
+    entry_id_key = get_table_id_key(parent_table, params)
     entry_id = max_count_entry[entry_id_key]
 
 
 
-    print("table name: {} max count id: {}".format(entry_id_key, entry_id))
+    print("id type key: {} max count id: {}".format(entry_id_key, entry_id))
 
     return None
 
