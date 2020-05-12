@@ -658,7 +658,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             parent_id_column = get_bq_name(table_key + '.' + parent_id_key)
 
             # add parent_id to one-to-many table
-            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_key, parent_fg)
+            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_column, parent_fg)
             table_columns[table_key].add(parent_id_column)
             column_order_dict[parent_id_column] = reference_col_position
 
@@ -712,12 +712,16 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
         for column in table_columns[table_key]:
             count_column_position = get_count_column_position(table_key, params, column_order_dict)
-            bq_column_name = get_bq_name(table_key + '.' + column)
+            # don't rename if this is a parent_id column
+            if '__' in column:
+                column_name = column
+            else:
+                column_name = get_bq_name(table_key + '.' + column)
 
-            if not bq_column_name or bq_column_name not in column_order_dict:
-                has_fatal_error("'{}' not in column_order_dict!".format(bq_column_name))
+            if not column_name or column_name not in column_order_dict:
+                has_fatal_error("'{}' not in column_order_dict!".format(column_name))
 
-            table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
+            table_order_dict[column_name] = column_order_dict[column_name]
 
             count_columns = []
 
