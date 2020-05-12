@@ -693,6 +693,8 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
                                                                           params, column_order_dict)
+
+    print(schema_dict)
     """
     print("*** Schema Dict Keys ***")
     print_key_sorted_dict(schema_dict)
