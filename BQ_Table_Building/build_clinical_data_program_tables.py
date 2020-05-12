@@ -1065,11 +1065,18 @@ def test_table_output(params):
 
         print("Tables: {}".format(program_table_lists[main_table_id]))
 
+        table_fg_list = []
+
+        for table in program_table_lists[main_table_id]:
+            table_fg_list.append(convert_bq_table_id_to_fg(table))
+
         for table in program_table_lists[main_table_id]:
             table_fg = convert_bq_table_id_to_fg(table)
-            distinct_col = get_table_id_key(table_fg, params)
 
-            record_count_list = get_record_count_list(table, table_fg, distinct_col, params)
+            parent_table_fg = get_parent_table(table_fg_list, table_fg)
+            parent_id_key = get_table_id_key(parent_table_fg, params)
+
+            record_count_list = get_record_count_list(table, table_fg, parent_id_key, params)
 
             max_count = get_max_count(record_count_list)
 
