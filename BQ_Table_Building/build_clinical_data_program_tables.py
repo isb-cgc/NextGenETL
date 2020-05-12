@@ -1175,7 +1175,7 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
 
         record_count_list.append({
             parent_table_id_key: distinct_col_result,
-            'table_id_key': table_id_key,
+            'table': table,
             count_label: record_count
         })
 
