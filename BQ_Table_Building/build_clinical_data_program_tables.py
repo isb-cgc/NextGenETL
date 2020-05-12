@@ -1107,14 +1107,15 @@ def get_main_table_count(table, max_count_entry, params):
     entry_id_key = get_table_id_key(table_fg, params)
 
     print("table_fg: {}, parent_table: {}, entry_id_key: {}".format(table_fg, parent_table, entry_id_key))
-    return
 
-    parent_id_key = get_table_id_key(parent_table, params)
+    if parent_table:
+        parent_id_key = get_table_id_key(parent_table, params)
+    else:
+        parent_id_key = None
+
     entry_id = max_count_entry[entry_id_key]
 
-
-
-    print("id type key: {} max count id: {}".format(parent_id_key, entry_id))
+    print("id type key: {}, parent id type key: {}, max count id: {}".format(entry_id_key, parent_id_key, entry_id))
 
     return None
 
