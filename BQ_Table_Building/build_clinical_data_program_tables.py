@@ -156,7 +156,10 @@ def flatten_tables(tables, record_counts, params):
         # parent_fg = '.'.join(field_group.split('.')[:-1])
         # if field_group_counts[parent_fg] == 1:
 
+        print("For {}:\nBefore: {}".format(field_group, tables[field_group]))
+
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
+        print("After: {}".format(tables[field_group]))
 
         if depth == 1:
             break
@@ -588,9 +591,11 @@ def create_schemas(table_schema_fields, table_columns, params, schema_dict):
             else:
                 mode = "NULLABLE"
 
-            schema_list.append(bigquery.SchemaField(
-                schema_key, schema_dict[schema_key]['type'], mode,
-                schema_dict[schema_key]['description'], ()))
+            schema_list.append(bigquery.SchemaField(schema_key,
+                                                    schema_dict[schema_key]['type'],
+                                                    mode,
+                                                    schema_dict[schema_key]['description'],
+                                                    ()))
 
         table_schema_fields[table_key] = schema_list
 
