@@ -1066,8 +1066,10 @@ def test_table_output(params):
         print("Tables: {}".format(program_table_lists[main_table_id]))
 
         for table in program_table_lists[main_table_id]:
-            distinct_col = 'case_id'
-            record_count_list = get_record_count_list(table, main_table_id, distinct_col, program_name, params)
+            table_fg = convert_bq_table_id_to_fg(table)
+            distinct_col = get_table_id_key(table_fg, params)
+
+            record_count_list = get_record_count_list(table, table_fg, distinct_col, params)
 
             max_count = get_max_count(record_count_list)
 
@@ -1080,6 +1082,17 @@ def test_table_output(params):
         print(record_counts)
 
 
+def convert_bq_table_id_to_fg(table_id):
+    short_table_name = "_".join(table_id.split('_')[3:])
+
+    table_name = 'cases'
+
+    if short_table_name:
+        table_name += '.' + '.'.join(short_table_name.split('__'))
+
+    return table_name
+
+
 def get_max_count(record_count_list):
     max_count = 0
     for record_count_entry in record_count_list:
@@ -1088,23 +1101,17 @@ def get_max_count(record_count_list):
     return max_count
 
 
-def get_record_count_list(table, main_table_id, distinct_col, program_name, params):
+def get_record_count_list(table, table_fg_key, table_id_key, params):
     dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
-    prefix_len = len(main_table_id) + 1
-    table_short_name = table[prefix_len:]
 
-    fg_metadata_key = 'cases.' + '.'.join(table_short_name.split("__"))
-
-    table_id_key = get_table_id_key(fg_metadata_key, params)
-    table_id_column = get_bq_name(fg_metadata_key + '.' + table_id_key)
-    table_id = get_table_id(params, program_name, table)
+    table_id_column = get_bq_name(table_fg_key + '.' + table_id_key)
 
     results = get_query_results(
         """
         SELECT distinct({}), count({}) as record_count 
         FROM `{}.{}` 
         GROUP BY {}
-        """.format(distinct_col, table_id_column, dataset_path, table, distinct_col)
+        """.format(table_id_key, table_id_column, dataset_path, table, table_id_key)
     )
 
     record_count_list = []
@@ -1117,7 +1124,7 @@ def get_record_count_list(table, main_table_id, distinct_col, program_name, para
         count_label = 'record_count'
 
         record_count_list.append({
-            distinct_col: distinct_col_result,
+            table_id_key: distinct_col_result,
             count_label: record_count
         })
 
