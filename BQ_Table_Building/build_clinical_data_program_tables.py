@@ -544,7 +544,7 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
     #       add count to grandparent
 
     schema_dict = table_schema_list[table_key]
-    print(schema_dict.keys())
+    print(table_schema_list)
 
     if len(table_key.split('.')) == 1:
         return tables_dict, table_schema_list
