@@ -113,11 +113,11 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    print("Before flatten_tables: ".format(table_columns))
+    print("Before flatten_tables: {}".format(table_columns))
 
     table_columns = flatten_tables(table_columns, record_counts, params)
 
-    print("After flatten_tables: ".format(table_columns))
+    print("After flatten_tables: {}".format(table_columns))
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
