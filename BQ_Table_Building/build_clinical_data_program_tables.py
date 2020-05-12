@@ -1113,9 +1113,9 @@ def get_main_table_count(table, max_count_entry, params):
     else:
         parent_id_key = None
 
-    entry_id = max_count_entry[entry_id_key]
-
-    print("id type key: {}, parent id type key: {}, max count id: {}".format(entry_id_key, parent_id_key, entry_id))
+    print("id type key: {}, parent id type key: {}, max count entry: {}".format(entry_id_key,
+                                                                                parent_id_key,
+                                                                                max_count_entry))
 
     return None
 
