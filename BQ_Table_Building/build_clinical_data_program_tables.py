@@ -8,6 +8,10 @@ import json
 import os
 
 YAML_HEADERS = 'params'
+PARENT_ID_OFFSET = 1
+CASE_ID_OFFSET = 2
+COUNT_COLUMN_OFFSET = 5
+REFERENCE_COLUMNS_OFFSET = 50
 
 ##
 #  Functions for retrieving programs and cases
@@ -496,7 +500,11 @@ def import_column_order(path):
 
         for column in columns:
             column_dict[column.strip()] = count
-            count += 1
+            if column.endswith('id'):
+                # arbitrarily big, leaving space for reference key ordering
+                count += REFERENCE_COLUMNS_OFFSET
+            else:
+                count += 1
 
     return column_dict
 
@@ -527,7 +535,7 @@ def generate_table_ids(params, program_name, record_counts):
     return table_ids
 
 
-def add_reference_columns(table_columns, schema_dict, params):
+def add_reference_columns(table_columns, schema_dict, params, column_order_dict):
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in table_columns.keys():
             parent_field_name = get_field_name(parent_table_key_)
@@ -546,40 +554,51 @@ def add_reference_columns(table_columns, schema_dict, params):
         description = "Total count of records associated with this case, located in {} table".format(parent_table_key_)
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
-    for table in table_columns.keys():
-        if len(table.split('.')) > 1:
+    for table_key in table_columns.keys():
+        table_depth = len(table_key.split('.'))
+        id_column_position = column_order_dict[get_table_id_key(table_key, params)]
+
+        if table_depth > 2:
+            # add reference to parent field group id (even if flattened)
+            parent_table_key = get_parent_table(table_key)
+            parent_id_key = get_table_id_key(parent_table_key, params)
+
+            parent_id_column_name = get_bq_name(table_key) + '__' + parent_id_key
+            schema_dict[parent_id_column_name] = generate_id_schema_entry(parent_id_key, parent_table_key)
+            column_order_dict[parent_id_column_name] = id_column_position + PARENT_ID_OFFSET
+
+        if table_depth > 1:
             # add case id to one-to-many table
-            case_id_key = get_bq_name(table) + '__case_id'
+            case_id_key = get_bq_name(table_key) + '__case_id'
             schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
+            column_order_dict[case_id_key] = id_column_position + CASE_ID_OFFSET
 
             # Find actual parent table (may not be direct ancestor, which might've been flattened)
-            parent_table_key = get_parent_table(table)
+            parent_table_key = get_parent_table(table_key)
+
             while parent_table_key and parent_table_key not in table_columns:
                 parent_table_key = get_parent_table(parent_table_key)
+
             if not parent_table_key:
-                has_fatal_error("No parent table found for: {}".format(table))
+                has_fatal_error("No parent table found for: {}".format(table_key))
 
             # add one-to-many count column to parent table
-            count_id_key = get_bq_name(table) + '__count'
+            count_id_key = get_bq_name(table_key) + '__count'
             schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
             table_columns[parent_table_key].add(count_id_key)
 
-        if len(table.split('.')) > 2:
-            # add reference to parent field group id (even if flattened)
-            parent_table_key = get_parent_table(table)
-            reference_id_key = get_table_id_key(parent_table_key, params)
+            # dictate table ordering for count fields
+            parent_id_column_position = column_order_dict[get_table_id_key(parent_table_key, params)]
+            column_order_dict[count_id_key] = parent_id_column_position + COUNT_COLUMN_OFFSET
 
-            schema_column_name = get_bq_name(table) + '__' + reference_id_key
-            schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
-
-    return schema_dict
+    return schema_dict, column_order_dict
 
 
 def create_schemas(table_columns, params, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
-    schema_dict = add_reference_columns(table_columns, schema_dict, params)
+    schema_dict, column_order_dict = add_reference_columns(table_columns, schema_dict, params, column_order_dict)
     print_key_sorted_dict(schema_dict)
 
     for table_key in table_columns:
@@ -592,6 +611,20 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
             if not bq_column_name or bq_column_name not in column_order_dict:
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
             table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
+
+            table_id_key = get_table_id_key(table_key)
+            count_column_idx = table_order_dict[table_id_key] + COUNT_COLUMN_OFFSET
+
+            count_keys = []
+            count_key_idx = count_column_idx
+
+            for key, value in table_order_dict.items():
+                if value == count_column_idx:
+                    count_keys.append(key)
+
+            for count_key in count_keys:
+                table_order_dict[count_key] = count_key_idx
+                count_key_idx += 1
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
