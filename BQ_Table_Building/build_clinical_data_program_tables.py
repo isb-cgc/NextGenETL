@@ -852,12 +852,33 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
             continue
 
         parent_table_key = get_parent_table(table_keys, field_group_key)
+        parent_id_key = get_table_id_key(parent_table_key, params)
 
         if field_group_key in table_keys:
-            record_count = len(field_group)
+            record_count_dict = dict()
 
-            record_count_key = get_bq_name(field_group_key + '.count')
-            flattened_case_dict[parent_table_key][0][record_count_key] = record_count
+            cnt = 0
+            for entry in flattened_case_dict[parent_table_key].copy():
+                entry_id = entry[parent_id_key]
+                record_count_dict[entry_id]['entry_idx'] = cnt
+                record_count_dict[entry_id]['record_count'] = 0
+                cnt += 1
+
+            for record in field_group:
+                if parent_id_key not in record:
+                    print("no parent_id_key {} in record.".format(parent_id_key))
+                    continue
+
+                parent_id = record[parent_id_key]
+
+                record_count_dict[parent_id]['record_count'] += 1
+
+            for parent_id in record_count_dict:
+                entry_idx = record_count_dict[parent_id]['entry_idx']
+                record_count_key = get_bq_name(field_group_key + '.count')
+                record_count = record_count_dict[parent_id]['record_count']
+
+                flattened_case_dict[parent_table_key][entry_idx][record_count_key] = record_count
         else:
             field_group = flattened_case_dict.pop(field_group_key)
 
