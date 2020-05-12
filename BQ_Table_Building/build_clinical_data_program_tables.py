@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-YAML_HEADERS = 'params'
+YAML_HEADERS = ('api_params', 'bq_params')
 API_PARAMS = None
 BQ_PARAMS = None
 
@@ -979,19 +979,20 @@ def main(args):
     # fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
     # bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
 
-    """
-    if len(args) != 3:
+    if len(args) != 2:
         has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
+
+    global API_PARAMS
+    global BQ_PARAMS
 
     with open(args[1], mode='r') as yaml_file:
         try:
-            params = load_config(yaml_file, YAML_HEADERS)
+            API_PARAMS, BQ_PARAMS = load_config(yaml_file, YAML_HEADERS)
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    # programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['PROGRAM_ID_TABLE']
+
     """
-    
     global API_PARAMS
 
     API_PARAMS = {
@@ -1166,6 +1167,8 @@ def main(args):
         'WORKING_BUCKET': 'next-gen-etl-scratch',
         'WORKING_BUCKET_DIR': 'law'
     }
+    
+    """
 
     if API_PARAMS['TEST_MODE']:
         test_table_output()
