@@ -42,7 +42,9 @@ def get_dataset_table_list(params):
         if table_id_name and table_id_prefix in table_id_name:
             table_id_list.append(table_id_name)
 
-    return table_id_list.sort()
+    table_id_list.sort()
+
+    return table_id_list
 
 
 def get_cases_by_program(program_name, params):
