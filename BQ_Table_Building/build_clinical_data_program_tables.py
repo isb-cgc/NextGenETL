@@ -624,14 +624,15 @@ def generate_table_ids(params, program_name, record_counts):
 
 def add_reference_columns(table_columns, schema_dict, params, column_order_dict):
     def generate_id_schema_entry(column_name, parent_table_key_):
+        parent_field_name = get_field_name(parent_table_key_)
+
         if parent_table_key_ in table_columns.keys():
-            parent_field_name = get_field_name(parent_table_key_)
             ancestor_table = '*_{}'.format(parent_field_name)
         else:
             ancestor_table = 'main'
 
         if '__' in column_name:
-            ancestor_column_name = "__".join(column_name.split('__')[:-1])
+            ancestor_column_name = parent_field_name + '__' + get_field_name(column_name)
         else:
             ancestor_column_name = column_name
 
