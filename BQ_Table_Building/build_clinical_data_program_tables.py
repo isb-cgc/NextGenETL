@@ -1043,14 +1043,21 @@ def test_table_output(params):
 
     table_ids = get_dataset_table_list(params)
 
-    print("tables: ")
-    print(table_ids)
-
     program_names = get_programs_list(params)
+
+    program_table_lists = dict()
 
     for program_name in program_names:
         main_table_id = get_table_id(params, program_name, 'cases')
-        print(main_table_id)
+        program_table_lists[main_table_id] = []
+
+        for table in table_ids:
+            if main_table_id in table:
+                program_table_lists[main_table_id].append(table)
+
+    print(program_table_lists)
+
+
 
     # get list of case ids for main table
     # make a dict of the case_ids
