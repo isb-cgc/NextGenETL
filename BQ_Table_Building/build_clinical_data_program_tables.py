@@ -1,18 +1,10 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, create_and_load_table
 from google.cloud import bigquery, storage
-from google.api_core import exceptions
 import sys
-import math
-import pprint
 import json
 import os
 
 YAML_HEADERS = 'params'
-# starts at 2 so that submitter_id can come after case_id in main table
-# PARENT_ID_OFFSET = 2
-# CASE_ID_OFFSET = 3
-# COUNT_COLUMN_OFFSET = 5
-# REFERENCE_COLUMNS_OFFSET = 20
 
 
 ##
@@ -430,6 +422,7 @@ def get_bq_name(column):
     return '__'.join(split_name)
 
 
+"""
 def get_reference_column_positions(table_key, params, column_order_dict):
     table_id_key = get_table_id_key(table_key, params)
     bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
@@ -439,6 +432,17 @@ def get_reference_column_positions(table_key, params, column_order_dict):
     count_columns_position = reference_col_position + len(params['FIELD_GROUP_ORDER'])
 
     return reference_col_position, count_columns_position
+"""
+
+
+def get_count_column_position(table_key, params, column_order_dict):
+    table_id_key = get_table_id_key(table_key, params)
+    bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
+    id_column_position = column_order_dict[bq_table_id_column_name]
+
+    count_columns_position = id_column_position + len(params['FIELD_GROUP_ORDER'])
+
+    return count_columns_position
 
 
 def generate_long_name(params, program_name, table):
@@ -477,13 +481,34 @@ def upload_to_bucket(params, file):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def get_parent_table(table_key):
-    if not table_key:
-        return None
-
+def get_parent_field_group(table_key):
     split_key = table_key.split('.')
-    parent_table = ".".join(split_key[:-1])
-    return parent_table
+
+    return ".".join(split_key[:-1])
+
+
+def get_parent_table(table_keys, table_key):
+    base_table = table_key.split('.')[0]
+
+    if not base_table or base_table not in table_keys:
+        has_fatal_error("'{}' has no parent table in tables list: {}".format(table_key, table_keys))
+
+    parent_table_key = get_parent_field_group(table_key)
+
+    while parent_table_key and parent_table_key not in table_keys:
+        parent_table_key = get_parent_field_group(parent_table_key)
+
+    return parent_table_key
+
+
+def get_required_columns(table_key, params):
+    required_columns = list()
+
+    table_id_key = get_table_id_key(table_key, params)
+
+    required_columns.append(get_bq_name(table_key + '.' + table_id_key))
+
+    return required_columns
 
 
 def get_table_id_key(table_key, params):
@@ -617,7 +642,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
         if table_depth > 2:
             # add reference to parent field group id (even if flattened)
-            parent_table_key = get_parent_table(table_key)
+            parent_table_key = get_parent_field_group(table_key)
             parent_id_key = get_table_id_key(parent_table_key, params)
 
             parent_id_column_name = get_bq_name(table_key) + '__' + parent_id_key
@@ -635,13 +660,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             reference_col_position += 1
 
             # Find actual parent table (may not be direct ancestor, which might've been flattened)
-            parent_table_key = get_parent_table(table_key)
-
-            while parent_table_key and parent_table_key not in table_columns:
-                parent_table_key = get_parent_table(parent_table_key)
-
-            if not parent_table_key:
-                has_fatal_error("No parent table found for: {}".format(table_key))
+            parent_table_key = get_parent_table(table_columns.keys(), table_key)
 
             # add one-to-many count column to parent table
             count_id_key = get_bq_name(table_key) + '__count'
@@ -662,14 +681,12 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     schema_dict, column_order_dict = add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
     for table_key in table_columns:
+        required_columns = get_required_columns(table_key, params)
         table_order_dict = dict()
         schema_field_keys = []
 
         for column in table_columns[table_key]:
-            # todo might be unnecessary to return reference_column_position
-            reference_column_position, count_column_position = get_reference_column_positions(table_key,
-                                                                                              params,
-                                                                                              column_order_dict)
+            count_column_position = get_count_column_position(table_key, params, column_order_dict)
             bq_column_name = get_bq_name(table_key + '.' + column)
 
             if not bq_column_name or bq_column_name not in column_order_dict:
@@ -697,7 +714,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
         for schema_key in schema_field_keys:
             # todo change to params-metadata-id key
-            if schema_key in params["REQUIRED_COLUMNS"]:
+            if schema_key in required_columns:
                 mode = 'REQUIRED'
             else:
                 mode = "NULLABLE"
@@ -736,7 +753,8 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None, parent_id=None, parent_id_key=None):
+def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None,
+                 parent_id=None, parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
 
@@ -787,8 +805,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
         for key in case:
             if isinstance(case[key], list):
-                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
-                                                   case_id, parent_id, parent_id_key)
+                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
+                                                   table_keys, case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(prefix + '.' + key)
                 entry_dict[col_name] = case[key]
@@ -801,41 +819,26 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     for field_group_key, field_group in flattened_case_dict.copy().items():
-        if field_group_key in table_keys:
-            if field_group_key != 'cases':
-                record_count = len(field_group)
-                parent_table_key = get_parent_table(field_group_key)
-                if parent_table_key not in table_keys:
-                    parent_table_key = get_parent_table(parent_table_key)
-                if parent_table_key not in table_keys:
-                    has_fatal_error("no parent {}, keys: {}".format(field_group_key, table_keys))
-
-                record_count_key = get_record_count_id_key(field_group_key, params)
-                flattened_case_dict[parent_table_key][0][record_count_key] = record_count
+        if field_group_key != 'cases':
             continue
-        else:
-            if len(flattened_case_dict[field_group_key]) > 1:
-                has_fatal_error("{} in flattened_dict has > 1 record, but not a table.".format(field_group_key))
 
+        parent_table_key = get_parent_table(table_keys, field_group_key)
+
+        if field_group_key in table_keys:
+            record_count = len(field_group)
+
+            record_count_key = get_record_count_id_key(field_group_key, params)
+            flattened_case_dict[parent_table_key][0][record_count_key] = record_count
+        else:
             field_group = flattened_case_dict.pop(field_group_key)[0]
 
-            parent_table_key = field_group_key
+            field_group.pop('case_id')
 
-            while parent_table_key and parent_table_key not in table_keys:
-                parent_table_key = get_parent_table(parent_table_key)
-
-            if not parent_table_key:
-                has_fatal_error("Couldn't find any parent table in tables list for {}".format(field_group_key))
-
-            if 'case_id' in field_group:
-                field_group.pop('case_id')
-
-            if len(flattened_case_dict[parent_table_key]) > 1:
-                has_fatal_error("parent has multiple records.")
+            # include keys with values
             for key in field_group.keys():
-                if not field_group[key]:
-                    continue
-                flattened_case_dict[parent_table_key][0][key] = field_group[key]
+                if field_group[key]:
+                    flattened_case_dict[parent_table_key][0][key] = field_group[key]
+
     return flattened_case_dict
 
 
@@ -978,6 +981,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
 
 
 def main(args):
+
     '''
     fg_name_types: (cases.diagnoses.annotations): tables_dict, record_counts keys, insert_lists
     bq_name_types: (diagnoses__annotations__case_id): schema_dict, column_order_dict keys, flattened_case_dict
