@@ -795,7 +795,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                 if isinstance(entry[key], list):
                     if case_id != parent_id:
                         entry_dict['case_id'] = case_id
-                        entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
+                        entry_dict[parent_id_key] = parent_id
                     else:
                         entry_dict['case_id'] = case_id
 
@@ -830,7 +830,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         if prefix not in flattened_case_dict:
             flattened_case_dict[prefix] = []
 
-        parent_id = case_id = case['case_id']
+        parent_id = case['case_id']
+        case_id = case['case_id']
         parent_id_key = 'case_id'
 
         for key in case:
@@ -840,6 +841,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             else:
                 col_name = get_bq_name(prefix + '.' + key)
                 entry_dict[col_name] = case[key]
+
         if entry_dict:
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
@@ -861,7 +863,12 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
             record_count_key = get_record_count_id_key(field_group_key, params)
             flattened_case_dict[parent_table_key][0][record_count_key] = record_count
         else:
-            field_group = flattened_case_dict.pop(field_group_key)[0]
+            field_group = flattened_case_dict.pop(field_group_key)
+
+            if len(field_group) > 1:
+                has_fatal_error("length of record > 1, but this is supposed to be a flattened field group.")
+
+            field_group = field_group[0]
 
             field_group.pop('case_id')
 
