@@ -35,14 +35,14 @@ def get_dataset_table_list(params):
 
     table_id_prefix = params["GDC_RELEASE"] + '_clin_'
 
-    table_ids = []
+    table_id_list = []
 
     for table in results:
         table_id_name = table.table_id
         if table_id_name and table_id_prefix in table_id_name:
-            table_ids.append(table_id_name)
+            table_id_list.append(table_id_name)
 
-    return table_ids.sort()
+    return table_id_list.sort()
 
 
 def get_cases_by_program(program_name, params):
