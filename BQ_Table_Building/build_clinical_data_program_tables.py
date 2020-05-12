@@ -8,10 +8,11 @@ import json
 import os
 
 YAML_HEADERS = 'params'
-PARENT_ID_OFFSET = 1
-CASE_ID_OFFSET = 2
+# starts at 2 so that submitter_id can come after case_id in main table
+PARENT_ID_OFFSET = 2
+CASE_ID_OFFSET = 3
 COUNT_COLUMN_OFFSET = 5
-REFERENCE_COLUMNS_OFFSET = 50
+REFERENCE_COLUMNS_OFFSET = 20
 
 ##
 #  Functions for retrieving programs and cases
@@ -325,6 +326,37 @@ def lookup_column_types(params):
     return column_type_dict
 
 
+def build_column_order_dict(params):
+    column_order_dict = dict()
+    field_groups = params['FIELD_GROUP_ORDER']
+    max_reference_cols = len(field_groups)
+
+    idx = 0
+
+    for fg in field_groups:
+        try:
+            column_order_list = params['FIELD_GROUP_METADATA'][fg]['column_order']
+            id_column = params['FIELD_GROUP_METADATA'][fg]['table_id_key']
+            for column in column_order_list:
+                bq_column = get_bq_name(fg + '.' + column)
+                column_order_dict[bq_column] = idx
+
+                if id_column == column:
+                    # leaving this long because we want one extra space for submitter_id placement in cases
+                    idx += max_reference_cols
+                else:
+                    idx += 1
+        except KeyError:
+            has_fatal_error("{} found in params['FIELD_GROUP_ORDER'] "
+                            "but not in params['FIELD_GROUP_METADATA']".format(fg))
+
+    column_order_dict['state'] = idx
+    column_order_dict['created_datetime'] = idx + 1
+    column_order_dict['updated_datetime'] = idx + 2
+
+    return column_order_dict
+
+
 def create_schema_dict(params):
     column_type_dict = lookup_column_types(params)
     field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
@@ -636,6 +668,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         schema_list = []
 
         for schema_key in schema_field_keys:
+            # todo change to params-metadata-id key
             if schema_key in params["REQUIRED_COLUMNS"]:
                 mode = 'REQUIRED'
             else:
@@ -943,47 +976,157 @@ def main(args):
         "TARGET_DATASET": 'GDC_Clinical_Data',
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
         "FIELD_GROUP_METADATA": {
-            'cases.diagnoses': {
-                'excluded_fields': ["submitter_id"],
-                'table_id_key': 'diagnosis_id'
+            'cases': {
+                'table_id_key': 'case_id',
+                'excluded_fields': ["aliquot_ids", "analyte_ids", "case_autocomplete", "diagnosis_ids", "id",
+                                    "portion_ids", "sample_ids", "slide_ids", "submitter_aliquot_ids",
+                                    "submitter_analyte_ids", "submitter_diagnosis_ids", "submitter_portion_ids",
+                                    "submitter_sample_ids", "submitter_slide_ids"],
+                'column_order': ['case_id', 'submitter_id', 'primary_site', 'disease_type', 'index_date',
+                                 'days_to_index', 'consent_type', 'days_to_consent', 'lost_to_followup',
+                                 'days_to_lost_to_followup', 'state', 'created_datetime', 'updated_datetime']
             },
             'cases.demographic': {
+                'table_id_key': 'demographic_id',
                 'excluded_fields': ["submitter_id"],
-                'table_id_key': 'demographic_id'
+                'column_order': ['demographic_id', 'gender', 'race', 'ethnicity', 'country_of_residence_at_enrollment',
+                                 'vital_status', 'premature_at_birth', 'weeks_gestation_at_birth', 'days_to_birth',
+                                 'year_of_birth', 'age_is_obfuscated', 'age_at_index', 'year_of_death', 'days_to_death',
+                                 'cause_of_death', 'cause_of_death_source', 'occupation_duration_years', 'state',
+                                 'created_datetime', 'updated_datetime']
             },
-            'cases.exposures': {
+            'cases.diagnoses': {
+                'table_id_key': 'diagnosis_id',
                 'excluded_fields': ["submitter_id"],
-                'table_id_key': 'exposure_id'
-            },
-            'cases.family_histories': {
-                'excluded_fields': ["submitter_id"],
-                'table_id_key': 'family_history_id'
-            },
-            'cases.follow_ups': {
-                'excluded_fields': ["submitter_id"],
-                'table_id_key': 'follow_up_id'
-            },
-            'cases.follow_ups.molecular_tests': {
-                'excluded_fields': ["submitter_id"],
-                'table_id_key': 'molecular_test_id'
-            },
-            'cases.diagnoses.treatments': {
-                'excluded_fields': ["submitter_id"],
-                'table_id_key': 'treatment_id'
+                'column_order': ['diagnosis_id', 'ajcc_clinical_n', 'masaoka_stage', 'greatest_tumor_dimension',
+                                 'percent_tumor_invasion', 'mitosis_karyorrhexis_index', 'ajcc_clinical_m',
+                                 'anaplasia_present', 'primary_diagnosis', 'primary_gleason_grade',
+                                 'days_to_last_known_disease_status', 'gross_tumor_weight', 'year_of_diagnosis',
+                                 'best_overall_response', 'international_prognostic_index',
+                                 'perineural_invasion_present', 'margins_involved_site',
+                                 'peripancreatic_lymph_nodes_tested', 'weiss_assessment_score',
+                                 'inpc_histologic_group', 'micropapillary_features', 'transglottic_extension',
+                                 'figo_stage', 'days_to_diagnosis', 'progression_or_recurrence', 'ajcc_pathologic_m',
+                                 'inrg_stage', 'days_to_recurrence', 'inss_stage', 'metastasis_at_diagnosis',
+                                 'ovarian_specimen_status', 'cog_rhabdomyosarcoma_risk_group',
+                                 'gastric_esophageal_junction_involvement', 'site_of_resection_or_biopsy',
+                                 'ajcc_staging_system_edition', 'icd_10_code', 'laterality', 'gleason_grade_group',
+                                 'age_at_diagnosis', 'peritoneal_fluid_cytological_status', 'ajcc_clinical_t',
+                                 'days_to_last_follow_up', 'anaplasia_present_type', 'enneking_msts_tumor_site',
+                                 'breslow_thickness', 'lymph_nodes_tested', 'goblet_cells_columnar_mucosa_present',
+                                 'metastasis_at_diagnosis_site', 'supratentorial_localization', 'ajcc_pathologic_stage',
+                                 'non_nodal_tumor_deposits', 'esophageal_columnar_metaplasia_present', 'tumor_grade',
+                                 'lymph_nodes_positive', 'tumor_largest_dimension_diameter',
+                                 'last_known_disease_status', 'non_nodal_regional_disease', 'pregnant_at_diagnosis',
+                                 'irs_group', 'ann_arbor_extranodal_involvement', 'days_to_best_overall_response',
+                                 'papillary_renal_cell_type', 'burkitt_lymphoma_clinical_variant', 'residual_disease',
+                                 'medulloblastoma_molecular_classification', 'tumor_regression_grade',
+                                 'enneking_msts_grade', 'vascular_invasion_present', 'child_pugh_classification',
+                                 'first_symptom_prior_to_diagnosis', 'enneking_msts_stage', 'irs_stage',
+                                 'esophageal_columnar_dysplasia_degree', 'ajcc_clinical_stage', 'ishak_fibrosis_score',
+                                 'secondary_gleason_grade', 'synchronous_malignancy', 'gleason_patterns_percent',
+                                 'lymph_node_involved_site', 'tumor_depth', 'morphology', 'gleason_grade_tertiary',
+                                 'ajcc_pathologic_t', 'igcccg_stage', 'inpc_grade',
+                                 'largest_extrapelvic_peritoneal_focus', 'figo_staging_edition_year',
+                                 'lymphatic_invasion_present', 'vascular_invasion_type',
+                                 'wilms_tumor_histologic_subtype', 'tumor_confined_to_organ_of_origin',
+                                 'ovarian_surface_involvement', 'cog_liver_stage', 'classification_of_tumor',
+                                 'margin_distance', 'mitotic_count', 'cog_renal_stage', 'enneking_msts_metastasis',
+                                 'ann_arbor_clinical_stage', 'ann_arbor_pathologic_stage',
+                                 'circumferential_resection_margin', 'ann_arbor_b_symptoms', 'tumor_stage', 'iss_stage',
+                                 'tumor_focality', 'prior_treatment', 'peripancreatic_lymph_nodes_positive',
+                                 'ajcc_pathologic_n', 'method_of_diagnosis', 'cog_neuroblastoma_risk_group',
+                                 'tissue_or_organ_of_origin', 'prior_malignancy', 'state', 'created_datetime',
+                                 'updated_datetime']
             },
             'cases.diagnoses.annotations': {
+                'table_id_key': 'annotation_id',
                 'excluded_fields': ["submitter_id", "case_submitter_id", "entity_submitter_id"],
-                'table_id_key': 'annotation_id'
+                'column_order': ['annotation_id', 'entity_id', 'creator', 'entity_type', 'category', 'classification',
+                                 'notes', 'status', 'state', 'created_datetime', 'updated_datetime',
+                                 'legacy_created_datetime', 'legacy_updated_datetime']
             },
-            'cases': {
-                'excluded_fields': [
-                    "aliquot_ids", "analyte_ids", "case_autocomplete", "diagnosis_ids", "id", "portion_ids",
-                    "sample_ids", "slide_ids", "submitter_aliquot_ids", "submitter_analyte_ids",
-                    "submitter_diagnosis_ids", "submitter_portion_ids", "submitter_sample_ids", "submitter_slide_ids"
-                ],
-                'table_id_key': 'case_id'
-            }
+            'cases.diagnoses.treatments': {
+                'table_id_key': 'treatment_id',
+                'excluded_fields': ["submitter_id"],
+                'column_order': ['treatment_id', 'days_to_treatment_start', 'number_of_cycles', 'treatment_outcome',
+                                 'reason_treatment_ended', 'chemo_concurrent_to_radiation', 'treatment_arm',
+                                 'treatment_type', 'treatment_effect', 'treatment_anatomic_site',
+                                 'treatment_or_therapy', 'treatment_effect_indicator', 'treatment_dose_units',
+                                 'treatment_dose', 'therapeutic_agents', 'initial_disease_status',
+                                 'days_to_treatment_end', 'treatment_frequency', 'regimen_or_line_of_therapy',
+                                 'treatment_intent_type', 'state', 'created_datetime', 'updated_datetime']
+            },
+            'cases.exposures': {
+                'table_id_key': 'exposure_id',
+                'excluded_fields': ["submitter_id"],
+                'column_order': ['exposure_id', 'height', 'weight', 'bmi', 'age_at_onset', 'tobacco_use_per_day',
+                                 'type_of_tobacco_used', 'smoking_frequency', 'marijuana_use_per_week',
+                                 'tobacco_smoking_status', 'tobacco_smoking_onset_year', 'tobacco_smoking_quit_year',
+                                 'years_smoked', 'pack_years_smoked', 'cigarettes_per_day',
+                                 'time_between_waking_and_first_smoke', 'secondhand_smoke_as_child', 'exposure_type',
+                                 'exposure_duration', 'asbestos_exposure', 'coal_dust_exposure',
+                                 'environmental_tobacco_smoke_exposure', 'radon_exposure',
+                                 'respirable_crystalline_silica_exposure', 'type_of_smoke_exposure', 'alcohol_history',
+                                 'alcohol_intensity', 'alcohol_drinks_per_day', 'alcohol_days_per_week', 'state',
+                                 'created_datetime', 'updated_datetime']
+            },
+            'cases.family_histories': {
+                'table_id_key': 'family_history_id',
+                'excluded_fields': ["submitter_id"],
+                'column_order': ['family_history_id', 'relatives_with_cancer_history_count',
+                                 'relative_with_cancer_history', 'relationship_primary_diagnosis', 'relationship_type',
+                                 'relationship_age_at_diagnosis', 'relationship_gender', 'state', 'created_datetime',
+                                 'updated_datetime']
+            },
+            'cases.follow_ups': {
+                'table_id_key': 'follow_up_id',
+                'excluded_fields': ["submitter_id"],
+                'column_order': ['follow_up_id', 'days_to_follow_up', 'days_to_progression_free', 'height', 'weight',
+                                 'bmi', 'progression_or_recurrence_type', 'evidence_of_recurrence_type',
+                                 'days_to_progression', 'comorbidity', 'days_to_comorbidity', 'hysterectomy_type',
+                                 'menopause_status', 'hormonal_contraceptive_use', 'dlco_ref_predictive_percent',
+                                 'fev1_fvc_pre_bronch_percent', 'fev1_ref_pre_bronch_percent',
+                                 'diabetes_treatment_type', 'hiv_viral_load', 'aids_risk_factors',
+                                 'barretts_esophagus_goblet_cells_present', 'recist_targeted_regions_sum',
+                                 'karnofsky_performance_status', 'disease_response', 'body_surface_area',
+                                 'fev1_ref_post_bronch_percent', 'viral_hepatitis_serologies', 'adverse_event_grade',
+                                 'comorbidity_method_of_diagnosis', 'risk_factor_treatment', 'scan_tracer_used',
+                                 'hysterectomy_margins_involved', 'pregnancy_outcome', 'cdc_hiv_risk_factors',
+                                 'reflux_treatment_type', 'fev1_fvc_post_bronch_percent', 'hpv_positive_type',
+                                 'ecog_performance_status', 'cd4_count', 'progression_or_recurrence',
+                                 'progression_or_recurrence_anatomic_site', 'recist_targeted_regions_number',
+                                 'pancreatitis_onset_year', 'risk_factor', 'haart_treatment_indicator', 'adverse_event',
+                                 'imaging_type', 'imaging_result', 'days_to_imaging',
+                                 'hepatitis_sustained_virological_response', 'immunosuppressive_treatment_type',
+                                 'days_to_recurrence', 'cause_of_response', 'nadir_cd4_count', 'days_to_adverse_event',
+                                 'state', 'created_datetime', 'updated_datetime']
+            },
+            'cases.follow_ups.molecular_tests': {
+                'table_id_key': 'molecular_test_id',
+                'excluded_fields': ["submitter_id"],
+                'column_order': ['molecular_test_id', 'biospecimen_type', 'variant_type', 'variant_origin',
+                                 'laboratory_test', 'specialized_molecular_test', 'test_analyte_type', 'test_result',
+                                 'transcript', 'test_units', 'pathogenicity', 'aa_change',
+                                 'blood_test_normal_range_upper', 'loci_count', 'antigen', 'exon', 'second_exon',
+                                 'loci_abnormal_count', 'zygosity', 'test_value', 'clonality', 'molecular_consequence',
+                                 'molecular_analysis_method', 'gene_symbol', 'second_gene_symbol', 'chromosome',
+                                 'locus', 'copy_number', 'mismatch_repair_mutation', 'blood_test_normal_range_lower',
+                                 'ploidy', 'cell_count', 'histone_family', 'histone_variant', 'intron', 'cytoband',
+                                 'state', 'created_datetime', 'updated_datetime']
+            },
         },
+        "FIELD_GROUP_ORDER": [
+            'cases',
+            'cases.demographic',
+            'cases.diagnoses',
+            'cases.diagnoses.treatments',
+            'cases.diagnoses.annotations',
+            'cases.exposures',
+            'cases.family_histories',
+            'cases.follow_ups',
+            'cases.follow_ups.molecular_tests'
+        ],
         "REQUIRED_COLUMNS": {
             'case_id',
             'diagnoses__diagnosis_id',
@@ -1000,7 +1143,7 @@ def main(args):
     # program_names = get_programs_list(params)
     program_names = ['VAREPOP']
 
-    column_order_dict = import_column_order(args[2])
+    column_order_dict = build_column_order_dict(params)
 
     with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
@@ -1024,7 +1167,7 @@ def main(args):
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        # create_and_load_tables(program_name, cases, params, table_schemas)
+        create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
