@@ -1065,7 +1065,7 @@ def test_table_output(params):
 
         print("Tables: {}".format(program_table_lists[main_table_id]))
 
-        table_fg_list = []
+        table_fg_list = ['cases']
 
         for table in program_table_lists[main_table_id]:
             table_fg_list.append(convert_bq_table_id_to_fg(table))
