@@ -1245,7 +1245,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['HCMI']
+    program_names = ['VAREPOP']
 
     column_order_dict = build_column_order_dict(params)
 
