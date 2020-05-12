@@ -887,8 +887,10 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
         if os.path.exists(fp):
             os.remove(fp)
 
+    count = 0
     for case in cases:
-        print(case)
+        count += 1
+        print('case # {}'.format(count))
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
 
