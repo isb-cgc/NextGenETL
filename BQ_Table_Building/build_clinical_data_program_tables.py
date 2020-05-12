@@ -847,7 +847,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
         if field_group_key in table_keys:
             record_count = len(field_group)
 
-            record_count_key = field_group_key + '__count'
+            record_count_key = get_bq_name(field_group_key + '.count')
             flattened_case_dict[parent_table_key][0][record_count_key] = record_count
         else:
             field_group = flattened_case_dict.pop(field_group_key)
