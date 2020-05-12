@@ -860,6 +860,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
             cnt = 0
             for entry in flattened_case_dict[parent_table_key].copy():
                 entry_id = entry[parent_id_key]
+                record_count_dict[entry_id] = dict()
                 record_count_dict[entry_id]['entry_idx'] = cnt
                 record_count_dict[entry_id]['record_count'] = 0
                 cnt += 1
