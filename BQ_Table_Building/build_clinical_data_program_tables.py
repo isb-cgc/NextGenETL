@@ -67,6 +67,22 @@ def get_row_count(table_id):
         return result.values()[0]
 
 
+def print_key_sorted_dict(dict_to_print):
+    for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
+
+        if not isinstance(value, dict) and not isinstance(value, list):
+            print("{}: {}".format(key, value))
+        else:
+            print("{}:".format(key))
+            if isinstance(value, dict):
+                for v_key, v_value in sorted(value.items(), key=lambda item: item[0]):
+                    print("{}: {}".format(v_key, v_value))
+            else:
+                value.sort()
+                for v in value:
+                    print(v)
+
+
 ##
 #  Functions for creating the BQ table schema dictionary
 ##
@@ -561,7 +577,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
     # modify schema dict, add reference columns for this program
     schema_dict = add_reference_columns(table_columns, schema_dict, params)
-    print(schema_dict)
+    print_key_sorted_dict(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -962,11 +978,6 @@ def main(args):
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
         table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict)
-
-
-        # if len(table_schemas.keys()) > 1:
-        #    for table_key in table_schemas.keys():
-        #        table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
