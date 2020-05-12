@@ -372,6 +372,28 @@ def get_bq_name(column):
     return '__'.join(split_name)
 
 
+def generate_long_name(params, program_name, table):
+    file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
+
+    # if one-to-many table, append suffix
+    file_name_parts.append(get_bq_name(table)) if get_bq_name(table) else None
+
+    return '_'.join(file_name_parts)
+
+
+def get_jsonl_filename(params, program_name, table):
+    return generate_long_name(params, program_name, table) + '.jsonl'
+
+
+def get_jsonl_filepath(params, program_name, table):
+    gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
+    return gs_uri + get_jsonl_filename(params, program_name, table)
+
+
+def get_table_id(params, program_name, table):
+    return generate_long_name(params, program_name, table)
+
+
 def get_parent_table(table_key):
     if not table_key:
         return None
@@ -689,30 +711,23 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
 
-        gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
-
-        print(table_schemas)
-
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
+            jsonl_fp = get_jsonl_filepath(params, program_name, table)
 
-            # if one-to-many table, append suffix
-            file_name_parts.append(get_bq_name(table)) if get_bq_name(table) else None
-
-            jsonl_filename = '_'.join(file_name_parts) + '.jsonl'
-
-            print(jsonl_filename)
-
-            with open(gs_uri + jsonl_filename, 'w') as jsonl_file:
+            with open(jsonl_fp, 'w') as jsonl_file:
                 for row in flattened_case_dict[table]:
                     print(row)
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
-            create_and_load_table(params, jsonl_filename, table_schemas[table], table)
+    for table in table_schemas:
+        jsonl_file = get_jsonl_filename(params, program_name, table)
+        table_id = get_table_id(params, program_name, table)
+
+        create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
