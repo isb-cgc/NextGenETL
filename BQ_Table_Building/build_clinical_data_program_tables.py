@@ -1082,15 +1082,14 @@ def test_table_output(params):
 
             max_count = get_max_count(record_count_list)
 
-            print("{} max record count: {}".format(table, max_count))
-
-        continue
+            print("{} max record count: {}".format(table_fg, max_count))
 
         cases = get_cases_by_program(program_name, params)
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        print(record_counts)
+        for record_count in record_counts:
+            print("{}: {}".format(record_count, record_counts[record_count]))
 
 
 def convert_bq_table_id_to_fg(table_id):
