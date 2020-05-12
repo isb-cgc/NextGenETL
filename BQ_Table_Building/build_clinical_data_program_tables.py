@@ -615,7 +615,8 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
             table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
 
             table_id_key = get_table_id_key(table_key, params)
-            count_column_idx = table_order_dict[table_id_key] + COUNT_COLUMN_OFFSET
+            bq_table_id_name = get_bq_name(table_key + '.' + table_id_key)
+            count_column_idx = table_order_dict[bq_table_id_name] + COUNT_COLUMN_OFFSET
 
             count_keys = []
             count_key_idx = count_column_idx
