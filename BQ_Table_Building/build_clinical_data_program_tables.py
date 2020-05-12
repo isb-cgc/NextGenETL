@@ -113,9 +113,11 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    print(table_columns)
+    print("Before flatten_tables: ".format(table_columns))
 
     table_columns = flatten_tables(table_columns, record_counts, params)
+
+    print("After flatten_tables: ".format(table_columns))
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -155,11 +157,9 @@ def flatten_tables(tables, record_counts, params):
         field_group_counts[fg_key] = len(fg_key.split("."))
 
     for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
-        # parent_fg = '.'.join(field_group.split('.')[:-1])
-        # if field_group_counts[parent_fg] == 1:
-
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
 
+        # this is cases, already flattened
         if depth == 1:
             break
         # this fg represents a one-to-many table grouping
