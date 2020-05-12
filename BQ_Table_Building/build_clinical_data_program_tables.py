@@ -699,7 +699,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
                                                                           params, column_order_dict)
 
-    print(schema_dict)
     """
     print("*** Schema Dict Keys ***")
     print_key_sorted_dict(schema_dict)
@@ -785,15 +784,16 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                  parent_id=None, parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
-        entry_dict = dict()
-
-        if case_id != parent_id:
-            entry_dict['case_id'] = case_id
-            entry_dict[parent_id_key] = parent_id
-        else:
-            entry_dict['case_id'] = case_id
 
         for entry in case:
+            entry_dict = dict()
+
+            if case_id != parent_id:
+                entry_dict['case_id'] = case_id
+                entry_dict[parent_id_key] = parent_id
+            else:
+                entry_dict['case_id'] = case_id
+
             entry_id_key = get_table_id_key(prefix, params)
             print("".format(entry_id_key))
 
