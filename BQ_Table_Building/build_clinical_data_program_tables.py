@@ -575,7 +575,8 @@ def create_schemas(table_schema_fields, table_columns, params, schema_dict):
 
             if not bq_column_name or bq_column_name not in COLUMN_ORDER_DICT:
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
-            table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
+            if bq_column_name not in params['FIELD_GROUP_METADATA'][table_key]['excluded_fields']:
+                table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
