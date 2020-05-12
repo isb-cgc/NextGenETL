@@ -636,9 +636,8 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         else:
             ancestor_column_name = column_name
 
-        description = "Reference to the {} field of the {} record to which this record belongs. " \
-                      "Parent record found in the program's {} table.".format(column_name,
-                                                                              column_name[:-3],
+        description = "Reference to the parent_id ({}) of the record to which this record belongs. " \
+                      "Parent record found in the program's {} table.".format(ancestor_column_name,
                                                                               ancestor_table)
 
         return {"name": ancestor_column_name, "type": 'STRING', "description": description}
