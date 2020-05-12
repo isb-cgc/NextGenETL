@@ -568,3 +568,30 @@ def upload_to_bucket(bq_params, fp, file_name):
         blob.upload_from_filename(fp + '/' + file_name)
     except Exception as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+
+def get_dataset_table_list(bq_params):
+    client = bigquery.Client()
+    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'])
+    results = client.list_tables(dataset)
+
+    table_id_prefix = bq_params["GDC_RELEASE"] + '_clin_'
+
+    table_id_list = []
+
+    for table in results:
+        table_id_name = table.table_id
+        if table_id_name and table_id_prefix in table_id_name:
+            table_id_list.append(table_id_name)
+
+    table_id_list.sort()
+
+    return table_id_list
+
+
+def create_SchemaField(schema_dict, schema_key, required_columns):
+    return bigquery.SchemaField(name=schema_dict[schema_key]['name'],
+                                field_type=schema_dict[schema_key]['type'],
+                                mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
+                                description=schema_dict[schema_key]['description'],
+                                fields=())

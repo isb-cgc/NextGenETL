@@ -1,15 +1,13 @@
 import math
-
 from common_etl.utils import *
-from google.cloud import bigquery, storage
 import sys
 import json
 import os
 import time
 
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 API_PARAMS = None
 BQ_PARAMS = None
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 ##
@@ -536,15 +534,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
         schema_list = []
 
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
-            schema_list.append(
-                bigquery.SchemaField(
-                    name=schema_dict[schema_key]['name'],
-                    field_type=schema_dict[schema_key]['type'],
-                    mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
-                    description=schema_dict[schema_key]['description'],
-                    fields=()
-                )
-            )
+            schema_list.append(create_SchemaField(schema_dict, schema_key, required_columns))
 
         table_schema_fields[table_key] = schema_list
 
@@ -746,25 +736,6 @@ def finalize_documentation():
 ##
 # Functions used for validating inserted data
 ##
-def get_dataset_table_list():
-    client = bigquery.Client()
-    dataset = client.get_dataset(BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['TARGET_DATASET'])
-    results = client.list_tables(dataset)
-
-    table_id_prefix = BQ_PARAMS["GDC_RELEASE"] + '_clin_'
-
-    table_id_list = []
-
-    for table in results:
-        table_id_name = table.table_id
-        if table_id_name and table_id_prefix in table_id_name:
-            table_id_list.append(table_id_name)
-
-    table_id_list.sort()
-
-    return table_id_list
-
-
 def get_record_count_list(table, table_fg_key, parent_table_id_key):
     dataset_path = BQ_PARAMS["WORKING_PROJECT"] + '.' + BQ_PARAMS["TARGET_DATASET"]
     table_id_key = get_table_id_key(table_fg_key)
@@ -856,7 +827,7 @@ def get_main_table_count(program_name, table_id_key, field_name, parent_table_id
 
 
 def test_table_output():
-    table_ids = get_dataset_table_list()
+    table_ids = get_dataset_table_list(BQ_PARAMS)
 
     program_names = get_programs_list()
     program_names.remove('CCLE')
@@ -930,6 +901,7 @@ def test_table_output():
                 has_fatal_error("NOT A MATCH for {}. {} != {}".format(
                     key, cases_tally_max_counts[key], program_table_query_max_counts[key]))
         print("Counts all match! Moving on.")
+
 
 ##
 # Script execution
