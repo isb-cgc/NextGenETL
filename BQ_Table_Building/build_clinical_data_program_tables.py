@@ -710,24 +710,25 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
 
-        schema_list = []
 
         required_columns = get_required_columns(table_key, params)
 
-        for schema_key in schema_field_keys:
-            mode = 'REQUIRED' if schema_key in required_columns else 'NULLABLE'
+        schema_list = []
 
-            schema_list.append(bigquery.SchemaField(name=schema_key,
-                                                    field_type=schema_dict[schema_key]['type'],
-                                                    mode=mode,
-                                                    description=schema_dict[schema_key]['description'],
-                                                    fields=()
-                                                    ))
+        for schema_key in schema_field_keys:
+            # mode = 'REQUIRED' if schema_key in required_columns else 'NULLABLE'
+
+            schema_list.append(
+                bigquery.SchemaField(
+                    name=schema_key,
+                    field_type=schema_dict[schema_key]['type'],
+                    mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
+                    description=schema_dict[schema_key]['description'],
+                    fields=()
+                )
+            )
 
         table_schema_fields[table_key] = schema_list
-
-    for key, value in sorted(column_order_dict.items(), key=lambda item: item[1]):
-        print("{:>3} {}".format(value, key))
 
     return table_schema_fields
 
