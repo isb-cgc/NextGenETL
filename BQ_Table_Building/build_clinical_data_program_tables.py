@@ -1087,8 +1087,10 @@ def test_table_output(params):
 
             max_count, max_count_id = get_max_count(record_count_list)
 
-            main_max_count = get_main_table_count(params, program_name, table_id_key,
+            mt_case_id, mt_child_id, mt_max_count = get_main_table_count(params, program_name, table_id_key,
                                                    table_field, parent_id_key, parent_field_name)
+
+            print("case_id: {}, child_id: {}: max_count: {}".format(mt_case_id, mt_child_id, mt_max_count))
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1141,6 +1143,13 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
         """.format(table_id_key,
                    field_name,
                    program_name)
+
+        results = get_query_results(query)
+
+        for result in results:
+            res = result.values()
+            return res[0], None, res[2]
+
     else:
         query = """
             SELECT case_id, p.{}, count(pc.{}) as cnt
@@ -1162,11 +1171,11 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
                    program_name,
                    parent_table_id_key)
 
-    results = get_query_results(query)
+        results = get_query_results(query)
 
-    for result in results:
-        res = result.values()
-        return res[0], res[1]
+        for result in results:
+            res = result.values()
+            return res[0], res[1], res[2]
 
 
 def convert_bq_table_id_to_fg(table_id):
