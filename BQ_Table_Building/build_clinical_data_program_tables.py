@@ -1244,8 +1244,8 @@ def main(args):
         "TEMP_PATH": 'temp'
     }
 
-    # program_names = get_programs_list(params)
-    program_names = ['VAREPOP']
+    program_names = get_programs_list(params)
+    # program_names = ['VAREPOP']
 
     column_order_dict = build_column_order_dict(params)
 
