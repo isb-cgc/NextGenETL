@@ -1127,6 +1127,8 @@ def test_table_output(params):
 def get_main_table_count(params, program_name, table_id_key, field_name,
                          parent_table_id_key=None, parent_field_name=None):
 
+    print(parent_table_id_key)
+
     if not parent_table_id_key or not parent_field_name or parent_table_id_key == 'case_id':
         query = """
             SELECT case_id, count(p.{}) as cnt
