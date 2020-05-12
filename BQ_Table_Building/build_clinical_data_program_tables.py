@@ -1137,10 +1137,10 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
             )
             GROUP BY case_id
             ORDER BY cnt DESC
+            LIMIT 1
         """.format(table_id_key,
                    field_name,
                    program_name)
-
     else:
         query = """
             SELECT case_id, p.{}, count(pc.{}) as cnt
@@ -1154,6 +1154,7 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
             )
             GROUP BY {}, case_id
             ORDER BY cnt DESC
+            LIMIT 1
         """.format(parent_table_id_key,
                    table_id_key,
                    parent_field_name,
@@ -1161,14 +1162,11 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
                    program_name,
                    parent_table_id_key)
 
-
-
     results = get_query_results(query)
 
     for result in results:
-        print(result.values())
-
-    return results
+        res = result.values()
+        return res[0], res[1]
 
 
 def convert_bq_table_id_to_fg(table_id):
