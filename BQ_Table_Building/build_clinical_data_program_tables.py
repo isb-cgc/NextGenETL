@@ -864,6 +864,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
                 record_count_dict[entry_id]['record_count'] = 0
                 cnt += 1
 
+            print(record_count_dict)
+
             for record in field_group:
                 if parent_id_key not in record:
                     print("no parent_id_key {} in record.".format(parent_id_key))
