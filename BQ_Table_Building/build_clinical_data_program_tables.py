@@ -1050,7 +1050,7 @@ def test_table_output(params):
     program_table_lists = dict()
 
     for program_name in program_names:
-        print("*** For program {} ***".format(program_name))
+        print("\nFor program {}:".format(program_name))
 
         main_table_id = get_table_id(params, program_name, 'cases')
         program_table_lists[main_table_id] = []
