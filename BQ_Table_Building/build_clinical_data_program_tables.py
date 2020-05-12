@@ -515,6 +515,7 @@ def generate_table_ids(params, program_name, record_counts):
 
 
 def add_reference_columns(tables_dict, table_schema_list, table_key, params):
+    print(table_key)
 
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in tables_dict:
@@ -524,7 +525,8 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
             ancestor_table = 'main'
 
         description = "Reference to the {} field of the {} record to which this record belongs. " \
-                      "Parent record found in the program's {} table.".format(column_name, column_name[:-3],
+                      "Parent record found in the program's {} table.".format(column_name,
+                                                                              column_name[:-3],
                                                                               ancestor_table)
 
         return {"name": column_name, "type": 'STRING', "description": description}
@@ -979,7 +981,7 @@ def main(args):
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
         for table_key in table_schemas.keys():
-            print(table_key)
+            print("Add ref columns")
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
