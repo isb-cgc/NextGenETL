@@ -631,7 +631,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             ancestor_table = 'main'
 
         if '__' in column_name:
-            ancestor_column_name = "__".join(column_name.split('__')[1:])
+            ancestor_column_name = "__".join(column_name.split('__')[:-1])
         else:
             ancestor_column_name = column_name
 
