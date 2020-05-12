@@ -28,6 +28,15 @@ def get_programs_list(params):
     return programs
 
 
+def get_dataset_table_list(params):
+    client = bigquery.Client()
+    dataset = client.get_dataset(params['WORKING_PROJECT'] + '.' + params['TARGET_DATASET'])
+    results = client.list_tables(dataset)
+
+    for table in results:
+        print(table)
+
+
 def get_cases_by_program(program_name, params):
     print("Retrieving cases... ", end='')
 
@@ -1021,6 +1030,9 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
 
 def test_table_output(params):
+
+    get_dataset_table_list(params)
+
     program_names = get_programs_list(params)
 
     for program_name in program_names:
