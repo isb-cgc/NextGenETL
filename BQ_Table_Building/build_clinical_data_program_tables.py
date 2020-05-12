@@ -1041,6 +1041,7 @@ def test_table_output(params):
 
     table_ids = get_dataset_table_list(params)
 
+    print("tables: ")
     print(table_ids)
 
     program_names = get_programs_list(params)
