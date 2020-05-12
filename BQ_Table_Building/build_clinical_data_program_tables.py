@@ -113,11 +113,7 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    print("Before flatten_tables: {}".format(table_columns))
-
     table_columns = flatten_tables(table_columns, record_counts, params)
-
-    print("After flatten_tables: {}".format(table_columns))
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -138,7 +134,6 @@ def remove_unwanted_fields(record, table_name, params):
         excluded_fields = get_excluded_fields(table_name, params, fatal=True)
         for field in record.copy():
             if field in excluded_fields:
-                print('removing {}'.format(field))
                 record.remove(field)
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
@@ -159,9 +154,7 @@ def flatten_tables(tables, record_counts, params):
 
     for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
 
-        # print("Before field removal: {}".format(tables[field_group]))
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
-        # print("After field removal: {}".format(tables[field_group]))
 
         # this is cases, already flattened
         if depth == 1:
@@ -961,7 +954,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['ORGANOID']
+    program_names = ['HCMI']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
