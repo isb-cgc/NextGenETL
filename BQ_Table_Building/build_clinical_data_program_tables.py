@@ -514,9 +514,9 @@ def generate_table_ids(params, program_name, record_counts):
     return table_ids
 
 
-def add_reference_columns(table_keys, schema_dict, params):
+def add_reference_columns(table_columns, schema_dict, params):
     def generate_id_schema_entry(column_name, parent_table_key_):
-        if parent_table_key_ in tables_dict:
+        if parent_table_key_ in table_columns.keys():
             parent_field_name = get_field_name(parent_table_key_)
             ancestor_table = '*_{}'.format(parent_field_name)
         else:
@@ -543,44 +543,38 @@ def add_reference_columns(table_keys, schema_dict, params):
     #   else:
     #       add count to grandparent
 
-    print(table_keys)
-    print(schema_dict.keys())
-    return
+    for table in table_columns.keys():
+        if len(table.split('.')) == 1:
+            continue
 
-    if len(table_key.split('.')) == 1:
-        return tables_dict, table_schema_list
+        parent_table_key = get_parent_table(table)
 
-    record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
-    parent_table_key = get_parent_table(table_key)
+        while parent_table_key and parent_table_key not in table_columns:
+            parent_table_key = get_parent_table(parent_table_key)
 
-    while parent_table_key and parent_table_key not in tables_dict:
-        parent_table_key = get_parent_table(parent_table_key)
+        if not parent_table_key:
+            has_fatal_error("No parent table found for: {}".format(table))
 
-    if not parent_table_key:
-        has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
+        count_id_key = table + '_count'
+        schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key)
+        table_columns[parent_table_key].add(count_id_key)
 
-    tables_dict[parent_table_key].add(record_count_id_key)
-    schema_dict[record_count_id_key] = generate_record_count_schema_entry(record_count_id_key)
+        case_id_key = get_bq_name(table) + '__case_id'
+        schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
 
-    case_id_key = get_bq_name(table_key) + '__case_id'
-    schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
-    tables_dict[table_key].add('case_id')
+        if len(table.split('.')) > 2:
+            parent_table_key = get_parent_table(parent_table_key)
+            reference_id_key = get_table_id_key(parent_table_key, params)
 
-    if len(table_key.split('.')) > 2:
-        reference_id_key = get_table_id_key(parent_table_key, params)
+            if reference_id_key:
+                schema_column_name = get_bq_name(table + '.' + reference_id_key)
+                schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
 
-        if reference_id_key:
-            tables_dict[table_key].add(reference_id_key)
-            schema_column_name = get_bq_name(table_key + '.' + reference_id_key)
-            schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
-
-    table_schema_list[table_key] = schema_dict
-
-    return tables_dict, table_schema_list
+    return schema_dict
 
 
 def create_schemas(table_schema_fields, table_columns, params, schema_dict):
-    add_reference_columns(table_columns.keys(), schema_dict, params)
+    schema_dict = add_reference_columns(table_columns, schema_dict, params)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -907,43 +901,35 @@ def main(args):
         "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
         "FIELD_GROUP_METADATA": {
             'cases.diagnoses': {
-                'record_count_id_key': 'diagnoses_count',
                 'excluded_fields': ["submitter_id"],
                 'table_id_key': 'diagnosis_id'
             },
             'cases.demographic': {
-                'record_count_id_key': 'demographic_count',
                 'excluded_fields': ["submitter_id"],
                 'table_id_key': 'demographic_id'
             },
             'cases.exposures': {
-                'record_count_id_key': 'exposures_count',
                 'excluded_fields': ["submitter_id"],
                 'table_id_key': 'exposure_id'
             },
             'cases.family_histories': {
-                'record_count_id_key': 'family_histories_count',
                 'excluded_fields': ["submitter_id"],
                 'table_id_key': 'family_history_id'
             },
             'cases.follow_ups': {
-                'record_count_id_key': 'follow_ups_count',
                 'excluded_fields': ["submitter_id"],
                 'table_id_key': 'follow_up_id'
             },
             'cases.follow_ups.molecular_tests': {
                 'excluded_fields': ["submitter_id"],
-                'record_count_id_key': 'follow_ups__molecular_tests_count'
             },
             'cases.diagnoses.treatments': {
                 'excluded_fields': ["submitter_id"],
-                'record_count_id_key': 'diagnoses__treatments_count'
             },
             'cases.diagnoses.annotations': {
                 'excluded_fields': [
                     "submitter_id", "case_submitter_id", "entity_submitter_id"
                 ],
-                'record_count_id_key': 'diagnoses__annotations_count'
             },
             'cases': {
                 'excluded_fields': [
