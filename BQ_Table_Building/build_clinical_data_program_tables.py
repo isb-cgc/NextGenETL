@@ -956,7 +956,7 @@ def main(args):
     }
 
     # program_names = get_programs_list(params)
-    program_names = ['HCMI']
+    program_names = ['VAREPOP']
 
     global COLUMN_ORDER_DICT
     COLUMN_ORDER_DICT = import_column_order(args[2])
