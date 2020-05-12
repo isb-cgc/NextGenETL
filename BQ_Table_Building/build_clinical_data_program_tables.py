@@ -555,19 +555,6 @@ def get_excluded_fields(table_key, params, fatal=False, flattened=False):
         return base_column_names
 
 
-def get_record_count_id_key(table_key, params, fatal=False):
-    if not params["FIELD_GROUP_METADATA"]:
-        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
-
-    if 'record_count_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
-        if fatal:
-            has_fatal_error("record_count_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(
-                table_key))
-        else:
-            return None
-    return params["FIELD_GROUP_METADATA"][table_key]['record_count_id_key']
-
-
 def get_id_column_position(table_key, column_order_dict, params):
     table_id_key = get_table_id_key(table_key, params)
     id_column = get_bq_name(table_key + '.' + table_id_key)
@@ -860,7 +847,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
         if field_group_key in table_keys:
             record_count = len(field_group)
 
-            record_count_key = get_record_count_id_key(field_group_key, params)
+            record_count_key = field_group_key + '__count'
             flattened_case_dict[parent_table_key][0][record_count_key] = record_count
         else:
             field_group = flattened_case_dict.pop(field_group_key)
