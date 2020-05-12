@@ -872,8 +872,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
 
             if 'case_id' in field_group:
                 field_group.pop('case_id')
-            else:
-                print("not popping case_id for {}".format(field_group_key))
 
             # include keys with values
             for key in field_group.keys():
@@ -914,7 +912,7 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
         table_id = get_table_id(params, program_name, table)
 
-        create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
+        # create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
