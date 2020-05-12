@@ -643,7 +643,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         id_column_position = get_id_column_position(table_key, column_order_dict, params)
         reference_col_position = id_column_position + 1
 
-        if table_depth == 0:
+        if table_depth == 1:
             # base table references inserted while processing child tables, so skip
             continue
         elif table_depth > 2:
