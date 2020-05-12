@@ -33,8 +33,16 @@ def get_dataset_table_list(params):
     dataset = client.get_dataset(params['WORKING_PROJECT'] + '.' + params['TARGET_DATASET'])
     results = client.list_tables(dataset)
 
+    table_id_prefix = params["GDC_RELEASE"] + '_clin_'
+
+    table_ids = []
+
     for table in results:
-        print(table.table_id)
+        table_id = table.table_id
+        if table_id_prefix in table_id:
+            table_ids.append(table_id)
+
+    return table_ids.sort()
 
 
 def get_cases_by_program(program_name, params):
@@ -1031,7 +1039,9 @@ def check_data_integrity(params, cases, record_counts, table_columns):
 
 def test_table_output(params):
 
-    get_dataset_table_list(params)
+    table_ids = get_dataset_table_list(params)
+
+    print(table_ids)
 
     program_names = get_programs_list(params)
 
