@@ -514,7 +514,7 @@ def generate_table_ids(params, program_name, record_counts):
     return table_ids
 
 
-def add_reference_columns(tables_dict, schema_dict, params):
+def add_reference_columns(table_keys, schema_dict, params):
     def generate_id_schema_entry(column_name, parent_table_key_):
         if parent_table_key_ in tables_dict:
             parent_field_name = get_field_name(parent_table_key_)
@@ -543,7 +543,7 @@ def add_reference_columns(tables_dict, schema_dict, params):
     #   else:
     #       add count to grandparent
 
-    print(tables_dict.keys())
+    print(table_keys)
     print(schema_dict.keys())
     return
 
