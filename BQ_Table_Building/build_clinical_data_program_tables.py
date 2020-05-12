@@ -71,7 +71,8 @@ def print_key_sorted_dict(dict_to_print):
     for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
 
         # if not isinstance(value, dict) and not isinstance(value, list):
-        print("{}: {}".format(key, value))
+        # print("{}: {}".format(key, value))
+        print("{}".format(key))
 
         """
         else:
