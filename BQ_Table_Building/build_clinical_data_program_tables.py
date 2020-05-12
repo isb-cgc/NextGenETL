@@ -1075,6 +1075,8 @@ def test_table_output(params):
 
             print("{} max record count: {}".format(table, max_count))
 
+        continue
+
         cases = get_cases_by_program(program_name, params)
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
