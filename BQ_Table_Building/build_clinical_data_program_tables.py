@@ -683,7 +683,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
     for table_key in table_columns:
         table_order_dict = dict()
-        schema_field_keys = []
 
         for column in table_columns[table_key]:
             count_column_position = get_count_column_position(table_key, params, column_order_dict)
@@ -707,17 +706,10 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
                 table_order_dict[count_column] = count_column_position
                 count_column_position += 1
 
-        for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
-            schema_field_keys.append(column)
-
-
         required_columns = get_required_columns(table_key, params)
-
         schema_list = []
 
-        for schema_key in schema_field_keys:
-            # mode = 'REQUIRED' if schema_key in required_columns else 'NULLABLE'
-
+        for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
             schema_list.append(
                 bigquery.SchemaField(
                     name=schema_key,
@@ -729,6 +721,8 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
             )
 
         table_schema_fields[table_key] = schema_list
+
+    print(table_schema_fields)
 
     return table_schema_fields
 
