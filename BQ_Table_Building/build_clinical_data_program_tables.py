@@ -8,8 +8,6 @@ import json
 import os
 
 YAML_HEADERS = 'params'
-COLUMN_ORDER_DICT = None
-
 
 ##
 #  Functions for retrieving programs and cases
@@ -415,15 +413,11 @@ def get_parent_table(table_key):
     return parent_table
 
 
-def get_table_id_key(table_key, params, fatal=False):
+def get_table_id_key(table_key, params):
     if not params["FIELD_GROUP_METADATA"]:
         has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
     if 'table_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
-        if fatal:
-            has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(
-                table_key))
-        else:
-            return None
+        has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(table_key))
     return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
 
 
@@ -529,52 +523,45 @@ def add_reference_columns(table_columns, schema_dict, params):
 
         return {"name": column_name, "type": 'STRING', "description": description}
 
-    def generate_record_count_schema_entry(record_count_id_key_):
-        child_table = record_count_id_key_[:-7]
-        description = "Total count of records associated with this case, located in {} table".format(child_table)
+    def generate_record_count_schema_entry(record_count_id_key_, parent_table_key_):
+        description = "Total count of records associated with this case, located in {} table".format(parent_table_key_)
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
-    # get table name
-    # get parent table name
-    # parent table id field added to schema
-    # count reference added to parent table:
-    #   if parent one_to_many table exists:
-    #       add count there
-    #   else:
-    #       add count to grandparent
-
     for table in table_columns.keys():
-        if len(table.split('.')) == 1:
-            continue
+        if len(table.split('.')) > 1:
+            # add case id to one-to-many table
+            case_id_key = get_bq_name(table) + '__case_id'
+            schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
 
-        parent_table_key = get_parent_table(table)
+            # Find actual parent table (may not be direct ancestor, which might've been flattened)
+            parent_table_key = get_parent_table(table)
+            while parent_table_key and parent_table_key not in table_columns:
+                parent_table_key = get_parent_table(parent_table_key)
+            if not parent_table_key:
+                has_fatal_error("No parent table found for: {}".format(table))
 
-        while parent_table_key and parent_table_key not in table_columns:
-            parent_table_key = get_parent_table(parent_table_key)
-
-        if not parent_table_key:
-            has_fatal_error("No parent table found for: {}".format(table))
-
-        count_id_key = table + '_count'
-        schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key)
-        table_columns[parent_table_key].add(count_id_key)
-
-        case_id_key = get_bq_name(table) + '__case_id'
-        schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
+            # add one-to-many count column to parent table
+            count_id_key = get_bq_name(table) + '__count'
+            schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
+            table_columns[parent_table_key].add(count_id_key)
 
         if len(table.split('.')) > 2:
+            # add reference to parent field group id (even if flattened)
             parent_table_key = get_parent_table(table)
             reference_id_key = get_table_id_key(parent_table_key, params)
 
-            if reference_id_key:
-                schema_column_name = get_bq_name(table + '.' + reference_id_key)
-                schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
+            schema_column_name = get_bq_name(table) + '__' + reference_id_key
+            schema_dict[schema_column_name] = generate_id_schema_entry(reference_id_key, parent_table_key)
 
     return schema_dict
 
 
-def create_schemas(table_schema_fields, table_columns, params, schema_dict):
+def create_schemas(table_columns, params, schema_dict, column_order_dict):
+    table_schema_fields = dict()
+
+    # modify schema dict, add reference columns for this program
     schema_dict = add_reference_columns(table_columns, schema_dict, params)
+    print(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -583,9 +570,9 @@ def create_schemas(table_schema_fields, table_columns, params, schema_dict):
         for column in table_columns[table_key]:
             bq_column_name = get_bq_name(table_key + '.' + column)
 
-            if not bq_column_name or bq_column_name not in COLUMN_ORDER_DICT:
+            if not bq_column_name or bq_column_name not in column_order_dict:
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
-            table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
+            table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
@@ -922,14 +909,15 @@ def main(args):
             },
             'cases.follow_ups.molecular_tests': {
                 'excluded_fields': ["submitter_id"],
+                'table_id_key': 'molecular_test_id'
             },
             'cases.diagnoses.treatments': {
                 'excluded_fields': ["submitter_id"],
+                'table_id_key': 'treatment_id'
             },
             'cases.diagnoses.annotations': {
-                'excluded_fields': [
-                    "submitter_id", "case_submitter_id", "entity_submitter_id"
-                ],
+                'excluded_fields': ["submitter_id", "case_submitter_id", "entity_submitter_id"],
+                'table_id_key': 'annotation_id'
             },
             'cases': {
                 'excluded_fields': [
@@ -937,6 +925,7 @@ def main(args):
                     "sample_ids", "slide_ids", "submitter_aliquot_ids", "submitter_analyte_ids",
                     "submitter_diagnosis_ids", "submitter_portion_ids", "submitter_sample_ids", "submitter_slide_ids"
                 ],
+                'table_id_key': 'case_id'
             }
         },
         "REQUIRED_COLUMNS": {
@@ -955,8 +944,7 @@ def main(args):
     # program_names = get_programs_list(params)
     program_names = ['VAREPOP']
 
-    global COLUMN_ORDER_DICT
-    COLUMN_ORDER_DICT = import_column_order(args[2])
+    column_order_dict = import_column_order(args[2])
 
     with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
@@ -964,7 +952,6 @@ def main(args):
     schema_dict = create_schema_dict(params)
 
     for program_name in program_names:
-        table_schemas = dict()
         print("\n*** Running script for {} ***".format(program_name))
         cases = get_cases_by_program(program_name, params)
 
@@ -974,7 +961,7 @@ def main(args):
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
+        table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict)
 
 
         # if len(table_schemas.keys()) > 1:
