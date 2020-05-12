@@ -549,7 +549,7 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
     schema_dict[record_count_id_key] = generate_record_count_schema_entry(record_count_id_key)
 
     case_id_key = get_bq_name(table_key) + '__case_id'
-    schema_dict[case_id_key] = generate_id_schema_entry(case_id_key, 'main')
+    schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
     tables_dict[table_key].add(case_id_key)
 
     if len(table_key.split('.')) > 2:
@@ -623,8 +623,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
         for entry in case:
             entry_dict = dict()
             if case_id != parent_id:
-                case_id_key = get_bq_name(prefix) + '__case_id'
-                entry_dict[case_id_key] = case_id
+                entry_dict['case_id'] = case_id
                 entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
             else:
                 entry_dict[get_bq_name(prefix) + '__' + parent_id_key] = parent_id
@@ -642,8 +641,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                         new_parent_id = parent_id
                         new_parent_id_key = parent_id_key
 
-                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params, table_keys,
-                                                       case_id, new_parent_id, new_parent_id_key)
+                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
+                                                       table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
 
                     col_name = get_bq_name(prefix + '.' + key)
