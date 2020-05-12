@@ -563,7 +563,7 @@ def add_reference_columns(table_columns, schema_dict, params):
         schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
 
         if len(table.split('.')) > 2:
-            parent_table_key = get_parent_table(parent_table_key)
+            parent_table_key = get_parent_table(table)
             reference_id_key = get_table_id_key(parent_table_key, params)
 
             if reference_id_key:
