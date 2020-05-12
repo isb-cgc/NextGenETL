@@ -1061,15 +1061,19 @@ def test_table_output(params):
 
         print("Tables: {}".format(program_table_lists[main_table_id]))
 
-        cases = get_cases_by_program(program_name, params)
-
-        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
-
         for table in program_table_lists[main_table_id]:
             print(table)
             distinct_col = 'case_id'
             record_count_list = get_record_count_list(table, main_table_id, distinct_col, program_name, params)
             print(record_count_list)
+
+        continue
+
+        cases = get_cases_by_program(program_name, params)
+
+        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
+
+
 
 
 def get_record_count_list(table, main_table_id, distinct_col, program_name, params):
