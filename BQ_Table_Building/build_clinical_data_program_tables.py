@@ -466,7 +466,7 @@ def get_count_column_position(table_key, params, column_order_dict):
 def generate_long_name(params, program_name, table):
     # remove invalid char from program name
     if '.' in program_name:
-        program_name = '_'.join(program_name.strip('.'))
+        program_name = '_'.join(program_name.split('.'))
 
     file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
 
