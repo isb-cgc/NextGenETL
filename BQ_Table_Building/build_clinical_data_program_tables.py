@@ -524,7 +524,7 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
     schema_dict = table_schema_list[table_key]
 
     if len(table_key.split('.')) == 1:
-        return table_schema_list, tables_dict
+        return tables_dict, table_schema_list
 
     record_count_id_key = get_record_count_id_key(table_key, params, fatal=True)
     parent_table_key = get_parent_table(table_key)
