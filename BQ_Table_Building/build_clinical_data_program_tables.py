@@ -1074,9 +1074,12 @@ def test_table_output(params):
 
         for table in program_table_lists[main_table_id]:
             table_fg = convert_bq_table_id_to_fg(table)
+            table_id_key = get_table_id_key(table_fg, params)
+            table_field = get_field_name(table_fg)
 
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg, params)
+            parent_field_name = get_field_name(parent_table_fg)
 
             full_parent_id_key = get_bq_name(parent_table_fg + '.' + parent_id_key)
 
@@ -1084,7 +1087,8 @@ def test_table_output(params):
 
             max_count, max_count_id = get_max_count(record_count_list)
 
-            main_max_count = get_main_table_count(table_fg, max_count_id, params)
+            main_max_count = get_main_table_count(params, program_name, table_id_key,
+                                                  table_field, parent_id_key, parent_field_name)
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1101,30 +1105,68 @@ def test_table_output(params):
                 cases_tally_max_counts[key] = count
 
 
-def get_main_table_count(table, max_count_entry, params):
+"""
+    query = '''
+        SELECT case_id, d.diagnosis_id, count(dt.treatment_id) as treatment_cnt
+        FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+        UNNEST(diagnoses) as d,
+        UNNEST(d.treatments) as dt
+        WHERE case_id in (
+        SELECT case_gdc_id 
+        FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+        WHERE program_name = 'HCMI'
+        )
+        GROUP BY diagnosis_id, case_id
+        ORDER BY treatment_cnt DESC
+    '''
+    """
 
 
-    """SELECT treatment_id, diagnosis_id, case_id
-    FROM (SELECT diagnosis_id, case_id, treatments as td
-    FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`, unnest(diagnoses)),
-    UNNEST(td)"""
+def get_main_table_count(params, program_name, table_id_key, field_name,
+                         parent_table_id_key=None, parent_field_name=None):
 
-    table_fg = convert_bq_table_id_to_fg(table)
-    parent_table = get_parent_field_group(table_fg)
-    entry_id_key = get_table_id_key(table_fg, params)
+    if parent_table_id_key and parent_field_name:
+        query = """
+            SELECT case_id, p.{}, count(pc.{}) as cnt
+            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+            UNNEST({}) as p,
+            UNNEST(d.{}) as pc
+            WHERE case_id in (
+            SELECT case_gdc_id 
+            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+            WHERE program_name = '{}'
+            )
+            GROUP BY {}, case_id
+            ORDER BY cnt DESC
+        """.format(parent_table_id_key,
+                   table_id_key,
+                   parent_field_name,
+                   field_name,
+                   program_name,
+                   parent_table_id_key)
 
-    print("table_fg: {}, parent_table: {}, entry_id_key: {}".format(table_fg, parent_table, entry_id_key))
-
-    if parent_table:
-        parent_id_key = get_table_id_key(parent_table, params)
     else:
-        parent_id_key = None
+        query = """
+            SELECT case_id, count(p.{}) as cnt
+            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+            UNNEST({}) as p
+            WHERE case_id in (
+            SELECT case_gdc_id 
+            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+            WHERE program_name = '{}'
+            )
+            GROUP BY case_id
+            ORDER BY cnt DESC
+        """.format(table_id_key,
+                   field_name,
+                   program_name)
 
-    print("id type key: {}, parent id type key: {}, max count entry: {}".format(entry_id_key,
-                                                                                parent_id_key,
-                                                                                max_count_entry))
+    results = get_query_results(query)
 
-    return None
+    for result in results:
+        print(result.values())
+
+    return results
 
 
 def convert_bq_table_id_to_fg(table_id):
@@ -1156,6 +1198,15 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
 
     table_id_column = get_bq_name(table_fg_key + '.' + table_id_key)
 
+    """
+    SELECT case_id, count(fh.family_history_id) as cnt
+    FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+    unnest(family_histories) as fh
+    group by case_id
+    order by cnt DESC
+    LIMIT 1
+    """
+
     results = get_query_results(
         """
         SELECT distinct({}), count({}) as record_count 
@@ -1174,7 +1225,7 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
         count_label = 'record_count'
 
         record_count_list.append({
-            parent_table_id_key: distinct_col_result,
+            parent_table_id_key: parent_table_id_key,
             'table': table,
             count_label: record_count
         })
