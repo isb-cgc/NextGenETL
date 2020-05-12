@@ -550,7 +550,7 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
 
     case_id_key = get_bq_name(table_key) + '__case_id'
     schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
-    tables_dict[table_key].add(case_id_key)
+    tables_dict[table_key].add('case_id')
 
     if len(table_key.split('.')) > 2:
         reference_id_key = get_table_id_key(parent_table_key, params)
