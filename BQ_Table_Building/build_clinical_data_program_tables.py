@@ -1088,7 +1088,7 @@ def test_table_output(params):
             max_count, max_count_id = get_max_count(record_count_list)
 
             main_max_count = get_main_table_count(params, program_name, table_id_key,
-                                                  table_field, parent_id_key, parent_field_name)
+                                                   table_field, parent_id_key, parent_field_name)
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1125,7 +1125,23 @@ def test_table_output(params):
 def get_main_table_count(params, program_name, table_id_key, field_name,
                          parent_table_id_key=None, parent_field_name=None):
 
-    if parent_table_id_key and parent_field_name:
+    if not parent_table_id_key or not parent_field_name or parent_table_id_key = 'case_id':
+        query = """
+            SELECT case_id, count(p.{}) as cnt
+            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+            UNNEST({}) as p
+            WHERE case_id in (
+            SELECT case_gdc_id 
+            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+            WHERE program_name = '{}'
+            )
+            GROUP BY case_id
+            ORDER BY cnt DESC
+        """.format(table_id_key,
+                   field_name,
+                   program_name)
+
+    else:
         query = """
             SELECT case_id, p.{}, count(pc.{}) as cnt
             FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
@@ -1145,21 +1161,7 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
                    program_name,
                    parent_table_id_key)
 
-    else:
-        query = """
-            SELECT case_id, count(p.{}) as cnt
-            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
-            UNNEST({}) as p
-            WHERE case_id in (
-            SELECT case_gdc_id 
-            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
-            WHERE program_name = '{}'
-            )
-            GROUP BY case_id
-            ORDER BY cnt DESC
-        """.format(table_id_key,
-                   field_name,
-                   program_name)
+
 
     results = get_query_results(query)
 
