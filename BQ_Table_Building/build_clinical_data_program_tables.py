@@ -748,8 +748,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         required_columns = get_required_columns(table_key, params)
         schema_list = []
 
-        print_key_sorted_dict(schema_dict)
-
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
             schema_list.append(
                 bigquery.SchemaField(
@@ -1233,7 +1231,7 @@ def main(args):
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        # create_and_load_tables(program_name, cases, params, table_schemas)
+        create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
