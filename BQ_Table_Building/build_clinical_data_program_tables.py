@@ -671,14 +671,15 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             table_columns[parent_table_key].add(count_id_key)
             column_order_dict[count_id_key] = count_columns_position
 
-    return schema_dict, column_order_dict
+    return schema_dict, table_columns, column_order_dict
 
 
 def create_schemas(table_columns, params, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
-    schema_dict, column_order_dict = add_reference_columns(table_columns, schema_dict, params, column_order_dict)
+    schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
+                                                                          params, column_order_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -714,10 +715,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         required_columns = get_required_columns(table_key, params)
 
         for schema_key in schema_field_keys:
-            if schema_key in required_columns:
-                mode = 'REQUIRED'
-            else:
-                mode = "NULLABLE"
+            mode = 'REQUIRED' if schema_key in required_columns else 'NULLABLE'
 
             schema_list.append(bigquery.SchemaField(name=schema_key,
                                                     field_type=schema_dict[schema_key]['type'],
