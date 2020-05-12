@@ -899,7 +899,7 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
         table_id = get_table_id(params, program_name, table)
 
-        # create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
+        create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
