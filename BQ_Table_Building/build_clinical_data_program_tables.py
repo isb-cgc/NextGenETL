@@ -1102,6 +1102,13 @@ def test_table_output(params):
 
 
 def get_main_table_count(table, max_count_entry, params):
+
+
+    """SELECT treatment_id, diagnosis_id, case_id
+    FROM (SELECT diagnosis_id, case_id, treatments as td
+    FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`, unnest(diagnoses)),
+    UNNEST(td)"""
+
     table_fg = convert_bq_table_id_to_fg(table)
     parent_table = get_parent_field_group(table_fg)
     entry_id_key = get_table_id_key(table_fg, params)
@@ -1167,7 +1174,7 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
         count_label = 'record_count'
 
         record_count_list.append({
-            table_id_key: distinct_col_result,
+            parent_table_id_key: distinct_col_result,
             count_label: record_count
         })
 
