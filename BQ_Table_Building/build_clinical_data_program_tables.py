@@ -385,7 +385,11 @@ def get_jsonl_filename(params, program_name, table):
     return generate_long_name(params, program_name, table) + '.jsonl'
 
 
-def get_jsonl_filepath(params, program_name, table):
+def get_temp_filepath(params, program_name, table):
+    return params['SCRATCH_PATH'] + '/' + get_jsonl_filename(params, program_name, table)
+
+
+def get_gs_filepath(params, program_name, table):
     gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
     return gs_uri + get_jsonl_filename(params, program_name, table)
 
@@ -715,7 +719,7 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            jsonl_fp = get_jsonl_filepath(params, program_name, table)
+            jsonl_fp = get_temp_filepath(params, program_name, table)
 
             with open(jsonl_fp, 'w') as jsonl_file:
                 for row in flattened_case_dict[table]:
@@ -920,7 +924,8 @@ def main(args):
         },
         "BQ_AS_BATCH": False,
         'WORKING_BUCKET': 'next-gen-etl-scratch',
-        'WORKING_BUCKET_DIR': 'law'
+        'WORKING_BUCKET_DIR': 'law',
+        "SCRATCH_PATH": 'scratch'
     }
 
     # program_names = get_programs_list(params)
