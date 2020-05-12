@@ -126,7 +126,6 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 def remove_unwanted_fields(record, table_name, params):
     excluded_fields = get_excluded_fields(table_name, params, fatal=True)
-    print(excluded_fields)
 
     if isinstance(record, dict):
         for field in record.copy():
@@ -682,6 +681,8 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     for field_group_key, field_group in flattened_case_dict.copy().items():
+        print(field_group_key)
+        print(field_group)
         if field_group_key in table_keys:
             if field_group_key != 'cases':
                 record_count = len(field_group)
