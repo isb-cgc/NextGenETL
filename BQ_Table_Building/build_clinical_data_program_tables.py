@@ -130,6 +130,7 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 def remove_unwanted_fields(record, table_name, params):
     excluded_fields = get_excluded_fields(table_name, params, fatal=True)
+    print("Excluded: {}".format(excluded_fields))
 
     if isinstance(record, dict):
         for field in record.copy():
@@ -159,9 +160,9 @@ def flatten_tables(tables, record_counts, params):
 
     for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
 
-        print("Before field removal: {}".format(tables[field_group]))
+        # print("Before field removal: {}".format(tables[field_group]))
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
-        print("After field removal: {}".format(tables[field_group]))
+        # print("After field removal: {}".format(tables[field_group]))
 
         # this is cases, already flattened
         if depth == 1:
