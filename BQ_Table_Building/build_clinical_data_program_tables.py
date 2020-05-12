@@ -658,7 +658,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             parent_id_column = get_bq_name(table_key + '.' + parent_id_key)
 
             # add parent_id to one-to-many table
-            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_key, parent_fg)
+            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_column, parent_fg)
             table_columns[table_key].add(parent_id_key)
             column_order_dict[parent_id_column] = reference_col_position
 
