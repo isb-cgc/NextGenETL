@@ -893,6 +893,7 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
+    print(table_schemas)
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(params, program_name, table)
 
