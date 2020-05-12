@@ -630,12 +630,17 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         else:
             ancestor_table = 'main'
 
+        if '__' in column_name:
+            ancestor_column_name = "__".join(column_name.split('__')[1:])
+        else:
+            ancestor_column_name = column_name
+
         description = "Reference to the {} field of the {} record to which this record belongs. " \
                       "Parent record found in the program's {} table.".format(column_name,
                                                                               column_name[:-3],
                                                                               ancestor_table)
 
-        return {"name": column_name, "type": 'STRING', "description": description}
+        return {"name": ancestor_column_name, "type": 'STRING', "description": description}
 
     def generate_record_count_schema_entry(record_count_id_key_, parent_table_key_):
         description = "Total count of records associated with this case, located in {} table".format(parent_table_key_)
