@@ -1045,6 +1045,8 @@ def test_table_output(params):
 
     program_names = get_programs_list(params)
 
+    program_names.pop('CCLE')
+
     program_table_lists = dict()
 
     for program_name in program_names:
