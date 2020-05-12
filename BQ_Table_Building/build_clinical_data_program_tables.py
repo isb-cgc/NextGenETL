@@ -706,7 +706,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
                                                                           params, column_order_dict)
-
+    """
     print("*** Schema Dict Keys ***")
     print_key_sorted_dict(schema_dict)
 
@@ -715,9 +715,9 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         column_list = list(table_columns[table])
         column_list.sort()
         print("{}: \n{}".format(table, ", ".join(column_list)))
-
-    # print("*** Column Orders ***")
-    # print_val_sorted_dict(column_order_dict)
+    """
+    print("*** Column Orders ***")
+    print_val_sorted_dict(column_order_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
