@@ -870,7 +870,9 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
 
             field_group = field_group[0]
 
-            field_group.pop('case_id')
+            if 'case_id' in field_group:
+                print("popping case_id")
+                field_group.pop('case_id')
 
             # include keys with values
             for key in field_group.keys():
