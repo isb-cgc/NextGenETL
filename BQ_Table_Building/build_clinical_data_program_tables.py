@@ -556,7 +556,8 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
     for table_key in table_columns.keys():
         table_depth = len(table_key.split('.'))
-        bq_table_id_column_name = get_bq_name(table_key) + '__' + get_table_id_key(table_key, params)
+        table_id_key = get_table_id_key(table_key, params)
+        bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
         id_column_position = column_order_dict[bq_table_id_column_name]
 
         if table_depth > 2:
