@@ -1160,7 +1160,7 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
             SELECT case_id, p.{}, count(pc.{}) as cnt
             FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
             UNNEST({}) as p,
-            UNNEST(d.{}) as pc
+            UNNEST(p.{}) as pc
             WHERE case_id in (
             SELECT case_gdc_id 
             FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
