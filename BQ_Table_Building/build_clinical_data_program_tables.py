@@ -1063,7 +1063,7 @@ def test_table_output(params):
             print("... no one-to-many tables")
             continue
 
-        print("Tables: {}".format(program_table_lists[main_table_id]))
+        # print("Tables: {}".format(program_table_lists[main_table_id]))
 
         table_fg_list = ['cases']
 
@@ -1111,28 +1111,8 @@ def test_table_output(params):
                 cases_tally_max_counts[key] = count
 
 
-"""
-    query = '''
-        SELECT case_id, d.diagnosis_id, count(dt.treatment_id) as treatment_cnt
-        FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
-        UNNEST(diagnoses) as d,
-        UNNEST(d.treatments) as dt
-        WHERE case_id in (
-        SELECT case_gdc_id 
-        FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
-        WHERE program_name = 'HCMI'
-        )
-        GROUP BY diagnosis_id, case_id
-        ORDER BY treatment_cnt DESC
-    '''
-    """
-
-
 def get_main_table_count(params, program_name, table_id_key, field_name,
                          parent_table_id_key=None, parent_field_name=None):
-
-    print(parent_table_id_key)
-
     if not parent_table_id_key or not parent_field_name or parent_table_id_key == 'case_id':
         query = """
             SELECT case_id, count(p.{}) as cnt
@@ -1203,7 +1183,6 @@ def get_max_count(record_count_list):
             max_count_id = record_count_entry
             max_count = record_count_entry['record_count']
 
-
     return max_count, max_count_id
 
 
@@ -1246,9 +1225,6 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
         })
 
     return record_count_list
-
-
-
 
 
 ##
