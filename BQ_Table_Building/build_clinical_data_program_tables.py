@@ -156,10 +156,7 @@ def flatten_tables(tables, record_counts, params):
         # parent_fg = '.'.join(field_group.split('.')[:-1])
         # if field_group_counts[parent_fg] == 1:
 
-        print("For {}:\nBefore: {}".format(field_group, tables[field_group]))
-
         tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
-        print("After: {}".format(tables[field_group]))
 
         if depth == 1:
             break
@@ -686,8 +683,6 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     for field_group_key, field_group in flattened_case_dict.copy().items():
-        print(field_group_key)
-        print(field_group)
         if field_group_key in table_keys:
             if field_group_key != 'cases':
                 record_count = len(field_group)
@@ -978,7 +973,8 @@ def main(args):
 
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
-        for table_key in table_columns.keys():
+        for table_key in table_schemas.keys():
+            print(table_key)
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
