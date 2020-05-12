@@ -1,4 +1,4 @@
-from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, create_and_load_table
+from common_etl.utils import *
 from google.cloud import bigquery, storage
 import sys
 import json
@@ -8,11 +8,8 @@ import time
 YAML_HEADERS = 'params'
 
 
-##
-#  Functions for retrieving programs and cases
-##
-def get_programs_list(params):
-    programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
+def get_programs_list(bq_params):
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
 
     programs = set()
     results = get_query_results(
@@ -28,12 +25,12 @@ def get_programs_list(params):
     return programs
 
 
-def get_dataset_table_list(params):
+def get_dataset_table_list(bq_params):
     client = bigquery.Client()
-    dataset = client.get_dataset(params['WORKING_PROJECT'] + '.' + params['TARGET_DATASET'])
+    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'])
     results = client.list_tables(dataset)
 
-    table_id_prefix = params["GDC_RELEASE"] + '_clin_'
+    table_id_prefix = bq_params["GDC_RELEASE"] + '_clin_'
 
     table_id_list = []
 
@@ -47,85 +44,7 @@ def get_dataset_table_list(params):
     return table_id_list
 
 
-def get_cases_by_program(program_name, params):
-    print("Retrieving cases... ", end='')
-
-    cases = []
-
-    dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
-    main_table_id = dataset_path + '.' + params["GDC_RELEASE"] + '_clinical_data'
-    programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
-
-    results = get_query_results(
-        """
-        SELECT * 
-        FROM `{}`
-        WHERE case_id 
-        IN (SELECT case_gdc_id
-            FROM `{}`
-            WHERE program_name = '{}')
-        """.format(main_table_id, programs_table_id, program_name)
-    )
-
-    for case_row in results:
-        cases.append(dict(case_row.items()))
-    print("DONE. {} cases retrieved.".format(len(cases)))
-    return cases
-
-
-def get_row_count(table_id):
-    results = get_query_results(
-        """
-        SELECT count(*)
-        FROM `{}`
-        """.format(table_id)
-    )
-
-    for result in results:
-        return result.values()[0]
-
-
-def print_key_sorted_dict(dict_to_print):
-    for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
-        # if not isinstance(value, dict) and not isinstance(value, list):
-        # print("{}: {}".format(key, value))
-        print("{}: {}".format(key, value))
-
-        """
-        else:
-            print("{}:".format(key))
-            if isinstance(value, dict):
-                for v_key, v_value in sorted(value.items(), key=lambda item: item[0]):
-                    print("{}: {}".format(v_key, v_value))
-            else:
-                value.sort()
-                for v in value:
-                    print(v)
-        """
-
-
-def print_val_sorted_dict(dict_to_print):
-    for key, value in sorted(dict_to_print.items(), key=lambda item: item[1]):
-        # if not isinstance(value, dict) and not isinstance(value, list):
-        print("{:>3}: {}".format(value, key))
-
-        """
-        else:
-            print("{}:".format(key))
-            if isinstance(value, dict):
-                for v_key, v_value in sorted(value.items(), key=lambda item: item[0]):
-                    print("{}: {}".format(v_key, v_value))
-            else:
-                value.sort()
-                for v in value:
-                    print(v)
-        """
-
-
-##
-#  Functions for creating the BQ table schema dictionary
-##
-def retrieve_program_case_structure(program_name, cases, params):
+def retrieve_program_case_structure(api_params, program_name, cases):
     def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
         Recursive function for retrieve_program_data, finds nested fields
@@ -166,7 +85,7 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    table_columns = flatten_tables(table_columns, record_counts, params)
+    table_columns = flatten_tables(api_params, table_columns, record_counts)
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -177,14 +96,14 @@ def retrieve_program_case_structure(program_name, cases, params):
     return table_columns, record_counts
 
 
-def remove_unwanted_fields(record, table_name, params):
+def remove_unwanted_fields(api_params, record, table_name):
     if isinstance(record, dict):
-        excluded_fields = get_excluded_fields(table_name, params, fatal=True, flattened=True)
+        excluded_fields = get_excluded_fields(api_params, table_name, fatal=True, flattened=True)
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
     elif isinstance(record, set):
-        excluded_fields = get_excluded_fields(table_name, params, fatal=True)
+        excluded_fields = get_excluded_fields(api_params, table_name, fatal=True)
         for field in record.copy():
             if field in excluded_fields:
                 record.remove(field)
@@ -194,7 +113,7 @@ def remove_unwanted_fields(record, table_name, params):
     return record
 
 
-def flatten_tables(tables, record_counts, params):
+def flatten_tables(api_params, tables, record_counts):
     """
     Used by retrieve_program_case_structure
     """
@@ -207,7 +126,7 @@ def flatten_tables(tables, record_counts, params):
 
     for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
 
-        tables[field_group] = remove_unwanted_fields(tables[field_group], field_group, params)
+        tables[field_group] = remove_unwanted_fields(api_params, tables[field_group], field_group)
 
         # this is cases, already flattened
         if depth == 1:
@@ -242,7 +161,7 @@ def flatten_tables(tables, record_counts, params):
     return tables
 
 
-def lookup_column_types(params):
+def lookup_column_types(api_params, bq_params):
     def split_datatype_array(col_dict, col_string, name_prefix):
         columns = col_string[13:-2].split(', ')
 
@@ -262,7 +181,7 @@ def lookup_column_types(params):
         query = """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
         WHERE table_name = '{}_clinical_data' 
-        """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"])
+        """.format(bq_params["WORKING_PROJECT"], bq_params["TARGET_DATASET"], bq_params["GDC_RELEASE"])
 
         return query + exclude_column_query_str
 
@@ -270,12 +189,12 @@ def lookup_column_types(params):
         return """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
         WHERE table_name = '{}_clinical_data' and column_name = '{}'
-        """.format(params["WORKING_PROJECT"], params["TARGET_DATASET"], params["GDC_RELEASE"], field_group_)
+        """.format(bq_params["WORKING_PROJECT"], bq_params["TARGET_DATASET"],bq_params["GDC_RELEASE"], field_group_)
 
     field_groups = []
     child_field_groups = {}
 
-    for fg in params['EXPAND_FIELD_GROUPS'].split(','):
+    for fg in api_params['EXPAND_FIELD_GROUPS'].split(','):
         if len(fg.split(".")) == 1:
             field_groups.append(fg)
         elif len(fg.split(".")) == 2:
@@ -357,17 +276,17 @@ def lookup_column_types(params):
     return column_type_dict
 
 
-def build_column_order_dict(params):
+def build_column_order_dict(api_params):
     column_order_dict = dict()
-    field_groups = params['FIELD_GROUP_ORDER']
+    field_groups = api_params['FIELD_GROUP_ORDER']
     max_reference_cols = len(field_groups)
 
     idx = 0
 
     for fg in field_groups:
         try:
-            column_order_list = params['FIELD_GROUP_METADATA'][fg]['column_order']
-            id_column = params['FIELD_GROUP_METADATA'][fg]['table_id_key']
+            column_order_list = api_params['FIELD_GROUP_METADATA'][fg]['column_order']
+            id_column = api_params['FIELD_GROUP_METADATA'][fg]['table_id_key']
             for column in column_order_list:
                 bq_column = get_bq_name(fg + '.' + column.strip())
 
@@ -383,8 +302,8 @@ def build_column_order_dict(params):
                 else:
                     idx += 1
         except KeyError:
-            has_fatal_error("{} found in params['FIELD_GROUP_ORDER'] "
-                            "but not in params['FIELD_GROUP_METADATA']".format(fg))
+            has_fatal_error("{} found in api_params['FIELD_GROUP_ORDER'] "
+                            "but not in api_params['FIELD_GROUP_METADATA']".format(fg))
 
     column_order_dict['state'] = idx
     column_order_dict['created_datetime'] = idx + 1
@@ -393,9 +312,9 @@ def build_column_order_dict(params):
     return column_order_dict
 
 
-def create_schema_dict(params):
-    column_type_dict = lookup_column_types(params)
-    field_mapping_dict = create_mapping_dict(params['ENDPOINT'])
+def create_schema_dict(api_params, bq_params):
+    column_type_dict = lookup_column_types(api_params, bq_params)
+    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
 
     schema_dict = {}
 
@@ -420,74 +339,22 @@ def create_schema_dict(params):
     return schema_dict
 
 
-def get_field_name(column):
-    if '.' in column:
-        return column.split('.')[-1]
-    elif '__' in column:
-        return column.split('__')[-1]
-    elif not column:
-        return None
-    else:
-        return column
-
-
-def get_fg_name(column):
-    if not column:
-        return None
-
-    split_col = column.split('__')
-
-    if not split_col:
-        return None
-    elif len(split_col) == 1:
-        return 'cases.' + column
-    else:
-        return 'cases.' + '.'.join(split_col)
-
-
-def get_bq_name(column):
-    if not column or '.' not in column:
-        return ''
-
-    split_name = column.split('.')
-
-    if split_name[0] == 'cases':
-        if len(split_name) == 1:
-            return None
-        split_name = split_name[1:]
-
-    return '__'.join(split_name)
-
-
-"""
-def get_reference_column_positions(table_key, params, column_order_dict):
-    table_id_key = get_table_id_key(table_key, params)
+def get_count_column_position(api_params, table_key, column_order_dict):
+    table_id_key = get_table_id_key(api_params, table_key)
     bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
     id_column_position = column_order_dict[bq_table_id_column_name]
 
-    reference_col_position = id_column_position + 1
-    count_columns_position = reference_col_position + len(params['FIELD_GROUP_ORDER'])
-
-    return reference_col_position, count_columns_position
-"""
-
-
-def get_count_column_position(table_key, params, column_order_dict):
-    table_id_key = get_table_id_key(table_key, params)
-    bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
-    id_column_position = column_order_dict[bq_table_id_column_name]
-
-    count_columns_position = id_column_position + len(params['FIELD_GROUP_ORDER'])
+    count_columns_position = id_column_position + len(api_params['FIELD_GROUP_ORDER'])
 
     return count_columns_position
 
 
-def generate_long_name(params, program_name, table):
+def generate_long_name(bq_params, program_name, table):
     # remove invalid char from program name
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [params['GDC_RELEASE'], 'clin', program_name]
+    file_name_parts = [bq_params['GDC_RELEASE'], 'clin', program_name]
 
     # if one-to-many table, append suffix
     file_name_parts.append(get_bq_name(table)) if get_bq_name(table) else None
@@ -495,83 +362,58 @@ def generate_long_name(params, program_name, table):
     return '_'.join(file_name_parts)
 
 
-def get_jsonl_filename(params, program_name, table):
-    return generate_long_name(params, program_name, table) + '.jsonl'
+def get_jsonl_filename(bq_params, program_name, table):
+    return generate_long_name(bq_params, program_name, table) + '.jsonl'
 
 
-def get_temp_filepath(params, program_name, table):
-    return params['TEMP_PATH'] + '/' + get_jsonl_filename(params, program_name, table)
+def get_temp_filepath(api_params, bq_params, program_name, table):
+    return api_params['TEMP_PATH'] + '/' + get_jsonl_filename(bq_params, program_name, table)
 
 
-def get_gs_filepath(params, program_name, table):
-    gs_uri = 'gs://' + params['WORKING_BUCKET'] + "/" + params['WORKING_BUCKET_DIR'] + '/'
-    return gs_uri + get_jsonl_filename(params, program_name, table)
+def get_table_id(bq_params, program_name, table):
+    return generate_long_name(bq_params, program_name, table)
 
 
-def get_table_id(params, program_name, table):
-    return generate_long_name(params, program_name, table)
-
-
-def upload_to_bucket(params, file):
+def upload_to_bucket(api_params, bq_params, file):
     try:
         storage_client = storage.Client()
-        bucket = storage_client.bucket(params['WORKING_BUCKET'])
-        blob = bucket.blob(params['WORKING_BUCKET_DIR'] + '/' + file)
-        blob.upload_from_filename(params["TEMP_PATH"] + '/' + file)
+        bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+        blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file)
+        blob.upload_from_filename(api_params["TEMP_PATH"] + '/' + file)
     except Exception as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def get_parent_field_group(table_key):
-    split_key = table_key.split('.')
-
-    return ".".join(split_key[:-1])
-
-
-def get_parent_table(table_keys, table_key):
-    base_table = table_key.split('.')[0]
-
-    if not base_table or base_table not in table_keys:
-        has_fatal_error("'{}' has no parent table in tables list: {}".format(table_key, table_keys))
-
-    parent_table_key = get_parent_field_group(table_key)
-
-    while parent_table_key and parent_table_key not in table_keys:
-        parent_table_key = get_parent_field_group(parent_table_key)
-
-    return parent_table_key
-
-
-def get_required_columns(table_key, params):
+def get_required_columns(api_params, table_key):
     required_columns = list()
 
-    table_id_key = get_table_id_key(table_key, params)
+    table_id_key = get_table_id_key(api_params, table_key)
 
     required_columns.append(get_bq_name(table_key + '.' + table_id_key))
 
     return required_columns
 
 
-def get_table_id_key(table_key, params):
-    if not params["FIELD_GROUP_METADATA"]:
+def get_table_id_key(api_params, table_key):
+    if not api_params['FIELD_GROUP_METADATA']:
         has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
-    if 'table_id_key' not in params["FIELD_GROUP_METADATA"][table_key]:
-        has_fatal_error("table_id_key not found in params['FIELD_GROUP_METADATA']['{}']".format(table_key))
-    return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
+    if 'table_id_key' not in api_params['FIELD_GROUP_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in api_params['FIELD_GROUP_METADATA']['{}']".format(table_key))
+    return api_params['FIELD_GROUP_METADATA'][table_key]['table_id_key']
 
 
-def get_excluded_fields(table_key, params, fatal=False, flattened=False):
-    if not params["FIELD_GROUP_METADATA"]:
+def get_excluded_fields(api_params, table_key, fatal=False, flattened=False):
+    if not api_params['FIELD_GROUP_METADATA']:
         has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
 
-    if 'excluded_fields' not in params["FIELD_GROUP_METADATA"][table_key]:
+    if 'excluded_fields' not in api_params['FIELD_GROUP_METADATA'][table_key]:
         if fatal:
-            has_fatal_error("excluded_fields not found in params['FIELD_GROUP_METADATA']['{}']".format(
+            has_fatal_error("excluded_fields not found in api_params['FIELD_GROUP_METADATA']['{}']".format(
                 table_key))
         else:
             return None
 
-    base_column_names = params["FIELD_GROUP_METADATA"][table_key]['excluded_fields']
+    base_column_names = api_params['FIELD_GROUP_METADATA'][table_key]['excluded_fields']
 
     if flattened:
         return set(get_bq_name(table_key + '.' + column) for column in base_column_names)
@@ -579,53 +421,18 @@ def get_excluded_fields(table_key, params, fatal=False, flattened=False):
         return base_column_names
 
 
-def get_id_column_position(table_key, column_order_dict, params):
-    table_id_key = get_table_id_key(table_key, params)
+def get_id_column_position(api_params, table_key, column_order_dict):
+    table_id_key = get_table_id_key(api_params, table_key)
     id_column = get_bq_name(table_key + '.' + table_id_key)
     return column_order_dict[id_column]
 
 
-##
-#  Functions for ordering the BQ table schema and creating BQ tables
-##
-def get_tables(record_counts):
-    table_keys = set()
-
-    for table in record_counts:
-        if record_counts[table] > 1:
-            table_keys.add(table)
-
-    table_keys.add('cases')
-
-    return table_keys
-
-
-"""
-def import_column_order(path):
-    column_dict = dict()
-    count = 0
-
-    with open(path, 'r') as file:
-        columns = file.readlines()
-
-        for column in columns:
-            column_dict[column.strip()] = count
-            if column.endswith('id'):
-                # arbitrarily big, leaving space for reference key ordering
-                count += REFERENCE_COLUMNS_OFFSET
-            else:
-                count += 1
-
-    return column_dict
-"""
-
-
-def generate_table_ids(params, program_name, record_counts):
+def generate_table_ids(bq_params, program_name, record_counts):
     table_keys = get_tables(record_counts)
 
     table_ids = dict()
     program_name = "_".join(program_name.split('.'))
-    base_table_name = [params["GDC_RELEASE"], 'clin', program_name]
+    base_table_name = [bq_params["GDC_RELEASE"], 'clin', program_name]
 
     for table in table_keys:
         # eliminate '.' char from program name if found (which would otherwise create illegal table_id)
@@ -639,14 +446,14 @@ def generate_table_ids(params, program_name, record_counts):
         if not table_name:
             has_fatal_error("generate_table_name returns empty result.")
 
-        table_id = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"] + '.' + table_name
+        table_id = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
 
         table_ids[table] = table_id
 
     return table_ids
 
 
-def add_reference_columns(table_columns, schema_dict, params, column_order_dict):
+def add_reference_columns(api_params, table_columns, schema_dict, column_order_dict):
     def generate_id_schema_entry(column_name, parent_table_key_):
         parent_field_name = get_field_name(parent_table_key_)
 
@@ -673,7 +480,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
     for table_key in table_columns.keys():
         table_depth = len(table_key.split('.'))
 
-        id_column_position = get_id_column_position(table_key, column_order_dict, params)
+        id_column_position = get_id_column_position(api_params, table_key, column_order_dict)
         reference_col_position = id_column_position + 1
 
         if table_depth == 1:
@@ -683,7 +490,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
             # if the > 2 cond. is removed (and the case_id insertion below) tables will only reference direct ancestor
             # tables with depth > 2 have case_id reference and parent_id reference
             parent_fg = get_parent_field_group(table_key)
-            parent_id_key = get_table_id_key(parent_fg, params)
+            parent_id_key = get_table_id_key(api_params, parent_fg)
             parent_id_column = get_bq_name(table_key + '.' + parent_id_key)
 
             # add parent_id to one-to-many table
@@ -704,8 +511,8 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         reference_col_position += 1
 
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
-        parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict, params)
-        count_columns_position = parent_id_column_position + len(params['FIELD_GROUP_ORDER'])
+        parent_id_column_position = get_id_column_position(api_params, parent_table_key, column_order_dict)
+        count_columns_position = parent_id_column_position + len(api_params['FIELD_GROUP_ORDER'])
         count_id_key = get_bq_name(table_key + '.count')
 
         # add one-to-many record count column to parent table
@@ -716,32 +523,17 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
     return schema_dict, table_columns, column_order_dict
 
 
-def create_schemas(table_columns, params, schema_dict, column_order_dict):
+def create_schemas(api_params, table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
-    schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict,
-                                                                          params, column_order_dict)
-
-    """
-    print("*** Schema Dict Keys ***")
-    print_key_sorted_dict(schema_dict)
-
-    print("*** Table Columns ***")
-    for table in table_columns:
-        column_list = list(table_columns[table])
-        column_list.sort()
-        print("{}: \n{}".format(table, ", ".join(column_list)))
-    
-    print("*** Column Orders ***")
-    print_val_sorted_dict(column_order_dict)
-    """
-
+    schema_dict, table_columns, column_order_dict = add_reference_columns(api_params, table_columns, schema_dict,
+                                                                          column_order_dict)
     for table_key in table_columns:
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
-            count_column_position = get_count_column_position(table_key, params, column_order_dict)
+            count_column_position = get_count_column_position(api_params, table_key, column_order_dict)
             # don't rename if this is a parent_id column
             if '__' in column:
                 column_name = column
@@ -766,7 +558,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
                 table_order_dict[count_column] = count_column_position
                 count_column_position += 1
 
-        required_columns = get_required_columns(table_key, params)
+        required_columns = get_required_columns(api_params, table_key)
         schema_list = []
 
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
@@ -785,9 +577,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     return table_schema_fields
 
 
-##
-#  Functions for inserting case entries into BQ tables
-##
 def create_table_mapping(tables_dict):
     # string manipulation for bigquery result which looks like an object but doesn't seem to have methods.
     # Parsing this so we can avoid explicitly selecting all the table's columns (which would otherwise be required due
@@ -804,8 +593,8 @@ def create_table_mapping(tables_dict):
     return table_mapping_dict
 
 
-def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None,
-                 parent_id=None, parent_id_key=None):
+def flatten_case(api_params, case, prefix, flattened_case_dict, table_keys, case_id=None, parent_id=None,
+                 parent_id_key=None):
     if isinstance(case, list):
         entry_list = []
 
@@ -818,7 +607,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             else:
                 entry_dict['case_id'] = case_id
 
-            entry_id_key = get_table_id_key(prefix, params)
+            entry_id_key = get_table_id_key(api_params, prefix)
 
             for key in entry:
                 if isinstance(entry[key], list):
@@ -827,16 +616,14 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     new_parent_id_key = get_bq_name(prefix + '.' + entry_id_key)
                     new_parent_id = entry[entry_id_key]
 
-                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
+                    flattened_case_dict = flatten_case(api_params, entry[key], prefix + '.' + key, flattened_case_dict,
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
-                    # todo don't add prefix if key is an id key? is that desirable?
-                    # col_name = key if key == entry_id_key else get_bq_name(prefix + '.' + key)
                     col_name = get_bq_name(prefix + '.' + key)
 
                     entry_dict[col_name] = entry[key]
 
-            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+            entry_dict = remove_unwanted_fields(api_params, entry_dict, prefix)
             entry_list.append(entry_dict)
 
         if prefix in flattened_case_dict:
@@ -856,20 +643,20 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
         for key in case:
             if isinstance(case[key], list):
-                flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict, params,
+                flattened_case_dict = flatten_case(api_params, case[key], prefix + '.' + key, flattened_case_dict,
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(prefix + '.' + key)
                 entry_dict[col_name] = case[key]
 
         if entry_dict:
-            entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
+            entry_dict = remove_unwanted_fields(api_params, entry_dict, prefix)
             entry_list.append(entry_dict)
             flattened_case_dict[prefix] = entry_list
     return flattened_case_dict
 
 
-def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
+def merge_single_entry_field_groups(api_params, flattened_case_dict, table_keys):
     field_group_counts = dict.fromkeys(flattened_case_dict.keys(), 0)
 
     # sort field group keys by depth
@@ -883,7 +670,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
             continue
 
         parent_table_key = get_parent_table(table_keys, field_group_key)
-        parent_id_key = get_table_id_key(parent_table_key, params)
+        parent_id_key = get_table_id_key(api_params, parent_table_key)
         bq_parent_id_column = get_bq_name(parent_table_key + '.' + parent_id_key)
 
         if field_group_key in table_keys:
@@ -931,28 +718,26 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
     return flattened_case_dict
 
 
-def create_and_load_tables(program_name, cases, params, table_schemas):
+def create_and_load_tables(api_params, bq_params, program_name, cases, table_schemas):
     table_ids = set()
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
 
     for table in table_keys:
-        fp = get_temp_filepath(params, program_name, table)
+        fp = get_temp_filepath(api_params, bq_params, program_name, table)
         if os.path.exists(fp):
             os.remove(fp)
 
-    count = 0
     for case in cases:
-        count += 1
-        # print('case # {}'.format(count))
-        flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
+        flattened_case_dict = flatten_case(api_params, case, 'cases', dict(), table_keys, case['case_id'],
+                                           case['case_id'])
+        flattened_case_dict = merge_single_entry_field_groups(api_params, flattened_case_dict, table_keys)
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            jsonl_fp = get_temp_filepath(params, program_name, table)
+            jsonl_fp = get_temp_filepath(api_params, bq_params, program_name, table)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flattened_case_dict[table]:
@@ -960,90 +745,24 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
                     jsonl_file.write('\n')
 
     for table in table_schemas:
-        jsonl_file = get_jsonl_filename(params, program_name, table)
+        jsonl_file = get_jsonl_filename(bq_params, program_name, table)
 
-        upload_to_bucket(params, jsonl_file)
+        upload_to_bucket(api_params, bq_params, jsonl_file)
 
-        table_id = get_table_id(params, program_name, table)
+        table_id = get_table_id(bq_params, program_name, table)
 
-        create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
+        create_and_load_table(bq_params, jsonl_file, table_schemas[table], table_id)
 
         table_ids.add(table_id)
 
     return table_ids
 
 
-def check_data_integrity(params, cases, record_counts, table_columns):
-    frequency_dict = {}
+def test_table_output(api_params, bq_params):
 
-    tables = get_tables(record_counts)
+    table_ids = get_dataset_table_list(bq_params)
 
-    if len(tables) < 2:
-        return
-
-    for case in cases:
-        count_dict = dict()
-
-        hierarchy = {
-            'follow_ups': {
-                'molecular_tests'
-            },
-            'exposures': None,
-            'family_histories': None,
-            'demographic': None,
-            'diagnoses': {
-                'treatments',
-                'annotations'
-            }
-        }
-
-        for key in hierarchy:
-            if key in case and case[key] and isinstance(case[key], list):
-                cnt = len(case[key])
-
-                if key in count_dict:
-                    count_dict[key] += cnt
-                else:
-                    count_dict[key] = cnt
-
-                for entry in case[key]:
-                    if hierarchy[key]:
-                        for c_key in hierarchy[key]:
-                            if c_key in entry and entry[c_key] and isinstance(c_key, list):
-                                cnt = len(entry[c_key])
-
-                                if c_key in count_dict:
-                                    count_dict[c_key] += cnt
-                                else:
-                                    count_dict[c_key] = cnt
-
-        for field in count_dict:
-            frequency_key = count_dict[field]
-            if field not in frequency_dict:
-                frequency_dict[field] = dict()
-            if frequency_key in frequency_dict[field]:
-                frequency_dict[field][frequency_key] += 1
-            else:
-                frequency_dict[field][frequency_key] = 1
-
-    if frequency_dict:
-        print("Frequency of records per case for one-to-many tables:\n")
-        for fg_key in frequency_dict.copy():
-            if not frequency_dict[fg_key]:
-                frequency_dict.pop(fg_key)
-            if len(frequency_dict[fg_key].keys()) == 1 and 1 in frequency_dict[fg_key].keys():
-                frequency_dict.pop(fg_key)
-            else:
-                print("{}".format(fg_key))
-                for value in frequency_dict[fg_key]:
-                    print("\t{}: {}".format(value, frequency_dict[fg_key][value]))
-
-
-def test_table_output(params):
-
-    table_ids = get_dataset_table_list(params)
-
-    program_names = get_programs_list(params)
+    program_names = get_programs_list(bq_params)
 
     program_names.remove('CCLE')
 
@@ -1052,7 +771,7 @@ def test_table_output(params):
     for program_name in program_names:
         print("\nFor program {}:".format(program_name))
 
-        main_table_id = get_table_id(params, program_name, 'cases')
+        main_table_id = get_table_id(bq_params, program_name, 'cases')
         program_table_lists[main_table_id] = []
 
         for table in table_ids:
@@ -1063,8 +782,6 @@ def test_table_output(params):
             print("... no one-to-many tables")
             continue
 
-        # print("Tables: {}".format(program_table_lists[main_table_id]))
-
         table_fg_list = ['cases']
 
         for table in program_table_lists[main_table_id]:
@@ -1074,33 +791,34 @@ def test_table_output(params):
 
         for table in program_table_lists[main_table_id]:
             table_fg = convert_bq_table_id_to_fg(table)
-            table_id_key = get_table_id_key(table_fg, params)
+            table_id_key = get_table_id_key(api_params, table_fg)
             table_field = get_field_name(table_fg)
 
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
-            parent_id_key = get_table_id_key(parent_table_fg, params)
+            parent_id_key = get_table_id_key(api_params, parent_table_fg)
 
             full_parent_id_key = get_bq_name(parent_table_fg + '.' + parent_id_key)
 
-            record_count_list = get_record_count_list(table, table_fg, full_parent_id_key, params)
+            record_count_list = get_record_count_list(api_params, bq_params, table,
+                                                      table_fg, full_parent_id_key)
 
             max_count, max_count_id = get_max_count(record_count_list)
 
             parent_fg = get_parent_field_group(table_fg)
-            parent_fg_id_key = get_table_id_key(parent_fg, params)
+            parent_fg_id_key = get_table_id_key(api_params, parent_fg)
             parent_fg_field = get_field_name(parent_fg)
 
             mt_case_id, mt_child_id, mt_max_count = get_main_table_count(
-                params, program_name, table_id_key, table_field, parent_fg_id_key, parent_fg_field)
+                bq_params, program_name, table_id_key, table_field, parent_fg_id_key, parent_fg_field)
 
             if max_count != mt_max_count:
                 has_fatal_error("NOT A MATCH for {}. {} != {}".format(table_fg, max_count, mt_max_count))
 
             program_table_query_max_counts[table_fg] = max_count
 
-        cases = get_cases_by_program(program_name, params)
+        cases = get_cases_by_program(bq_params, program_name)
 
-        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
+        table_columns, record_counts = retrieve_program_case_structure(api_params, program_name, cases)
 
         cases_tally_max_counts = dict()
 
@@ -1120,23 +838,29 @@ def test_table_output(params):
         print("Counts all match! Moving on.")
 
 
-def get_main_table_count(params, program_name, table_id_key, field_name,
+def get_main_table_count(bq_params, program_name, table_id_key, field_name,
                          parent_table_id_key=None, parent_field_name=None):
+
+    table_path = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' \
+                 + bq_params['GDC_RELEASE'] + '_clinical_data'
+    program_table_path = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     if not parent_table_id_key or not parent_field_name or parent_table_id_key == 'case_id':
         query = """
             SELECT case_id, count(p.{}) as cnt
-            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+            FROM `{}`,
             UNNEST({}) as p
             WHERE case_id in (
             SELECT case_gdc_id 
-            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+            FROM `{}` 
             WHERE program_name = '{}'
             )
             GROUP BY case_id
             ORDER BY cnt DESC
             LIMIT 1
         """.format(table_id_key,
+                   table_path,
                    field_name,
+                   program_table_path,
                    program_name)
 
         results = get_query_results(query)
@@ -1148,12 +872,12 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
     else:
         query = """
             SELECT case_id, p.{}, count(pc.{}) as cnt
-            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
+            FROM `{}`,
             UNNEST({}) as p,
             UNNEST(p.{}) as pc
             WHERE case_id in (
             SELECT case_gdc_id 
-            FROM `isb-project-zero.GDC_metadata.rel23_caseData` 
+            FROM `{}` 
             WHERE program_name = '{}'
             )
             GROUP BY {}, case_id
@@ -1161,8 +885,10 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
             LIMIT 1
         """.format(parent_table_id_key,
                    table_id_key,
+                   table_path,
                    parent_field_name,
                    field_name,
+                   program_table_path,
                    program_name,
                    parent_table_id_key)
 
@@ -1173,42 +899,11 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
             return res[0], res[1], res[2]
 
 
-def convert_bq_table_id_to_fg(table_id):
-    short_table_name = "_".join(table_id.split('_')[3:])
-
-    table_name = 'cases'
-
-    if short_table_name:
-        table_name += '.' + '.'.join(short_table_name.split('__'))
-
-    return table_name
-
-
-def get_max_count(record_count_list):
-    max_count = 0
-    max_count_id = None
-    for record_count_entry in record_count_list:
-        if record_count_entry['record_count'] > max_count:
-            max_count_id = record_count_entry
-            max_count = record_count_entry['record_count']
-
-    return max_count, max_count_id
-
-
-def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
-    dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
-    table_id_key = get_table_id_key(table_fg_key, params)
+def get_record_count_list(api_params, bq_params, table, table_fg_key, parent_table_id_key):
+    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
+    table_id_key = get_table_id_key(api_params, table_fg_key)
 
     table_id_column = get_bq_name(table_fg_key + '.' + table_id_key)
-
-    """
-    SELECT case_id, count(fh.family_history_id) as cnt
-    FROM `isb-project-zero.GDC_Clinical_Data.rel23_clinical_data`,
-    unnest(family_histories) as fh
-    group by case_id
-    order by cnt DESC
-    LIMIT 1
-    """
 
     results = get_query_results(
         """
@@ -1223,7 +918,6 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
     for result in results:
         result_tuple = result.values()
 
-        distinct_col_result = result_tuple[0]
         record_count = result_tuple[1]
         count_label = 'record_count'
 
@@ -1239,7 +933,7 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
 ##
 #  Functions for creating documentation
 ##
-def generate_documentation(params, program_name, documentation_dict, record_counts):
+def generate_documentation(api_params, bq_params, program_name, documentation_dict, record_counts):
     print("Inserting documentation... ")
     # print("{} \n".format(program_name))
     # print("{}".format(documentation_dict))
@@ -1267,7 +961,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
     }
     """
 
-    docs_filename = params['DOCS_OUTPUT_FILE']
+    docs_filename = api_params['DOCS_OUTPUT_FILE']
     with open(docs_filename, 'a') as doc_file:
         doc_file.write("{} \n".format(program_name))
         doc_file.write("{}".format(documentation_dict))
@@ -1275,7 +969,7 @@ def generate_documentation(params, program_name, documentation_dict, record_coun
 
     print("... DONE.")
 
-    upload_to_bucket(params, docs_filename)
+    upload_to_bucket(api_params, bq_params, docs_filename)
 
 
 def main(args):
@@ -1293,19 +987,14 @@ def main(args):
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    # programs_table_id = params['WORKING_PROJECT'] + '.' + params['PROGRAM_ID_TABLE']
+    # programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
     """
 
-    params = {
-        "INSERT_BATCH_SIZE": 1000,
+    api_params = {
         'ENDPOINT': 'https://api.gdc.cancer.gov/cases',
         "DOCS_OUTPUT_FILE": 'docs/documentation.txt',
         "EXPAND_FIELD_GROUPS": 'demographic,diagnoses,diagnoses.treatments,diagnoses.annotations,exposures,'
                                'family_histories,follow_ups,follow_ups.molecular_tests',
-        "GDC_RELEASE": 'rel23',
-        "WORKING_PROJECT": 'isb-project-zero',
-        "TARGET_DATASET": 'GDC_Clinical_Data',
-        "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
         "FIELD_GROUP_METADATA": {
             'cases': {
                 'table_id_key': 'case_id',
@@ -1458,51 +1147,49 @@ def main(args):
             'cases.follow_ups',
             'cases.follow_ups.molecular_tests'
         ],
-        "REQUIRED_COLUMNS": {
-            'case_id',
-            'diagnoses__diagnosis_id',
-            'diagnoses__treatments__treatment_id',
-            'follow_ups__follow_up_id',
-            'follow_ups__molecular_tests__molecular_test_id'
-        },
-        "BQ_AS_BATCH": False,
-        'WORKING_BUCKET': 'next-gen-etl-scratch',
-        'WORKING_BUCKET_DIR': 'law',
         "TEMP_PATH": 'temp',
         "TEST_MODE": True
     }
+    
+    bq_params = {
+        "GDC_RELEASE": 'rel23',
+        "WORKING_PROJECT": 'isb-project-zero',
+        "TARGET_DATASET": 'GDC_Clinical_Data',
+        "PROGRAM_ID_TABLE": 'GDC_metadata.rel23_caseData',
+        "BQ_AS_BATCH": False,
+        'WORKING_BUCKET': 'next-gen-etl-scratch',
+        'WORKING_BUCKET_DIR': 'law'
+    }
 
-    if params["TEST_MODE"]:
-        test_table_output(params)
+    if api_params['TEST_MODE']:
+        test_table_output(api_params, bq_params)
         exit()
 
-    program_names = get_programs_list(params)
+    program_names = get_programs_list(bq_params)
     # program_names = ['VAREPOP']
 
-    column_order_dict = build_column_order_dict(params)
+    column_order_dict = build_column_order_dict(api_params)
 
-    with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
+    with open(api_params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
 
-    schema_dict = create_schema_dict(params)
+    schema_dict = create_schema_dict(api_params, bq_params)
 
     for program_name in program_names:
         print("\n*** Running script for program {} ***".format(program_name))
-        cases = get_cases_by_program(program_name, params)
+        cases = get_cases_by_program(bq_params, program_name)
 
         if not cases:
             print("No case records found for {}, skipping.".format(program_name))
             continue
 
-        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
+        table_columns, record_counts = retrieve_program_case_structure(api_params, program_name, cases)
 
-        table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict.copy())
+        table_schemas = create_schemas(api_params, table_columns, schema_dict, column_order_dict.copy())
 
-        table_ids = create_and_load_tables(program_name, cases, params, table_schemas)
+        table_ids = create_and_load_tables(api_params, bq_params, program_name, cases, table_schemas)
 
-        # generate_documentation(params, program_name, documentation_dict, record_counts)
-
-        # check_data_integrity(params, cases, record_counts, table_columns)
+        # generate_documentation(api_params, bq_params, program_name, documentation_dict, record_counts)
 
     end = time.time()
 

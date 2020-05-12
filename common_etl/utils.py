@@ -452,3 +452,107 @@ def ordered_print(flattened_case_dict, order_dict):
     tables_string += "\n}"
 
     print(tables_string)
+
+
+def get_cases_by_program(bq_params, program_name):
+    print("Retrieving cases... ", end='')
+
+    cases = []
+
+    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
+    main_table_id = dataset_path + '.' + bq_params["GDC_RELEASE"] + '_clinical_data'
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+
+    results = get_query_results(
+        """
+        SELECT * 
+        FROM `{}`
+        WHERE case_id 
+        IN (SELECT case_gdc_id
+            FROM `{}`
+            WHERE program_name = '{}')
+        """.format(main_table_id, programs_table_id, program_name)
+    )
+
+    for case_row in results:
+        cases.append(dict(case_row.items()))
+    print("DONE. {} cases retrieved.".format(len(cases)))
+    return cases
+
+
+def get_field_name(column):
+    if '.' in column:
+        return column.split('.')[-1]
+    elif '__' in column:
+        return column.split('__')[-1]
+    elif not column:
+        return None
+    else:
+        return column
+
+
+def get_bq_name(column):
+    if not column or '.' not in column:
+        return ''
+
+    split_name = column.split('.')
+
+    if split_name[0] == 'cases':
+        if len(split_name) == 1:
+            return None
+        split_name = split_name[1:]
+
+    return '__'.join(split_name)
+
+
+def get_parent_field_group(table_key):
+    split_key = table_key.split('.')
+
+    return ".".join(split_key[:-1])
+
+
+def get_tables(record_counts):
+    table_keys = set()
+
+    for table in record_counts:
+        if record_counts[table] > 1:
+            table_keys.add(table)
+
+    table_keys.add('cases')
+
+    return table_keys
+
+
+def convert_bq_table_id_to_fg(table_id):
+    short_table_name = "_".join(table_id.split('_')[3:])
+
+    table_name = 'cases'
+
+    if short_table_name:
+        table_name += '.' + '.'.join(short_table_name.split('__'))
+
+    return table_name
+
+
+def get_max_count(record_count_list):
+    max_count = 0
+    max_count_id = None
+    for record_count_entry in record_count_list:
+        if record_count_entry['record_count'] > max_count:
+            max_count_id = record_count_entry
+            max_count = record_count_entry['record_count']
+
+    return max_count, max_count_id
+
+def get_parent_table(table_keys, table_key):
+    base_table = table_key.split('.')[0]
+
+    if not base_table or base_table not in table_keys:
+        has_fatal_error("'{}' has no parent table in tables list: {}".format(table_key, table_keys))
+
+    parent_table_key = get_parent_field_group(table_key)
+
+    while parent_table_key and parent_table_key not in table_keys:
+        parent_table_key = get_parent_field_group(parent_table_key)
+
+    return parent_table_key
