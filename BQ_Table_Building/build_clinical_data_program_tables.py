@@ -138,6 +138,7 @@ def remove_unwanted_fields(record, table_name, params):
     elif isinstance(record, set):
         for field in record.copy():
             if field in excluded_fields:
+                print('removing {}'.format(field))
                 record.remove(field)
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
