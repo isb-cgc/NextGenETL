@@ -87,7 +87,7 @@ def print_key_sorted_dict(dict_to_print):
 def print_val_sorted_dict(dict_to_print):
     for key, value in sorted(dict_to_print.items(), key=lambda item: item[1]):
         # if not isinstance(value, dict) and not isinstance(value, list):
-        print("{:>3}: {}".format(key))
+        print("{:>3}: {}".format(value, key))
 
         """
         else:
@@ -709,7 +709,6 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
     print_key_sorted_dict(schema_dict)
     print(list(table_columns).sort())
     print_val_sorted_dict(column_order_dict)
-    exit()
 
     for table_key in table_columns:
         table_order_dict = dict()
