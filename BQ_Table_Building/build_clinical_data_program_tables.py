@@ -913,6 +913,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, params):
 
 
 def create_and_load_tables(program_name, cases, params, table_schemas):
+    table_ids = set()
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
 
@@ -947,6 +948,10 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
         table_id = get_table_id(params, program_name, table)
 
         create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
+
+        table_ids.add(table_id)
+
+    return table_ids
 
 
 def check_data_integrity(params, cases, record_counts, table_columns):
@@ -1013,6 +1018,17 @@ def check_data_integrity(params, cases, record_counts, table_columns):
                 print("{}".format(fg_key))
                 for value in frequency_dict[fg_key]:
                     print("\t{}: {}".format(value, frequency_dict[fg_key][value]))
+
+
+def test_table_output(params):
+    program_names = get_programs_list(params)
+
+    for program_name in program_names:
+        main_table_id = get_table_id(params, program_name, 'cases')
+        print(main_table_id)
+
+    # get list of case ids for main table
+    # make a dict of the case_ids
 
 
 ##
@@ -1247,8 +1263,13 @@ def main(args):
         "BQ_AS_BATCH": False,
         'WORKING_BUCKET': 'next-gen-etl-scratch',
         'WORKING_BUCKET_DIR': 'law',
-        "TEMP_PATH": 'temp'
+        "TEMP_PATH": 'temp',
+        "TEST_MODE": True
     }
+
+    if params["TEST_MODE"]:
+        test_table_output(params)
+        exit()
 
     program_names = get_programs_list(params)
     # program_names = ['VAREPOP']
@@ -1272,10 +1293,7 @@ def main(args):
 
         table_schemas = create_schemas(table_columns, params, schema_dict, column_order_dict.copy())
 
-        # documentation_dict, table_names_dict = create_bq_tables(
-        #   program_name, params, table_columns, record_counts, schema_dict)
-
-        create_and_load_tables(program_name, cases, params, table_schemas)
+        table_ids = create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
