@@ -1148,7 +1148,7 @@ def main(args):
             'cases.follow_ups.molecular_tests'
         ],
         "TEMP_PATH": 'temp',
-        "TEST_MODE": True
+        "TEST_MODE": False
     }
     
     bq_params = {
