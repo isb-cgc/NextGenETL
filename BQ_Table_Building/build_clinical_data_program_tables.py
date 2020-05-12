@@ -707,6 +707,7 @@ def create_and_load_tables(program_name, cases, table_schemas):
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
 
         table_id = get_table_id(program_name, table)
+        print('... for table {}...'.format(table_id))
         create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
 
 
@@ -729,8 +730,7 @@ def generate_documentation(program_name, record_counts):
 
 
 def finalize_documentation():
-    docs_filename = API_PARAMS['DOCS_OUTPUT_FILE']
-    upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], docs_filename)
+    upload_to_bucket(BQ_PARAMS, API_PARAMS['DOCS_PATH'], API_PARAMS['DOCS_FILE'])
 
 
 ##
@@ -959,7 +959,7 @@ def main(args):
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
 
-        print("... processing completed for program {} in {} seconds\n".format(program_name, time.time() - prog_start))
+        print("... processing completed for program {} in {:.2f} seconds\n".format(program_name, time.time() - prog_start))
 
     if 'generate_documentation' in steps:
         finalize_documentation()

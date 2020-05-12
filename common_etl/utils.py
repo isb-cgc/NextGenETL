@@ -366,6 +366,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + table_name
     load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
     print('Starting job {}'.format(load_job.job_id))
+    start = time.time()
 
     location = 'US'
     job_state = "NOT_STARTED"
@@ -373,25 +374,23 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     while job_state != 'DONE':
         load_job = client.get_job(load_job.job_id, location=location)
 
-        print('Job {} is currently in state {}'.format(load_job.job_id, load_job.state))
+        if time.time() - start > 30:
+            print('Job {} is currently in state {}'.format(load_job.job_id, load_job.state))
 
         job_state = load_job.state
 
         if job_state != 'DONE':
-            time.sleep(5)
+            time.sleep(3)
 
     print('Job {} is done'.format(load_job.job_id))
 
     load_job = client.get_job(load_job.job_id, location=location)
+
     if load_job.error_result is not None:
-        err_list = ['While running BQ job: {}'.format(load_job.error_result)]
-        for e in load_job.errors:
-            err_list.append(e)
-        has_fatal_error(err_list, ValueError)
+        has_fatal_error('While running BQ job: {} \n{}'.format(load_job.error_result, load_job.errors), ValueError)
 
     destination_table = client.get_table(table_id)
     print('Loaded {} rows.'.format(destination_table.num_rows))
-    return True
 
 
 def pprint_json(json_obj):
@@ -565,6 +564,7 @@ def upload_to_bucket(bq_params, fp, file_name):
         storage_client = storage.Client()
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
         blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
+
         blob.upload_from_filename(fp + '/' + file_name)
     except Exception as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
