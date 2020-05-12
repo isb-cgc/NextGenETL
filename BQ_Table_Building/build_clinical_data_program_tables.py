@@ -1055,7 +1055,14 @@ def test_table_output(params):
             if main_table_id in table:
                 program_table_lists[main_table_id].append(table)
 
-    print(program_table_lists)
+    for program_name in program_names:
+        main_table_id = get_table_id(params, program_name, 'cases')
+        cases = get_cases_by_program(program_name, params)
+        table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
+
+        print(program_name)
+        print(program_table_lists[main_table_id])
+        print(record_counts)
 
 
 
