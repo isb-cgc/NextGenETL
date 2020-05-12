@@ -1153,7 +1153,7 @@ def get_main_table_count(params, program_name, table_id_key, field_name,
 
         for result in results:
             res = result.values()
-            return res[0], None, res[2]
+            return res[0], None, res[1]
 
     else:
         query = """
