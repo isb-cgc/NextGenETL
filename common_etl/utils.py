@@ -21,7 +21,7 @@ import yaml
 import pprint
 import requests
 import time
-from google.cloud import bigquery
+from google.cloud import bigquery, storage
 
 
 def has_fatal_error(e, exception=None):
@@ -455,8 +455,6 @@ def ordered_print(flattened_case_dict, order_dict):
 
 
 def get_cases_by_program(bq_params, program_name):
-    print("Retrieving cases... ", end='')
-
     cases = []
 
     dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
@@ -476,7 +474,10 @@ def get_cases_by_program(bq_params, program_name):
 
     for case_row in results:
         cases.append(dict(case_row.items()))
-    print("DONE. {} cases retrieved.".format(len(cases)))
+    if cases:
+        print("{} cases retrieved.".format(len(cases)))
+    else:
+        print("No case records found for program {}, skipping.".format(program_name))
     return cases
 
 
@@ -544,6 +545,7 @@ def get_max_count(record_count_list):
 
     return max_count, max_count_id
 
+
 def get_parent_table(table_keys, table_key):
     base_table = table_key.split('.')[0]
 
@@ -556,3 +558,13 @@ def get_parent_table(table_keys, table_key):
         parent_table_key = get_parent_field_group(parent_table_key)
 
     return parent_table_key
+
+
+def upload_to_bucket(bq_params, fp, file_name):
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+        blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
+        blob.upload_from_filename(fp + '/' + file_name)
+    except Exception as err:
+        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
