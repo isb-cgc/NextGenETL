@@ -708,8 +708,13 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
 
     print("*** Schema Dict Keys ***")
     print_key_sorted_dict(schema_dict)
+
     print("*** Table Columns ***")
-    print(list(table_columns).sort())
+    for table in table_columns:
+        column_list = list(table_columns[table])
+        column_list.sort()
+        print("{}: \n{}".format(table, ", ".join(column_list)))
+
     print("*** Column Orders ***")
     print_val_sorted_dict(column_order_dict)
 
