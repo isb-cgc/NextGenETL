@@ -1048,6 +1048,8 @@ def test_table_output(params):
     program_table_lists = dict()
 
     for program_name in program_names:
+        print("*** For program {} ***".format(program_name))
+
         main_table_id = get_table_id(params, program_name, 'cases')
         program_table_lists[main_table_id] = []
 
@@ -1055,19 +1057,13 @@ def test_table_output(params):
             if main_table_id in table:
                 program_table_lists[main_table_id].append(table)
 
-    for program_name in program_names:
-        main_table_id = get_table_id(params, program_name, 'cases')
+        print("Tables: {}".format(program_table_lists[main_table_id]))
+
         cases = get_cases_by_program(program_name, params)
+
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        print(program_name)
-        print(program_table_lists[main_table_id])
-        print(record_counts)
-
-
-
-    # get list of case ids for main table
-    # make a dict of the case_ids
+        print("Record counts: {}".format(record_counts))
 
 
 ##
