@@ -1,5 +1,5 @@
 from common_etl.utils import create_mapping_dict, get_query_results, has_fatal_error, load_config, create_and_load_table
-from google.cloud import bigquery
+from google.cloud import bigquery, storage
 from google.api_core import exceptions
 import sys
 import math
@@ -387,7 +387,7 @@ def get_jsonl_filename(params, program_name, table):
 
 
 def get_temp_filepath(params, program_name, table):
-    return params['SCRATCH_PATH'] + '/' + get_jsonl_filename(params, program_name, table)
+    return params['TEMP_PATH'] + '/' + get_jsonl_filename(params, program_name, table)
 
 
 def get_gs_filepath(params, program_name, table):
@@ -397,6 +397,16 @@ def get_gs_filepath(params, program_name, table):
 
 def get_table_id(params, program_name, table):
     return generate_long_name(params, program_name, table)
+
+
+def upload_to_bucket(params, file):
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(params['WORKING_BUCKET'] + '/' + params['WORKING_BUCKET_DIR'])
+        blob = bucket.blob(file)
+        blob.upload_from_filename(params["TEMP_PATH"] + '/' + file)
+    except Exception as err:
+        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
 def get_parent_table(table_key):
@@ -735,9 +745,10 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(params, program_name, table)
-        table_id = get_table_id(params, program_name, table)
 
-        print(table_schemas)
+        upload_to_bucket(params, jsonl_file)
+
+        table_id = get_table_id(params, program_name, table)
 
         # create_and_load_table(params, jsonl_file, table_schemas[table], table_id)
 
@@ -933,7 +944,7 @@ def main(args):
         "BQ_AS_BATCH": False,
         'WORKING_BUCKET': 'next-gen-etl-scratch',
         'WORKING_BUCKET_DIR': 'law',
-        "SCRATCH_PATH": 'temp'
+        "TEMP_PATH": 'temp'
     }
 
     # program_names = get_programs_list(params)
@@ -962,9 +973,6 @@ def main(args):
 
         for table_key in table_columns.keys():
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
-
-        print(table_schemas)
-        return
 
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
