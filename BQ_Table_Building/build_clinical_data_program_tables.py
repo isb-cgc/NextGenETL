@@ -9,10 +9,11 @@ import os
 
 YAML_HEADERS = 'params'
 # starts at 2 so that submitter_id can come after case_id in main table
-PARENT_ID_OFFSET = 2
-CASE_ID_OFFSET = 3
-COUNT_COLUMN_OFFSET = 5
-REFERENCE_COLUMNS_OFFSET = 20
+# PARENT_ID_OFFSET = 2
+# CASE_ID_OFFSET = 3
+# COUNT_COLUMN_OFFSET = 5
+# REFERENCE_COLUMNS_OFFSET = 20
+
 
 ##
 #  Functions for retrieving programs and cases
@@ -90,6 +91,7 @@ def print_key_sorted_dict(dict_to_print):
                 for v in value:
                     print(v)
         """
+
 
 ##
 #  Functions for creating the BQ table schema dictionary
@@ -338,12 +340,17 @@ def build_column_order_dict(params):
             column_order_list = params['FIELD_GROUP_METADATA'][fg]['column_order']
             id_column = params['FIELD_GROUP_METADATA'][fg]['table_id_key']
             for column in column_order_list:
-                bq_column = get_bq_name(fg + '.' + column)
+                bq_column = get_bq_name(fg + '.' + column.strip())
+
+                if not bq_column:
+                    has_fatal_error("Null value in field group {}'s column_order list".format(fg))
+
                 column_order_dict[bq_column] = idx
 
                 if id_column == column:
-                    # leaving this long because we want one extra space for submitter_id placement in cases
-                    idx += max_reference_cols
+                    # this creates space for reference columns (parent id or one-to-many record count columns)
+                    # leaves a gap for submitter_id
+                    idx += max_reference_cols * 2
                 else:
                     idx += 1
         except KeyError:
@@ -421,6 +428,17 @@ def get_bq_name(column):
         split_name = split_name[1:]
 
     return '__'.join(split_name)
+
+
+def get_reference_column_positions(table_key, params, column_order_dict):
+    table_id_key = get_table_id_key(table_key, params)
+    bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
+    id_column_position = column_order_dict[bq_table_id_column_name]
+
+    reference_col_position = id_column_position + 1
+    count_columns_position = reference_col_position + len(params['FIELD_GROUP_ORDER'])
+
+    return reference_col_position, count_columns_position
 
 
 def generate_long_name(params, program_name, table):
@@ -523,6 +541,7 @@ def get_tables(record_counts):
     return table_keys
 
 
+"""
 def import_column_order(path):
     column_dict = dict()
     count = 0
@@ -539,6 +558,7 @@ def import_column_order(path):
                 count += 1
 
     return column_dict
+"""
 
 
 def generate_table_ids(params, program_name, record_counts):
@@ -590,7 +610,10 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         table_depth = len(table_key.split('.'))
         table_id_key = get_table_id_key(table_key, params)
         bq_table_id_column_name = get_bq_name(table_key + '.' + table_id_key)
+
         id_column_position = column_order_dict[bq_table_id_column_name]
+        reference_col_position = id_column_position + 1
+        count_columns_position = reference_col_position + len(params['FIELD_GROUP_ORDER'])
 
         if table_depth > 2:
             # add reference to parent field group id (even if flattened)
@@ -599,13 +622,17 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
             parent_id_column_name = get_bq_name(table_key) + '__' + parent_id_key
             schema_dict[parent_id_column_name] = generate_id_schema_entry(parent_id_key, parent_table_key)
-            column_order_dict[parent_id_column_name] = id_column_position + PARENT_ID_OFFSET
+            column_order_dict[parent_id_column_name] = reference_col_position
+
+            reference_col_position += 1
 
         if table_depth > 1:
             # add case id to one-to-many table
             case_id_key = get_bq_name(table_key) + '__case_id'
             schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
-            column_order_dict[case_id_key] = id_column_position + CASE_ID_OFFSET
+            column_order_dict[case_id_key] = reference_col_position
+
+            reference_col_position += 1
 
             # Find actual parent table (may not be direct ancestor, which might've been flattened)
             parent_table_key = get_parent_table(table_key)
@@ -623,7 +650,7 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
 
             # dictate table ordering for count fields
             parent_id_column_position = column_order_dict[get_table_id_key(parent_table_key, params)]
-            column_order_dict[count_id_key] = parent_id_column_position + COUNT_COLUMN_OFFSET
+            column_order_dict[count_id_key] = parent_id_column_position + count_columns_position
 
     return schema_dict, column_order_dict
 
@@ -639,17 +666,18 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         schema_field_keys = []
 
         for column in table_columns[table_key]:
+            # todo might be unnecessary to return reference_column_position
+            reference_column_position, count_column_position = get_reference_column_positions(table_key,
+                                                                                              params,
+                                                                                              column_order_dict)
             bq_column_name = get_bq_name(table_key + '.' + column)
 
             if not bq_column_name or bq_column_name not in column_order_dict:
-                has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
+                has_fatal_error("'{}' not in column_order_dict!".format(bq_column_name))
+
             table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
 
-            table_id_key = get_table_id_key(table_key, params)
-            bq_table_id_name = get_bq_name(table_key + '.' + table_id_key)
-
             count_columns = []
-            count_column_position = column_order_dict[bq_table_id_name] + COUNT_COLUMN_OFFSET
 
             for key, value in table_order_dict.items():
                 if value == count_column_position:
@@ -982,7 +1010,7 @@ def main(args):
                                     "portion_ids", "sample_ids", "slide_ids", "submitter_aliquot_ids",
                                     "submitter_analyte_ids", "submitter_diagnosis_ids", "submitter_portion_ids",
                                     "submitter_sample_ids", "submitter_slide_ids"],
-                'column_order': ['case_id', 'submitter_id', 'primary_site', 'disease_type', 'index_date',
+                'column_order': ['submitter_id', 'case_id', 'primary_site', 'disease_type', 'index_date',
                                  'days_to_index', 'consent_type', 'days_to_consent', 'lost_to_followup',
                                  'days_to_lost_to_followup', 'state', 'created_datetime', 'updated_datetime']
             },
@@ -1144,6 +1172,8 @@ def main(args):
     program_names = ['VAREPOP']
 
     column_order_dict = build_column_order_dict(params)
+    print(column_order_dict)
+    return
 
     with open(params['DOCS_OUTPUT_FILE'], 'w') as doc_file:
         doc_file.write("New BQ Documentation")
@@ -1167,7 +1197,7 @@ def main(args):
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        create_and_load_tables(program_name, cases, params, table_schemas)
+        # create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
