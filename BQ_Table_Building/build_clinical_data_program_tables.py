@@ -402,8 +402,8 @@ def get_table_id(params, program_name, table):
 def upload_to_bucket(params, file):
     try:
         storage_client = storage.Client()
-        bucket = storage_client.bucket(params['WORKING_BUCKET'] + '/' + params['WORKING_BUCKET_DIR'])
-        blob = bucket.blob(file)
+        bucket = storage_client.bucket(params['WORKING_BUCKET'])
+        blob = bucket.blob(params['WORKING_BUCKET_DIR'] + '/' + file)
         blob.upload_from_filename(params["TEMP_PATH"] + '/' + file)
     except Exception as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
