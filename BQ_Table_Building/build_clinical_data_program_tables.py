@@ -772,6 +772,7 @@ def create_table_mapping(tables_dict):
 
 def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=None,
                  parent_id=None, parent_id_key=None):
+    print(case)
     if isinstance(case, list):
         entry_list = []
 
@@ -879,7 +880,6 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), params, table_keys, case['case_id'], case['case_id'])
-        print(flattened_case_dict)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, params)
 
         for table in flattened_case_dict.keys():
