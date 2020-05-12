@@ -1095,6 +1095,8 @@ def test_table_output(params):
 
             if max_count != mt_max_count:
                 print("NOT A MATCH")
+            else:
+                print("mt_max_count and max_count match.")
 
             program_table_query_max_counts[table_fg] = max_count
 
