@@ -730,7 +730,6 @@ def create_and_load_tables(program_name, cases, params, table_schemas):
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flattened_case_dict[table]:
-                    print(row)
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
@@ -962,6 +961,9 @@ def main(args):
         # table_ids = generate_table_ids(params, program_name, record_counts)
 
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
+
+        print(table_schemas)
+        return
 
         for table_key in table_columns.keys():
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
