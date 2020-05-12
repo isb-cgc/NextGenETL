@@ -551,7 +551,6 @@ def add_reference_columns(tables_dict, table_schema_list, table_key, params):
         has_fatal_error("Couldn't find any parent table in tables list for {}".format(table_key))
 
     tables_dict[parent_table_key].add(record_count_id_key)
-    print("record_id_key {}\nschema dict{}".format(record_count_id_key, schema_dict))
     schema_dict[record_count_id_key] = generate_record_count_schema_entry(record_count_id_key)
 
     case_id_key = get_bq_name(table_key) + '__case_id'
@@ -980,8 +979,9 @@ def main(args):
 
         table_schemas = create_schemas(table_schemas, table_columns, params, schema_dict)
 
+        print("Add ref columns")
+        print(table_schemas.keys())
         for table_key in table_schemas.keys():
-            print("Add ref columns")
             table_columns, table_schemas = add_reference_columns(table_columns, table_schemas, table_key, params)
 
         # documentation_dict, table_names_dict = create_bq_tables(
