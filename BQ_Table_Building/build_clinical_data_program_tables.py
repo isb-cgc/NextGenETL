@@ -113,6 +113,8 @@ def retrieve_program_case_structure(program_name, cases, params):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
+    print(table_columns)
+
     table_columns = flatten_tables(table_columns, record_counts, params)
 
     if not table_columns:
@@ -575,8 +577,7 @@ def create_schemas(table_schema_fields, table_columns, params, schema_dict):
 
             if not bq_column_name or bq_column_name not in COLUMN_ORDER_DICT:
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
-            if bq_column_name not in params['FIELD_GROUP_METADATA'][table_key]['excluded_fields']:
-                table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
+            table_order_dict[bq_column_name] = COLUMN_ORDER_DICT[bq_column_name]
 
         for column, value in sorted(table_order_dict.items(), key=lambda x: x[1]):
             schema_field_keys.append(column)
@@ -589,11 +590,12 @@ def create_schemas(table_schema_fields, table_columns, params, schema_dict):
             else:
                 mode = "NULLABLE"
 
-            schema_list.append(bigquery.SchemaField(schema_key,
-                                                    schema_dict[schema_key]['type'],
-                                                    mode,
-                                                    schema_dict[schema_key]['description'],
-                                                    ()))
+            schema_list.append(bigquery.SchemaField(name=schema_key,
+                                                    field_type=schema_dict[schema_key]['type'],
+                                                    mode=mode,
+                                                    description=schema_dict[schema_key]['description'],
+                                                    fields=()
+                                                    ))
 
         table_schema_fields[table_key] = schema_list
 
