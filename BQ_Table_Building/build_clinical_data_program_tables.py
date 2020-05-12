@@ -1081,6 +1081,9 @@ def test_table_output(params):
             parent_id_key = get_table_id_key(parent_table_fg, params)
             parent_field_name = get_field_name(parent_table_fg)
 
+            print("table: {}\n {} {} {} {} {} {}".format(
+                table, table_fg, table_id_key, table_field, parent_table_fg, parent_id_key, parent_field_name))
+
             full_parent_id_key = get_bq_name(parent_table_fg + '.' + parent_id_key)
 
             record_count_list = get_record_count_list(table, table_fg, full_parent_id_key, params)
