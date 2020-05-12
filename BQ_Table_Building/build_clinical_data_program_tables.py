@@ -196,7 +196,7 @@ def lookup_column_types():
     field_groups = []
     child_field_groups = {}
 
-    for fg in API_PARAMS['EXPAND_FIELD_GROUPS'].split(','):
+    for fg in API_PARAMS['EXPAND_FIELD_GROUPS']:
         if len(fg.split(".")) == 1:
             field_groups.append(fg)
         elif len(fg.split(".")) == 2:
