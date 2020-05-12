@@ -783,9 +783,9 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
             entry_dict['case_id'] = case_id
 
         for entry in case:
-            entry_id_key = get_table_id_key(prefix + '.' + entry, params)
-
             for key in entry:
+                entry_id_key = get_table_id_key(prefix + '.' + entry, params)
+
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
@@ -795,7 +795,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict, params,
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
-                    # don't add prefix if key is an id key
+                    # todo don't add prefix if key is an id key? is that desirable?
                     col_name = key if key == entry_id_key else get_bq_name(prefix + '.' + key)
 
                     entry_dict[col_name] = entry[key]
