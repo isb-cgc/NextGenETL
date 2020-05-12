@@ -795,6 +795,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
         for entry in case:
             entry_id_key = get_table_id_key(prefix, params)
+            print("".format(entry_id_key))
 
             for key in entry:
                 if isinstance(entry[key], list):
@@ -814,6 +815,7 @@ def flatten_case(case, prefix, flattened_case_dict, params, table_keys, case_id=
 
             entry_dict = remove_unwanted_fields(entry_dict, prefix, params)
             entry_list.append(entry_dict)
+        print(entry_list)
         if prefix in flattened_case_dict:
             flattened_case_dict[prefix] = flattened_case_dict[prefix] + entry_list
         else:
