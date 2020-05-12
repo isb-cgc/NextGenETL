@@ -129,14 +129,13 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 
 def remove_unwanted_fields(record, table_name, params):
-    excluded_fields = get_excluded_fields(table_name, params, fatal=True)
-    print("Excluded: {}".format(excluded_fields))
-
     if isinstance(record, dict):
+        excluded_fields = get_excluded_fields(table_name, params, fatal=True, flattened=True)
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
     elif isinstance(record, set):
+        excluded_fields = get_excluded_fields(table_name, params, fatal=True)
         for field in record.copy():
             if field in excluded_fields:
                 print('removing {}'.format(field))
@@ -435,7 +434,7 @@ def get_table_id_key(table_key, params, fatal=False):
     return params["FIELD_GROUP_METADATA"][table_key]['table_id_key']
 
 
-def get_excluded_fields(table_key, params, fatal=False):
+def get_excluded_fields(table_key, params, fatal=False, flattened=False):
     if not params["FIELD_GROUP_METADATA"]:
         has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
 
@@ -447,7 +446,11 @@ def get_excluded_fields(table_key, params, fatal=False):
             return None
 
     base_column_names = params["FIELD_GROUP_METADATA"][table_key]['excluded_fields']
-    return set(get_bq_name(table_key + '.' + column) for column in base_column_names)
+
+    if flattened:
+        return set(get_bq_name(table_key + '.' + column) for column in base_column_names)
+    else:
+        return base_column_names
 
 
 def get_record_count_id_key(table_key, params, fatal=False):
