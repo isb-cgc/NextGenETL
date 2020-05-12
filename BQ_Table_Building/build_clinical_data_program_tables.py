@@ -643,33 +643,41 @@ def add_reference_columns(table_columns, schema_dict, params, column_order_dict)
         id_column_position = get_id_column_position(table_key, column_order_dict, params)
         reference_col_position = id_column_position + 1
 
-        if table_depth > 2:
-            # add to this table: reference to direct ancestor record's id
+        if table_depth == 0:
+            # base table references inserted while processing child tables, so skip
+            continue
+        elif table_depth > 2:
+            # if the > 2 cond. is removed (and the case_id insertion below) tables will only reference direct ancestor
+            # tables with depth > 2 have case_id reference and parent_id reference
             parent_fg = get_parent_field_group(table_key)
             parent_id_key = get_table_id_key(parent_fg, params)
-            parent_id_column_name = get_bq_name(table_key + '.' + parent_id_key)
+            parent_id_column = get_bq_name(table_key + '.' + parent_id_key)
 
-            schema_dict[parent_id_column_name] = generate_id_schema_entry(parent_id_key, parent_fg)
-            column_order_dict[parent_id_column_name] = reference_col_position
+            # add parent_id to one-to-many table
+            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_key, parent_fg)
+            table_columns[table_key].add(parent_id_key)
+            column_order_dict[parent_id_column] = reference_col_position
+
             reference_col_position += 1
 
-        if table_depth > 1:
-            # insert count field entry in parent table
-            parent_table_key = get_parent_table(table_columns.keys(), table_key)
-            parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict, params)
-            count_columns_position = parent_id_column_position + len(params['FIELD_GROUP_ORDER'])
+        case_id_column = get_bq_name(table_key + '.case_id')
 
-            # add case id to one-to-many table
-            case_id_key = get_bq_name(table_key) + '__case_id'
-            schema_dict[case_id_key] = generate_id_schema_entry('case_id', 'main')
-            column_order_dict[case_id_key] = reference_col_position
-            reference_col_position += 1
+        # add case_id to one-to-many table
+        schema_dict[case_id_column] = generate_id_schema_entry('case_id', 'main')
+        table_columns[table_key].add(case_id_column)
+        column_order_dict[case_id_column] = reference_col_position
 
-            # add one-to-many count column to parent table
-            count_id_key = get_bq_name(table_key) + '__count'
-            schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
-            table_columns[parent_table_key].add(count_id_key)
-            column_order_dict[count_id_key] = count_columns_position
+        reference_col_position += 1
+
+        parent_table_key = get_parent_table(table_columns.keys(), table_key)
+        parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict, params)
+        count_columns_position = parent_id_column_position + len(params['FIELD_GROUP_ORDER'])
+        count_id_key = get_bq_name(table_key + '.count')
+
+        # add one-to-many record count column to parent table
+        schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
+        table_columns[parent_table_key].add(count_id_key)
+        column_order_dict[count_id_key] = count_columns_position
 
     return schema_dict, table_columns, column_order_dict
 
