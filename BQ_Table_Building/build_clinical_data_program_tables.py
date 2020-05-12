@@ -69,7 +69,7 @@ def print_key_sorted_dict(dict_to_print):
     for key, value in sorted(dict_to_print.items(), key=lambda item: item[0]):
         # if not isinstance(value, dict) and not isinstance(value, list):
         # print("{}: {}".format(key, value))
-        print("{}".format(key))
+        print("{}: {}".format(key, value))
 
         """
         else:
@@ -753,7 +753,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
             schema_list.append(
                 bigquery.SchemaField(
-                    name=schema_key,
+                    name=schema_dict[schema_key]['name'],
                     field_type=schema_dict[schema_key]['type'],
                     mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
                     description=schema_dict[schema_key]['description'],
