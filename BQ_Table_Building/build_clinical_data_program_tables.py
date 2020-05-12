@@ -1106,7 +1106,7 @@ def get_main_table_count(table, max_count_entry, params):
     parent_table = get_parent_field_group(table_fg)
     entry_id_key = get_table_id_key(table_fg, params)
 
-    print("table_fg, parent_table, entry_id_key".format(table_fg, parent_table, entry_id_key))
+    print("table_fg: {}, parent_table: {}, entry_id_key: {}".format(table_fg, parent_table, entry_id_key))
     return
 
     parent_id_key = get_table_id_key(parent_table, params)
