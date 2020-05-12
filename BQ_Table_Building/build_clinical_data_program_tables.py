@@ -126,16 +126,15 @@ def retrieve_program_case_structure(program_name, cases, params):
 
 def remove_unwanted_fields(record, table_name, params):
     excluded_fields = get_excluded_fields(table_name, params, fatal=True)
+    print(excluded_fields)
 
     if isinstance(record, dict):
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
     elif isinstance(record, set):
-        excluded_fields_list = []
         for field in record.copy():
             if field in excluded_fields:
-                excluded_fields_list.append(field)
                 record.remove(field)
     else:
         has_fatal_error("Wrong type of data structure for remove_unwanted_fields")
@@ -440,7 +439,9 @@ def get_excluded_fields(table_key, params, fatal=False):
                 table_key))
         else:
             return None
-    return params["FIELD_GROUP_METADATA"][table_key]['excluded_fields']
+
+    base_column_names = params["FIELD_GROUP_METADATA"][table_key]['excluded_fields']
+    return set(get_bq_name(table_key + '.' + column) for column in base_column_names)
 
 
 def get_record_count_id_key(table_key, params, fatal=False):
