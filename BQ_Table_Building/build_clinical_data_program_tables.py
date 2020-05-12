@@ -1092,7 +1092,7 @@ def get_record_count_list(table, main_table_id, distinct_col, program_name, para
         SELECT distinct({}), count({}) as record_count 
         FROM `{}.{}` 
         GROUP BY {}
-        """.format(distinct_col, table_id_column, dataset_path, table_id, distinct_col)
+        """.format(distinct_col, table_id_column, dataset_path, table, distinct_col)
     )
 
     record_count_list = []
