@@ -1065,7 +1065,10 @@ def test_table_output(params):
             print(table)
             distinct_col = 'case_id'
             record_count_list = get_record_count_list(table, main_table_id, distinct_col, program_name, params)
-            print(record_count_list)
+
+            max_count = get_max_count(record_count_list)
+
+            print(max_count)
 
         continue
 
@@ -1074,6 +1077,12 @@ def test_table_output(params):
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
 
+def get_max_count(record_count_list):
+    max_count = 0
+    for record_count_entry in record_count_list:
+        max_count = max(max_count, record_count_entry['record_count'])
+
+    return max_count
 
 
 def get_record_count_list(table, main_table_id, distinct_col, program_name, params):
@@ -1102,7 +1111,7 @@ def get_record_count_list(table, main_table_id, distinct_col, program_name, para
 
         distinct_col_result = result_tuple[0]
         record_count = result_tuple[1]
-        count_label = table_id_column + '_count'
+        count_label = 'record_count'
 
         record_count_list.append({
             distinct_col: distinct_col_result,
