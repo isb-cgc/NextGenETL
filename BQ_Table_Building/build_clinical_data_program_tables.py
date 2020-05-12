@@ -1228,7 +1228,7 @@ def main(args):
         # documentation_dict, table_names_dict = create_bq_tables(
         #   program_name, params, table_columns, record_counts, schema_dict)
 
-        create_and_load_tables(program_name, cases, params, table_schemas)
+        # create_and_load_tables(program_name, cases, params, table_schemas)
 
         # generate_documentation(params, program_name, documentation_dict, record_counts)
 
