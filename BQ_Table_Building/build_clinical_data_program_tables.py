@@ -1063,13 +1063,50 @@ def test_table_output(params):
 
         table_columns, record_counts = retrieve_program_case_structure(program_name, cases, params)
 
-        dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
+        for table in program_table_lists[main_table_id]:
+            print(table)
+            distinct_col = 'case_id'
+            record_count_list = get_record_count_list(table, main_table_id, distinct_col, program_name, params)
+            print(record_count_list)
 
-        treatment_counts = get_query_results("""
-            SELECT distinct(case_id), count({}) as record_count 
-            FROM `isb-project-zero.GDC_Clinical_Data.rel23_clin_VAREPOP_diagnoses__treatments` 
-            GROUP BY case_id
-            """.format('diagnoses__treatments__treatment_id', ))
+
+def get_record_count_list(table, main_table_id, distinct_col, program_name, params):
+    dataset_path = params["WORKING_PROJECT"] + '.' + params["TARGET_DATASET"]
+    prefix_len = len(main_table_id) + 1
+    table_short_name = table[prefix_len:]
+
+    fg_metadata_key = 'cases.' + '.'.join(table_short_name.split("__"))
+
+    table_id_key = get_table_id_key(fg_metadata_key, params)
+    table_id_column = get_bq_name(fg_metadata_key + '.' + table_id_key)
+    table_id = get_table_id(params, program_name, table)
+
+    results = get_query_results(
+        """
+        SELECT distinct({}), count({}) as record_count 
+        FROM `{}.{}` 
+        GROUP BY {}
+        """.format(distinct_col, table_id_column, dataset_path, table_id, distinct_col)
+    )
+
+    record_count_list = []
+
+    for result in results:
+        result_tuple = result.values()
+
+        distinct_col_result = result_tuple[0]
+        record_count = result_tuple[1]
+        count_label = table_id_column + '_count'
+
+        record_count_list.append({
+            distinct_col: distinct_col_result,
+            count_label: record_count
+        })
+
+    return record_count_list
+
+
+
 
 
 ##
