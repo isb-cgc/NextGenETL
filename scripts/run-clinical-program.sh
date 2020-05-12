@@ -16,5 +16,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalBQBuild.yaml
+python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalProgramBQBuild.yaml
 deactivate
