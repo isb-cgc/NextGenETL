@@ -612,7 +612,7 @@ def create_schemas(table_columns, params, schema_dict, column_order_dict):
                 has_fatal_error('{} not in COLUMN_ORDER_DICT!'.format(bq_column_name))
             table_order_dict[bq_column_name] = column_order_dict[bq_column_name]
 
-            table_id_key = get_table_id_key(table_key)
+            table_id_key = get_table_id_key(table_key, params)
             count_column_idx = table_order_dict[table_id_key] + COUNT_COLUMN_OFFSET
 
             count_keys = []
