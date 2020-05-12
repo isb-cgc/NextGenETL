@@ -1082,10 +1082,9 @@ def test_table_output(params):
 
             record_count_list = get_record_count_list(table, table_fg, full_parent_id_key, params)
 
-            max_count = get_max_count(record_count_list)
+            max_count, max_count_id = get_max_count(record_count_list)
 
-            for key, value in sorted(record_count_list.items(), key=lambda item: item[1], reverse=True):
-                main_max_count = get_main_table_count(key, value)
+            main_max_count = get_main_table_count(table, max_count_id)
 
             program_table_query_max_counts[table_fg] = max_count
 
@@ -1102,8 +1101,8 @@ def test_table_output(params):
                 cases_tally_max_counts[key] = count
 
 
-def get_main_table_count(key, value):
-    print("main table key: {} value: {}".format(key, value))
+def get_main_table_count(table, max_count_id):
+    print("table name: {} max count id: {}".format(table, max_count_id))
 
     return None
 
@@ -1121,10 +1120,14 @@ def convert_bq_table_id_to_fg(table_id):
 
 def get_max_count(record_count_list):
     max_count = 0
+    max_count_id = None
     for record_count_entry in record_count_list:
-        max_count = max(max_count, record_count_entry['record_count'])
+        if record_count_entry['record_count'] > max_count:
+            max_count_id = record_count_entry
+            max_count = record_count_entry['record_count']
 
-    return max_count
+
+    return max_count, max_count_id
 
 
 def get_record_count_list(table, table_fg_key, parent_table_id_key, params):
