@@ -492,6 +492,7 @@ def get_field_name(column):
 
 
 def get_bq_name(api_params, prefix, column):
+    print('GET_BQ_NAME: {}, {}'.format(prefix, column))
     if not prefix:
         print("Is this error?")
         return None
