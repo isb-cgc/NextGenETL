@@ -491,16 +491,16 @@ def get_field_name(column):
         return column
 
 
-def get_bq_name(column):
+def get_bq_name(prefix, column):
+    if prefix and column:
+        column = prefix + '.' + column
     if not column or '.' not in column:
-        return ''
+        return None
 
     split_name = column.split('.')
 
     if split_name[0] == 'cases':
-        if len(split_name) == 1:
-            return None
-        split_name = split_name[1:]
+        split_name = split_name[1:] if len(split_name) == 1 else None
 
     return '__'.join(split_name)
 
