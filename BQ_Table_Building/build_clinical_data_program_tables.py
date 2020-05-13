@@ -291,7 +291,8 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
     if flattened:
         return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
     else:
-        return base_column_names
+        set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
+        # return base_column_names
 
 
 def flatten_tables(tables, record_counts):
