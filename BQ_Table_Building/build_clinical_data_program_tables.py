@@ -20,8 +20,8 @@ import math
 import sys
 import json
 import os
-from common_etl.utils import *
 from gdc_clinical_resources.test_data_integrity import *
+from common_etl.utils import *
 
 API_PARAMS = None
 BQ_PARAMS = None
@@ -875,6 +875,7 @@ def create_and_load_tables(program_name, cases, table_schemas, record_counts):
 #  Functions for creating documentation
 ##
 def generate_documentation(documentation_dict):
+    print(documentation_dict)
     json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_clin_json_documentation_dump.json'
 
     with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
