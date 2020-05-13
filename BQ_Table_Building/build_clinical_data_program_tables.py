@@ -109,13 +109,9 @@ def build_column_order_dict():
         try:
             column_order_list = API_PARAMS['TABLE_METADATA'][fg]['column_order']
             id_column = API_PARAMS['TABLE_METADATA'][fg]['table_id_key']
+
             for column in column_order_list:
-                bq_column = get_bq_name(API_PARAMS, fg, column)
-
-                if not bq_column:
-                    has_fatal_error("Null value in field group {}'s column_order list".format(fg))
-
-                column_order_dict[bq_column] = idx
+                column_order_dict[column] = idx
 
                 if id_column == column:
                     # this creates space for reference columns (parent id or one-to-many record count columns)
