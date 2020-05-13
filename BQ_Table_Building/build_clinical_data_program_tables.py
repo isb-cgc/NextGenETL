@@ -478,7 +478,8 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         table_columns[parent_table_key].add(count_id_key)
         column_order_dict[count_column] = count_columns_position
 
-    print('{}, {}, {}'.format(schema_dict, table_columns, column_order_dict))
+    # HERE
+    # print('{}, {}, {}'.format(schema_dict, table_columns, column_order_dict))
     return schema_dict, table_columns, column_order_dict
 
 
