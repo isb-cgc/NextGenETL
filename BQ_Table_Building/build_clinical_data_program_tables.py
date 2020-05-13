@@ -488,9 +488,13 @@ def rebuild_bq_name(column):
         return column
 
     abbr_dict = dict()
+
     for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
+        print("{}, {}".format(table_key, table_metadata))
         if table_metadata['prefix']:
             abbr_dict[table_metadata['prefix']] = table_key
+
+
     split_column = column.split('__')
     prefix = '.'.join(split_column[:-1])
 
