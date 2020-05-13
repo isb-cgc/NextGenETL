@@ -276,27 +276,20 @@ def create_schema_dict():
 ##
 # Functions used to determine a program's table structure(s)
 ##
-def get_excluded_fields(table_key, fatal=False):
+def get_excluded_fields(table_key):
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
-
     if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table_key]:
-        if fatal:
-            has_fatal_error("excluded_fields not found in API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
-        else:
-            return None
+        has_fatal_error("excluded_fields not found in API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
 
     base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
-
-    bq_namer = [get_bq_name(API_PARAMS, table_key, x) for x in base_column_names]
-
-    return bq_namer
+    exclude_field_list = [get_bq_name(API_PARAMS, table_key, x) for x in base_column_names]
+    return exclude_field_list
 
 
 def flatten_tables(tables, record_counts):
-    def remove_set_fields(record_, table_name):
-
-        excluded_fields = get_excluded_fields(table_name, fatal=True)
+    def remove_excluded_fields(record_, table_name):
+        excluded_fields = get_excluded_fields(table_name)
 
         for field_ in record_.copy():
             if field_ in excluded_fields:
@@ -311,26 +304,23 @@ def flatten_tables(tables, record_counts):
         field_group_depths[fg_key] = len(fg_key.split("."))
 
     for field_group, depth in sorted(field_group_depths.items(), key=lambda item: item[1], reverse=True):
-
-        tables[field_group] = remove_set_fields(tables[field_group], field_group)
+        tables[field_group] = remove_excluded_fields(tables[field_group], field_group)
 
         # this is cases, already flattened
         if depth == 1:
             break
 
-        # this fg represents a one-to-many table grouping
+        # field group can be flattened.
         if record_counts[field_group] == 1:
             parent_key = get_parent_table(get_tables(record_counts), field_group)
 
             if not parent_key:
-                has_fatal_error("No parent key found for table {}, record_count_keys: {}".format(
-                    field_group, record_counts.keys()))
+                has_fatal_error("No parent found: {}, record_counts: {}".format(field_group, record_counts.keys()))
+            if parent_key not in tables:
+                tables[parent_key] = set()
 
             for field in tables.pop(field_group):
-                if not parent_key:
-                    has_fatal_error("Cases should be the default parent key for any column without another table.")
-                else:
-                    tables[parent_key].add(field)
+                tables[parent_key].add(field)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
@@ -499,10 +489,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
-    schema_dict, table_columns, column_order_dict = \
-        add_reference_columns(table_columns, schema_dict, column_order_dict)
-
-    print(table_columns)
+    schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict, column_order_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -516,7 +503,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             count_column_position = get_count_column_position(table_key, column_order_dict)
 
             if not full_column_name or full_column_name not in column_order_dict:
-                has_fatal_error("'{}' not in column_order_dict!\n Column order dict: {}".format(full_column_name, column_order_dict))
+                has_fatal_error("'{}' not in col_order_dict!\n {}".format(full_column_name, column_order_dict))
 
             table_order_dict[full_column_name] = column_order_dict[full_column_name]
 
@@ -545,7 +532,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
 
 
 def remove_dict_fields(record, table_name):
-    excluded_fields = get_excluded_fields(table_name, fatal=True)
+    excluded_fields = get_excluded_fields(table_name)
 
     for field in record.copy():
         if field in excluded_fields or not record[field]:
@@ -952,9 +939,14 @@ def main(args):
         if cases:
             table_columns, record_counts = retrieve_program_case_structure(program_name, cases)
 
+            print(table_columns)
+
             if 'create_and_load_tables' in steps:
                 table_schemas = create_schemas(table_columns, schema_dict, column_order_dict.copy())
+                print(table_schemas)
+
                 create_and_load_tables(program_name, cases, table_schemas)
+
 
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
