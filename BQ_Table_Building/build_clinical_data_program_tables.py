@@ -683,10 +683,8 @@ def create_and_load_tables(program_name, cases, table_schemas):
             os.remove(fp)
 
     for case in cases:
-
         flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-        print("2 FLATTENED DICT: {}".format(flattened_case_dict))
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
@@ -702,8 +700,9 @@ def create_and_load_tables(program_name, cases, table_schemas):
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(program_name, table)
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
-
         table_id = get_table_id(program_name, table)
+
+        print(table_schemas[table])
 
         try:
             create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
