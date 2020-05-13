@@ -212,7 +212,7 @@ def lookup_column_types():
         vals = result.values()
         split_vals = vals[1].split('molecular_tests ')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'follow_ups')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'follow_ups.')
 
         column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups.molecular_tests.')
 
@@ -266,7 +266,7 @@ def create_schema_dict():
         field_type = column_type_dict[key]
 
         # this is the format for bq schema json object entries
-        bq_key = get_bq_name(API_PARAMS, None, key)
+        bq_key = get_bq_name(API_PARAMS, 'cases', key)
 
         schema_dict[key] = {
             "name": bq_key,
