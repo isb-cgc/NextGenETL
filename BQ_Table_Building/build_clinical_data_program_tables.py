@@ -1094,8 +1094,8 @@ def main(args):
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    program_names = get_programs_list()
-    # program_names = ['VAREPOP']
+    # program_names = get_programs_list()
+    program_names = ['CGCI']
 
     column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
