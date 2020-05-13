@@ -21,7 +21,7 @@ def generate_long_name(program_name, table):
     file_name_parts = [BQ_PARAMS['GDC_RELEASE'], 'clin', program_name]
 
     # if one-to-many table, append suffix
-    bq_table_name = get_bq_name(None, table)
+    bq_table_name = get_bq_name(API_PARAMS, None, table)
     file_name_parts.append(bq_table_name) if bq_table_name else None
 
     return '_'.join(file_name_parts)
@@ -48,7 +48,7 @@ def get_required_columns(table_key):
 
     table_id_key = get_table_id_key(table_key)
 
-    required_columns.append(get_bq_name(table_key, table_id_key))
+    required_columns.append(get_bq_name(API_PARAMS, table_key, table_id_key))
 
     return required_columns
 
@@ -63,7 +63,7 @@ def get_table_id_key(table_key):
 
 def get_id_column_position(table_key, column_order_dict):
     table_id_key = get_table_id_key(table_key)
-    id_column = get_bq_name(table_key, table_id_key)
+    id_column = get_bq_name(API_PARAMS, table_key, table_id_key)
     return column_order_dict[id_column]
 
 
@@ -110,7 +110,7 @@ def build_column_order_dict():
             column_order_list = API_PARAMS['TABLE_METADATA'][fg]['column_order']
             id_column = API_PARAMS['TABLE_METADATA'][fg]['table_id_key']
             for column in column_order_list:
-                bq_column = get_bq_name(fg, column)
+                bq_column = get_bq_name(API_PARAMS, fg, column)
 
                 if not bq_column:
                     has_fatal_error("Null value in field group {}'s column_order list".format(fg))
@@ -292,7 +292,7 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
     base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
 
     if flattened:
-        return set(get_bq_name(table_key, column) for column in base_column_names)
+        return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
     else:
         return base_column_names
 
@@ -342,7 +342,7 @@ def flatten_tables(tables, record_counts):
             if not parent_key:
                 has_fatal_error("Cases should be the default parent key for any column without another table.")
             else:
-                tables[parent_key].add(get_bq_name(field_group, field))
+                tables[parent_key].add(get_bq_name(API_PARAMS, field_group, field))
 
         tables.pop(field_group)
 
@@ -406,7 +406,7 @@ def retrieve_program_case_structure(program_name, cases):
 ##
 def get_count_column_position(table_key, column_order_dict):
     table_id_key = get_table_id_key(table_key)
-    bq_table_id_column_name = get_bq_name(table_key, table_id_key)
+    bq_table_id_column_name = get_bq_name(API_PARAMS, table_key, table_id_key)
     id_column_position = column_order_dict[bq_table_id_column_name]
 
     count_columns_position = id_column_position + len(API_PARAMS['TABLE_ORDER'])
@@ -452,7 +452,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             # tables with depth > 2 have case_id reference and parent_id reference
             parent_fg = get_parent_field_group(table_key)
             parent_id_key = get_table_id_key(parent_fg)
-            parent_id_column = get_bq_name(table_key, parent_id_key)
+            parent_id_column = get_bq_name(API_PARAMS, table_key, parent_id_key)
 
             # add parent_id to one-to-many table
             schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_column, parent_fg)
@@ -462,7 +462,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             reference_col_position += 1
 
         case_id_key = 'case_id'
-        case_id_column = get_bq_name(table_key, case_id_key)
+        case_id_column = get_bq_name(API_PARAMS, table_key, case_id_key)
 
         # add case_id to one-to-many table
         schema_dict[case_id_column] = generate_id_schema_entry(case_id_key, 'main')
@@ -474,7 +474,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
         parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict)
         count_columns_position = parent_id_column_position + len(API_PARAMS['TABLE_ORDER'])
-        count_id_key = get_bq_name(table_key, 'count')
+        count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
 
         # add one-to-many record count column to parent table
         schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
@@ -500,7 +500,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             if '__' in column:
                 column_name = column
             else:
-                column_name = get_bq_name(table_key, column)
+                column_name = get_bq_name(API_PARAMS, table_key, column)
 
             if not column_name or column_name not in column_order_dict:
                 has_fatal_error("'{}' not in column_order_dict!".format(column_name))
@@ -562,13 +562,13 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 if isinstance(entry[key], list):
                     # note -- If you're here because you've added a new doubly-nested field group,
                     # this is where you'll want to capture the parent field group's id.
-                    new_parent_id_key = get_bq_name(prefix, entry_id_key)
+                    new_parent_id_key = get_bq_name(API_PARAMS, prefix, entry_id_key)
                     new_parent_id = entry[entry_id_key]
 
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict,
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
-                    col_name = get_bq_name(prefix, key)
+                    col_name = get_bq_name(API_PARAMS, prefix, key)
 
                     entry_dict[col_name] = entry[key]
 
@@ -595,7 +595,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict,
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
-                col_name = get_bq_name(prefix, key)
+                col_name = get_bq_name(API_PARAMS, prefix, key)
                 entry_dict[col_name] = case[key]
 
         if entry_dict:
@@ -621,7 +621,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
         parent_table_key = get_parent_table(table_keys, field_group_key)
         parent_id_key = get_table_id_key(parent_table_key)
-        bq_parent_id_column = get_bq_name(parent_table_key, parent_id_key)
+        bq_parent_id_column = get_bq_name(API_PARAMS, parent_table_key, parent_id_key)
 
         if field_group_key in table_keys:
             record_count_dict = dict()
@@ -645,7 +645,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
 
             for parent_id in record_count_dict:
                 entry_idx = record_count_dict[parent_id]['entry_idx']
-                record_count_key = get_bq_name(field_group_key, 'count')
+                record_count_key = get_bq_name(API_PARAMS, field_group_key, 'count')
                 record_count = record_count_dict[parent_id]['record_count']
 
                 flattened_case_dict[parent_table_key][entry_idx][record_count_key] = record_count
@@ -729,7 +729,7 @@ def finalize_documentation():
 def get_record_count_list(table, table_fg_key, parent_table_id_key):
     table_path = get_table_path(table)
     table_id_key = get_table_id_key(table_fg_key)
-    table_id_column = get_bq_name(table_fg_key, table_id_key)
+    table_id_column = get_bq_name(API_PARAMS, table_fg_key, table_id_key)
 
     results = get_query_results(
         """
@@ -852,7 +852,7 @@ def test_table_output():
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg)
 
-            full_parent_id_key = get_bq_name(parent_table_fg, parent_id_key)
+            full_parent_id_key = get_bq_name(API_PARAMS, parent_table_fg, parent_id_key)
 
             record_count_list = get_record_count_list(table, table_fg, full_parent_id_key)
 
