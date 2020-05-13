@@ -462,7 +462,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
         count_columns_position = get_count_column_position(parent_table_key, column_order_dict)
 
-        count_order_col_name = parent_table_key + '.' + table_key + '.count'
+        count_order_col_name = table_key + '.count'
 
         count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
         count_column = parent_table_key + '.' + count_id_key
