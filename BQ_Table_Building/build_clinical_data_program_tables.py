@@ -962,7 +962,7 @@ def main(args):
         documentation_dict[program_name] = {
             'record_counts': record_counts,
             'table_schemas': str(table_schemas),
-            'table_columns': table_columns,
+            'table_columns': str(table_columns),
             'table_ids': table_id_dict,
             'api_params': API_PARAMS,
             'bq_params': BQ_PARAMS
