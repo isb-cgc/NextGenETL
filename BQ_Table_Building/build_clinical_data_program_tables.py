@@ -512,6 +512,7 @@ def rebuild_bq_name(column):
 
 
 def create_schemas(table_columns, schema_dict, column_order_dict):
+    print("table_columns!! {}".format(table_columns))
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
@@ -525,15 +526,9 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
             else:
-                full_column_name = table_key + ' ' + column
+                full_column_name = table_key + '.' + column
 
-            # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
-            # don't rename if this is a parent_id column
-            # if '__' in column:
-            #    column_name = column
-            #else:
-            #    column_name = get_bq_name(API_PARAMS, table_key, column)
 
             if not full_column_name or full_column_name not in column_order_dict:
                 has_fatal_error("'{}' not in column_order_dict!".format(full_column_name))
