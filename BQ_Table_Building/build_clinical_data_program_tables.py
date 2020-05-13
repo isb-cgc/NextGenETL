@@ -305,15 +305,16 @@ def flatten_tables(tables, record_counts):
         return record_
 
     # record_counts uses fg naming convention
-    field_group_depths = dict.fromkeys(record_counts.keys(), 0)
-
     # sort field group keys by depth
+    field_group_depths = dict.fromkeys(record_counts.keys(), 0)
     for fg_key in field_group_depths:
         field_group_depths[fg_key] = len(fg_key.split("."))
 
     for field_group, depth in sorted(field_group_depths.items(), key=lambda item: item[1], reverse=True):
 
+        print("1 pre-removal: {}".format(tables[field_group]))
         tables[field_group] = remove_set_fields(tables[field_group], field_group)
+        print("1 post-removal: {}".format(tables[field_group]))
 
         # this is cases, already flattened
         if depth == 1:
@@ -596,6 +597,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
 
                     entry_dict[col_name] = get_bq_name(col_name, case[key])
 
+            print("".format())
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
 
