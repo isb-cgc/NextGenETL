@@ -567,13 +567,12 @@ def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None
             for key in entry:
                 if not isinstance(entry[key], list):
                     if case_id != parent_id:
-                        entry_dict[parent_id_key] = parent_id
-
+                        parent_fg = get_parent_field_group(prefix)
+                        parent_field = get_bq_name(API_PARAMS, parent_fg, parent_id_key)
+                        entry_dict[parent_field] = parent_id
                     entry_dict['case_id'] = case_id
 
-                    col_name = prefix
-
-                    field = get_bq_name(API_PARAMS, col_name, key)
+                    field = get_bq_name(API_PARAMS, prefix, key)
                     entry_dict[field] = entry[key]
 
             entry_dict = remove_dict_fields(entry_dict, prefix)
