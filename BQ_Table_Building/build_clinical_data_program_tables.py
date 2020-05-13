@@ -512,11 +512,11 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
         for column in table_columns[table_key]:
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
-
-                print("{} -> {}".format(column, full_column_name))
-                continue
             else:
                 full_column_name = column
+
+            print("{} -> {}".format(column, full_column_name))
+            continue
 
             # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
