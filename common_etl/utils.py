@@ -492,7 +492,7 @@ def get_field_name(column):
 
 
 def get_bq_name(prefix, column):
-    print('prefix {}. column {}'.format(prefix, column))
+    print('prefix {} - column {}'.format(prefix, column))
     if prefix and column:
         column = prefix + '.' + column
     if not column or '.' not in column:
@@ -501,10 +501,10 @@ def get_bq_name(prefix, column):
     split_name = column.split('.')
 
     if split_name[0] == 'cases':
-        split_name = split_name[1:] if len(split_name) == 1 else None
+        split_name = split_name[1:]
 
-    if not split_name:
-        return None
+    # if not split_name:
+    #    return None
     return '__'.join(split_name)
 
 
