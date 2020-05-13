@@ -276,7 +276,7 @@ def create_schema_dict():
 ##
 # Functions used to determine a program's table structure(s)
 ##
-def get_excluded_fields(table_key, fatal=False, flattened=False):
+def get_excluded_fields(table_key, fatal=False):
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
 
@@ -290,13 +290,7 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
 
     bq_namer = [get_bq_name(API_PARAMS, table_key, x) for x in base_column_names]
 
-    if flattened:
-        return bq_namer
-
-        # return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
-    else:
-        return bq_namer
-        # return base_column_names
+    return bq_namer
 
 
 def flatten_tables(tables, record_counts):
@@ -336,10 +330,7 @@ def flatten_tables(tables, record_counts):
                 if not parent_key:
                     has_fatal_error("Cases should be the default parent key for any column without another table.")
                 else:
-                    col_name = field
-                    # col_name = get_bq_name(API_PARAMS, field_group, field)
-                    # print("fg: {}, field: {}, col_name_bq: {}".format(field_group, field, col_name))
-                    tables[parent_key].add(col_name)
+                    tables[parent_key].add(field)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
@@ -387,14 +378,7 @@ def retrieve_program_case_structure(program_name, cases):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    print("COLS 1")
-    print(table_columns)
-
     table_columns = flatten_tables(table_columns, record_counts)
-
-    print("COLS 2")
-    print(table_columns)
-
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -486,8 +470,6 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         table_columns[parent_table_key].add(count_id_key)
         column_order_dict[count_column] = count_columns_position
 
-    # HERE
-    # print('{}, {}, {}'.format(schema_dict, table_columns, column_order_dict))
     return schema_dict, table_columns, column_order_dict
 
 
@@ -506,11 +488,8 @@ def rebuild_bq_name(column):
 
     abbr_dict = get_abbr_dict()
 
-    # print("split column {}".format(column.split('__')))
-
     split_column = column.split('__')
 
-    # prefix = 'cases.' if split_column[0] != 'cases' else ''
     prefix = '__'.join(split_column[:-1])
 
     if prefix and abbr_dict[prefix]:
@@ -522,18 +501,14 @@ def rebuild_bq_name(column):
 def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
-    # print("table cols 1 {}".format(table_columns))
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
-    # print("table cols 2 {}".format(table_columns))
 
     for table_key in table_columns:
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
-            # print("column {}".format(column))
-
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
             else:
@@ -542,7 +517,9 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             count_column_position = get_count_column_position(table_key, column_order_dict)
 
             if not full_column_name or full_column_name not in column_order_dict:
-                has_fatal_error("'{}' not in column_order_dict!".format(full_column_name))
+                print("'{}' not in column_order_dict!".format(full_column_name))
+
+                has_fatal_error("{}".format(column_order_dict))
 
             table_order_dict[full_column_name] = column_order_dict[full_column_name]
 
@@ -736,8 +713,6 @@ def create_and_load_tables(program_name, cases, table_schemas):
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
 
         table_id = get_table_id(program_name, table)
-        # print(' - for table {}, table_id {}:'.format(table, table_id))
-        # print("table schema: {}".format(table_schemas[table]))
 
         try:
             create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
