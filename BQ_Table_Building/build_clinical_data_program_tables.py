@@ -525,7 +525,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
             else:
-                full_column_name = table_key + column
+                full_column_name = table_key + ' ' + column
 
             # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
