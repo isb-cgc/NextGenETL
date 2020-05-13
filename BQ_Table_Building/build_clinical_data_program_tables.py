@@ -603,7 +603,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 else:
                     col_name = get_bq_name(API_PARAMS, prefix, key)
 
-                    entry_dict[col_name] = entry[key]
+                    entry_dict[col_name] = get_bq_name(col_name, case[key])
 
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
@@ -629,7 +629,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(API_PARAMS, prefix, key)
-                entry_dict[col_name] = case[key]
+                entry_dict[col_name] = get_bq_name(col_name, case[key])
 
         if entry_dict:
             entry_dict = remove_dict_fields(entry_dict, prefix)
