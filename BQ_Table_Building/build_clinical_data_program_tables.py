@@ -251,7 +251,6 @@ def lookup_column_types():
 
 def create_schema_dict():
     column_type_dict = lookup_column_types()
-    print(column_type_dict)
     field_mapping_dict = create_mapping_dict(API_PARAMS['ENDPOINT'])
 
     schema_dict = {}
@@ -927,7 +926,7 @@ def main(args):
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    program_names = get_programs_list()
+    # program_names = get_programs_list()
     program_names = ['HCMI']
 
     column_order_dict = build_column_order_dict()
