@@ -63,8 +63,7 @@ def get_table_id_key(table_key):
 
 def get_id_column_position(table_key, column_order_dict):
     table_id_key = get_table_id_key(table_key)
-    id_column = get_bq_name(API_PARAMS, table_key, table_id_key)
-    return column_order_dict[id_column]
+    return column_order_dict[table_key + '.' + table_id_key]
 
 
 def generate_table_paths(program_name, record_counts):
@@ -922,7 +921,7 @@ def main(args):
             has_fatal_error(str(e), ValueError)
 
     # program_names = get_programs_list()
-    program_names = ['HCMI']
+    program_names = ['VAREPOP']
 
     column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
