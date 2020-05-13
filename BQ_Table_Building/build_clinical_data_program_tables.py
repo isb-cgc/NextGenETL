@@ -722,7 +722,7 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
                     if 'case_id' not in entry_dict:
                         entry_dict['case_id'] = case_id
 
-                    # todo should this be a bq field name?
+                    # This is where GDC field names are converted to bq_column names (with table abbr prefixes)
                     bq_col_name = get_bq_name(API_PARAMS, prefix, key)
                     entry_dict[bq_col_name] = entry[key]
 
@@ -746,6 +746,7 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
 
         for key in case:
             if not isinstance(case[key], list):
+                # This is the other place where GDC field names are converted to bq_column names (with table abbr prefixes)
                 field = get_bq_name(API_PARAMS, prefix, key)
                 entry_dict[field] = case[key]
 
@@ -1131,7 +1132,7 @@ def main(args):
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
 
-        print("executed in {:0.2f} seconds for program {}!\n".format(program_name, time.time() - prog_start))
+        print("executed in {:0.2f} seconds for program {}!\n".format(time.time() - prog_start, program_name))
 
     if 'generate_documentation' in steps:
         finalize_documentation()
