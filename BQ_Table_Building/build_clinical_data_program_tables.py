@@ -953,8 +953,8 @@ def main(args):
     if 'generate_documentation' in steps:
         finalize_documentation()
 
-    if 'validate_data' in steps:
-        test_table_output()
+    # if 'validate_data' in steps:
+    #    test_table_output()
 
     print_final_report(start, steps)
 
