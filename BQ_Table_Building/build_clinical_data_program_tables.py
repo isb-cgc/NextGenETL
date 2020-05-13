@@ -1008,7 +1008,7 @@ def main(args):
                              get_tables(record_counts)}
 
                 # converting to JSON serializable form
-                table_column_lists = {table:list(table_columns[table]) for table in table_columns}
+                table_column_lists = {table:list(vals) for table, vals in table_columns.items()}
 
                 documentation_dict[program_name] = {
                     'record_counts': record_counts,
