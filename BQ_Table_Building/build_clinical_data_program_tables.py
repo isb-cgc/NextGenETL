@@ -579,9 +579,11 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict,
                                                        table_keys, case_id, new_parent_id, new_parent_id_key)
                 else:
-                    col_name = get_bq_name(API_PARAMS, prefix, key)
+                    col_name = prefix
+                    field = get_bq_name(API_PARAMS, col_name, entry)
 
-                    entry_dict[col_name] = get_bq_name(API_PARAMS, col_name, case[key])
+                    entry_dict[col_name] = field
+                    print("col_name {}, field: {}".format(col_name, field))
 
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
