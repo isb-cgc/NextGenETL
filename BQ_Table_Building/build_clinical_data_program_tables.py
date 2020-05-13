@@ -1022,9 +1022,9 @@ def main(args):
                 }
 
     if 'generate_documentation' in steps:
-        documentation_dict['API_PARAMS'] = API_PARAMS
-        documentation_dict['BQ_PARAMS'] = BQ_PARAMS
-        documentation_dict['schema_dict'] = schema_dict
+        documentation_dict['metadata']['API_PARAMS'] = API_PARAMS
+        documentation_dict['metadata']['BQ_PARAMS'] = BQ_PARAMS
+        documentation_dict['metadata']['schema_dict'] = schema_dict
 
         generate_documentation(documentation_dict)
 

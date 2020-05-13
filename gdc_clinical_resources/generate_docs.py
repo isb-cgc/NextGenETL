@@ -16,6 +16,7 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
+import json
 
 """
 
@@ -42,7 +43,11 @@ documentation:
 
 
 def main():
-    pass
+    with open('files/rel23_documentation.json', 'r') as json_file:
+        doc_json = json.load(json_file)
+
+        print json.dumps(doc_json, indent=2, sort_keys=True)
+
 
 
 if __name__ == '__main__':
