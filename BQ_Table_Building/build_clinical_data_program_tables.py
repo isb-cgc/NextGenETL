@@ -434,7 +434,6 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
     for table_key in table_columns.keys():
-        print(table_key)
         table_depth = len(table_key.split('.'))
 
         id_column_position = get_id_column_position(table_key, column_order_dict)
@@ -448,17 +447,19 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             # tables with depth > 2 have case_id reference and parent_id reference
             parent_fg = get_parent_field_group(table_key)
             parent_id_key = get_table_id_key(parent_fg)
-            parent_id_column = get_bq_name(API_PARAMS, table_key, parent_id_key)
+            full_parent_id_name = parent_fg + '.' + parent_id_key
+            parent_bq_name = get_bq_name(parent_fg, parent_id_key)
 
             # add parent_id to one-to-many table
-            schema_dict[parent_id_column] = generate_id_schema_entry(parent_id_column, parent_fg)
-            table_columns[table_key].add(parent_id_column)
-            column_order_dict[parent_id_column] = reference_col_position
+            schema_dict[full_parent_id_name] = generate_id_schema_entry(full_parent_id_name, parent_fg)
+            # todo need to convert table columns by this point
+            table_columns[table_key].add(parent_bq_name)
+            column_order_dict[full_parent_id_name] = reference_col_position
 
             reference_col_position += 1
 
         case_id_key = 'case_id'
-        case_id_column = get_bq_name(API_PARAMS, table_key, case_id_key)
+        case_id_column = table_key + 'case_id'
 
         # add case_id to one-to-many table
         schema_dict[case_id_column] = generate_id_schema_entry(case_id_key, 'main')
@@ -470,13 +471,16 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
         parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict)
         count_columns_position = parent_id_column_position + len(API_PARAMS['TABLE_ORDER'])
+
         count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
+        count_column = parent_table_key + '.' + count_id_key
 
         # add one-to-many record count column to parent table
-        schema_dict[count_id_key] = generate_record_count_schema_entry(count_id_key, parent_table_key)
+        schema_dict[count_column] = generate_record_count_schema_entry(count_id_key, parent_table_key)
         table_columns[parent_table_key].add(count_id_key)
-        column_order_dict[count_id_key] = count_columns_position
+        column_order_dict[count_column] = count_columns_position
 
+    print('{}, {}, {}'.format(schema_dict, table_columns, column_order_dict))
     return schema_dict, table_columns, column_order_dict
 
 
