@@ -16,7 +16,7 @@ def generate_long_name(program_name, table):
     """
     Generate string representing a unique name, constructed from elements of the table name, program name and
     GDC release number. Used for storage bucket file and BQ table naming.
-    :param program_name: Program this table is associated with.
+    :param program_name: Program to which this table is associated.
     :param table: Table name.
     :return: String representing a unique string identifier.
     """
@@ -37,30 +37,31 @@ def generate_long_name(program_name, table):
 
 def get_jsonl_filename(program_name, table):
     """
-    
-    :param program_name:
-    :param table:
-    :return:
+    Gets unique (per release) jsonl filename, used for intermediately storing the table rows
+    after they're flattened, but before BQ insertion. Allows for faster script thanks to minimal BigQuery txns.
+    :param program_name: name of the program to with the data belongs
+    :param table: future insertion table for flattened data
+    :return: String .jsonl filename, of the form 'relXX_clin_PROGRAM + (_supplemental_table_name, optionally)
     """
     return generate_long_name(program_name, table) + '.jsonl'
 
 
 def get_temp_filepath(program_name, table):
     """
-
-    :param program_name:
-    :param table:
-    :return:
+    Get filepath for the temp storage folder.
+    :param program_name: Program
+    :param table: Program to which this table is associated.
+    :return: String representing the temp file path.
     """
     return API_PARAMS['TEMP_PATH'] + '/' + get_jsonl_filename(program_name, table)
 
 
 def get_table_id(program_name, table):
     """
-
-    :param program_name:
-    :param table:
-    :return:
+    Get the full table_id (Including project and dataset) for a given table.
+    :param program_name: name of the program to with the data belongs
+    :param table: Name of desired table
+    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
     """
     return generate_long_name(program_name, table)
 
@@ -1082,7 +1083,7 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    print("Script executed in {} minutes, {} seconds".format(minutes, seconds))
+    print("Script executed in {} min, {:.0f} sec".format(minutes, seconds))
     print("Steps completed: ")
 
     if 'create_and_load_tables' in steps:
@@ -1091,6 +1092,7 @@ def print_final_report(start, steps):
         print('\t - validated data (tests not considered exhaustive)')
     if 'generate_documentation' in steps:
         print('\t - generated documentation')
+    print('\n\n')
 
 
 def main(args):

@@ -390,7 +390,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error('While running BQ job: {} \n{}'.format(load_job.error_result, load_job.errors), ValueError)
 
     destination_table = client.get_table(table_id)
-    print('{} rows inserted.'.format(destination_table.num_rows))
+    print('{} rows inserted.\n'.format(destination_table.num_rows))
 
 
 def pprint_json(json_obj):
