@@ -492,7 +492,10 @@ def get_field_name(column):
 
 
 def get_bq_name(api_params, prefix, column):
-
+    if not prefix:
+        split_column = column.split('.')
+        prefix = split_column[:-1]
+        column = split_column[-1]
     try:
         abbr_prefix = api_params['TABLE_METADATA'][prefix]['prefix']
     except KeyError as err:
