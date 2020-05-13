@@ -465,10 +465,9 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         count_order_col_name = table_key + '.count'
 
         count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
-        count_column = parent_table_key + '.' + count_id_key
 
         # add one-to-many record count column to parent table
-        schema_dict[count_column] = generate_record_count_schema_entry(count_id_key, parent_table_key)
+        schema_dict[count_order_col_name] = generate_record_count_schema_entry(count_id_key, parent_table_key)
         table_columns[parent_table_key].add(count_id_key)
         column_order_dict[count_order_col_name] = count_columns_position
 
