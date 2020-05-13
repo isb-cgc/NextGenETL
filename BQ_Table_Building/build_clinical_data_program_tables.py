@@ -318,9 +318,7 @@ def flatten_tables(tables, record_counts):
 
     for field_group, depth in sorted(field_group_depths.items(), key=lambda item: item[1], reverse=True):
 
-        print("1 pre-removal: {}".format(tables[field_group]))
         tables[field_group] = remove_set_fields(tables[field_group], field_group)
-        print("1 post-removal: {}".format(tables[field_group]))
 
         # this is cases, already flattened
         if depth == 1:
@@ -390,8 +388,6 @@ def retrieve_program_case_structure(program_name, cases):
     print("COLS 1")
     print(table_columns)
     table_columns = flatten_tables(table_columns, record_counts)
-    print("COLS 2")
-    print(table_columns)
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
@@ -493,7 +489,7 @@ def rebuild_bq_name(column):
         abbr_dict_ = dict()
 
         for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
-            print("{}, {}".format(table_key, table_metadata))
+            # print("{}, {}".format(table_key, table_metadata))
             if table_metadata['prefix']:
                 abbr_dict_[table_metadata['prefix']] = table_key
         return abbr_dict_
@@ -503,7 +499,7 @@ def rebuild_bq_name(column):
 
     abbr_dict = get_abbr_dict()
 
-    print("split column {}".format(column.split('__')))
+    # print("split column {}".format(column.split('__')))
 
     split_column = column.split('__')
 
@@ -519,17 +515,17 @@ def rebuild_bq_name(column):
 def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
-    print("table cols 1 {}".format(table_columns))
+    # print("table cols 1 {}".format(table_columns))
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
-    print("table cols 2 {}".format(table_columns))
+    # print("table cols 2 {}".format(table_columns))
 
     for table_key in table_columns:
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
-            print("column {}".format(column))
+            # print("column {}".format(column))
 
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
@@ -608,7 +604,6 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
 
                     entry_dict[col_name] = get_bq_name(col_name, case[key])
 
-            print("".format())
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
 
@@ -734,8 +729,8 @@ def create_and_load_tables(program_name, cases, table_schemas):
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
 
         table_id = get_table_id(program_name, table)
-        print(' - for table {}, table_id {}:'.format(table, table_id))
-        print("table schema: {}".format(table_schemas[table]))
+        # print(' - for table {}, table_id {}:'.format(table, table_id))
+        # print("table schema: {}".format(table_schemas[table]))
 
         try:
             create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
