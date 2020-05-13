@@ -503,6 +503,9 @@ def get_abbr_dict(api_params):
 def get_bq_name(api_params, table_path, column):
     table_abbr_dict = get_abbr_dict(api_params)
 
+    print("GET_BQ: table_path {}, column {}, abbr_dict {}".format(
+        table_path, column, table_abbr_dict))
+
     if not table_path:
         split_column = column.split('.')
     else:
