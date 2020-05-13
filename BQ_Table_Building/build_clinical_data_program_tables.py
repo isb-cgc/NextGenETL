@@ -797,7 +797,10 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
             record_count_dict = dict()
             idx = 0
             for entry in flattened_case_dict[parent_table].copy():
-                entry_id = entry[parent_id_column]
+                try:
+                    entry_id = entry[parent_id_column]
+                except KeyError as err:
+                    print('FLATTENED at EXCEPTION {}\n\n{}'.format(flattened_case_dict, err))
                 if record_count_dict not in record_count_dict:
                     record_count_dict[entry_id] = {'entry_idx': idx, 'record_count': 0}
                     idx += 1
