@@ -287,6 +287,7 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
             return None
 
     base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
+    print(base_column_names)
 
     if flattened:
         return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
@@ -301,7 +302,6 @@ def flatten_tables(tables, record_counts):
         excluded_fields = get_excluded_fields(table_name, fatal=True)
 
         print("table name: {}, excluded: {}, record: {}".format(table_name, excluded_fields, record_))
-
 
         for field_ in record_.copy():
             if field_ in excluded_fields:
