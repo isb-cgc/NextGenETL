@@ -785,8 +785,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
                                                                          parent_id_key, parent_id_column))
 
         print("Parent table entry flattened case dict:")
-        print(flattened_case_dict[parent_table])
-        print()
+        print(flattened_case_dict)
         print()
 
         if fg_key in bq_program_tables:
