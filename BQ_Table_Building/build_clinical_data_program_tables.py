@@ -700,7 +700,7 @@ def remove_dict_fields(record, table_name):
 ##
 def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_p_id_key=None):
     """
-
+    Convert nested case object into a flattened representation of its records.
     :param case:
     :param prefix:
     :param flat_case_dict:
@@ -723,7 +723,7 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
                         entry_dict['case_id'] = case_id
 
                     # todo should this be a bq field name?
-                    entry_dict[key] = key[entry]
+                    entry_dict[key] = entry[key]
 
             if entry_dict:
                 entry_dict = remove_dict_fields(entry_dict, prefix)
