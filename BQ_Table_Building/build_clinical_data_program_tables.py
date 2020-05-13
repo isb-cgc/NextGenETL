@@ -492,7 +492,7 @@ def rebuild_bq_name(column):
         if table_metadata['prefix']:
             abbr_dict[table_metadata['prefix']] = table_key
     split_column = column.split('__')
-    prefix = split_column[:-1]
+    prefix = '.'.join(split_column[:-1])
 
     if abbr_dict[prefix]:
         return prefix + '.' + split_column[-1]
