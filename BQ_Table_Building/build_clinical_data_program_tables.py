@@ -194,9 +194,9 @@ def lookup_column_types():
         column_type_dict[vals[0]] = vals[1]
 
     single_nested_query_dict = {
-        "family_histories": family_histories_query,
-        "demographic": demographic_query,
-        "exposures": exposures_query
+        "cases.family_histories": family_histories_query,
+        "cases.demographic": demographic_query,
+        "cases.exposures": exposures_query
     }
 
     for key in single_nested_query_dict.keys():
@@ -204,7 +204,7 @@ def lookup_column_types():
 
         for result in results:
             vals = result.values()
-            column_type_dict = split_datatype_array(column_type_dict, vals[1], key + '__')
+            column_type_dict = split_datatype_array(column_type_dict, vals[1], key + '.')
 
     results = get_query_results(follow_ups_query)
 
@@ -212,9 +212,9 @@ def lookup_column_types():
         vals = result.values()
         split_vals = vals[1].split('molecular_tests ')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'follow_ups__')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'cases.follow_ups')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups__molecular_tests__')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'cases.follow_ups.molecular_tests.')
 
     results = get_query_results(diagnoses_query)
 
@@ -242,24 +242,23 @@ def lookup_column_types():
         diagnoses = diagnoses[:-2] + '>>'
 
     # parse field list strings
-    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses__')
-    column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses__treatments__')
-    column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses__annotations__')
+    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'cases.diagnoses.')
+    column_type_dict = split_datatype_array(column_type_dict, treatments, 'cases.diagnoses.treatments.')
+    column_type_dict = split_datatype_array(column_type_dict, annotations, 'cases.diagnoses.annotations.')
 
     return column_type_dict
 
 
 def create_schema_dict():
     column_type_dict = lookup_column_types()
+    print(column_type_dict)
     field_mapping_dict = create_mapping_dict(API_PARAMS['ENDPOINT'])
 
     schema_dict = {}
 
     for key in column_type_dict:
-        field_map_name = "cases." + ".".join(key.split('__'))
-
         try:
-            description = field_mapping_dict[field_map_name]['description']
+            description = field_mapping_dict[key]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
             description = ""
@@ -267,8 +266,10 @@ def create_schema_dict():
         field_type = column_type_dict[key]
 
         # this is the format for bq schema json object entries
+        bq_key = get_bq_name(API_PARAMS, None, key)
+
         schema_dict[key] = {
-            "name": key,
+            "name": bq_key,
             "type": field_type,
             "description": description
         }
