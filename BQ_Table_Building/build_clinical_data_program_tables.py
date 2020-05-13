@@ -1119,7 +1119,7 @@ def main(args):
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
 
-        print("executed in {:.2f} seconds for program {}!\n".format(program_name, time.time() - prog_start))
+        print("executed in {:0.2f} seconds for program {}!\n".format(program_name, time.time() - prog_start))
 
     if 'generate_documentation' in steps:
         finalize_documentation()
