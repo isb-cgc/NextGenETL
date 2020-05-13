@@ -676,7 +676,9 @@ def create_and_load_tables(program_name, cases, table_schemas):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
+        print("1 FLAT\n{}".format(flattened_case_dict))
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        print("2 FLAT\n{}".format(flattened_case_dict))
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
@@ -944,14 +946,10 @@ def main(args):
         if cases:
             table_columns, record_counts = retrieve_program_case_structure(program_name, cases)
 
-            print(table_columns)
-
             if 'create_and_load_tables' in steps:
                 table_schemas = create_schemas(table_columns, schema_dict, column_order_dict.copy())
-                print(table_schemas)
 
                 create_and_load_tables(program_name, cases, table_schemas)
-
 
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
