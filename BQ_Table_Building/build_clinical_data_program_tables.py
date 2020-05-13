@@ -519,7 +519,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             if not full_column_name or full_column_name not in column_order_dict:
                 print("'{}' not in column_order_dict!".format(full_column_name))
 
-                has_fatal_error("{}".format(column_order_dict))
+                has_fatal_error("column order dict{}".format(column_order_dict))
 
             table_order_dict[full_column_name] = column_order_dict[full_column_name]
 
