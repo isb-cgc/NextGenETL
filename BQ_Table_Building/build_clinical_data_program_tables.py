@@ -548,7 +548,6 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
 # Functions used for parsing and loading data into BQ tables
 ##
 def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, parent_id=None, parent_id_key=None):
-    print("CASE: {}".format(case))
     def remove_dict_fields(record, table_name):
         excluded_fields = get_excluded_fields(table_name, fatal=True)
 
@@ -557,6 +556,10 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 record.pop(field)
 
         return record
+
+
+    print("CASE: {}".format(case))
+
 
     if isinstance(case, list):
         entry_list = []
@@ -584,9 +587,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 else:
                     col_name = prefix
                     field = get_bq_name(API_PARAMS, col_name, key)
-
                     entry_dict[col_name] = field
-                    print("col_name {}, field: {}".format(col_name, field))
 
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
@@ -614,7 +615,6 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 col_name = prefix
                 field = get_bq_name(API_PARAMS, col_name, key)
                 entry_dict[col_name] = field
-                print("col_name {}, field: {}".format(col_name, field))
         if entry_dict:
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
