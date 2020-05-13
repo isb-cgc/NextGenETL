@@ -790,20 +790,17 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         parent_id_key = get_table_id_key(parent_table)
         parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
 
-        # print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(fg_key, parent_table,
-        #                                                                 parent_id_key, parent_id_column))
-
         if fg_key in bq_program_tables:
             record_count_dict = dict()
             idx = 0
             for entry in flattened_case_dict[parent_table].copy():
-                try:
-                    if parent_id_key in entry:
-                        entry_id = entry[parent_id_key]
-                    elif parent_id_column in entry:
-                        entry_id = entry[parent_id_column]
-                    else:
-                        has_fatal_error("No id key found, in bq or fg format.")
+                if parent_id_key in entry:
+                    entry_id = entry[parent_id_key]
+                elif parent_id_column in entry:
+                    entry_id = entry[parent_id_column]
+                else:
+                    has_fatal_error("No id key found, in bq or fg format.")
+
                 if entry_id not in record_count_dict:
                     record_count_dict[entry_id] = {'entry_idx': idx, 'record_count': 0}
                     idx += 1
