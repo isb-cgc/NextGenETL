@@ -327,13 +327,11 @@ def flatten_tables(tables, record_counts):
                 has_fatal_error("No parent key found for table {}, record_count_keys: {}".format(
                     field_group, record_counts.keys()))
 
-            for field in tables[field_group].pop():
+            for field in tables.pop(field_group):
                 if not parent_key:
                     has_fatal_error("Cases should be the default parent key for any column without another table.")
                 else:
                     tables[parent_key].add(get_bq_name(API_PARAMS, field_group, field))
-
-        tables.pop(field_group)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
