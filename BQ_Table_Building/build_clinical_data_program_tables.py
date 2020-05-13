@@ -842,6 +842,10 @@ def create_and_load_tables(program_name, cases, table_schemas, record_counts):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
+
+        print(flattened_case_dict)
+        print("\n\n")
+
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_tables)
 
         for table in flattened_case_dict.keys():
