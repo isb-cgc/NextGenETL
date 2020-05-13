@@ -14,6 +14,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 ##
 def generate_long_name(program_name, table):
+    print("GENERATE LONG: {}, {}".format(program_name, table))
     # remove invalid char from program name
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
@@ -725,10 +726,14 @@ def create_and_load_tables(program_name, cases, table_schemas):
                 for row in flattened_case_dict[table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
+
     print(table_schemas.keys())
+
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(program_name, table)
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
+
+        table = table.replace('cases.', '')
 
         table_id = get_table_id(program_name, table)
         print('\n - for table {}:'.format(table_id))
