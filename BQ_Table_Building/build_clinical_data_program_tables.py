@@ -585,7 +585,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 else:
                     col_name = get_bq_name(API_PARAMS, prefix, key)
 
-                    entry_dict[col_name] = get_bq_name(col_name, case[key])
+                    entry_dict[col_name] = get_bq_name(API_PARAMS, col_name, case[key])
 
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
