@@ -558,8 +558,8 @@ def remove_dict_fields(record, table_name):
 # Functions used for parsing and loading data into BQ tables
 ##
 def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None, parent_id_key=None):
-    print("\n\n{}\n{}\n{}\n{}\n{}\n{}\n{}".format(case, prefix, flattened_case_dict,
-                                                  case_id, parent_id, parent_id_key))
+    print("\n\n{}\n{}\n{}\n{}\n{}\n{}".format(prefix, case_id, parent_id, parent_id_key, case, flattened_case_dict))
+
     if isinstance(case, list):
         for entry in case:
             entry_dict = dict()
