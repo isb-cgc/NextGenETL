@@ -489,12 +489,8 @@ def rebuild_bq_name(column):
 def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
-    print(schema_dict)
-
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns, schema_dict, column_order_dict)
-
-    print(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
@@ -526,6 +522,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
                 count_column_position += 1
 
         required_columns = get_required_columns(table_key)
+        print(required_columns)
         schema_list = []
 
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
@@ -676,9 +673,7 @@ def create_and_load_tables(program_name, cases, table_schemas):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
-        print("1 FLAT\n{}".format(flattened_case_dict))
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
-        print("2 FLAT\n{}".format(flattened_case_dict))
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
@@ -690,8 +685,6 @@ def create_and_load_tables(program_name, cases, table_schemas):
                 for row in flattened_case_dict[table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
-
-    print(table_schemas)
 
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(program_name, table)
