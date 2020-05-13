@@ -720,7 +720,9 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, par
                         parent_key = get_bq_name(API_PARAMS, get_parent_field_group(prefix), parent_id_key)
                         entry_dict[parent_key] = parent_id
                     entry_dict['case_id'] = case_id
+            print(entry_dict)
             entry_dict = remove_dict_fields(entry_dict, prefix)
+            print(entry_dict)
 
             if prefix not in flat_case_dict:
                 flat_case_dict[prefix] = list()
@@ -781,19 +783,13 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         parent_id_key = get_table_id_key(parent_table)
         parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
 
-        print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(fg_key, parent_table,
-                                                                         parent_id_key, parent_id_column))
-
-        print("Parent table entry flattened case dict:")
-        print(flattened_case_dict)
-        print()
+        # print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(fg_key, parent_table,
+        #                                                                 parent_id_key, parent_id_column))
 
         if fg_key in bq_program_tables:
             record_count_dict = dict()
             idx = 0
             for entry in flattened_case_dict[parent_table].copy():
-                print(entry)
-                print()
                 entry_id = entry[parent_id_column]
                 if record_count_dict not in record_count_dict:
                     record_count_dict[entry_id] = {'entry_idx': idx, 'record_count': 0}
