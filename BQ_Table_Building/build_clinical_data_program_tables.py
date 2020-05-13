@@ -45,18 +45,40 @@ def get_jsonl_filename(program_name, table):
 
 
 def get_temp_filepath(program_name, table):
+    """
+
+    :param program_name:
+    :param table:
+    :return:
+    """
     return API_PARAMS['TEMP_PATH'] + '/' + get_jsonl_filename(program_name, table)
 
 
 def get_table_id(program_name, table):
+    """
+
+    :param program_name:
+    :param table:
+    :return:
+    """
     return generate_long_name(program_name, table)
 
 
 def get_table_path(table_name):
+    """
+
+    :param table_name:
+    :return:
+    """
     return BQ_PARAMS["WORKING_PROJECT"] + '.' + BQ_PARAMS["TARGET_DATASET"] + '.' + table_name
 
 
 def get_required_columns(table_key):
+    """
+
+    :param table_key:
+    :return:
+    """
     required_columns = list()
 
     table_id_key = get_table_id_key(table_key)
@@ -67,6 +89,11 @@ def get_required_columns(table_key):
 
 
 def get_table_id_key(table_key):
+    """
+
+    :param table_key:
+    :return:
+    """
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
     if 'table_id_key' not in API_PARAMS['TABLE_METADATA'][table_key]:
@@ -75,11 +102,23 @@ def get_table_id_key(table_key):
 
 
 def get_id_column_position(table_key, column_order_dict):
+    """
+
+    :param table_key:
+    :param column_order_dict:
+    :return:
+    """
     table_id_key = get_table_id_key(table_key)
     return column_order_dict[table_key + '.' + table_id_key]
 
 
 def generate_table_paths(program_name, record_counts):
+    """
+
+    :param program_name:
+    :param record_counts:
+    :return:
+    """
     table_keys = get_tables(record_counts)
     table_paths = dict()
 
@@ -94,6 +133,10 @@ def generate_table_paths(program_name, record_counts):
 # Functions which retrieve preliminary information used for creating table schemas / ingesting data
 ##
 def get_programs_list():
+    """
+
+    :return:
+    """
     programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['PROGRAM_ID_TABLE']
 
     programs = set()
@@ -111,6 +154,10 @@ def get_programs_list():
 
 
 def build_column_order_dict():
+    """
+
+    :return:
+    """
     column_order_dict = dict()
     field_groups = API_PARAMS['TABLE_ORDER']
     max_reference_cols = len(field_groups)
@@ -143,7 +190,18 @@ def build_column_order_dict():
 
 
 def lookup_column_types():
+    """
+
+    :return:
+    """
     def split_datatype_array(col_dict, col_string, name_prefix):
+        """
+
+        :param col_dict:
+        :param col_string:
+        :param name_prefix:
+        :return:
+        """
         columns = col_string[13:-2].split(', ')
 
         for column in columns:
@@ -155,6 +213,11 @@ def lookup_column_types():
         return col_dict
 
     def generate_base_query(field_groups_):
+        """
+
+        :param field_groups_:
+        :return:
+        """
         exclude_column_query_str = ''
         for fg_ in field_groups_:
             exclude_column_query_str += "AND column_name != '{}' ".format(fg_)
@@ -167,6 +230,11 @@ def lookup_column_types():
         return query + exclude_column_query_str
 
     def generate_field_group_query(field_group_):
+        """
+
+        :param field_group_:
+        :return:
+        """
         return """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
         WHERE table_name = '{}_clinical_data' and column_name = '{}'
@@ -259,6 +327,10 @@ def lookup_column_types():
 
 
 def create_schema_dict():
+    """
+
+    :return:
+    """
     column_type_dict = lookup_column_types()
     field_mapping_dict = create_mapping_dict(API_PARAMS['ENDPOINT'])
 
@@ -289,6 +361,11 @@ def create_schema_dict():
 # Functions used to determine a program's table structure(s)
 ##
 def get_excluded_fields(table_key):
+    """
+
+    :param table_key:
+    :return:
+    """
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
     if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table_key]:
@@ -300,6 +377,12 @@ def get_excluded_fields(table_key):
 
 
 def flatten_tables(tables, record_counts):
+    """
+
+    :param tables:
+    :param record_counts:
+    :return:
+    """
     def remove_excluded_fields(record_, table_name):
         excluded_fields = get_excluded_fields(table_name)
 
@@ -340,7 +423,21 @@ def flatten_tables(tables, record_counts):
 
 
 def retrieve_program_case_structure(program_name, cases):
+    """
+
+    :param program_name:
+    :param cases:
+    :return:
+    """
     def build_case_structure(tables_, case_, record_counts_, parent_path):
+        """
+
+        :param tables_:
+        :param case_:
+        :param record_counts_:
+        :param parent_path:
+        :return:
+        """
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
@@ -394,6 +491,12 @@ def retrieve_program_case_structure(program_name, cases):
 # Functions used for schema creation
 ##
 def get_count_column_position(table_key, column_order_dict):
+    """
+
+    :param table_key:
+    :param column_order_dict:
+    :return:
+    """
     table_id_key = get_table_id_key(table_key)
     id_column_position = column_order_dict[table_key + '.' + table_id_key]
 
@@ -403,7 +506,20 @@ def get_count_column_position(table_key, column_order_dict):
 
 
 def add_reference_columns(table_columns, schema_dict, column_order_dict):
+    """
+
+    :param table_columns:
+    :param schema_dict:
+    :param column_order_dict:
+    :return:
+    """
     def generate_id_schema_entry(column_name, parent_table_key_):
+        """
+
+        :param column_name:
+        :param parent_table_key_:
+        :return:
+        """
         parent_field_name = get_field_name(parent_table_key_)
 
         if parent_table_key_ in table_columns.keys():
@@ -424,6 +540,12 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         return {"name": ancestor_column_name, "type": 'STRING', "description": description}
 
     def generate_record_count_schema_entry(record_count_id_key_, parent_table_key_):
+        """
+
+        :param record_count_id_key_:
+        :param parent_table_key_:
+        :return:
+        """
         description = "Total count of records associated with this case, located in {} table".format(parent_table_key_)
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
@@ -477,7 +599,16 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
 
 def rebuild_bq_name(column):
+    """
+
+    :param column:
+    :return:
+    """
     def get_abbr_dict_():
+        """
+
+        :return:
+        """
         abbr_dict_ = dict()
 
         for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
@@ -495,6 +626,13 @@ def rebuild_bq_name(column):
 
 
 def create_schemas(table_columns, schema_dict, column_order_dict):
+    """
+
+    :param table_columns:
+    :param schema_dict:
+    :param column_order_dict:
+    :return:
+    """
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
@@ -541,6 +679,12 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
 
 
 def remove_dict_fields(record, table_name):
+    """
+
+    :param record:
+    :param table_name:
+    :return:
+    """
     excluded_fields = get_excluded_fields(table_name)
 
     for field in record.copy():
@@ -554,6 +698,16 @@ def remove_dict_fields(record, table_name):
 # Functions used for parsing and loading data into BQ tables
 ##
 def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, parent_id_key=None):
+    """
+
+    :param case:
+    :param prefix:
+    :param flat_case_dict:
+    :param case_id:
+    :param parent_id:
+    :param parent_id_key:
+    :return:
+    """
     if isinstance(case, list):
         for entry in case:
             entry_dict = dict()
@@ -604,6 +758,13 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, par
 
 
 def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_tables):
+    """
+
+    :param flattened_case_dict:
+    :param table_keys:
+    :param bq_program_tables:
+    :return:
+    """
     field_group_counts = dict.fromkeys(flattened_case_dict.keys(), 0)
 
     # sort field group keys by depth
@@ -615,16 +776,19 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         if fg_key == 'cases':
             continue
 
-        parent_table = get_parent_table(table_keys, fg_key)
+        parent_table = get_parent_table(flattened_case_dict.keys(), fg_key)
         parent_id_key = get_table_id_key(parent_table)
-        bq_parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
+        parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
+
+        print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(
+            fg_key, parent_table, parent_id_key, parent_id_column))
 
         if fg_key in bq_program_tables:
             record_count_dict = dict()
 
             idx = 0
             for entry in flattened_case_dict[parent_table].copy():
-                entry_id = entry[bq_parent_id_column]
+                entry_id = entry[parent_id_column]
                 if record_count_dict not in record_count_dict:
                     record_count_dict[entry_id] = {'entry_idx': idx, 'record_count': 0}
                     idx += 1
@@ -632,8 +796,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
             field_group = flattened_case_dict[fg_key].copy()
 
             for record in field_group:
-                if bq_parent_id_column in record:
-                    parent_id = record[bq_parent_id_column]
+                if parent_id_column in record:
+                    parent_id = record[parent_id_column]
                     record_count_dict[parent_id]['record_count'] += 1
             for parent_id in record_count_dict:
                 entry_idx = record_count_dict[parent_id]['entry_idx']
@@ -655,6 +819,14 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
 
 
 def create_and_load_tables(program_name, cases, table_schemas, record_counts):
+    """
+
+    :param program_name:
+    :param cases:
+    :param table_schemas:
+    :param record_counts:
+    :return:
+    """
     bq_program_tables = get_tables(record_counts)
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
@@ -717,6 +889,7 @@ def finalize_documentation():
 # Functions used for validating inserted data
 ##
 def get_record_count_list(table, table_fg_key, parent_table_id_key):
+    """"""
     table_path = get_table_path(table)
     table_id_key = get_table_id_key(table_fg_key)
     table_id_column = get_bq_name(API_PARAMS, table_fg_key, table_id_key)
@@ -886,6 +1059,12 @@ def test_table_output():
 # Script execution
 ##
 def print_final_report(start, steps):
+    """
+
+    :param start:
+    :param steps:
+    :return:
+    """
     seconds = time.time() - start
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
