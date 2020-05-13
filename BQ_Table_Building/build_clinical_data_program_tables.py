@@ -331,7 +331,9 @@ def flatten_tables(tables, record_counts):
                 if not parent_key:
                     has_fatal_error("Cases should be the default parent key for any column without another table.")
                 else:
-                    tables[parent_key].add(get_bq_name(API_PARAMS, field_group, field))
+                    col_name = get_bq_name(API_PARAMS, field_group, tables)
+                    print("fg: {}, tab: {}, col_name_bq: {}".format(field_group, field, col_name))
+                    tables[parent_key].add(col_name)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
         has_fatal_error("Flattened tables dictionary has incorrect number of keys.")
