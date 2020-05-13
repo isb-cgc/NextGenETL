@@ -401,7 +401,7 @@ def retrieve_program_case_structure(program_name, cases):
 ##
 def get_count_column_position(table_key, column_order_dict):
     table_id_key = get_table_id_key(table_key)
-    id_column_position = column_order_dict[table_id_key]
+    id_column_position = column_order_dict[table_key + '.' + table_id_key]
 
     count_columns_position = id_column_position + len(API_PARAMS['TABLE_ORDER'])
 
