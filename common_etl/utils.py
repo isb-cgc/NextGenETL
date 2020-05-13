@@ -493,6 +493,8 @@ def get_field_name(column):
 
 def get_bq_name(api_params, prefix, column):
     if not prefix:
+        print("Is this error?")
+        return None
         split_column = column.split('.')
         prefix = '.'.join(split_column[:-1])
 
