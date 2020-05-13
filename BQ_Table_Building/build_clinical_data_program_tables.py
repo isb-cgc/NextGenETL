@@ -462,13 +462,15 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
         count_columns_position = get_count_column_position(parent_table_key, column_order_dict)
 
+        count_order_col_name = parent_table_key + '.' + table_key + '.count'
+
         count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
         count_column = parent_table_key + '.' + count_id_key
 
         # add one-to-many record count column to parent table
         schema_dict[count_column] = generate_record_count_schema_entry(count_id_key, parent_table_key)
         table_columns[parent_table_key].add(count_id_key)
-        column_order_dict[count_column] = count_columns_position
+        column_order_dict[count_order_col_name] = count_columns_position
 
     return schema_dict, table_columns, column_order_dict
 
@@ -517,9 +519,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             count_column_position = get_count_column_position(table_key, column_order_dict)
 
             if not full_column_name or full_column_name not in column_order_dict:
-                print("'{}' not in column_order_dict!".format(full_column_name))
-
-                has_fatal_error("column order dict{}".format(column_order_dict))
+                has_fatal_error("'{}' not in column_order_dict!\n Column order dict: {}".format(full_column_name, column_order_dict))
 
             table_order_dict[full_column_name] = column_order_dict[full_column_name]
 
