@@ -491,27 +491,37 @@ def get_field_name(column):
         return column
 
 
-def get_bq_name(api_params, prefix, column):
-    print('GET_BQ_NAME: {}, {}'.format(prefix, column))
-    if not prefix:
-        print("Is this error?")
-        return None
-        split_column = column.split('.')
-        prefix = '.'.join(split_column[:-1])
+def get_bq_name(api_params, table_path, column):
+
+    def get_abbr_dict():
+        table_abbr_dict_ = dict()
+
+        for table_key, table_metadata in api_params['TABLE_METADATA'].items():
+            table_abbr_dict_[table_key] = table_metadata['prefix']
+
+        return table_abbr_dict_
+
+    print('GET_BQ_NAME: {}, {}'.format(table_path, column))
+
+    split_column = column.split('.')
+    table_abbr_dict = get_abbr_dict()
+
+    if not table_path:
+        if len(split_column) > 0 and split_column[0] == 'cases':
+            table_path = ".".join(split_column[:-1])
+    else:
+        if len(split_column[:-1]) > 0:
+            table_path = table_path + '.' + '.'.join(split_column[:-1])
+            column = split_column[-1]
 
         if split_column[0] != 'cases':
-            prefix = 'cases.' + prefix
+            table_path = 'cases.' + table_path
 
-        column = split_column[-1]
-    try:
-        abbr_prefix = api_params['TABLE_METADATA'][prefix]['prefix']
-    except KeyError as err:
-        has_fatal_error('prefix in get_bq_name not valid: {} given'.format(prefix))
-    if not column:
-        has_fatal_error('get_bq_name needs an value for column param')
+    if table_path in table_abbr_dict:
+        prefix = table_abbr_dict[table_path]
 
-    if abbr_prefix:
-        return abbr_prefix + '__' + column
+    if prefix:
+        return prefix + '__' + column
     else:
         return column
 
