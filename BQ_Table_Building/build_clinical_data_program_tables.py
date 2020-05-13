@@ -448,7 +448,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             parent_fg = get_parent_field_group(table_key)
             parent_id_key = get_table_id_key(parent_fg)
             full_parent_id_name = parent_fg + '.' + parent_id_key
-            parent_bq_name = get_bq_name(parent_fg, parent_id_key)
+            parent_bq_name = get_bq_name(API_PARAMS, parent_fg, parent_id_key)
 
             # add parent_id to one-to-many table
             schema_dict[full_parent_id_name] = generate_id_schema_entry(full_parent_id_name, parent_fg)
