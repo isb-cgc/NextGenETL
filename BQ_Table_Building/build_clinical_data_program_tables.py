@@ -530,15 +530,15 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
             # don't rename if this is a parent_id column
-            if '__' in column:
-                column_name = column
-            else:
-                column_name = get_bq_name(API_PARAMS, table_key, column)
+            # if '__' in column:
+            #    column_name = column
+            #else:
+            #    column_name = get_bq_name(API_PARAMS, table_key, column)
 
-            if not column_name or column_name not in column_order_dict:
-                has_fatal_error("'{}' not in column_order_dict!".format(column_name))
+            if not full_column_name or full_column_name not in column_order_dict:
+                has_fatal_error("'{}' not in column_order_dict!".format(full_column_name))
 
-            table_order_dict[column_name] = column_order_dict[column_name]
+            table_order_dict[full_column_name] = column_order_dict[full_column_name]
 
             count_columns = []
 
