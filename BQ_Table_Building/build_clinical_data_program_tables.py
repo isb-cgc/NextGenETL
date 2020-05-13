@@ -400,7 +400,8 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             ancestor_table = 'main'
 
         if '__' in column_name:
-            ancestor_column_name = parent_field_name + '__' + get_field_name(column_name)
+            column_name = column_name.split('__')[-1]
+            ancestor_column_name = get_bq_name(API_PARAMS, parent_table_key_, get_field_name(column_name))
         else:
             ancestor_column_name = column_name
 
