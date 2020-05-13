@@ -475,11 +475,10 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
 
 def rebuild_bq_name(column):
-    def get_abbr_dict():
+    def get_abbr_dict_():
         abbr_dict_ = dict()
 
         for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
-            # print("{}, {}".format(table_key, table_metadata))
             if table_metadata['prefix']:
                 abbr_dict_[table_metadata['prefix']] = table_key
         return abbr_dict_
@@ -487,15 +486,12 @@ def rebuild_bq_name(column):
     if '__' not in column:
         print("ERROR? why no __ in rebuild_bq_name?")
 
-    abbr_dict = get_abbr_dict()
-
+    abbr_dict = get_abbr_dict_()
     split_column = column.split('__')
-
     prefix = '__'.join(split_column[:-1])
 
     if prefix and abbr_dict[prefix]:
         return abbr_dict[prefix] + '.' + split_column[-1]
-
     return 'cases.' + split_column[-1]
 
 
@@ -611,7 +607,7 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
                 col_name = get_bq_name(API_PARAMS, prefix, key)
-                entry_dict[col_name] = get_bq_name(col_name, case[key])
+                entry_dict[col_name] = get_bq_name(API_PARAMS, col_name, case[key])
 
         if entry_dict:
             entry_dict = remove_dict_fields(entry_dict, prefix)
