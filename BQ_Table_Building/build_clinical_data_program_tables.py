@@ -484,26 +484,29 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
 
 def rebuild_bq_name(column):
+    def get_abbr_dict():
+        abbr_dict_ = dict()
+
+        for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
+            print("{}, {}".format(table_key, table_metadata))
+            if table_metadata['prefix']:
+                abbr_dict_[table_metadata['prefix']] = table_key
+        return abbr_dict_
+
     if '__' not in column:
-        return column
+        print("ERROR? why no __ in rebuild_bq_name?")
 
-    abbr_dict = dict()
-
-    for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
-        print("{}, {}".format(table_key, table_metadata))
-        if table_metadata['prefix']:
-            abbr_dict[table_metadata['prefix']] = table_key
-
-    print(abbr_dict)
-    return
+    abbr_dict = get_abbr_dict()
 
     split_column = column.split('__')
-    prefix = '.'.join(split_column[:-1])
 
-    if abbr_dict[prefix]:
-        return prefix + '.' + split_column[-1]
-    else:
-        return 'cases.' + split_column[-1]
+    # prefix = 'cases.' if split_column[0] != 'cases' else ''
+    prefix = '__'.join(split_column[:-1])
+
+    if prefix and abbr_dict[prefix]:
+        return abbr_dict[prefix] + '.' + split_column[-1]
+
+    return 'cases.' + split_column[-1]
 
 
 def create_schemas(table_columns, schema_dict, column_order_dict):
