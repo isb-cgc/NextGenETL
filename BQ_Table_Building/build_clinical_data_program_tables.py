@@ -502,6 +502,8 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
 
+    print(table_columns)
+
     for table_key in table_columns:
         table_order_dict = dict()
 
@@ -608,12 +610,10 @@ def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, pa
                 flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict,
                                                    table_keys, case_id, parent_id, parent_id_key)
             else:
-                col_name = get_bq_name(API_PARAMS, prefix, key)
-
-                # print("{}\n {}\n {}\n {}\n".format(prefix, key, col_name, case[key]))
-
-                entry_dict[col_name] = get_bq_name(API_PARAMS, col_name, case[key])
-
+                col_name = prefix
+                field = get_bq_name(API_PARAMS, col_name, key)
+                entry_dict[col_name] = field
+                print("col_name {}, field: {}".format(col_name, field))
         if entry_dict:
             entry_dict = remove_dict_fields(entry_dict, prefix)
             entry_list.append(entry_dict)
