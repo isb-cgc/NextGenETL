@@ -21,7 +21,7 @@ import sys
 import json
 import os
 from common_etl.utils import *
-from gdc_clinical_resources.test_data_integrity import test_table_output
+from gdc_clinical_resources.test_data_integrity import *
 
 API_PARAMS = None
 BQ_PARAMS = None
