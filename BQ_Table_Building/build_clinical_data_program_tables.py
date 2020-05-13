@@ -14,7 +14,9 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 ##
 def generate_long_name(program_name, table):
-    print("GENERATE LONG: {}, {}".format(program_name, table))
+    abbr_dict = get_abbr_dict(API_PARAMS)
+    abbr = abbr_dict[table]
+
     # remove invalid char from program name
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
@@ -22,8 +24,7 @@ def generate_long_name(program_name, table):
     file_name_parts = [BQ_PARAMS['GDC_RELEASE'], 'clin', program_name]
 
     # if one-to-many table, append suffix
-    bq_table_name = get_bq_name(API_PARAMS, None, table)
-    file_name_parts.append(bq_table_name) if bq_table_name else None
+    file_name_parts.append(abbr) if abbr else None
 
     return '_'.join(file_name_parts)
 

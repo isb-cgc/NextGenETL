@@ -491,18 +491,19 @@ def get_field_name(column):
         return column
 
 
+def get_abbr_dict(api_params):
+    table_abbr_dict = dict()
+
+    for table_key, table_metadata in api_params['TABLE_METADATA'].items():
+        table_abbr_dict[table_key] = table_metadata['prefix']
+
+    return table_abbr_dict
+
+
 def get_bq_name(api_params, table_path, column):
-
-    def get_abbr_dict():
-        table_abbr_dict_ = dict()
-
-        for table_key, table_metadata in api_params['TABLE_METADATA'].items():
-            table_abbr_dict_[table_key] = table_metadata['prefix']
-
-        return table_abbr_dict_
+    table_abbr_dict = get_abbr_dict(api_params)
 
     split_column = column.split('.')
-    table_abbr_dict = get_abbr_dict()
 
     if not table_path:
         if len(split_column) > 0 and split_column[0] == 'cases':
