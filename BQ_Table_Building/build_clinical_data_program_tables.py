@@ -298,9 +298,10 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
 def flatten_tables(tables, record_counts):
     def remove_set_fields(record_, table_name):
 
-        # print("table name: {}".format(table_name))
-
         excluded_fields = get_excluded_fields(table_name, fatal=True)
+
+        print("table name: {}, excluded: {}, record: {}".format(table_name, excluded_fields, record_))
+
 
         for field_ in record_.copy():
             if field_ in excluded_fields:
