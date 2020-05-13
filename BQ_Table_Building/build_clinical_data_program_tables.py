@@ -296,6 +296,9 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
 
 def flatten_tables(tables, record_counts):
     def remove_set_fields(record_, table_name):
+
+        # print("table name: {}".format(table_name))
+
         excluded_fields = get_excluded_fields(table_name, fatal=True)
 
         for field_ in record_.copy():
@@ -333,7 +336,7 @@ def flatten_tables(tables, record_counts):
                     has_fatal_error("Cases should be the default parent key for any column without another table.")
                 else:
                     col_name = get_bq_name(API_PARAMS, field_group, field)
-                    print("fg: {}, field: {}, col_name_bq: {}".format(field_group, field, col_name))
+                    # print("fg: {}, field: {}, col_name_bq: {}".format(field_group, field, col_name))
                     tables[parent_key].add(col_name)
 
     if len(tables.keys()) - 1 != sum(val > 1 for val in record_counts.values()):
