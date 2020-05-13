@@ -265,7 +265,7 @@ def create_schema_dict():
         field_type = column_type_dict[key]
 
         # this is the format for bq schema json object entries
-        bq_key = get_bq_name(API_PARAMS, 'cases', key)
+        bq_key = get_bq_name(API_PARAMS, None, key)
 
         print('key: {}, bq: {}'.format(key, bq_key))
 
