@@ -500,6 +500,8 @@ def rebuild_bq_name(column):
 
     abbr_dict = get_abbr_dict()
 
+    print("split column {}".format(column.split('__')))
+
     split_column = column.split('__')
 
     # prefix = 'cases.' if split_column[0] != 'cases' else ''
