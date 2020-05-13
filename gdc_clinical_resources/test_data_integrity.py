@@ -1,6 +1,6 @@
 from common_etl.utils import *
-from BQ_Table_Building.build_clinical_data_program_tables import retrieve_program_case_structure, get_table_id_key
-from BQ_Table_Building.build_clinical_data_program_tables import get_programs_list, get_full_table_name
+from BQ_Table_Building.build_clinical_data_program_tables import retrieve_program_case_structure, get_table_id_key, \
+    get_programs_list, get_full_table_name, test_table_output
 import sys
 
 API_PARAMS = None

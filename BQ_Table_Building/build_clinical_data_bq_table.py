@@ -208,7 +208,7 @@ def create_bq_schema(api_params, data_fp):
         record_type=endpoint_name,
         expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
     )
-    print(bq_schema)
+
     return bq_schema
 
 
@@ -325,12 +325,6 @@ def main(args):
                               jsonl_rows_file=api_params['DATA_OUTPUT_FILE'],
                               schema=schema,
                               table_name=bq_params['GDC_RELEASE'] + '_clinical_data')
-
-    seconds = time.time() - start
-    minutes = math.floor(seconds / 60)
-    seconds -= minutes * 60
-    print("Ingested GDC API, created master table. Executed in {} min, {:.0f} sec".format(minutes, seconds))
-
 
 if __name__ == '__main__':
         # my_args = (sys.argv[0], '../temp/ClinicalBQBuild.yaml')
