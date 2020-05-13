@@ -2,7 +2,6 @@ import math
 import sys
 import json
 import os
-import time
 from common_etl.utils import *
 
 API_PARAMS = None
@@ -14,6 +13,12 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 ##
 def generate_long_name(program_name, table):
+    """
+
+    :param program_name:
+    :param table:
+    :return:
+    """
     abbr_dict = get_abbr_dict(API_PARAMS)
     abbr = abbr_dict[table]
 
@@ -30,6 +35,12 @@ def generate_long_name(program_name, table):
 
 
 def get_jsonl_filename(program_name, table):
+    """
+    
+    :param program_name:
+    :param table:
+    :return:
+    """
     return generate_long_name(program_name, table) + '.jsonl'
 
 
@@ -159,7 +170,7 @@ def lookup_column_types():
         return """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
         WHERE table_name = '{}_clinical_data' and column_name = '{}'
-        """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],BQ_PARAMS["GDC_RELEASE"], field_group_)
+        """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"], BQ_PARAMS["GDC_RELEASE"], field_group_)
 
     field_groups = []
     child_field_groups = {}
@@ -211,7 +222,8 @@ def lookup_column_types():
 
         column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'cases.follow_ups.')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'cases.follow_ups.molecular_tests.')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2],
+                                                'cases.follow_ups.molecular_tests.')
 
     results = get_query_results(diagnoses_query)
 
@@ -637,9 +649,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
             if 'case_id' in field_group:
                 field_group.pop('case_id')
             # include keys with values
-            for fg_key, fg_val in field_group.items():
-                if field_group[fg_key]:
-                    flattened_case_dict[parent_table][0][fg_key] = fg_val
+            for key, fg_val in field_group.items():
+                flattened_case_dict[parent_table][0][key] = fg_val
     return flattened_case_dict
 
 
@@ -895,6 +906,8 @@ def main(args):
 
     if len(args) != 2:
         has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
+
+    steps = None
 
     with open(args[1], mode='r') as yaml_file:
         try:
