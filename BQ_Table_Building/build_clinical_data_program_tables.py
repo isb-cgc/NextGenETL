@@ -518,13 +518,13 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
 
-    print('table_cols:')
-    print(table_columns)
 
     for table_key in table_columns:
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
+            print("column {}".format(column))
+
             if '__' in column:
                 full_column_name = rebuild_bq_name(column)
             else:
