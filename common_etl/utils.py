@@ -502,6 +502,8 @@ def get_bq_name(prefix, column):
     if split_name[0] == 'cases':
         split_name = split_name[1:] if len(split_name) == 1 else None
 
+    if not split_name:
+        return None
     return '__'.join(split_name)
 
 
