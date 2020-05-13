@@ -14,10 +14,11 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 ##
 def generate_long_name(program_name, table):
     """
-
-    :param program_name:
-    :param table:
-    :return:
+    Generate string representing a unique name, constructed from elements of the table name, program name and
+    GDC release number. Used for storage bucket file and BQ table naming.
+    :param program_name: Program this table is associated with.
+    :param table: Table name.
+    :return: String representing a unique string identifier.
     """
     abbr_dict = get_abbr_dict(API_PARAMS)
     abbr = abbr_dict[table]
@@ -765,16 +766,22 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
     :param bq_program_tables:
     :return:
     """
-    field_group_counts = dict.fromkeys(flattened_case_dict.keys(), 0)
+    field_group_depths = dict.fromkeys(flattened_case_dict.keys(), 0)
 
     # sort field group keys by depth
-    for fg_key in field_group_counts:
-        field_group_counts[fg_key] = len(fg_key.split("."))
+    for key in field_group_depths:
+        field_group_depths[key] = len(key.split("."))
 
-    for fg_key, fg_depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
+    for fg_key, fg_depth in sorted(field_group_depths.items(), key=lambda item: item[1], reverse=True):
         # cases is the master table, merged into
         if fg_key == 'cases':
+            break
+        else:
+            print()
+            print(fg_key)
+            print()
             continue
+
 
         parent_table = get_parent_table(flattened_case_dict.keys(), fg_key)
         parent_id_key = get_table_id_key(parent_table)
