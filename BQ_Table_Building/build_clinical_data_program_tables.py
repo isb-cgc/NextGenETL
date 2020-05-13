@@ -776,12 +776,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         # cases is the master table, merged into
         if fg_key == 'cases':
             break
-        else:
-            print()
-            print(fg_key)
-            print()
-            continue
-
 
         parent_table = get_parent_table(flattened_case_dict.keys(), fg_key)
         parent_id_key = get_table_id_key(parent_table)
@@ -789,6 +783,11 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
 
         print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(fg_key, parent_table,
                                                                          parent_id_key, parent_id_column))
+
+        print("Parent table entry flattened case dict:")
+        print(flattened_case_dict[parent_table])
+        print()
+        print()
 
         if fg_key in bq_program_tables:
             record_count_dict = dict()
