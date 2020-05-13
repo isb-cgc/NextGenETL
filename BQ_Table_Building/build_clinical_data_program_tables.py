@@ -723,7 +723,8 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
                         entry_dict['case_id'] = case_id
 
                     # todo should this be a bq field name?
-                    entry_dict[key] = entry[key]
+                    bq_col_name = get_bq_name(API_PARAMS, prefix, key)
+                    entry_dict[bq_col_name] = entry[key]
 
             if entry_dict:
                 entry_dict = remove_dict_fields(entry_dict, prefix)
