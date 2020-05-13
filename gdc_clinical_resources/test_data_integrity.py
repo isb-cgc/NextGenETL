@@ -1,7 +1,6 @@
 from common_etl.utils import *
 from BQ_Table_Building.build_clinical_data_program_tables import retrieve_program_case_structure, get_table_id_key, \
-    get_programs_list, get_full_table_name, test_table_output
-import sys
+    get_programs_list, get_full_table_name
 
 API_PARAMS = None
 BQ_PARAMS = None
@@ -195,22 +194,3 @@ def test_table_output():
                 has_fatal_error("NOT A MATCH for {}. {} != {}".format(
                     key, cases_tally_max_counts[key], program_table_query_max_counts[key]))
         print("Counts all match! Moving on.")
-
-
-def main(args):
-    if len(args) != 2:
-        has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
-
-    # Load YAML configuration
-    with open(args[1], mode='r') as yaml_file:
-        try:
-            global API_PARAMS, BQ_PARAMS
-            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-        except ValueError as e:
-            has_fatal_error(str(e), ValueError)
-
-    test_table_output()
-
-
-if __name__ == '__main__':
-    main(sys.argv)
