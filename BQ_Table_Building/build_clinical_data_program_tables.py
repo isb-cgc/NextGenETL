@@ -487,11 +487,11 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
+    print(schema_dict)
+
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
-
-    print(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
