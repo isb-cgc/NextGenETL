@@ -1,9 +1,9 @@
 import math
-from common_etl.utils import *
 import sys
 import json
 import os
 import time
+from common_etl.utils import *
 
 API_PARAMS = None
 BQ_PARAMS = None
@@ -541,33 +541,31 @@ def remove_dict_fields(record, table_name):
 ##
 # Functions used for parsing and loading data into BQ tables
 ##
-def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None, parent_id_key=None):
+def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, parent_id_key=None):
     if isinstance(case, list):
         for entry in case:
             entry_dict = dict()
-
             for key in entry:
                 if not isinstance(entry[key], list):
                     curr_table_id_key = get_table_id_key(prefix)
 
                     if case_id != parent_id and curr_table_id_key != parent_id_key:
-                        parent_field = get_bq_name(API_PARAMS, get_parent_field_group(prefix), parent_id_key)
-                        entry_dict[parent_field] = parent_id
+                        parent_key = get_bq_name(API_PARAMS, get_parent_field_group(prefix), parent_id_key)
+                        entry_dict[parent_key] = parent_id
                     entry_dict['case_id'] = case_id
             entry_dict = remove_dict_fields(entry_dict, prefix)
 
-            if prefix not in flattened_case_dict:
-                flattened_case_dict[prefix] = list()
-            flattened_case_dict[prefix].append(entry_dict)
+            if prefix not in flat_case_dict:
+                flat_case_dict[prefix] = list()
+            flat_case_dict[prefix].append(entry_dict)
 
             for key in entry:
                 if isinstance(entry[key], list):
                     parent_id_key = get_table_id_key(prefix)
                     parent_id = entry[parent_id_key]
-                    parent_field = get_bq_name(API_PARAMS, prefix, parent_id_key)
-
-                    flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict,
-                                                       case_id, parent_id, parent_field)
+                    parent_key = get_bq_name(API_PARAMS, prefix, parent_id_key)
+                    n_prefix = prefix + '.' + key
+                    flat_case_dict = flatten_case(entry[key], n_prefix, flat_case_dict, case_id, parent_id, parent_key)
     else:
         entry_dict = dict()
 
@@ -579,83 +577,74 @@ def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None
         if entry_dict:
             entry_dict = remove_dict_fields(entry_dict, prefix)
 
-            if prefix not in flattened_case_dict:
-                flattened_case_dict[prefix] = list()
-            flattened_case_dict[prefix].append(entry_dict)
+            if prefix not in flat_case_dict:
+                flat_case_dict[prefix] = list()
+            flat_case_dict[prefix].append(entry_dict)
 
         for key in case:
             if not isinstance(case[key], list):
                 continue
 
-            flattened_case_dict = flatten_case(case[key], prefix + '.' + key, flattened_case_dict,
-                                               case_id, parent_id, parent_id_key)
+            flat_case_dict = flatten_case(case[key], prefix + '.' + key, flat_case_dict,
+                                          case_id, parent_id, parent_id_key)
 
-    return flattened_case_dict
+    return flat_case_dict
 
 
-def merge_single_entry_field_groups(flattened_case_dict, table_keys):
+def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_tables):
     field_group_counts = dict.fromkeys(flattened_case_dict.keys(), 0)
 
     # sort field group keys by depth
     for fg_key in field_group_counts:
         field_group_counts[fg_key] = len(fg_key.split("."))
 
-    for field_group_key, fg_depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
-        field_group = flattened_case_dict[field_group_key].copy()
-        # skip merge for cases
-        if field_group_key == 'cases':
+    for fg_key, fg_depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
+        # cases is the master table, merged into
+        if fg_key == 'cases':
             continue
 
-        parent_table_key = get_parent_table(table_keys, field_group_key)
-        parent_id_key = get_table_id_key(parent_table_key)
-        bq_parent_id_column = get_bq_name(API_PARAMS, parent_table_key, parent_id_key)
+        parent_table = get_parent_table(table_keys, fg_key)
+        parent_id_key = get_table_id_key(parent_table)
+        bq_parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
 
-        if field_group_key in table_keys:
+        if fg_key in bq_program_tables:
             record_count_dict = dict()
 
-            cnt = 0
-            for entry in flattened_case_dict[parent_table_key].copy():
+            idx = 0
+            for entry in flattened_case_dict[parent_table].copy():
                 entry_id = entry[bq_parent_id_column]
-                record_count_dict[entry_id] = dict()
-                record_count_dict[entry_id]['entry_idx'] = cnt
-                record_count_dict[entry_id]['record_count'] = 0
-                cnt += 1
+                if record_count_dict not in record_count_dict:
+                    record_count_dict[entry_id] = {'entry_idx': idx, 'record_count': 0}
+                    idx += 1
+
+            field_group = flattened_case_dict[fg_key].copy()
 
             for record in field_group:
-                if bq_parent_id_column not in record:
-                    print("no parent_id_key {} in record.".format(parent_id_key))
-                    continue
-
-                parent_id = record[bq_parent_id_column]
-
-                record_count_dict[parent_id]['record_count'] += 1
-
+                if bq_parent_id_column in record:
+                    parent_id = record[bq_parent_id_column]
+                    record_count_dict[parent_id]['record_count'] += 1
             for parent_id in record_count_dict:
                 entry_idx = record_count_dict[parent_id]['entry_idx']
-                record_count_key = get_bq_name(API_PARAMS, field_group_key, 'count')
-                record_count = record_count_dict[parent_id]['record_count']
-
-                flattened_case_dict[parent_table_key][entry_idx][record_count_key] = record_count
+                count_id = get_bq_name(API_PARAMS, fg_key, 'count')
+                flattened_case_dict[parent_table][entry_idx][count_id] = record_count_dict[parent_id]['record_count']
         else:
-            field_group = flattened_case_dict.pop(field_group_key)
+            field_group = flattened_case_dict.pop(fg_key)[0]
 
             if len(field_group) > 1:
-                has_fatal_error("length of record > 1, but this is supposed to be a flattened field group.")
-
-            field_group = field_group[0]
-
+                has_fatal_error("Field group {} has multiple entries but was supposed to flatten.".format(fg_key))
+            elif len(field_group) == 0:
+                continue
             if 'case_id' in field_group:
                 field_group.pop('case_id')
-
             # include keys with values
-            for key in field_group.keys():
-                if field_group[key]:
-                    flattened_case_dict[parent_table_key][0][key] = field_group[key]
-
+            for fg_key, fg_val in field_group.items():
+                if field_group[fg_key]:
+                    flattened_case_dict[parent_table][0][fg_key] = fg_val
     return flattened_case_dict
 
 
-def create_and_load_tables(program_name, cases, table_schemas):
+def create_and_load_tables(program_name, cases, table_schemas, record_counts):
+    bq_program_tables = get_tables(record_counts)
     print("Inserting case records... ")
     table_keys = table_schemas.keys()
 
@@ -666,7 +655,7 @@ def create_and_load_tables(program_name, cases, table_schemas):
 
     for case in cases:
         flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_tables)
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
@@ -933,12 +922,12 @@ def main(args):
 
             if 'create_and_load_tables' in steps:
                 table_schemas = create_schemas(table_columns, schema_dict, column_order_dict.copy())
-                create_and_load_tables(program_name, cases, table_schemas)
+                create_and_load_tables(program_name, cases, table_schemas, record_counts)
 
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
 
-        print("... processing completed for program {} in {:.2f} seconds\n".format(program_name, time.time() - prog_start))
+        print("executed in {:.2f} seconds for program {}!\n".format(program_name, time.time() - prog_start))
 
     if 'generate_documentation' in steps:
         finalize_documentation()
