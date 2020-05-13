@@ -54,11 +54,11 @@ def get_required_columns(table_key):
 
 
 def get_table_id_key(table_key):
-    if not API_PARAMS['FIELD_GROUP_METADATA']:
-        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
-    if 'table_id_key' not in API_PARAMS['FIELD_GROUP_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS['FIELD_GROUP_METADATA']['{}']".format(table_key))
-    return API_PARAMS['FIELD_GROUP_METADATA'][table_key]['table_id_key']
+    if not API_PARAMS['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+    if 'table_id_key' not in API_PARAMS['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
+    return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
 
 
 def get_id_column_position(table_key, column_order_dict):
@@ -100,15 +100,15 @@ def get_programs_list():
 
 def build_column_order_dict():
     column_order_dict = dict()
-    field_groups = API_PARAMS['FIELD_GROUP_ORDER']
+    field_groups = API_PARAMS['TABLE_ORDER']
     max_reference_cols = len(field_groups)
 
     idx = 0
 
     for fg in field_groups:
         try:
-            column_order_list = API_PARAMS['FIELD_GROUP_METADATA'][fg]['column_order']
-            id_column = API_PARAMS['FIELD_GROUP_METADATA'][fg]['table_id_key']
+            column_order_list = API_PARAMS['TABLE_METADATA'][fg]['column_order']
+            id_column = API_PARAMS['TABLE_METADATA'][fg]['table_id_key']
             for column in column_order_list:
                 bq_column = get_bq_name(fg, column)
 
@@ -124,8 +124,8 @@ def build_column_order_dict():
                 else:
                     idx += 1
         except KeyError:
-            has_fatal_error("{} found in API_PARAMS['FIELD_GROUP_ORDER'] "
-                            "but not in API_PARAMS['FIELD_GROUP_METADATA']".format(fg))
+            has_fatal_error("{} found in API_PARAMS['TABLE_ORDER'] "
+                            "but not in API_PARAMS['TABLE_METADATA']".format(fg))
 
     column_order_dict['state'] = idx
     column_order_dict['created_datetime'] = idx + 1
@@ -280,16 +280,16 @@ def create_schema_dict():
 # Functions used to determine a program's table structure(s)
 ##
 def get_excluded_fields(table_key, fatal=False, flattened=False):
-    if not API_PARAMS['FIELD_GROUP_METADATA']:
-        has_fatal_error("params['FIELD_GROUP_METADATA'] not found")
+    if not API_PARAMS['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
 
-    if 'excluded_fields' not in API_PARAMS['FIELD_GROUP_METADATA'][table_key]:
+    if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table_key]:
         if fatal:
-            has_fatal_error("excluded_fields not found in API_PARAMS['FIELD_GROUP_METADATA']['{}']".format(table_key))
+            has_fatal_error("excluded_fields not found in API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
         else:
             return None
 
-    base_column_names = API_PARAMS['FIELD_GROUP_METADATA'][table_key]['excluded_fields']
+    base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
 
     if flattened:
         return set(get_bq_name(table_key, column) for column in base_column_names)
@@ -409,7 +409,7 @@ def get_count_column_position(table_key, column_order_dict):
     bq_table_id_column_name = get_bq_name(table_key, table_id_key)
     id_column_position = column_order_dict[bq_table_id_column_name]
 
-    count_columns_position = id_column_position + len(API_PARAMS['FIELD_GROUP_ORDER'])
+    count_columns_position = id_column_position + len(API_PARAMS['TABLE_ORDER'])
 
     return count_columns_position
 
@@ -473,7 +473,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
         parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict)
-        count_columns_position = parent_id_column_position + len(API_PARAMS['FIELD_GROUP_ORDER'])
+        count_columns_position = parent_id_column_position + len(API_PARAMS['TABLE_ORDER'])
         count_id_key = get_bq_name(table_key, 'count')
 
         # add one-to-many record count column to parent table

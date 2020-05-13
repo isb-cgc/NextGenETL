@@ -491,18 +491,17 @@ def get_field_name(column):
         return column
 
 
-def get_bq_name(prefix, column):
-    if prefix and column:
-        column = prefix + '.' + column
-    if not column or '.' not in column:
-        return None
+def get_bq_name(api_params, prefix, column):
 
-    split_name = column.split('.')
+    try:
+        abbr_prefix = api_params['TABLE_METADATA'][prefix]['prefix']
+    except KeyError as err:
+        has_fatal_error('prefix in get_bq_name not valid: {} given'.format(prefix))
 
-    if split_name[0] == 'cases':
-        split_name = split_name[1:]
+    if not column:
+        has_fatal_error('get_bq_name needs an value for column param')
 
-    return '__'.join(split_name)
+    return abbr_prefix + '__' + column
 
 
 def get_parent_field_group(table_key):
