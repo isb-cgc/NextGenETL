@@ -590,7 +590,7 @@ def get_dataset_table_list(bq_params):
     return table_id_list
 
 
-def create_SchemaField(schema_dict, schema_key, required_columns):
+def make_SchemaField(schema_dict, schema_key, required_columns):
     return bigquery.SchemaField(name=schema_dict[schema_key]['name'],
                                 field_type=schema_dict[schema_key]['type'],
                                 mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
