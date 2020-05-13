@@ -435,6 +435,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         return {"name": record_count_id_key_, "type": 'INTEGER', "description": description}
 
     for table_key in table_columns.keys():
+        print(table_key)
         table_depth = len(table_key.split('.'))
 
         id_column_position = get_id_column_position(table_key, column_order_dict)
@@ -481,7 +482,6 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
 
 def create_schemas(table_columns, schema_dict, column_order_dict):
-    print(column_order_dict)
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
