@@ -391,8 +391,6 @@ def retrieve_program_case_structure(program_name, cases):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    print(table_columns)
-
     table_columns = flatten_tables(table_columns, record_counts)
 
     if not table_columns:
@@ -492,6 +490,8 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_order_dict = \
         add_reference_columns(table_columns, schema_dict, column_order_dict)
+
+    print(schema_dict)
 
     for table_key in table_columns:
         table_order_dict = dict()
