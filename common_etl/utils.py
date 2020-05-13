@@ -365,7 +365,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
     table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + table_name
     load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-    print('Starting job {}'.format(load_job.job_id))
+    print('\tStarting job {}'.format(load_job.job_id))
     start = time.time()
 
     location = 'US'
@@ -375,14 +375,14 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         load_job = client.get_job(load_job.job_id, location=location)
 
         if time.time() - start > 30:
-            print('Job {} is currently in state {}'.format(load_job.job_id, load_job.state))
+            print('\tJob {} is currently in state {}'.format(load_job.job_id, load_job.state))
 
         job_state = load_job.state
 
         if job_state != 'DONE':
             time.sleep(3)
 
-    print('Job {} is done'.format(load_job.job_id))
+    print('\tJob {} is done'.format(load_job.job_id))
 
     load_job = client.get_job(load_job.job_id, location=location)
 
@@ -390,7 +390,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error('While running BQ job: {} \n{}'.format(load_job.error_result, load_job.errors), ValueError)
 
     destination_table = client.get_table(table_id)
-    print('Loaded {} rows.'.format(destination_table.num_rows))
+    print('{} rows inserted.'.format(destination_table.num_rows))
 
 
 def pprint_json(json_obj):
