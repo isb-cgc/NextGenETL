@@ -639,8 +639,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
         parent_id_key = get_table_id_key(parent_table_key)
         bq_parent_id_column = get_bq_name(API_PARAMS, parent_table_key, parent_id_key)
 
-        print("FLATTENED DICT: {}".format(flattened_case_dict))
-
         if field_group_key in table_keys:
             record_count_dict = dict()
 
@@ -696,8 +694,12 @@ def create_and_load_tables(program_name, cases, table_schemas):
             os.remove(fp)
 
     for case in cases:
+
         flattened_case_dict = flatten_case(case, 'cases', dict(), table_keys, case['case_id'], case['case_id'])
+        print("1 FLATTENED DICT: {}".format(flattened_case_dict))
+
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, table_keys)
+        print("2 FLATTENED DICT: {}".format(flattened_case_dict))
 
         for table in flattened_case_dict.keys():
             if table not in table_keys:
