@@ -705,16 +705,16 @@ def create_and_load_tables(program_name, cases, table_schemas):
 #  Functions for creating documentation
 ##
 def initialize_documentation():
-    docs_filename = API_PARAMS['DOCS_OUTPUT_FILE']
+    docs_fp = API_PARAMS['DOCS_PATH'] + '' + API_PARAMS['DOCS_FILE']
 
-    with open(docs_filename, 'w') as doc_file:
+    with open(docs_fp, 'w') as doc_file:
         doc_file.write("New BQ Documentation\n")
 
 
 def generate_documentation(program_name, record_counts):
-    docs_filename = API_PARAMS['DOCS_OUTPUT_FILE']
+    docs_fp = API_PARAMS['DOCS_PATH'] + '' + API_PARAMS['DOCS_FILE']
 
-    with open(docs_filename, 'a') as doc_file:
+    with open(docs_fp, 'a') as doc_file:
         doc_file.write("{} \n".format(program_name))
         doc_file.write("{}".format(record_counts))
 
