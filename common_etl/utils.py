@@ -492,7 +492,6 @@ def get_field_name(column):
 
 
 def get_bq_name(prefix, column):
-    print('prefix {} - column {}'.format(prefix, column))
     if prefix and column:
         column = prefix + '.' + column
     if not column or '.' not in column:
