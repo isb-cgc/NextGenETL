@@ -399,6 +399,8 @@ def retrieve_program_case_structure(program_name, cases):
 
     print("Record counts for each field group: {}".format(record_counts))
 
+    print("TABLE COLS: {}".format(table_columns))
+
     return table_columns, record_counts
 
 
