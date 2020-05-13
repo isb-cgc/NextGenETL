@@ -504,7 +504,10 @@ def get_bq_name(api_params, prefix, column):
     if not column:
         has_fatal_error('get_bq_name needs an value for column param')
 
-    return abbr_prefix + '__' + column
+    if abbr_prefix:
+        return abbr_prefix + '__' + column
+    else:
+        return column
 
 
 def get_parent_field_group(table_key):
