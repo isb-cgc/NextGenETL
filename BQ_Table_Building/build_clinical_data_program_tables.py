@@ -305,41 +305,33 @@ def flatten_tables(tables, record_counts):
         return record_
 
     # record_counts uses fg naming convention
-    field_group_counts = dict.fromkeys(record_counts.keys(), 0)
+    field_group_depths = dict.fromkeys(record_counts.keys(), 0)
 
     # sort field group keys by depth
-    for fg_key in field_group_counts:
-        field_group_counts[fg_key] = len(fg_key.split("."))
+    for fg_key in field_group_depths:
+        field_group_depths[fg_key] = len(fg_key.split("."))
 
-    for field_group, depth in sorted(field_group_counts.items(), key=lambda item: item[1], reverse=True):
+    for field_group, depth in sorted(field_group_depths.items(), key=lambda item: item[1], reverse=True):
 
         tables[field_group] = remove_set_fields(tables[field_group], field_group)
 
         # this is cases, already flattened
         if depth == 1:
             break
+
         # this fg represents a one-to-many table grouping
-        if record_counts[field_group] > 1:
-            continue
-
-        split_field_group = field_group.split('.')
-
-        for field in tables[field_group]:
-            # check field naming on doubly-nested fields
-
-            prefix = ''
-            parent_key = None
-
-            for i in range(len(split_field_group) - 1, 0, -1):
-                parent_key = '.'.join(split_field_group[:i])
-
-                if parent_key not in tables:
-                    prefix += split_field_group[i] + '__'
+        if record_counts[field_group] == 1:
+            parent_key = get_parent_table(get_tables(record_counts), field_group)
 
             if not parent_key:
-                has_fatal_error("Cases should be the default parent key for any column without another table.")
-            else:
-                tables[parent_key].add(get_bq_name(API_PARAMS, field_group, field))
+                has_fatal_error("No parent key found for table {}, record_count_keys: {}".format(
+                    field_group, record_counts.keys()))
+
+            for field in tables[field_group].pop():
+                if not parent_key:
+                    has_fatal_error("Cases should be the default parent key for any column without another table.")
+                else:
+                    tables[parent_key].add(get_bq_name(API_PARAMS, field_group, field))
 
         tables.pop(field_group)
 
