@@ -780,8 +780,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         parent_id_key = get_table_id_key(parent_table)
         parent_id_column = get_bq_name(API_PARAMS, parent_table, parent_id_key)
 
-        print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(
-            fg_key, parent_table, parent_id_key, parent_id_column))
+        print("for fg: {}, parent_table: {}, id: {}, column: {} ".format(fg_key, parent_table,
+                                                                         parent_id_key, parent_id_column))
 
         if fg_key in bq_program_tables:
             record_count_dict = dict()
