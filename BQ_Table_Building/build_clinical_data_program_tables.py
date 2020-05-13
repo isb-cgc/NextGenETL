@@ -378,7 +378,8 @@ def retrieve_program_case_structure(program_name, cases):
             elif isinstance(case_[field_key], dict):
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key], record_counts_, parent_path)
             else:
-                table_columns[parent_path].add(field_key)
+                bq_name = get_bq_name(API_PARAMS, parent_path, field_key)
+                table_columns[parent_path].add(bq_name)
 
         return tables_, record_counts_
 
@@ -512,7 +513,6 @@ def rebuild_bq_name(column):
 
 
 def create_schemas(table_columns, schema_dict, column_order_dict):
-    print("table_columns!! {}".format(table_columns))
     table_schema_fields = dict()
 
     # modify schema dict, add reference columns for this program
