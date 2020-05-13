@@ -527,9 +527,6 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             else:
                 full_column_name = column
 
-            print("{} -> {}".format(column, full_column_name))
-            continue
-
             # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
             # don't rename if this is a parent_id column
