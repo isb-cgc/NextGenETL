@@ -568,13 +568,14 @@ def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None
                 flattened_case_dict[prefix] = list()
             flattened_case_dict[prefix].append(entry_dict)
 
-            parent_id_key = get_table_id_key(prefix)
-            parent_id = entry[parent_id_key]
-
             for key in entry:
                 if isinstance(entry[key], list):
+                    parent_id_key = get_table_id_key(prefix)
+                    parent_id = entry[parent_id_key]
+                    bq_parent_id_key = get_bq_name(API_PARAMS, prefix, parent_id_key)
+
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict,
-                                                       case_id, parent_id, parent_id_key)
+                                                       case_id, parent_id, bq_parent_id_key)
     else:
         entry_dict = dict()
 
