@@ -697,12 +697,12 @@ def create_and_load_tables(program_name, cases, table_schemas):
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
+    print(table_schemas)
+
     for table in table_schemas:
         jsonl_file = get_jsonl_filename(program_name, table)
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
         table_id = get_table_id(program_name, table)
-
-        print(table_schemas[table])
 
         try:
             create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
