@@ -639,6 +639,8 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys):
         parent_id_key = get_table_id_key(parent_table_key)
         bq_parent_id_column = get_bq_name(API_PARAMS, parent_table_key, parent_id_key)
 
+        print("FLATTENED DICT: {}".format(flattened_case_dict))
+
         if field_group_key in table_keys:
             record_count_dict = dict()
 
