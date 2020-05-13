@@ -194,9 +194,9 @@ def lookup_column_types():
         column_type_dict[vals[0]] = vals[1]
 
     single_nested_query_dict = {
-        "cases.family_histories": family_histories_query,
-        "cases.demographic": demographic_query,
-        "cases.exposures": exposures_query
+        "family_histories": family_histories_query,
+        "demographic": demographic_query,
+        "exposures": exposures_query
     }
 
     for key in single_nested_query_dict.keys():
@@ -212,9 +212,9 @@ def lookup_column_types():
         vals = result.values()
         split_vals = vals[1].split('molecular_tests ')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'cases.follow_ups')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[0] + ' ', 'follow_ups')
 
-        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'cases.follow_ups.molecular_tests.')
+        column_type_dict = split_datatype_array(column_type_dict, split_vals[1][:-2], 'follow_ups.molecular_tests.')
 
     results = get_query_results(diagnoses_query)
 
@@ -242,9 +242,9 @@ def lookup_column_types():
         diagnoses = diagnoses[:-2] + '>>'
 
     # parse field list strings
-    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'cases.diagnoses.')
-    column_type_dict = split_datatype_array(column_type_dict, treatments, 'cases.diagnoses.treatments.')
-    column_type_dict = split_datatype_array(column_type_dict, annotations, 'cases.diagnoses.annotations.')
+    column_type_dict = split_datatype_array(column_type_dict, diagnoses, 'diagnoses.')
+    column_type_dict = split_datatype_array(column_type_dict, treatments, 'diagnoses.treatments.')
+    column_type_dict = split_datatype_array(column_type_dict, annotations, 'diagnoses.annotations.')
 
     return column_type_dict
 
