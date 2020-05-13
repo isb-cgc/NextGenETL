@@ -141,15 +141,12 @@ def get_programs_list():
     Get list of programs represented in GDC API master pull.
     :return: List of GDC programs.
     """
-    programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['METADATA_DATASET'] + '.' + \
-                        BQ_PARAMS['GDC_RELEASE'] + '_caseData'
+    programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['METADATA_DATASET'] + \
+                        '.' + BQ_PARAMS['GDC_RELEASE'] + '_caseData'
 
     programs = set()
     results = get_query_results(
-        """
-        SELECT distinct(program_name)
-        FROM `{}`
-        """.format(programs_table_id))
+        "SELECT distinct(program_name) FROM `{}`".format(programs_table_id))
 
     for result in results:
         programs.add(result.program_name)
@@ -393,11 +390,12 @@ def get_excluded_fields(table_key):
 
 def flatten_tables(table_columns, record_counts):
     """
-    From dict containing table_name keys and sets of column names, remove excluded columns,
-    merge into parent table if this field group can be flattened for this program.
+    From dict containing table_name keys and sets of column names,
+    remove excluded columns, merge into parent table if this field group can
+        be flattened for this program.
     :param table_columns: dict of tables and columns
-    :param record_counts: dict showing max record count for a case in this program, used in table
-    creation.
+    :param record_counts: dict showing max record count for a case in this program,
+    used in table creation.
     :return: flattened table column dict.
     """
 
@@ -416,9 +414,11 @@ def flatten_tables(table_columns, record_counts):
     for fg_key in field_group_depths:
         field_group_depths[fg_key] = len(fg_key.split("."))
 
-    for field_group, depth in sorted(field_group_depths.items(), key=lambda item: item[1],
+    for field_group, depth in sorted(field_group_depths.items(),
+                                     key=lambda item: item[1],
                                      reverse=True):
-        table_columns[field_group] = remove_excluded_fields(table_columns[field_group], field_group)
+        table_columns[field_group] = remove_excluded_fields(table_columns[field_group],
+                                                            field_group)
 
         # this is cases, already flattened
         if depth == 1:
@@ -477,7 +477,9 @@ def retrieve_program_case_structure(program_name, cases):
                 record_counts_[new_path] = max(record_counts_[new_path], len(case_[field_key]))
 
                 for entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(tables_, entry, record_counts_,
+                    tables_, record_counts_ = build_case_structure(tables_,
+                                                                   entry,
+                                                                   record_counts_,
                                                                    new_path)
             elif isinstance(case_[field_key], dict):
                 tables_, record_counts_ = build_case_structure(tables_, case_[field_key],
@@ -492,7 +494,9 @@ def retrieve_program_case_structure(program_name, cases):
     record_counts = {}
 
     for case in cases:
-        table_columns, record_counts = build_case_structure(table_columns, case, record_counts,
+        table_columns, record_counts = build_case_structure(table_columns,
+                                                            case,
+                                                            record_counts,
                                                             parent_path='cases')
 
     table_columns = flatten_tables(table_columns, record_counts)
@@ -648,17 +652,16 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
     Create ordered schema lists for final tables.
     :param table_columns: dict containing table column keys
     :param schema_dict: dict containing schema records
-    :param column_order_dict: dict containing relative column index positions, used for schema
-    ordering
+    :param column_order_dict: dict containing relative column
+            index positions, used for schema ordering
     :return: lists of BQ SchemaFields.
     """
     schema_field_lists = dict()
     table_order_lists = dict()
 
     # modify schema dict, add reference columns for this program
-    schema_dict, table_columns, column_order_dict = add_reference_columns(table_columns,
-                                                                          schema_dict,
-                                                                          column_order_dict)
+    schema_dict, table_columns, column_order_dict = \
+        add_reference_columns(table_columns, schema_dict, column_order_dict)
 
     for table_key in table_columns:
         column_orders = dict()
@@ -672,8 +675,8 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
             count_column_position = get_count_column_position(table_key, column_order_dict)
 
             if not full_column_name or full_column_name not in column_order_dict:
-                has_fatal_error(
-                    "'{}' not in col_order_dict!\n {}".format(full_column_name, column_order_dict))
+                has_fatal_error("'{}' not in col_order_dict!\n {}".
+                                format(full_column_name, column_order_dict))
 
             column_orders[full_column_name] = column_order_dict[full_column_name]
 
@@ -727,12 +730,11 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
     Convert nested case object into a flattened representation of its records.
     :param case: dict containing case data
     :param prefix: name of parent field group.
-    :param flat_case_dict: flattened dictionary for case (used to recursively capture the record as
-    it's parsed).
+    :param flat_case_dict: flattened dictionary for case (used to recursively
+        capture the record as it's parsed).
     :param case_id: case record's id value
-    :param new_p_id: value of parent id for this record (or duplicate of case_id if record doesn't
-    have a more
-    direct ancestor.)
+    :param new_p_id: value of parent id for this record (or duplicate of case_id
+        if record doesn't have a more direct ancestor.)
     :param new_p_id_key: parent table's key for unique ids.
     :return: flattened case dict
     """
@@ -768,8 +770,8 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_
                     new_p_id = entry[new_p_id_key]
                     new_p_key = get_bq_name(API_PARAMS, prefix, new_p_id_key)
 
-                    flat_case_dict = flatten_case(entry[key], new_prefix, flat_case_dict, case_id,
-                                                  new_p_id, new_p_key)
+                    flat_case_dict = flatten_case(
+                        entry[key], new_prefix, flat_case_dict, case_id, new_p_id, new_p_key)
     else:
         entry_dict = dict()
 
@@ -866,8 +868,8 @@ def merge_single_entry_field_groups(flattened_case_dict, bq_program_tables):
 
 def create_and_load_tables(program_name, cases, table_schemas, record_counts):
     """
-    Create jsonl row files for future insertion, store in GC storage bucket, then insert the new
-    table schemas and data.
+    Create jsonl row files for future insertion, store in GC storage bucket,
+    then insert the new table schemas and data.
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param table_schemas: dict of schema lists for all of this program's tables.
@@ -883,8 +885,8 @@ def create_and_load_tables(program_name, cases, table_schemas, record_counts):
             os.remove(file_path)
 
     for case in cases:
-        flattened_case_dict = flatten_case(case, 'cases', dict(), case['case_id'], case['case_id'],
-                                           'case_id')
+        flattened_case_dict = flatten_case(
+            case, 'cases', dict(), case['case_id'], case['case_id'], 'case_id')
 
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict,
                                                               bq_program_tables)
@@ -961,13 +963,13 @@ def print_final_report(start, steps):
 
 def main(args):
     start = time.time()
-    steps = None
+    steps = []
     documentation_dict = dict()
 
     # Load YAML configuration
     if len(args) != 2:
-        has_fatal_error('Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])',
-                        ValueError)
+        has_fatal_error(
+            'Usage : {} <configuration_yaml> <column_order_txt>".format(args[0])', ValueError)
 
     with open(args[1], mode='r') as yaml_file:
         try:
@@ -976,7 +978,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    program_names = get_programs_list()
+    # program_names = get_programs_list()
+    program_names = ['VAREPOP']
     column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
 
@@ -1000,8 +1003,8 @@ def main(args):
             # create tables, flatten and insert data
             create_and_load_tables(program_name, cases, table_schemas, record_counts)
 
-            print(
-                "{} processed in {:0.1f} seconds!\n".format(program_name, time.time() - prog_start))
+            print("{} processed in {:0.1f} seconds!\n".
+                  format(program_name, time.time() - prog_start))
 
             if 'generate_documentation' in steps:
                 table_ids = {table: get_table_id(BQ_PARAMS, table) for table in
@@ -1012,7 +1015,7 @@ def main(args):
 
                 documentation_dict[program_name] = {
                     'record_counts': record_counts,
-                    'table_schemas': [table_schemas],
+                    'table_schemas': str(table_schemas),
                     'table_columns': table_column_lists,
                     'table_ids': table_ids,
                     'table_order_dict': table_order_lists
