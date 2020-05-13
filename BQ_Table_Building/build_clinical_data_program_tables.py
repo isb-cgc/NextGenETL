@@ -401,8 +401,7 @@ def retrieve_program_case_structure(program_name, cases):
 ##
 def get_count_column_position(table_key, column_order_dict):
     table_id_key = get_table_id_key(table_key)
-    bq_table_id_column_name = get_bq_name(API_PARAMS, table_key, table_id_key)
-    id_column_position = column_order_dict[bq_table_id_column_name]
+    id_column_position = column_order_dict[table_id_key]
 
     count_columns_position = id_column_position + len(API_PARAMS['TABLE_ORDER'])
 
@@ -469,8 +468,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
         reference_col_position += 1
 
         parent_table_key = get_parent_table(table_columns.keys(), table_key)
-        parent_id_column_position = get_id_column_position(parent_table_key, column_order_dict)
-        count_columns_position = parent_id_column_position + len(API_PARAMS['TABLE_ORDER'])
+        count_columns_position = get_count_column_position(parent_table_key, column_order_dict)
 
         count_id_key = get_bq_name(API_PARAMS, table_key, 'count')
         count_column = parent_table_key + '.' + count_id_key
@@ -495,6 +493,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
+            # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
             # don't rename if this is a parent_id column
             if '__' in column:
