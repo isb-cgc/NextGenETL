@@ -785,7 +785,6 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
 
         if fg_key in bq_program_tables:
             record_count_dict = dict()
-
             idx = 0
             for entry in flattened_case_dict[parent_table].copy():
                 print(entry)
@@ -808,9 +807,7 @@ def merge_single_entry_field_groups(flattened_case_dict, table_keys, bq_program_
         else:
             field_group = flattened_case_dict.pop(fg_key)[0]
 
-            if len(field_group) > 1:
-                has_fatal_error("Field group {} has multiple entries but was supposed to flatten.".format(fg_key))
-            elif len(field_group) == 0:
+            if len(field_group) == 0:
                 continue
             if 'case_id' in field_group:
                 field_group.pop('case_id')
