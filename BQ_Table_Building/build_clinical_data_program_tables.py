@@ -698,15 +698,15 @@ def remove_dict_fields(record, table_name):
 ##
 # Functions used for parsing and loading data into BQ tables
 ##
-def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, parent_id_key=None):
+def flatten_case(case, prefix, flat_case_dict, case_id=None, new_p_id=None, new_p_id_key=None):
     """
 
     :param case:
     :param prefix:
     :param flat_case_dict:
     :param case_id:
-    :param parent_id:
-    :param parent_id_key:
+    :param new_p_id:
+    :param new_p_id_key:
     :return:
     """
     if isinstance(case, list):
@@ -716,25 +716,30 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, par
                 if not isinstance(entry[key], list):
                     curr_table_id_key = get_table_id_key(prefix)
 
-                    if case_id != parent_id and curr_table_id_key != parent_id_key:
-                        parent_key = get_bq_name(API_PARAMS, get_parent_field_group(prefix), parent_id_key)
-                        entry_dict[parent_key] = parent_id
-                    entry_dict['case_id'] = case_id
-            print(entry_dict)
-            entry_dict = remove_dict_fields(entry_dict, prefix)
-            print(entry_dict)
+                    if case_id != new_p_id and curr_table_id_key != new_p_id_key:
+                        entry_dict[new_p_id_key] = new_p_id
 
-            if prefix not in flat_case_dict:
-                flat_case_dict[prefix] = list()
-            flat_case_dict[prefix].append(entry_dict)
+                    if 'case_id' not in entry_dict:
+                        entry_dict['case_id'] = case_id
+
+                    # todo should this be a bq field name?
+                    entry_dict[key] = key[entry]
+
+            if entry_dict:
+                entry_dict = remove_dict_fields(entry_dict, prefix)
+
+                if prefix not in flat_case_dict:
+                    flat_case_dict[prefix] = list()
+                flat_case_dict[prefix].append(entry_dict)
 
             for key in entry:
                 if isinstance(entry[key], list):
-                    parent_id_key = get_table_id_key(prefix)
-                    parent_id = entry[parent_id_key]
-                    parent_key = get_bq_name(API_PARAMS, prefix, parent_id_key)
-                    n_prefix = prefix + '.' + key
-                    flat_case_dict = flatten_case(entry[key], n_prefix, flat_case_dict, case_id, parent_id, parent_key)
+                    new_prefix = prefix + '.' + key
+                    new_p_id_key = get_table_id_key(prefix)
+                    new_p_id = entry[new_p_id_key]
+                    new_p_key = get_bq_name(API_PARAMS, prefix, new_p_id_key)
+
+                    flat_case_dict = flatten_case(entry[key], new_prefix, flat_case_dict, case_id, new_p_id, new_p_key)
     else:
         entry_dict = dict()
 
@@ -751,11 +756,13 @@ def flatten_case(case, prefix, flat_case_dict, case_id=None, parent_id=None, par
             flat_case_dict[prefix].append(entry_dict)
 
         for key in case:
-            if not isinstance(case[key], list):
-                continue
+            if isinstance(case[key], list):
+                new_prefix = prefix + '.' + key
+                new_p_id_key = get_table_id_key(prefix)
+                new_p_id = case[new_p_id_key]
+                new_p_key = get_bq_name(API_PARAMS, prefix, new_p_id_key)
 
-            flat_case_dict = flatten_case(case[key], prefix + '.' + key, flat_case_dict,
-                                          case_id, parent_id, parent_id_key)
+                flat_case_dict = flatten_case(case[key], new_prefix, flat_case_dict, case_id, new_p_id, new_p_key)
 
     return flat_case_dict
 
