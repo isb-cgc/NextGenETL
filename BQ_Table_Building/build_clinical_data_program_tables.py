@@ -458,7 +458,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
             reference_col_position += 1
 
         case_id_key = 'case_id'
-        case_id_column = table_key + 'case_id'
+        case_id_column = table_key + '.case_id'
 
         # add case_id to one-to-many table
         schema_dict[case_id_column] = generate_id_schema_entry(case_id_key, 'main')
