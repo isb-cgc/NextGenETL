@@ -385,9 +385,15 @@ def retrieve_program_case_structure(program_name, cases):
 
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
-    table_columns = flatten_tables(table_columns, record_counts)
+
     print("COLS 1")
     print(table_columns)
+
+    table_columns = flatten_tables(table_columns, record_counts)
+
+    print("COLS 2")
+    print(table_columns)
+
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
