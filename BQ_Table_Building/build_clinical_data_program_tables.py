@@ -734,6 +734,7 @@ def create_and_load_tables(program_name, cases, table_schemas):
 
         table_id = get_table_id(program_name, table)
         print(' - for table {}, table_id {}:'.format(table, table_id))
+        print("table schema keys: {}".format(table_schemas.keys()))
 
         try:
             create_and_load_table(BQ_PARAMS, jsonl_file, table_schemas[table], table_id)
