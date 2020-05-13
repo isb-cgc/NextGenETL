@@ -521,11 +521,9 @@ def get_bq_name(api_params, table_path, column):
     if table_path in table_abbr_dict:
         prefix = table_abbr_dict[table_path]
 
-
     if prefix:
         return prefix + '__' + column
     else:
-        print('GET_BQ_NAME\n path: {}, column: {}, prefix: {}'.format(table_path, column, prefix))
         return column
 
 
