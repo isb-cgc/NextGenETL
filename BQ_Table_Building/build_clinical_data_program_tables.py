@@ -289,7 +289,7 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
     base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
 
     bq_namer = [get_bq_name(API_PARAMS, table_key, x) for x in base_column_names]
-    print(bq_namer)
+    print("BQ_NAMER"+ bq_namer)
 
     if flattened:
         return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
