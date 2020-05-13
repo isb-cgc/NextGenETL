@@ -289,10 +289,11 @@ def get_excluded_fields(table_key, fatal=False, flattened=False):
     base_column_names = API_PARAMS['TABLE_METADATA'][table_key]['excluded_fields']
 
     bq_namer = [get_bq_name(API_PARAMS, table_key, x) for x in base_column_names]
-    print("BQ_NAMER {}".format(bq_namer))
 
     if flattened:
-        return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
+        return bq_namer
+
+        # return set(get_bq_name(API_PARAMS, table_key, column) for column in base_column_names)
     else:
         return bq_namer
         # return base_column_names
@@ -302,8 +303,6 @@ def flatten_tables(tables, record_counts):
     def remove_set_fields(record_, table_name):
 
         excluded_fields = get_excluded_fields(table_name, fatal=True)
-
-        print("table name: {}, excluded: {}, record: {}".format(table_name, excluded_fields, record_))
 
         for field_ in record_.copy():
             if field_ in excluded_fields:
@@ -389,11 +388,7 @@ def retrieve_program_case_structure(program_name, cases):
     for case in cases:
         table_columns, record_counts = build_case_structure(table_columns, case, record_counts, parent_path='cases')
 
-    # print("table_cols 1 : {}".format(table_columns))
-
     table_columns = flatten_tables(table_columns, record_counts)
-
-    # print("table_cols 2 : {}".format(table_columns))
 
     if not table_columns:
         has_fatal_error("[ERROR] no case structure returned for program {}".format(program_name))
