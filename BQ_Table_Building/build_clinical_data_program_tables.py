@@ -482,6 +482,23 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
     return schema_dict, table_columns, column_order_dict
 
 
+def rebuild_bq_name(column):
+    if '__' not in column:
+        return column
+
+    abbr_dict = dict()
+    for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
+        if table_metadata['prefix']:
+            abbr_dict[table_metadata['prefix']] = table_key
+    split_column = column.split('__')
+    prefix = split_column[:-1]
+
+    if abbr_dict[prefix]:
+        return prefix + '.' + split_column[-1]
+    else:
+        return 'cases.' + split_column[-1]
+
+
 def create_schemas(table_columns, schema_dict, column_order_dict):
     table_schema_fields = dict()
 
@@ -493,6 +510,12 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
         table_order_dict = dict()
 
         for column in table_columns[table_key]:
+            if '__' in column:
+                full_column_name = rebuild_bq_name(column)
+
+            print("{} -> {}".format(column, full_column_name))
+            continue
+
             # todo what's this doing?
             count_column_position = get_count_column_position(table_key, column_order_dict)
             # don't rename if this is a parent_id column
