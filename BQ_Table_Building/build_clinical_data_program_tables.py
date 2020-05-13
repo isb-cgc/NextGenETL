@@ -875,7 +875,6 @@ def create_and_load_tables(program_name, cases, table_schemas, record_counts):
 #  Functions for creating documentation
 ##
 def generate_documentation(documentation_dict):
-    print(documentation_dict)
     json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_clin_json_documentation_dump.json'
 
     with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
@@ -925,8 +924,8 @@ def main(args):
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
-    # program_names = get_programs_list()
-    program_names = ['VAREPOP']
+    program_names = get_programs_list()
+    # program_names = ['VAREPOP']
     column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
 
