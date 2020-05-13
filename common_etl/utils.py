@@ -495,12 +495,15 @@ def get_bq_name(api_params, prefix, column):
     if not prefix:
         split_column = column.split('.')
         prefix = '.'.join(split_column[:-1])
+
+        if split_column[0] != 'cases':
+            prefix = 'cases.' + prefix
+
         column = split_column[-1]
     try:
         abbr_prefix = api_params['TABLE_METADATA'][prefix]['prefix']
     except KeyError as err:
         has_fatal_error('prefix in get_bq_name not valid: {} given'.format(prefix))
-
     if not column:
         has_fatal_error('get_bq_name needs an value for column param')
 
