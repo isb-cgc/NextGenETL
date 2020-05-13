@@ -503,28 +503,28 @@ def get_abbr_dict(api_params):
 def get_bq_name(api_params, table_path, column):
     table_abbr_dict = get_abbr_dict(api_params)
 
-    split_column = column.split('.')
-
     if not table_path:
-        if len(split_column) > 0 and split_column[0] == 'cases':
-            table_path = ".".join(split_column[:-1])
+        split_column = column.split('.')
     else:
-        if len(split_column[:-1]) > 0:
-            table_path = table_path + '.' + '.'.join(split_column[:-1])
-            column = split_column[-1]
+        full_name = table_path + '.' + column
+        split_column = full_name.split('.')
 
-        if split_column[0] != 'cases':
-            table_path = 'cases.' + table_path
+    if len(split_column) == 1 or \
+            (len(split_column) == 2 and split_column[0] == 'cases'):
+        return split_column[-1]
 
-    prefix = None
+    if split_column[0] != 'cases':
+        split_column.insert(0, 'cases')
 
-    if table_path in table_abbr_dict:
-        prefix = table_abbr_dict[table_path]
+    column = split_column[-1]
+    split_column = split_column[:-1]
+    table_key = ".".join(split_column)
 
-    if prefix:
-        return prefix + '__' + column
-    else:
+    if table_key not in table_abbr_dict:
         return column
+
+    prefix = table_abbr_dict[table_path]
+    return prefix + '__' + column
 
 
 def get_parent_field_group(table_key):
