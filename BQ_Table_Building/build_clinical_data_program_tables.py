@@ -1,8 +1,27 @@
+"""
+Copyright 2020, Institute for Systems Biology
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify,
+merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
 import math
 import sys
 import json
 import os
 from common_etl.utils import *
+from gdc_clinical_resources.test_data_integrity import test_table_output
 
 API_PARAMS = None
 BQ_PARAMS = None
@@ -66,15 +85,6 @@ def get_full_table_name(program_name, table):
     return generate_long_name(program_name, table)
 
 
-def get_table_id(table_name):
-    """
-    Get the full table_id (Including project and dataset) for a given table.
-    :param table_name: Desired table name (can be created using get_table_id
-    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
-    """
-    return BQ_PARAMS["WORKING_PROJECT"] + '.' + BQ_PARAMS["TARGET_DATASET"] + '.' + table_name
-
-
 def get_required_columns(table_key):
     """
     Get list of required columns. Currently generated, but intended to also work if supplied in YAML config file.
@@ -114,23 +124,24 @@ def get_id_column_position(table_key, column_order_dict):
     return column_order_dict[table_key + '.' + table_id_key]
 
 
-##
-# Functions which retrieve preliminary information used for creating table schemas / ingesting data
+###
+#   Functions which retrieve preliminary information used for creating table schemas / ingesting data
+#
 ##
 def get_programs_list():
     """
     Get list of programs represented in GDC API master pull.
     :return: List of GDC programs.
     """
-    programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['PROGRAM_ID_TABLE']
+    programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['METADATA_DATASET'] + '.' + \
+                        BQ_PARAMS['GDC_RELEASE'] + '_caseData'
 
     programs = set()
     results = get_query_results(
         """
         SELECT distinct(program_name)
         FROM `{}`
-        """.format(programs_table_id)
-    )
+        """.format(programs_table_id))
 
     for result in results:
         programs.add(result.program_name)
@@ -180,6 +191,7 @@ def lookup_column_types():
     Determing column types for data columns, using existing master table's schema.
     :return: dict of column names: types
     """
+
     def split_datatype_array(col_dict, col_string, name_prefix):
         """
 
@@ -370,6 +382,7 @@ def flatten_tables(table_columns, record_counts):
     :param record_counts: dict showing max record count for a case in this program, used in table creation.
     :return: flattened table column dict.
     """
+
     def remove_excluded_fields(record_, table_name):
         excluded_fields = get_excluded_fields(table_name)
 
@@ -416,15 +429,8 @@ def retrieve_program_case_structure(program_name, cases):
     :param cases: dict of program's case records
     :return: dict of tables and columns, dict with maximum record count for this program's field groups.
     """
-    def build_case_structure(tables_, case_, record_counts_, parent_path):
-        """
 
-        :param tables_:
-        :param case_:
-        :param record_counts_:
-        :param parent_path:
-        :return:
-        """
+    def build_case_structure(tables_, case_, record_counts_, parent_path):
         """
         Recursive function for retrieve_program_data, finds nested fields
         """
@@ -505,6 +511,7 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
     :param column_order_dict: dict containing relative column index positions, used for schema ordering
     :return: table_columns, schema_dict, column_order_dict
     """
+
     def generate_id_schema_entry(column_name, parent_table_key_):
         """
 
@@ -596,6 +603,7 @@ def rebuild_bq_name(column):
     :param column: abbreviated bq_column name
     :return: column name in field group format ('.' separators rather than '__')
     """
+
     def get_abbr_dict_():
         abbr_dict_ = dict()
 
@@ -866,212 +874,13 @@ def create_and_load_tables(program_name, cases, table_schemas, record_counts):
 ##
 #  Functions for creating documentation
 ##
-def initialize_documentation():
-    docs_fp = API_PARAMS['DOCS_PATH'] + '' + API_PARAMS['DOCS_FILE']
+def generate_documentation(documentation_dict):
+    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_clin_json_documentation_dump.json'
 
-    with open(docs_fp, 'w') as doc_file:
-        doc_file.write("New BQ Documentation\n")
+    with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
+        json.dump(documentation_dict, json_file)
 
-
-def generate_documentation(program_name, record_counts):
-    docs_fp = API_PARAMS['DOCS_PATH'] + '' + API_PARAMS['DOCS_FILE']
-
-    with open(docs_fp, 'a') as doc_file:
-        doc_file.write("{} \n".format(program_name))
-        doc_file.write("{}".format(record_counts))
-
-
-def finalize_documentation():
-    upload_to_bucket(BQ_PARAMS, API_PARAMS['DOCS_PATH'], API_PARAMS['DOCS_FILE'])
-
-
-##
-# Functions used for validating inserted data
-##
-def get_record_count_list(table, table_fg_key, parent_table_id_key):
-    """
-    Get record counts from newly created BQ tables.
-    :param table: table for which to derive counts
-    :param table_fg_key: key representing table's field group.
-    :param parent_table_id_key: key used to uniquely identify the records of this table's ancestor.
-    :return: list of max record counts.
-    """
-    table_path = get_table_id(table)
-    table_id_key = get_table_id_key(table_fg_key)
-    table_id_column = get_bq_name(API_PARAMS, table_fg_key, table_id_key)
-
-    results = get_query_results(
-        """
-        SELECT distinct({}), count({}) as record_count 
-        FROM `{}` 
-        GROUP BY {}
-        """.format(parent_table_id_key, table_id_column, table_path, parent_table_id_key)
-    )
-
-    record_count_list = []
-
-    for result in results:
-        result_tuple = result.values()
-
-        record_count = result_tuple[1]
-        count_label = 'record_count'
-
-        record_count_list.append({
-            parent_table_id_key: parent_table_id_key,
-            'table': table,
-            count_label: record_count
-        })
-
-    return record_count_list
-
-
-def get_main_table_count(program_name, table_id_key, field_name, parent_table_id_key=None, parent_field_name=None):
-    """
-    Query the origin BQ table's record for a specific case_id. Used to verify completion of data insertion.
-    :param program_name: program for which to get counts
-    :param table_id_key: table for which to get counts
-    :param field_name: field name for counts
-    :param parent_table_id_key: parent table's unique id key name
-    :param parent_field_name: parent's bq table name
-    :return: case_id, parent_id (or None if not doubly nested record, integer count of records for these IDs.
-    """
-    table_path = get_table_id(BQ_PARAMS['GDC_RELEASE' + '_clinical_data'])
-    program_table_path = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS['PROGRAM_ID_TABLE']
-
-    if not parent_table_id_key or not parent_field_name or parent_table_id_key == 'case_id':
-        query = """
-            SELECT case_id, count(p.{}) as cnt
-            FROM `{}`,
-            UNNEST({}) as p
-            WHERE case_id in (
-            SELECT case_gdc_id 
-            FROM `{}` 
-            WHERE program_name = '{}'
-            )
-            GROUP BY case_id
-            ORDER BY cnt DESC
-            LIMIT 1
-        """.format(table_id_key,
-                   table_path,
-                   field_name,
-                   program_table_path,
-                   program_name)
-
-        results = get_query_results(query)
-
-        for result in results:
-            res = result.values()
-            return res[0], None, res[1]
-
-    else:
-        query = """
-            SELECT case_id, p.{}, count(pc.{}) as cnt
-            FROM `{}`,
-            UNNEST({}) as p,
-            UNNEST(p.{}) as pc
-            WHERE case_id in (
-            SELECT case_gdc_id 
-            FROM `{}` 
-            WHERE program_name = '{}'
-            )
-            GROUP BY {}, case_id
-            ORDER BY cnt DESC
-            LIMIT 1
-        """.format(parent_table_id_key,
-                   table_id_key,
-                   table_path,
-                   parent_field_name,
-                   field_name,
-                   program_table_path,
-                   program_name,
-                   parent_table_id_key)
-
-        results = get_query_results(query)
-
-        for result in results:
-            res = result.values()
-            return res[0], res[1], res[2]
-
-
-def test_table_output():
-    """
-    Function which compares counts from three sources: BQ queries of the original master table, counts achieved in
-    Python using the json record output, and counts queried from the newly-created tables.
-    """
-    table_ids = get_dataset_table_list(BQ_PARAMS)
-
-    program_names = get_programs_list()
-    program_names.remove('CCLE')
-
-    program_table_lists = dict()
-
-    for program_name in program_names:
-        print("\nFor program {}:".format(program_name))
-
-        main_table_id = get_full_table_name(program_name, 'cases')
-        program_table_lists[main_table_id] = []
-
-        for table in table_ids:
-            if main_table_id in table and main_table_id != table:
-                program_table_lists[main_table_id].append(table)
-
-        if not program_table_lists[main_table_id]:
-            print("... no one-to-many tables")
-            continue
-
-        table_fg_list = ['cases']
-
-        for table in program_table_lists[main_table_id]:
-            table_fg_list.append(convert_bq_table_id_to_fg(table))
-
-        program_table_query_max_counts = dict()
-
-        for table in program_table_lists[main_table_id]:
-            table_fg = convert_bq_table_id_to_fg(table)
-            table_id_key = get_table_id_key(table_fg)
-            table_field = get_field_name(table_fg)
-
-            parent_table_fg = get_parent_table(table_fg_list, table_fg)
-            parent_id_key = get_table_id_key(parent_table_fg)
-
-            full_parent_id_key = get_bq_name(API_PARAMS, parent_table_fg, parent_id_key)
-
-            record_count_list = get_record_count_list(table, table_fg, full_parent_id_key)
-
-            max_count, max_count_id = get_max_count(record_count_list)
-
-            parent_fg = get_parent_field_group(table_fg)
-            parent_fg_id_key = get_table_id_key(parent_fg)
-            parent_fg_field = get_field_name(parent_fg)
-
-            mt_case_id, mt_child_id, mt_max_count = get_main_table_count(
-                program_name, table_id_key, table_field, parent_fg_id_key, parent_fg_field)
-
-            if max_count != mt_max_count:
-                has_fatal_error("NOT A MATCH for {}. {} != {}".format(table_fg, max_count, mt_max_count))
-
-            program_table_query_max_counts[table_fg] = max_count
-
-        cases = get_cases_by_program(BQ_PARAMS, program_name)
-
-        table_columns, record_counts = retrieve_program_case_structure(program_name, cases)
-
-        cases_tally_max_counts = dict()
-
-        for key in record_counts:
-            count = record_counts[key]
-
-            if count > 1:
-                cases_tally_max_counts[key] = count
-
-        for key in cases_tally_max_counts:
-            if key not in program_table_query_max_counts:
-                has_fatal_error("No match found for {} in program_table_query_max_counts: {}".format(
-                    key, program_table_query_max_counts))
-            elif cases_tally_max_counts[key] != program_table_query_max_counts[key]:
-                has_fatal_error("NOT A MATCH for {}. {} != {}".format(
-                    key, cases_tally_max_counts[key], program_table_query_max_counts[key]))
-        print("Counts all match! Moving on.")
+    upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], json_doc_file)
 
 
 ##
@@ -1119,28 +928,46 @@ def main(args):
     column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
 
-    if 'generate_documentation' in steps:
-        initialize_documentation()
+    documentation_dict = dict()
 
     for program_name in program_names:
+        program_docs_dict = dict()
+
         prog_start = time.time()
+
         print("Executing script for program {}...".format(program_name))
         cases = get_cases_by_program(BQ_PARAMS, program_name)
 
         if cases:
+            # derive the program's table structure by analyzing its case records
             table_columns, record_counts = retrieve_program_case_structure(program_name, cases)
 
             if 'create_and_load_tables' in steps:
+                # create table schemas
                 table_schemas = create_schemas(table_columns, schema_dict, column_order_dict.copy())
+
+                table_id_dict = dict()
+
+                for table in get_tables(record_counts):
+                    table_id_dict[table] = get_table_id(BQ_PARAMS, table)
+
+                # create tables, flatten and insert data
                 create_and_load_tables(program_name, cases, table_schemas, record_counts)
 
-            if 'generate_documentation' in steps:
-                generate_documentation(program_name, record_counts)
+        program_time = time.time() - prog_start
+        print("{} processed in {:0.1f} seconds!\n".format(program_name, program_time))
 
-        print("executed in {:0.2f} seconds for program {}!\n".format(time.time() - prog_start, program_name))
+        documentation_dict[program_name] = {
+            'record_counts': record_counts,
+            'table_schemas': table_schemas,
+            'table_columns': table_columns,
+            'table_ids': table_id_dict,
+            'api_params': API_PARAMS,
+            'bq_params': BQ_PARAMS
+        }
 
     if 'generate_documentation' in steps:
-        finalize_documentation()
+        generate_documentation(documentation_dict)
 
     if 'validate_data' in steps:
         test_table_output()

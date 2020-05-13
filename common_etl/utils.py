@@ -310,41 +310,6 @@ def get_programs_from_bq():
     return program_submitter_dict
 
 
-def get_program_from_bq(params, case_id):
-    client = bigquery.Client()
-
-    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
-
-    program_name_query = """
-        SELECT program_name
-        FROM `{}`
-        WHERE case_gdc_id = '{}'
-        """.format(source_table, case_id)
-
-    query_job = client.query(program_name_query)
-
-    results = query_job.result()
-
-    for row in results:
-        program_name = row.get('program_name')
-        return program_name
-
-
-def get_case_from_bq(params, case_id):
-    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
-
-    results = get_query_results(
-        """
-        SELECT *
-        FROM `{}`
-        WHERE case_id = '{}'
-        """.format(source_table, case_id)
-    )
-
-    for row in results:
-        print(row)
-
-
 def get_query_results(query):
     client = bigquery.Client()
 
@@ -365,7 +330,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
     table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + table_name
     load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-    print('\tStarting job {}'.format(load_job.job_id))
+    print('\tStarting insert, job ID: {}'.format(load_job.job_id))
     start = time.time()
 
     location = 'US'
@@ -375,14 +340,14 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         load_job = client.get_job(load_job.job_id, location=location)
 
         if time.time() - start > 30:
-            print('\tJob {} is currently in state {}'.format(load_job.job_id, load_job.state))
+            print('\tJob is currently in state {}'.format(load_job.state))
 
         job_state = load_job.state
 
         if job_state != 'DONE':
             time.sleep(3)
 
-    print('\tJob {} is done'.format(load_job.job_id))
+    print('Job for {} is done! '.format(table_name), end='')
 
     load_job = client.get_job(load_job.job_id, location=location)
 
@@ -458,7 +423,9 @@ def get_cases_by_program(bq_params, program_name):
 
     dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
     main_table_id = dataset_path + '.' + bq_params["GDC_RELEASE"] + '_clinical_data'
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['PROGRAM_ID_TABLE']
+
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['METADATA_DATASET'] + '.' + \
+                        bq_params['GDC_RELEASE'] + '_caseData'
 
     results = get_query_results(
         """
@@ -548,6 +515,15 @@ def get_tables(record_counts):
     return table_keys
 
 
+def get_table_id(bq_params, table_name):
+    """
+    Get the full table_id (Including project and dataset) for a given table.
+    :param table_name: Desired table name (can be created using get_table_id
+    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
+    """
+    return bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
+
+
 def convert_bq_table_id_to_fg(table_id):
     short_table_name = "_".join(table_id.split('_')[3:])
 
@@ -620,3 +596,12 @@ def create_SchemaField(schema_dict, schema_key, required_columns):
                                 mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
                                 description=schema_dict[schema_key]['description'],
                                 fields=())
+
+
+def download_from_bucket(source_file, dest_file, bq_params):
+    client = storage.Client()
+
+    with open(dest_file) as file_obj:
+        bucket_path = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/'
+        path_to_file = bucket_path + '/' + bq_params['GDC_RELEASE'] + source_file
+        client.download_blob_to_file(path_to_file, file_obj)

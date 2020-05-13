@@ -1,0 +1,66 @@
+#
+# YAML Configuration file used for script build_clinical_data_program_tables.py
+# Builds Program BQ tables for clinical data.
+#
+
+version: 2
+
+api_params:
+  # GDC API endpoint for retrieval of cases dataset
+  ENDPOINT: 'https://api.gdc.cancer.gov/cases'
+
+  # Directory for local scratch files
+  TEMP_PATH: local/directory/path
+
+  # List of 'expand' field groups to include in the clinical data bq table.
+  EXPAND_FIELD_GROUPS:
+    - cases.diagnoses
+  TABLE_METADATA:
+    cases:
+      prefix: # table_abbreviation -- left blank for cases
+      table_id_key: case_id # table's  unique_id_key
+
+      # list of fields to exclude from bq table
+      excluded_fields:
+        - submitter_id
+
+      # list every column you wish to include, in the desired order of appearance
+      column_order:
+        - biospecimen_type
+    cases.diagnoses:
+      prefix:
+      table_id_key:
+      excluded_fields:
+      column_order:
+  # Determines table-level ordering, dictating ordering for merged tables
+  TABLE_ORDER:
+    - cases.follow_ups.molecular_tests
+
+bq_params:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_id
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: your_bucket_name
+
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: full/path/in/bucket # NO LEADING '/'
+
+  # Table name:
+  GDC_RELEASE: relXX
+
+steps:
+  # Parse and insert table data
+  - create_and_load_tables
+
+  # Generate documentation files
+  - generate_documentation
+
+  # Run tests to confirm consistency in data across the various sources
+  - validate_data
