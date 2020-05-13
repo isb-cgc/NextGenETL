@@ -16,6 +16,7 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
+import math
 import sys
 import requests
 import json
@@ -286,6 +287,7 @@ def construct_filepath(api_params):
 
 
 def main(args):
+    start = time.time()
     if len(args) != 2:
         has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
 
@@ -323,6 +325,11 @@ def main(args):
                               jsonl_rows_file=api_params['DATA_OUTPUT_FILE'],
                               schema=schema,
                               table_name=bq_params['GDC_RELEASE'] + '_clinical_data')
+
+    seconds = time.time() - start
+    minutes = math.floor(seconds / 60)
+    seconds -= minutes * 60
+    print("Ingested GDC API, created master table. Executed in {} min, {:.0f} sec".format(minutes, seconds))
 
 
 if __name__ == '__main__':

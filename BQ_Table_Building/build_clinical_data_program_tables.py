@@ -896,7 +896,7 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    print("Script executed in {} min, {:.0f} sec".format(minutes, seconds))
+    print("Programs script executed in {} min, {:.0f} sec".format(minutes, seconds))
     print("Steps completed: ")
 
     if 'create_and_load_tables' in steps:
