@@ -526,7 +526,7 @@ def get_bq_name(api_params, table_path, column):
     if table_key not in table_abbr_dict:
         return column
 
-    prefix = table_abbr_dict[table_path]
+    prefix = table_abbr_dict[table_key]
     return prefix + '__' + column
 
 
