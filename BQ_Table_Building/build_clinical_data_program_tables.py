@@ -434,7 +434,6 @@ def add_reference_columns(table_columns, schema_dict, column_order_dict):
 
             # add parent_id to one-to-many table
             schema_dict[full_parent_id_name] = generate_id_schema_entry(parent_bq_name, parent_fg)
-            # todo need to convert table columns by this point
             table_columns[table_key].add(parent_bq_name)
             column_order_dict[full_parent_id_name] = reference_col_position
 
@@ -473,9 +472,6 @@ def rebuild_bq_name(column):
             if table_metadata['prefix']:
                 abbr_dict_[table_metadata['prefix']] = table_key
         return abbr_dict_
-
-    if '__' not in column:
-        print("ERROR? why no __ in rebuild_bq_name?")
 
     abbr_dict = get_abbr_dict_()
     split_column = column.split('__')
@@ -522,7 +518,6 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
                 count_column_position += 1
 
         required_columns = get_required_columns(table_key)
-        print(required_columns)
         schema_list = []
 
         for schema_key, val in sorted(table_order_dict.items(), key=lambda item: item[1]):
@@ -553,15 +548,12 @@ def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None
 
             for key in entry:
                 if not isinstance(entry[key], list):
-                    if case_id != parent_id:
-                        parent_fg = get_parent_field_group(prefix)
-                        parent_field = get_bq_name(API_PARAMS, parent_fg, parent_id_key)
+                    curr_table_id_key = get_table_id_key(prefix)
+
+                    if case_id != parent_id and curr_table_id_key != parent_id_key:
+                        parent_field = get_bq_name(API_PARAMS, get_parent_field_group(prefix), parent_id_key)
                         entry_dict[parent_field] = parent_id
                     entry_dict['case_id'] = case_id
-
-                    field = get_bq_name(API_PARAMS, prefix, key)
-                    entry_dict[field] = entry[key]
-
             entry_dict = remove_dict_fields(entry_dict, prefix)
 
             if prefix not in flattened_case_dict:
@@ -572,10 +564,10 @@ def flatten_case(case, prefix, flattened_case_dict, case_id=None, parent_id=None
                 if isinstance(entry[key], list):
                     parent_id_key = get_table_id_key(prefix)
                     parent_id = entry[parent_id_key]
-                    # bq_parent_id_key = get_bq_name(API_PARAMS, prefix, parent_id_key)
+                    parent_field = get_bq_name(API_PARAMS, prefix, parent_id_key)
 
                     flattened_case_dict = flatten_case(entry[key], prefix + '.' + key, flattened_case_dict,
-                                                       case_id, parent_id, parent_id_key)
+                                                       case_id, parent_id, parent_field)
     else:
         entry_dict = dict()
 
@@ -933,8 +925,7 @@ def main(args):
 
     for program_name in program_names:
         prog_start = time.time()
-        print("\n * Executing script for program {}...".format(program_name))
-
+        print("Executing script for program {}...".format(program_name))
         cases = get_cases_by_program(BQ_PARAMS, program_name)
 
         if cases:
@@ -942,19 +933,18 @@ def main(args):
 
             if 'create_and_load_tables' in steps:
                 table_schemas = create_schemas(table_columns, schema_dict, column_order_dict.copy())
-
                 create_and_load_tables(program_name, cases, table_schemas)
 
             if 'generate_documentation' in steps:
                 generate_documentation(program_name, record_counts)
 
-        print("... processing completed for program {} in {:.2f} seconds".format(program_name, time.time() - prog_start))
+        print("... processing completed for program {} in {:.2f} seconds\n".format(program_name, time.time() - prog_start))
 
     if 'generate_documentation' in steps:
         finalize_documentation()
 
-    # if 'validate_data' in steps:
-    #    test_table_output()
+    if 'validate_data' in steps:
+        test_table_output()
 
     print_final_report(start, steps)
 
