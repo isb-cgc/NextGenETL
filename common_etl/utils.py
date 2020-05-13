@@ -515,14 +515,16 @@ def get_bq_name(api_params, table_path, column):
         if split_column[0] != 'cases':
             table_path = 'cases.' + table_path
 
+    prefix = None
+
     if table_path in table_abbr_dict:
         prefix = table_abbr_dict[table_path]
 
-    print('GET_BQ_NAME\n path: {}, column: {}, prefix: {}'.format(table_path, column, prefix))
 
     if prefix:
         return prefix + '__' + column
     else:
+        print('GET_BQ_NAME\n path: {}, column: {}, prefix: {}'.format(table_path, column, prefix))
         return column
 
 
