@@ -548,6 +548,7 @@ def create_schemas(table_columns, schema_dict, column_order_dict):
 # Functions used for parsing and loading data into BQ tables
 ##
 def flatten_case(case, prefix, flattened_case_dict, table_keys, case_id=None, parent_id=None, parent_id_key=None):
+    print("CASE: {}".format(case))
     def remove_dict_fields(record, table_name):
         excluded_fields = get_excluded_fields(table_name, fatal=True)
 
