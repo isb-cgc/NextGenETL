@@ -1354,7 +1354,7 @@ def install_dataset_desc(dataset_id, file_tag, project=None):
 Create a new BQ dataset
 '''
 
-def create_bq_dataset(dataset_id, file_tag, project=None):
+def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1367,6 +1367,21 @@ def create_bq_dataset(dataset_id, file_tag, project=None):
         dataset = bigquery.Dataset(full_dataset_id)
         dataset.location = "US"
         dataset.description = desc
+
+
+        if make_public:
+            entry = bigquery.AccessEntry(
+                role="READER",
+                entity_type="specialGroup",
+                entity_id="allAuthenticatedUsers",
+            )
+
+            entries = list(dataset.access_entries)
+            entries.append(entry)
+            dataset.access_entries = entries
+
+
+
         client.create_dataset(dataset)
 
     except Exception as ex:

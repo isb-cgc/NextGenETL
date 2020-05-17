@@ -103,7 +103,9 @@ def main(args):
             print('create_dataset: {}'.format(dataset))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], dataset)
             full_dataset_id = "{}.{}".format(params['TARGET_PROJECT'], dataset)
-            create_bq_dataset(dataset, full_file_prefix, project=params['TARGET_PROJECT'])
+            create_bq_dataset(dataset, full_file_prefix,
+                              project=params['TARGET_PROJECT'],
+                              make_public=params['MAKE_ALL_PUBLIC'])
             if not success:
                 print("create_dataset failed")
                 return
