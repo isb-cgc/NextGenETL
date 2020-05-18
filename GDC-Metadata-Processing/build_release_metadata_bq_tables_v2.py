@@ -55,6 +55,37 @@ def load_config(yaml_config):
             yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
             yaml_dict['programs'], yaml_dict['schema_tags'])
 
+
+'''
+----------------------------------------------------------------------------------------------
+Figure out the number of aliquots present
+'''
+def extract_aliquot_count(release_table, do_batch):
+
+    sql = extract_aliquot_count_sql(release_table)
+    retval = bq_harness_with_result(sql, do_batch)
+    return retval
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above:
+'''
+def extract_aliquot_count_sql(release_table):
+
+    return '''
+            # Count the number of delimeters in the field:
+            WITH a1 AS (SELECT file_gdc_id,
+                        LENGTH(TRIM(associated_entities__entity_gdc_id)) -
+                        LENGTH(TRIM(REPLACE(associated_entities__entity_gdc_id, ';',''))) as delim
+            FROM `{0}`
+            WHERE (case_gdc_id IS NOT NULL) AND
+                  (case_gdc_id NOT LIKE "%;%") AND
+                  (case_gdc_id != "multi") AND
+                  (associated_entities__entity_type = "aliquot"))
+                              )
+            SELECT MAX(delim) FROM a1
+            '''.format(release_table)
+
 '''
 ----------------------------------------------------------------------------------------------
 Figure out the programs represented in the data
@@ -516,7 +547,7 @@ SQL for above:
 def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
 
     return '''
-        # Some slides have two entries in the slide_2_case table if they depict two portions. Remove the dups:
+        # Some slides have two or more entries in the slide_2_case table if they depict multiple portions. Remove the dups:
         WITH a1 as (
         SELECT DISTINCT
             case_barcode,
@@ -987,6 +1018,15 @@ def main(args):
         except Exception as ex:
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
+
+    if 'count_aliquots' in steps:
+        print('count_aliquots')
+
+        for build_tag in build_tags:
+            file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
+            aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
+            print ("{}:{}".format(build_tag, aliquot_count))
+
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
