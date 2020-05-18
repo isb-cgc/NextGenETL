@@ -65,7 +65,7 @@ def extract_aliquot_count(release_table, do_batch):
     sql = extract_aliquot_count_sql(release_table)
     results = bq_harness_with_result(sql, do_batch)
     retval = [row.max_delim for row in results]
-    return retval[0]
+    return retval[0] + 1
 
 '''
 ----------------------------------------------------------------------------------------------
