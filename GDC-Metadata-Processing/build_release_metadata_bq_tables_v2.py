@@ -63,8 +63,9 @@ Figure out the number of aliquots present
 def extract_aliquot_count(release_table, do_batch):
 
     sql = extract_aliquot_count_sql(release_table)
-    retval = bq_harness_with_result(sql, do_batch)
-    return retval
+    results = bq_harness_with_result(sql, do_batch)
+    retval = [row.max_delim for row in results]
+    return retval[0]
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -82,7 +83,7 @@ def extract_aliquot_count_sql(release_table):
                   (case_gdc_id NOT LIKE "%;%") AND
                   (case_gdc_id != "multi") AND
                   (associated_entities__entity_type = "aliquot"))
-            SELECT MAX(delim) FROM a1
+            SELECT MAX(delim) as max_delim FROM a1
             '''.format(release_table)
 
 '''
