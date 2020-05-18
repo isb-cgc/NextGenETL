@@ -82,7 +82,6 @@ def extract_aliquot_count_sql(release_table):
                   (case_gdc_id NOT LIKE "%;%") AND
                   (case_gdc_id != "multi") AND
                   (associated_entities__entity_type = "aliquot"))
-                              )
             SELECT MAX(delim) FROM a1
             '''.format(release_table)
 
