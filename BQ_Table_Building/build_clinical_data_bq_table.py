@@ -108,7 +108,8 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                     KeyError)
 
             for case in cases_json:
-                print(case.keys())
+                if 'days_to_index' in case:
+                    print("Found days_to_index!\n{}".format(case))
                 case_copy = case.copy()
                 for field in api_params['EXCLUDE_FIELDS'].split(','):
                     if field in case_copy:
