@@ -574,7 +574,7 @@ def add_reference_columns(table_columns, schema_dict):
         return {"name": count_id_key_, "type": 'INTEGER',
                 "description": description}
 
-    table_column_order = dict()
+    table_orders = dict()
 
     table_depths = dict()
 
@@ -582,18 +582,17 @@ def add_reference_columns(table_columns, schema_dict):
         depth = len(table.split('.'))
         table_depths[table] = depth
 
-    for table, depth in sorted(table_depths.items(),
-                               key=lambda item: item[1], reverse=True):
+    for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
 
-        table_column_order[table] = build_column_order_dict()
+        table_orders[table] = build_column_order_dict()
 
         id_column_position = get_id_column_position(table,
-                                                    table_column_order[table])
+                                                    table_orders[table])
 
         ref_column_index = id_column_position + 1
 
         if depth == 1:
-            break
+            continue
         if depth > 2:
             # if the > 2 cond. is removed (and the case_id insertion below)
             # tables will only reference direct ancestor
@@ -607,7 +606,7 @@ def add_reference_columns(table_columns, schema_dict):
             schema_dict[full_pid_name] = generate_id_schema_entry(
                 parent_bq_name, parent_fg)
             table_columns[table].add(parent_bq_name)
-            table_column_order[table][full_pid_name] = ref_column_index
+            table_orders[table][full_pid_name] = ref_column_index
 
             ref_column_index += 1
 
@@ -619,14 +618,14 @@ def add_reference_columns(table_columns, schema_dict):
             case_id_key, 'main')
 
         table_columns[table].add(case_id_key)
-        table_column_order[table][case_id_column] = ref_column_index
+        table_orders[table][case_id_column] = ref_column_index
 
         ref_column_index += 1
 
         parent_table = get_parent_table(table_columns.keys(), table)
 
         count_col_index = get_count_column_index(
-            parent_table, table_column_order[table])
+            parent_table, table_orders[table])
 
         count_column = table + '.count'
 
@@ -636,9 +635,9 @@ def add_reference_columns(table_columns, schema_dict):
         schema_dict[count_column] = generate_count_schema_entry(
             count_id_key, parent_table)
         table_columns[parent_table].add(count_id_key)
-        table_column_order[parent_table][count_column] = count_col_index
+        table_orders[parent_table][count_column] = count_col_index
 
-    return schema_dict, table_columns, table_column_order
+    return schema_dict, table_columns, table_orders
 
 
 def rebuild_bq_name(column):
