@@ -1042,6 +1042,9 @@ def main(args):
     # program_names = get_programs_list()
     program_names = ['HCMI']
     column_order_dict = build_column_order_dict()
+
+    print(column_order_dict)
+
     schema_dict = create_schema_dict()
 
     for program_name in program_names:
