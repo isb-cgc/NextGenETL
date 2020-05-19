@@ -541,8 +541,6 @@ def add_reference_columns(table_columns, schema_dict):
 
     :param table_columns: dict containing table column keys
     :param schema_dict: dict containing schema records
-    :param column_order: dict containing relative column index positions,
-    used for schema ordering
     :return: table_columns, schema_dict, column_order_dict
     """
 
@@ -671,7 +669,7 @@ def rebuild_bq_name(column):
     return 'cases.' + split_column[-1]
 
 
-def create_schemas(table_columns, schema_dict):
+def create_schemas(table_columns):
     """
     Create ordered schema lists for final tables.
     :param table_columns: dict containing table column keys
@@ -679,51 +677,51 @@ def create_schemas(table_columns, schema_dict):
     :return: lists of BQ SchemaFields.
     """
     schema_field_lists = dict()
-    table_order_lists = dict()
+    schema_dict = create_schema_dict()
 
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(
         table_columns, schema_dict)
 
-    for table_key in table_columns:
-        for column in table_columns[table_key]:
+    for table in table_columns:
+        # todo filter?
+        # this is just alphabetizing the count columns
+        for column in table_columns[table]:
+            # todo find when this if/else happens
             if '__' in column:
-                column_name = rebuild_bq_name(column)
+                column = rebuild_bq_name(column)
             else:
-                column_name = table_key + '.' + column
+                column = table + '.' + column
 
-            count_column_position = get_count_column_index(
-                table_key, column_orders[table_key])
+            if column not in column_orders[table]:
+                has_fatal_error("'{}' not in column_orders['{}']: \n{}".
+                                format(column, table, column_orders[table]))
 
-            if not column_name or column_name not in column_orders[table_key]:
-                has_fatal_error("'{}' not in col_order_dict!\n {}".
-                                format(column_name, column_orders[table_key]))
-
-            column_orders[column_name] = column_orders[table_key][column_name]
+            count_column_index = get_count_column_index(
+                table, column_orders[table])
 
             count_columns = []
 
-            for key, value in column_orders.items():
-                if value == count_column_position:
-                    count_columns.append(key)
+            for column_key, index in column_orders[table].items():
+                if index == count_column_index:
+                    count_columns.append(column_key)
 
             # index in alpha order
             count_columns.sort()
 
             for count_column in count_columns:
-                column_orders[count_column] = count_column_position
-                count_column_position += 1
+                column_orders[table][count_column] = count_column_index
+                count_column_index += 1
 
-        required_cols = get_required_columns(table_key)
+        required_cols = get_required_columns(table)
 
         schema_list = [make_SchemaField(schema_dict, k, required_cols)
-                       for k, v in
-                       sorted(column_orders.items(), key=lambda item: item[1])]
+                       for k, v in sorted(column_orders[table].items(),
+                                          key=lambda item: item[1])]
 
-        schema_field_lists[table_key] = schema_list
-        table_order_lists[table_key] = column_orders
+        schema_field_lists[table] = schema_list
 
-    return schema_field_lists, table_order_lists
+    return schema_field_lists, column_orders
 
 
 def remove_dict_fields(record, table_name):
@@ -1080,35 +1078,32 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # program_names = get_programs_list()
-    program_names = ['HCMI']
+    # programs = get_programs_list()
+    programs = ['HCMI']
 
-    schema_dict = create_schema_dict()
-
-    for program_name in program_names:
+    for program in programs:
         prog_start = time.time()
-        print("Executing script for program {}...".format(program_name))
+        print("Executing script for program {}...".format(program))
 
-        cases = get_cases_by_program(BQ_PARAMS, program_name)
+        cases = get_cases_by_program(BQ_PARAMS, program)
 
         if not cases:
             continue
 
         # derive the program's table structure by analyzing its case records
         table_columns, record_counts = retrieve_program_case_structure(
-            program_name, cases)
+            program, cases)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
-            table_schemas, table_order_lists = create_schemas(
-                table_columns, schema_dict)
+            table_schemas, table_order_lists = create_schemas(table_columns)
 
             # create tables, flatten and insert data
-            create_and_load_tables(program_name, cases,
+            create_and_load_tables(program, cases,
                                    table_schemas, record_counts)
 
             print("{} processed in {:0.1f} seconds!\n".
-                  format(program_name, time.time() - prog_start))
+                  format(program, time.time() - prog_start))
 
             if 'generate_documentation' in steps:
                 table_ids = {table: get_table_id(BQ_PARAMS, table)
@@ -1118,7 +1113,7 @@ def main(args):
                 table_column_lists = {table: list(vals)
                                       for table, vals in table_columns.items()}
 
-                documentation_dict[program_name] = {
+                documentation_dict[program] = {
                     'record_counts': record_counts,
                     'table_schemas': str(table_schemas),
                     'table_columns': table_column_lists,
