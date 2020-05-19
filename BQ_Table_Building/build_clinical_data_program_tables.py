@@ -712,9 +712,13 @@ def create_schemas(table_columns):
 
         print(schema_dict)
 
-        schema_list = [make_SchemaField(schema_dict, k, required_cols)
-                       for k, v in sorted(column_orders[table].items(),
-                                          key=lambda item: item[1])]
+        schema_list = []
+
+        for key, v in sorted(column_orders[table].items(), key=lambda i: i[1]):
+            schema_entry = make_SchemaField(schema_dict, key, required_cols)
+
+            if schema_entry:
+                schema_list.append(schema_entry)
 
         schema_field_lists[table] = schema_list
 

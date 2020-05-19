@@ -649,6 +649,10 @@ def get_dataset_table_list(bq_params):
 
 
 def make_SchemaField(schema_dict, schema_key, required_columns):
+    if schema_key not in schema_dict:
+        print("field {} not found in master bq table, excluding from schema.")
+        return None
+
     return bigquery.SchemaField(
         name=schema_dict[schema_key]['name'],
         field_type=schema_dict[schema_key]['type'],
