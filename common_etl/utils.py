@@ -3,7 +3,7 @@ Copyright 2020, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
-in the  Software without restriction, including without limitation the rights
+in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
@@ -466,13 +466,14 @@ def ordered_print(flattened_case_dict, order_dict):
 def get_cases_by_program(bq_params, program_name):
     cases = []
 
-    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params[
-        "TARGET_DATASET"]
-    main_table_id = dataset_path + '.' + bq_params[
-        "GDC_RELEASE"] + '_clinical_data'
+    dataset_path = bq_params["WORKING_PROJECT"] + '.' + \
+                   bq_params["TARGET_DATASET"]
 
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params[
-        'METADATA_DATASET'] + '.' + \
+    main_table_id = dataset_path + '.' + \
+                    bq_params["GDC_RELEASE"] + '_clinical_data'
+
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + \
+                        bq_params['METADATA_DATASET'] + '.' + \
                         bq_params['GDC_RELEASE'] + '_caseData'
 
     results = get_query_results(
@@ -491,8 +492,8 @@ def get_cases_by_program(bq_params, program_name):
     if cases:
         print("{} cases retrieved.".format(len(cases)))
     else:
-        print("No case records found for program {}, skipping.".format(
-            program_name))
+        print("No case records found for program {}, skipping."
+              .format(program_name))
     return cases
 
 
@@ -518,9 +519,6 @@ def get_abbr_dict(api_params):
 
 def get_bq_name(api_params, table_path, column):
     table_abbr_dict = get_abbr_dict(api_params)
-
-    # print("GET_BQ: table_path {}, column {}, abbr_dict {}".format(
-    #    table_path, column, table_abbr_dict))
 
     if not table_path:
         split_column = column.split('.')
@@ -567,11 +565,12 @@ def get_tables(record_counts):
 def get_table_id(bq_params, table_name):
     """
     Get the full table_id (Including project and dataset) for a given table.
+    :param bq_params:
     :param table_name: Desired table name (can be created using get_table_id
     :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
     """
-    return bq_params["WORKING_PROJECT"] + '.' + bq_params[
-        "TARGET_DATASET"] + '.' + table_name
+    return bq_params["WORKING_PROJECT"] + '.' + \
+           bq_params["TARGET_DATASET"] + '.' + table_name
 
 
 def convert_bq_table_id_to_fg(table_id):
@@ -610,6 +609,12 @@ def get_parent_table(table_keys, table_key):
         parent_table_key = get_parent_field_group(parent_table_key)
 
     return parent_table_key
+
+
+# todo remove
+def get_parent_table_id_key(api_params, table_keys, key):
+    parent_table = get_parent_table(table_keys, key)
+    return api_params['TABLE_METADATA'][parent_table]['table_id_key']
 
 
 def upload_to_bucket(bq_params, fp, file_name):
