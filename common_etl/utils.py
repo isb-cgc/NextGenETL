@@ -1,20 +1,23 @@
 """
 Copyright 2020, Institute for Systems Biology
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the  Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 import io
 import yaml
@@ -26,9 +29,11 @@ from google.cloud import bigquery, storage
 
 def has_fatal_error(e, exception=None):
     """
-    Error handling function, formats error strings or a list of strings, and optionally shares exception info.
+    Error handling function, formats error strings or a list of strings,
+    and optionally shares exception info.
     :param e: error message string
-    :param exception: Exception object relating to the fatal error, defaults to none
+    :param exception: Exception object relating to the fatal error, defaults
+    to none
     """
     err_ = '[ERROR] '
     error_output = ''
@@ -50,7 +55,8 @@ def load_config(yaml_file, yaml_dict_keys):
     """
     Opens yaml file and retrieves configuration parameters.
     :param yaml_file: yaml config file name
-    :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's top-level dictionary keys.
+    :param yaml_dict_keys: tuple of strings representing a subset of the yaml
+    file's top-level dictionary keys.
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
     yaml_dict = None
@@ -64,7 +70,8 @@ def load_config(yaml_file, yaml_dict_keys):
     if yaml_dict is None:
         has_fatal_error("Bad YAML load, exiting.", ValueError)
 
-    # Dynamically generate a list of dictionaries for the return statement, since tuples are immutable
+    # Dynamically generate a list of dictionaries for the return statement,
+    # since tuples are immutable
     return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
 
     return tuple(return_dicts)
@@ -76,8 +83,10 @@ def check_value_type(value):
     :param value: value to type check
     :return: type in BQ column format
     """
-    # if has leading zero, then should be considered a string, even if only composed of digits
-    val_is_none = value == '' or value == 'NA' or value == 'null' or value is None or value == 'None'
+    # if has leading zero, then should be considered a string, even if only
+    # composed of digits
+    val_is_none = value == '' or value == 'NA' or value == 'null' or value is\
+                  None or value == 'None'
     val_is_bool = value == 'True' or value == 'False'
     val_is_decimal = value.startswith('0.')
     val_is_id = value.startswith('0') and not val_is_decimal and len(value) > 1
@@ -85,10 +94,12 @@ def check_value_type(value):
     try:
         float(value)
         val_is_num = True
-        # Changing this because google won't accept loss of precision in the data insert job
+        # Changing this because google won't accept loss of precision in the
+        # data insert job
         # (won't cast 1.0 as 1)
         val_is_float = False if value.isdigit() else True
-        # If this is used, a field with only trivial floats will be cast as Integer. However, BQ errors due to loss
+        # If this is used, a field with only trivial floats will be cast as
+        # Integer. However, BQ errors due to loss
         # of precision.
         # val_is_float = True if int(float(value)) != float(value) else False
     except ValueError:
@@ -112,8 +123,10 @@ def check_value_type(value):
 def infer_data_types(flattened_json):
     """
     Infer data type of fields based on values contained in dataset.
-    :param flattened_json: file containing dict of field names (key) and sets of field values (value)
-    :return: dict of field names and inferred type (None if no data in value set).
+    :param flattened_json: file containing dict of field names (key) and sets
+    of field values (value)
+    :return: dict of field names and inferred type (None if no data in value
+    set).
     """
     data_types = dict()
     for column in flattened_json:
@@ -123,7 +136,8 @@ def infer_data_types(flattened_json):
             if data_types[column] == 'STRING':
                 break
 
-            # adding this change because organoid sumbitter_ids look like ints, but they should be str for uniformity
+            # adding this change because organoid sumbitter_ids look like
+            # ints, but they should be str for uniformity
             if column[-2:] == 'id':
                 data_types[column] = 'STRING'
                 break
@@ -134,7 +148,8 @@ def infer_data_types(flattened_json):
                 continue
             elif val_type == 'FLOAT' or val_type == 'STRING':
                 data_types[column] = val_type
-            elif (val_type == 'INTEGER' or val_type == 'BOOLEAN') and not data_types[column]:
+            elif (val_type == 'INTEGER' or val_type == 'BOOLEAN') and not \
+            data_types[column]:
                 data_types[column] = val_type
 
     return data_types
@@ -142,23 +157,32 @@ def infer_data_types(flattened_json):
 
 def collect_field_values(field_dict, key, parent_dict, prefix):
     """
-    Recursively inserts sets of values for a given field into return dict (used to infer field data type)
-    :param field_dict: A dict of key:value pairs -- field_name : set(field_values)
+    Recursively inserts sets of values for a given field into return dict (
+    used to infer field data type)
+    :param field_dict: A dict of key:value pairs -- field_name : set(
+    field_values)
     :param key: field name
     :param parent_dict: dict containing field and it's values
     :param prefix: string representation of current location in field hierarchy
     :return: field_dict containing field names and a set of its values.
     """
-    # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
-    # as seen in second conditional statement), iterate over each list element's dictionary entries.
-    # (Sometimes lists are composed of strings rather than dicts, and those are later converted to strings.)
-    if isinstance(parent_dict[key], list) and len(parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
+    # If the value of parent_dict[key] is a list at this level, and a dict at
+    # the next (or a dict at this level,
+    # as seen in second conditional statement), iterate over each list
+    # element's dictionary entries.
+    # (Sometimes lists are composed of strings rather than dicts, and those
+    # are later converted to strings.)
+    if isinstance(parent_dict[key], list) and len(
+            parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
-                field_dict = collect_field_values(field_dict, dict_key, dict_item, prefix + key + ".")
+                field_dict = collect_field_values(field_dict, dict_key,
+                                                  dict_item, prefix + key + ".")
     elif isinstance(parent_dict[key], dict):
         for dict_key in parent_dict[key]:
-            field_dict = collect_field_values(field_dict, dict_key, parent_dict[key], prefix + key + ".")
+            field_dict = collect_field_values(field_dict, dict_key,
+                                              parent_dict[key],
+                                              prefix + key + ".")
     else:
         field_name = prefix + key
 
@@ -179,10 +203,13 @@ def collect_field_values(field_dict, key, parent_dict, prefix):
 def create_mapping_dict(endpoint):
     """
     Creates a dict containing field mappings for given endpoint.
-    Note: only differentiates the GDC API's 'long' type (called 'integer' in GDC data dictionary) and
-    'float' type (called 'number' in GDC data dictionary). All others typed as string.
+    Note: only differentiates the GDC API's 'long' type (called 'integer' in
+    GDC data dictionary) and
+    'float' type (called 'number' in GDC data dictionary). All others typed
+    as string.
     :param endpoint: API endpoint for which to retrieve mapping.
-    :return: dict of field mappings. Each entry object contains field name, type, and description
+    :return: dict of field mappings. Each entry object contains field name,
+    type, and description
     """
     field_mapping_dict = {}
 
@@ -236,7 +263,8 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     :param expand_fields_list:
     :return:
     """
-    # add field group names to a list, in order to generate a dict representing nested fields
+    # add field group names to a list, in order to generate a dict
+    # representing nested fields
     field_group_names = [record_type]
     nested_depth = 0
 
@@ -245,10 +273,11 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
         nested_depth = max(nested_depth, len(nested_field_name.split('.')))
         field_group_names.append(nested_field_name)
 
-    record_lists_dict = {fg_name:[] for fg_name in field_group_names}
+    record_lists_dict = {fg_name: [] for fg_name in field_group_names}
     # add field to correct field grouping list based on full field name
     for field in schema_dict:
-        # record_lists_dict key is equal to the parent field components of full field name
+        # record_lists_dict key is equal to the parent field components of
+        # full field name
         json_obj_key = '.'.join(field.split('.')[:-1])
         record_lists_dict[json_obj_key].append(schema_dict[field])
 
@@ -258,8 +287,10 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
         for field_group_name in record_lists_dict:
             split_group_name = field_group_name.split('.')
 
-            # building from max depth inward, to avoid iterating through entire schema object in order to append
-            # child field groupings. Therefore, skip any field groupings at a shallower depth.
+            # building from max depth inward, to avoid iterating through
+            # entire schema object in order to append
+            # child field groupings. Therefore, skip any field groupings at a
+            # shallower depth.
             if len(split_group_name) != nested_depth:
                 continue
 
@@ -267,7 +298,8 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
 
             for record in record_lists_dict[field_group_name]:
                 schema_field_sublist.append(
-                    bigquery.SchemaField(record['name'], record['type'], 'NULLABLE', record['description'], ())
+                    bigquery.SchemaField(record['name'], record['type'],
+                                         'NULLABLE', record['description'], ())
                 )
 
             parent_name = '.'.join(split_group_name[:-1])
@@ -281,11 +313,14 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                     temp_schema_field_dict[parent_name] = list()
 
                 temp_schema_field_dict[parent_name].append(
-                    bigquery.SchemaField(field_name, 'RECORD', 'REPEATED', '', tuple(schema_field_sublist))
+                    bigquery.SchemaField(field_name, 'RECORD', 'REPEATED', '',
+                                         tuple(schema_field_sublist))
                 )
             else:
                 if nested_depth > 1:
-                    has_fatal_error("Empty parent_name at level {}".format(nested_depth), ValueError)
+                    has_fatal_error(
+                        "Empty parent_name at level {}".format(nested_depth),
+                        ValueError)
                 return schema_field_sublist
 
         nested_depth -= 1
@@ -327,9 +362,12 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
     client = bigquery.Client()
-    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
-    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' + table_name
-    load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
+    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params[
+        'WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
+    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params[
+        'TARGET_DATASET'] + '.' + table_name
+    load_job = client.load_table_from_uri(gs_uri, table_id,
+                                          job_config=job_config)
     print('\tStarting insert, job ID: {}'.format(load_job.job_id))
     start = time.time()
 
@@ -352,7 +390,9 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     load_job = client.get_job(load_job.job_id, location=location)
 
     if load_job.error_result is not None:
-        has_fatal_error('While running BQ job: {} \n{}'.format(load_job.error_result, load_job.errors), ValueError)
+        has_fatal_error(
+            'While running BQ job: {} \n{}'.format(load_job.error_result,
+                                                   load_job.errors), ValueError)
 
     destination_table = client.get_table(table_id)
     print('{} rows inserted.\n'.format(destination_table.num_rows))
@@ -395,13 +435,18 @@ def ordered_print(flattened_case_dict, order_dict):
                 try:
                     field_order_dict[key] = order_dict[col_order_lookup_key]
                 except KeyError:
-                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
-                    for k, v in sorted(order_dict.items(), key=lambda item: item[0]):
+                    print("ORDERED PRINT -- {} not in column order dict".format(
+                        col_order_lookup_key))
+                    for k, v in sorted(order_dict.items(),
+                                       key=lambda item: item[0]):
                         print("{}: {}".format(k, v))
                     field_order_dict[key] = 0
 
-            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
-                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            for field_key, order in sorted(field_order_dict.items(),
+                                           key=lambda item: item[1]):
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2),
+                                                     field_key,
+                                                     entry[field_key])
             entry_string = entry_string.rstrip('\n')
             entry_string = entry_string.rstrip(',')
 
@@ -421,10 +466,13 @@ def ordered_print(flattened_case_dict, order_dict):
 def get_cases_by_program(bq_params, program_name):
     cases = []
 
-    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
-    main_table_id = dataset_path + '.' + bq_params["GDC_RELEASE"] + '_clinical_data'
+    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params[
+        "TARGET_DATASET"]
+    main_table_id = dataset_path + '.' + bq_params[
+        "GDC_RELEASE"] + '_clinical_data'
 
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['METADATA_DATASET'] + '.' + \
+    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params[
+        'METADATA_DATASET'] + '.' + \
                         bq_params['GDC_RELEASE'] + '_caseData'
 
     results = get_query_results(
@@ -443,7 +491,8 @@ def get_cases_by_program(bq_params, program_name):
     if cases:
         print("{} cases retrieved.".format(len(cases)))
     else:
-        print("No case records found for program {}, skipping.".format(program_name))
+        print("No case records found for program {}, skipping.".format(
+            program_name))
     return cases
 
 
@@ -521,7 +570,8 @@ def get_table_id(bq_params, table_name):
     :param table_name: Desired table name (can be created using get_table_id
     :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
     """
-    return bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' + table_name
+    return bq_params["WORKING_PROJECT"] + '.' + bq_params[
+        "TARGET_DATASET"] + '.' + table_name
 
 
 def convert_bq_table_id_to_fg(table_id):
@@ -550,7 +600,9 @@ def get_parent_table(table_keys, table_key):
     base_table = table_key.split('.')[0]
 
     if not base_table or base_table not in table_keys:
-        has_fatal_error("'{}' has no parent table in tables list: {}".format(table_key, table_keys))
+        has_fatal_error(
+            "'{}' has no parent table in tables list: {}".format(table_key,
+                                                                 table_keys))
 
     parent_table_key = get_parent_field_group(table_key)
 
@@ -558,12 +610,6 @@ def get_parent_table(table_keys, table_key):
         parent_table_key = get_parent_field_group(parent_table_key)
 
     return parent_table_key
-
-
-# todo remove
-def get_parent_table_id_key(api_params, table_keys, key):
-    parent_table = get_parent_table(table_keys, key)
-    return api_params['TABLE_METADATA'][parent_table]['table_id_key']
 
 
 def upload_to_bucket(bq_params, fp, file_name):
@@ -579,7 +625,8 @@ def upload_to_bucket(bq_params, fp, file_name):
 
 def get_dataset_table_list(bq_params):
     client = bigquery.Client()
-    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'])
+    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' +
+                                 bq_params['TARGET_DATASET'])
     results = client.list_tables(dataset)
 
     table_id_prefix = bq_params["GDC_RELEASE"] + '_clin_'
@@ -600,7 +647,8 @@ def make_SchemaField(schema_dict, schema_key, required_columns):
     return bigquery.SchemaField(name=schema_dict[schema_key]['name'],
                                 field_type=schema_dict[schema_key]['type'],
                                 mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
-                                description=schema_dict[schema_key]['description'],
+                                description=schema_dict[schema_key][
+                                    'description'],
                                 fields=())
 
 
@@ -608,6 +656,8 @@ def download_from_bucket(source_file, dest_file, bq_params):
     client = storage.Client()
 
     with open(dest_file) as file_obj:
-        bucket_path = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params['WORKING_BUCKET_DIR'] + '/'
-        path_to_file = bucket_path + '/' + bq_params['GDC_RELEASE'] + source_file
+        bucket_path = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params[
+            'WORKING_BUCKET_DIR'] + '/'
+        path_to_file = bucket_path + '/' + bq_params[
+            'GDC_RELEASE'] + source_file
         client.download_blob_to_file(path_to_file, file_obj)

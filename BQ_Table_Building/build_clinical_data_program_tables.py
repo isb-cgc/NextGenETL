@@ -619,8 +619,7 @@ def add_reference_columns(table_columns, schema_dict, column_order):
         if depth > 2:
             # if the > 2 cond. is removed (and the case_id insertion below)
             # tables will only reference direct ancestor
-            # tables with depth > 2 have case_id reference and pid
-            # reference
+            # tables with depth > 2 have case_id and pid reference
             parent_fg = get_parent_field_group(table_key)
             pid_key = get_table_id_key(parent_fg)
             full_pid_name = parent_fg + '.' + pid_key
@@ -660,6 +659,9 @@ def add_reference_columns(table_columns, schema_dict, column_order):
             count_id_key, parent_table_key)
         table_columns[parent_table_key].add(count_id_key)
         column_order[count_order_col_name] = count_col_position
+
+        print(table_key)
+        print(sorted(column_order.items(), key=lambda item: item[1]))
 
     return schema_dict, table_columns, column_order
 
@@ -1041,11 +1043,9 @@ def main(args):
 
     # program_names = get_programs_list()
     program_names = ['HCMI']
+
+    #todo could this cause bugs?
     column_order_dict = build_column_order_dict()
-
-    print(sorted(column_order_dict.items(),
-                 key=lambda item: item[1], reverse=True))
-
     schema_dict = create_schema_dict()
 
     for program_name in program_names:
