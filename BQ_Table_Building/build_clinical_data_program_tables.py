@@ -582,12 +582,13 @@ def add_reference_columns(table_columns, schema_dict):
         depth = len(table.split('.'))
         table_depths[table] = depth
 
-    for table, depth in sorted(
-            table_depths.items(), key=lambda item: item[1], reverse=True):
+    for table, depth in sorted(table_depths.items(),
+                               key=lambda item: item[1], reverse=True):
+
         table_column_order[table] = build_column_order_dict()
 
-        id_column_position = get_id_column_position(
-            table, table_column_order[table])
+        id_column_position = get_id_column_position(table,
+                                                    table_column_order[table])
 
         ref_column_index = id_column_position + 1
 
@@ -622,25 +623,20 @@ def add_reference_columns(table_columns, schema_dict):
 
         ref_column_index += 1
 
-        parent_table_key = get_parent_table(table_columns.keys(), table)
+        parent_table = get_parent_table(table_columns.keys(), table)
 
         count_col_index = get_count_column_index(
-            parent_table_key, table_column_order[table])
+            parent_table, table_column_order[table])
 
-        count_order_col_name = table + '.count'
+        count_column = table + '.count'
 
         count_id_key = get_bq_name(API_PARAMS, table, 'count')
 
         # add one-to-many record count column to parent table
-        schema_dict[count_order_col_name] = generate_count_schema_entry(
-            count_id_key, parent_table_key)
-        table_columns[parent_table_key].add(count_id_key)
-        table_column_order[table][count_order_col_name] = count_col_index
-
-        # todo remove after testing complete
-        print(table)
-        print(sorted(table_column_order[table].items(),
-                     key=lambda item: item[1]))
+        schema_dict[count_column] = generate_count_schema_entry(
+            count_id_key, parent_table)
+        table_columns[parent_table].add(count_id_key)
+        table_column_order[parent_table][count_column] = count_col_index
 
     return schema_dict, table_columns, table_column_order
 
