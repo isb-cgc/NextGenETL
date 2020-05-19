@@ -1044,8 +1044,6 @@ def main(args):
     # program_names = get_programs_list()
     program_names = ['HCMI']
 
-    #todo could this cause bugs?
-    column_order_dict = build_column_order_dict()
     schema_dict = create_schema_dict()
 
     for program_name in program_names:
@@ -1064,7 +1062,7 @@ def main(args):
         if 'create_and_load_tables' in steps:
             # generate table schemas
             table_schemas, table_order_lists = create_schemas(
-                table_columns, schema_dict, column_order_dict.copy())
+                table_columns, schema_dict)
 
             # create tables, flatten and insert data
             create_and_load_tables(program_name, cases,
