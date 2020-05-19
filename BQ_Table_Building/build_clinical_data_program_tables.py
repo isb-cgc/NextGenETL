@@ -710,6 +710,8 @@ def create_schemas(table_columns):
 
         required_cols = get_required_columns(table)
 
+        print(column_orders)
+
         schema_list = [make_SchemaField(schema_dict, k, required_cols)
                        for k, v in sorted(column_orders[table].items(),
                                           key=lambda item: item[1])]
