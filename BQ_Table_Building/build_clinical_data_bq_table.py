@@ -369,7 +369,7 @@ def main(args):
             table_name=bq_params['GDC_RELEASE'] + '_clinical_data')
 
     end = time.time() - start
-    print("\nScript executed in {:.0f} seconds\n".format(end))
+    print("Script executed in {:.0f} seconds\n".format(end))
 
 
 if __name__ == '__main__':
