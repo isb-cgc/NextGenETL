@@ -649,12 +649,12 @@ def get_dataset_table_list(bq_params):
 
 
 def make_SchemaField(schema_dict, schema_key, required_columns):
-    return bigquery.SchemaField(name=schema_dict[schema_key]['name'],
-                                field_type=schema_dict[schema_key]['type'],
-                                mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
-                                description=schema_dict[schema_key][
-                                    'description'],
-                                fields=())
+    return bigquery.SchemaField(
+        name=schema_dict[schema_key]['name'],
+        field_type=schema_dict[schema_key]['type'],
+        mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
+        description=schema_dict[schema_key]['description'],
+        fields=())
 
 
 def download_from_bucket(source_file, dest_file, bq_params):
