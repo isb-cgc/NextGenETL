@@ -42,11 +42,43 @@ documentation:
 """
 
 
+def generate_table_documentation(table, table_id, record_count, columns, column_order):
+    print()
+    print("{}".format(table))
+    print("{}".format(table_id))
+    print("{}".format(record_count))
+    print("{}".format(columns))
+    print("{}".format(column_order))
+    print()
+
+
 def main():
     with open('files/rel23_documentation.json', 'r') as json_file:
         doc_json = json.load(json_file)
 
-        print json.dumps(doc_json, indent=2, sort_keys=True)
+        metadata_tables = doc_json.pop("metadata")
+
+        for program, entries in doc_json.items():
+            record_counts = entries['record_counts']
+            table_columns = entries['table_columns']
+            table_ids = entries['table_ids']
+            table_order_dict = entries['table_order_dict']
+
+            for table in table_columns:
+                columns = table_columns[table]
+                table_id = table_ids[table]
+                column_order = table_order_dict[table]
+                record_count = record_counts[table]
+
+                generate_table_documentation(table, table_id, record_count, columns, column_order)
+
+
+
+
+
+
+
+
 
 
 

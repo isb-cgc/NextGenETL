@@ -560,6 +560,12 @@ def get_parent_table(table_keys, table_key):
     return parent_table_key
 
 
+# todo remove
+def get_parent_table_id_key(api_params, table_keys, key):
+    parent_table = get_parent_table(table_keys, key)
+    return api_params['TABLE_METADATA'][parent_table]['table_id_key']
+
+
 def upload_to_bucket(bq_params, fp, file_name):
     try:
         storage_client = storage.Client()
