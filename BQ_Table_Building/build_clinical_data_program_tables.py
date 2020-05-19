@@ -1043,7 +1043,8 @@ def main(args):
     program_names = ['HCMI']
     column_order_dict = build_column_order_dict()
 
-    print(column_order_dict)
+    print(sorted(column_order_dict.items(),
+                 key=lambda item: item[1], reverse=True))
 
     schema_dict = create_schema_dict()
 
