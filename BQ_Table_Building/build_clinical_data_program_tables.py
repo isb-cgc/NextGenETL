@@ -668,7 +668,6 @@ def create_schemas(table_columns):
     """
     Create ordered schema lists for final tables.
     :param table_columns: dict containing table column keys
-    :param schema_dict: dict containing schema records
     :return: lists of BQ SchemaFields.
     """
     schema_field_lists = dict()
@@ -710,17 +709,19 @@ def create_schemas(table_columns):
 
         required_cols = get_required_columns(table)
 
-        print(schema_dict)
-
         schema_list = []
 
         for key, v in sorted(column_orders[table].items(), key=lambda i: i[1]):
-            schema_entry = make_SchemaField(schema_dict, key, required_cols)
-
-            if schema_entry:
+            if key in schema_dict:
+                schema_entry = make_SchemaField(schema_dict, key, required_cols)
                 schema_list.append(schema_entry)
+            else:
+                print("{} not found in master bq table, excluding from schema.".
+                      format(key))
 
         schema_field_lists[table] = schema_list
+
+    print(schema_field_lists)
 
     return schema_field_lists, column_orders
 
@@ -1106,8 +1107,7 @@ def main(args):
             table_schemas, table_order_lists = create_schemas(table_columns)
 
             # create tables, flatten and insert data
-            create_and_load_tables(program, cases,
-                                   table_schemas, record_counts)
+            create_and_load_tables(program, cases, table_schemas, record_counts)
 
             print("{} processed in {:0.1f} seconds!\n".
                   format(program, time.time() - prog_start))
