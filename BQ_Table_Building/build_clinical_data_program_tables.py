@@ -612,7 +612,6 @@ def add_reference_columns(table_columns, schema_dict):
 
             ref_column_index += 1
 
-        # todo here's that extra insert I bet
         case_id_key = 'case_id'
         case_id_column = table + '.case_id'
 
@@ -620,7 +619,7 @@ def add_reference_columns(table_columns, schema_dict):
         schema_dict[case_id_column] = generate_id_schema_entry(
             case_id_key, 'main')
 
-        # table_columns[table].add('cases.case_id')
+        table_columns[table].add(case_id_key)
 
         parent_fg = get_parent_field_group(table)
         pid_index = get_id_column_index(parent_fg,
@@ -733,12 +732,14 @@ def create_schemas(table_columns):
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
 
-            if column == 'case_id':
-                case_id_field = table + '.case_id'
-            else:
-                case_id_field = field
+            # if column == 'case_id':
+            #     case_id_field = table + '.case_id'
+            # else:
 
-            included_column_order[field] = column_orders[table][case_id_field]
+            # case_id_field = field
+
+            # included_column_order[field] = column_orders[table][case_id_field]
+            included_column_order[field] = column_orders[table][field]
 
         schema_list = []
 
