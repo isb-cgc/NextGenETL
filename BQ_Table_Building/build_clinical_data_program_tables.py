@@ -688,9 +688,9 @@ def create_schemas(table_columns):
                 column = table + '.' + column
 
             if column not in column_orders[table]:
-                has_fatal_error("'{}' not in column_orders['{}']: \n"
-                                "{}".
-                                format(column, table, column_orders[table]))
+                has_fatal_error(
+                    "'{}' not in column_orders['{}']. Found: {}".
+                    format(column, table, column_orders[table].keys()))
 
             count_column_index = get_count_column_index(
                 table, column_orders[table])
@@ -717,7 +717,7 @@ def create_schemas(table_columns):
                 schema_entry = make_SchemaField(schema_dict, key, required_cols)
                 schema_list.append(schema_entry)
             else:
-                print("{} not found in master bq table, excluding from schema.".
+                print("{} not found in master table, excluding from schema.".
                       format(key))
 
         schema_field_lists[table] = schema_list
