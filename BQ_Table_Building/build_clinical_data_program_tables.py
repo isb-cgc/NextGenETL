@@ -771,63 +771,63 @@ def remove_dict_fields(record, table_name):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
+def create_entry_dict(field_group, fg_name, flat_dict, case_id, pid, pid_key):
     """
-
-    :param entry:
-    :param prefix:
-    :param flat_case:
-    :param case_id:
-    :param pid:
-    :param pid_key:
-    :return:
+    Recursively traverse the case json object, creating dict of format:
+     {field_group: [records]}
+    :param field_group:
+    :param fg_name:
+    :param flat_dict: partially-built flattened case dict
+    :param case_id: case id
+    :param pid: parent field group id
+    :param pid_key: parent field group id key
+    :return: flattened case dict, format: { 'field_group': [records] }
     """
-    if isinstance(entry, list):
-        for sub_entry in entry:
-            flat_case = create_entry_dict(
-                sub_entry, prefix, flat_case, case_id, pid, pid_key)
-        return flat_case
+    # entry represents a field group, recursively flatten each record
+    if isinstance(field_group, list):
+        # flatten each record in field group list
+        for child_entry in field_group:
+            flat_dict = create_entry_dict(
+                child_entry, fg_name, flat_dict, case_id, pid, pid_key)
+        return flat_dict
+    else:
+        fields_dict = dict()
 
-    entry_dict = dict()
+        for field, field_val in field_group.items():
+            id_field = get_table_id_key(fg_name)
+            if isinstance(field_val, list):
+                flat_dict = create_entry_dict(
+                    field_group=field_val,
+                    fg_name=fg_name + '.' + field,
+                    flat_dict=flat_dict,
+                    case_id=case_id,
+                    pid=field_group[id_field],
+                    pid_key=get_bq_name(API_PARAMS, fg_name, id_field))
+            else:
+                # todo this may not be necessary, the if portion
+                if 'case_id' not in fields_dict:
+                    fields_dict['case_id'] = case_id
 
-    # todo switch to filter
-    for key in entry:
-        if not isinstance(entry[key], list):
-            curr_table_id_key = get_table_id_key(prefix)
+                if case_id != pid and id_field != pid_key:
+                    fields_dict[pid_key] = pid
 
-            if 'case_id' not in entry_dict:
-                entry_dict['case_id'] = case_id
+                # This is where field name is converted to abbr. bq column name
+                field = get_bq_name(API_PARAMS, fg_name, field)
+                fields_dict[field] = field_group[field]
 
-            if case_id != pid and curr_table_id_key != pid_key:
-                entry_dict[pid_key] = pid
+        if fields_dict:
+            if fg_name not in flat_dict:
+                flat_dict[fg_name] = list()
 
-            # This is where field name is converted to abbr. bq column name
-            field = get_bq_name(API_PARAMS, prefix, key)
-            entry_dict[field] = entry[key]
-        else:
-            # todo changed this from running as a separate loop, does that work?
-            new_prefix = prefix + '.' + key
-            pid_field_name = get_table_id_key(prefix)
-            pid = entry[pid_field_name]
-            pid_key = get_bq_name(API_PARAMS, prefix, pid_field_name)
-            flat_case = create_entry_dict(
-                entry[key], new_prefix, flat_case, case_id, pid, pid_key)
+            fields_dict = remove_dict_fields(fields_dict, fg_name)
+            flat_dict[fg_name].append(fields_dict)
 
-    if entry_dict:
-        # todo is this duplicated effort?
-        entry_dict = remove_dict_fields(entry_dict, prefix)
-
-        if prefix not in flat_case:
-            flat_case[prefix] = list()
-
-        flat_case[prefix].append(entry_dict)
-            
-    return flat_case
+        return flat_dict
 
 
 def flatten_case(case):
     """
-    Convert nested case object into a flattened representation of its records.
+    Converts nested case object into a flattened representation of its records.
     :param case: dict containing case data
     :return: flattened case dict
     """
