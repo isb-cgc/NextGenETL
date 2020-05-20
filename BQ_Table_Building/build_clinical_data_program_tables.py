@@ -1005,12 +1005,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
         table_id = get_full_table_name(program_name, table)
 
-        try:
-            create_and_load_table(BQ_PARAMS, jsonl_file,
-                                  schemas[table], table_id)
-        except ValueError as err:
-            print("{}, {}".format(jsonl_file, table_id))
-            has_fatal_error("{}".format(err))
+        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
 
 
 ####
@@ -1133,7 +1128,7 @@ def main(args):
         documentation_dict['metadata'] = dict()
         documentation_dict['metadata']['API_PARAMS'] = API_PARAMS
         documentation_dict['metadata']['BQ_PARAMS'] = BQ_PARAMS
-        documentation_dict['metadata']['schema_dict'] = schema_dict
+        # documentation_dict['metadata']['schema_dict'] = schema_dict
 
         generate_documentation(documentation_dict)
 

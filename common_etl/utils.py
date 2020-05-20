@@ -354,48 +354,55 @@ def get_query_results(query):
 
 def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     job_config = bigquery.LoadJobConfig()
-
-    if bq_params['BQ_AS_BATCH']:
-        job_config.priority = bigquery.QueryPriority.BATCH
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
+    if bq_params['BQ_AS_BATCH']:
+        job_config.priority = bigquery.QueryPriority.BATCH
+
     client = bigquery.Client()
-    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params[
-        'WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
-    table_id = bq_params['WORKING_PROJECT'] + '.' + bq_params[
-        'TARGET_DATASET'] + '.' + table_name
-    load_job = client.load_table_from_uri(gs_uri, table_id,
-                                          job_config=job_config)
-    print('\tStarting insert, job ID: {}'.format(load_job.job_id))
-    start = time.time()
+    gs_uri = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
+              bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file)
 
-    location = 'US'
-    job_state = "NOT_STARTED"
+    table_id = (bq_params['WORKING_PROJECT'] + '.' +
+                bq_params['TARGET_DATASET'] + '.' + table_name)
 
-    while job_state != 'DONE':
-        load_job = client.get_job(load_job.job_id, location=location)
+    try:
+        load_job = client.load_table_from_uri(gs_uri, table_id, job_config)
 
-        if time.time() - start > 30:
-            print('\tJob is currently in state {}'.format(load_job.state))
+        print('\t- starting insert, job ID: {}'.format(load_job.job_id))
+        last_report_time = time.time()
 
-        job_state = load_job.state
+        location = 'US'
+        job_state = "NOT_STARTED"
 
-        if job_state != 'DONE':
-            time.sleep(3)
+        while job_state != 'DONE':
+            load_job = client.get_job(load_job.job_id, location=location)
 
-    print('Job for {} is done! '.format(table_name), end='')
+            if time.time() - last_report_time > 15:
+                print('\t- job is currently in state {}'.format(load_job.state))
+                last_report_time = time.time()
 
-    load_job = client.get_job(load_job.job_id, location=location)
+            job_state = load_job.state
 
-    if load_job.error_result is not None:
-        has_fatal_error(
-            'While running BQ job: {} \n{}'.format(load_job.error_result,
-                                                   load_job.errors), ValueError)
+            if job_state != 'DONE':
+                time.sleep(3)
 
-    destination_table = client.get_table(table_id)
-    print('{} rows inserted.\n'.format(destination_table.num_rows))
+        print('Job for {} is done! '.format(table_name), end='')
+
+        load_job = client.get_job(load_job.job_id, location)
+
+        if load_job.error_result is not None:
+            has_fatal_error('While running BQ job: {} \n{}'.
+                            format(load_job.error_result, load_job.errors),
+                            ValueError)
+
+        destination_table = client.get_table(table_id)
+        print('{} rows inserted.\n'.format(destination_table.num_rows))
+    except Exception as err:
+        print(schema)
+        has_fatal_error(err)
 
 
 def pprint_json(json_obj):
