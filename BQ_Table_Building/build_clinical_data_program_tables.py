@@ -709,22 +709,22 @@ def create_schemas(table_columns):
                     "'{}' not in column_orders['{}']. Found: {}".
                     format(column, table, column_orders[table].keys()))
 
-            count_column_index = get_count_column_index(table,
-                                                        column_orders[table])
+        count_column_index = get_count_column_index(table,
+                                                    column_orders[table])
 
-            count_columns = []
+        count_columns = []
 
-            for column_key, index in column_orders[table].items():
-                if index == count_column_index:
-                    count_columns.append(column_key)
+        for column_key, index in column_orders[table].items():
+            if index == count_column_index:
+                count_columns.append(column_key)
 
-            # index in alpha order
-            count_columns.sort()
-            print("count_columns: {}".format(count_columns))
+        # index in alpha order
+        count_columns.sort()
+        print("count_columns: {}".format(count_columns))
 
-            for count_column in count_columns:
-                column_orders[table][count_column] = count_column_index
-                count_column_index += 1
+        for count_column in count_columns:
+            column_orders[table][count_column] = count_column_index
+            count_column_index += 1
 
         required_cols = get_required_columns(table)
 
