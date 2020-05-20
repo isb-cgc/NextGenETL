@@ -620,7 +620,9 @@ def add_reference_columns(table_columns, schema_dict):
             case_id_key, 'main')
 
         table_columns[table].add(case_id_key)
-        # table_orders[table][case_id_column] = ref_column_index
+        table_id_key = get_table_id_key(table)
+        table_id_idx = get_id_column_position(table_id_key, table_orders[table])
+        table_orders[table][case_id_column] = table_id_idx + len(table_depths)
 
         ref_column_index += 1
 
