@@ -835,8 +835,11 @@ def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     :param pid_key:
     :return:
     """
-
-    print(entry)
+    if isinstance(entry, list):
+        for sub_entry in entry:
+            flat_case = create_entry_dict(
+                sub_entry, prefix, flat_case, case_id, pid, pid_key)
+        return flat_case
 
     entry_dict = dict()
 
