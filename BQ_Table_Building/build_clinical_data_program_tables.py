@@ -634,6 +634,8 @@ def add_reference_columns(table_columns, schema_dict):
         count_col_index = get_count_column_index(
             parent_table, table_orders[parent_table])
 
+        print("count column index".format())
+
         count_column = table + '.count'
 
         count_id_key = get_bq_name(API_PARAMS, table, 'count')
