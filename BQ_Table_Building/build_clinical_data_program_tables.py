@@ -623,7 +623,6 @@ def add_reference_columns(table_columns, schema_dict):
         table_columns[table].add(case_id_key)
 
         parent_fg = get_parent_field_group(table)
-        pid_key = get_table_id_key(parent_fg)
         pid_index = get_id_column_position(parent_fg,
                                               table_orders[parent_fg])
         table_orders[table][case_id_column] = pid_index + len(table_depths)
@@ -644,7 +643,11 @@ def add_reference_columns(table_columns, schema_dict):
             count_id_key, parent_table)
         table_columns[parent_table].add(count_id_key)
         table_orders[parent_table][count_column] = count_col_index
-    print(table_orders)
+
+    for table in table_orders:
+        print(table)
+        print(sorted(table_orders[table], key=lambda item: item[1]))
+
     return schema_dict, table_columns, table_orders
 
 
