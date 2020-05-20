@@ -198,9 +198,9 @@ def build_column_order_dict():
             has_fatal_error("{} found in API_PARAMS['TABLE_ORDER'] but not in "
                             "API_PARAMS['TABLE_METADATA']".format(group))
 
-    column_order_dict['state'] = idx
-    column_order_dict['created_datetime'] = idx + 1
-    column_order_dict['updated_datetime'] = idx + 2
+    column_order_dict['cases.state'] = idx
+    column_order_dict['cases.created_datetime'] = idx + 1
+    column_order_dict['cases.updated_datetime'] = idx + 2
 
     return column_order_dict
 
@@ -835,6 +835,9 @@ def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     :param pid_key:
     :return:
     """
+
+    print(entry)
+
     entry_dict = dict()
 
     # todo switch to filter
