@@ -633,7 +633,7 @@ def add_reference_columns(table_columns, schema_dict):
         parent_table = get_parent_table(table_columns.keys(), table)
 
         count_col_index = get_count_column_index(
-            parent_table, table_orders[table])
+            parent_table, table_orders[parent_table])
 
         count_column = table + '.count'
 
