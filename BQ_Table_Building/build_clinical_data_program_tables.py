@@ -634,7 +634,7 @@ def add_reference_columns(table_columns, schema_dict):
         count_col_index = get_count_column_index(
             parent_table, table_orders[parent_table])
 
-        print("count column index: {}".format(count_col_index))
+        print("count column {} index: {}".format(table, count_col_index))
 
         count_column = table + '.count'
 
@@ -646,9 +646,11 @@ def add_reference_columns(table_columns, schema_dict):
         table_columns[parent_table].add(count_id_key)
         table_orders[parent_table][count_column] = count_col_index
 
+    """
     for table in table_orders:
         print(table)
         print(sorted(table_orders[table].items(), key=lambda item: item[1]))
+    """
 
     return schema_dict, table_columns, table_orders
 
