@@ -730,6 +730,7 @@ def create_schemas(table_columns):
 
         included_column_order = dict()
 
+        """
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
 
@@ -739,7 +740,7 @@ def create_schemas(table_columns):
                 case_id_field = field
 
             included_column_order[field] = column_orders[table][case_id_field]
-
+        """
         schema_list = []
 
         for key, v in sorted(included_column_order.items(), key=lambda i: i[1]):
