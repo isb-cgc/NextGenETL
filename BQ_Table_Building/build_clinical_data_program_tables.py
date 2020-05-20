@@ -624,7 +624,7 @@ def add_reference_columns(table_columns, schema_dict):
         parent_fg = get_parent_field_group(table)
         pid_index = get_id_column_index(parent_fg,
                                         table_orders[parent_fg])
-        table_orders[table][case_id_column] = pid_index + len(table_depths)
+        table_orders[table][case_id_column] = pid_index + len(table_depths) - 1
 
         ref_column_index += 1
 
