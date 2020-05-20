@@ -714,7 +714,7 @@ def create_schemas(table_columns):
 
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
-            included_column_order[column] = column_orders[table][field]
+            included_column_order[field] = column_orders[table][field]
 
         schema_list = []
 
