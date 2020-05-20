@@ -646,7 +646,7 @@ def add_reference_columns(table_columns, schema_dict):
 
     for table in table_orders:
         print(table)
-        print(sorted(table_orders[table], key=lambda item: item[1]))
+        print(sorted(table_orders[table].items(), key=lambda item: item[1]))
 
     return schema_dict, table_columns, table_orders
 
