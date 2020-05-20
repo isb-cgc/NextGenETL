@@ -372,7 +372,9 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         load_job = client.load_table_from_uri(
             gs_uri, table_id, job_config=job_config)
 
-        print('\t- starting insert, job ID: {}'.format(load_job.job_id))
+        print('\t- starting insert for {}, job ID: {}'.
+              format(table_name, load_job.job_id))
+
         last_report_time = time.time()
 
         location = 'US'
@@ -390,8 +392,6 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
             if job_state != 'DONE':
                 time.sleep(3)
 
-        print('Job for {} is done! '.format(table_name), end='')
-
         load_job = client.get_job(load_job.job_id, location=location)
 
         if load_job.error_result is not None:
@@ -400,7 +400,9 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
                             ValueError)
 
         destination_table = client.get_table(table_id)
-        print('{} rows inserted.\n'.format(destination_table.num_rows))
+
+        print('\t- done! {} rows inserted.\n'.
+              format(destination_table.num_rows))
     except Exception as err:
         print(schema)
         has_fatal_error(err)
