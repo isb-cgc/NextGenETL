@@ -392,7 +392,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
 
         print('Job for {} is done! '.format(table_name), end='')
 
-        load_job = client.get_job(load_job.job_id, location)
+        load_job = client.get_job(load_job.job_id, location=location)
 
         if load_job.error_result is not None:
             has_fatal_error('While running BQ job: {} \n{}'.
