@@ -824,12 +824,12 @@ def flatten_case(case, prefix, flat_case, case_id=None,
 '''
     
 
-def create_entry_dict(entry, flat_case, prefix, case_id, pid, pid_key):
+def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     """
 
     :param entry:
-    :param flat_case:
     :param prefix:
+    :param flat_case:
     :param case_id:
     :param pid:
     :param pid_key:
