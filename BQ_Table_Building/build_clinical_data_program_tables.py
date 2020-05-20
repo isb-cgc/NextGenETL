@@ -612,6 +612,7 @@ def add_reference_columns(table_columns, schema_dict):
 
             ref_column_index += 1
 
+        # todo here's that extra insert I bet
         case_id_key = 'case_id'
         case_id_column = table + '.case_id'
 
@@ -620,9 +621,12 @@ def add_reference_columns(table_columns, schema_dict):
             case_id_key, 'main')
 
         table_columns[table].add(case_id_key)
-        table_id_key = get_table_id_key(table)
-        table_id_idx = get_id_column_position(table, table_orders[table])
-        table_orders[table][case_id_column] = table_id_idx + len(table_depths)
+
+        parent_fg = get_parent_field_group(table)
+        pid_key = get_table_id_key(parent_fg)
+        pid_index = get_id_column_position(parent_fg,
+                                              table_orders[parent_fg])
+        table_orders[table][case_id_column] = pid_index + len(table_depths)
 
         ref_column_index += 1
 
