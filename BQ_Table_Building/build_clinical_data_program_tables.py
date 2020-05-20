@@ -545,7 +545,6 @@ def add_reference_columns(table_columns, schema_dict):
     :param schema_dict: dict containing schema records
     :return: table_columns, schema_dict, column_order_dict
     """
-
     def generate_id_schema_entry(column_name, parent_table_key_):
         parent_field_name = get_field_name(parent_table_key_)
 
@@ -772,84 +771,6 @@ def remove_dict_fields(record, table_name):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-'''
-def flatten_case(case, prefix, flat_case, case_id=None,
-                 new_pid=None, new_pid_key=None):
-    """
-    Convert nested case object into a flattened representation of its records.
-    :param case: dict containing case data
-    :param prefix: name of parent field group.
-    :param flat_case: flattened dictionary for case (used to recursively
-        capture the record as it's parsed).
-    :param case_id: case record's id value
-    :param new_pid: value of parent id for this record (or duplicate of case_id
-        if record doesn't have a more direct ancestor.)
-    :param new_pid_key: parent table's key for unique ids.
-    :return: flattened case dict
-    """
-    if isinstance(case, list):
-        for entry in case:
-            entry_dict = dict()
-            for key in entry:
-                if not isinstance(entry[key], list):
-                    curr_table_id_key = get_table_id_key(prefix)
-
-                    if case_id != new_pid and curr_table_id_key != new_pid_key:
-                        entry_dict[new_pid_key] = new_pid
-
-                    if 'case_id' not in entry_dict:
-                        entry_dict['case_id'] = case_id
-
-                    # This is where GDC field names are converted to
-                    # bq_column names (with table abbr prefixes)
-                    bq_col_name = get_bq_name(API_PARAMS, prefix, key)
-                    entry_dict[bq_col_name] = entry[key]
-
-            if entry_dict:
-                entry_dict = remove_dict_fields(entry_dict, prefix)
-
-                if prefix not in flat_case:
-                    flat_case[prefix] = list()
-                flat_case[prefix].append(entry_dict)
-
-            for key in entry:
-                if isinstance(entry[key], list):
-                    new_prefix = prefix + '.' + key
-                    new_pid_key = get_table_id_key(prefix)
-                    new_pid = entry[new_pid_key]
-                    new_p_key = get_bq_name(API_PARAMS, prefix, new_pid_key)
-                    flat_case = flatten_case(entry[key], new_prefix, flat_case,
-                                             case_id, new_pid, new_p_key)
-    else:
-        entry_dict = dict()
-
-        for key in case:
-            if not isinstance(case[key], list):
-                # This is the other place where GDC field names are
-                # converted to bq_column names (with table abbr prefixes)
-                field = get_bq_name(API_PARAMS, prefix, key)
-                entry_dict[field] = case[key]
-
-        if entry_dict:
-            entry_dict = remove_dict_fields(entry_dict, prefix)
-
-            if prefix not in flat_case:
-                flat_case[prefix] = list()
-            flat_case[prefix].append(entry_dict)
-
-        for key in case:
-            if isinstance(case[key], list):
-                new_prefix = prefix + '.' + key
-                new_pid_key = get_table_id_key(prefix)
-                new_pid = case[new_pid_key]
-                new_p_key = get_bq_name(API_PARAMS, prefix, new_pid_key)
-                flat_case = flatten_case(case[key], new_prefix, flat_case,
-                                         case_id, new_pid, new_p_key)
-
-    return flat_case
-'''
-    
-
 def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     """
 
@@ -883,25 +804,23 @@ def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
             # This is where field name is converted to abbr. bq column name
             field = get_bq_name(API_PARAMS, prefix, key)
             entry_dict[field] = entry[key]
-
-    # todo is this duplicated effort?
-    if entry_dict:
-        entry_dict = remove_dict_fields(entry_dict, prefix)
-
-        if prefix not in flat_case:
-            flat_case[prefix] = list()
-
-        flat_case[prefix].append(entry_dict)
-
-    # todo switch to filter
-    for key in entry:
-        if isinstance(entry[key], list):
+        else:
+            # todo changed this from running as a separate loop, does that work?
             new_prefix = prefix + '.' + key
             pid_field_name = get_table_id_key(prefix)
             pid = entry[pid_field_name]
             pid_key = get_bq_name(API_PARAMS, prefix, pid_field_name)
             flat_case = create_entry_dict(
                 entry[key], new_prefix, flat_case, case_id, pid, pid_key)
+
+    if entry_dict:
+        # todo is this duplicated effort?
+        entry_dict = remove_dict_fields(entry_dict, prefix)
+
+        if prefix not in flat_case:
+            flat_case[prefix] = list()
+
+        flat_case[prefix].append(entry_dict)
             
     return flat_case
 
