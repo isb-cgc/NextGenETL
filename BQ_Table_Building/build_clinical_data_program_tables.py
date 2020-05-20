@@ -712,6 +712,8 @@ def create_schemas(table_columns):
 
         schema_list = []
 
+        print(column_orders[table])
+
         for key, v in sorted(column_orders[table].items(), key=lambda i: i[1]):
             if key in schema_dict:
                 schema_entry = make_SchemaField(schema_dict, key, required_cols)
@@ -1097,8 +1099,6 @@ def main(args):
         # derive the program's table structure by analyzing its case records
         table_columns, record_counts = retrieve_program_case_structure(
             program, cases)
-
-        print(table_columns)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
