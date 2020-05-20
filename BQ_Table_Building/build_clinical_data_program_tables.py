@@ -130,7 +130,7 @@ def get_table_id_key(table_key):
     return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
 
 
-def get_id_column_position(table_key, column_order_dict):
+def get_id_column_index(table_key, column_order_dict):
     """
     Get the relative order index of the table's id column.
     :param table_key: Table for which to get index
@@ -591,7 +591,7 @@ def add_reference_columns(table_columns, schema_dict):
 
         table_orders[table] = build_column_order_dict(main_table=False)
 
-        id_column_position = get_id_column_position(table, table_orders[table])
+        id_column_position = get_id_column_index(table, table_orders[table])
 
         ref_column_index = id_column_position + 1
 
@@ -620,11 +620,11 @@ def add_reference_columns(table_columns, schema_dict):
         schema_dict[case_id_column] = generate_id_schema_entry(
             case_id_key, 'main')
 
-        table_columns[table].add(case_id_key)
+        # table_columns[table].add('cases.case_id')
 
         parent_fg = get_parent_field_group(table)
-        pid_index = get_id_column_position(parent_fg,
-                                              table_orders[parent_fg])
+        pid_index = get_id_column_index(parent_fg,
+                                        table_orders[parent_fg])
         table_orders[table][case_id_column] = pid_index + len(table_depths)
 
         ref_column_index += 1
@@ -730,7 +730,6 @@ def create_schemas(table_columns):
 
         included_column_order = dict()
 
-        """
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
 
@@ -740,7 +739,7 @@ def create_schemas(table_columns):
                 case_id_field = field
 
             included_column_order[field] = column_orders[table][case_id_field]
-        """
+
         schema_list = []
 
         for key, v in sorted(included_column_order.items(), key=lambda i: i[1]):
