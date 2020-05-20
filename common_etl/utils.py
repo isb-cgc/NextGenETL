@@ -85,7 +85,7 @@ def check_value_type(value):
     """
     # if has leading zero, then should be considered a string, even if only
     # composed of digits
-    val_is_none = value == '' or value == 'NA' or value == 'null' or value is\
+    val_is_none = value == '' or value == 'NA' or value == 'null' or value is \
                   None or value == 'None'
     val_is_bool = value == 'True' or value == 'False'
     val_is_decimal = value.startswith('0.')
@@ -149,7 +149,7 @@ def infer_data_types(flattened_json):
             elif val_type == 'FLOAT' or val_type == 'STRING':
                 data_types[column] = val_type
             elif (val_type == 'INTEGER' or val_type == 'BOOLEAN') and not \
-            data_types[column]:
+                    data_types[column]:
                 data_types[column] = val_type
 
     return data_types
@@ -661,12 +661,12 @@ def make_SchemaField(schema_dict, schema_key, required_columns):
         fields=())
 
 
-def download_from_bucket(source_file, dest_file, bq_params):
+def download_from_bucket(src_file, dest_file, bq_params):
     client = storage.Client()
 
     with open(dest_file) as file_obj:
-        bucket_path = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + bq_params[
-            'WORKING_BUCKET_DIR'] + '/'
-        path_to_file = bucket_path + '/' + bq_params[
-            'GDC_RELEASE'] + source_file
+        bucket_path = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
+                       bq_params['WORKING_BUCKET_DIR'] + '/')
+        path_to_file = bucket_path + '/' + bq_params['GDC_RELEASE'] + src_file
+
         client.download_blob_to_file(path_to_file, file_obj)
