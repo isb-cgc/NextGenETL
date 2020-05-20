@@ -372,7 +372,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         load_job = client.load_table_from_uri(
             gs_uri, table_id, job_config=job_config)
 
-        print('\t- starting insert for {}, job ID: {}'.
+        print('\tStarting insert for {}, job ID: {}'.
               format(table_name, load_job.job_id))
 
         last_report_time = time.time()
@@ -395,13 +395,13 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         load_job = client.get_job(load_job.job_id, location=location)
 
         if load_job.error_result is not None:
-            has_fatal_error('While running BQ job: {} \n{}'.
+            has_fatal_error('While running BQ job: {}\n{}'.
                             format(load_job.error_result, load_job.errors),
                             ValueError)
 
         destination_table = client.get_table(table_id)
 
-        print('\t- done! {} rows inserted.\n'.
+        print('\tDone! {} rows inserted.\n'.
               format(destination_table.num_rows))
     except Exception as err:
         print(schema)

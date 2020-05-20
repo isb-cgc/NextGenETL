@@ -166,7 +166,7 @@ def get_programs_list():
     return programs
 
 
-def build_column_order_dict():
+def build_column_order_dict(main_table=True):
     """
     Using table order provided in YAML, with add't ordering for reference
     columns added during one-to-many table creation.
@@ -174,7 +174,7 @@ def build_column_order_dict():
     """
     column_order_dict = dict()
     field_groups = API_PARAMS['TABLE_ORDER']
-    max_reference_cols = len(field_groups)
+    fg_count = len(field_groups)
 
     idx = 0
 
@@ -191,7 +191,9 @@ def build_column_order_dict():
                     # this creates space for reference columns (parent id or
                     # one-to-many
                     # record count columns) leaves a gap for submitter_id
-                    idx += max_reference_cols * 2
+                    if not main_table:
+                        column_order_dict['cases.case_id'] = idx + fg_count
+                    idx += fg_count * 2
                 else:
                     idx += 1
         except KeyError:
@@ -583,16 +585,16 @@ def add_reference_columns(table_columns, schema_dict):
         table_depths[table] = depth
 
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
+        if depth == 1:
+            table_orders[table] = build_column_order_dict()
+            continue
 
-        table_orders[table] = build_column_order_dict()
+        table_orders[table] = build_column_order_dict(main_table=False)
 
-        id_column_position = get_id_column_position(table,
-                                                    table_orders[table])
+        id_column_position = get_id_column_position(table, table_orders[table])
 
         ref_column_index = id_column_position + 1
 
-        if depth == 1:
-            continue
         if depth > 2:
             # if the > 2 cond. is removed (and the case_id insertion below)
             # tables will only reference direct ancestor
