@@ -620,7 +620,7 @@ def add_reference_columns(table_columns, schema_dict):
             case_id_key, 'main')
 
         table_columns[table].add(case_id_key)
-        table_orders[table][case_id_column] = ref_column_index
+        # table_orders[table][case_id_column] = ref_column_index
 
         ref_column_index += 1
 
@@ -981,7 +981,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
     :param record_counts: max counts for field groups in this dataset.
     """
     bq_program_tables = get_tables(record_counts)
-    print("Inserting case records... ")
+    print("\nInserting case records...")
     tables = schemas.keys()
 
     for table in tables:
@@ -1053,7 +1053,7 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    print("Programs script executed in {} min, {:.0f} sec".format(minutes,
+    print("Programs script executed in {} min, {:.0f} sec\n".format(minutes,
                                                                   seconds))
     print("Steps completed: ")
 
