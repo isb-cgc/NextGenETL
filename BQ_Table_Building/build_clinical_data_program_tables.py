@@ -688,7 +688,8 @@ def create_schemas(table_columns):
                 column = table + '.' + column
 
             if column not in column_orders[table]:
-                has_fatal_error("'{}' not in column_orders['{}']: \n{}".
+                has_fatal_error("'{}' not in column_orders['{}']: \n"
+                                "{}".
                                 format(column, table, column_orders[table]))
 
             count_column_index = get_count_column_index(
@@ -721,7 +722,7 @@ def create_schemas(table_columns):
 
         schema_field_lists[table] = schema_list
 
-    print(schema_field_lists)
+    print(schema_field_lists.keys())
 
     return schema_field_lists, column_orders
 
