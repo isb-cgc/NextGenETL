@@ -692,8 +692,8 @@ def create_schemas(table_columns):
                     "'{}' not in column_orders['{}']. Found: {}".
                     format(column, table, column_orders[table].keys()))
 
-            count_column_index = get_count_column_index(
-                table, column_orders[table])
+            count_column_index = get_count_column_index(table,
+                                                        column_orders[table])
 
             count_columns = []
 
@@ -713,7 +713,8 @@ def create_schemas(table_columns):
         included_column_order = dict()
 
         for column in table_columns[table]:
-            included_column_order[column] = column_orders[table][column]
+            field = rebuild_bq_name(column)
+            included_column_order[column] = column_orders[table][field]
 
         schema_list = []
 
