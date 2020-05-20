@@ -718,7 +718,13 @@ def create_schemas(table_columns):
 
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
-            included_column_order[field] = column_orders[table][field]
+
+            if column == 'case_id':
+                case_id_field = table + '.case_id'
+            else:
+                case_id_field = field
+
+            included_column_order[field] = column_orders[table][case_id_field]
 
         schema_list = []
 
@@ -731,8 +737,6 @@ def create_schemas(table_columns):
                       format(key))
 
         schema_field_lists[table] = schema_list
-
-    print(schema_field_lists.keys())
 
     return schema_field_lists, column_orders
 
