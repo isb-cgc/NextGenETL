@@ -633,8 +633,9 @@ def add_reference_columns(table_columns, schema_dict):
         count_col_index = get_count_column_index(
             parent_table, table_orders[parent_table])
 
+        # todo remove print
         print("parent table: {}".format(parent_table))
-        print(table_orders[parent_table])
+        # print(table_orders[parent_table])
         print("count column {} index: {}".format(table, count_col_index))
 
         count_column = table + '.count'
@@ -719,10 +720,12 @@ def create_schemas(table_columns):
 
         # index in alpha order
         count_columns.sort()
-        print("count_columns: {}".format(count_columns))
 
         for count_column in count_columns:
             column_orders[table][count_column] = count_column_index
+            # todo remove print
+            print("column_orders['{}']['{}'] = {}".
+                  format(table, count_column, count_column_index))
             count_column_index += 1
 
         required_cols = get_required_columns(table)
@@ -731,14 +734,6 @@ def create_schemas(table_columns):
 
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
-
-            # if column == 'case_id':
-            #     case_id_field = table + '.case_id'
-            # else:
-
-            # case_id_field = field
-
-            # included_column_order[field] = column_orders[table][case_id_field]
             included_column_order[field] = column_orders[table][field]
 
         schema_list = []
