@@ -369,7 +369,8 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
                bq_params['TARGET_DATASET'] + '.' + table_name
 
     try:
-        load_job = client.load_table_from_uri(gs_uri, table_id, job_config)
+        load_job = client.load_table_from_uri(
+            gs_uri, table_id, job_config=job_config)
 
         print('\t- starting insert, job ID: {}'.format(load_job.job_id))
         last_report_time = time.time()
