@@ -192,7 +192,7 @@ def build_column_order_dict(main_table=True):
                     # one-to-many
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
-                        column_order_dict[group + '.case_id'] = idx + fg_count
+                        column_order_dict['case_id'] = idx + fg_count
                     idx += fg_count * 2
                 else:
                     idx += 1
