@@ -839,6 +839,14 @@ def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     """
     if isinstance(entry, list):
         for sub_entry in entry:
+            curr_table_id_key = get_table_id_key(prefix)
+
+            if 'case_id' not in sub_entry:
+                sub_entry['case_id'] = case_id
+
+            if case_id != pid and curr_table_id_key != pid_key:
+                sub_entry[pid_key] = pid
+
             flat_case = create_entry_dict(
                 sub_entry, prefix, flat_case, case_id, pid, pid_key)
         return flat_case
@@ -848,13 +856,13 @@ def create_entry_dict(entry, prefix, flat_case, case_id, pid, pid_key):
     # todo switch to filter
     for key in entry:
         if not isinstance(entry[key], list):
-            curr_table_id_key = get_table_id_key(prefix)
+            # curr_table_id_key = get_table_id_key(prefix)
 
-            if 'case_id' not in entry_dict:
-                entry_dict['case_id'] = case_id
+            # if 'case_id' not in entry_dict:
+            #    entry_dict['case_id'] = case_id
 
-            if case_id != pid and curr_table_id_key != pid_key:
-                entry_dict[pid_key] = pid
+            # if case_id != pid and curr_table_id_key != pid_key:
+            #    entry_dict[pid_key] = pid
 
             # This is where field name is converted to abbr. bq column name
             field = get_bq_name(API_PARAMS, prefix, key)
