@@ -390,7 +390,8 @@ def get_excluded_fields(table):
 
     excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
 
-    return [get_full_field_name(table, field) for field in excluded_fields]
+    # return [get_full_field_name(table, field) for field in excluded_fields]
+    return excluded_fields
 
 
 def flatten_tables(field_groups, tables):
