@@ -189,20 +189,7 @@ def build_column_order_dict():
 
             for column in param_column_order:
                 column_order_dict[group + '.' + column] = idx
-
-                if id_column == column:
-                    # this creates space for reference columns (parent id or one-to-many
-                    # record count columns) leaves a gap for submitter_id
-                    if not main_table:
-                        """
-                        # todo probably this is deleted
-                        column_order_dict['case_id'] = idx + id_index_gap - 1
-                        # todo this stays?
-                        column_order_dict[column + '.case_id'] = idx + id_index_gap - 1
-                        """
-                    idx += id_index_gap * 2
-                else:
-                    idx += 1
+                idx = idx + (id_index_gap * 2) if id_column == column else idx + 1
         except KeyError:
             has_fatal_error("{} found in API_PARAMS['TABLE_ORDER'] but not in "
                             "API_PARAMS['TABLE_METADATA']".format(group))
