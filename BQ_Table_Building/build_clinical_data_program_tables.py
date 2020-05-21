@@ -134,7 +134,7 @@ def get_table_id_key(table_key):
     return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
 
 
-def get_id_column_index(table_key, column_order_dict):
+def get_id_index(table_key, column_order_dict):
     """
     Get the relative order index of the table's id column.
     :param table_key: Table for which to get index
@@ -199,6 +199,17 @@ def build_column_order_dict():
     column_order_dict['cases.updated_datetime'] = idx + 2
 
     return column_order_dict
+
+
+def get_table_column_order(table):
+    if table not in API_PARAMS['TABLE_METADATA']:
+        has_fatal_error("'{}' not found in API_PARAMS['TABLE_METADATA']".format(table))
+    elif 'column_order' not in API_PARAMS['TABLE_METADATA'][table]:
+        has_fatal_error("no column order provided for {} in yaml config.".format(table))
+
+    ordered_table_fields = API_PARAMS['TABLE_METADATA'][table]['column_order']
+
+    return [table + '.' + field for field in ordered_table_fields]
 
 
 ####
@@ -345,6 +356,10 @@ def get_count_column_index(table_key, column_order_dict):
     return id_column_index + id_index_gap
 
 
+def get_case_id_index(table_key, column_order_dict):
+    return get_count_column_index(table_key, column_order_dict) - 1
+
+
 def generate_id_schema_entry(column, parent_table):
     parent_fg = get_field_name(parent_table)
     source_table = '*_{}'.format(parent_fg) if parent_table != 'cases' else 'main'
@@ -386,52 +401,48 @@ def add_reference_columns(table_columns, schema):
     """
     table_orders = dict()
     table_depths = {table: get_field_depth(table) for table in table_columns}
+    indexes = build_column_order_dict()
 
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
-        table_orders[table] = build_column_order_dict()
+        # get ordering for table by only including relevant column indexes
+        table_orders[table] = {k: indexes[k] for k in get_table_column_order(table)}
 
         if depth == 1:
             continue
 
-        id_column_position = get_id_column_index(table, table_orders[table])
-
-        ref_column_index = id_column_position + 1
-
-        if depth > 2:
-            # if the > 2 cond. is removed (and the case_id insertion below)
-            # tables will only reference direct ancestor
-            # tables with depth > 2 have case_id and pid reference
-            parent_fg = get_parent_field_group(table)
-            pid_key = get_table_id_key(parent_fg)
-            full_pid_name = parent_fg + '.' + pid_key
-
-            # add pid to one-to-many table
-            schema[full_pid_name] = generate_id_schema_entry(full_pid_name, parent_fg)
-            table_columns[table].add(full_pid_name)
-            table_orders[table][full_pid_name] = ref_column_index
-
-            ref_column_index += 1
+        ref_column_index = get_id_index(table, table_orders[table]) + 1
 
         parent_fg = get_parent_field_group(table)
-        pid_index = get_id_column_index(parent_fg, table_orders[parent_fg])
         parent_table = get_parent_table(table_columns.keys(), table)
 
-        # add case_id to one-to-many table
-        case_id_column = table + '.case_id'
-        schema[case_id_column] = generate_id_schema_entry(case_id_column, 'main')
-        table_columns[table].add(case_id_column)
-        # todo change to non-hardcoded
-        table_orders[table][case_id_column] = id_column_position + \
-                                              len(API_PARAMS['TABLE_ORDER']) - 1
+        # for formerly doubly-nested tables, ancestor id comes before case_id in schema
+        if depth > 2:
+            # if the depth > 2 cond. (and the case_id insertion below) is removed,
+            # tables will only reference direct ancestor
+            ancestor_id = parent_fg + '.' + get_table_id_key(parent_fg)
 
-        ref_column_index += 1
+            # add pid to one-to-many table
+            schema[ancestor_id] = generate_id_schema_entry(ancestor_id, parent_fg)
+            table_columns[table].add(ancestor_id)
+            table_orders[table][ancestor_id] = ref_column_index
+            ref_column_index += 1
+
+        # add case_id to one-to-many table
+        case_id_name = table + '.case_id'
+        # case_id_index = get_case_id_index(table, table_orders[table])
+        case_id_index = ref_column_index
+
+        schema[case_id_name] = generate_id_schema_entry(case_id_name, 'main')
+        table_columns[table].add(case_id_name)
+        table_orders[table][case_id_name] = case_id_index
+
         count_col_index = get_count_column_index(parent_table, table_orders[parent_table])
 
         # add one-to-many record count column to parent table
-        count_column = table + '.count'
-        schema[count_column] = generate_count_schema_entry(count_column, parent_table)
-        table_columns[parent_table].add(count_column)
-        table_orders[parent_table][count_column] = count_col_index
+        count_name = table + '.count'
+        schema[count_name] = generate_count_schema_entry(count_name, parent_table)
+        table_columns[parent_table].add(count_name)
+        table_orders[parent_table][count_name] = count_col_index
 
     return schema, table_columns, table_orders
 
