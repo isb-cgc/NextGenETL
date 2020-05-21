@@ -596,11 +596,6 @@ def add_reference_columns(table_columns, schema_dict):
         count_col_index = get_count_column_index(
             parent_table, table_orders[parent_table])
 
-        # todo remove print
-        print("parent table: {}".format(parent_table))
-        # print(table_orders[parent_table])
-        print("count column {} index: {}".format(table, count_col_index))
-
         count_column = table + '.count'
 
         count_id_key = get_bq_name(API_PARAMS, table, 'count')
@@ -654,6 +649,9 @@ def create_schemas(table_columns):
     for table in table_columns:
         # this is just alphabetizing the count columns
         for column in table_columns[table]:
+            if '__' in column:
+                column = rebuild_bq_name(column)
+
             if column not in column_orders[table]:
                 has_fatal_error("'{}' not in column_orders['{}']. Found: {}".
                                 format(column, table, column_orders[table].keys()))
@@ -980,8 +978,6 @@ def main(args):
 
         # derive the program's table structure by analyzing its case records
         table_columns, tables = find_program_structure(cases)
-
-        print(table_columns)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
