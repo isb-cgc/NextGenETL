@@ -638,7 +638,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
                 # todo delete print
                 print("count_col: {}".format(count_col))
 
-                flat_case[parent_table][count_col] = record_count
+                # flat_case[parent_table][count_col] = record_count
             else:
                 if id_field != pid_field:
                     parent_fg = get_parent_field_group(field_group)
