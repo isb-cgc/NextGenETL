@@ -447,6 +447,12 @@ def add_reference_columns(table_columns, schema, record_counts):
         table_columns[parent_table].add(count_name)
         table_orders[parent_table][count_name] = count_col_index
 
+    for table, depth in sorted(table_depths.items(), key=lambda item: item[1], reverse=True):
+        if table in table_columns:
+            continue
+        parent_table = get_parent_table(table_columns.keys(), table)
+        table_orders[parent_table] |= table_orders.pop(table)
+
     return schema, table_columns, table_orders
 
 
