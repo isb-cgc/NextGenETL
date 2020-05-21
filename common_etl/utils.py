@@ -646,7 +646,9 @@ def get_parent_table_id_key(api_params, table_keys, key):
 
 
 def new_column_type_lookup(table_id):
-    table = bigquery.Table(table_id)
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
     print(table)
     print(table.schema)
 
