@@ -939,12 +939,12 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         case_id, case_fg_ids = get_case_fg_ids(case)
 
         # todo delete print
-        print("BEFORE: {}".format(flattened_case_dict))
+        # print("BEFORE: {}".format(flattened_case_dict))
 
         flattened_case_dict = merge_single_entry_field_groups(
             case, flattened_case_dict, tables, case_fg_ids)
         # todo delete print
-        print("AFTER: {}".format(flattened_case_dict))
+        # print("AFTER: {}".format(flattened_case_dict))
 
         for table in flattened_case_dict.keys():
             if table not in tables:
