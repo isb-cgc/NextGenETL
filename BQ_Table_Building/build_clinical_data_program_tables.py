@@ -30,7 +30,7 @@ from common_etl.utils import (
     create_mapping_dict, get_field_name, get_tables, get_parent_table,
     get_parent_field_group, load_config, get_cases_by_program, get_table_id,
     upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth,
-    get_full_field_name)
+    get_full_field_name, in_bq_format)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -663,8 +663,13 @@ def create_schemas(table_columns):
 
         required_cols = get_required_columns(table)
 
-        filtered_col_order = {column: column_orders[table][column]
-                              for column in table_columns[table]}
+        filtered_col_order = dict()
+
+        for column in table_columns[table]:
+            column = rebuild_bq_name(column) if in_bq_format(column) else column
+
+            filtered_col_order[column] = column_orders[table][column]
+
         schema_list = []
         
         for key in [k for k, v in sorted(filtered_col_order.items(), key=lambda i: i[1])]:

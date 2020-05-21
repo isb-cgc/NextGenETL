@@ -613,6 +613,13 @@ def get_max_count(record_count_list):
     return max_count, max_count_id
 
 
+def in_bq_format(name):
+    if '__' in name:
+        return True
+    else:
+        return False
+
+
 def get_parent_table(table_keys, field_group):
     base_table = field_group.split('.')[0]
 
