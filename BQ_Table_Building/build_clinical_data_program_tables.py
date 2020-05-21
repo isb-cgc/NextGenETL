@@ -772,19 +772,17 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
             count_col = get_count_column_name(fg_key)
             fg_count = len(case_fg_ids[fg_key])
             fg_id_field = get_table_id_key(fg_key)
+            fg_id_column = get_bq_name(fg_key, fg_id_field)
 
             child_fgs = get_child_fgs(flattened_case, fg_key)
 
             for entry in flattened_case[fg_key].copy():
-                if entry and fg_id_field in entry:
+                if entry and fg_id_column in entry:
                     print("ENTRY and ID")
                     entry_id = entry[fg_id_field]
 
                     flattened_case, entry_name, flat_entry = get_flattened_entry_by_id(
                         flattened_case, fg_key, entry_id, fg_id_field)
-
-                    # todo delete print
-                    print("flat_entry: {}".format(flat_entry))
 
                     id_entry_fields = get_case_fg_by_parent_id(case, fg_key,
                                                                entry_id, fg_id_field)
