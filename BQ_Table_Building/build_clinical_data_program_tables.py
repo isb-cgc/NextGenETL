@@ -759,7 +759,7 @@ def assign_record_counts(flattened_case, tables, case_id_counts):
     fg_entry_counts = dict()
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth == 1:
-            case_id = fg[0]['case_id']
+            case_id = flattened_case[0]['case_id']
             continue
 
         parent_field_group = get_parent_field_group(fg)
