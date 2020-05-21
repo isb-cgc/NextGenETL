@@ -196,7 +196,13 @@ def build_column_order_dict(main_table=True):
                         column_order_dict['case_id'] = idx + fg_count
 
                         # todo delete print
-                        print("\ncolumn_order_dict['case_id']: {}\n".
+                        print("\ncolumn: {}".format(column))
+
+                        # todo delete print
+                        print("group: {}".format(group))
+
+                        # todo delete print
+                        print("column_order_dict['case_id']: {}\n".
                               format(column_order_dict['case_id']))
 
                     idx += fg_count * 2
