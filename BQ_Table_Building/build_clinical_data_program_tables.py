@@ -489,6 +489,7 @@ def prefix_field_names(schema_dict):
 def create_schemas(table_columns, tables):
     """
     Create ordered schema lists for final tables.
+    :param tables:
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
@@ -511,19 +512,15 @@ def create_schemas(table_columns, tables):
 
         sorted_column_names = [col for col, idx in sorted(column_orders[table].items(),
                                                           key=lambda i: i[1])]
+        schema_list = []
 
-        if table in tables:
-            schema_list = []
+        for column in sorted_column_names:
+            if column in schema_dict:
+                schema_list.append(to_SchemaField(schema_dict[column]))
+            else:
+                print("{} not found in src table, excluding schema field.".format(column))
 
-            for column in sorted_column_names:
-                if column in schema_dict:
-                    schema_list.append(to_SchemaField(schema_dict[column]))
-                else:
-                    print("{} not found in src table, excluding schema field.".format(column))
-
-            schema_field_lists[table] = schema_list
-        else:
-
+        schema_field_lists[table] = schema_list
 
     return schema_field_lists, column_orders
 
