@@ -782,6 +782,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                     flattened_case, entry_name, flat_entry = get_flattened_entry_by_id(
                         flattened_case, fg_key, entry_id, fg_id_field)
 
+                    # todo delete print
+                    print("flat_entry: {}".format(flat_entry))
+
                     id_entry_fields = get_case_fg_by_parent_id(case, fg_key,
                                                                entry_id, fg_id_field)
 
