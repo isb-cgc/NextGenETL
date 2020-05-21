@@ -193,13 +193,13 @@ def build_column_order_dict(main_table=True):
                     # this creates space for reference columns (parent id or one-to-many
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
+                        # todo probably this is deleted
                         column_order_dict['case_id'] = idx + fg_count
+                        # todo this stays?
+                        column_order_dict[column + '.case_id'] = idx + fg_count
 
                         # todo delete print
-                        print("\ncolumn: {}".format(column))
-
-                        # todo delete print
-                        print("group: {}".format(group))
+                        print("\ngroup: {}, column: {}, id: {}".format(group, column, idx))
 
                         # todo delete print
                         print("column_order_dict['case_id']: {}\n".
