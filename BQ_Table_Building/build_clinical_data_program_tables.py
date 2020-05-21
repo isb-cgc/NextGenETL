@@ -652,22 +652,13 @@ def create_schemas(table_columns):
         table_columns, schema_dict)
 
     for table in table_columns:
-        # todo filter?
         # this is just alphabetizing the count columns
         for column in table_columns[table]:
-            # todo find when this if/else happens
-            if '__' in column:
-                column = rebuild_bq_name(column)
-            else:
-                column = table + '.' + column
-
             if column not in column_orders[table]:
-                has_fatal_error(
-                    "'{}' not in column_orders['{}']. Found: {}".
-                    format(column, table, column_orders[table].keys()))
+                has_fatal_error("'{}' not in column_orders['{}']. Found: {}".
+                                format(column, table, column_orders[table].keys()))
 
-        count_column_index = get_count_column_index(table,
-                                                    column_orders[table])
+        count_column_index = get_count_column_index(table, column_orders[table])
 
         count_columns = []
 
