@@ -620,15 +620,15 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
         if fields_dict:
             if field_group not in flat_case:
                 flat_case[field_group] = list()
-            # todo delete print
-            print("field_group: {}, fields_dict: {}".format(field_group, fields_dict))
 
             excluded_fields = get_excluded_fields(field_group)
-            for field in excluded_fields:
-                column = get_bq_name(API_PARAMS, field, field_group)
 
-                if column in fields_dict:
-                    fields_dict.pop(column)
+            for field in excluded_fields.keys():
+                excluded_fields[field] = get_bq_name(API_PARAMS, field, field_group)
+
+            for field in fields_dict.keys():
+                if field in excluded_fields or not fields_dict[field]:
+                    fields_dict.pop(field)
 
             # fields_dict = remove_excluded_fields(fields_dict, field_group)
             flat_case[field_group].append(fields_dict)
