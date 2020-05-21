@@ -329,6 +329,9 @@ def find_program_structure(cases):
         if case:
             field_groups, record_counts = examine_case(field_groups, case,
                                                         record_counts, fg_name='cases')
+    # todo delete print
+    print("record_counts: {}".format(record_counts))
+
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
