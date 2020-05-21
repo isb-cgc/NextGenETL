@@ -650,7 +650,7 @@ def flatten_case(case):
                               pid_field='case_id')
 
 
-"""
+'''
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     """
     Merge field groups which have a max of one record for every case in this
@@ -710,7 +710,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
             for key, fg_val in field_group.items():
                 flattened_case[parent_table][0][key] = fg_val
     return flattened_case
-"""
+'''
 
 
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
@@ -735,9 +735,26 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
         pid = field_group[pid_column]
 
+        # todo delete print
+        print("parent_table: {}".format(parent_table))
+        # todo delete print
+        print("pid_key: {}".format(pid_key))
+        # todo delete print
+        print("pid_column: {}".format(pid_column))
+        # todo delete print
+        print("pid: {}".format(pid))
+
+
         parent_fg = get_parent_field_group(fg_key)
         parent_fg_id_key = get_table_id_key(parent_fg)
         ancestor_column = get_bq_name(API_PARAMS, parent_fg_id_key, parent_fg)
+
+        # todo delete print
+        print("parent_fg: {}".format(parent_fg))
+        # todo delete print
+        print("parent_fg_id_key: {}".format(parent_fg_id_key))
+        # todo delete print
+        print("ancestor_column: {}".format(ancestor_column))
 
         # merge into parent table record
         if fg_key not in bq_program_tables:
