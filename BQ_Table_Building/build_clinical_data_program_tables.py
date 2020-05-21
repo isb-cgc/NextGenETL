@@ -666,9 +666,13 @@ def create_schemas(table_columns):
         filtered_col_order = dict()
 
         for column in table_columns[table]:
-            column = rebuild_bq_name(column) if in_bq_format(column) else column
+            col = rebuild_bq_name(column) if in_bq_format(column) else column
 
-            filtered_col_order[column] = column_orders[table][column]
+            try:
+                filtered_col_order[column] = column_orders[table][col]
+            except KeyError as err:
+                has_fatal_error("column: {}, col: {}\n\n{}".
+                                format(column, col, column_orders))
 
         schema_list = []
         
