@@ -743,7 +743,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
             count_col = get_count_column_name(fg_key)
             fg_count = len(case_fg_ids[fg_key])
 
-            flattened_case['cases'][count_col] = fg_count
+            flattened_case['cases'][0][count_col] = fg_count
 
             for entry_id in case_fg_ids[fg_key]:
                 get_case_fg_by_parent_id(case, entry_id, get_table_id_key(fg_key))
