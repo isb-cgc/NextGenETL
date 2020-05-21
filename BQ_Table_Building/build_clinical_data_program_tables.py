@@ -332,7 +332,7 @@ def find_program_structure(cases):
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
-    record_counts = {k: v for k, v in record_counts if record_counts[k] > 0}
+    record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     return table_columns, tables, record_counts
 
