@@ -360,14 +360,24 @@ def generate_id_schema_entry(column_name, parent_table):
                    "record belongs. Parent record found in the program's {} "
                    "table.").format(pid_column, source_table)
 
-    return {"name": pid_column, "type": 'STRING', "description": description}
+    return {
+        "name": pid_column,
+        "type": 'STRING',
+        "description": description,
+        "mode": 'NULLABLE'
+    }
 
 
 def generate_count_schema_entry(count_id_key, parent_table_key):
     description = ("Total count of records associated with this case, "
                    "located in {} table").format(parent_table_key)
 
-    return {"name": count_id_key, "type": 'INTEGER', "description": description}
+    return {
+        "name": count_id_key,
+        "type": 'INTEGER',
+        "description": description,
+        "mode": 'NULLABLE'
+    }
 
 
 def add_reference_columns(table_columns, schema_dict):
@@ -409,8 +419,11 @@ def add_reference_columns(table_columns, schema_dict):
             parent_bq_name = get_bq_name(API_PARAMS, pid_key, parent_fg)
 
             # add pid to one-to-many table
-            schema_dict[full_pid_name] = generate_id_schema_entry(parent_bq_name, parent_fg)
-            table_columns[table].add(parent_bq_name)
+            # todo changed this
+            schema_dict[full_pid_name] = generate_id_schema_entry(full_pid_name,
+                                                                  parent_fg)
+            # todo changed this
+            table_columns[table].add(full_pid_name)
             table_orders[table][full_pid_name] = ref_column_index
 
             ref_column_index += 1
@@ -419,9 +432,10 @@ def add_reference_columns(table_columns, schema_dict):
         case_id_column = table + '.case_id'
 
         # add case_id to one-to-many table
-        schema_dict[case_id_column] = generate_id_schema_entry(case_id_key, 'main')
-
-        table_columns[table].add(case_id_key)
+        # todo changed this
+        schema_dict[case_id_column] = generate_id_schema_entry(case_id_column, 'main')
+        # todo changed this
+        table_columns[table].add(case_id_column)
 
         parent_fg = get_parent_field_group(table)
         pid_index = get_id_column_index(parent_fg, table_orders[parent_fg])
@@ -438,9 +452,11 @@ def add_reference_columns(table_columns, schema_dict):
         count_id_key = get_bq_name(API_PARAMS, 'count', table)
 
         # add one-to-many record count column to parent table
-        schema_dict[count_column] = generate_count_schema_entry(count_id_key,
+        # todo changed this
+        schema_dict[count_column] = generate_count_schema_entry(count_column,
                                                                 parent_table)
-        table_columns[parent_table].add(count_id_key)
+        # todo changed this
+        table_columns[parent_table].add(count_column)
         table_orders[parent_table][count_column] = count_col_index
 
     return schema_dict, table_columns, table_orders
