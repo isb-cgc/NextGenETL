@@ -798,6 +798,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                             child_count_col = get_count_column_name(child_fg)
                             flat_entry[child_count_col] = child_fg_count
                     flattened_case[entry_name].append(flat_entry)
+                else:
+                    print("NO ENTRY and ID")
+
 
             if fg_key in tables:
                 flattened_case['cases'][0][count_col] = fg_count
