@@ -622,7 +622,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
                     flat_case=flat_case,
                     case_id=case_id,
                     pid=record[id_field],
-                    pid_field=id_field)
+                    pid_field=id_field,
+                    tables=tables)
 
                 record_count = len(field_val)
                 parent_table = get_parent_table(tables, field_group + '.' + field)
