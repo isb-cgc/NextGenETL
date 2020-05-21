@@ -976,6 +976,9 @@ def main(args):
         # derive the program's table structure by analyzing its case records
         table_columns, tables = find_program_structure(cases)
 
+        print(table_columns)  # todo remove print
+        exit()
+
         if 'create_and_load_tables' in steps:
             # generate table schemas
             table_schemas, table_order_lists = create_schemas(table_columns)
