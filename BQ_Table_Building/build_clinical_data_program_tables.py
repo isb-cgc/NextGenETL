@@ -508,6 +508,10 @@ def create_schemas(table_columns):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict)
+
+    print(column_orders)
+    exit()
+
     schema_dict = prefix_field_names(schema_dict)
 
     for table in table_columns:
