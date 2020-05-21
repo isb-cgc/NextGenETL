@@ -447,13 +447,21 @@ def add_reference_columns(table_columns, schema, record_counts):
         table_columns[parent_table].add(count_name)
         table_orders[parent_table][count_name] = count_col_index
 
-    for table, depth in sorted(table_depths.items(), key=lambda item: item[1], reverse=True):
-        if table in table_columns:
-            continue
-        parent_table = get_parent_table(table_columns.keys(), table)
-        table_orders[parent_table] |= table_orders.pop(table)
+    merged_table_orders = dict()
 
-    return schema, table_columns, table_orders
+    for table, depth in sorted(table_depths.items(), key=lambda item: item[1], reverse=True):
+        if table not in merged_table_orders:
+            merged_table_orders[table] = set()
+
+        if table in table_columns:
+            merged_key = table
+        else:
+            merged_key = get_parent_table(table_columns.keys(), table)
+            merged_table_orders[table] = table_orders[table]
+
+        merged_table_orders[merged_key] = merged_table_orders[merged_key] | table_orders[table]
+
+    return schema, table_columns, merged_table_orders
 
 
 def rebuild_bq_name(column):
