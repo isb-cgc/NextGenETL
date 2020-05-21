@@ -444,11 +444,17 @@ def add_reference_columns(table_columns, schema, tables):
         table_columns[parent_table].add(count_name)
         table_orders[parent_table][count_name] = count_col_index
 
+    merged_tables = {table for table in table_orders.keys() if table not in tables}
+
     # merge flattened column orders
-    for table in table_orders.copy():
-        if table not in tables:
-            parent_table = get_parent_table(tables, table)
-            table_orders[parent_table] |= table_orders.pop(table)
+    merged_depths = {table: table_depths[table] for table in merged_tables}
+
+    for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
+        parent_table = get_parent_table(tables, table)
+        table_orders[parent_table] |= table_orders[table]
+
+    for table in merged_tables:
+        table_orders.pop(table)
 
     return schema, table_columns, table_orders
 
