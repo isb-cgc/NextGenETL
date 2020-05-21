@@ -475,6 +475,12 @@ def rebuild_bq_name(column):
     return 'cases.' + split_column[-1]
 
 
+def prefix_field_names(schema_dict):
+    for entry in schema_dict:
+        schema_dict[entry]['name'] = get_bq_name(API_PARAMS, entry)
+    return schema_dict
+
+
 def create_schemas(table_columns):
     """
     Create ordered schema lists for final tables.
@@ -485,8 +491,9 @@ def create_schemas(table_columns):
     schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
 
     # modify schema dict, add reference columns for this program
-    schema_dict, table_columns, column_orders = add_reference_columns(
-        table_columns, schema_dict)
+    schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
+                                                                      schema_dict)
+    schema_dict = prefix_field_names(schema_dict)
 
     for table in table_columns:
         # this is just alphabetizing the count columns
