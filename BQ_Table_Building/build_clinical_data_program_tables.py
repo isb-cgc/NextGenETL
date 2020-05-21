@@ -183,19 +183,22 @@ def build_column_order_dict(main_table=True):
 
     for group in field_groups:
         try:
-            column_order_list = API_PARAMS['TABLE_METADATA'][group][
-                'column_order']
+            column_order_list = API_PARAMS['TABLE_METADATA'][group]['column_order']
             id_column = API_PARAMS['TABLE_METADATA'][group]['table_id_key']
 
             for column in column_order_list:
                 column_order_dict[group + '.' + column] = idx
 
                 if id_column == column:
-                    # this creates space for reference columns (parent id or
-                    # one-to-many
+                    # this creates space for reference columns (parent id or one-to-many
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
                         column_order_dict['case_id'] = idx + fg_count
+
+                        # todo delete print
+                        print("\ncolumn_order_dict['case_id']: {}\n".
+                              format(column_order_dict['case_id']))
+
                     idx += fg_count * 2
                 else:
                     idx += 1
@@ -535,11 +538,8 @@ def add_reference_columns(table_columns, schema_dict):
     :return: table_columns, schema_dict, column_order_dict
     """
     table_orders = dict()
-    table_depths = dict()
 
-    for table in table_columns.keys():
-        depth = len(table.split('.'))
-        table_depths[table] = depth
+    table_depths = {table: get_field_depth(table) for table in table_columns}
 
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
         if depth == 1:
@@ -971,12 +971,6 @@ def main(args):
         if 'create_and_load_tables' in steps:
             # generate table schemas
             table_schemas, table_order_lists = create_schemas(table_columns)
-
-            # todo remove print
-
-            print("table_schemas: {}".format(table_schemas))
-            print("table_order_lists: {}".format(table_order_lists))
-            # todo case_id not in table_schemas at this point
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, tables)
