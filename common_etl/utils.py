@@ -507,6 +507,10 @@ def get_cases_by_program(bq_params, program_name):
     return cases
 
 
+def get_full_field_name(fg, field):
+    return fg + '.' + field
+
+
 def get_field_name(column):
     if '.' in column:
         return column.split('.')[-1]

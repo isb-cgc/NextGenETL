@@ -29,7 +29,8 @@ from common_etl.utils import (
     get_abbr_dict, get_bq_name, has_fatal_error, get_query_results,
     create_mapping_dict, get_field_name, get_tables, get_parent_table,
     get_parent_field_group, load_config, get_cases_by_program, get_table_id,
-    upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth)
+    upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth,
+    get_full_field_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -412,12 +413,16 @@ def flatten_tables(field_groups, tables):
         # now remove_excluded removes nulls here too, is that a problem? todo
         field_groups[field_group] = remove_excluded_fields(field_groups[field_group], 
                                                            field_group)
+
+        full_field_names = {get_full_field_name(field_group, field)
+                            for field in field_groups[field_group]}
+
         if field_group in tables:
-            table_columns[field_group] = field_groups[field_group]
+            table_columns[field_group] = full_field_names
         else:
             # field group can be flattened
             parent_table = get_parent_table(tables, field_group)
-            table_columns[parent_table] = {field for field in field_groups[field_group]}
+            table_columns[parent_table] = full_field_names
 
     return table_columns
 
