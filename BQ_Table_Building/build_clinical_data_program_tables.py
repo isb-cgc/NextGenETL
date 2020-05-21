@@ -332,6 +332,8 @@ def find_program_structure(cases):
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
+    record_counts = {k: v for k, v in record_counts if record_counts[k] > 0}
+
     return table_columns, tables, record_counts
 
 
@@ -492,9 +494,9 @@ def create_schemas(table_columns, tables, record_counts):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict, tables)
-
     # merge flattened column orders
-    merged_tables = {fg for fg in record_counts.keys() if fg not in table_columns}
+    merged_tables = record_counts.keys() - table_columns.keys()
+
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
     # todo delete print
