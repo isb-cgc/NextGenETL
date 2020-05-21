@@ -244,6 +244,27 @@ def get_excluded_fields(table):
     return excluded_fields
 
 
+def get_all_excluded_columns():
+    excluded_columns = set()
+
+    if not API_PARAMS['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+
+    if not API_PARAMS['TABLE_ORDER']:
+        has_fatal_error("params['TABLE_ORDER'] not found")
+
+    for table in API_PARAMS['TABLE_ORDER']:
+        if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
+            has_fatal_error("excluded_fields not found in API_PARAMS for {}".format(table))
+
+        excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
+
+        for field in excluded_fields:
+            excluded_columns.add(get_bq_name(API_PARAMS, field, table))
+
+    return excluded_columns
+
+
 def flatten_tables(field_groups, tables):
     """
     From dict containing table_name keys and sets of column names, remove
@@ -618,17 +639,10 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
             if field_group not in flat_case:
                 flat_case[field_group] = list()
 
-            excluded_fields = get_excluded_fields(field_group)
-            excluded_bq_cols = set()
-
-            for field in excluded_fields:
-                excluded_bq_cols.add(get_bq_name(API_PARAMS, field, field_group))
-
-            # todo delete print
-            print("excluded_bq_cols: {}".format(excluded_bq_cols))
+            excluded_columns = get_all_excluded_columns()
 
             for field in row_dict.copy():
-                if field in excluded_bq_cols or not row_dict[field]:
+                if field in excluded_columns or not row_dict[field]:
                     row_dict.pop(field)
 
             # fields_dict = remove_excluded_fields(fields_dict, field_group)
