@@ -643,8 +643,6 @@ def get_parent_table(table_keys, field_group):
 
 def build_flat_schema(field_group, schema_fields, flat_schema):
     for schema_field in schema_fields:
-        print(schema_field)
-        return
         field_name = schema_field.name
         schema_key = field_group + '.' + field_name
         field_type = schema_field.field_type
@@ -674,6 +672,9 @@ def get_schema_dict(bq_params, master_table):
     table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
     table = client.get_table(table_id)
     schema_fields = table.schema
+
+    print(schema_fields)
+    exit()
 
     print('schema keys with no description: ', end='')
 
