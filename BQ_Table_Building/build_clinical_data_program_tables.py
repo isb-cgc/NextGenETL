@@ -765,6 +765,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
     """
 
     for fg_key, fg_depth in sort_fgs_by_depth(flattened_case):
+        print("fg_key: {}, fg_depth: {}".format(fg_key, fg_depth))
         # cases is the master table, merged into
         if fg_depth == 1:
             continue
