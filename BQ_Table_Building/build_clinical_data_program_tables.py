@@ -797,10 +797,10 @@ def assign_record_counts(flattened_case, tables):
         print("parent_fg_table_id_key: {}".format(parent_fg_table_id_key))
 
         # used to create the ancestor's id field
-        parent_fg_id_column = get_bq_name(API_PARAMS, parent_fg_table_id_key)
+        parent_fg_id_field = get_bq_name(API_PARAMS, parent_fg_table_id_key)
 
         # todo delete print
-        print("parent_fg_id_column: {}".format(parent_fg_id_column))
+        print("parent_fg_id_column: {}".format(parent_fg_id_field))
 
         # used to insert the count into parent table
         parent_table = get_parent_table(tables, fg)
@@ -808,10 +808,15 @@ def assign_record_counts(flattened_case, tables):
         # todo delete print
         print("parent_table: {}".format(parent_table))
 
+        parent_fg_id_column = get_bq_name(API_PARAMS, parent_fg_id_field, parent_table)
+
+        # todo delete print
+        print("parent_fg_id_column: {}".format(parent_fg_id_column))
+
         fg_ids = dict()
 
         for entry in flattened_case[fg]:
-            parent_fg_id = entry[parent_fg_id_column]
+            parent_fg_id = entry[parent_fg_id_field]
             if parent_fg_id not in fg_ids:
                 fg_ids[parent_fg_id] = 1
             else:
