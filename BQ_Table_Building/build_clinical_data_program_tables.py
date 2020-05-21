@@ -499,6 +499,12 @@ def create_schemas(table_columns, tables):
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
     # todo delete print
+    print("column_orders: {}".format(column_orders.keys()))
+
+    # todo delete print
+    print("table_columns: {}".format(table_columns.keys()))
+
+    # todo delete print
     print("merged_tables: {}".format(merged_tables))
     # todo delete print
     print("not_merged_tables: {}".format(not_merged_tables))
