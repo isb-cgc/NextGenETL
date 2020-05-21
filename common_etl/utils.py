@@ -537,6 +537,9 @@ def get_bq_name(api_params, name, table_path=None):
         name = table_path + '.' + name
 
     split_name = name.split('.')
+    if split_name[0] != 'cases':
+        split_name.insert(0, 'cases')
+
     field_group = '.'.join(split_name[:-1])
     field = split_name[-1]
 
