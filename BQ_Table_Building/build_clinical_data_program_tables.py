@@ -752,62 +752,26 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     return flattened_case
 
 
-def assign_record_counts(flattened_case, tables):
-    # for flat_field in flattened_case:
-    #   if flat_field in tables:
-    #       flat_field_entry_counts = dict with values {parent id: count}
-    #       for entry in tables[flat_field]:
-    #           get parent id
-    #           increment flat_field_entry_counts (or set == 1 if new id)
-    #       for entry in flattened_case[parent_table]:
-    #           get id
-    #           update flattened_case[flat_field_count
-    #   count flattened_case[flat_field]
-    #   find parent table
-    #   find record, pop
-    #   insert count into record[flat_field_count]
-    #   insert record into flattened_case
-
-    # if tables has key that flattened_case doesn't have:
-    #   find/pop parent table
-    #
-    #   create new parent table dict
-    #   for each entry in parent table:
-    #       entry[missing_table_key_count] = 0
-    #       add to new parent table dict
-    #
-    #   flattened_case[parent_table] = new parent table dict
-
+def assign_record_counts(flattened_case, tables, case_id_counts):
     fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
 
-    # todo delete print
-    print("fg_depths: {}".format(fg_depths))
-
-    case_id_counts = dict()
-
     # todo, start from children or parent?
+    fg_entry_counts = dict()
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth == 1:
+            case_id = fg[0]['case_id']
             continue
 
         parent_field_group = get_parent_field_group(fg)
         parent_fg_table_id_key = get_table_id_key(parent_field_group)
 
-        # todo delete print
-        print("parent_fg_table_id_key: {}".format(parent_fg_table_id_key))
-
         # used to create the ancestor's id field
         parent_fg_id_field = get_bq_name(API_PARAMS, parent_fg_table_id_key)
-
-        # todo delete print
-        print("parent_fg_id_column: {}".format(parent_fg_id_field))
-
         # used to insert the count into parent table
         parent_table = get_parent_table(tables, fg)
 
         # todo delete print
         print("parent_table: {}".format(parent_table))
-
         parent_fg_id_column = get_bq_name(API_PARAMS, parent_fg_id_field, parent_table)
 
         # todo delete print
@@ -822,12 +786,11 @@ def assign_record_counts(flattened_case, tables):
             else:
                 fg_ids[parent_fg_id] += 1
 
-        case_id_counts[fg] = fg_ids
+        fg_entry_counts[fg] = fg_ids
 
-    print(case_id_counts)
-    exit()
+    case_id_counts[case_id] = fg_entry_counts
 
-    return flattened_case
+    return case_id_counts
 
 
 def create_and_load_tables(program_name, cases, schemas, tables):
@@ -846,9 +809,11 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
 
+    case_id_counts = dict()
+
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        flattened_case_dict = assign_record_counts(flattened_case_dict, tables)
+        case_id_counts = assign_record_counts(flattened_case_dict, tables, case_id_counts)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
@@ -861,6 +826,8 @@ def create_and_load_tables(program_name, cases, schemas, tables):
                 for row in flattened_case_dict[table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
+
+    print(case_id_counts)
 
     for table in tables:
         jsonl_file = get_jsonl_filename(program_name, table)
