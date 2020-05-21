@@ -518,6 +518,10 @@ def get_field_name(column):
         return column
 
 
+def get_field_depth(field):
+    return len(field.split('.'))
+
+
 def get_abbr_dict(api_params):
     table_abbr_dict = dict()
 
@@ -605,18 +609,21 @@ def get_max_count(record_count_list):
     return max_count, max_count_id
 
 
-def get_parent_table(table_keys, table_key):
-    base_table = table_key.split('.')[0]
+def get_parent_table(table_keys, field_group):
+    base_table = field_group.split('.')[0]
 
     if not base_table or base_table not in table_keys:
         has_fatal_error(
-            "'{}' has no parent table in tables list: {}".format(table_key,
+            "'{}' has no parent table in tables list: {}".format(field_group,
                                                                  table_keys))
 
-    parent_table_key = get_parent_field_group(table_key)
+    parent_table_key = get_parent_field_group(field_group)
 
     while parent_table_key and parent_table_key not in table_keys:
         parent_table_key = get_parent_field_group(parent_table_key)
+
+    if not parent_table_key:
+        has_fatal_error("No parent found for {}".format(field_group))
 
     return parent_table_key
 

@@ -1,6 +1,6 @@
 from common_etl.utils import *
 from BQ_Table_Building.build_clinical_data_program_tables import (
-    retrieve_program_case_structure, get_table_id_key, get_programs_list,
+    find_program_structure, get_table_id_key, get_programs_list,
     get_full_table_name
 )
 
@@ -193,8 +193,7 @@ def test_table_output():
 
         cases = get_cases_by_program(BQ_PARAMS, program_name)
 
-        table_columns, record_counts = retrieve_program_case_structure(
-            program_name, cases)
+        table_columns, record_counts = find_program_structure(cases)
 
         cases_tally_max_counts = dict()
 

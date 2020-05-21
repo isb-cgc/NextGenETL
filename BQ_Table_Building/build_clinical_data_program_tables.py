@@ -29,7 +29,7 @@ from common_etl.utils import (
     get_abbr_dict, get_bq_name, has_fatal_error, get_query_results,
     create_mapping_dict, get_field_name, get_tables, get_parent_table,
     get_parent_field_group, load_config, get_cases_by_program, get_table_id,
-    upload_to_bucket, create_and_load_table, make_SchemaField)
+    upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -124,9 +124,11 @@ def get_table_id_key(table_key):
     """
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
+
     if 'table_id_key' not in API_PARAMS['TABLE_METADATA'][table_key]:
         has_fatal_error("table_id_key not found in "
                         "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
+
     return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
 
 
@@ -393,122 +395,80 @@ def get_excluded_fields(table):
     return exclude_field_list
 
 
-def flatten_tables(table_columns, record_counts):
+def flatten_tables(field_groups, tables):
     """
     From dict containing table_name keys and sets of column names, remove
-    excluded columns, merge into parent table if this field group can be
+    excluded columns and merge into parent table if the field group can be
     flattened for this program.
-    :param table_columns: dict of tables and columns
-    :param record_counts: dict showing max record count for a case in this
-    program, used in table creation.
+    :param field_groups: dict of tables and columns
+    :param tables: set of table names
     :return: flattened table column dict.
     """
+    table_columns = dict()
 
-    def remove_excluded_fields(record_, table_name):
-        excluded_fields = get_excluded_fields(table_name)
+    fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
 
-        for field_ in record_.copy():
-            if field_ in excluded_fields:
-                record_.remove(field_)
-
-        return record_
-
-    # record_counts uses fg naming convention
-    # sort field group keys by depth
-    field_group_depths = dict.fromkeys(record_counts.keys(), 0)
-    for fg_key in field_group_depths:
-        field_group_depths[fg_key] = len(fg_key.split("."))
-
-    for field_group, depth in sorted(
-            field_group_depths.items(), key=lambda item: item[1], reverse=True):
-        table_columns[field_group] = remove_excluded_fields(
-            table_columns[field_group], field_group)
-
-        # this is cases, already flattened
-        if depth == 1:
-            break
-
-        # field group can be flattened.
-        if record_counts[field_group] == 1:
-            tables = get_tables(record_counts)
-            parent_key = get_parent_table(tables, field_group)
-
-            if not parent_key:
-                has_fatal_error("No parent found for {}".format(field_group))
-
-            if parent_key not in table_columns:
-                table_columns[parent_key] = set()
-
-            for field in table_columns.pop(field_group):
-                table_columns[parent_key].add(field)
+    for field_group, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
+        # now remove_excluded removes nulls here too, is that a problem? todo
+        field_groups[field_group] = remove_excluded_fields(field_groups[field_group], 
+                                                           field_group)
+        if field_group in tables:
+            table_columns[field_group] = field_groups[field_group]
+        else:
+            # field group can be flattened
+            parent_table = get_parent_table(tables, field_group)
+            table_columns[parent_table] = {field for field in field_groups[field_group]}
 
     return table_columns
 
 
-def retrieve_program_case_structure(program_name, cases):
+def examine_case(table_columns, field_group, record_counts, fg_name):
+    for field, record in field_group.items():
+        if isinstance(record, list):
+            child_fg = fg_name + '.' + field
+
+            if child_fg not in record_counts:
+                table_columns[child_fg] = set()
+                record_counts[child_fg] = len(record)
+            else:
+                record_counts[child_fg] = max(record_counts[child_fg], len(record))
+
+            for entry in record:
+                table_columns, record_counts = examine_case(table_columns, entry,
+                                                            record_counts, child_fg)
+        else:
+            if fg_name not in table_columns:
+                table_columns[fg_name] = set()
+                record_counts[fg_name] = 1
+
+            if isinstance(record, dict):
+                for child_field in record:
+                    table_columns[fg_name].add(child_field)
+            else:
+                table_columns[fg_name].add(record)
+
+    return table_columns, record_counts
+
+
+def find_program_structure(cases):
     """
     Determine table structure required for the given program.
-    :param program_name: program for which to determine structure
     :param cases: dict of program's case records
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
-
-    def build_case_structure(tables_, case_, record_counts_, parent_path):
-        """
-        Recursive function for retrieve_program_data, finds nested fields
-        """
-        if not case_:
-            return tables_, record_counts_
-
-        if parent_path not in tables_:
-            tables_[parent_path] = set()
-        if parent_path not in record_counts_:
-            record_counts_[parent_path] = 1
-
-        for field_key in case_:
-            if not case_[field_key]:
-                continue
-            # Hits for cases
-            if isinstance(case_[field_key], list):
-                new_path = parent_path + '.' + field_key
-                if new_path not in record_counts_:
-                    record_counts_[new_path] = 1
-
-                # find needed one-to-many tables
-                record_counts_[new_path] = max(record_counts_[new_path],
-                                               len(case_[field_key]))
-
-                for entry in case_[field_key]:
-                    tables_, record_counts_ = build_case_structure(
-                        tables_, entry, record_counts_, new_path)
-
-            elif isinstance(case_[field_key], dict):
-                tables_, record_counts_ = build_case_structure(
-                    tables_, case_[field_key], record_counts_, parent_path)
-
-            else:
-                bq_name = get_bq_name(API_PARAMS, parent_path, field_key)
-                table_columns[parent_path].add(bq_name)
-
-        return tables_, record_counts_
-
-    table_columns = {}
+    field_groups = {}
     record_counts = {}
 
     for case in cases:
-        table_columns, record_counts = build_case_structure(
-            table_columns, case, record_counts, parent_path='cases')
+        if case:
+            field_groups, record_counts = examine_case(field_groups, case,
+                                                        record_counts, fg_name='cases')
 
-    table_columns = flatten_tables(table_columns, record_counts)
+    tables = get_tables(record_counts)
+    table_columns = flatten_tables(field_groups, tables)
 
-    if not table_columns:
-        has_fatal_error("[ERROR] no case structure returned "
-                        "for program {}".format(program_name))
-
-    print("Record counts for each field group: {}".format(record_counts))
-
-    return table_columns, record_counts
+    return table_columns, tables
 
 
 ####
@@ -545,6 +505,7 @@ def add_reference_columns(table_columns, schema_dict):
     :param schema_dict: dict containing schema records
     :return: table_columns, schema_dict, column_order_dict
     """
+
     def generate_id_schema_entry(column_name, parent_table_key_):
         parent_field_name = get_field_name(parent_table_key_)
 
@@ -621,8 +582,7 @@ def add_reference_columns(table_columns, schema_dict):
         table_columns[table].add(case_id_key)
 
         parent_fg = get_parent_field_group(table)
-        pid_index = get_id_column_index(parent_fg,
-                                        table_orders[parent_fg])
+        pid_index = get_id_column_index(parent_fg, table_orders[parent_fg])
         table_orders[table][case_id_column] = pid_index + len(table_depths) - 2
 
         ref_column_index += 1
@@ -646,12 +606,6 @@ def add_reference_columns(table_columns, schema_dict):
             count_id_key, parent_table)
         table_columns[parent_table].add(count_id_key)
         table_orders[parent_table][count_column] = count_col_index
-
-    """
-    for table in table_orders:
-        print(table)
-        print(sorted(table_orders[table].items(), key=lambda item: item[1]))
-    """
 
     return schema_dict, table_columns, table_orders
 
@@ -722,35 +676,34 @@ def create_schemas(table_columns):
 
         for count_column in count_columns:
             column_orders[table][count_column] = count_column_index
-            # todo remove print
-            print("column_orders['{}']['{}'] = {}".
-                  format(table, count_column, count_column_index))
             count_column_index += 1
 
         required_cols = get_required_columns(table)
 
-        included_column_order = dict()
+        filtered_col_order = dict()
 
+        # todo workzone
         for column in table_columns[table]:
             field = rebuild_bq_name(column)
-            included_column_order[field] = column_orders[table][field]
+            filtered_col_order[field] = column_orders[table][field]
+            
+        {field: column_orders[table][field] for field in }
 
         schema_list = []
-
-        for key, v in sorted(included_column_order.items(), key=lambda i: i[1]):
+        
+        for key in [k for k, v in sorted(filtered_col_order.items(), key=lambda i: i[1])]:
             if key in schema_dict:
                 schema_entry = make_SchemaField(schema_dict, key, required_cols)
                 schema_list.append(schema_entry)
             else:
-                print("{} not found in master table, excluding from schema.".
-                      format(key))
+                print("{} not found in master table, excluding from schema.".format(key))
 
         schema_field_lists[table] = schema_list
 
     return schema_field_lists, column_orders
 
 
-def remove_dict_fields(record, table_name):
+def remove_excluded_fields(record, table_name):
     """
     Remove columns with only None values, as well as those excluded.
     :param record: table record to parse.
@@ -771,58 +724,56 @@ def remove_dict_fields(record, table_name):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def create_entry_dict(field_group, fg_name, flat_dict, case_id, pid, pid_key):
+def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
+    :param record:
     :param field_group:
-    :param fg_name:
-    :param flat_dict: partially-built flattened case dict
+    :param flat_case: partially-built flattened case dict
     :param case_id: case id
     :param pid: parent field group id
-    :param pid_key: parent field group id key
+    :param pid_field: parent field group id key
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    if isinstance(field_group, list):
+    if isinstance(record, list):
         # flatten each record in field group list
-        for child_entry in field_group:
-            flat_dict = create_entry_dict(
-                child_entry, fg_name, flat_dict, case_id, pid, pid_key)
-        return flat_dict
-    else:
-        fields_dict = dict()
+        for child_entry in record:
+            flat_case = flatten_case_entry(child_entry, field_group, flat_case, case_id,
+                                           pid, pid_field)
+        return flat_case
 
-        for field, field_val in field_group.items():
-            id_field = get_table_id_key(fg_name)
-            if isinstance(field_val, list):
-                flat_dict = create_entry_dict(
-                    field_group=field_val,
-                    fg_name=fg_name + '.' + field,
-                    flat_dict=flat_dict,
-                    case_id=case_id,
-                    pid=field_group[id_field],
-                    pid_key=get_bq_name(API_PARAMS, fg_name, id_field))
-            else:
-                # todo this may not be necessary, the if portion
-                if 'case_id' not in fields_dict:
-                    fields_dict['case_id'] = case_id
+    fields_dict = dict()
 
-                if case_id != pid and id_field != pid_key:
-                    fields_dict[pid_key] = pid
+    for field, field_val in record.items():
+        id_field = get_table_id_key(field_group)
 
-                # This is where field name is converted to abbr. bq column name
-                field = get_bq_name(API_PARAMS, fg_name, field)
-                fields_dict[field] = field_group[field]
+        if isinstance(field_val, list):
+            flat_case = flatten_case_entry(
+                record=field_val,
+                field_group=field_group + '.' + field,
+                flat_case=flat_case,
+                case_id=case_id,
+                pid=record[id_field],
+                pid_field=id_field)
+        else:
+            if id_field != pid_field:
+                parent_fg = get_parent_field_group(field_group)
+                pid_column = get_bq_name(API_PARAMS, parent_fg, pid_field)
+                fields_dict[pid_column] = pid
 
-        if fields_dict:
-            if fg_name not in flat_dict:
-                flat_dict[fg_name] = list()
+            # Field converted bq column name
+            field = get_bq_name(API_PARAMS, field_group, field)
+            fields_dict[field] = record[field]
 
-            fields_dict = remove_dict_fields(fields_dict, fg_name)
-            flat_dict[fg_name].append(fields_dict)
+    if fields_dict:
+        flat_case[field_group] = [] if field_group not in flat_case else None
 
-        return flat_dict
+        fields_dict = remove_excluded_fields(fields_dict, field_group)
+        flat_case[field_group].append(fields_dict)
+
+    return flat_case
 
 
 def flatten_case(case):
@@ -835,8 +786,8 @@ def flatten_case(case):
     case_id = pid = case['case_id']
     pid_key = case_id
     flat_case = dict()
-    
-    return create_entry_dict(case, prefix, flat_case, case_id, pid, pid_key)
+
+    return flatten_case_entry(case, prefix, flat_case, case_id, pid, pid_key)
 
 
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
@@ -867,7 +818,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         pid_column = get_bq_name(API_PARAMS, parent_table, pid_key)
 
         if fg_key in bq_program_tables:
-            record_counts = dict()
+            max_record_count = dict()
             idx = 0
             for entry in flattened_case[parent_table].copy():
                 if pid_key not in entry and pid_column not in entry:
@@ -876,8 +827,8 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                 entry_id = entry[pid_key] if pid_key in entry \
                     else entry[pid_column]
 
-                if entry_id not in record_counts:
-                    record_counts[entry_id] = {'entry_idx': idx,
+                if entry_id not in max_record_count:
+                    max_record_count[entry_id] = {'entry_idx': idx,
                                                'record_count': 0}
                     idx += 1
 
@@ -886,13 +837,13 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
             for record in field_group:
                 if pid_column in record:
                     pid = record[pid_column]
-                    record_counts[pid]['record_count'] += 1
-            for pid in record_counts:
-                entry_idx = record_counts[pid]['entry_idx']
+                    max_record_count[pid]['record_count'] += 1
+            for pid in max_record_count:
+                entry_idx = max_record_count[pid]['entry_idx']
                 count_id = get_bq_name(API_PARAMS, fg_key, 'count')
 
                 flattened_case[parent_table][entry_idx][count_id] = \
-                    record_counts[pid]['record_count']
+                    max_record_count[pid]['record_count']
         else:
             field_group = flattened_case.pop(fg_key)[0]
 
@@ -906,35 +857,24 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     return flattened_case
 
 
-def create_and_load_tables(program_name, cases, schemas, record_counts):
+def create_and_load_tables(program_name, cases, schemas, tables):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
-    :param schemas: dict of schema lists for all of this program's tables.
-    :param record_counts: max counts for field groups in this dataset.
+    :param schemas: dict of schema lists for all of this program's tables
+    :param tables: set of table names
     """
-    bq_program_tables = get_tables(record_counts)
     print("\nInserting case records...")
-    tables = schemas.keys()
-
-    for table in tables:
-        file_path = get_temp_filepath(program_name, table)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
     for case in cases:
         flattened_case_dict = flatten_case(case)
 
-        flattened_case_dict = merge_single_entry_field_groups(
-            flattened_case_dict,
-            bq_program_tables)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
             if table not in tables:
-                has_fatal_error(
-                    "Table {} not found in table keys".format(table))
+                has_fatal_error("Table {} not found in table keys".format(table))
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
@@ -945,10 +885,15 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
     for table in schemas:
         jsonl_file = get_jsonl_filename(program_name, table)
+        jsonl_file_path = get_temp_filepath(program_name, table)
+
         upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
         table_id = get_full_table_name(program_name, table)
 
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
+
+        if os.path.exists(jsonl_file_path):
+            os.remove(jsonl_file_path)
 
 
 ####
@@ -989,7 +934,7 @@ def print_final_report(start, steps):
     seconds -= minutes * 60
 
     print("Programs script executed in {} min, {:.0f} sec\n".format(minutes,
-                                                                  seconds))
+                                                                    seconds))
     print("Steps completed: ")
 
     if 'create_and_load_tables' in steps:
@@ -1038,29 +983,28 @@ def main(args):
             continue
 
         # derive the program's table structure by analyzing its case records
-        table_columns, record_counts = retrieve_program_case_structure(
-            program, cases)
+        table_columns, tables = find_program_structure(cases)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
             table_schemas, table_order_lists = create_schemas(table_columns)
 
             # create tables, flatten and insert data
-            create_and_load_tables(program, cases, table_schemas, record_counts)
+            create_and_load_tables(program, cases, table_schemas, max_record_count)
 
             print("{} processed in {:0.1f} seconds!\n".
                   format(program, time.time() - prog_start))
 
             if 'generate_documentation' in steps:
                 table_ids = {table: get_table_id(BQ_PARAMS, table)
-                             for table in get_tables(record_counts)}
+                             for table in get_tables(max_record_count)}
 
                 # converting to JSON serializable form
                 table_column_lists = {table: list(vals)
                                       for table, vals in table_columns.items()}
 
                 documentation_dict[program] = {
-                    'record_counts': record_counts,
+                    'max_record_count': max_record_count,
                     'table_schemas': str(table_schemas),
                     'table_columns': table_column_lists,
                     'table_ids': table_ids,
