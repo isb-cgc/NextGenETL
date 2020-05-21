@@ -475,15 +475,16 @@ def create_schemas(table_columns):
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
+
+    # todo delete print
+    print("table_columns: {}".format(table_columns))
+
     schema_field_lists = dict()
     schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
 
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict)
-
-    print(column_orders)
-    exit()
 
     schema_dict = prefix_field_names(schema_dict)
 
