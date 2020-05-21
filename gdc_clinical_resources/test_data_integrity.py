@@ -27,7 +27,7 @@ def get_record_count_list(table, table_fg_key, parent_table_id_key):
     """
     table_path = get_table_id(BQ_PARAMS, table)
     table_id_key = get_table_id_key(table_fg_key)
-    table_id_column = get_bq_name(API_PARAMS, table_fg_key, table_id_key)
+    table_id_column = get_bq_name(API_PARAMS, table_id_key, table_fg_key)
 
     results = get_query_results(
         """
@@ -172,8 +172,7 @@ def test_table_output():
             parent_table_fg = get_parent_table(table_fg_list, table_fg)
             parent_id_key = get_table_id_key(parent_table_fg)
 
-            full_parent_id_key = get_bq_name(API_PARAMS, parent_table_fg,
-                                             parent_id_key)
+            full_parent_id_key = get_bq_name(API_PARAMS, parent_id_key, parent_table_fg)
 
             record_count_list = get_record_count_list(table, table_fg,
                                                       full_parent_id_key)

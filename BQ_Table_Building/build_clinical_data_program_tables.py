@@ -117,7 +117,7 @@ def get_required_columns(table_key):
 
     table_id_key = get_table_id_key(table_key)
 
-    required_columns.append(get_bq_name(API_PARAMS, table_key, table_id_key))
+    required_columns.append(get_bq_name(API_PARAMS, table_id_key, table_key))
 
     return required_columns
 
@@ -372,7 +372,7 @@ def create_schema_dict():
         description = mapping[key]['description'] if 'description' in mapping[key] else ''
 
         schema_dict[key] = {
-            "name": get_bq_name(API_PARAMS, None, key),
+            "name": get_bq_name(API_PARAMS, key, None),
             "type": column_type_dict[key],
             "description": description
         }
@@ -511,7 +511,7 @@ def generate_id_schema_entry(column_name, parent_table):
     # todo why?
     if '__' in column_name:
         column_name = column_name.split('__')[-1]
-        pid_column = get_bq_name(API_PARAMS, parent_table, get_field_name(column_name))
+        pid_column = get_bq_name(API_PARAMS, get_field_name(column_name), parent_table)
     else:
         pid_column = column_name
 
@@ -565,7 +565,7 @@ def add_reference_columns(table_columns, schema_dict):
             parent_fg = get_parent_field_group(table)
             pid_key = get_table_id_key(parent_fg)
             full_pid_name = parent_fg + '.' + pid_key
-            parent_bq_name = get_bq_name(API_PARAMS, parent_fg, pid_key)
+            parent_bq_name = get_bq_name(API_PARAMS, pid_key, parent_fg)
 
             # add pid to one-to-many table
             schema_dict[full_pid_name] = generate_id_schema_entry(parent_bq_name, parent_fg)
@@ -594,7 +594,7 @@ def add_reference_columns(table_columns, schema_dict):
 
         count_column = table + '.count'
 
-        count_id_key = get_bq_name(API_PARAMS, table, 'count')
+        count_id_key = get_bq_name(API_PARAMS, 'count', table)
 
         # add one-to-many record count column to parent table
         schema_dict[count_column] = generate_count_schema_entry(count_id_key,
@@ -747,11 +747,11 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
         else:
             if id_field != pid_field:
                 parent_fg = get_parent_field_group(field_group)
-                pid_column = get_bq_name(API_PARAMS, parent_fg, pid_field)
+                pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
                 fields_dict[pid_column] = pid
 
             # Field converted bq column name
-            column = get_bq_name(API_PARAMS, field_group, field)
+            column = get_bq_name(API_PARAMS, field, field_group)
             fields_dict[column] = record[field]
 
     if fields_dict:
@@ -803,7 +803,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
 
         parent_table = get_parent_table(flattened_case.keys(), fg_key)
         pid_key = get_table_id_key(parent_table)
-        pid_column = get_bq_name(API_PARAMS, parent_table, pid_key)
+        pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
 
         if fg_key in bq_program_tables:
             max_record_count = dict()
@@ -828,7 +828,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                     max_record_count[pid]['record_count'] += 1
             for pid in max_record_count:
                 entry_idx = max_record_count[pid]['entry_idx']
-                count_id = get_bq_name(API_PARAMS, fg_key, 'count')
+                count_id = get_bq_name(API_PARAMS, 'count', fg_key)
 
                 flattened_case[parent_table][entry_idx][count_id] = \
                     max_record_count[pid]['record_count']

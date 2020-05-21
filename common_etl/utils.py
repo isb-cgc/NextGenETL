@@ -532,7 +532,7 @@ def get_table_prefixes(api_params):
     return prefixes
 
 
-def get_bq_name(api_params, table_path, name):
+def get_bq_name(api_params, name, table_path=None):
     if table_path:
         name = table_path + '.' + name
 
@@ -625,28 +625,27 @@ def get_parent_table(table_keys, field_group):
     return parent_table_key
 
 
-def build_flat_schema(flat_schema, field_group, client, table, schema_fields=None):
+def build_flat_schema(api_params, flat_schema, field_group, schema_fields=None):
     for schema_field in schema_fields:
         field_dict = schema_field.to_api_repr()
         schema_key = field_group + '.' + field_dict['name']
 
         if 'fields' in field_dict:
-            flat_schema = build_flat_schema(flat_schema, schema_key, client, table,
+            flat_schema = build_flat_schema(api_params, flat_schema, schema_key,
                                             schema_field.fields)
         else:
-            field_dict['name'] = get_bq_name()
+            field_dict['name'] = get_bq_name(api_params, schema_key)
             flat_schema[schema_key] = field_dict
 
     return flat_schema
 
 
-def get_schema_dict(bq_params, master_table):
+def get_schema_dict(api_params, bq_params, master_table):
     table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
-
     client = bigquery.Client()
     table = client.get_table(table_id)
 
-    return build_flat_schema(dict(), 'cases', client, table, table.schema)
+    return build_flat_schema(api_params, dict(), 'cases', table.schema)
 
 
 def upload_to_bucket(bq_params, fp, file_name):
