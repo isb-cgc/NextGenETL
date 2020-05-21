@@ -665,6 +665,10 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         if fg_key in bq_program_tables:
             max_record_count = dict()
             idx = 0
+
+            # todo remove print
+            print(flattened_case)
+
             for entry in flattened_case[parent_table].copy():
                 if pid_key not in entry and pid_column not in entry:
                     has_fatal_error("No id key found, in bq or fg format.")
