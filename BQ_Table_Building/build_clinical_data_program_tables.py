@@ -627,7 +627,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
             for field in excluded_fields:
                 excluded_bq_cols.add(get_bq_name(API_PARAMS, field, field_group))
 
-            for field in row_dict.keys():
+            for field in row_dict.copy():
                 if field in excluded_bq_cols or not row_dict[field]:
                     row_dict.pop(field)
 
