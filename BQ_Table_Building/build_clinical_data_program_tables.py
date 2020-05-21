@@ -503,11 +503,14 @@ def create_schemas(table_columns, tables):
         column_orders[parent_table] |= column_orders[table]
         column_orders.pop(table)
 
+    print # todo delete print
+    print("column_orders: {}".format(column_orders))
+
     # add bq abbreviations to schema field dicts
     schema_dict = prefix_field_names(schema_dict)
     schema_field_lists = dict()
 
-    for table in table_columns:
+    for table in tables:
         # this is just alphabetizing the count columns
         counts_idx = get_count_column_index(table, column_orders[table])
         count_cols = [col for col, i in column_orders[table].items() if i == counts_idx]
