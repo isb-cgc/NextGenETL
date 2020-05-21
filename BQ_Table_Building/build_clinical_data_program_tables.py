@@ -666,13 +666,8 @@ def create_schemas(table_columns):
         filtered_col_order = dict()
 
         for column in table_columns[table]:
-            col = rebuild_bq_name(column) if in_bq_format(column) else column
-
-            try:
-                filtered_col_order[column] = column_orders[table][col]
-            except KeyError as err:
-                has_fatal_error("column: {}, col: {}\n\n{}".
-                                format(column, col, column_orders))
+            column = rebuild_bq_name(column) if in_bq_format(column) else column
+            filtered_col_order[column] = column_orders[table][column]
 
         schema_list = []
         
@@ -975,6 +970,11 @@ def main(args):
         if 'create_and_load_tables' in steps:
             # generate table schemas
             table_schemas, table_order_lists = create_schemas(table_columns)
+
+            # todo remove print
+
+            print("table_schemas: {}".format(table_schemas))
+            print("table_order_lists: {}".format(table_order_lists))
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, tables)
