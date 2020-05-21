@@ -731,29 +731,9 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
             break
 
         parent_table = get_parent_table(flattened_case.keys(), fg_key)
-        pid_key = get_table_id_key(parent_table)
-        pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
-        # pid = field_group[pid_column]
-
-        # todo delete print
-        print("parent_table: {}".format(parent_table))
-        # todo delete print
-        print("pid_key: {}".format(pid_key))
-        # todo delete print
-        print("pid_column: {}".format(pid_column))
-        # todo delete print
-        # print("pid: {}".format(pid))
-
         parent_fg = get_parent_field_group(fg_key)
         parent_fg_id_key = get_table_id_key(parent_fg)
         ancestor_column = get_bq_name(API_PARAMS, parent_fg_id_key, parent_fg)
-
-        # todo delete print
-        print("parent_fg: {}".format(parent_fg))
-        # todo delete print
-        print("parent_fg_id_key: {}".format(parent_fg_id_key))
-        # todo delete print
-        print("ancestor_column: {}".format(ancestor_column))
 
         # merge into parent table record
         if fg_key not in bq_program_tables:
@@ -771,6 +751,60 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                 flattened_case[parent_table][0][key] = fg_val
     return flattened_case
 
+
+def assign_record_counts(flattened_case, tables):
+    # for flat_field in flattened_case:
+    #   if flat_field in tables:
+    #       flat_field_entry_counts = dict with values {parent id: count}
+    #       for entry in tables[flat_field]:
+    #           get parent id
+    #           increment flat_field_entry_counts (or set == 1 if new id)
+    #       for entry in flattened_case[parent_table]:
+    #           get id
+    #           update flattened_case[flat_field_count
+    #   count flattened_case[flat_field]
+    #   find parent table
+    #   find record, pop
+    #   insert count into record[flat_field_count]
+    #   insert record into flattened_case
+
+    # if tables has key that flattened_case doesn't have:
+    #   find/pop parent table
+    #
+    #   create new parent table dict
+    #   for each entry in parent table:
+    #       entry[missing_table_key_count] = 0
+    #       add to new parent table dict
+    #
+    #   flattened_case[parent_table] = new parent table dict
+
+    fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
+
+    case_id_counts = dict()
+
+    # todo, start from children or parent?
+    for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
+        parent_field_group = get_parent_field_group(fg)
+        # used to create the ancestor's id field
+        parent_fg_id_column = get_bq_name(API_PARAMS, get_table_id_key(parent_field_group))
+        # used to insert the count into parent table
+        parent_table = get_parent_table(tables, fg)
+
+        fg_ids = dict()
+
+        for entry in flattened_case[fg]:
+            parent_fg_id = entry[parent_fg_id_column]
+            if parent_fg_id not in fg_ids:
+                fg_ids[parent_fg_id] = 1
+            else:
+                fg_ids[parent_fg_id] += 1
+
+        case_id_counts[fg] = fg_ids
+
+    print(case_id_counts)
+    exit()
+
+    return flattened_case
 
 
 def create_and_load_tables(program_name, cases, schemas, tables):
@@ -791,7 +825,7 @@ def create_and_load_tables(program_name, cases, schemas, tables):
 
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        print(flattened_case_dict)
+        flattened_case_dict = assign_record_counts(flattened_case_dict, tables)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
@@ -875,10 +909,7 @@ def main(args):
 
     # Load YAML configuration
     if len(args) != 2:
-        has_fatal_error(
-            'Usage : {} <configuration_yaml> <column_order_txt>".format(args['
-            '0])',
-            ValueError)
+        has_fatal_error("Usage: {} <configuration_yaml>".format(args[0]), ValueError)
 
     with open(args[1], mode='r') as yaml_file:
         try:
