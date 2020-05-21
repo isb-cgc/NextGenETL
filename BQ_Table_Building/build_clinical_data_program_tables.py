@@ -386,14 +386,11 @@ def get_excluded_fields(table):
         has_fatal_error("params['TABLE_METADATA'] not found")
 
     if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
-        has_fatal_error("excluded_fields not found in API_PARAMS for {}".
-                        format(table))
+        has_fatal_error("excluded_fields not found in API_PARAMS for {}".format(table))
 
-    base_column_names = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
+    excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
 
-    exclude_field_list = [get_bq_name(API_PARAMS, table, x)
-                          for x in base_column_names]
-    return exclude_field_list
+    return [get_full_field_name(table, field) for field in excluded_fields]
 
 
 def flatten_tables(field_groups, tables):
