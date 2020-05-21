@@ -332,7 +332,7 @@ def find_program_structure(cases):
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
-    return table_columns, tables
+    return table_columns, tables, record_counts
 
 
 ####
@@ -480,9 +480,10 @@ def prefix_field_names(schema_dict):
     return schema_dict
 
 
-def create_schemas(table_columns, tables):
+def create_schemas(table_columns, tables, record_counts):
     """
     Create ordered schema lists for final tables.
+    :param record_counts:
     :param tables:
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
@@ -493,21 +494,14 @@ def create_schemas(table_columns, tables):
                                                                       schema_dict, tables)
 
     # merge flattened column orders
-    merged_tables = {fg for fg in column_orders.keys() if fg not in tables}
-    not_merged_tables = {fg for fg in column_orders.keys() if fg in tables}
-
+    merged_tables = {fg for fg in record_counts.keys() if fg not in table_columns}
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
     # todo delete print
-    print("column_orders: {}".format(column_orders.keys()))
-
-    # todo delete print
-    print("table_columns: {}".format(table_columns.keys()))
+    print("table_columns: {}".format(table_columns))
 
     # todo delete print
     print("merged_tables: {}".format(merged_tables))
-    # todo delete print
-    print("not_merged_tables: {}".format(not_merged_tables))
 
     for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
         if depth == 1:
@@ -844,11 +838,11 @@ def main(args):
             continue
 
         # derive the program's table structure by analyzing its case records
-        table_columns, tables = find_program_structure(cases)
+        table_columns, tables, record_counts = find_program_structure(cases)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
-            table_schemas, table_order_lists = create_schemas(table_columns, tables)
+            table_schemas, table_order_lists = create_schemas(table_columns, tables, record_counts)
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, tables)
