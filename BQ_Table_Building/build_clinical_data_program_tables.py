@@ -451,7 +451,7 @@ def add_reference_columns(table_columns, schema, record_counts):
 
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1], reverse=True):
         if table not in merged_table_orders:
-            merged_table_orders[table] = set()
+            merged_table_orders[table] = dict()
 
         if table in table_columns:
             merged_key = table
