@@ -542,19 +542,23 @@ def create_schemas(table_columns):
     return schema_field_lists, column_orders
 
 
-def remove_excluded_fields(record, table_name):
+def remove_excluded_fields(record, table):
     """
     Remove columns with only None values, as well as those excluded.
     :param record: table record to parse.
-    :param table_name: name of destination table.
+    :param table: name of destination table.
     :return: Trimmed down record dict.
     """
-    excluded_fields = get_excluded_fields(table_name)
+    excluded_fields = get_excluded_fields(table)
 
     if isinstance(record, set):
         return {field for field in record if field not in excluded_fields}
     elif isinstance(record, dict):
-        return {f: v for f, v in record.items() if f not in excluded_fields and v}
+        excluded_fields = {get_full_field_name(table, field) for field in excluded_fields}
+
+        for field in record.copy():
+            if field in excluded_fields or not record[field]:
+                record.pop(field)
     else:
         return [field for field in record if field not in excluded_fields]
 
