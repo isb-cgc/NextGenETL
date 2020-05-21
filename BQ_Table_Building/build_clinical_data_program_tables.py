@@ -645,6 +645,8 @@ def create_schemas(table_columns):
     schema_dict, table_columns, column_orders = add_reference_columns(
         table_columns, schema_dict)
 
+    print(column_orders)
+
     for table in table_columns:
         # this is just alphabetizing the count columns
         for column in table_columns[table]:
