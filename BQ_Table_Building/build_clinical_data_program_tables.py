@@ -586,7 +586,7 @@ def remove_excluded_fields(record, table):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
+def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, tables):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
@@ -603,8 +603,13 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
+            record_count = len(record)
+            parent_table = get_parent_table(tables, field_group + '.' + entry)
+            count_col = get_bq_name(API_PARAMS, entry, field_group)
+            flat_case[parent_table][count_col] = record_count
+
             flat_case = flatten_case_entry(entry, field_group, flat_case,
-                                           case_id, pid, pid_field)
+                                           case_id, pid, pid_field, tables)
     else:
         row_dict = dict()
         id_field = get_table_id_key(field_group)
@@ -618,6 +623,12 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     case_id=case_id,
                     pid=record[id_field],
                     pid_field=id_field)
+
+                record_count = len(field_val)
+                parent_table = get_parent_table(tables, field_group + '.' + field)
+                count_col = get_bq_name(API_PARAMS, field, field_group)
+                flat_case[parent_table][count_col] = record_count
+
             else:
                 if id_field != pid_field:
                     parent_fg = get_parent_field_group(field_group)
@@ -649,7 +660,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     return flat_case
 
 
-def flatten_case(case):
+def flatten_case(case, tables):
     """
     Converts nested case object into a flattened representation of its records.
     :param case: dict containing case data
@@ -660,7 +671,8 @@ def flatten_case(case):
                               flat_case=dict(),
                               case_id=case['case_id'],
                               pid=case['case_id'],
-                              pid_field='case_id')
+                              pid_field='case_id'
+                              tables=tables)
 
 
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
