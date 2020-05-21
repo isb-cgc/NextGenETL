@@ -640,6 +640,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                 flat_case[field_group] = list()
 
             excluded_columns = get_all_excluded_columns()
+            # todo delete print
+            print("excluded_columns: {}\n\n".format(excluded_columns))
 
             for field in row_dict.copy():
                 if field in excluded_columns or not row_dict[field]:
