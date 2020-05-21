@@ -636,6 +636,8 @@ def flatten_case(case):
     pid_key = case_id
     flat_case = dict()
 
+    print("\n Flatten new case:\n")
+
     return flatten_case_entry(case, prefix, flat_case, case_id, pid, pid_key)
 
 
