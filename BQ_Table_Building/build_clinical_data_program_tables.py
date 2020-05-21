@@ -177,7 +177,7 @@ def build_column_order_dict(main_table=True):
     """
     column_order_dict = dict()
     field_groups = API_PARAMS['TABLE_ORDER']
-    fg_count = len(field_groups)
+    id_index_gap = len(field_groups) - 1
 
     idx = 0
 
@@ -194,18 +194,19 @@ def build_column_order_dict(main_table=True):
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
                         # todo probably this is deleted
-                        column_order_dict['case_id'] = idx + fg_count
+                        column_order_dict['case_id'] = idx + id_index_gap - 1
                         # todo this stays?
-                        column_order_dict[column + '.case_id'] = idx + fg_count
+                        column_order_dict[column + '.case_id'] = idx + id_index_gap - 1
 
                         # todo delete print
-                        print("\ngroup: {}, column: {}, id: {}".format(group, column, idx))
+                        print("\ngroup: {}, column: {}, id: {}".format(
+                            group, column, idx))
 
                         # todo delete print
                         print("column_order_dict['case_id']: {}\n".
                               format(column_order_dict['case_id']))
 
-                    idx += fg_count * 2
+                    idx += id_index_gap * 2
                 else:
                     idx += 1
         except KeyError:
