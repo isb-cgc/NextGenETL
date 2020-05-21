@@ -477,7 +477,10 @@ def rebuild_bq_name(column):
 
 def prefix_field_names(schema_dict):
     for entry in schema_dict:
+        if schema_dict[entry]['name'] == 'case_id':
+            continue
         schema_dict[entry]['name'] = get_bq_name(API_PARAMS, entry)
+
     return schema_dict
 
 
