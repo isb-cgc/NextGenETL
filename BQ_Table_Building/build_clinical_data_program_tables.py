@@ -754,7 +754,7 @@ def create_and_load_tables(program_name, cases, schemas, tables):
             os.remove(jsonl_file_path)
 
     for case in cases:
-        flattened_case_dict = flatten_case(case)
+        flattened_case_dict = flatten_case(case, tables)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
