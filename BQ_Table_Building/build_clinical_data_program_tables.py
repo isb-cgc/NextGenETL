@@ -687,7 +687,7 @@ def create_schemas(table_columns):
             field = rebuild_bq_name(column)
             filtered_col_order[field] = column_orders[table][field]
             
-        {field: column_orders[table][field] for field in }
+        # {field: column_orders[table][field] for field in }
 
         schema_list = []
         
@@ -980,6 +980,7 @@ def main(args):
         cases = get_cases_by_program(BQ_PARAMS, program)
 
         if not cases:
+            print("Skipping program {}, no cases found.")
             continue
 
         # derive the program's table structure by analyzing its case records
@@ -990,21 +991,18 @@ def main(args):
             table_schemas, table_order_lists = create_schemas(table_columns)
 
             # create tables, flatten and insert data
-            create_and_load_tables(program, cases, table_schemas, max_record_count)
+            create_and_load_tables(program, cases, table_schemas, tables)
 
             print("{} processed in {:0.1f} seconds!\n".
                   format(program, time.time() - prog_start))
 
             if 'generate_documentation' in steps:
-                table_ids = {table: get_table_id(BQ_PARAMS, table)
-                             for table in get_tables(max_record_count)}
+                table_ids = {table: get_table_id(BQ_PARAMS, table) for table in tables}
 
                 # converting to JSON serializable form
-                table_column_lists = {table: list(vals)
-                                      for table, vals in table_columns.items()}
+                table_column_lists = {t: list(v) for t, v in table_columns.items()}
 
                 documentation_dict[program] = {
-                    'max_record_count': max_record_count,
                     'table_schemas': str(table_schemas),
                     'table_columns': table_column_lists,
                     'table_ids': table_ids,
