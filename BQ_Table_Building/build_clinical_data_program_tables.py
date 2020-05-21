@@ -713,7 +713,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
 '''
 
 
-def merge_single_entry_field_groups(flattened_case, bq_program_tables):
+def merge_single_entry_field_groups(flattened_case, bq_program_tables, case_fg_ids):
     """
     Merge field groups which have a max of one record for every case in this
     program.
@@ -723,6 +723,8 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     :param bq_program_tables: list of tables to be created for this program.
     :return: flattened_case_dict with single record tables merged.
     """
+    print(flattened_case)
+
     fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
 
     for fg_key, fg_depth in sorted(fg_depths.items(), key=lambda item: item[1], reverse=True):
@@ -828,15 +830,8 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         flattened_case_dict = flatten_case(case)
         case_id, case_fg_ids = get_case_fg_ids(case)
 
-        print(flattened_case_dict['cases'])
-
-        print(case_fg_ids)
-        exit()
-
-
-
-
-        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
+        flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict,
+                                                              tables, case_fg_ids)
 
         for table in flattened_case_dict.keys():
             if table not in tables:
