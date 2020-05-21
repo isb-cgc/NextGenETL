@@ -329,9 +329,6 @@ def find_program_structure(cases):
         if case:
             field_groups, record_counts = examine_case(field_groups, case,
                                                         record_counts, fg_name='cases')
-    # todo delete print
-    print("record_counts: {}".format(record_counts))
-
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
@@ -496,11 +493,9 @@ def create_schemas(table_columns, tables):
                                                                       schema_dict, tables)
 
     # merge flattened column orders
-    merged_tables = {table for table in column_orders.keys() if table not in tables}
+    merged_tables = {fg for fg in column_orders.keys() if fg not in tables}
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
-    # todo delete print
-    print("tables: {}".format(tables))
     # todo delete print
     print("merged_tables: {}".format(merged_tables))
 
