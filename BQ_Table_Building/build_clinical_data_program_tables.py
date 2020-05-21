@@ -705,15 +705,11 @@ def remove_excluded_fields(record, table_name):
     excluded_fields = get_excluded_fields(table_name)
 
     if isinstance(record, set):
-        for field in record.copy():
-            if field in excluded_fields:
-                record.remove(field)
+        return {field for field in record if field not in excluded_fields}
+    elif isinstance(record, dict):
+        return {f: v for f, v in record.items() if f not in excluded_fields and v}
     else:
-        for field in record.copy():
-            if isinstance(record, list) and not record[field] or field in excluded_fields:
-                record.pop(field)
-
-    return record
+        return [field for field in record if field not in excluded_fields]
 
 
 ####
