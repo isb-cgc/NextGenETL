@@ -761,7 +761,8 @@ def assign_record_counts(flattened_case, tables, case_id_counts):
         if depth == 1:
             case_id = flattened_case[fg][0]['case_id']
             continue
-
+        elif fg not in tables:
+            continue
         parent_field_group = get_parent_field_group(fg)
         parent_fg_table_id_key = get_table_id_key(parent_field_group)
 
