@@ -749,7 +749,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
             fields_dict[column] = record[field]
 
     if fields_dict:
-        flat_case[field_group] = [] if field_group not in flat_case else None
+        if field_group not in flat_case:
+            flat_case[field_group] = list()
 
         fields_dict = remove_excluded_fields(fields_dict, field_group)
         flat_case[field_group].append(fields_dict)
