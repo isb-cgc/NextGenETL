@@ -184,19 +184,19 @@ def build_column_order_dict(main_table=True):
 
     for group in field_groups:
         try:
-            column_order_list = API_PARAMS['TABLE_METADATA'][group]['column_order']
+            param_column_order = API_PARAMS['TABLE_METADATA'][group]['column_order']
             id_column = API_PARAMS['TABLE_METADATA'][group]['table_id_key']
 
-            for column in column_order_list:
+            for column in param_column_order:
                 column_order_dict[group + '.' + column] = idx
 
                 if id_column == column:
                     # this creates space for reference columns (parent id or one-to-many
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
+                        """
                         # todo probably this is deleted
                         column_order_dict['case_id'] = idx + id_index_gap - 1
-                        """
                         # todo this stays?
                         column_order_dict[column + '.case_id'] = idx + id_index_gap - 1
                         """
