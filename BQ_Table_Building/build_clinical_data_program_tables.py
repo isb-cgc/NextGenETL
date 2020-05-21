@@ -497,6 +497,8 @@ def create_schemas(table_columns, tables):
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
     # todo delete print
+    print("tables: {}".format(tables))
+    # todo delete print
     print("merged_tables: {}".format(merged_tables))
 
     for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
