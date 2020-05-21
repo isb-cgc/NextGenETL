@@ -194,19 +194,12 @@ def build_column_order_dict(main_table=True):
                     # this creates space for reference columns (parent id or one-to-many
                     # record count columns) leaves a gap for submitter_id
                     if not main_table:
+                        """
                         # todo probably this is deleted
                         column_order_dict['case_id'] = idx + id_index_gap - 1
                         # todo this stays?
                         column_order_dict[column + '.case_id'] = idx + id_index_gap - 1
-
-                        # todo delete print
-                        print("\ngroup: {}, column: {}, id: {}".format(
-                            group, column, idx))
-
-                        # todo delete print
-                        print("column_order_dict['case_id']: {}\n".
-                              format(column_order_dict['case_id']))
-
+                        """
                     idx += id_index_gap * 2
                 else:
                     idx += 1
@@ -640,8 +633,6 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                 flat_case[field_group] = list()
 
             excluded_columns = get_all_excluded_columns()
-            # todo delete print
-            print("excluded_columns: {}\n\n".format(excluded_columns))
 
             for field in row_dict.copy():
                 if field in excluded_columns or not row_dict[field]:
@@ -748,6 +739,7 @@ def create_and_load_tables(program_name, cases, schemas, tables):
     for case in cases:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
+
         print(flattened_case_dict)
         exit()
 
