@@ -397,6 +397,7 @@ def add_reference_columns(table_columns, schema, record_counts):
     - case_id, used to reference main table records
     - pid, used to reference nearest un-flattened ancestor table
 
+    :param record_counts:
     :param table_columns: dict containing table column keys
     :param schema: dict containing schema records
     :return: table_columns, schema_dict, column_order_dict
@@ -409,7 +410,7 @@ def add_reference_columns(table_columns, schema, record_counts):
         # get ordering for table by only including relevant column indexes
         table_orders[table] = {k: indexes[k] for k in get_table_column_order(table)}
 
-        if depth == 1:
+        if depth == 1 or table not in table_columns:
             continue
 
         ref_column_index = get_id_index(table, table_orders[table]) + 1
