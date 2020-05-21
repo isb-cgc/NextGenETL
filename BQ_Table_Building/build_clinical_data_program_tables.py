@@ -770,14 +770,32 @@ def collect_ids(entry, curr_idx, fg, ids):
         if curr_idx == len(split_fg) - 1:
             ids.add(child_entry[get_table_id_key(fg)])
         else:
-            curr_fg = fg + '.' + curr_field
-            ids = collect_ids(child_entry, curr_idx + 1, curr_fg, ids)
+            ids = collect_ids(child_entry, curr_idx + 1, fg, ids)
 
     return ids
 
 
-def get_field_group_ids(flattened_case, field_group):
-    return collect_ids(entry=flattened_case, curr_idx=0, fg=field_group, ids=set())
+def get_field_group_ids(entry, field_group):
+    return collect_ids(entry=entry, curr_idx=0, fg=field_group, ids=set())
+
+
+def sort_fgs_by_depth(fgs, reverse=False):
+    fg_depths = {fg: get_field_depth(fg) for fg in fgs}
+    return sorted(fg_depths.items(), key=lambda item: item[1], reverse=reverse)
+
+
+def get_case_fg_ids(case, curr_depth):
+    case_fg_ids = dict()
+
+    for fg, depth in sort_fgs_by_depth(API_PARAMS['TABLE_ORDER']):
+        # ensure you're at the right depth in the
+        if depth != curr_depth:
+            for entry in case:
+                case_fg_ids = get_case_fg_ids(entry, curr_depth + 1)
+        if fg in case:
+            case_fg_ids[fg] = get_field_group_ids(case, fg)
+
+    return case_fg_ids
 
 
 def assign_record_counts(flattened_case, tables, case_id_counts):
@@ -864,7 +882,8 @@ def create_and_load_tables(program_name, cases, schemas, tables):
 
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        case_id_counts = assign_record_counts(case, tables, case_id_counts)
+        # case_id_counts = assign_record_counts(case, tables, case_id_counts)
+
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
@@ -965,6 +984,9 @@ def main(args):
         print("Executing script for program {}...".format(program))
 
         cases = get_cases_by_program(BQ_PARAMS, MASTER_TABLE_NAME, program)
+
+        print(cases[15])
+        exit()
 
         if not cases:
             print("Skipping program {}, no cases found.")
