@@ -653,6 +653,8 @@ def build_flat_schema(field_group, schema_fields, flat_schema):
             try:
                 description = schema_field.desciption
             except AttributeError:
+                # todo lookup description in some other way
+                print('{}, '.format(schema_key), end='')
                 description = ''
 
             flat_schema[schema_key] = {
@@ -671,7 +673,11 @@ def get_schema_dict(bq_params, master_table):
     table = client.get_table(table_id)
     schema_fields = table.schema
 
-    return build_flat_schema('cases', schema_fields, dict())
+    print('schema keys with no description: ', end='')
+
+    schema = build_flat_schema('cases', schema_fields, dict())
+    print()
+    return schema
 
 
 def upload_to_bucket(bq_params, fp, file_name):
