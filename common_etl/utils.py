@@ -532,36 +532,20 @@ def get_table_prefixes(api_params):
     return prefixes
 
 
-def get_bq_name(api_params, table_path, column):
-    table_abbr_dict = get_table_prefixes(api_params)
-
-    if not table_path:
-        split_column = column.split('.')
-    else:
-        full_name = table_path + '.' + column
-        split_column = full_name.split('.')
-
-    if len(split_column) == 1 or len(split_column) == 2 and split_column[0] == 'cases':
-        return split_column[-1]
-
-    if split_column[0] != 'cases':
-        split_column.insert(0, 'cases')
-
-    column = split_column[-1]
-    split_column = split_column[:-1]
-    table_key = ".".join(split_column)
-
-    if table_key not in table_abbr_dict:
-        return column
-
-    prefix = table_abbr_dict[table_key]
-    return prefix + '__' + column
-
-
-def get_bq_name_from_full_field(api_params, name):
-    table_abbr_dict = get_table_prefixes(api_params)
+def get_bq_name(api_params, table_path, name):
+    if table_path:
+        name = table_path + '.' + name
 
     split_name = name.split('.')
+    field_group = '.'.join(split_name[:-1])
+    field = split_name[-1]
+
+    prefixes = get_table_prefixes(api_params)
+
+    if field_group not in prefixes:
+        has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
+
+    return prefixes[field_group] + '__' + field
 
 
 def get_parent_field_group(table_key):
@@ -650,6 +634,7 @@ def build_flat_schema(flat_schema, field_group, client, table, schema_fields=Non
             flat_schema = build_flat_schema(flat_schema, schema_key, client, table,
                                             schema_field.fields)
         else:
+            field_dict['name'] = get_bq_name()
             flat_schema[schema_key] = field_dict
 
     return flat_schema
