@@ -644,7 +644,7 @@ def get_parent_table(table_keys, field_group):
 def build_flat_schema(field_group, schema_fields, flat_schema):
     for schema_field in schema_fields:
         field_dict = schema_field.to_api_repr()
-        schema_key = field_group + '.' + field_dict.name
+        schema_key = field_group + '.' + field_dict['name']
 
         if 'fields' in field_dict:
             flat_schema = build_flat_schema(schema_key, field_dict['fields'], flat_schema)
