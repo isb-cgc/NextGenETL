@@ -38,7 +38,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 # todo include in YAML
 TABLE_NAME_PREFIX = 'clin'
-TABLE_NAME_FULL = 'clinical_data'
+MASTER_TABLE_NAME = 'clinical_data'
 
 
 ####
@@ -197,9 +197,9 @@ def build_column_order_dict(main_table=True):
                         """
                         # todo probably this is deleted
                         column_order_dict['case_id'] = idx + id_index_gap - 1
+                        """
                         # todo this stays?
                         column_order_dict[column + '.case_id'] = idx + id_index_gap - 1
-                        """
                     idx += id_index_gap * 2
                 else:
                     idx += 1
@@ -272,8 +272,7 @@ def flatten_tables(field_groups, tables):
     fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
 
     for field_group, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
-        # now remove_excluded removes nulls here too, is that a problem? todo
-        field_groups[field_group] = remove_excluded_fields(field_groups[field_group], 
+        field_groups[field_group] = remove_excluded_fields(field_groups[field_group],
                                                            field_group)
 
         full_field_names = {get_full_field_name(field_group, field)
@@ -398,7 +397,6 @@ def add_reference_columns(table_columns, schema_dict):
     :return: table_columns, schema_dict, column_order_dict
     """
     table_orders = dict()
-
     table_depths = {table: get_field_depth(table) for table in table_columns}
 
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
@@ -505,7 +503,7 @@ def create_schemas(table_columns):
     :return: lists of BQ SchemaFields.
     """
     schema_field_lists = dict()
-    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
 
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
@@ -839,7 +837,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
 
     # programs = get_programs_list()
     programs = ['HCMI']
@@ -848,7 +846,7 @@ def main(args):
         prog_start = time.time()
         print("Executing script for program {}...".format(program))
 
-        cases = get_cases_by_program(BQ_PARAMS, TABLE_NAME_FULL, program)
+        cases = get_cases_by_program(BQ_PARAMS, MASTER_TABLE_NAME, program)
 
         if not cases:
             print("Skipping program {}, no cases found.")
