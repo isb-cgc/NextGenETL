@@ -548,7 +548,11 @@ def get_bq_name(api_params, name, table_path=None):
     if field_group not in prefixes:
         has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
 
-    return prefixes[field_group] + '__' + field
+    if prefixes[field_group]:
+        return prefixes[field_group] + '__' + field
+    else:
+        # prefix is blank, like in the instance of 'cases'
+        return field
 
 
 def get_parent_field_group(table_key):
