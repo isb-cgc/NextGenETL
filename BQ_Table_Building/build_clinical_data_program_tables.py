@@ -708,7 +708,7 @@ def remove_excluded_fields(record, table_name):
     print("record: {}".format(record))
 
     for field in record.copy():
-        if isinstance(record, list) and not record[field] or field in excluded_fields:
+        if field in excluded_fields:
             record.pop(field)
 
     return record
