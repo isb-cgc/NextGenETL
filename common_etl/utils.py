@@ -649,10 +649,10 @@ def new_column_type_lookup(table_id):
     for schema_field in schema_fields:
         # todo delete print
         field = schema_field.name
-        field_type = schema_field.type
+        field_type = schema_field.field_type
 
         print("schema_field.name: {}".format(schema_field.name))
-        print("schema_field.type: {}".format(schema_field.type))
+        print("schema_field.field_type: {}".format(schema_field.field_type))
 
         if field_type == 'RECORD':
             # todo delete print
