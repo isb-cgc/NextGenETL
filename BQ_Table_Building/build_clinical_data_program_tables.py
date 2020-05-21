@@ -791,10 +791,6 @@ def assign_record_counts(flattened_case, tables):
             continue
 
         parent_field_group = get_parent_field_group(fg)
-
-        # todo delete print
-        print("parent_field_group: {}".format(parent_field_group))
-
         parent_fg_table_id_key = get_table_id_key(parent_field_group)
 
         # todo delete print
@@ -803,8 +799,14 @@ def assign_record_counts(flattened_case, tables):
         # used to create the ancestor's id field
         parent_fg_id_column = get_bq_name(API_PARAMS, parent_fg_table_id_key)
 
+        # todo delete print
+        print("parent_fg_id_column: {}".format(parent_fg_id_column))
+
         # used to insert the count into parent table
         parent_table = get_parent_table(tables, fg)
+
+        # todo delete print
+        print("parent_table: {}".format(parent_table))
 
         fg_ids = dict()
 
