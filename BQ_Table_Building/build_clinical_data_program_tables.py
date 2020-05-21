@@ -559,6 +559,7 @@ def remove_excluded_fields(record, table):
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
+        return record
     else:
         return [field for field in record if field not in excluded_fields]
 
