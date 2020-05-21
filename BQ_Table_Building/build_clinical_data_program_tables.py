@@ -754,16 +754,19 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
 
 def collect_ids(entry, curr_idx, fg, ids):
     split_fg = fg.split('.')
+    curr_field = split_fg[curr_idx]
 
     if curr_idx < 0 or curr_idx >= len(split_fg):
         has_fatal_error("invalid index returned in collect_ids: {}".format(curr_idx))
-    elif curr_idx != len(split_fg) - 1:
-        for child_entry in entry[split_fg[curr_idx]]:
+    elif curr_field not in entry:
+        return None
+
+    for child_entry in entry[curr_field]:
+        if curr_idx == len(split_fg) - 1:
+            ids.add(child_entry[get_table_id_key(fg)])
+        else:
             ids = collect_ids(child_entry, curr_idx + 1, fg, ids)
-    else:
-        for child_entry in entry[split_fg[curr_idx]]:
-            id_field = get_table_id_key(fg)
-            ids.add(child_entry[id_field])
+
     return ids
 
 
