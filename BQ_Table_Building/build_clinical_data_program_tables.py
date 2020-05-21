@@ -634,18 +634,17 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
 
                 # fields_dict[get_full_field_name(field_group, field)] = field_val
 
+        if field_group not in flat_case:
+            flat_case[field_group] = list()
+
+        excluded_columns = get_all_excluded_columns()
+
         if row_dict:
-            if field_group not in flat_case:
-                flat_case[field_group] = list()
-
-            excluded_columns = get_all_excluded_columns()
-
             for field in row_dict.copy():
                 if field in excluded_columns or not row_dict[field]:
                     row_dict.pop(field)
 
-            # fields_dict = remove_excluded_fields(fields_dict, field_group)
-            flat_case[field_group].append(row_dict)
+        flat_case[field_group].append(row_dict)
 
     return flat_case
 
