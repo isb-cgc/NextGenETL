@@ -587,40 +587,38 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     # entry represents a field group, recursively flatten each record
     if isinstance(record, list):
         # flatten each record in field group list
-        for child_entry in record:
-            flat_case = flatten_case_entry(child_entry, field_group, flat_case, case_id,
+        for entry in record:
+            flat_case = flatten_case_entry(entry, field_group, flat_case, case_id,
                                            pid, pid_field)
-        return flat_case
-
-    fields_dict = dict()
-
-    for field, field_val in record.items():
+    else:
+        fields_dict = dict()
         id_field = get_table_id_key(field_group)
 
-        if isinstance(field_val, list):
-            flat_case = flatten_case_entry(
-                record=field_val,
-                field_group=field_group + '.' + field,
-                flat_case=flat_case,
-                case_id=case_id,
-                pid=record[id_field],
-                pid_field=id_field)
-        else:
-            if id_field != pid_field:
-                parent_fg = get_parent_field_group(field_group)
-                pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
-                fields_dict[pid_column] = pid
+        for field, field_val in record.items():
+            if isinstance(field_val, list):
+                flat_case = flatten_case_entry(
+                    record=field_val,
+                    field_group=field_group + '.' + field,
+                    flat_case=flat_case,
+                    case_id=case_id,
+                    pid=record[id_field],
+                    pid_field=id_field)
+            else:
+                if id_field != pid_field:
+                    parent_fg = get_parent_field_group(field_group)
+                    pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
+                    fields_dict[pid_column] = pid
 
-            # Field converted bq column name
-            column = get_bq_name(API_PARAMS, field, field_group)
-            fields_dict[column] = record[field]
+                # Field converted bq column name
+                column = get_bq_name(API_PARAMS, field, field_group)
+                fields_dict[column] = record[field]
 
-    if fields_dict:
-        if field_group not in flat_case:
-            flat_case[field_group] = list()
+        if fields_dict:
+            if field_group not in flat_case:
+                flat_case[field_group] = list()
 
-        fields_dict = remove_excluded_fields(fields_dict, field_group)
-        flat_case[field_group].append(fields_dict)
+            fields_dict = remove_excluded_fields(fields_dict, field_group)
+            flat_case[field_group].append(fields_dict)
 
     return flat_case
 
@@ -631,14 +629,14 @@ def flatten_case(case):
     :param case: dict containing case data
     :return: flattened case dict
     """
-    prefix = 'cases'
-    case_id = pid = case['case_id']
-    pid_key = case_id
-    flat_case = dict()
-
-    print("\n Flatten new case:\n")
-
-    return flatten_case_entry(case, prefix, flat_case, case_id, pid, pid_key)
+    # todo delete print
+    print("\nFlatten new case:\n")
+    return flatten_case_entry(record=case,
+                              field_group='cases',
+                              flat_case=dict(),
+                              case_id=case['case_id'],
+                              pid=case['case_id'],
+                              pid_field='case_id')
 
 
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
