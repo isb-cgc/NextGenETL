@@ -609,16 +609,28 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     parent_fg = get_parent_field_group(field_group)
                     pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
                     fields_dict[pid_column] = pid
+
+                    # fields_dict[get_full_field_name(parent_fg, pid_field)] = field_val
                 # Field converted bq column name
                 column = get_bq_name(API_PARAMS, field, field_group)
                 fields_dict[column] = field_val
+
+                # fields_dict[get_full_field_name(field_group, field)] = field_val
 
         if fields_dict:
             if field_group not in flat_case:
                 flat_case[field_group] = list()
             # todo delete print
             print("field_group: {}, fields_dict: {}".format(field_group, fields_dict))
-            fields_dict = remove_excluded_fields(fields_dict, field_group)
+
+            excluded_fields = get_excluded_fields(field_group)
+            for field in excluded_fields:
+                column = get_bq_name(API_PARAMS, field, field_group)
+
+                if column in fields_dict:
+                    fields_dict.pop(column)
+
+            # fields_dict = remove_excluded_fields(fields_dict, field_group)
             flat_case[field_group].append(fields_dict)
 
     return flat_case
