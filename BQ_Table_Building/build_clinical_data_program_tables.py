@@ -598,6 +598,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
     :param pid_field: parent field group id key
     :return: flattened case dict, format: { 'field_group': [records] }
     """
+    # todo delete print
+    print("field_group: {}".format(field_group))
 
     # entry represents a field group, recursively flatten each record
     if isinstance(record, list):
@@ -625,12 +627,12 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
                     pid=record[id_field],
                     pid_field=id_field,
                     tables=tables)
-
+                """
                 record_count = len(field_val)
                 parent_table = get_parent_table(tables, field_group + '.' + field)
                 count_col = get_bq_name(API_PARAMS, field, field_group)
                 flat_case[parent_table][count_col] = record_count
-
+                """
             else:
                 if id_field != pid_field:
                     parent_fg = get_parent_field_group(field_group)
