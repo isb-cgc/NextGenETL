@@ -753,6 +753,8 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
 
 
 def collect_ids(entry, curr_idx, fg, ids):
+    # todo delete print
+    print("entry: {}, curr_idx: {}, fg: {}, : {}".format(entry, curr_idx, fg, ids))
     split_fg = fg.split('.')
     curr_field = split_fg[curr_idx]
 
@@ -871,8 +873,6 @@ def create_and_load_tables(program_name, cases, schemas, tables):
                 for row in flattened_case_dict[table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
-
-    print(case_id_counts)
 
     for table in tables:
         jsonl_file = get_jsonl_filename(program_name, table)
