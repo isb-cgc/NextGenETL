@@ -444,18 +444,6 @@ def add_reference_columns(table_columns, schema, tables):
         table_columns[parent_table].add(count_name)
         table_orders[parent_table][count_name] = count_col_index
 
-    merged_tables = {table for table in table_orders.keys() if table not in tables}
-
-    # merge flattened column orders
-    merged_depths = {table: table_depths[table] for table in merged_tables}
-
-    for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
-        parent_table = get_parent_table(tables, table)
-        table_orders[parent_table] |= table_orders[table]
-
-    for table in merged_tables:
-        table_orders.pop(table)
-
     return schema, table_columns, table_orders
 
 
@@ -503,6 +491,18 @@ def create_schemas(table_columns, tables):
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict, tables)
+
+    # merge flattened column orders
+    merged_tables = {table for table in column_orders.keys() if table not in tables}
+    merged_depths = {table: get_field_depth(table) for table in merged_tables}
+
+    for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
+        if depth == 1:
+            has_fatal_error("cases shouldn't be in merged_table list")
+        parent_table = get_parent_table(tables, table)
+        column_orders[parent_table] |= column_orders[table]
+        column_orders.pop(table)
+
     # add bq abbreviations to schema field dicts
     schema_dict = prefix_field_names(schema_dict)
     schema_field_lists = dict()
