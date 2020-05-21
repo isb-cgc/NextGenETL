@@ -671,7 +671,7 @@ def flatten_case(case, tables):
                               flat_case=dict(),
                               case_id=case['case_id'],
                               pid=case['case_id'],
-                              pid_field='case_id'
+                              pid_field='case_id',
                               tables=tables)
 
 
