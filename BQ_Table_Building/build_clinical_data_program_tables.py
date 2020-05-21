@@ -30,7 +30,7 @@ from common_etl.utils import (
     create_mapping_dict, get_field_name, get_tables, get_parent_table,
     get_parent_field_group, load_config, get_cases_by_program, get_table_id,
     upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth,
-    get_full_field_name, in_bq_format)
+    get_full_field_name, in_bq_format, new_column_type_lookup)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -219,7 +219,6 @@ def build_column_order_dict(main_table=True):
 
     return column_order_dict
 
-
 # todo there's more to optimize here in terms of automation
 def lookup_column_types():
     """
@@ -227,12 +226,12 @@ def lookup_column_types():
     :return: dict of {column_names: types}
     """
 
-    def split_datatype_array(col_dict, col_string, name_prefix):
+    def split_datatype_array(col_dict, col_string, fg):
         columns = col_string[13:-2].split(', ')
 
         for column in columns:
             column_type = column.split(' ')
-            column_name = name_prefix + column_type[0]
+            column_name = fg + column_type[0]
             col_dict[column_name] = column_type[1].strip(',')
 
         return col_dict
@@ -355,26 +354,20 @@ def create_schema_dict():
     :return: dict of entries with the following keys: {name, type, description}
     """
     column_type_dict = lookup_column_types()
-    field_mapping_dict = create_mapping_dict(API_PARAMS['ENDPOINT'])
+    mapping = create_mapping_dict(API_PARAMS['ENDPOINT'])
 
-    schema_dict = {}
+    schema_dict = dict()
 
     for key in column_type_dict:
-        try:
-            description = field_mapping_dict[key]['description']
-        except KeyError:
-            # cases.id not returned by mapping endpoint. In such cases,
-            # substitute an empty description string.
-            description = ""
+        if key not in mapping:
+            print("[INFO] excluded {} from schema dict, not found in _mapping response.")
+            continue
 
-        field_type = column_type_dict[key]
-
-        # this is the format for bq schema json object entries
-        bq_key = get_bq_name(API_PARAMS, None, key)
+        description = mapping[key]['description'] if 'description' in mapping[key] else ''
 
         schema_dict[key] = {
-            "name": bq_key,
-            "type": field_type,
+            "name": get_bq_name(API_PARAMS, None, key),
+            "type": column_type_dict[key],
             "description": description
         }
 
@@ -958,6 +951,11 @@ def main(args):
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
+
+    new_column_type_lookup(table_id=BQ_PARAMS['WORKING_PROJECT'] + '.' +
+                           BQ_PARAMS['TARGET_DATASET'] + '.' +
+                           BQ_PARAMS['GDC_RELEASE'] + '_clinical_data')
+    return
 
     # programs = get_programs_list()
     programs = ['HCMI']
