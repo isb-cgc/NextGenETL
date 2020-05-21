@@ -674,15 +674,12 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     :param bq_program_tables: list of tables to be created for this program.
     :return: flattened_case_dict with single record tables merged.
     """
-    field_group_depths = dict.fromkeys(flattened_case.keys(), 0)
+    # todo delete print
+    print("flattened_case.keys(): {}".format(flattened_case.keys()))
 
-    # sort field group keys by depth
-    for key in field_group_depths:
-        field_group_depths[key] = len(key.split("."))
+    fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
 
-    for fg_key, fg_depth in sorted(field_group_depths.items(),
-                                   key=lambda item: item[1],
-                                   reverse=True):
+    for fg_key, fg_depth in sorted(fg_depths.items(), key=lambda item: item[1], reverse=True):
         # cases is the master table, merged into
         if fg_depth == 1:
             break
@@ -699,12 +696,10 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                 if pid_key not in entry and pid_column not in entry:
                     has_fatal_error("No id key found, in bq or fg format.")
 
-                entry_id = entry[pid_key] if pid_key in entry \
-                    else entry[pid_column]
+                entry_id = entry[pid_key] if pid_key in entry else entry[pid_column]
 
                 if entry_id not in max_record_count:
-                    max_record_count[entry_id] = {'entry_idx': idx,
-                                               'record_count': 0}
+                    max_record_count[entry_id] = {'entry_idx': idx, 'record_count': 0}
                     idx += 1
 
             field_group = flattened_case[fg_key].copy()
@@ -717,8 +712,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                 entry_idx = max_record_count[pid]['entry_idx']
                 count_id = get_bq_name(API_PARAMS, 'count', fg_key)
 
-                flattened_case[parent_table][entry_idx][count_id] = \
-                    max_record_count[pid]['record_count']
+                flattened_case[parent_table][entry_idx][count_id] = max_record_count[pid]['record_count']
         else:
             field_group = flattened_case.pop(fg_key)[0]
 
