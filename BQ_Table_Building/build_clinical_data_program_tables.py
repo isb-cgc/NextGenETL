@@ -959,8 +959,8 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     schema_dict_new = get_schema_dict(BQ_PARAMS, TABLE_NAME_FULL)
-    exit()
 
+    print(schema_dict_new)
     print('\n\n')
     print(create_schema_dict())
 

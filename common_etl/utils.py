@@ -643,46 +643,25 @@ def get_parent_table(table_keys, field_group):
 
 def build_flat_schema(field_group, schema_fields, flat_schema):
     for schema_field in schema_fields:
-        field_name = schema_field.name
-        schema_key = field_group + '.' + field_name
-        field_type = schema_field.field_type
+        field_dict = schema_field.to_api_repr()
+        schema_key = field_group + '.' + field_dict.name
 
-        print(schema_field.to_api_repr())
-        continue
-
-        if field_type == 'RECORD':
-            flat_schema = build_flat_schema(schema_key, schema_field.fields, flat_schema)
+        if 'fields' in field_dict:
+            flat_schema = build_flat_schema(schema_key, field_dict['fields'], flat_schema)
         else:
-            try:
-                description = schema_field.desciption
-                # todo delete print
-                print("description: {}".format(description))
-            except AttributeError:
-                # todo lookup description in some other way
-                # print('{}, '.format(schema_key), end='')
-                description = ''
-
-            flat_schema[schema_key] = {
-                'name': field_name,
-                'type': field_type, 
-                'description': description
-            }
+            flat_schema[schema_key] = field_dict
 
     return flat_schema
 
 
 def get_schema_dict(bq_params, master_table):
-    client = bigquery.Client()
-
     table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
+
+    client = bigquery.Client()
     table = client.get_table(table_id)
     schema_fields = table.schema
 
-    # print('schema keys with no description: ', end='')
-
-    schema = build_flat_schema('cases', schema_fields, dict())
-    # print()
-    return schema
+    return build_flat_schema('cases', schema_fields, dict())
 
 
 def upload_to_bucket(bq_params, fp, file_name):
