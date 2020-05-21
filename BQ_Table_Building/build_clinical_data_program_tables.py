@@ -475,60 +475,32 @@ def create_schemas(table_columns):
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
-
-    # todo delete print
-    print("table_columns: {}".format(table_columns))
-
-    schema_field_lists = dict()
     schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
-
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict)
-
-    # todo delete print
-    print("table_columns: {}".format(table_columns))
-
+    # add bq abbreviations to schema field dicts
     schema_dict = prefix_field_names(schema_dict)
+    schema_field_lists = dict()
 
     for table in table_columns:
         # this is just alphabetizing the count columns
-        for column in table_columns[table]:
-            if '__' in column:
-                column = rebuild_bq_name(column)
+        counts_idx = get_count_column_index(table, column_orders[table])
+        count_cols = [col for col, i in column_orders[table].items() if i == counts_idx]
 
-            if column not in column_orders[table]:
-                has_fatal_error("'{}' not in column_orders['{}']. Found: {}".
-                                format(column, table, column_orders[table].keys()))
+        for count_column in sorted(count_cols):
+            column_orders[table][count_column] = counts_idx
+            counts_idx += 1
 
-        count_column_index = get_count_column_index(table, column_orders[table])
-
-        count_columns = []
-
-        for column_key, index in column_orders[table].items():
-            if index == count_column_index:
-                count_columns.append(column_key)
-
-        # index in alpha order
-        count_columns.sort()
-
-        for count_column in count_columns:
-            column_orders[table][count_column] = count_column_index
-            count_column_index += 1
-
-        filtered_col_order = dict()
-
-        for column in table_columns[table]:
-            column = rebuild_bq_name(column) if in_bq_format(column) else column
-            filtered_col_order[column] = column_orders[table][column]
-
+        sorted_column_names = [col for col, idx in sorted(column_orders[table].items(),
+                                                          key=lambda i: i[1])]
         schema_list = []
-        
-        for key in [k for k, v in sorted(filtered_col_order.items(), key=lambda i: i[1])]:
-            if key in schema_dict:
-                schema_list.append(to_SchemaField(schema_dict[key]))
+
+        for column in sorted_column_names:
+            if column in schema_dict:
+                schema_list.append(to_SchemaField(schema_dict[column]))
             else:
-                print("{} not found in master table, excluding from schema.".format(key))
+                print("{} not found in src table, excluding schema field.".format(column))
 
         schema_field_lists[table] = schema_list
 
@@ -817,8 +789,6 @@ def main(args):
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
-
-    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
 
     # programs = get_programs_list()
     programs = ['HCMI']
