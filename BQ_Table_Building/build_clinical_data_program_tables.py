@@ -645,8 +645,6 @@ def create_schemas(table_columns):
     schema_dict, table_columns, column_orders = add_reference_columns(
         table_columns, schema_dict)
 
-    print(column_orders)
-
     for table in table_columns:
         # this is just alphabetizing the count columns
         for column in table_columns[table]:
@@ -674,15 +672,9 @@ def create_schemas(table_columns):
 
         required_cols = get_required_columns(table)
 
-        filtered_col_order = dict()
-
         # todo workzone
-        for column in table_columns[table]:
-            field = rebuild_bq_name(column)
-            filtered_col_order[field] = column_orders[table][field]
-            
-        # {field: column_orders[table][field] for field in }
-
+        filtered_col_order = {column: column_orders[table][column]
+                              for column in table_columns[table]}
         schema_list = []
         
         for key in [k for k, v in sorted(filtered_col_order.items(), key=lambda i: i[1])]:
