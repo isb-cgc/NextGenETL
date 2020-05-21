@@ -494,6 +494,10 @@ def create_schemas(table_columns):
 
         sorted_column_names = [col for col, idx in sorted(column_orders[table].items(),
                                                           key=lambda i: i[1])]
+
+        # todo delete print
+        print("sorted_column_names: {}".format(sorted_column_names))
+
         schema_list = []
 
         for column in sorted_column_names:
