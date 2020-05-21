@@ -458,6 +458,9 @@ def add_reference_columns(table_columns, schema, record_counts):
         else:
             merged_key = get_parent_table(table_columns.keys(), table)
 
+        if merged_key not in merged_table_orders:
+            merged_table_orders[merged_key] = dict()
+
         merged_table_orders[merged_key].update(table_orders[table])
 
     return schema, table_columns, merged_table_orders
