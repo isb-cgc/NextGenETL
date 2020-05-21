@@ -650,6 +650,7 @@ def flatten_case(case):
                               pid_field='case_id')
 
 
+"""
 def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     """
     Merge field groups which have a max of one record for every case in this
@@ -660,9 +661,6 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     :param bq_program_tables: list of tables to be created for this program.
     :return: flattened_case_dict with single record tables merged.
     """
-    # todo delete print
-    print("flattened_case.keys(): {}".format(flattened_case.keys()))
-
     fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
 
     for fg_key, fg_depth in sorted(fg_depths.items(), key=lambda item: item[1], reverse=True):
@@ -674,6 +672,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         pid_key = get_table_id_key(parent_table)
         pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
 
+        # don't merge
         if fg_key in bq_program_tables:
             max_record_count = dict()
             idx = 0
@@ -699,6 +698,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
                 count_id = get_bq_name(API_PARAMS, 'count', fg_key)
 
                 flattened_case[parent_table][entry_idx][count_id] = max_record_count[pid]['record_count']
+        # merge
         else:
             field_group = flattened_case.pop(fg_key)[0]
 
@@ -710,6 +710,51 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
             for key, fg_val in field_group.items():
                 flattened_case[parent_table][0][key] = fg_val
     return flattened_case
+"""
+
+
+def merge_single_entry_field_groups(flattened_case, bq_program_tables):
+    """
+    Merge field groups which have a max of one record for every case in this
+    program.
+    These columns will be located in parent table.
+    :param flattened_case: flattened dictionary for case (used to
+    recursively capture the record as it's parsed).
+    :param bq_program_tables: list of tables to be created for this program.
+    :return: flattened_case_dict with single record tables merged.
+    """
+    fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
+
+    for fg_key, fg_depth in sorted(fg_depths.items(), key=lambda item: item[1], reverse=True):
+        # cases is the master table, merged into
+        if fg_depth == 1:
+            break
+
+        parent_table = get_parent_table(flattened_case.keys(), fg_key)
+        pid_key = get_table_id_key(parent_table)
+        pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
+        pid = field_group[pid_column]
+
+        parent_fg = get_parent_field_group(fg_key)
+        parent_fg_id_key = get_table_id_key(parent_fg)
+        ancestor_column = get_bq_name(API_PARAMS, parent_fg_id_key, parent_fg)
+
+        # merge into parent table record
+        if fg_key not in bq_program_tables:
+            field_group = flattened_case.pop(fg_key)[0]
+
+            if len(field_group) == 0:
+                continue
+            if 'case_id' in field_group:
+                field_group.pop('case_id')
+            if ancestor_column in field_group:
+                field_group.pop(ancestor_column)
+
+            # include keys with values
+            for key, fg_val in field_group.items():
+                flattened_case[parent_table][0][key] = fg_val
+    return flattened_case
+
 
 
 def create_and_load_tables(program_name, cases, schemas, tables):
