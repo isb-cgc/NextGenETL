@@ -650,10 +650,15 @@ def build_flat_schema(field_group, schema_fields, flat_schema):
         if field_type == 'RECORD':
             flat_schema = build_flat_schema(schema_key, schema_field.fields, flat_schema)
         else:
+            try:
+                description = schema_field.desciption
+            except AttributeError:
+                description = ''
+
             flat_schema[schema_key] = {
                 'name': field_name,
                 'type': field_type, 
-                'description': schema_field.desciption
+                'description': description
             }
 
     return flat_schema
