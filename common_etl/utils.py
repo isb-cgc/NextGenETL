@@ -666,12 +666,7 @@ def get_schema_dict(bq_params, master_table):
     table = client.get_table(table_id)
     schema_fields = table.schema
 
-    flat_schema = dict()
-
-    for schema_field in schema_fields:
-        flat_schema = build_flat_schema('cases', schema_field, flat_schema)
-
-    return flat_schema
+    return build_flat_schema('cases', schema_fields, dict())
 
 
 def upload_to_bucket(bq_params, fp, file_name):
