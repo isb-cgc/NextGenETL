@@ -641,13 +641,14 @@ def get_parent_table(table_keys, field_group):
     return parent_table_key
 
 
-def build_flat_schema(field_group, schema_fields, flat_schema):
+def build_flat_schema(flat_schema, field_group, client, table, schema_fields=None):
     for schema_field in schema_fields:
         field_dict = schema_field.to_api_repr()
         schema_key = field_group + '.' + field_dict['name']
 
         if 'fields' in field_dict:
-            flat_schema = build_flat_schema(schema_key, field_dict['fields'], flat_schema)
+            flat_schema = build_flat_schema(flat_schema, schema_key, client, table,
+                                            schema_field.fields)
         else:
             flat_schema[schema_key] = field_dict
 
@@ -659,9 +660,8 @@ def get_schema_dict(bq_params, master_table):
 
     client = bigquery.Client()
     table = client.get_table(table_id)
-    schema_fields = table.schema
 
-    return build_flat_schema('cases', schema_fields, dict())
+    return build_flat_schema(dict(), 'cases', client, table, table.schema)
 
 
 def upload_to_bucket(bq_params, fp, file_name):
