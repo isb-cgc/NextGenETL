@@ -736,12 +736,15 @@ def create_and_load_tables(program_name, cases, schemas, tables):
     :param tables: set of table names
     """
     print("\nInserting case records...")
+    for table in tables:
+        jsonl_file_path = get_temp_filepath(program_name, table)
+        # delete last jsonl scratch file so we don't append to it
+        if os.path.exists(jsonl_file_path):
+            os.remove(jsonl_file_path)
+
     for case in cases:
         flattened_case_dict = flatten_case(case)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
-
-        print(flattened_case_dict)
-        exit()
 
         for table in flattened_case_dict.keys():
             if table not in tables:
@@ -754,17 +757,12 @@ def create_and_load_tables(program_name, cases, schemas, tables):
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
-    for table in schemas:
+    for table in tables:
         jsonl_file = get_jsonl_filename(program_name, table)
-        jsonl_file_path = get_temp_filepath(program_name, table)
-
-        upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
         table_id = get_full_table_name(program_name, table)
 
+        upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
-
-        if os.path.exists(jsonl_file_path):
-            os.remove(jsonl_file_path)
 
 
 ####
