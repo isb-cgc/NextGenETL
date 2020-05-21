@@ -775,7 +775,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
 
             child_fgs = get_child_fgs(flattened_case, fg_key)
 
-            for entry in case[fg_key].copy():
+            for entry in flattened_case[fg_key].copy():
                 if entry and fg_id_field in entry:
                     entry_id = entry[fg_id_field]
 
