@@ -1044,7 +1044,7 @@ def main(args):
         cases_fgs_ids = get_cases_fg_ids(cases)
 
         print(cases_fgs_ids)
-        continue()
+        continue
 
         if not cases:
             print("Skipping program {}, no cases found.")
