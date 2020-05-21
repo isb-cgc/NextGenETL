@@ -473,14 +473,11 @@ def ordered_print(flattened_case_dict, order_dict):
     print(tables_string)
 
 
-def get_cases_by_program(bq_params, program_name):
+def get_cases_by_program(bq_params, table_suffix, program_name):
     cases = []
 
-    dataset_path = bq_params["WORKING_PROJECT"] + '.' + \
-                   bq_params["TARGET_DATASET"]
-
-    main_table_id = dataset_path + '.' + \
-                    bq_params["GDC_RELEASE"] + '_clinical_data'
+    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
+    main_table_id = dataset_path + '.' + bq_params["GDC_RELEASE"] + '_' + table_suffix
 
     programs_table_id = bq_params['WORKING_PROJECT'] + '.' + \
                         bq_params['METADATA_DATASET'] + '.' + \
@@ -526,17 +523,17 @@ def get_field_depth(field):
     return len(field.split('.'))
 
 
-def get_abbr_dict(api_params):
-    table_abbr_dict = dict()
+def get_table_prefixes(api_params):
+    prefixes = dict()
 
-    for table_key, table_metadata in api_params['TABLE_METADATA'].items():
-        table_abbr_dict[table_key] = table_metadata['prefix']
+    for table, table_metadata in api_params['TABLE_METADATA'].items():
+        prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
 
-    return table_abbr_dict
+    return prefixes
 
 
 def get_bq_name(api_params, table_path, column):
-    table_abbr_dict = get_abbr_dict(api_params)
+    table_abbr_dict = get_table_prefixes(api_params)
 
     if not table_path:
         split_column = column.split('.')
@@ -544,8 +541,7 @@ def get_bq_name(api_params, table_path, column):
         full_name = table_path + '.' + column
         split_column = full_name.split('.')
 
-    if len(split_column) == 1 or \
-            (len(split_column) == 2 and split_column[0] == 'cases'):
+    if len(split_column) == 1 or len(split_column) == 2 and split_column[0] == 'cases':
         return split_column[-1]
 
     if split_column[0] != 'cases':
@@ -560,6 +556,12 @@ def get_bq_name(api_params, table_path, column):
 
     prefix = table_abbr_dict[table_key]
     return prefix + '__' + column
+
+
+def get_bq_name_from_full_field(api_params, name):
+    table_abbr_dict = get_table_prefixes(api_params)
+
+    split_name = name.split('.')
 
 
 def get_parent_field_group(table_key):
@@ -639,26 +641,37 @@ def get_parent_table(table_keys, field_group):
     return parent_table_key
 
 
-def new_column_type_lookup(table_id):
-    client = bigquery.Client()
-    table = client.get_table(table_id)
-
-    print(table)
-    schema_fields = table.schema
-
+def build_flat_schema(field_group, schema_fields, flat_schema):
     for schema_field in schema_fields:
-        # todo delete print
-        field = schema_field.name
+        field_name = schema_field.name
+        schema_key = field_group + '.' + field_name
         field_type = schema_field.field_type
 
-        print("schema_field.name: {}".format(schema_field.name))
-        print("schema_field.field_type: {}".format(schema_field.field_type))
-
         if field_type == 'RECORD':
-            # todo delete print
-            print("\tschema_field.fields: {}".format(schema_field.fields))
+            flat_schema = build_flat_schema(schema_key, schema_field.fields, flat_schema)
+        else:
+            flat_schema[schema_key] = {
+                'name': field_name,
+                'type': field_type, 
+                'description': schema_field.desciption
+            }
+
+    return flat_schema
 
 
+def get_schema_dict(bq_params, master_table):
+    client = bigquery.Client()
+
+    table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
+    table = client.get_table(table_id)
+    schema_fields = table.schema
+
+    flat_schema = dict()
+
+    for schema_field in schema_fields:
+        flat_schema = build_flat_schema('cases', schema_field, flat_schema)
+
+    return flat_schema
 
 
 def upload_to_bucket(bq_params, fp, file_name):
@@ -672,19 +685,19 @@ def upload_to_bucket(bq_params, fp, file_name):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def get_dataset_table_list(bq_params):
+def get_dataset_table_list(bq_params, prefix_component):
     client = bigquery.Client()
     dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' +
                                  bq_params['TARGET_DATASET'])
     results = client.list_tables(dataset)
 
-    table_id_prefix = bq_params["GDC_RELEASE"] + '_clin_'
+    prefix = bq_params["GDC_RELEASE"] + '_' + prefix_component + '_'
 
     table_id_list = []
 
     for table in results:
         table_id_name = table.table_id
-        if table_id_name and table_id_prefix in table_id_name:
+        if table_id_name and prefix in table_id_name:
             table_id_list.append(table_id_name)
 
     table_id_list.sort()

@@ -26,15 +26,19 @@ import os
 import time
 # from gdc_clinical_resources.test_data_integrity import *
 from common_etl.utils import (
-    get_abbr_dict, get_bq_name, has_fatal_error, get_query_results,
+    get_table_prefixes, get_bq_name, has_fatal_error, get_query_results,
     create_mapping_dict, get_field_name, get_tables, get_parent_table,
     get_parent_field_group, load_config, get_cases_by_program, get_table_id,
     upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth,
-    get_full_field_name, in_bq_format, new_column_type_lookup)
+    get_full_field_name, in_bq_format, get_schema_dict)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+
+# todo include in YAML
+TABLE_NAME_PREFIX = 'clin'
+TABLE_NAME_FULL = 'clinical_data'
 
 
 ####
@@ -51,18 +55,18 @@ def generate_long_name(program_name, table):
     :param table: Table name.
     :return: String representing a unique string identifier.
     """
-    abbr_dict = get_abbr_dict(API_PARAMS)
-    abbr = abbr_dict[table]
+    prefixes = get_table_prefixes(API_PARAMS)
+    prefix = prefixes[table]
 
     # remove invalid char from program name
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], 'clin', program_name]
+    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], TABLE_NAME_PREFIX, program_name]
 
     # if one-to-many table, append suffix
-    if abbr:
-        file_name_parts.append(abbr)
+    if prefix:
+        file_name_parts.append(prefix)
 
     return '_'.join(file_name_parts)
 
@@ -74,8 +78,9 @@ def get_jsonl_filename(program_name, table):
     faster script thanks to minimal BigQuery txns.
     :param program_name: name of the program to with the data belongs
     :param table: future insertion table for flattened data
-    :return: String .jsonl filename, of the form 'relXX_clin_PROGRAM +
-    (_supplemental_table_name, optionally)
+    :return: String .jsonl filename, of the form
+        relXX_TABLE_NAME_FULL_PROGRAM_supplemental-table-name
+        (_supplemental-table-name optional)
     """
     return generate_long_name(program_name, table) + '.jsonl'
 
@@ -219,6 +224,7 @@ def build_column_order_dict(main_table=True):
 
     return column_order_dict
 
+
 # todo there's more to optimize here in terms of automation
 def lookup_column_types():
     """
@@ -243,7 +249,7 @@ def lookup_column_types():
 
         query = """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_clinical_data' 
+        WHERE table_name = '{}_' + TABLE_NAME_FULL
         """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
                    BQ_PARAMS["GDC_RELEASE"])
 
@@ -252,7 +258,7 @@ def lookup_column_types():
     def generate_field_group_query(field_group_):
         return """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_clinical_data' and column_name = '{}'
+        WHERE table_name = '{}_' + TABLE_NAME_FULL and column_name = '{}'
         """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
                    BQ_PARAMS["GDC_RELEASE"], field_group_)
 
@@ -889,8 +895,8 @@ def generate_documentation(documentation_dict):
     :param documentation_dict:
     :return:
     """
-    json_doc_file = BQ_PARAMS['GDC_RELEASE']
-    json_doc_file += '_clin_json_documentation_dump.json'
+    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + TABLE_NAME_PREFIX
+    json_doc_file += '_json_documentation_dump.json'
 
     with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
         json.dump(documentation_dict, json_file)
@@ -952,9 +958,10 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    new_column_type_lookup(table_id=BQ_PARAMS['WORKING_PROJECT'] + '.' +
-                           BQ_PARAMS['TARGET_DATASET'] + '.' +
-                           BQ_PARAMS['GDC_RELEASE'] + '_clinical_data')
+    print(get_schema_dict(BQ_PARAMS, TABLE_NAME_FULL))
+    print('\n\n')
+    print(create_schema_dict())
+
     return
 
     # programs = get_programs_list()
@@ -964,7 +971,7 @@ def main(args):
         prog_start = time.time()
         print("Executing script for program {}...".format(program))
 
-        cases = get_cases_by_program(BQ_PARAMS, program)
+        cases = get_cases_by_program(BQ_PARAMS, TABLE_NAME_FULL, program)
 
         if not cases:
             print("Skipping program {}, no cases found.")

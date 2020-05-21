@@ -8,6 +8,10 @@ API_PARAMS = None
 BQ_PARAMS = None
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
+# todo include in YAML
+TABLE_NAME_PREFIX = 'clin'
+TABLE_NAME_FULL = 'clinical_data'
+
 
 ##
 # Functions used for validating inserted data
@@ -65,7 +69,7 @@ def get_main_table_count(program_name, table_id_key, field_name,
     count of records for these IDs.
     """
     table_path = get_table_id(BQ_PARAMS,
-                              BQ_PARAMS['GDC_RELEASE'] + '_clinical_data')
+                              BQ_PARAMS['GDC_RELEASE'] + '_' + TABLE_NAME_FULL)
     program_table_path = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS[
         'PROGRAM_ID_TABLE']
 
@@ -132,7 +136,7 @@ def test_table_output():
     Python using the json record output, and counts queried from the
     newly-created tables.
     """
-    table_ids = get_dataset_table_list(BQ_PARAMS)
+    table_ids = get_dataset_table_list(BQ_PARAMS, None)
 
     program_names = get_programs_list()
     program_names.remove('CCLE')
@@ -191,7 +195,7 @@ def test_table_output():
 
             program_table_query_max_counts[table_fg] = max_count
 
-        cases = get_cases_by_program(BQ_PARAMS, program_name)
+        cases = get_cases_by_program(BQ_PARAMS, TABLE_NAME_FULL, program_name)
 
         table_columns, record_counts = find_program_structure(cases)
 
@@ -209,8 +213,7 @@ def test_table_output():
                     "No match found for {} in program_table_query_max_counts: "
                     "{}".format(
                         key, program_table_query_max_counts))
-            elif cases_tally_max_counts[key] != program_table_query_max_counts[
-                key]:
+            elif cases_tally_max_counts[key] != program_table_query_max_counts[key]:
                 has_fatal_error("NOT A MATCH for {}. {} != {}".format(
                     key, cases_tally_max_counts[key],
                     program_table_query_max_counts[key]))
