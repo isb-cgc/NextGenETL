@@ -713,7 +713,7 @@ def remove_excluded_fields(record, table_name):
     excluded_fields = get_excluded_fields(table_name)
 
     for field in record.copy():
-        if field in excluded_fields or not record[field]:
+        if isinstance(record, list) and not record[field] or field in excluded_fields:
             record.pop(field)
 
     return record
