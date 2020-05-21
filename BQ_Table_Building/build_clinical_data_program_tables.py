@@ -496,6 +496,9 @@ def create_schemas(table_columns, tables):
     merged_tables = {table for table in column_orders.keys() if table not in tables}
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
+    # todo delete print
+    print("merged_tables: {}".format(merged_tables))
+
     for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
         if depth == 1:
             has_fatal_error("cases shouldn't be in merged_table list")
