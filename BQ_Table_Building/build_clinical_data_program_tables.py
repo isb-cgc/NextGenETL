@@ -603,11 +603,12 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
+            """
             record_count = len(record)
             parent_table = get_parent_table(tables, field_group + '.' + entry)
             count_col = get_bq_name(API_PARAMS, entry, field_group)
             flat_case[parent_table][count_col] = record_count
-
+            """
             flat_case = flatten_case_entry(entry, field_group, flat_case,
                                            case_id, pid, pid_field, tables)
     else:
