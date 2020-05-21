@@ -826,7 +826,9 @@ def create_and_load_tables(program_name, cases, schemas, tables):
 
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        case_fg_ids = get_case_fg_ids(case)
+        case_id, case_fg_ids = get_case_fg_ids(case)
+
+        print(flattened_case_dict['cases'])
 
         print(case_fg_ids)
         exit()
