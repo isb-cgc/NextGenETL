@@ -249,18 +249,18 @@ def lookup_column_types():
 
         query = """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_' + TABLE_NAME_FULL
+        WHERE table_name = '{}_{}'
         """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
-                   BQ_PARAMS["GDC_RELEASE"])
+                   BQ_PARAMS["GDC_RELEASE"], TABLE_NAME_FULL)
 
         return query + exclude_column_query_str
 
     def generate_field_group_query(field_group_):
         return """
         SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_' + TABLE_NAME_FULL and column_name = '{}'
+        WHERE table_name = '{}_{}' and column_name = '{}'
         """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
-                   BQ_PARAMS["GDC_RELEASE"], field_group_)
+                   BQ_PARAMS["GDC_RELEASE"], TABLE_NAME_FULL, field_group_)
 
     field_groups = []
     child_field_groups = {}
