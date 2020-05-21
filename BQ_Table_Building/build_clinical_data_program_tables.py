@@ -745,8 +745,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                 fields_dict[pid_column] = pid
 
             # Field converted bq column name
-            field = get_bq_name(API_PARAMS, field_group, field)
-            fields_dict[field] = record[field]
+            column = get_bq_name(API_PARAMS, field_group, field)
+            fields_dict[column] = record[field]
 
     if fields_dict:
         flat_case[field_group] = [] if field_group not in flat_case else None
@@ -975,6 +975,7 @@ def main(args):
 
             print("table_schemas: {}".format(table_schemas))
             print("table_order_lists: {}".format(table_order_lists))
+            # todo case_id not in table_schemas at this point
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, tables)
