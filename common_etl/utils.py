@@ -625,14 +625,33 @@ def get_parent_table(table_keys, field_group):
     return parent_table_key
 
 
-def build_flat_schema(api_params, flat_schema, field_group, schema_fields=None):
-    for schema_field in schema_fields:
-        field_dict = schema_field.to_api_repr()
+def get_required_columns(api_params, table):
+    """
+    Get list of required columns.
+    :param api_params:
+    :param table: name of table for which to retrieve required columns.
+    :return: list of required columns (currently, only returns table's primary id)
+    """
+    if not api_params['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+    elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
+        has_fatal_error("table_id_key not found in table metadata for {}".format(table))
+
+    table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
+    table_id_name = get_full_field_name(table, table_id_field)
+    return [table_id_name]
+
+
+def build_schema(api_params, flat_schema, field_group, schema_fields=None):
+    for field in schema_fields:
+        field_dict = field.to_api_repr()
         schema_key = field_group + '.' + field_dict['name']
 
         if 'fields' in field_dict:
-            flat_schema = build_flat_schema(api_params, flat_schema, schema_key,
-                                            schema_field.fields)
+            flat_schema = build_schema(api_params, flat_schema, schema_key, field.fields)
+
+            for required_column in get_required_columns(api_params, field_group):
+                flat_schema[required_column]['mode'] = 'REQUIRED'
         else:
             field_dict['name'] = get_bq_name(api_params, schema_key)
             flat_schema[schema_key] = field_dict
@@ -640,12 +659,12 @@ def build_flat_schema(api_params, flat_schema, field_group, schema_fields=None):
     return flat_schema
 
 
-def get_schema_dict(api_params, bq_params, master_table):
+def create_schema_dict(api_params, bq_params, master_table):
     table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
     client = bigquery.Client()
     table = client.get_table(table_id)
 
-    return build_flat_schema(api_params, dict(), 'cases', table.schema)
+    return build_schema(api_params, dict(), 'cases', table.schema)
 
 
 def upload_to_bucket(bq_params, fp, file_name):
@@ -679,13 +698,8 @@ def get_dataset_table_list(bq_params, prefix_component):
     return table_id_list
 
 
-def make_SchemaField(schema_dict, schema_key, required_columns):
-    return bigquery.SchemaField(
-        name=schema_dict[schema_key]['name'],
-        field_type=schema_dict[schema_key]['type'],
-        mode='REQUIRED' if schema_key in required_columns else 'NULLABLE',
-        description=schema_dict[schema_key]['description'],
-        fields=())
+def to_SchemaField(schema_field_dict):
+    return bigquery.SchemaField.from_api_repr(schema_field_dict)
 
 
 def download_from_bucket(src_file, dest_file, bq_params):

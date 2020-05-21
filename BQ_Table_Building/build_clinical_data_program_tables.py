@@ -26,11 +26,11 @@ import os
 import time
 # from gdc_clinical_resources.test_data_integrity import *
 from common_etl.utils import (
-    get_table_prefixes, get_bq_name, has_fatal_error, get_query_results,
-    create_mapping_dict, get_field_name, get_tables, get_parent_table,
-    get_parent_field_group, load_config, get_cases_by_program, get_table_id,
-    upload_to_bucket, create_and_load_table, make_SchemaField, get_field_depth,
-    get_full_field_name, in_bq_format, get_schema_dict)
+    get_table_prefixes, get_bq_name, has_fatal_error, get_query_results, get_field_name,
+    get_tables, get_parent_table, get_parent_field_group, load_config,
+    get_cases_by_program, get_table_id, upload_to_bucket, create_and_load_table,
+    get_field_depth, get_full_field_name, in_bq_format, create_schema_dict,
+    to_SchemaField)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -106,20 +106,16 @@ def get_full_table_name(program_name, table):
     return generate_long_name(program_name, table)
 
 
-def get_required_columns(table_key):
+def get_required_columns(table):
     """
     Get list of required columns. Currently generated, but intended to also
     work if supplied in YAML config file.
-    :param table_key: name of table for which to retrieve required columns.
-    :return: list of required columns.
+    :param table: name of table for which to retrieve required columns.
+    :return: list of required columns (currently, only includes the table's id column)
     """
-    required_columns = list()
-
-    table_id_key = get_table_id_key(table_key)
-
-    required_columns.append(get_bq_name(API_PARAMS, table_id_key, table_key))
-
-    return required_columns
+    table_id_field = get_table_id_key(table)
+    table_id_name = get_full_field_name(table, table_id_field)
+    return [table_id_name]
 
 
 def get_table_id_key(table_key):
@@ -223,161 +219,6 @@ def build_column_order_dict(main_table=True):
     column_order_dict['cases.updated_datetime'] = idx + 2
 
     return column_order_dict
-
-
-# todo there's more to optimize here in terms of automation
-def lookup_column_types():
-    """
-    Determine column types for data columns, using master table's schema.
-    :return: dict of {column_names: types}
-    """
-
-    def split_datatype_array(col_dict, col_string, fg):
-        columns = col_string[13:-2].split(', ')
-
-        for column in columns:
-            column_type = column.split(' ')
-            column_name = fg + column_type[0]
-            col_dict[column_name] = column_type[1].strip(',')
-
-        return col_dict
-
-    def generate_base_query(field_groups_):
-        exclude_column_query_str = ''
-        for fg_ in field_groups_:
-            exclude_column_query_str += "AND column_name != '{}' ".format(fg_)
-
-        query = """
-        SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_{}'
-        """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
-                   BQ_PARAMS["GDC_RELEASE"], TABLE_NAME_FULL)
-
-        return query + exclude_column_query_str
-
-    def generate_field_group_query(field_group_):
-        return """
-        SELECT column_name, data_type FROM `{}.{}.INFORMATION_SCHEMA.COLUMNS`
-        WHERE table_name = '{}_{}' and column_name = '{}'
-        """.format(BQ_PARAMS["WORKING_PROJECT"], BQ_PARAMS["TARGET_DATASET"],
-                   BQ_PARAMS["GDC_RELEASE"], TABLE_NAME_FULL, field_group_)
-
-    field_groups = []
-    child_field_groups = {}
-
-    for group in API_PARAMS['EXPAND_FIELD_GROUPS']:
-        if len(group.split(".")) == 1:
-            field_groups.append(group)
-        elif len(group.split(".")) == 2:
-            parent_fg = group.split(".")[0]
-            child_fg = group.split(".")[1]
-            if parent_fg not in child_field_groups:
-                child_field_groups[parent_fg] = set()
-            child_field_groups[parent_fg].add(child_fg)
-
-    column_type_dict = dict()
-
-    base_query = generate_base_query(field_groups)
-    follow_ups_query = generate_field_group_query("follow_ups")
-    exposures_query = generate_field_group_query("exposures")
-    demographic_query = generate_field_group_query("demographic")
-    diagnoses_query = generate_field_group_query("diagnoses")
-    family_histories_query = generate_field_group_query("family_histories")
-
-    results = get_query_results(base_query)
-
-    for result in results:
-        vals = result.values()
-        column_type_dict['cases.' + vals[0]] = vals[1]
-
-    single_nested_query_dict = {
-        "cases.family_histories": family_histories_query,
-        "cases.demographic": demographic_query,
-        "cases.exposures": exposures_query
-    }
-
-    for key in single_nested_query_dict:
-        results = get_query_results(single_nested_query_dict[key])
-
-        for result in results:
-            vals = result.values()
-            column_type_dict = split_datatype_array(
-                column_type_dict, vals[1], key + '.')
-
-    results = get_query_results(follow_ups_query)
-
-    for result in results:
-        vals = result.values()
-        split_vals = vals[1].split('molecular_tests ')
-
-        column_type_dict = split_datatype_array(
-            column_type_dict, split_vals[0] + ' ', 'cases.follow_ups.')
-
-        column_type_dict = split_datatype_array(
-            column_type_dict, split_vals[1][:-2],
-            'cases.follow_ups.molecular_tests.')
-
-    results = get_query_results(diagnoses_query)
-
-    diagnoses = None
-    treatments = None
-    annotations = None
-
-    # create field list string
-    for result in results:
-        vals = result.values()
-        split_vals = vals[1].split('treatments ')
-        diagnoses = split_vals[0]
-        treatments = split_vals[1]
-
-        split_diagnoses = diagnoses.split('annotations ')
-        if len(split_diagnoses) > 1:
-            diagnoses = split_diagnoses[0]
-            annotations = split_diagnoses[1][:-2]
-            treatments = treatments[:-2]
-        else:
-            split_treatments = treatments.split('annotations ')
-            treatments = split_treatments[0][:-2]
-            annotations = split_treatments[1][:-2]
-
-        diagnoses = diagnoses[:-2] + '>>'
-
-    # parse field list strings
-    column_type_dict = split_datatype_array(
-        column_type_dict, diagnoses, 'cases.diagnoses.')
-
-    column_type_dict = split_datatype_array(
-        column_type_dict, treatments, 'cases.diagnoses.treatments.')
-    column_type_dict = split_datatype_array(
-        column_type_dict, annotations, 'cases.diagnoses.annotations.')
-
-    return column_type_dict
-
-
-def create_schema_dict():
-    """
-    Create dict of schema records for BQ table creation.
-    :return: dict of entries with the following keys: {name, type, description}
-    """
-    column_type_dict = lookup_column_types()
-    mapping = create_mapping_dict(API_PARAMS['ENDPOINT'])
-
-    schema_dict = dict()
-
-    for key in column_type_dict:
-        if key not in mapping:
-            print("[INFO] excluded {} from schema dict, not found in _mapping response.")
-            continue
-
-        description = mapping[key]['description'] if 'description' in mapping[key] else ''
-
-        schema_dict[key] = {
-            "name": get_bq_name(API_PARAMS, key, None),
-            "type": column_type_dict[key],
-            "description": description
-        }
-
-    return schema_dict
 
 
 ####
@@ -636,7 +477,7 @@ def create_schemas(table_columns):
     :return: lists of BQ SchemaFields.
     """
     schema_field_lists = dict()
-    schema_dict = create_schema_dict()
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
 
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(
@@ -667,8 +508,6 @@ def create_schemas(table_columns):
             column_orders[table][count_column] = count_column_index
             count_column_index += 1
 
-        required_cols = get_required_columns(table)
-
         filtered_col_order = dict()
 
         for column in table_columns[table]:
@@ -679,8 +518,7 @@ def create_schemas(table_columns):
         
         for key in [k for k, v in sorted(filtered_col_order.items(), key=lambda i: i[1])]:
             if key in schema_dict:
-                schema_entry = make_SchemaField(schema_dict, key, required_cols)
-                schema_list.append(schema_entry)
+                schema_list.append(to_SchemaField(schema_dict[key]))
             else:
                 print("{} not found in master table, excluding from schema.".format(key))
 
@@ -958,13 +796,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    schema_dict_new = get_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
-
-    print(schema_dict_new)
-    print('\n\n')
-    print(create_schema_dict())
-
-    return
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, TABLE_NAME_FULL)
 
     # programs = get_programs_list()
     programs = ['HCMI']
