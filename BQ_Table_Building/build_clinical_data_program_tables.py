@@ -465,6 +465,8 @@ def find_program_structure(cases):
             field_groups, record_counts = examine_case(field_groups, case,
                                                         record_counts, fg_name='cases')
 
+    # todo remove print
+    print(field_groups)
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
 
@@ -986,8 +988,9 @@ def main(args):
         # derive the program's table structure by analyzing its case records
         table_columns, tables = find_program_structure(cases)
 
-        print(table_columns)
-        print(tables)
+        # todo remove print
+        # print(table_columns)
+        # print(tables)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
