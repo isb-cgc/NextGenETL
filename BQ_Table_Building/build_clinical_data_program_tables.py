@@ -808,117 +808,6 @@ def get_cases_fg_ids(cases):
     return cases_fg_ids
 
 
-"""
-def collect_ids(entry, curr_idx, fg, ids):
-    # todo delete print
-    # print("entry: {}, curr_idx: {}, fg: {}, : {}".
-    #       format(entry.keys(), curr_idx, fg, ids))
-    print("curr_idx: {}, fg: {}, : {}".format(curr_idx, fg, ids))
-
-    split_fg = fg.split('.')
-    curr_field = split_fg[curr_idx]
-
-    if curr_idx < 0 or curr_idx >= len(split_fg):
-        has_fatal_error("invalid index returned in collect_ids: {}".format(curr_idx))
-    elif curr_field not in entry:
-        return None
-
-    for child_entry in entry[curr_field]:
-        if curr_idx == len(split_fg) - 1:
-            ids.add(child_entry[get_table_id_key(fg)])
-        else:
-            ids = collect_ids(child_entry, curr_idx + 1, fg, ids)
-
-    return ids
-
-
-def get_field_group_ids(entry, field_group):
-    return collect_ids(entry=entry, curr_idx=0, fg=field_group, ids=set())
-
-
-def sort_fgs_by_depth(fgs, reverse=False):
-    fg_depths = {fg: get_field_depth(fg) for fg in fgs}
-    return sorted(fg_depths.items(), key=lambda item: item[1], reverse=reverse)
-
-
-def get_case_fg_ids(case, curr_depth):
-    case_fg_ids = dict()
-
-    for fg, depth in sort_fgs_by_depth(API_PARAMS['TABLE_ORDER']):
-        # ensure you're at the right depth in the
-        if depth != curr_depth:
-            for entry in case:
-                case_fg_ids = get_case_fg_ids(entry, curr_depth + 1)
-        if fg in case:
-            case_fg_ids[fg] = get_field_group_ids(case, fg)
-
-    return case_fg_ids
-
-
-def assign_record_counts(flattened_case, tables, case_id_counts):
-    fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
-    tables_depths = {fg: get_field_depth(fg) for fg in tables}
-
-    # todo, start from children or parent?
-    fg_entry_counts = dict()
-    for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
-        print("fg: {}, get_fg_ids: {}".format(fg,
-                                              get_field_group_ids(flattened_case, fg)))
-
-        if depth == 1:
-            case_id = flattened_case[fg][0]['case_id']
-            continue
-        elif fg not in tables:
-            continue
-        parent_field_group = get_parent_field_group(fg)
-        parent_fg_table_id_key = get_table_id_key(parent_field_group)
-
-        # used to create the ancestor's id field
-        parent_fg_id_field = get_bq_name(API_PARAMS, parent_fg_table_id_key)
-        # used to insert the count into parent table
-        parent_table = get_parent_table(tables, fg)
-
-        parent_fg_id_column = get_bq_name(API_PARAMS, parent_fg_id_field, parent_table)
-
-        fg_ids = dict()
-
-        for entry in flattened_case[fg]:
-            parent_fg_id = entry[parent_fg_id_column]
-            if parent_fg_id not in fg_ids:
-                fg_ids[parent_fg_id] = 1
-            else:
-                fg_ids[parent_fg_id] += 1
-
-        fg_entry_counts[fg] = fg_ids
-
-    for table, depth in sorted(tables_depths.items(), key=lambda i: i[1]):
-        if table == 'cases':
-            continue
-        # if none of the records have entries for a child field group, add zero counts
-        if table not in fg_entry_counts:
-            parent_field_group = get_parent_field_group(table)
-            parent_fg_table_id_key = get_table_id_key(parent_field_group)
-
-            # used to create the ancestor's id field
-            parent_fg_id_field = get_bq_name(API_PARAMS, parent_fg_table_id_key)
-            # used to insert the count into parent table
-            parent_table = get_parent_table(tables, table)
-
-            fg_ids = dict()
-
-            for id in fg_entry_counts[parent_table]:
-                fg_ids[id] = 0
-
-            fg_entry_counts[table] = fg_ids
-
-        else:
-            table_ids = {id for id in fg_entry_counts[table]}
-
-    case_id_counts[case_id] = fg_entry_counts
-
-    return case_id_counts
-"""
-
 def create_and_load_tables(program_name, cases, schemas, tables):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
@@ -935,11 +824,15 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
 
-    case_id_counts = dict()
-
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        # case_id_counts = assign_record_counts(case, tables, case_id_counts)
+        case_fg_ids = get_case_fg_ids(case)
+
+        print(case_fg_ids)
+        exit()
+
+
+
 
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
@@ -1041,10 +934,6 @@ def main(args):
         print("Executing script for program {}...".format(program))
 
         cases = get_cases_by_program(BQ_PARAMS, MASTER_TABLE_NAME, program)
-        cases_fgs_ids = get_cases_fg_ids(cases)
-
-        print(cases_fgs_ids)
-        continue
 
         if not cases:
             print("Skipping program {}, no cases found.")
