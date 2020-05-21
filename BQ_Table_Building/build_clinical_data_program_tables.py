@@ -496,21 +496,19 @@ def create_schemas(table_columns, tables, record_counts):
                                                                       schema_dict, tables)
     # merge flattened column orders
     merged_tables = record_counts.keys() - table_columns.keys()
-
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
-
-    # todo delete print
-    print("table_columns: {}".format(table_columns))
 
     # todo delete print
     print("merged_tables: {}".format(merged_tables))
 
+    """
     for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
         if depth == 1:
             has_fatal_error("cases shouldn't be in merged_table list")
         parent_table = get_parent_table(tables, table)
         column_orders[parent_table] |= column_orders[table]
         column_orders.pop(table)
+    """
 
     print # todo delete print
     print("column_orders: {}".format(column_orders))
