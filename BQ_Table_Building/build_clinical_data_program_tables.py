@@ -592,7 +592,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
             flat_case = flatten_case_entry(entry, field_group, flat_case,
                                            case_id, pid, pid_field)
     else:
-        fields_dict = dict()
+        row_dict = dict()
         id_field = get_table_id_key(field_group)
 
         for field, field_val in record.items():
@@ -608,30 +608,31 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                 if id_field != pid_field:
                     parent_fg = get_parent_field_group(field_group)
                     pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
-                    fields_dict[pid_column] = pid
+                    row_dict[pid_column] = pid
 
                     # fields_dict[get_full_field_name(parent_fg, pid_field)] = field_val
                 # Field converted bq column name
                 column = get_bq_name(API_PARAMS, field, field_group)
-                fields_dict[column] = field_val
+                row_dict[column] = field_val
 
                 # fields_dict[get_full_field_name(field_group, field)] = field_val
 
-        if fields_dict:
+        if row_dict:
             if field_group not in flat_case:
                 flat_case[field_group] = list()
 
             excluded_fields = get_excluded_fields(field_group)
+            excluded_bq_cols = set()
 
-            for field in excluded_fields.keys():
-                excluded_fields[field] = get_bq_name(API_PARAMS, field, field_group)
+            for field in excluded_fields:
+                excluded_bq_cols.add(get_bq_name(API_PARAMS, field, field_group))
 
-            for field in fields_dict.keys():
-                if field in excluded_fields or not fields_dict[field]:
-                    fields_dict.pop(field)
+            for field in row_dict.keys():
+                if field in excluded_bq_cols or not row_dict[field]:
+                    row_dict.pop(field)
 
             # fields_dict = remove_excluded_fields(fields_dict, field_group)
-            flat_case[field_group].append(fields_dict)
+            flat_case[field_group].append(row_dict)
 
     return flat_case
 
