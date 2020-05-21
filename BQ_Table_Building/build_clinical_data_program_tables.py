@@ -419,7 +419,8 @@ def flatten_tables(field_groups, tables):
         else:
             # field group can be flattened
             parent_table = get_parent_table(tables, field_group)
-            table_columns[parent_table] = full_field_names
+
+            table_columns[parent_table] |= full_field_names
 
     return table_columns
 
