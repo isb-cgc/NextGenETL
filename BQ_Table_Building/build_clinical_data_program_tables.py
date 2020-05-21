@@ -672,7 +672,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
             idx = 0
 
             # todo remove print
-            print(flattened_case)
+            # print(flattened_case)
 
             for entry in flattened_case[parent_table].copy():
                 if pid_key not in entry and pid_column not in entry:
