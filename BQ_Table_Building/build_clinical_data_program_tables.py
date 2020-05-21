@@ -494,10 +494,14 @@ def create_schemas(table_columns, tables):
 
     # merge flattened column orders
     merged_tables = {fg for fg in column_orders.keys() if fg not in tables}
+    not_merged_tables = {fg for fg in column_orders.keys() if fg in tables}
+
     merged_depths = {table: get_field_depth(table) for table in merged_tables}
 
     # todo delete print
     print("merged_tables: {}".format(merged_tables))
+    # todo delete print
+    print("not_merged_tables: {}".format(not_merged_tables))
 
     for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
         if depth == 1:
