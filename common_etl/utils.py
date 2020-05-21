@@ -639,18 +639,16 @@ def get_parent_table(table_keys, field_group):
     return parent_table_key
 
 
-# todo remove
-def get_parent_table_id_key(api_params, table_keys, key):
-    parent_table = get_parent_table(table_keys, key)
-    return api_params['TABLE_METADATA'][parent_table]['table_id_key']
-
-
 def new_column_type_lookup(table_id):
     client = bigquery.Client()
     table = client.get_table(table_id)
 
     print(table)
-    print(table.schema)
+    schema_fields = table.schema
+
+    for schema_field in schema_fields:
+        # todo delete print
+        print("schema_field.name: {}".format(schema_field.name))
 
 
 
