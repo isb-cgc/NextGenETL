@@ -556,7 +556,6 @@ def remove_excluded_fields(record, table):
     elif isinstance(record, dict):
         excluded_fields = {get_bq_name(API_PARAMS, field, table)
                            for field in excluded_fields}
-
         for field in record.copy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
@@ -590,8 +589,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
-            flat_case = flatten_case_entry(entry, field_group, flat_case, case_id,
-                                           pid, pid_field)
+            flat_case = flatten_case_entry(entry, field_group, flat_case,
+                                           case_id, pid, pid_field)
     else:
         fields_dict = dict()
         id_field = get_table_id_key(field_group)
@@ -610,15 +609,15 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     parent_fg = get_parent_field_group(field_group)
                     pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
                     fields_dict[pid_column] = pid
-
                 # Field converted bq column name
                 column = get_bq_name(API_PARAMS, field, field_group)
-                fields_dict[column] = record[field]
+                fields_dict[column] = field_val
 
         if fields_dict:
             if field_group not in flat_case:
                 flat_case[field_group] = list()
-
+            # todo delete print
+            print("field_group: {}, fields_dict: {}".format(field_group, fields_dict))
             fields_dict = remove_excluded_fields(fields_dict, field_group)
             flat_case[field_group].append(fields_dict)
 
