@@ -344,24 +344,14 @@ def get_count_column_index(table_key, column_order_dict):
     return count_columns_position
 
 
-def generate_id_schema_entry(column_name, parent_table):
-    parent_field = get_field_name(parent_table)
-
-    source_table = '*_{}'.format(parent_field) if parent_table != 'cases' else 'main'
-
-    # todo why?
-    if '__' in column_name:
-        column_name = column_name.split('__')[-1]
-        pid_column = get_bq_name(API_PARAMS, get_field_name(column_name), parent_table)
-    else:
-        pid_column = column_name
-
+def generate_id_schema_entry(column, parent_table):
+    parent_fg = get_field_name(parent_table)
+    source_table = '*_{}'.format(parent_fg) if parent_table != 'cases' else 'main'
     description = ("Reference to the pid ({}) of the record to which this "
                    "record belongs. Parent record found in the program's {} "
-                   "table.").format(pid_column, source_table)
-
+                   "table.").format(column, source_table)
     return {
-        "name": pid_column,
+        "name": get_field_name(column),
         "type": 'STRING',
         "description": description,
         "mode": 'NULLABLE'
@@ -371,9 +361,8 @@ def generate_id_schema_entry(column_name, parent_table):
 def generate_count_schema_entry(count_id_key, parent_table_key):
     description = ("Total count of records associated with this case, "
                    "located in {} table").format(parent_table_key)
-
     return {
-        "name": count_id_key,
+        "name": get_field_name(count_id_key),
         "type": 'INTEGER',
         "description": description,
         "mode": 'NULLABLE'
