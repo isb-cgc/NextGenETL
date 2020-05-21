@@ -486,6 +486,9 @@ def create_schemas(table_columns):
     schema_dict, table_columns, column_orders = add_reference_columns(table_columns,
                                                                       schema_dict)
 
+    # todo delete print
+    print("table_columns: {}".format(table_columns))
+
     schema_dict = prefix_field_names(schema_dict)
 
     for table in table_columns:
