@@ -624,6 +624,9 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
                     row_dict[pid_column] = pid
 
+                if id_field != 'case_id':
+                    row_dict['case_id'] = case_id
+
                     # fields_dict[get_full_field_name(parent_fg, pid_field)] = field_val
                 # Field converted bq column name
                 column = get_bq_name(API_PARAMS, field, field_group)
