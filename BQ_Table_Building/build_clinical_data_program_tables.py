@@ -752,6 +752,63 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
     return flattened_case
 
 
+def sort_fgs_by_depth(fgs, reverse=False):
+    fg_depths = {fg: get_field_depth(fg) for fg in fgs}
+    return sorted(fg_depths.items(), key=lambda item: item[1], reverse=reverse)
+
+
+def get_fg_ids(case, fg, curr_depth, fg_ids):
+    if curr_depth > get_field_depth(fg):
+        return None
+
+    if curr_depth != get_field_depth(fg):
+        next_field = fg.split('.')[curr_depth]
+
+        if case and next_field in case:
+            if isinstance(case[next_field], list):
+                for entry in case[next_field]:
+                    fg_ids = get_fg_ids(entry, fg, curr_depth + 1, fg_ids)
+            else:
+                fg_ids = get_fg_ids(case[next_field], fg, curr_depth + 1, fg_ids)
+    else:
+        fg_id = get_table_id_key(fg)
+
+        if isinstance(case, list):
+            fg_ids = fg_ids | {entry[fg_id] for entry in case}
+        else:
+            fg_ids.add(case[fg_id])
+
+    return fg_ids
+
+
+def get_case_fg_ids(case):
+    if not case:
+        return None
+
+    case_fg_ids = dict()
+    case_id = case['case_id']
+
+    for fg, vals in sort_fgs_by_depth(API_PARAMS['TABLE_ORDER'], reverse=False):
+        if fg not in case_fg_ids:
+            case_fg_ids[fg] = set()
+
+        fg_ids = case_fg_ids[fg]
+        case_fg_ids[fg] = get_fg_ids(case, fg, curr_depth=1, fg_ids=fg_ids)
+
+    return case_id, case_fg_ids
+
+
+def get_cases_fg_ids(cases):
+    cases_fg_ids = dict()
+
+    for case in cases:
+        case_id, case_fg_ids = get_case_fg_ids(case)
+        cases_fg_ids[case_id] = case_fg_ids
+
+    return cases_fg_ids
+
+
+"""
 def collect_ids(entry, curr_idx, fg, ids):
     # todo delete print
     # print("entry: {}, curr_idx: {}, fg: {}, : {}".
@@ -860,7 +917,7 @@ def assign_record_counts(flattened_case, tables, case_id_counts):
     case_id_counts[case_id] = fg_entry_counts
 
     return case_id_counts
-
+"""
 
 def create_and_load_tables(program_name, cases, schemas, tables):
     """
@@ -984,9 +1041,10 @@ def main(args):
         print("Executing script for program {}...".format(program))
 
         cases = get_cases_by_program(BQ_PARAMS, MASTER_TABLE_NAME, program)
+        cases_fgs_ids = get_cases_fg_ids(cases)
 
-        print(cases[15])
-        exit()
+        print(cases_fgs_ids)
+        continue()
 
         if not cases:
             print("Skipping program {}, no cases found.")
