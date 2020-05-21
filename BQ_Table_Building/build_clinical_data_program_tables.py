@@ -781,7 +781,8 @@ def assign_record_counts(flattened_case, tables, case_id_counts):
     # todo, start from children or parent?
     fg_entry_counts = dict()
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
-        print("get_fg_ids: {}".format(get_field_group_ids(flattened_case, fg)))
+        print("fg: {}, get_fg_ids: {}".format(fg,
+                                              get_field_group_ids(flattened_case, fg)))
 
         if depth == 1:
             case_id = flattened_case[fg][0]['case_id']
