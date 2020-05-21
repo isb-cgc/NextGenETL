@@ -630,6 +630,14 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
                 record_count = len(field_val)
                 parent_table = field_group + '.' + field
                 count_col = get_bq_name(API_PARAMS, field, parent_table)
+
+                # todo delete print
+                print("record_count: {}".format(record_count))
+                # todo delete print
+                print("parent_table: {}".format(parent_table))
+                # todo delete print
+                print("count_col: {}".format(count_col))
+
                 flat_case[parent_table][count_col] = record_count
             else:
                 if id_field != pid_field:
