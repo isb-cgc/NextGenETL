@@ -582,9 +582,6 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     :return: flattened case dict, format: { 'field_group': [records] }
     """
 
-    # todo delete print
-    print("{}: {}".format(field_group, record))
-
     # entry represents a field group, recursively flatten each record
     if isinstance(record, list):
         # flatten each record in field group list
@@ -627,6 +624,9 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
             for field in excluded_fields:
                 excluded_bq_cols.add(get_bq_name(API_PARAMS, field, field_group))
 
+            # todo delete print
+            print("excluded_bq_cols: {}".format(excluded_bq_cols))
+
             for field in row_dict.copy():
                 if field in excluded_bq_cols or not row_dict[field]:
                     row_dict.pop(field)
@@ -643,8 +643,6 @@ def flatten_case(case):
     :param case: dict containing case data
     :return: flattened case dict
     """
-    # todo delete print
-    print("\nFlatten new case:\n")
     return flatten_case_entry(record=case,
                               field_group='cases',
                               flat_case=dict(),
@@ -683,9 +681,6 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         if fg_key in bq_program_tables:
             max_record_count = dict()
             idx = 0
-
-            # todo remove print
-            # print(flattened_case)
 
             for entry in flattened_case[parent_table].copy():
                 if pid_key not in entry and pid_column not in entry:
