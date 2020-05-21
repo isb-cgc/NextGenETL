@@ -756,7 +756,6 @@ def collect_ids(entry, curr_idx, fg, ids):
     # todo delete print
     # print("entry: {}, curr_idx: {}, fg: {}, : {}".
     #       format(entry.keys(), curr_idx, fg, ids))
-
     print("curr_idx: {}, fg: {}, : {}".format(curr_idx, fg, ids))
 
     split_fg = fg.split('.')
@@ -771,7 +770,8 @@ def collect_ids(entry, curr_idx, fg, ids):
         if curr_idx == len(split_fg) - 1:
             ids.add(child_entry[get_table_id_key(fg)])
         else:
-            ids = collect_ids(child_entry, curr_idx + 1, fg, ids)
+            curr_fg = fg + '.' + curr_field
+            ids = collect_ids(child_entry, curr_idx + 1, curr_fg, ids)
 
     return ids
 
