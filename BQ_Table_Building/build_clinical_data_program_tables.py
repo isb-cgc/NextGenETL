@@ -554,7 +554,7 @@ def remove_excluded_fields(record, table):
     if isinstance(record, set):
         return {field for field in record if field not in excluded_fields}
     elif isinstance(record, dict):
-        excluded_fields = {get_bq_name(API_PARAMS, table, field)
+        excluded_fields = {get_bq_name(API_PARAMS, field, table)
                            for field in excluded_fields}
 
         for field in record.copy():
