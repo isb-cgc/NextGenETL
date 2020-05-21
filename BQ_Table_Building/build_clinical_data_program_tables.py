@@ -754,7 +754,11 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
 
 def collect_ids(entry, curr_idx, fg, ids):
     # todo delete print
-    print("entry: {}, curr_idx: {}, fg: {}, : {}".format(entry, curr_idx, fg, ids))
+    # print("entry: {}, curr_idx: {}, fg: {}, : {}".
+    #       format(entry.keys(), curr_idx, fg, ids))
+
+    print("curr_idx: {}, fg: {}, : {}".format(curr_idx, fg, ids))
+
     split_fg = fg.split('.')
     curr_field = split_fg[curr_idx]
 
@@ -860,7 +864,7 @@ def create_and_load_tables(program_name, cases, schemas, tables):
 
     for case in cases:
         flattened_case_dict = flatten_case(case)
-        case_id_counts = assign_record_counts(flattened_case_dict, tables, case_id_counts)
+        case_id_counts = assign_record_counts(case, tables, case_id_counts)
         flattened_case_dict = merge_single_entry_field_groups(flattened_case_dict, tables)
 
         for table in flattened_case_dict.keys():
@@ -971,14 +975,13 @@ def main(args):
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
-            table_schemas, table_order_lists = create_schemas(table_columns, tables, record_counts)
-
+            table_schemas, table_order_lists = create_schemas(table_columns,
+                                                              tables, record_counts)
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, tables)
 
-            print("{} processed in {:0.1f} seconds!\n".
-                  format(program, time.time() - prog_start))
-
+            print("{} processed in {:0.1f} seconds!\n".format(program,
+                                                              time.time() - prog_start))
             if 'generate_documentation' in steps:
                 table_ids = {table: get_table_id(BQ_PARAMS, table) for table in tables}
 
