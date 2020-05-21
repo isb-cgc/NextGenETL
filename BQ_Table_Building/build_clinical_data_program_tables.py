@@ -780,6 +780,9 @@ def assign_record_counts(flattened_case, tables):
 
     fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
 
+    # todo delete print
+    print("fg_depths: {}".format(fg_depths))
+
     case_id_counts = dict()
 
     # todo, start from children or parent?
