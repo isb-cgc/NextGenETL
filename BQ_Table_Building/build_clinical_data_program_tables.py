@@ -816,7 +816,7 @@ def assign_record_counts(flattened_case, tables):
         fg_ids = dict()
 
         for entry in flattened_case[fg]:
-            parent_fg_id = entry[parent_fg_id_field]
+            parent_fg_id = entry[parent_fg_id_column]
             if parent_fg_id not in fg_ids:
                 fg_ids[parent_fg_id] = 1
             else:
