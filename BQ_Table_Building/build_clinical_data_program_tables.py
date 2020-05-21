@@ -787,6 +787,9 @@ def assign_record_counts(flattened_case, tables):
 
     # todo, start from children or parent?
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
+        if depth == 1:
+            continue
+
         parent_field_group = get_parent_field_group(fg)
 
         # todo delete print
