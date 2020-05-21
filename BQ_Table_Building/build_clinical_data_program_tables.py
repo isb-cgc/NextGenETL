@@ -733,7 +733,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         parent_table = get_parent_table(flattened_case.keys(), fg_key)
         pid_key = get_table_id_key(parent_table)
         pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
-        pid = field_group[pid_column]
+        # pid = field_group[pid_column]
 
         # todo delete print
         print("parent_table: {}".format(parent_table))
@@ -742,8 +742,7 @@ def merge_single_entry_field_groups(flattened_case, bq_program_tables):
         # todo delete print
         print("pid_column: {}".format(pid_column))
         # todo delete print
-        print("pid: {}".format(pid))
-
+        # print("pid: {}".format(pid))
 
         parent_fg = get_parent_field_group(fg_key)
         parent_fg_id_key = get_table_id_key(parent_fg)
