@@ -597,6 +597,8 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
 
     # entry represents a field group, recursively flatten each record
     if isinstance(record, list):
+        # todo delete print
+        print("{}".format('1'))
         # flatten each record in field group list
         for entry in record:
             """
@@ -608,6 +610,9 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
             flat_case = flatten_case_entry(entry, field_group, flat_case,
                                            case_id, pid, pid_field, tables)
     else:
+        # todo delete print
+        print("{}".format('2'))
+
         row_dict = dict()
         id_field = get_table_id_key(field_group)
 
