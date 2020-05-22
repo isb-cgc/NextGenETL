@@ -741,10 +741,12 @@ def get_flattened_entry_by_id(flattened_case, entry_name, entry_id, id_column):
     if flattened_case and entry_name in flattened_case:
         fg_list = flattened_case[entry_name].copy()
 
+        idx = 0
         for entry in flattened_case[entry_name]:
             if entry[id_column] == entry_id:
-                return_entry = fg_list.pop(entry)
+                return_entry = fg_list.pop(idx)
                 break
+            idx += 1
 
         flattened_case[entry_name] = fg_list
 
