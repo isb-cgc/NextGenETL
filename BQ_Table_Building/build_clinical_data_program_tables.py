@@ -779,7 +779,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
             for entry in flattened_case[fg_key].copy():
                 if entry and fg_id_column in entry:
                     print("ENTRY and ID")
-                    entry_id = entry[fg_id_field]
+                    entry_id = entry[fg_id_column]
 
                     flattened_case, entry_name, flat_entry = get_flattened_entry_by_id(
                         flattened_case, fg_key, entry_id, fg_id_field)
