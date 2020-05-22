@@ -772,7 +772,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
             count_col = get_count_column_name(fg_key)
             fg_count = len(case_fg_ids[fg_key])
             fg_id_field = get_table_id_key(fg_key)
-            fg_id_column = get_bq_name(fg_key, fg_id_field)
+            fg_id_column = get_bq_name(API_PARAMS, fg_key, fg_id_field)
 
             child_fgs = get_child_fgs(flattened_case, fg_key)
 
