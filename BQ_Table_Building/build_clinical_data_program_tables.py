@@ -782,10 +782,10 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                     entry_id = entry[fg_id_column]
 
                     flattened_case, entry_name, flat_entry = get_flattened_entry_by_id(
-                        flattened_case, fg_key, entry_id, fg_id_field)
+                        flattened_case, fg_key, entry_id, fg_id_column)
 
-                    id_entry_fields = get_case_fg_by_parent_id(case, fg_key,
-                                                               entry_id, fg_id_field)
+                    id_entry_fields = get_case_fg_by_parent_id(
+                        case, fg_key, entry_id, fg_id_field)
 
                     for child_fg in child_fgs:
                         if child_fg in tables:
