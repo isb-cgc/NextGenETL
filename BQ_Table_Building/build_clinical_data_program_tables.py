@@ -775,6 +775,12 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
                 get_count_column_name(field_group),
                 len(flattened_case[field_group])
             )
+        else:
+            record_count_dict[field_group] = (
+                get_parent_table(tables, field_group),
+                get_count_column_name(field_group),
+                0
+            )
 
     # todo delete print
     print("record_count_dict: {}".format(record_count_dict))
