@@ -24,7 +24,7 @@ import os
 from os.path import expanduser
 from common_etl.support import upload_to_bucket
 from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error, get_program_from_bq
+    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error
 
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
@@ -135,89 +135,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
         upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
 
 
-def check_clinical_data(clinical_data_fp, api_params):
-    counts = {
-        'total': 0,
-        'no_clinical_fgs': 0
-    }
-
-    programs_with_field_group = {
-        'none': set()
-    }
-
-    no_fg_case_barcodes = {}
-
-    for fg in api_params['EXPAND_FIELD_GROUPS'].split(','):
-        counts[fg] = 0
-        programs_with_field_group[fg] = set()
-
-    with open(clinical_data_fp, 'r') as file:
-        for line in file:
-            if counts['total'] % 100 == 0:
-                print(counts['total'])
-            counts['total'] += 1
-
-            json_line = json.loads(line)
-            program_name = get_program_from_bq(json_line['submitter_id'])
-
-            if 'demographic' in json_line:
-                counts['demographic'] += 1
-                programs_with_field_group['demographic'].add(program_name)
-            if 'diagnoses' in json_line:
-                diagnoses = json_line['diagnoses'][0]
-                counts['diagnoses'] += 1
-                programs_with_field_group['diagnoses'].add(program_name)
-                if 'annotations' in diagnoses:
-                    counts['diagnoses.annotations'] += 1
-                    programs_with_field_group['diagnoses.annotations'].add(program_name)
-                if 'treatments' in diagnoses.keys():
-                    counts['diagnoses.treatments'] += 1
-                    programs_with_field_group['diagnoses.treatments'].add(program_name)
-            if 'exposures' in json_line:
-                counts['exposures'] += 1
-                programs_with_field_group['exposures'].add(program_name)
-            if 'family_histories' in json_line:
-                counts['family_histories'] += 1
-                programs_with_field_group['family_histories'].add(program_name)
-            if 'follow_ups' in json_line:
-                counts['follow_ups'] += 1
-                programs_with_field_group['follow_ups'].add(program_name)
-                if 'molecular_tests' in json_line['follow_ups'][0]:
-                    programs_with_field_group['follow_ups.molecular_tests'].add(program_name)
-
-            # Case has no clinical data field groups in API
-            if 'demographic' not in json_line and 'family_histories' not in json_line \
-                    and 'exposures' not in json_line and 'diagnoses' not in json_line \
-                    and 'follow_ups' not in json_line:
-                programs_with_field_group['none'].add(program_name)
-                counts['no_clinical_fgs'] += 1
-
-                if program_name not in no_fg_case_barcodes:
-                    no_fg_case_barcodes[program_name] = set()
-                no_fg_case_barcodes[program_name].add(json_line['submitter_id'])
-
-        # OUTPUT RESULTS
-        for fg in api_params['EXPAND_FIELD_GROUPS']:
-            print_field_group_check(fg, counts, programs_with_field_group)
-
-        print("\nPrograms with no clinical data:")
-
-        for program in no_fg_case_barcodes:
-            no_fg_case_count = len(no_fg_case_barcodes[program])
-            print('\n{} has {} cases with no clinical data.'.format(program, str(no_fg_case_count)))
-            print('submitter_id (case_barcode) list:')
-            print(no_fg_case_barcodes[program])
-
-
-def print_field_group_check(fg_name, counts, fg_program_list):
-    fg_pct = counts[fg_name] / (counts['total'] * 1.0) * 100
-
-    print('For {}:'.format(fg_name))
-    print('\tfound in {:.2f}% of cases'.format(fg_pct))
-    print('\tprograms with {} field_group: {}'.format(fg_name, str(fg_program_list['fg_name'])))
-
-
-def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields):
+def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     """
     Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
     :param field_mapping_dict:
@@ -247,13 +165,6 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fi
             print("[INFO] Not adding field {} because no type found".format(key))
             continue
 
-        # Note: I could likely go back use ARRAY as a column type. It wasn't working before, and I believe the issue
-        # was that I'd set the FieldSchema object's mode to NULLABLE, which I later read is invalid for ARRAY types.
-        # But, that'll mean more unnesting for the users. So for now, I've converted these lists of ids into
-        # comma-delineated strings of ids.
-        # if key in array_fields:
-        #    field_type = "ARRAY<" + field_type + ">"
-
         # this is the format for bq schema json object entries
         schema_dict[key] = {
             "name": column_name,
@@ -276,21 +187,28 @@ def create_bq_schema(api_params, data_fp):
 
     with open(data_fp, 'r') as data_file:
         field_dict = dict()
-        array_fields = set()
 
         for line in data_file:
             json_case_obj = json.loads(line)
             for key in json_case_obj:
-                field_dict, array_fields = collect_field_values(field_dict, key, json_case_obj, 'cases.', array_fields)
+                field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
 
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
-    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict, array_fields)
+    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
+
+    print("EXPAND FIELDS: {}".format(api_params['EXPAND_FIELD_GROUPS']))
     
-    return generate_bq_schema(schema_dict, endpoint_name, api_params['EXPAND_FIELD_GROUPS'])
+    bq_schema = generate_bq_schema(
+        schema_dict,
+        record_type=endpoint_name,
+        expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
+    )
+    print(bq_schema)
+    return bq_schema
 
 
 def validate_params(api_params, bq_params):
@@ -388,9 +306,6 @@ def main(args):
         # Hits the GDC api endpoint, outputs data to jsonl file (newline-delineated json, required by BQ)
         print('Starting GDC API calls!')
         retrieve_and_output_cases(api_params, bq_params, data_fp)
-
-    if 'check_clinical_data' in steps:
-        check_clinical_data(data_fp, api_params)
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects

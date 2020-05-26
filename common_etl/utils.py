@@ -34,7 +34,7 @@ def has_fatal_error(e, exception=None):
     error_output = ''
     if isinstance(e, list):
         for item in e:
-            error_output += err_ + item
+            error_output += err_ + str(item) + '\n'
     else:
         error_output = err_ + e
 
@@ -78,6 +78,7 @@ def check_value_type(value):
     """
     # if has leading zero, then should be considered a string, even if only composed of digits
     val_is_none = value == '' or value == 'NA' or value == 'null' or value is None or value == 'None'
+    val_is_bool = value == 'True' or value == 'False'
     val_is_decimal = value.startswith('0.')
     val_is_id = value.startswith('0') and not val_is_decimal and len(value) > 1
 
@@ -102,6 +103,8 @@ def check_value_type(value):
         return 'FLOAT'
     elif val_is_num:
         return 'INTEGER'
+    elif val_is_bool:
+        return 'BOOLEAN'
 
     return 'STRING'
 
@@ -120,42 +123,42 @@ def infer_data_types(flattened_json):
             if data_types[column] == 'STRING':
                 break
 
+            # adding this change because organoid sumbitter_ids look like ints, but they should be str for uniformity
+            if column[-2:] == 'id':
+                data_types[column] = 'STRING'
+                break
+
             val_type = check_value_type(str(value))
 
             if not val_type:
                 continue
             elif val_type == 'FLOAT' or val_type == 'STRING':
                 data_types[column] = val_type
-            elif val_type == 'INTEGER' and not data_types[column]:
+            elif (val_type == 'INTEGER' or val_type == 'BOOLEAN') and not data_types[column]:
                 data_types[column] = val_type
 
     return data_types
 
 
-def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
+def collect_field_values(field_dict, key, parent_dict, prefix):
     """
     Recursively inserts sets of values for a given field into return dict (used to infer field data type)
     :param field_dict: A dict of key:value pairs -- field_name : set(field_values)
     :param key: field name
     :param parent_dict: dict containing field and it's values
     :param prefix: string representation of current location in field hierarchy
-    :param array_fields: list of fields with array (list) values (that are made up of primitives or strings)
     :return: field_dict containing field names and a set of its values.
     """
     # If the value of parent_dict[key] is a list at this level, and a dict at the next (or a dict at this level,
     # as seen in second conditional statement), iterate over each list element's dictionary entries.
     # (Sometimes lists are composed of strings rather than dicts, and those are later converted to strings.)
-    if isinstance(parent_dict[key], list) and isinstance(parent_dict[key][0], dict):
+    if isinstance(parent_dict[key], list) and len(parent_dict[key]) > 0 and isinstance(parent_dict[key][0], dict):
         for dict_item in parent_dict[key]:
             for dict_key in dict_item:
-                field_dict, array_list = collect_field_values(
-                    field_dict, dict_key, dict_item, prefix + key + ".", array_fields
-                )
+                field_dict = collect_field_values(field_dict, dict_key, dict_item, prefix + key + ".")
     elif isinstance(parent_dict[key], dict):
         for dict_key in parent_dict[key]:
-            field_dict, array_list = collect_field_values(
-                field_dict, dict_key, parent_dict[key], prefix + key + ".", array_fields
-            )
+            field_dict = collect_field_values(field_dict, dict_key, parent_dict[key], prefix + key + ".")
     else:
         field_name = prefix + key
 
@@ -165,13 +168,12 @@ def collect_field_values(field_dict, key, parent_dict, prefix, array_fields):
         # This type of list can be converted to a comma-separated value string
         if isinstance(parent_dict[key], list):
             value = ", ".join(parent_dict[key])
-            array_fields.add(field_name)
         else:
             value = parent_dict[key]
 
         field_dict[field_name].add(value)
 
-    return field_dict, array_fields
+    return field_dict
 
 
 def create_mapping_dict(endpoint):
@@ -227,7 +229,6 @@ def arrays_to_str_list(obj):
 
 
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
-
     """
 
     :param schema_dict:
@@ -235,7 +236,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     :param expand_fields_list:
     :return:
     """
-    # add field group names to a list, in order to generate a dict
+    # add field group names to a list, in order to generate a dict representing nested fields
     field_group_names = [record_type]
     nested_depth = 0
 
@@ -291,14 +292,34 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
-def get_program_from_bq(case_barcode):
+def get_programs_from_bq():
+    results = get_query_results(
+        """
+        SELECT case_barcode, program_name
+        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
+        """
+    )
+
+    program_submitter_dict = {}
+
+    for row in results:
+        program_name = row.get('program_name')
+        submitter_id = row.get('case_barcode')
+        program_submitter_dict[submitter_id] = program_name
+
+    return program_submitter_dict
+
+
+def get_program_from_bq(params, case_id):
     client = bigquery.Client()
+
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
 
     program_name_query = """
         SELECT program_name
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-        WHERE case_barcode = '{}'
-        """.format(case_barcode)
+        FROM `{}`
+        WHERE case_gdc_id = '{}'
+        """.format(source_table, case_id)
 
     query_job = client.query(program_name_query)
 
@@ -307,6 +328,28 @@ def get_program_from_bq(case_barcode):
     for row in results:
         program_name = row.get('program_name')
         return program_name
+
+
+def get_case_from_bq(params, case_id):
+    source_table = params["WORKING_PROJECT"] + '.' + params['PROGRAM_ID_TABLE']
+
+    results = get_query_results(
+        """
+        SELECT *
+        FROM `{}`
+        WHERE case_id = '{}'
+        """.format(source_table, case_id)
+    )
+
+    for row in results:
+        print(row)
+
+
+def get_query_results(query):
+    client = bigquery.Client()
+
+    query_job = client.query(query)
+    return query_job.result()
 
 
 def create_and_load_table(bq_params, data_file_name, schema):
@@ -363,5 +406,56 @@ def pprint_json(json_obj):
     Pretty prints json objects.
     :param json_obj: json object to pprint
     """
-    pp = pprint.PrettyPrinter(indent=4)
+    pp = pprint.PrettyPrinter(indent=1)
     pp.pprint(json_obj)
+
+
+def ordered_print(flattened_case_dict, order_dict):
+    def make_tabs(indent_):
+        tab_list = indent_ * ['\t']
+        return "".join(tab_list)
+
+    tables_string = '{\n'
+    indent = 1
+
+    for table in sorted(flattened_case_dict.keys()):
+        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
+
+        split_prefix = table.split(".")
+        if len(split_prefix) == 1:
+            prefix = ''
+        else:
+            prefix = '__'.join(split_prefix[1:])
+            prefix += '__'
+
+        for entry in flattened_case_dict[table]:
+            entry_string = "{}{{\n".format(make_tabs(indent + 1))
+            field_order_dict = dict()
+
+            for key in entry.copy():
+                col_order_lookup_key = prefix + key
+
+                try:
+                    field_order_dict[key] = order_dict[col_order_lookup_key]
+                except KeyError:
+                    print("ORDERED PRINT -- {} not in column order dict".format(col_order_lookup_key))
+                    for k, v in sorted(order_dict.items(), key=lambda item: item[0]):
+                        print("{}: {}".format(k, v))
+                    field_order_dict[key] = 0
+
+            for field_key, order in sorted(field_order_dict.items(), key=lambda item: item[1]):
+                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2), field_key, entry[field_key])
+            entry_string = entry_string.rstrip('\n')
+            entry_string = entry_string.rstrip(',')
+
+            entry_string += '{}}}\n'.format(make_tabs(indent + 1))
+            tables_string += entry_string
+        tables_string = tables_string.rstrip('\n')
+        tables_string = tables_string.rstrip(',')
+        tables_string += '\n'
+        tables_string += "{}],\n".format(make_tabs(indent))
+    tables_string = tables_string.rstrip('\n')
+    tables_string = tables_string.rstrip(',')
+    tables_string += "\n}"
+
+    print(tables_string)
