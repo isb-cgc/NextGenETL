@@ -795,6 +795,10 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             parent_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
             flattened_case[parent_table][parent_idx].update(record)
         flattened_case.pop(field_group)
+        # todo remove case id and parent id
+
+    # todo delete print
+    print("flattened_case: {}".format(flattened_case))
 
     # find actual record counts for one-to-many field group
     for field_group in record_count_dict.copy().keys():
@@ -1039,10 +1043,10 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
         # print("BEFORE: {}".format(flattened_case_dict))
 
         # todo delete print
-        print("record_counts: {}".format(record_counts))
+        # print("record_counts: {}".format(record_counts))
 
         # todo delete print
-        print("tables: {}".format(tables))
+        # print("tables: {}".format(tables))
 
         flattened_case_dict = merge_single_entry_field_groups(case, flattened_case_dict,
                                                               tables, record_counts)
