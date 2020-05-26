@@ -779,17 +779,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             # create list of flattened field group destination tables
             flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
         else:
-            # initialize record counts for one-to-many table records
-            record_count_dict[field_group] = 0
-
-    # find actual record counts for one-to-many field group
-    for field_group in record_count_dict.copy().keys():
-        parent_table = get_parent_table(tables, field_group)
-        count_column = get_count_column_name(field_group)
-        record_count = len(flattened_case[field_group]) \
-            if field_group in flattened_case else 0
-
-        record_count_dict[field_group] = (parent_table, count_column, record_count)
+            # initialize record count dicts for one-to-many table records
+            # key: parent_id, val: child record count
+            record_count_dict[field_group] = dict()
 
     # merge single entry field groups
     for field_group, parent_table in flattened_fg_parents.items():
@@ -798,18 +790,34 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             flattened_case[parent_table][parent_idx].update(record)
         flattened_case.pop(field_group)
 
-    # add reference counts for one-to-many tables
-    for child_table, count_tuple in record_count_dict.items():
-        parent_table = count_tuple[0]
-        count_field = count_tuple[1]
-        count = count_tuple[2]
-        flattened_case[parent_table][count_field] = count
+    # find actual record counts for one-to-many field group
+    for field_group in record_count_dict.copy().keys():
+        parent_table = get_parent_table(tables, field_group)
+        parent_table_id_key = get_table_id_key(parent_table)
 
-    # todo delete print
-    print("record_count_dict: {}".format(record_count_dict))
+        count_column = get_count_column_name(field_group)
 
-    # todo delete print
-    print("flattened_fg_parents: {}".format(flattened_fg_parents))
+        # initialize counts with 0, so that any parents without records
+        # still show a non-null count
+        for parent_record in flattened_case[parent_table]:
+            parent_id = parent_record[parent_table_id_key]
+            record_count_dict[field_group][parent_id] = 0
+
+        # count child records
+        for record in flattened_case[field_group]:
+            parent_id = record[parent_table_id_key]
+            record_count_dict[field_group][parent_id] += 1
+
+        # insert counts into parent table
+        for parent_id, child_count in record_count_dict[field_group].items():
+            record_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
+            flattened_case[parent_table][record_idx][count_column] = child_count
+
+        # todo delete print
+        print("record_count_dict: {}".format(record_count_dict))
+
+        # todo delete print
+        print("flattened_fg_parents: {}".format(flattened_fg_parents))
 
     # todo delete print
     print("flattened_case: {}".format(flattened_case))
