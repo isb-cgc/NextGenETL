@@ -810,6 +810,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
                 parent_id = record[bq_parent_id_key]
                 record_count_dict[field_group][parent_id] += 1
 
+        count_col_name = get_count_column_name(field_group)
+        print(count_col_name)
+
     # todo delete print
     print("record_count_dict: {}".format(record_count_dict))
 
