@@ -798,9 +798,10 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
     for field_group in record_count_dict.copy().keys():
         table_id_key = get_bq_name(API_PARAMS, get_table_id_key(field_group), field_group)
 
-        for record in flattened_case[field_group]:
-            table_id = record[table_id_key]
-            record_count_dict[field_group][table_id] = 0
+        if field_group in flattened_case:
+            for record in flattened_case[field_group]:
+                table_id = record[table_id_key]
+                record_count_dict[field_group][table_id] = 0
 
     print(record_count_dict)
     exit()
