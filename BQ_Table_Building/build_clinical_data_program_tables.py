@@ -769,6 +769,20 @@ def find_parent_record_idx(flattened_case, field_group, parent_table):
     return None
 
 
+def find_record_idx(flattened_case, field_group, record_id):
+    fg_id_key = get_bq_name(API_PARAMS, get_table_id_key(field_group), field_group)
+
+    idx = 0
+
+    for record in flattened_case[field_group]:
+        if record[fg_id_key] == record_id:
+            return idx
+        idx += 1
+
+    has_fatal_error("No parent record found in flattened_case with given parent id")
+    return None
+
+
 def merge_single_entry_field_groups(case, flattened_case, tables, program_record_counts):
     record_count_dict = dict()
     flattened_fg_parents = dict()
@@ -810,14 +824,19 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
                 parent_id = record[bq_parent_id_key]
                 record_count_dict[field_group][parent_id] += 1
 
+    for field_group, parent_ids_dict in record_count_dict.items():
+        parent_table = get_parent_table(tables, field_group)
         count_col_name = get_count_column_name(field_group)
-        print(count_col_name)
+
+        for parent_id, count in parent_ids_dict.items():
+            parent_record_idx = find_record_idx(flattened_case, parent_table, parent_id)
+            flattened_case[parent_table][parent_record_idx][count_col_name] = count
 
     # todo delete print
     print("record_count_dict: {}".format(record_count_dict))
 
     # todo delete print
-    # print("flattened_case: {}".format(flattened_case))
+    print("flattened_case: {}".format(flattened_case))
 
     return flattened_case
 
