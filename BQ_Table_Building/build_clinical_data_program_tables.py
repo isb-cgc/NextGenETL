@@ -753,6 +753,40 @@ def get_flattened_entry_by_id(flattened_case, entry_name, entry_id, id_column):
     return flattened_case, entry_name, return_entry
 
 
+def merge_single_entry_field_groups(case, flattened_case, tables, program_record_counts):
+    record_count_dict = dict()
+    flattened_fg_parents = dict()
+
+    for field_group in program_record_counts:
+        if program_record_counts[field_group] == 1:
+            # create list of flattened field group destination tables
+            flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
+        else:
+            # initialize record counts for one-to-many table records
+            record_count_dict[field_group] = 0
+
+    # find actual record counts for one-to-many field group
+    for field_group in record_count_dict.copy().keys():
+        if field_group in flattened_case:
+            record_count_dict[field_group] = len(flattened_case[field_group])
+
+    # todo delete print
+    print("record_count_dict: {}".format(record_count_dict))
+
+    # todo delete print
+    print("flattened_fg_parents: {}".format(flattened_fg_parents))
+
+    return flattened_case
+
+
+
+    """
+    - get list of tables to flatten and their parent tables
+    - create dict with one-to-many tables and record counts (initialize with 0)
+    - find each parent table and insert the count reference field
+    """
+
+'''
 def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
     """
     Merge field groups which have a max of one record for every case in this
@@ -825,7 +859,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                 flattened_case[p_entry_name] = p_flat_entry
 
     return flattened_case
-
+'''
 
 '''
 def merge_single_entry_field_groups(flattened_case, tables, case_fg_ids):
@@ -952,10 +986,9 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
         # todo delete print
         print("tables: {}".format(tables))
 
+        flattened_case_dict = merge_single_entry_field_groups(case, flattened_case_dict,
+                                                              tables, record_counts)
         exit()
-
-        flattened_case_dict = merge_single_entry_field_groups(
-            case, flattened_case_dict, tables, case_fg_ids)
         # todo delete print
         # print("AFTER: {}".format(flattened_case_dict))
 
