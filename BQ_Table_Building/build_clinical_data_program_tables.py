@@ -821,9 +821,10 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             record_count_dict[field_group][parent_id] = 0
 
         # count child records
-        for record in flattened_case[field_group]:
-            parent_id = record[parent_table_id_key]
-            record_count_dict[field_group][parent_id] += 1
+        if field_group in flattened_case:
+            for record in flattened_case[field_group]:
+                parent_id = record[parent_table_id_key]
+                record_count_dict[field_group][parent_id] += 1
 
         # insert counts into parent table
         for parent_id, child_count in record_count_dict[field_group].items():
