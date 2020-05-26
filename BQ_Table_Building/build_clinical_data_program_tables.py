@@ -799,6 +799,10 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
 
         # initialize counts with 0, so that any parents without records
         # still show a non-null count
+
+        # todo delete print
+        print("field_group: {}, parent_table: {}".format(field_group, parent_table))
+
         for parent_record in flattened_case[parent_table]:
             parent_id = parent_record[parent_table_id_key]
             record_count_dict[field_group][parent_id] = 0
