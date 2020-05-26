@@ -758,6 +758,8 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
     flattened_fg_parents = dict()
 
     for field_group in program_record_counts:
+        if field_group == 'cases':
+            continue
         if program_record_counts[field_group] == 1:
             # create list of flattened field group destination tables
             flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
