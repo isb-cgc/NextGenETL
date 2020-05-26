@@ -754,7 +754,8 @@ def get_flattened_entry_by_id(flattened_case, entry_name, entry_id, id_column):
 
 
 def find_parent_record_idx(flattened_case, field_group, parent_table):
-    parent_table_id_key = get_table_id_key(parent_table)
+    parent_table_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
+                                      parent_table)
     parent_table_id = flattened_case[field_group][0][parent_table_id_key]
 
     idx = 0
