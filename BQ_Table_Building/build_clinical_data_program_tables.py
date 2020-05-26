@@ -793,9 +793,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
 
     # merge single entry field groups
     for field_group, parent_table in flattened_fg_parents.items():
-        parent_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
-
-        flattened_case[parent_table][parent_idx].update(flattened_case[field_group])
+        for record in flattened_case[field_group]:
+            parent_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
+            flattened_case[parent_table][parent_idx].update(record)
         flattened_case.pop(field_group)
 
     # add reference counts for one-to-many tables
