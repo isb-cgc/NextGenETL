@@ -944,7 +944,13 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         case_id, case_fg_ids = get_case_fg_ids(case)
 
         # todo delete print
-        print("BEFORE: {}".format(flattened_case_dict))
+        # print("BEFORE: {}".format(flattened_case_dict))
+
+        # todo delete print
+        print("schemas: {}".format(schemas))
+
+        # todo delete print
+        print("tables: {}".format(tables))
 
         exit()
 
