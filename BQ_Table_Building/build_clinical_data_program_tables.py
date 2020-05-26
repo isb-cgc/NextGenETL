@@ -923,7 +923,7 @@ def get_cases_fg_ids(cases):
     return cases_fg_ids
 
 
-def create_and_load_tables(program_name, cases, schemas, tables):
+def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
@@ -947,7 +947,7 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         # print("BEFORE: {}".format(flattened_case_dict))
 
         # todo delete print
-        print("schemas: {}".format(schemas))
+        print("record_counts: {}".format(record_counts))
 
         # todo delete print
         print("tables: {}".format(tables))
@@ -1070,7 +1070,7 @@ def main(args):
             table_schemas, table_order_lists = create_schemas(table_columns,
                                                               tables, record_counts)
             # create tables, flatten and insert data
-            create_and_load_tables(program, cases, table_schemas, tables)
+            create_and_load_tables(program, cases, table_schemas, tables, record_counts)
 
             print("{} processed in {:0.1f} seconds!\n".format(program,
                                                               time.time() - prog_start))
