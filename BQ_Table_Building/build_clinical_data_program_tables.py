@@ -784,6 +784,11 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             # key: parent_id, val: child record count
             record_count_dict[field_group] = dict()
 
+    # todo delete print
+    print("flattened_fg_parents: {}".format(flattened_fg_parents))
+    # todo delete print
+    print("record_count_dict: {}".format(record_count_dict))
+
     # merge single entry field groups
     for field_group, parent_table in flattened_fg_parents.items():
         for record in flattened_case[field_group]:
