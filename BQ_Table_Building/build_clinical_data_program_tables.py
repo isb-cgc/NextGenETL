@@ -770,7 +770,11 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
     # find actual record counts for one-to-many field group
     for field_group in record_count_dict.copy().keys():
         if field_group in flattened_case:
-            record_count_dict[field_group] = len(flattened_case[field_group])
+            record_count_dict[field_group] = (
+                get_parent_table(tables, field_group),
+                get_count_column_name(field_group),
+                len(flattened_case[field_group])
+            )
 
     # todo delete print
     print("record_count_dict: {}".format(record_count_dict))
