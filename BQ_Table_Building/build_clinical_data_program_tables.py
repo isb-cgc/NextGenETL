@@ -793,7 +793,8 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
     # find actual record counts for one-to-many field group
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
-        parent_table_id_key = get_table_id_key(parent_table)
+        parent_table_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
+                                          parent_table)
 
         count_column = get_count_column_name(field_group)
 
