@@ -799,7 +799,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
         flattened_case.pop(field_group)
 
     # add reference counts for one-to-many tables
-    for child_table, count_tuple in record_count_dict:
+    for child_table, count_tuple in record_count_dict.items():
         parent_table = count_tuple[0]
         count_field = count_tuple[1]
         count = count_tuple[2]
