@@ -753,6 +753,21 @@ def get_flattened_entry_by_id(flattened_case, entry_name, entry_id, id_column):
     return flattened_case, entry_name, return_entry
 
 
+def find_parent_record_idx(flattened_case, field_group, parent_table):
+    parent_table_id_key = get_table_id_key(parent_table)
+    parent_table_id = flattened_case[field_group][0][parent_table_id_key]
+
+    idx = 0
+
+    for parent_table_record in flattened_case[parent_table]:
+        if parent_table_record[parent_table_id_key] == parent_table_id:
+            return idx
+        idx += 1
+
+    has_fatal_error("No parent record found in flattened_case with given parent id")
+    return None
+
+
 def merge_single_entry_field_groups(case, flattened_case, tables, program_record_counts):
     record_count_dict = dict()
     flattened_fg_parents = dict()
@@ -778,7 +793,9 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
 
     # merge single entry field groups
     for field_group, parent_table in flattened_fg_parents.items():
-        flattened_case[parent_table].update(flattened_case[field_group])
+        parent_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
+
+        flattened_case[parent_table][parent_idx].update(flattened_case[field_group])
         flattened_case.pop(field_group)
 
     # add reference counts for one-to-many tables
