@@ -787,7 +787,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                         flattened_case, fg_key, entry_id, fg_id_column)
 
                     id_entry_fields = get_case_fg_by_parent_id(
-                        case, fg_key, entry_id, fg_id_field)
+                        case, get_field_name(fg_key), entry_id, fg_id_field)
 
                     for child_fg in child_fgs:
                         if child_fg in tables:
@@ -799,8 +799,8 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                             flat_entry[child_count_col] = child_fg_count
                     flattened_case[entry_name].append(flat_entry)
                 else:
+                    # todo here
                     print("NO ENTRY and ID")
-
 
             if fg_key in tables:
                 flattened_case['cases'][0][count_col] = fg_count
@@ -825,6 +825,7 @@ def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
                 flattened_case[p_entry_name] = p_flat_entry
 
     return flattened_case
+
 
 '''
 def merge_single_entry_field_groups(flattened_case, tables, case_fg_ids):
@@ -943,7 +944,9 @@ def create_and_load_tables(program_name, cases, schemas, tables):
         case_id, case_fg_ids = get_case_fg_ids(case)
 
         # todo delete print
-        # print("BEFORE: {}".format(flattened_case_dict))
+        print("BEFORE: {}".format(flattened_case_dict))
+
+        exit()
 
         flattened_case_dict = merge_single_entry_field_groups(
             case, flattened_case_dict, tables, case_fg_ids)
