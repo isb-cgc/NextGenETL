@@ -105,7 +105,7 @@ def generate_docs(api_params, bq_params):
 
 
 def test_query(api_params, bq_params):
-    duplicates = []
+    duplicates = dict()
     case_ids = ['2c92f9e1-b7ec-41c7-b547-b32ede1c2f66',
                 '65776049-6657-5d84-85c7-d27280ef4b04',
                 '53914222-f871-4b18-bfc0-9c2e848044aa',
@@ -131,7 +131,12 @@ def test_query(api_params, bq_params):
         res = requests.get(api_params['ENDPOINT'] + '/' + case_id)
         res_json = res.json()
 
-        duplicates.append(res_json['data'])
+        submitter_id = res_json['data']['submitter_id']
+
+        if submitter_id not in duplicates:
+            duplicates[submitter_id] = []
+
+        duplicates[submitter_id].append(res_json['data'])
 
     print(duplicates)
 
