@@ -17,7 +17,7 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 # import json
-# from common_etl.utils import has_fatal_error
+from common_etl.utils import get_table_id
 from google.cloud import bigquery
 
 
@@ -33,14 +33,11 @@ def get_table_list_for_curr_release(api_params, bq_params):
                 or bq_params['MASTER_TABLE'] in table_name:
             continue
 
-        table_id = table_item.full_table_id
-        friendly_name = table_item.friendly_name
+        table_id = get_table_id(bq_params, table_name)
 
         table_res = client.get_table(table_id)
         print(table_res.to_api_repr())
         break
-
-
 
 
 def generate_docs(api_params, bq_params):
