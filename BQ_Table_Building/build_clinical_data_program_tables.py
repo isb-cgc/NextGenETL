@@ -807,6 +807,7 @@ def generate_documentation(documentation_dict):
         json.dump(documentation_dict, json_file)
 
     upload_to_bucket(BQ_PARAMS, API_PARAMS, json_doc_file)
+    print("Generated documentation for ")
 
 
 ####
@@ -862,15 +863,17 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        print("Executing script for program {}...".format(program))
+        if 'create_and_load_tables' or 'validate_data' in steps:
 
-        cases = get_cases_by_program(API_PARAMS, BQ_PARAMS, program)
+            print("Executing script for program {}...".format(program))
 
-        if not cases:
-            continue
+            cases = get_cases_by_program(API_PARAMS, BQ_PARAMS, program)
 
-        # derive the program's table structure by analyzing its case records
-        table_columns, tables, record_counts = find_program_structure(cases)
+            if not cases:
+                continue
+
+            # derive the program's table structure by analyzing its case records
+            table_columns, tables, record_counts = find_program_structure(cases)
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
