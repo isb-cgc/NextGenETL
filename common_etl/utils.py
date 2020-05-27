@@ -138,6 +138,23 @@ def get_master_table_name(api_params, bq_params):
     return api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
 
 
+def get_field_group_id_name(api_params, table_key):
+    """
+    Retrieves the id key used to uniquely identify a table record.
+    :param api_params:
+    :param table_key: Table for which to determine the id key.
+    :return: String representing table key.
+    """
+    if not api_params['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+
+    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in "
+                        "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
+
+    return api_params['TABLE_METADATA'][table_key]['table_id_key']
+
+
 #####
 #
 # Functions for analyzing data
@@ -619,6 +636,13 @@ def get_table_case_id_name(field_group):
     :return:
     """
     return field_group + '.case_id'
+
+
+def get_ancestor_id_name(api_params, field_group):
+    parent_fg = get_parent_field_group(field_group)
+    id_col_name = get_field_group_id_name(api_params, parent_fg)
+
+    return parent_fg + '.' + id_col_name
 
 
 def get_field_depth(full_field_name):

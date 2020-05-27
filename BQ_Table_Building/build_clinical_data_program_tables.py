@@ -31,7 +31,7 @@ from common_etl.utils import (
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_table_depths,
-    get_field_group_abbreviation)
+    get_field_group_abbreviation, get_field_group_id_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -109,11 +109,12 @@ def get_required_columns(table):
     :param table: name of table for which to retrieve required columns.
     :return: list of required columns (currently, only includes the table's id column)
     """
-    table_id_field = get_table_id_key(table)
+    table_id_field = get_field_group_id_name(API_PARAMS, table)
     table_id_name = get_full_field_name(table, table_id_field)
     return [table_id_name]
 
 
+'''
 def get_table_id_key(table_key):
     """
     Retrieves the id key used to uniquely identify a table record.
@@ -128,6 +129,7 @@ def get_table_id_key(table_key):
                         "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
 
     return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
+'''
 
 
 def get_id_index(table_key, column_order_dict):
@@ -137,7 +139,7 @@ def get_id_index(table_key, column_order_dict):
     :param column_order_dict: Dictionary containing column names : indexes
     :return: Int representing relative column position in schema.
     """
-    table_id_key = get_table_id_key(table_key)
+    table_id_key = get_field_group_id_name(API_PARAMS, table_key)
     return column_order_dict[table_key + '.' + table_id_key]
 
 
@@ -381,7 +383,7 @@ def get_count_column_index(table_key, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_table_id_key(table_key)
+    table_id_key = get_field_group_id_name(API_PARAMS, table_key)
     id_column_index = column_order_dict[table_key + '.' + table_id_key]
 
     field_groups = API_PARAMS['TABLE_ORDER']
@@ -441,7 +443,7 @@ def generate_count_schema_entry(count_id_key, parent_table):
 """
 def add_parent_id_to_table(schema, columns, column_order, table, pid_index):
     parent_fg = get_parent_field_group(table)
-    ancestor_id_key = parent_fg + '.' + get_table_id_key(parent_fg)
+    ancestor_id_key = parent_fg + '.' + get_field_group_id_name(API_PARAMS, parent_fg)
 
     # add pid to one-to-many table
     schema[ancestor_id_key] = generate_id_schema_entry(ancestor_id_key, parent_fg)
@@ -463,6 +465,9 @@ def add_ref_id_to_table(schema, columns, column_order, table, id_index, id_col_n
     # add parent id to one-to-many table
     parent_fg = get_parent_field_group(table)
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg)
+
+    # todo delete print
+    print("schema[id_col_name]: {}".format(schema[id_col_name]))
 
     columns[table].add(id_col_name)
     column_order[table][id_col_name] = id_index
@@ -509,14 +514,13 @@ def add_reference_columns(schema, columns, record_counts):
         if depth > 2:
 
             parent_fg = get_parent_field_group(table)
-            parent_id_name = parent_fg + '.' + get_table_id_key(parent_fg)
+            parent_id_name = parent_fg + '.' + get_field_group_id_name(API_PARAMS, parent_fg)
 
             add_ref_id_to_table(schema, columns, column_orders, table,
                                 curr_index, parent_id_name)
             curr_index += 1
 
         case_id_name = get_table_case_id_name(table)
-
         add_ref_id_to_table(schema, columns, column_orders, table,
                             curr_index, case_id_name)
 
@@ -533,7 +537,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
             merged_key = table
         else:
             merged_key = get_parent_table(columns.keys(), table)
-            table_id_schema_key = table + "." + get_table_id_key(table)
+            table_id_schema_key = table + "." + get_field_group_id_name(API_PARAMS, table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
             schema[table_id_schema_key]['mode'] = 'NULLABLE'
@@ -669,7 +673,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                                            case_id, pid, pid_field)
     else:
         row_dict = dict()
-        id_field = get_table_id_key(field_group)
+        id_field = get_field_group_id_name(API_PARAMS, field_group)
 
         for field, field_val in record.items():
             if isinstance(field_val, list):
@@ -727,7 +731,7 @@ def get_record_idx(flattened_case, field_group, record_id):
     :param record_id: id of record for which to retrieve position
     :return: position index of record in field group's record list
     """
-    fg_id_key = get_bq_name(API_PARAMS, get_table_id_key(field_group), field_group)
+    fg_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, field_group), field_group)
 
     idx = 0
 
@@ -759,7 +763,7 @@ def merge_single_entry_fgs(flattened_case, record_counts):
                 flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
 
     for field_group, parent in flattened_fg_parents.items():
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent), parent)
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent), parent)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
@@ -785,7 +789,7 @@ def get_record_counts(flattened_case, record_counts):
 
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent_table),
                                        parent_table)
 
         # initialize record counts for parent id
@@ -858,7 +862,7 @@ def merge_or_count_records(flattened_case, program_record_counts):
 
     # merge single entry field groups
     for field_group, parent in flattened_fg_parents.items():
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent), parent)
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent), parent)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
@@ -871,7 +875,7 @@ def merge_or_count_records(flattened_case, program_record_counts):
     # won't actually have records, and this initialization adds 0 counts in that case)
     for field_group in record_count_dict.copy().keys():
         parent = get_parent_table(tables, field_group)
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent), parent)
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent), parent)
 
         # initialize record counts for parent id
         if parent in flattened_case:
