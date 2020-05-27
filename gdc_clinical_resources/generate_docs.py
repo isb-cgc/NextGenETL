@@ -27,7 +27,19 @@ def get_table_list_for_curr_release(api_params, bq_params):
     table_iter = client.list_tables(dataset_id)
 
     for table in table_iter:
-        print(table.table_id)
+        table_name = table.table_id
+
+        if api_params['GDC_RELEASE'] not in table_name:
+            continue
+
+        table_id = table.full_table_id
+        friendly_name = table.friendly_name
+
+        # todo delete print
+        print("table_name: {}, table_id: {}, friendly_name: {}"
+              .format(table_name, table_id, friendly_name))
+
+
 
 
 def generate_docs(api_params, bq_params):
