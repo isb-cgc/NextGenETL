@@ -530,7 +530,7 @@ def add_reference_columns(schema, columns, record_counts, program):
 
         case_id_name = get_table_case_id_name(table)
         add_ref_id_to_table(schema, columns, column_orders, table,
-                            curr_index, case_id_name)
+                            curr_index, case_id_name, program)
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
