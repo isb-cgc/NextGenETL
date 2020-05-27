@@ -27,7 +27,7 @@ def get_table_list_for_curr_release(api_params, bq_params):
     table_iter = client.list_tables(dataset_id)
 
     for table in table_iter:
-        print(table)
+        print(table.table_id)
 
 
 def generate_docs(api_params, bq_params):
