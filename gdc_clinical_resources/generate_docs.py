@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 from common_etl.utils import get_table_id
 from google.cloud import bigquery
 from math import pow
+import requests
 
 
 def get_program_name(api_params, bq_params, table_name):
@@ -91,17 +92,44 @@ def style_table_entry(table_name, table_json_attr):
 def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
 
+    """
     print('single tables')
     for program, tables in program_tables_json.items():
         if len(tables) == 1:
             print(program)
             for table, table_attrs in tables.items():
                 style_table_entry(table, table_attrs)
+    """
 
-    print('multiple tables')
-    for program, tables in program_tables_json.items():
-        if len(tables) > 1:
-            print(program)
+    test_query(api_params, bq_params)
+
+
+def test_query(api_params, bq_params):
+    case_ids = ['2c92f9e1-b7ec-41c7-b547-b32ede1c2f66',
+                '65776049-6657-5d84-85c7-d27280ef4b04',
+                '53914222-f871-4b18-bfc0-9c2e848044aa',
+                '713bfc2b-ca29-55e0-a876-19d221d0424a',
+                '3ee4a9bf-cf89-4c72-a8fe-371c6e9d1910',
+                'f2f4da54-b55b-5abe-866a-6c7b42ef1ced',
+                'f7ba2a46-81d2-42a8-80be-4c7106a5b9ba',
+                'eb0397d4-b7db-5733-bbb5-f3ac1825235c',
+                'defe33ea-3792-41d6-877e-e322ab562ff3',
+                '06a7148f-9c3c-51d2-82d1-9ba30801beaa',
+                '6c32a0e9-8d6d-492f-a6f9-46bbe9962016',
+                '39213a0a-5a39-5728-a959-33f23c0768a5',
+                '10954a0e-6aca-55ac-8505-dacc4fb5e62a',
+                '24e70d99-6ccb-4f7e-996f-cc732c6c8ed4',
+                'e818e557-99de-5b01-8d9c-3f913a150ac0',
+                '0faf3b5d-1277-4d1e-9445-57721610077d',
+                'eccd32cd-c463-44d9-9d01-a85d8a53dab6',
+                '68d219ef-4d95-5269-a71c-2b22ec1495b6',
+                '7a162401-ae44-5f34-ba50-870071fe2f53',
+                '7899f8bf-e32a-4b8d-bac2-bc424ba2975a']
+
+    for case_id in case_ids:
+        r = requests.get(api_params['ENDPOINT'] + '/' + case_id)
+
+        print(r)
 
 
 """
