@@ -30,7 +30,7 @@ from common_etl.utils import (
     get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_table_depths,
+    get_count_field, get_table_case_id_name, get_sorted_fg_depths,
     get_field_group_abbreviation, get_fg_id_name)
 
 API_PARAMS = dict()
@@ -508,7 +508,7 @@ def add_reference_columns(schema, columns, record_counts, program):
     """
     column_orders = dict()
 
-    for table, depth in get_sorted_table_depths(record_counts):
+    for table, depth in get_sorted_fg_depths(record_counts):
         # get ordering for table by only including relevant column indexes
         column_orders[table] = get_column_order(table)
 
@@ -539,22 +539,25 @@ def add_reference_columns(schema, columns, record_counts, program):
 def merge_column_orders(schema, columns, record_counts, column_orders):
     merged_column_orders = dict()
 
-    for table, depth in get_sorted_table_depths(record_counts, reverse=True):
+    for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
+        table_id_schema_key = table + "." + get_fg_id_name(API_PARAMS, table)
+
         if table in columns:
-            merged_key = table
+            merged_order_key = table
+            schema[table_id_schema_key]['mode'] = 'REQUIRED'
         else:
-            merged_key = get_parent_table(columns.keys(), table)
-            table_id_schema_key = table + "." + get_fg_id_name(API_PARAMS, table)
+            # not a standalone table, merge
+            merged_order_key = get_parent_table(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
             schema[table_id_schema_key]['mode'] = 'NULLABLE'
 
-        if merged_key not in merged_column_orders:
-            merged_column_orders[merged_key] = dict()
+        if merged_order_key not in merged_column_orders:
+            merged_column_orders[merged_order_key] = dict()
 
-        merged_column_orders[merged_key].update(column_orders[table])
+        merged_column_orders[merged_order_key].update(column_orders[table])
 
-    # this could probably be optimized, but it doesn't really increase processing time
+    # strip null columns from merged_column_orders
     for table in get_tables(record_counts):
         for column in merged_column_orders[table].copy():
             if column not in columns[table]:
@@ -1041,6 +1044,11 @@ def main(args):
 
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(schema, columns, record_counts, program)
+
+            # todo delete print
+            print("columns: \n{}".format(columns))
+            # todo delete print
+            print("column_orders: \n{}".format(column_orders))
 
             # reassign merged_column_orders to column_orders
             merged_orders = merge_column_orders(schema, columns,

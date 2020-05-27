@@ -654,7 +654,7 @@ def get_field_depth(full_field_name):
     return len(full_field_name.split('.'))
 
 
-def get_sorted_table_depths(record_counts, reverse=False):
+def get_sorted_fg_depths(record_counts, reverse=False):
     """
     # todo
     :param record_counts:
