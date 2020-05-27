@@ -500,9 +500,6 @@ def add_reference_columns(schema, columns, record_counts):
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
-    # todo delete print
-    print("column_orders: {}".format(column_orders))
-
     return column_orders
 
 
@@ -552,6 +549,9 @@ def create_schemas(columns, record_counts):
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
+
+    # todo delete print
+    print("column_orders: {}".format(column_orders))
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
