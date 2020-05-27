@@ -128,8 +128,7 @@ def test_query(api_params, bq_params):
 
     for case_id in case_ids:
         r = requests.get(api_params['ENDPOINT'] + '/' + case_id)
-
-        print(r)
+        print(r.json())
 
 
 """
