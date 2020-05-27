@@ -105,6 +105,7 @@ def generate_docs(api_params, bq_params):
 
 
 def test_query(api_params, bq_params):
+    output_dict = dict()
     duplicates = dict()
     case_ids = ['2c92f9e1-b7ec-41c7-b547-b32ede1c2f66',
                 '65776049-6657-5d84-85c7-d27280ef4b04',
@@ -139,6 +140,7 @@ def test_query(api_params, bq_params):
         duplicates[submitter_id].append(res_json['data'])
 
     for submitter_id in duplicates:
+        output_dict[submitter_id] = dict()
         case_0 = duplicates[submitter_id][0]
         case_1 = duplicates[submitter_id][1]
 
@@ -154,7 +156,7 @@ def test_query(api_params, bq_params):
                 if case_0[key] == case_1[key]:
                     shared_values[key] = case_0[key]
                 else:
-                    different_values[key] = (case_0[key], case_1[key])
+                    different_values[key] = [case_0[key], case_1[key]]
             elif key in case_0:
                 case_0_values[key] = case_0[key]
             elif key in case_1:
@@ -162,11 +164,16 @@ def test_query(api_params, bq_params):
             else:
                 pass
 
-        print('for submitter_id:\n{}'.format(submitter_id))
-        print('shared_values:\n{}'.format(shared_values))
+        print('{}'.format(submitter_id))
+        print('shared_values\n{}'.format(shared_values))
         print('different_values:\n{}'.format(different_values))
         print('case_0_values:\n{}'.format(case_0_values))
         print('case_1_values:\n{}'.format(case_1_values))
+
+        output_dict[submitter_id]['shared_values'] = shared_values
+        output_dict[submitter_id]['different_values'] = different_values
+        output_dict[submitter_id]['case_0_values'] = case_0_values
+        output_dict[submitter_id]['case_1_values'] = case_1_values
 
 
 """
