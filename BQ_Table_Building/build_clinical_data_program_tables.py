@@ -413,6 +413,9 @@ def add_reference_columns(schema, table_columns, record_counts):
     table_depths = {table: get_field_depth(table) for table in record_counts}
     indexes = build_column_order_dict()
 
+    # todo delete print
+    print("table_columns: {}".format(table_columns))
+
     for table, depth in sorted(table_depths.items(), key=lambda item: item[1]):
         # get ordering for table by only including relevant column indexes
         table_orders[table] = {k: indexes[k] for k in get_table_column_order(table)}
