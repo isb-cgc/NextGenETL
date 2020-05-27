@@ -273,15 +273,16 @@ def get_all_excluded_columns():
     return excluded_columns
 
 
-def flatten_tables(field_groups, tables):
+def flatten_tables(field_groups, record_counts):
     """
     From dict containing table_name keys and sets of column names, remove
     excluded columns and merge into parent table if the field group can be
     flattened for this program.
     :param field_groups: dict of tables and columns
-    :param tables: set of table names
+    :param record_counts: set of table names
     :return: flattened table column dict.
     """
+    record_counts = get_tables(record_counts)
     table_columns = dict()
 
     fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
@@ -297,18 +298,18 @@ def flatten_tables(field_groups, tables):
         full_field_names = {get_full_field_name(field_group, field)
                             for field in field_groups[field_group]}
 
-        if field_group in tables:
+        if field_group in record_counts:
             table_columns[field_group] = full_field_names
         else:
             # field group can be flattened
-            parent_table = get_parent_table(tables, field_group)
+            parent_table = get_parent_table(record_counts, field_group)
 
             table_columns[parent_table] |= full_field_names
 
     return table_columns
 
 
-def examine_case(non_null_fields, field_group, record_counts, fg_name):
+def examine_case(non_null_fields, record_counts, field_group, fg_name):
     """
     Recursively examines case and updates dicts of non-null fields and max record counts.
     :param non_null_fields: current dict of non-null fields for each field group
@@ -328,10 +329,8 @@ def examine_case(non_null_fields, field_group, record_counts, fg_name):
                 record_counts[child_fg] = max(record_counts[child_fg], len(record))
 
             for entry in record:
-                non_null_fields, record_counts = examine_case(non_null_fields,
-                                                              entry,
-                                                              record_counts,
-                                                              child_fg)
+                examine_case(non_null_fields, record_counts,
+                             field_group=entry, fg_name=child_fg)
         else:
             if fg_name not in non_null_fields:
                 non_null_fields[fg_name] = set()
@@ -358,13 +357,11 @@ def find_program_structure(cases):
     record_counts = {}
 
     for case in cases:
-        if case:
-            non_null_fields, record_counts = examine_case(non_null_fields=non_null_fields,
-                                                          field_group=case,
-                                                          record_counts=record_counts,
-                                                          fg_name='cases')
-    tables = get_tables(record_counts)
-    columns = flatten_tables(non_null_fields, tables)
+        if not case:
+            continue
+        examine_case(non_null_fields, record_counts, field_group=case, fg_name='cases')
+
+    columns = flatten_tables(non_null_fields, record_counts)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -540,7 +537,6 @@ def create_schemas(columns, record_counts):
     :param columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
-    tables = get_tables(record_counts)
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
@@ -554,7 +550,7 @@ def create_schemas(columns, record_counts):
 
     schema_field_lists = dict()
 
-    for table in tables:
+    for table in get_tables(record_counts):
         # this is just alphabetizing the count columns
         counts_idx = get_count_column_index(table, column_orders[table])
         count_cols = [col for col, i in column_orders[table].items() if i == counts_idx]
