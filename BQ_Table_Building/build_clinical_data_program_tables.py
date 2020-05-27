@@ -287,32 +287,33 @@ def flatten_tables(field_groups, tables):
     return table_columns
 
 
-def examine_case(table_columns, field_group, record_counts, fg_name):
+def examine_case(field_groups, field_group, record_counts, fg_name):
     for field, record in field_group.items():
         if isinstance(record, list):
             child_fg = fg_name + '.' + field
 
             if child_fg not in record_counts:
-                table_columns[child_fg] = set()
+                field_groups[child_fg] = set()
                 record_counts[child_fg] = len(record)
             else:
                 record_counts[child_fg] = max(record_counts[child_fg], len(record))
 
             for entry in record:
-                table_columns, record_counts = examine_case(table_columns, entry,
-                                                            record_counts, child_fg)
+                field_groups, record_counts = examine_case(field_groups, entry,
+                                                           record_counts, child_fg)
         else:
-            if fg_name not in table_columns:
-                table_columns[fg_name] = set()
+            if fg_name not in field_groups:
+                field_groups[fg_name] = set()
                 record_counts[fg_name] = 1
 
             if isinstance(record, dict):
                 for child_field in record:
-                    table_columns[fg_name].add(child_field)
+                    field_groups[fg_name].add(child_field)
             else:
-                table_columns[fg_name].add(field)
+                if record:
+                    field_groups[fg_name].add(field)
 
-    return table_columns, record_counts
+    return field_groups, record_counts
 
 
 def find_program_structure(cases):
@@ -327,10 +328,15 @@ def find_program_structure(cases):
 
     for case in cases:
         if case:
-            field_groups, record_counts = examine_case(field_groups, case,
-                                                        record_counts, fg_name='cases')
+            field_groups, record_counts = examine_case(field_groups=field_groups,
+                                                       field_group=case,
+                                                       record_counts=record_counts,
+                                                       fg_name='cases')
     tables = get_tables(record_counts)
     table_columns = flatten_tables(field_groups, tables)
+
+    # todo delete print
+    print("field_groups: {}".format(field_groups))
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -883,9 +889,6 @@ def main(args):
 
         # derive the program's table structure by analyzing its case records
         table_columns, tables, record_counts = find_program_structure(cases)
-
-        # todo delete print
-        print("table_columns: {}".format(table_columns))
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
