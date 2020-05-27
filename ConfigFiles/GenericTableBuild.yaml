@@ -1,0 +1,27 @@
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_id
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # Final table name:
+  FINAL_TARGET_TABLE: Final_CNVR_Table_Name
+
+  # Project to publish to:
+  PUBLICATION_PROJECT: your_publication_project_id
+
+  # Dataset to publish to:
+  PUBLICATION_DATASET: your_publication_dataset
+
+  # Table name to publish to:
+  PUBLICATION_TABLE: your_publication_table
+
+steps:
+  # publish the table:
+  - publish
