@@ -20,17 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
-import requests
-import json
 import time
 import os
-from os.path import expanduser
-from common_etl.support import upload_to_bucket
+import json
+import requests
 from common_etl.utils import (
-    infer_data_types, load_config, generate_bq_schema, collect_field_values,
+    infer_data_types, load_config, generate_bq_schema, collect_values,
     create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error
-)
+    has_fatal_error, get_scratch_filepath, upload_to_bucket)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -38,14 +35,28 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+####
+#
+# Getter functions, employed for readability/consistency
+#
+##
 def get_expand_groups():
+    """
+    Get expand field groups from yaml config
+    :return: list of expand field groups.
+    """
     if 'EXPAND_FIELD_GROUPS' not in API_PARAMS:
         has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
 
     return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
 
 
-def request_from_api(curr_index):
+####
+#
+# Functions which retrieve and save GDC data in preparation for inserting into BQ tables
+#
+##
+def request_data_from_gdc_api(curr_index):
     """
     Make a POST API request and return response (if valid).
     :param curr_index: current API poll start position
@@ -66,8 +77,8 @@ def request_from_api(curr_index):
         # return response body if request was successful
         if res.status_code == requests.codes.ok:
             return res
-        else:
-            err_list.append("{}".format(res.raise_for_status()))
+
+        err_list.append("{}".format(res.raise_for_status()))
 
         restart_idx = curr_index
         err_list.append('API request returned status code {}.'.format(res.status_code))
@@ -79,12 +90,13 @@ def request_from_api(curr_index):
         err_list.append(err)
 
     has_fatal_error("{}\n(HINT: incorrect ENDPOINT url in yaml config?".format(err_list))
+    return None
 
 
-def retrieve_and_output_cases(data_fp):
+def retrieve_and_save_case_records(data_fp):
     """
-    Retrieves case records from API and outputs them to a JSONL file,
-    which is later used to populate the clinical data BQ table.
+    Retrieves case records from API and outputs them to a JSONL file, which is later
+    used to populate the clinical data BQ table.
     :param data_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
@@ -94,22 +106,20 @@ def retrieve_and_output_cases(data_fp):
     with open(data_fp, API_PARAMS['IO_MODE']) as json_output_file:
         curr_index = API_PARAMS['START_INDEX']
         while not is_last_page:
-            res = request_from_api(curr_index)
+            res = request_data_from_gdc_api(curr_index)
 
             res_json = res.json()['data']
             cases_json = res_json['hits']
 
-            # Currently, if response doesn't contain this metadata,
-            # it indicates an invalid response or request.
-            if 'pagination' in res_json:
-                batch_record_count = res_json['pagination']['count']
-                total_cases_count = res_json['pagination']['total']
-                curr_page = res_json['pagination']['page']
-                last_page = res_json['pagination']['pages']
-            else:
-                has_fatal_error(
-                    "'pagination' key not found in response json, exiting.",
-                    KeyError)
+            # If response doesn't contain pagination, indicates an invalid request.
+            if 'pagination' not in res_json:
+                has_fatal_error("'pagination' key not found in response json, exiting.",
+                                KeyError)
+
+            batch_record_count = res_json['pagination']['count']
+            total_cases_count = res_json['pagination']['total']
+            curr_page = res_json['pagination']['page']
+            last_page = res_json['pagination']['pages']
 
             for case in cases_json:
                 if 'days_to_index' in case:
@@ -136,59 +146,60 @@ def retrieve_and_output_cases(data_fp):
     total_time = time.time() - start_time
     file_size = os.stat(data_fp).st_size / 1048576.0
 
-    print(
-        "\nClinical data retrieval complete!"
-        "\n\t{} of {} cases retrieved"
-        "\n\t{:.2f} mb jsonl file size"
-        "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
-        format(curr_index, total_cases_count, file_size, total_time)
-    )
+    print("\nClinical data retrieval complete!"
+          "\n\t{} of {} cases retrieved"
+          "\n\t{:.2f} mb jsonl file size"
+          "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
+          format(curr_index, total_cases_count, file_size, total_time))
 
     # Insert the generated jsonl file into google storage bucket, for later
-    # ingestion by BQ.
-    # Not used when working locally.
-    jsonl_file = data_fp.split('/')[-1]
-    target_blob = BQ_PARAMS['WORKING_BUCKET_DIR'] + '/' + jsonl_file
-    upload_to_bucket(BQ_PARAMS['WORKING_BUCKET'], target_blob, data_fp)
+    # ingestion by BQ
+    upload_to_bucket(BQ_PARAMS, API_PARAMS, data_fp)
 
 
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+####
+#
+# Functions which create table schemas and insert cases into bq
+#
+##
+def create_field_records_dict(field_mappings, field_data_types):
     """
-    Generate flat dict containing schema metadata object with fields 'name',
-    'type', 'description'
-    :param field_mapping_dict:
-    :param field_data_type_dict:
-    :return: schema fields object dict
+    Generate flat dict containing schema object with fields 'name', 'type', 'description'
+    :param field_mappings: dict of {fields: schema entry dicts}
+    :param field_data_types: dict of {fields: data types}
+    :return: SchemaField object dict
     """
+    # this could use BQ Python API built-in method
+
     schema_dict = {}
 
-    for key in field_data_type_dict:
+    for field in field_data_types:
         try:
-            column_name = field_mapping_dict[key]['name'].split('.')[-1]
-            description = field_mapping_dict[key]['description']
+            column_name = field_mappings[field]['name'].split('.')[-1]
+            description = field_mappings[field]['description']
         except KeyError:
             # cases.id not returned by mapping endpoint. In such cases,
             # substitute an empty description string.
-            column_name = key.split(".")[-1]
+            column_name = field.split(".")[-1]
             description = ""
 
-        if field_data_type_dict[key]:
+        if field_data_types[field]:
             # if script was able to infer a data type using field's values,
             # default to using that type
-            field_type = field_data_type_dict[key]
-        elif key in field_mapping_dict:
+            field_type = field_data_types[field]
+        elif field in field_mappings:
             # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
+            field_type = field_mappings[field]['type']
         else:
             # this could happen in the case where a field was added to the
             # cases endpoint with only null values,
             # and no entry for the field exists in mapping
             print(
-                "[INFO] Not adding field {} because no type found".format(key))
+                "[INFO] Not adding field {} because no type found".format(field))
             continue
 
         # this is the format for bq schema json object entries
-        schema_dict[key] = {
+        schema_dict[field] = {
             "name": column_name,
             "type": field_type,
             "description": description
@@ -199,10 +210,8 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
 
 def create_bq_schema(data_fp):
     """
-    Generates two dicts (one using data type inference, one using _mapping
-    API endpoint.)
-    Compares their values and builds a python SchemaField object that's used
-    to initialize the db table.
+    Generates two dicts (one using data type inference, one using _mapping API endpoint.)
+    Compares values and builds a SchemaField object, used to initialize the bq table.
     :param data_fp: path to API data output file (jsonl format)
     """
     # generate dict containing field mapping results
@@ -212,16 +221,14 @@ def create_bq_schema(data_fp):
         field_dict = dict()
 
         for line in data_file:
-            json_case_obj = json.loads(line)
-            for key in json_case_obj:
-                field_dict = collect_field_values(field_dict, key,
-                                                  json_case_obj, 'cases.')
+            json_case = json.loads(line)
+            for key in json_case:
+                field_dict = collect_values(field_dict, key, json_case, 'cases.')
 
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
-    schema_dict = create_field_records_dict(field_mapping_dict,
-                                            field_data_type_dict)
+    schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
     endpoint_name = API_PARAMS['ENDPOINT'].split('/')[-1]
 
@@ -230,22 +237,16 @@ def create_bq_schema(data_fp):
                               expand_fields_list=get_expand_groups())
 
 
-def construct_filepath():
-    """
-    Construct filepath for VM output file
-    :return: output filepath for VM
-    """
-
-    home = expanduser('~')
-    return '/'.join(
-        [home, API_PARAMS['SCRATCH_DIR'], API_PARAMS['DATA_OUTPUT_FILE']])
-
-
 def main(args):
+    """
+    Script execution function.
+    :param args: command-line arguments
+    """
     start = time.time()
+    steps = []
+
     if len(args) != 2:
-        has_fatal_error(
-            'Usage: {} <configuration_yaml>".format(args[0])', ValueError)
+        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
 
     # Load the YAML config file
     with open(args[1], mode='r') as yaml_file:
@@ -255,18 +256,16 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    data_fp = construct_filepath()
+    data_fp = get_scratch_filepath(API_PARAMS)
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
-        # Hits the GDC api endpoint, outputs data to jsonl file (
-        # newline-delineated json, required by BQ)
+        # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
-        retrieve_and_output_cases(data_fp)
+        retrieve_and_save_case_records(data_fp)
 
     if 'create_bq_schema_obj' in steps:
-        # Creates a BQ schema python object consisting of nested SchemaField
-        # objects
+        # Creates a BQ schema python object consisting of nested SchemaField objects
         print('Creating BQ schema object!')
         schema = create_bq_schema(data_fp)
 
@@ -277,11 +276,10 @@ def main(args):
         print('Building BQ Table!')
 
         # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(
-            BQ_PARAMS,
-            jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
-            schema=schema,
-            table_name=API_PARAMS['GDC_RELEASE'] + '_clinical_data')
+        create_and_load_table(bq_params=BQ_PARAMS,
+                              jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
+                              schema=schema,
+                              table_name=API_PARAMS['GDC_RELEASE'] + '_clinical_data')
 
     end = time.time() - start
     print("Script executed in {:.0f} seconds\n".format(end))
