@@ -85,7 +85,7 @@ def get_table_list_for_curr_release(api_params, bq_params):
 
 def style_table_entry(table_name, table_json_attr):
     print(table_name)
-    print(table_json_attr)
+    # print(table_json_attr)
     unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
     print("{} {}".format(size, unit))
 
