@@ -541,6 +541,9 @@ def create_schemas(columns, record_counts):
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
 
+    # todo delete print
+    print("record_counts: {}".format(record_counts))
+
     # reassign merged_column_orders to column_orders
     column_orders = merge_column_orders(schema, columns, record_counts, column_orders)
 
@@ -956,7 +959,7 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     programs = get_programs_list()
-    # programs = ['CPTAC']
+    programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
