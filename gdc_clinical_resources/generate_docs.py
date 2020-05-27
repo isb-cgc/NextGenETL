@@ -30,7 +30,7 @@ def get_table_list_for_curr_release(api_params, bq_params):
         table_name = table_item.table_id
 
         if api_params['GDC_RELEASE'] not in table_name \
-                or api_params['MASTER_TABLE'] in table_name:
+                or bq_params['MASTER_TABLE'] in table_name:
             continue
 
         table_id = table_item.full_table_id
