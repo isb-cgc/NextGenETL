@@ -39,8 +39,8 @@ def convert_bytes_to_largest_unit(obj_bytes):
         ('TB', 4)
     ]
 
-    unit = 'bytes'
-    size = obj_bytes
+    curr_unit = 'bytes'
+    curr_size = obj_bytes
 
     for unit, multiplier in units:
         if (int(obj_bytes) / pow(1024, multiplier)) < 1.0:
@@ -48,7 +48,7 @@ def convert_bytes_to_largest_unit(obj_bytes):
         curr_unit = unit
         curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
 
-    return unit, size
+    return curr_unit, curr_size
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
