@@ -30,8 +30,7 @@ from common_etl.utils import (
     get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_fg_depths,
-    get_field_group_abbreviation, get_fg_id_name)
+    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -427,9 +426,10 @@ def generate_count_schema_entry(count_id_key, parent_table):
     }
 
 
-def add_ref_id_to_table(schema, columns, column_order, table, id_index,
-                        id_col_name, program):
+def add_ref_id_to_table(schema, columns, column_order, table, id_tuple):
     # add parent id to one-to-many table
+
+    id_index, id_col_name, program = id_tuple
     parent_fg = get_parent_field_group(table)
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg, program)
     columns[table].add(id_col_name)
@@ -481,12 +481,12 @@ def add_reference_columns(schema, columns, record_counts, program):
             parent_id_name = parent_fg + '.' + get_fg_id_name(API_PARAMS, parent_fg)
 
             add_ref_id_to_table(schema, columns, column_orders, table,
-                                curr_index, parent_id_name, program)
+                                (curr_index, parent_id_name, program))
             curr_index += 1
 
         case_id_name = get_table_case_id_name(table)
         add_ref_id_to_table(schema, columns, column_orders, table,
-                            curr_index, case_id_name, program)
+                            (curr_index, case_id_name, program))
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
@@ -497,6 +497,9 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
     merged_column_orders = dict()
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
+        if depth == 1:
+            break
+
         table_id_schema_key = table + "." + get_fg_id_name(API_PARAMS, table)
 
         if table in columns:
@@ -910,8 +913,8 @@ def main(args):
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
 
-            prog_end = time.time() - prog_start
-            print("{} processed in {:0.1f} seconds!\n".format(program, prog_end))
+            print("{} processed in {:0.0f} seconds!\n"
+                  .format(program, time.time() - prog_start))
 
             '''
             if 'generate_documentation' in steps:
