@@ -561,7 +561,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
 
 
 def remove_null_fields(table_columns, merged_orders):
-    for table, columns in table_columns:
+    for table, columns in table_columns.items():
         table_cols_set = columns
         merged_orders_set = merged_orders[table].keys()
         null_fields_set = merged_orders_set - table_cols_set
@@ -1048,11 +1048,6 @@ def main(args):
 
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(schema, columns, record_counts, program)
-
-            # todo delete print
-            print("columns: \n{}".format(columns))
-            # todo delete print
-            print("column_orders: \n{}".format(column_orders))
 
             # reassign merged_column_orders to column_orders
             merged_orders = merge_column_orders(schema, columns,
