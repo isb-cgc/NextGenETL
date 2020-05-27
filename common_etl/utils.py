@@ -339,15 +339,12 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    if bq_params['BQ_AS_BATCH']:
-        job_config.priority = bigquery.QueryPriority.BATCH
-
     client = bigquery.Client()
-    gs_uri = 'gs://' + bq_params['WORKING_BUCKET'] + "/" + \
-             bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file
+    gs_uri = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
+              bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file)
 
-    table_id = bq_params['WORKING_PROJECT'] + '.' + \
-               bq_params['TARGET_DATASET'] + '.' + table_name
+    table_id = (bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] +
+                '.' + table_name)
 
     try:
         load_job = client.load_table_from_uri(

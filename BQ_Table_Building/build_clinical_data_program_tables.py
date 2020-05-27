@@ -87,8 +87,7 @@ def get_temp_filepath(program_name, table):
     :param table: Program to which this table is associated.
     :return: String representing the temp file path.
     """
-    return API_PARAMS['TEMP_PATH'] + '/' + get_jsonl_filename(program_name,
-                                                              table)
+    return API_PARAMS['SCRATCH_DIR'] + '/' + get_jsonl_filename(program_name, table)
 
 
 def get_full_table_name(program_name, table):
@@ -155,13 +154,13 @@ def get_programs_list():
     Get list of programs represented in GDC API master pull.
     :return: List of GDC programs.
     """
-    programs_table_id = BQ_PARAMS['WORKING_PROJECT'] + '.' + BQ_PARAMS[
-        'METADATA_DATASET'] + \
-                        '.' + BQ_PARAMS['GDC_RELEASE'] + '_caseData'
+    programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
+                         BQ_PARAMS['METADATA_DATASET'] + '.' +
+                         BQ_PARAMS['GDC_RELEASE'] + '_caseData')
 
     programs = set()
-    results = get_query_results(
-        "SELECT distinct(program_name) FROM `{}`".format(programs_table_id))
+    results = get_query_results("SELECT distinct(program_name) FROM `{}`"
+                                .format(programs_table_id))
 
     for result in results:
         programs.add(result.program_name)
@@ -367,9 +366,9 @@ def get_case_id_index(table_key, column_order_dict):
 def generate_id_schema_entry(column, parent_table):
     parent_fg = get_field_name(parent_table)
     source_table = '*_{}'.format(parent_fg) if parent_table != 'cases' else 'main'
-    description = ("Reference to the pid ({}) of the record to which this "
-                   "record belongs. Parent record found in the program's {} "
-                   "table.").format(column, source_table)
+    description = ("Reference to the record's parent id ({}). "
+                   "Parent record found in the program's {} table."
+                   .format(column, source_table))
     return {
         "name": get_field_name(column),
         "type": 'STRING',
@@ -379,8 +378,9 @@ def generate_id_schema_entry(column, parent_table):
 
 
 def generate_count_schema_entry(count_id_key, parent_table_key):
-    description = ("Total count of records associated with this case, "
-                   "located in {} table").format(parent_table_key)
+    description = ("Total count of child records located in {} table"
+                   .format(parent_table_key))
+
     return {
         "name": get_field_name(count_id_key),
         "type": 'INTEGER',
@@ -724,7 +724,7 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
         jsonl_file = get_jsonl_filename(program_name, table)
         table_id = get_full_table_name(program_name, table)
 
-        upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], jsonl_file)
+        upload_to_bucket(BQ_PARAMS, API_PARAMS['SCRATCH_DIR'], jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
 
 
@@ -742,10 +742,10 @@ def generate_documentation(documentation_dict):
     json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
     json_doc_file += '_json_documentation_dump.json'
 
-    with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
+    with open(API_PARAMS['SCRATCH_DIR'] + '/' + json_doc_file, 'w') as json_file:
         json.dump(documentation_dict, json_file)
 
-    upload_to_bucket(BQ_PARAMS, API_PARAMS['TEMP_PATH'], json_doc_file)
+    upload_to_bucket(BQ_PARAMS, API_PARAMS['SCRATCH_DIR'], json_doc_file)
 
 
 ####
@@ -756,8 +756,7 @@ def generate_documentation(documentation_dict):
 def print_final_report(start, steps):
     """
     Outputs a basic report of script's results, including total processing
-    time and which steps
-    were specified in YAML.
+    time and which steps were specified in YAML.
     :param start: float representing script's start time.
     :param steps: set of steps to be performed (configured in YAML)
     """
@@ -765,8 +764,7 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    print("Programs script executed in {} min, {:.0f} sec\n".format(minutes,
-                                                                    seconds))
+    print("Programs script executed in {} min, {:.0f} sec\n".format(minutes, seconds))
     print("Steps completed: ")
 
     if 'create_and_load_tables' in steps:

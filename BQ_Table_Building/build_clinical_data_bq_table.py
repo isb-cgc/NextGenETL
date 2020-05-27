@@ -35,8 +35,7 @@ from common_etl.utils import (
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 # used to capture returned yaml config sections
-# todo change to api_params for consistency
-YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def get_expand_groups():
@@ -148,11 +147,9 @@ def retrieve_and_output_cases(data_fp):
     # Insert the generated jsonl file into google storage bucket, for later
     # ingestion by BQ.
     # Not used when working locally.
-    # todo remove if
-    if not API_PARAMS['IS_LOCAL_MODE']:
-        jsonl_file = data_fp.split('/')[-1]
-        target_blob = BQ_PARAMS['WORKING_BUCKET_DIR'] + '/' + jsonl_file
-        upload_to_bucket(BQ_PARAMS['WORKING_BUCKET'], target_blob, data_fp)
+    jsonl_file = data_fp.split('/')[-1]
+    target_blob = BQ_PARAMS['WORKING_BUCKET_DIR'] + '/' + jsonl_file
+    upload_to_bucket(BQ_PARAMS['WORKING_BUCKET'], target_blob, data_fp)
 
 
 def create_field_records_dict(field_mapping_dict, field_data_type_dict):
@@ -229,22 +226,19 @@ def create_bq_schema(data_fp):
     endpoint_name = API_PARAMS['ENDPOINT'].split('/')[-1]
 
     return generate_bq_schema(schema_dict,
-                                   record_type=endpoint_name,
-                                   expand_fields_list=get_expand_groups())
+                              record_type=endpoint_name,
+                              expand_fields_list=get_expand_groups())
 
 
 def construct_filepath():
     """
-    Construct filepath for temp local or VM output file
-    :return: output filepath for local machine or VM (depending on
-    LOCAL_DEBUG_MODE)
+    Construct filepath for VM output file
+    :return: output filepath for VM
     """
-    if API_PARAMS['IS_LOCAL_MODE']:
-        return API_PARAMS['LOCAL_DIR'] + API_PARAMS['DATA_OUTPUT_FILE']
-    else:
-        home = expanduser('~')
-        return '/'.join(
-            [home, API_PARAMS['SCRATCH_DIR'], API_PARAMS['DATA_OUTPUT_FILE']])
+
+    home = expanduser('~')
+    return '/'.join(
+        [home, API_PARAMS['SCRATCH_DIR'], API_PARAMS['DATA_OUTPUT_FILE']])
 
 
 def main(args):
@@ -257,14 +251,9 @@ def main(args):
     with open(args[1], mode='r') as yaml_file:
         try:
             global API_PARAMS, BQ_PARAMS
-            # todo uncomment
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-            # todo eventually delete these 3 lines
-            # api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
-            # API_PARAMS = api_params
-            # BQ_PARAMS = bq_params
-        except ValueError as e:
-            has_fatal_error(str(e), ValueError)
+        except ValueError as err:
+            has_fatal_error("{}".format(err), ValueError)
 
     data_fp = construct_filepath()
     schema = None
