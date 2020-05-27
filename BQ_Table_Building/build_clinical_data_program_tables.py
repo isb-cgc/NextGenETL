@@ -739,9 +739,10 @@ def get_record_counts(flattened_case, record_counts):
     """
     # initialize dict with field groups that can't be flattened
     record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
+    tables = get_tables(record_counts)
 
     for field_group in record_count_dict.copy().keys():
-        parent_table = get_parent_table(record_count_dict.keys(), field_group)
+        parent_table = get_parent_table(tables, field_group)
         bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
                                        parent_table)
 
@@ -759,7 +760,7 @@ def get_record_counts(flattened_case, record_counts):
 
     # insert record count into flattened dict entries
     for field_group, parent_ids_dict in record_count_dict.items():
-        parent_table = get_parent_table(record_counts, field_group)
+        parent_table = get_parent_table(tables, field_group)
         count_col_name = get_count_column_name(field_group)
 
         for parent_id, count in parent_ids_dict.items():
