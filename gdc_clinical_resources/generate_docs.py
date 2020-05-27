@@ -127,8 +127,8 @@ def test_query(api_params, bq_params):
                 '7899f8bf-e32a-4b8d-bac2-bc424ba2975a']
 
     for case_id in case_ids:
-        r = requests.get(api_params['ENDPOINT'] + '/' + case_id)
-        print(r.json())
+        res = requests.get(api_params['ENDPOINT'] + '/' + case_id)
+        print(res.json())
 
 
 """
