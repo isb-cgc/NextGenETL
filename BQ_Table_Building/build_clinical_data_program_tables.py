@@ -724,11 +724,12 @@ def merge_or_count_records(flattened_case, program_record_counts):
     flattened_fg_parents = dict()
 
     for field_group in program_record_counts:
-        if field_group == 'cases' or field_group not in flattened_case:
+        if field_group == 'cases':
             continue
         if program_record_counts[field_group] == 1:
-            # create list of flattened field group destination tables
-            flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
+            if field_group in flattened_case:
+                # create list of flattened field group destination tables
+                flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
         else:
             # initialize record count dicts for one-to-many table records
             # key: parent_id, val: child record count
