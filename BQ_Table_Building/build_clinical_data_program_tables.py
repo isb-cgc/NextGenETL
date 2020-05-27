@@ -36,10 +36,6 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-# todo include in YAML
-TABLE_NAME_PREFIX = 'clin'
-MASTER_TABLE_NAME = 'clinical_data'
-
 
 ####
 #
@@ -62,7 +58,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], TABLE_NAME_PREFIX, program_name]
+    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_NAME_PREFIX'], program_name]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -549,16 +545,11 @@ def add_reference_columns(schema, table_columns, record_counts):
 
         merged_table_orders[merged_key].update(table_orders[table])
 
-    # todo delete print
-    print("merged_table_orders 1: {}".format(merged_table_orders))
-
+    # this could probably be optimized, but it doesn't really increase processing time
     for table, columns in merged_table_orders.copy().items():
         for column in columns.copy():
             if column not in table_columns[table]:
                 merged_table_orders[table].pop(column)
-
-    # todo delete print
-    print("merged_table_orders 2: {}".format(merged_table_orders))
 
     return schema, table_columns, merged_table_orders
 
@@ -580,7 +571,7 @@ def create_schemas(table_columns, tables, record_counts):
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
-    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, MASTER_TABLE_NAME)
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, BQ_PARAMS['MASTER_TABLE_NAME'])
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(schema_dict,
                                                                       table_columns,
@@ -892,7 +883,7 @@ def generate_documentation(documentation_dict):
     :param documentation_dict:
     :return:
     """
-    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + TABLE_NAME_PREFIX
+    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_NAME_PREFIX']
     json_doc_file += '_json_documentation_dump.json'
 
     with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
@@ -952,14 +943,14 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_programs_list()
-    programs = ['HCMI']
+    programs = get_programs_list()
+    # programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
         print("Executing script for program {}...".format(program))
 
-        cases = get_cases_by_program(BQ_PARAMS, MASTER_TABLE_NAME, program)
+        cases = get_cases_by_program(BQ_PARAMS, BQ_PARAMS['MASTER_TABLE_NAME'], program)
 
         if not cases:
             print("Skipping program {}, no cases found.")
