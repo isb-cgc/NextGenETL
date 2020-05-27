@@ -164,16 +164,12 @@ def test_query(api_params, bq_params):
             else:
                 pass
 
-        print('{}'.format(submitter_id))
-        print('shared_values\n{}'.format(shared_values))
-        print('different_values:\n{}'.format(different_values))
-        print('case_0_values:\n{}'.format(case_0_values))
-        print('case_1_values:\n{}'.format(case_1_values))
-
         output_dict[submitter_id]['shared_values'] = shared_values
         output_dict[submitter_id]['different_values'] = different_values
         output_dict[submitter_id]['case_0_values'] = case_0_values
         output_dict[submitter_id]['case_1_values'] = case_1_values
+
+    print(output_dict)
 
 
 """
