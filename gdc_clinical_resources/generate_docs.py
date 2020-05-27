@@ -138,7 +138,35 @@ def test_query(api_params, bq_params):
 
         duplicates[submitter_id].append(res_json['data'])
 
-    print(duplicates)
+    for submitter_id in duplicates:
+        case_0 = duplicates[submitter_id][0]
+        case_1 = duplicates[submitter_id][1]
+
+        keys = case_0.keys | case_1.keys()
+
+        shared_values = dict()
+        different_values = dict()
+        case_0_values = dict()
+        case_1_values = dict()
+
+        for key in keys:
+            if key in case_0 and case_1:
+                if case_0[key] == case_1[key]:
+                    shared_values[key] = case_0[key]
+                else:
+                    different_values[key] = (case_0[key], case_1[key])
+            elif key in case_0:
+                case_0_values[key] = case_0[key]
+            elif key in case_1:
+                case_1_values[key] = case_1[key]
+            else:
+                pass
+
+        print('for submitter_id:\n{}'.format(submitter_id))
+        print('shared_values:\n{}'.format(shared_values))
+        print('different_values:\n{}'.format(different_values))
+        print('case_0_values:\n{}'.format(case_0_values))
+        print('case_1_values:\n{}'.format(case_1_values))
 
 
 """
