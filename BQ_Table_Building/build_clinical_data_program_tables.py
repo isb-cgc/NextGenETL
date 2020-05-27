@@ -500,6 +500,9 @@ def add_reference_columns(schema, columns, record_counts):
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
+    # todo delete print
+    print("column_orders: {}".format(column_orders))
+
     return column_orders
 
 
