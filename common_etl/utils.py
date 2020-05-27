@@ -76,6 +76,11 @@ def load_config(yaml_file, yaml_dict_keys):
     return tuple(return_dicts)
 
 
+#####
+#
+# Functions for getting param values in more readable format
+#
+##
 def get_scratch_dir(api_params):
     """
     Construct filepath for VM output file
@@ -87,6 +92,47 @@ def get_scratch_dir(api_params):
     return home + '/' + output_dir
 
 
+def convert_dict_to_string(obj):
+    """
+    Converts dict/list of primitives or strings to a comma-separated string
+    :param obj: object to converts
+    :return: modified object
+    """
+    if isinstance(obj, list):
+        if not isinstance(obj[0], dict):
+            str_list = ', '.join(obj)
+            obj = str_list
+        else:
+            for idx, value in enumerate(obj.copy()):
+                obj[idx] = convert_dict_to_string(value)
+    elif isinstance(obj, dict):
+        for key in obj:
+            obj[key] = convert_dict_to_string(obj[key])
+    return obj
+
+
+def get_required_columns(api_params, table):
+    """
+    Get list of required columns.
+    :param api_params: api params from yaml config file
+    :param table: name of table for which to retrieve required columns.
+    :return: list of required columns (currently, only returns table's primary id)
+    """
+    if not api_params['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+    elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
+        has_fatal_error("table_id_key not found in table metadata for {}".format(table))
+
+    table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
+    table_id_name = get_full_field_name(table, table_id_field)
+    return [table_id_name]
+
+
+#####
+#
+# Functions for analyzing data
+#
+##
 def check_value_type(value):
     """
     Checks value for type (possibilities are string, float and integers)
@@ -202,6 +248,11 @@ def collect_values(fields, field, parent, prefix):
     return fields
 
 
+#####
+#
+# Functions for creating bq schema
+#
+##
 def create_mapping_dict(endpoint):
     """
     Creates a dict containing field mappings for given endpoint.
@@ -236,25 +287,6 @@ def create_mapping_dict(endpoint):
     return field_mapping_dict
 
 
-def convert_dict_to_string(obj):
-    """
-    Converts dict/list of primitives or strings to a comma-separated string
-    :param obj: object to converts
-    :return: modified object
-    """
-    if isinstance(obj, list):
-        if not isinstance(obj[0], dict):
-            str_list = ', '.join(obj)
-            obj = str_list
-        else:
-            for idx, value in enumerate(obj.copy()):
-                obj[idx] = convert_dict_to_string(value)
-    elif isinstance(obj, dict):
-        for key in obj:
-            obj[key] = convert_dict_to_string(obj[key])
-    return obj
-
-
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     """
     Generates BigQuery SchemaField list for insertion of case records.
@@ -277,8 +309,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     for field in schema_dict:
         # record_lists_dict key is equal to the parent field components of
         # full field name
-        json_obj_key = '.'.join(field.split('.')[:-1])
-        record_lists_dict[json_obj_key].append(schema_dict[field])
+        record_lists_dict[get_parent_field_group(field)].append(schema_dict[field])
 
     temp_schema_field_dict = {}
 
@@ -303,8 +334,8 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                                          description=record['description'],
                                          fields=()))
 
-            parent_name = '.'.join(split_group_name[:-1])
-            field_name = split_group_name[-1]
+            # parent_name = '.'.join(split_group_name[:-1])
+            parent_name = get_parent_field_group(field_group_name)
 
             if field_group_name in temp_schema_field_dict:
                 schema_field_sublist += temp_schema_field_dict[field_group_name]
@@ -314,7 +345,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                     temp_schema_field_dict[parent_name] = list()
 
                 temp_schema_field_dict[parent_name].append(
-                    bigquery.SchemaField(name=field_name,
+                    bigquery.SchemaField(name=get_field_name(field_group_name),
                                          field_type='RECORD',
                                          mode='REPEATED',
                                          description='',
@@ -329,6 +360,26 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
+def create_schema_dict(api_params, bq_params):
+    """
+    Creates schema dict using master table's bigquery.table.Table.schema attribute
+    :param api_params: api params from yaml config file
+    :param bq_params: bq params from yaml config file
+    :return: flattened schema dict in format:
+        {full field name: {name: 'name', type: 'field_type', description: 'description'}}
+    """
+    table_name = api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    table_id = get_table_id(bq_params, table_name)
+    client = bigquery.Client()
+    table_obj = client.get_table(table_id)
+    return get_schema_from_master_table(api_params, dict(), 'cases', table_obj.schema)
+
+
+#####
+#
+# Functions for interfacing with Google Cloud services
+#
+##
 def get_query_results(query):
     """
     Returns result of BigQuery query.
@@ -435,6 +486,90 @@ def get_cases_by_program(api_params, bq_params, program_name):
     return cases
 
 
+def get_table_prefixes(api_params):
+    """
+    Get abbreviations for included field groups
+    :param api_params: api params from yaml config file
+    :return: dict of {table name: abbreviation}
+    """
+    prefixes = dict()
+
+    for table, table_metadata in api_params['TABLE_METADATA'].items():
+        prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
+
+    return prefixes
+
+
+def get_table_id(bq_params, table_name):
+    """
+    Get the full table_id (Including project and dataset) for a given table.
+    :param bq_params: bq params from yaml config file
+    :param table_name: Desired table name (can be created using get_table_id
+    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
+    """
+    return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
+            table_name)
+
+
+def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
+    """
+    Recursively build schema using master table's bigquery.table.Table.schema attribute
+    :param api_params: api params from yaml config file
+    :param flat_schema: dict of flattened schema entries
+    :param field_group: current field group name
+    :param fields: schema field entries for field_group
+    :return: flattened schema dict {full field name:
+        {name: 'name', type: 'field_type', description: 'description'}}
+    """
+    for field in fields:
+        field_dict = field.to_api_repr()
+        schema_key = field_group + '.' + field_dict['name']
+
+        if 'fields' in field_dict:
+            flat_schema = get_schema_from_master_table(api_params, flat_schema,
+                                                       schema_key, field.fields)
+
+            for required_column in get_required_columns(api_params, field_group):
+                flat_schema[required_column]['mode'] = 'REQUIRED'
+        else:
+            field_dict['name'] = get_bq_name(api_params, schema_key)
+            flat_schema[schema_key] = field_dict
+
+    return flat_schema
+
+
+def to_bq_schema_obj(schema_field_dict):
+    """
+    Convert schema entry dict to SchemaField object.
+    :param schema_field_dict: dict containing schema field keys
+    (name, field_type, mode, fields, description)
+    :return: bigquery.SchemaField object
+    """
+    return bigquery.SchemaField.from_api_repr(schema_field_dict)
+
+
+def upload_to_bucket(bq_params, api_params, file_name):
+    """
+    Uploads file to a google storage bucket (location specified in yaml config)
+    :param bq_params: bq params from yaml config file
+    :param api_params: api params from yaml config file
+    :param file_name: name of file to upload to bucket
+    """
+    filepath = get_scratch_dir(api_params)
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+        blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
+        blob.upload_from_filename(filepath + '/' + file_name)
+    except exceptions.GoogleCloudError as err:
+        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+
+#####
+#
+# Functions for getting field, field group, column, table names or depths
+#
+##
 def get_full_field_name(field_group, field):
     """
     get full field name for field
@@ -458,6 +593,24 @@ def get_field_name(field_or_column_name):
     return field_or_column_name
 
 
+def get_count_field(field_group):
+    """
+    # todo
+    :param field_group:
+    :return:
+    """
+    return field_group + '.count'
+
+
+def get_table_case_id_name(field_group):
+    """
+    # todo
+    :param field_group:
+    :return:
+    """
+    return field_group + '.case_id'
+
+
 def get_field_depth(full_field_name):
     """
     Gets nested depth for given field.
@@ -467,18 +620,15 @@ def get_field_depth(full_field_name):
     return len(full_field_name.split('.'))
 
 
-def get_table_prefixes(api_params):
+def get_sorted_table_depths(record_counts, reverse=False):
     """
-    Get abbreviations for included field groups
-    :param api_params: api params from yaml config file
-    :return: dict of {table name: abbreviation}
+    # todo
+    :param record_counts:
+    :param reverse:
+    :return:
     """
-    prefixes = dict()
-
-    for table, table_metadata in api_params['TABLE_METADATA'].items():
-        prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
-
-    return prefixes
+    table_depths = {table: get_field_depth(table) for table in record_counts}
+    return sorted(table_depths.items(), key=lambda item:item[1], reverse=reverse)
 
 
 def get_bq_name(api_params, field_name, table_path=None):
@@ -498,6 +648,9 @@ def get_bq_name(api_params, field_name, table_path=None):
 
     field_group = '.'.join(split_name[:-1])
     field = split_name[-1]
+
+    if field_group == 'cases':
+        return field
 
     prefixes = get_table_prefixes(api_params)
 
@@ -540,17 +693,6 @@ def get_tables(record_counts):
     return table_keys
 
 
-def get_table_id(bq_params, table_name):
-    """
-    Get the full table_id (Including project and dataset) for a given table.
-    :param bq_params: bq params from yaml config file
-    :param table_name: Desired table name (can be created using get_table_id
-    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
-    """
-    return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
-            table_name)
-
-
 def get_parent_table(tables, field_name):
     """
     Get field's parent table name.
@@ -572,92 +714,6 @@ def get_parent_table(tables, field_name):
         has_fatal_error("No parent found for {}".format(field_name))
 
     return parent_table
-
-
-def get_required_columns(api_params, table):
-    """
-    Get list of required columns.
-    :param api_params: api params from yaml config file
-    :param table: name of table for which to retrieve required columns.
-    :return: list of required columns (currently, only returns table's primary id)
-    """
-    if not api_params['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
-    elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
-        has_fatal_error("table_id_key not found in table metadata for {}".format(table))
-
-    table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
-    table_id_name = get_full_field_name(table, table_id_field)
-    return [table_id_name]
-
-
-def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
-    """
-    Recursively build schema using master table's bigquery.table.Table.schema attribute
-    :param api_params: api params from yaml config file
-    :param flat_schema: dict of flattened schema entries
-    :param field_group: current field group name
-    :param fields: schema field entries for field_group
-    :return: flattened schema dict {full field name:
-        {name: 'name', type: 'field_type', description: 'description'}}
-    """
-    for field in fields:
-        field_dict = field.to_api_repr()
-        schema_key = field_group + '.' + field_dict['name']
-
-        if 'fields' in field_dict:
-            flat_schema = get_schema_from_master_table(api_params, flat_schema,
-                                                       schema_key, field.fields)
-
-            for required_column in get_required_columns(api_params, field_group):
-                flat_schema[required_column]['mode'] = 'REQUIRED'
-        else:
-            field_dict['name'] = get_bq_name(api_params, schema_key)
-            flat_schema[schema_key] = field_dict
-
-    return flat_schema
-
-
-def create_schema_dict(api_params, bq_params):
-    """
-    Creates schema dict using master table's bigquery.table.Table.schema attribute
-    :param api_params: api params from yaml config file
-    :param bq_params: bq params from yaml config file
-    :return: flattened schema dict in format:
-        {full field name: {name: 'name', type: 'field_type', description: 'description'}}
-    """
-    table_name = api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
-    table_id = get_table_id(bq_params, table_name)
-    client = bigquery.Client()
-    table_obj = client.get_table(table_id)
-    return get_schema_from_master_table(api_params, dict(), 'cases', table_obj.schema)
-
-
-def to_bq_schema_obj(schema_field_dict):
-    """
-    Convert schema entry dict to SchemaField object.
-    :param schema_field_dict: dict containing schema field keys
-    (name, field_type, mode, fields, description)
-    :return: bigquery.SchemaField object
-    """
-    return bigquery.SchemaField.from_api_repr(schema_field_dict)
-
-
-def upload_to_bucket(bq_params, api_params, file_name):
-    """
-    Uploads file to a google storage bucket (location specified in yaml config)
-    :param bq_params: bq params from yaml config file
-    :param api_params: api params from yaml config file
-    :param file_name: name of file to upload to bucket
-    """
-    filepath = get_scratch_dir(api_params)
-    try:
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
-        blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
-        blob.upload_from_filename(filepath + '/' + file_name)
-    except exceptions.GoogleCloudError as err:
-        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
 """
