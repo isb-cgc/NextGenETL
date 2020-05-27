@@ -497,19 +497,7 @@ def create_schemas(table_columns, tables, record_counts):
                                                                       record_counts)
 
     # todo delete print
-    print("table_columns: {}".format(table_columns))
-    # merge flattened column orders
-    merged_tables = record_counts.keys() - table_columns.keys()
-    merged_depths = {table: get_field_depth(table) for table in merged_tables}
-
-    """
-    for table, depth in sorted(merged_depths.items(), key=lambda i: i[1], reverse=True):
-        if depth == 1:
-            has_fatal_error("cases shouldn't be in merged_table list")
-        parent_table = get_parent_table(tables, table)
-        column_orders[parent_table] |= column_orders[table]
-        column_orders.pop(table)
-    """
+    print("column_orders: {}".format(column_orders))
 
     # add bq abbreviations to schema field dicts
     schema_dict = prefix_field_names(schema_dict)
