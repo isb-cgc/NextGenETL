@@ -71,7 +71,7 @@ def get_jsonl_filename(program_name, table):
     """
     Gets unique (per release) jsonl filename, used for intermediately storing
     the table rows after they're flattened, but before BQ insertion. Allows for
-    faster script thanks to minimal BigQuery txns.
+    faster script thanks to minimal BigQuery transactions.
     :param program_name: name of the program to with the data belongs
     :param table: future insertion table for flattened data
     :return: String .jsonl filename, of the form
@@ -364,8 +364,6 @@ def get_count_column_index(table_key, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    # todo delete print
-    print("column_order_dict: {}".format(column_order_dict))
     table_id_key = get_fg_id_name(API_PARAMS, table_key)
     id_column_index = column_order_dict[table_key + '.' + table_id_key]
 
@@ -388,6 +386,7 @@ def get_case_id_index(table_key, column_orders):
 def generate_id_schema_entry(column, parent_table, program):
     """
     Create schema entry for inserted parent reference id.
+    :param program: program name
     :param column: parent id column
     :param parent_table: parent table name
     :return: schema entry dict for new reference id field
@@ -666,7 +665,8 @@ def get_record_idx(flattened_case, field_group, record_id):
     :param record_id: id of record for which to retrieve position
     :return: position index of record in field group's record list
     """
-    fg_id_key = get_bq_name(API_PARAMS, get_fg_id_name(API_PARAMS, field_group), field_group)
+    fg_id_name = get_fg_id_name(API_PARAMS, field_group)
+    fg_id_key = get_bq_name(API_PARAMS, fg_id_name, field_group)
 
     idx = 0
 
@@ -680,10 +680,9 @@ def get_record_idx(flattened_case, field_group, record_id):
 
 def merge_single_entry_fgs(flattened_case, record_counts):
     """
-    # todo
-    :param flattened_case:
-    :param record_counts:
-    :return:
+    # Merge flatten-able field groups.
+    :param flattened_case: flattened case dict
+    :param record_counts: field group count dict
     """
     tables = get_tables(record_counts)
 
@@ -698,7 +697,8 @@ def merge_single_entry_fgs(flattened_case, record_counts):
                 flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
 
     for field_group, parent in flattened_fg_parents.items():
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_fg_id_name(API_PARAMS, parent), parent)
+        fg_id_name = get_fg_id_name(API_PARAMS, parent)
+        bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
@@ -707,15 +707,12 @@ def merge_single_entry_fgs(flattened_case, record_counts):
 
         flattened_case.pop(field_group)
 
-    return flattened_case
-
 
 def get_record_counts(flattened_case, record_counts):
     """
-    # todo
-    :param flattened_case:
-    :param record_counts:
-    :return:
+    # Get record counts for field groups in case record
+    :param flattened_case: flattened dict containing case record entries
+    :param record_counts: field group count dict
     """
     # initialize dict with field groups that can't be flattened
     # record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
@@ -724,8 +721,8 @@ def get_record_counts(flattened_case, record_counts):
 
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_fg_id_name(API_PARAMS, parent_table),
-                                       parent_table)
+        fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
+        bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent_table)
 
         # initialize record counts for parent id
         if parent_table in flattened_case:
@@ -748,8 +745,6 @@ def get_record_counts(flattened_case, record_counts):
             parent_record_idx = get_record_idx(flattened_case, parent_table, parent_id)
             flattened_case[parent_table][parent_record_idx][count_col_name] = count
 
-    return flattened_case
-
 
 def merge_or_count_records(flattened_case, record_counts):
     """
@@ -760,13 +755,10 @@ def merge_or_count_records(flattened_case, record_counts):
     :param record_counts: max counts for program's field group records
     :return: modified version of flattened_case
     """
-
-    flattened_case = merge_single_entry_fgs(flattened_case, record_counts)
+    merge_single_entry_fgs(flattened_case, record_counts)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
-    flattened_case = get_record_counts(flattened_case, record_counts)
-
-    return flattened_case
+    get_record_counts(flattened_case, record_counts)
 
 
 def create_and_load_tables(program_name, cases, schemas, record_counts):
@@ -788,7 +780,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
     for case in cases:
         flattened_case = flatten_case(case)
-        flattened_case = merge_or_count_records(flattened_case, record_counts)
+        merge_or_count_records(flattened_case, record_counts)
 
         for table in flattened_case.keys():
             if table not in tables:
