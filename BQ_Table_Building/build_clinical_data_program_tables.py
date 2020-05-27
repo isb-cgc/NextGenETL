@@ -877,7 +877,7 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     # programs = get_programs_list()
-    programs = ['VAREPOP']
+    programs = ['MMRF']
 
     for program in programs:
         prog_start = time.time()
