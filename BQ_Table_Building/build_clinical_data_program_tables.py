@@ -541,11 +541,11 @@ def create_schemas(columns, record_counts):
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
 
-    # todo delete print
-    print("columns: \n{}".format(columns))
-
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
+
+    # todo delete print
+    print("merged_orders: \n{}".format(merged_orders))
 
     # add bq abbreviations to schema field dicts
     for entry in schema:
