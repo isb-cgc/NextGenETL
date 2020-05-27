@@ -21,10 +21,20 @@ from common_etl.utils import get_table_id
 from google.cloud import bigquery
 
 
+def get_program_name(api_params, bq_params, table_name):
+    prefix = api_params['GDC_RELEASE'] + '_' +  bq_params['TABLE_PREFIX'] + '_'
+    start_idx = len(prefix)
+    table_name = table_name[start_idx:]
+
+    return table_name.split('_')[0]
+
+
 def get_table_list_for_curr_release(api_params, bq_params):
     dataset_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
     client = bigquery.Client()
     table_iter = client.list_tables(dataset_id)
+    program_tables_json = dict()
+    table_attr_objs = dict()
 
     for table_item in table_iter:
         table_name = table_item.table_id
@@ -36,8 +46,20 @@ def get_table_list_for_curr_release(api_params, bq_params):
         table_id = get_table_id(bq_params, table_name)
 
         table_res = client.get_table(table_id)
-        print(table_res.to_api_repr())
-        break
+        table_json_attr = table_res.to_api_repr()
+        unwanted_attributes = {'tableReference', 'numLongTermBytes', 'lastModifiedTime',
+                               'id', 'type', 'location'}
+
+        for attr in unwanted_attributes:
+            table_json_attr.pop(attr)
+
+        prog_name = get_program_name(api_params, bq_params, table_name)
+        if prog_name not in program_tables_json:
+            program_tables_json[prog_name] = dict()
+
+        program_tables_json[prog_name][table_name] = table_json_attr
+
+    print(program_tables_json)
 
 
 def generate_docs(api_params, bq_params):
