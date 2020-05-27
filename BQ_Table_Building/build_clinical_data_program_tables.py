@@ -531,8 +531,8 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
         merged_column_orders[merged_key].update(column_orders[table])
 
     # this could probably be optimized, but it doesn't really increase processing time
-    for table, columns in merged_column_orders.copy().items():
-        for column in columns.copy():
+    for table in get_tables(record_counts):
+        for column in merged_column_orders[table].copy():
             if column not in columns[table]:
                 merged_column_orders[table].pop(column)
 
@@ -551,7 +551,7 @@ def create_schemas(columns, record_counts):
     column_orders = add_reference_columns(schema, columns, record_counts)
 
     # reassign merged_column_orders to column_orders
-    column_orders = merge_column_orders(schema, columns, record_counts, column_orders)
+    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
 
     # add bq abbreviations to schema field dicts
     for entry in schema:
@@ -561,14 +561,14 @@ def create_schemas(columns, record_counts):
 
     for table in get_tables(record_counts):
         # this is just alphabetizing the count columns
-        counts_idx = get_count_column_index(table, column_orders[table])
-        count_cols = [col for col, i in column_orders[table].items() if i == counts_idx]
+        counts_idx = get_count_column_index(table, merged_orders[table])
+        count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
 
         for count_column in sorted(count_cols):
-            column_orders[table][count_column] = counts_idx
+            merged_orders[table][count_column] = counts_idx
             counts_idx += 1
 
-        sorted_column_names = [col for col, idx in sorted(column_orders[table].items(),
+        sorted_column_names = [col for col, idx in sorted(merged_orders[table].items(),
                                                           key=lambda i: i[1])]
         schema_field_lists[table] = list()
 
