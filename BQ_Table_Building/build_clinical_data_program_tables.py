@@ -569,6 +569,9 @@ def remove_excluded_fields(record, table):
     """
     excluded_fields = get_excluded_fields(table)
 
+    # todo delete print
+    print("excluded_fields: {}".format(excluded_fields))
+
     if isinstance(record, set):
         return {field for field in record if field not in excluded_fields}
     if isinstance(record, dict):
