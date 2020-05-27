@@ -1054,6 +1054,9 @@ def main(args):
             merged_orders = merge_column_orders(schema, columns,
                                                 record_counts, column_orders)
 
+            # todo delete print
+            print("merged_orders: {}".format(merged_orders))
+
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
 
             # create tables, flatten and insert data
