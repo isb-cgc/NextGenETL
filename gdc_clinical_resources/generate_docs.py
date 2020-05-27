@@ -171,7 +171,7 @@ def test_query(api_params, bq_params):
 
     for submitter_id in output_dict:
         print(submitter_id)
-        print(output_dict[submitter_id]['different_values']['created_timeline'])
+        print(output_dict[submitter_id]['different_values']['created_datetime'])
         print(output_dict[submitter_id]['different_values']['updated_datetime'])
 
 
