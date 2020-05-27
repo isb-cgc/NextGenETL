@@ -150,7 +150,7 @@ def test_query(api_params, bq_params):
         case_1_values = dict()
 
         for key in keys:
-            if key in case_0 and case_1:
+            if key in case_0 and key in case_1:
                 if case_0[key] == case_1[key]:
                     shared_values[key] = case_0[key]
                 else:
