@@ -26,18 +26,19 @@ def get_table_list_for_curr_release(api_params, bq_params):
     client = bigquery.Client()
     table_iter = client.list_tables(dataset_id)
 
-    for table in table_iter:
-        table_name = table.table_id
+    for table_item in table_iter:
+        table_name = table_item.table_id
 
-        if api_params['GDC_RELEASE'] not in table_name:
+        if api_params['GDC_RELEASE'] not in table_name \
+                or api_params['MASTER_TABLE'] in table_name:
             continue
 
-        table_id = table.full_table_id
-        friendly_name = table.friendly_name
+        table_id = table_item.full_table_id
+        friendly_name = table_item.friendly_name
 
-        # todo delete print
-        print("table_name: {}, table_id: {}, friendly_name: {}"
-              .format(table_name, table_id, friendly_name))
+        table_res = client.get_table(table_id)
+        print(table_res.to_api_repr())
+        break
 
 
 
