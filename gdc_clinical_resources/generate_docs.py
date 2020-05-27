@@ -39,16 +39,16 @@ def convert_bytes_to_largest_unit(obj_bytes):
         ('TB', 4)
     ]
 
-    curr_unit = 'bytes'
-    curr_size = obj_bytes
+    unit = 'bytes'
+    size = obj_bytes
 
     for unit, multiplier in units:
-        while int(obj_bytes) / pow(1024, multiplier) > 1:
-            curr_unit = unit
-            curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
-        break
+        if (int(obj_bytes) / pow(1024, multiplier)) < 1.0:
+            break
+        curr_unit = unit
+        curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
 
-    return curr_unit, curr_size
+    return unit, size
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
@@ -86,7 +86,8 @@ def get_table_list_for_curr_release(api_params, bq_params):
 def style_table_entry(table_name, table_json_attr):
     print(table_name)
     print(table_json_attr)
-    print(convert_bytes_to_largest_unit(table_json_attr['numBytes']))
+    unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
+    print("{} {}".format(size, unit))
 
 
 def generate_docs(api_params, bq_params):
