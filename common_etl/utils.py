@@ -83,9 +83,8 @@ def get_scratch_filepath(api_params):
     """
     home = expanduser('~')
     output_dir = api_params['SCRATCH_DIR']
-    output_file = api_params['DATA_OUTPUT_FILE']
 
-    return home + '/' + output_dir + '/' + output_file
+    return home + '/' + output_dir
 
 
 def check_value_type(value):
