@@ -557,16 +557,17 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
 
         merged_column_orders[merged_order_key].update(column_orders[table])
 
-    # todo delete print
-    print("merged_column_orders: {}".format(merged_column_orders))
-
-    # strip null columns from merged_column_orders
-    for table in get_tables(record_counts):
-        for column in merged_column_orders[table].copy():
-            if column not in columns[table]:
-                merged_column_orders[table].pop(column)
-
     return merged_column_orders
+
+
+def remove_null_fields(table_columns, merged_orders):
+    for table, columns in table_columns:
+        table_cols_set = columns
+        merged_orders_set = merged_orders[table].keys()
+        null_fields_set = merged_orders_set - table_cols_set
+
+        for field in null_fields_set:
+            merged_orders[table].pop(field)
 
 
 def create_schema_lists(schema, record_counts, merged_orders):
@@ -1056,6 +1057,14 @@ def main(args):
             # reassign merged_column_orders to column_orders
             merged_orders = merge_column_orders(schema, columns,
                                                 record_counts, column_orders)
+
+            # todo delete print
+            print("merged_orders 1: {}".format(merged_orders))
+
+            remove_null_fields(columns, merged_orders)
+
+            # todo delete print
+            print("merged_orders 2: {}".format(merged_orders))
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
 
