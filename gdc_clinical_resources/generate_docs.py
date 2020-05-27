@@ -46,8 +46,9 @@ def convert_bytes_to_largest_unit(obj_bytes):
         while int(obj_bytes) / pow(1024, multiplier) > 1:
             curr_unit = unit
             curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
+        break
 
-        return curr_unit, curr_size
+    return curr_unit, curr_size
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
