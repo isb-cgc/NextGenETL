@@ -422,7 +422,7 @@ def generate_id_schema_entry(column, parent_table):
     return {
         "name": get_field_name(column),
         "type": 'STRING',
-        "description": ("Reference to the record's parent id ({}), (located in {} table)."
+        "description": ("Reference to associated {}, located in {} table."
                         .format(bq_col_name, source_table)),
         "mode": 'NULLABLE'
     }
