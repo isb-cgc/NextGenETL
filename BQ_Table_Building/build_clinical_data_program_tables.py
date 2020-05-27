@@ -499,8 +499,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
     merged_column_orders = dict()
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
-        if depth == 1:
-            break
 
         table_id_schema_key = table + "." + get_fg_id_name(API_PARAMS, table)
 
