@@ -50,11 +50,6 @@ def convert_bytes_to_largest_unit(obj_bytes):
         return curr_unit, curr_size
 
 
-    curr_unit = 'bytes'
-    if obj_bytes / 1024 > 1:
-
-
-
 def get_table_list_for_curr_release(api_params, bq_params):
     dataset_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
     client = bigquery.Client()
