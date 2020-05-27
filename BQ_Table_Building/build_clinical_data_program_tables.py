@@ -717,8 +717,6 @@ def find_record_idx(flattened_case, field_group, record_id):
 
 
 def merge_or_count_records(flattened_case, program_record_counts):
-    # todo delete print
-    print("flattened_case:\n{}".format(flattened_case))
     tables = get_tables(program_record_counts)
     record_count_dict = dict()
     flattened_fg_parents = dict()
@@ -943,8 +941,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_programs_list()
-    programs = ['CGCI']
+    programs = get_programs_list()
+    # programs = ['CGCI']
 
     for program in programs:
         prog_start = time.time()
