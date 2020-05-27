@@ -310,7 +310,8 @@ def examine_case(table_columns, field_group, record_counts, fg_name):
                 for child_field in record:
                     table_columns[fg_name].add(child_field)
             else:
-                table_columns[fg_name].add(field)
+                if field:
+                    table_columns[fg_name].add(field)
 
     return table_columns, record_counts
 
@@ -468,30 +469,6 @@ def add_reference_columns(table_columns, schema, record_counts):
         merged_table_orders[merged_key].update(table_orders[table])
 
     return schema, table_columns, merged_table_orders
-
-
-def rebuild_bq_name(column):
-    """
-    Reconstruct full column name after it's been abbreviated.
-    :param column: abbreviated bq_column name
-    :return: column name in field group format ('.' separators rather than '__')
-    """
-
-    def get_abbr_dict_():
-        abbr_dict_ = dict()
-
-        for table_key, table_metadata in API_PARAMS['TABLE_METADATA'].items():
-            if table_metadata['prefix']:
-                abbr_dict_[table_metadata['prefix']] = table_key
-        return abbr_dict_
-
-    abbr_dict = get_abbr_dict_()
-    split_column = column.split('__')
-    prefix = '__'.join(split_column[:-1])
-
-    if prefix and abbr_dict[prefix]:
-        return abbr_dict[prefix] + '.' + split_column[-1]
-    return 'cases.' + split_column[-1]
 
 
 def prefix_field_names(schema_dict):
@@ -785,6 +762,7 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
+    :param record_counts:
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
