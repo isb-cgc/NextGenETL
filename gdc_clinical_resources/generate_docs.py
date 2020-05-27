@@ -142,7 +142,7 @@ def test_query(api_params, bq_params):
         case_0 = duplicates[submitter_id][0]
         case_1 = duplicates[submitter_id][1]
 
-        keys = case_0.keys | case_1.keys()
+        keys = case_0.keys() | case_1.keys()
 
         shared_values = dict()
         different_values = dict()
@@ -150,15 +150,15 @@ def test_query(api_params, bq_params):
         case_1_values = dict()
 
         for key in keys:
-            if key in case_0_values and case_1_values:
-                if case_0_values[key] == case_1_values[key]:
-                    shared_values[key] = case_0_values[key]
+            if key in case_0 and case_1:
+                if case_0[key] == case_1[key]:
+                    shared_values[key] = case_0[key]
                 else:
-                    different_values[key] = (case_0_values[key], case_1_values[key])
-            elif key in case_0_values:
-                case_0_values[key] = case_0_values[key]
-            elif key in case_1_values:
-                case_1_values[key] = case_1_values[key]
+                    different_values[key] = (case_0[key], case_1[key])
+            elif key in case_0:
+                case_0_values[key] = case_0[key]
+            elif key in case_1:
+                case_1_values[key] = case_1[key]
             else:
                 pass
 
