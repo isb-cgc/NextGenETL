@@ -413,17 +413,16 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        source_table = 'main'
+        # source_table = 'main'
+        source_table = get_full_table_name(program, 'cases')
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
-        fg_abbreviation = get_field_group_abbreviation(API_PARAMS, parent_table)
         source_table = get_full_table_name(program, parent_table)
-        # source_table = '*_{}'.format(fg_abbreviation)
 
     return {
         "name": get_field_name(column),
         "type": 'STRING',
-        "description": ("Reference to associated {}, located in {} table."
+        "description": ("Reference to parent record id, {}, located in {}."
                         .format(bq_col_name, source_table)),
         "mode": 'NULLABLE'
     }
