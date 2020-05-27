@@ -154,7 +154,7 @@ def retrieve_and_save_case_records(data_fp):
 
     # Insert the generated jsonl file into google storage bucket, for later
     # ingestion by BQ
-    upload_to_bucket(BQ_PARAMS, API_PARAMS, data_fp)
+    upload_to_bucket(BQ_PARAMS, API_PARAMS, API_PARAMS['DATA_OUTPUT_FILE'])
 
 
 ####
