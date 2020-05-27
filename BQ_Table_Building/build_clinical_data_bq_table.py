@@ -239,80 +239,6 @@ def create_bq_schema(api_params, data_fp):
                                    expand_fields_list=get_expand_groups())
 
 
-def validate_params(api_params, bq_params):
-    """
-    Validates yaml parameters before beginning to execute the script. This
-    checks for reasonable (though not necessarily
-    correct) api request param types and values. It confirms all params are
-    included in specified yaml file.
-    :param api_params: dict of api and file related params from user-provided
-    yaml config
-    :param bq_params: dict of bq related params from user-provided yaml config
-    """
-    err_list = []
-
-    def is_valid_idx_param(yaml_param):
-        """
-        Verifies that index-type params provided are non-negative integer
-        values.
-        :param yaml_param: value to verify
-        """
-        e_list = []
-
-        try:
-            if int(api_params[yaml_param]) < 0:
-                e_list.append(
-                    'Invalid value for {} in yaml config (supplied: {}).'
-                    .format(yaml_param, type(api_params[yaml_param])))
-                e_list.append('Value should be a non-negative integer.')
-                has_fatal_error(e_list, ValueError)
-        except TypeError as e:
-            # triggered by casting an inappropriate type to int for testing
-            e_list.append(
-                '{} in yaml config should be of type int, not type {}).'
-                .format(yaml_param, type(api_params[yaml_param])))
-            e_list.append(str(e))
-            has_fatal_error(e_list, TypeError)
-
-    try:
-        if api_params['IS_LOCAL_MODE']:
-            yaml_template_path = '../ConfigFiles/ClinicalBQBuild.yaml'
-        else:
-            home = expanduser('~')
-            yaml_template_path = home + \
-                                 '/NextGenETL/ConfigFiles/ClinicalBQBuild.yaml'
-
-        with open(yaml_template_path, mode='r') as yaml_file:
-            default_api_params, default_bq_params, steps = load_config(
-                yaml_file, YAML_HEADERS)
-            default_api_param_keys = [k for k in default_api_params.keys()]
-            default_bq_param_keys = [k for k in default_bq_params.keys()]
-
-            # verify all required params exist in yaml config
-            for param in default_api_param_keys:
-                val = api_params[param]
-            for param in default_bq_param_keys:
-                val = bq_params[param]
-    except FileNotFoundError as e:
-        print(
-            'Default yaml config file not found, unable to compare with '
-            'supplied yaml config.\n' + str(
-                e))
-    except ValueError as e:
-        has_fatal_error(str(e), e)
-    except KeyError as e:
-        has_fatal_error('Missing param from yaml config file.', e)
-
-    # verify that api index-related params are set to non-negative integers
-    is_valid_idx_param('BATCH_SIZE') and is_valid_idx_param(
-        'START_INDEX') and is_valid_idx_param('MAX_PAGES')
-
-    # BATCH_SIZE must also be positive
-    if api_params['BATCH_SIZE'] == 0:
-        has_fatal_error('BATCH_SIZE set to 0 in yaml_config, should be > 0.',
-                        ValueError)
-
-
 def construct_filepath(api_params):
     """
     Construct filepath for temp local or VM output file
@@ -340,16 +266,9 @@ def main(args):
             # todo uncomment
             # GLOBAL API_PARAMS, BQ_PARAMS
             # API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-
             api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
-
-    # Validate YAML config params
-    # todo uncomment
-    # validate_params(API_PARAMS, BQ_PARAMS)
-
-    validate_params(api_params, bq_params)
 
     data_fp = construct_filepath(api_params)
     schema = None
