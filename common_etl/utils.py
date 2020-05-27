@@ -76,7 +76,7 @@ def load_config(yaml_file, yaml_dict_keys):
     return tuple(return_dicts)
 
 
-def get_scratch_filepath(api_params):
+def get_scratch_dir(api_params):
     """
     Construct filepath for VM output file
     :return: output filepath for VM
@@ -650,7 +650,7 @@ def upload_to_bucket(bq_params, api_params, file_name):
     :param api_params: api params from yaml config file
     :param file_name: name of file to upload to bucket
     """
-    filepath = get_scratch_filepath(api_params)
+    filepath = get_scratch_dir(api_params)
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])

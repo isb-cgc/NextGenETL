@@ -27,7 +27,7 @@ import requests
 from common_etl.utils import (
     infer_data_types, load_config, generate_bq_schema, collect_values,
     create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error, get_scratch_filepath, upload_to_bucket)
+    has_fatal_error, get_scratch_dir, upload_to_bucket)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -256,7 +256,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    scratch_path = get_scratch_filepath(API_PARAMS)
+    scratch_path = get_scratch_dir(API_PARAMS)
     output_fp = scratch_path + '/' + API_PARAMS['DATA_OUTPUT_FILE']
     schema = None
 

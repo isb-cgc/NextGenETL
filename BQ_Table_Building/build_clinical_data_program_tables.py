@@ -27,7 +27,7 @@ import time
 # from gdc_clinical_resources.test_data_integrity import *
 from common_etl.utils import (
     get_table_prefixes, get_bq_name, has_fatal_error, get_query_results, get_field_name,
-    get_tables, get_parent_table, get_parent_field_group, load_config,
+    get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, get_table_id, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj)
 
@@ -87,7 +87,7 @@ def get_temp_filepath(program_name, table):
     :param table: Program to which this table is associated.
     :return: String representing the temp file path.
     """
-    return API_PARAMS['SCRATCH_DIR'] + '/' + get_jsonl_filename(program_name, table)
+    return get_scratch_dir(API_PARAMS) + '/' + get_jsonl_filename(program_name, table)
 
 
 def get_full_table_name(program_name, table):
