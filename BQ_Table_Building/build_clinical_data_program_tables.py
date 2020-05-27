@@ -544,9 +544,6 @@ def create_schemas(columns, record_counts):
     # todo delete print
     print("schema: \n{}".format(schema))
 
-    # todo delete print
-    print("column_orders: {}".format(column_orders))
-
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
 
