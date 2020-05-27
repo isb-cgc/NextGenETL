@@ -486,9 +486,6 @@ def add_reference_columns(schema, columns, record_counts):
         # get ordering for table by only including relevant column indexes
         column_orders[table] = get_column_order(table)
 
-        # todo delete print
-        print("column_orders 1:\n{}".format(column_orders))
-
         if depth == 1 or table not in columns:
             continue
 
@@ -502,9 +499,6 @@ def add_reference_columns(schema, columns, record_counts):
         add_case_id_to_table(schema, columns, column_orders, table, curr_index)
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
-
-        # todo delete print
-        print("column_orders 2:\n{}".format(column_orders))
 
     return column_orders
 
@@ -546,6 +540,9 @@ def create_schemas(columns, record_counts):
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
+
+    # todo delete print
+    print("schema: \n{}".format(schema))
 
     # todo delete print
     print("column_orders: {}".format(column_orders))
