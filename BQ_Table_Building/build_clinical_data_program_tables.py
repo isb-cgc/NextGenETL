@@ -336,7 +336,7 @@ def find_program_structure(cases):
     table_columns = flatten_tables(field_groups, tables)
 
     # todo delete print
-    print("field_groups: {}".format(field_groups))
+    print("table_columns: {}".format(table_columns))
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
