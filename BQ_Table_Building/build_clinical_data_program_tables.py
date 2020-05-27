@@ -908,28 +908,8 @@ def main(args):
             print("{} processed in {:0.0f} seconds!\n"
                   .format(program, time.time() - prog_start))
 
-            '''
-            if 'generate_documentation' in steps:
-                
-                table_ids = {table: get_table_id(BQ_PARAMS, table) for table in tables}
-
-                # converting to JSON serializable form
-                table_column_lists = {t: list(v) for t, v in table_columns.items()}
-
-                documentation_dict[program] = {
-                    'table_schemas': str(table_schemas),
-                    'table_columns': table_column_lists,
-                    'table_ids': table_ids,
-                    'table_order_dict': table_order_lists
-                }
-            '''
-
     if 'generate_documentation' in steps:
-        # documentation_dict['metadata'] = dict()
-        # documentation_dict['metadata']['API_PARAMS'] = API_PARAMS
-        # documentation_dict['metadata']['BQ_PARAMS'] = BQ_PARAMS
-        # documentation_dict['metadata']['schema_dict'] = schema_dict
-        generate_documentation()
+        generate_docs(API_PARAMS, BQ_PARAMS)
 
     if 'validate_data' in steps:
         pass
