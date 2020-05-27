@@ -96,7 +96,7 @@ def check_value_type(value):
     # if has leading zero, then should be considered a string, even if only
     # composed of digits
     val_is_none = value in ('NA', 'null', 'None') or not value
-    val_is_bool = isinstance(value, bool)
+    val_is_bool = value in ('True', 'False', True, False)
     val_is_decimal = value.startswith('0.')
     val_is_id = value.startswith('0') and not val_is_decimal and len(value) > 1
 
