@@ -364,6 +364,8 @@ def get_count_column_index(table_key, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
+    # todo delete print
+    print("column_order_dict: {}".format(column_order_dict))
     table_id_key = get_fg_id_name(API_PARAMS, table_key)
     id_column_index = column_order_dict[table_key + '.' + table_id_key]
 
