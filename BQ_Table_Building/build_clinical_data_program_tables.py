@@ -114,24 +114,6 @@ def get_required_columns(table):
     return [table_id_name]
 
 
-'''
-def get_table_id_key(table_key):
-    """
-    Retrieves the id key used to uniquely identify a table record.
-    :param table_key: Table for which to determine the id key.
-    :return: String representing table key.
-    """
-    if not API_PARAMS['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
-
-    if 'table_id_key' not in API_PARAMS['TABLE_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in "
-                        "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
-
-    return API_PARAMS['TABLE_METADATA'][table_key]['table_id_key']
-'''
-
-
 def get_id_index(table_key, column_order_dict):
     """
     Get the relative order index of the table's id column.
@@ -445,36 +427,11 @@ def generate_count_schema_entry(count_id_key, parent_table):
     }
 
 
-"""
-def add_parent_id_to_table(schema, columns, column_order, table, pid_index):
-    parent_fg = get_parent_field_group(table)
-    ancestor_id_key = parent_fg + '.' + get_field_group_id_name(API_PARAMS, parent_fg)
-
-    # add pid to one-to-many table
-    schema[ancestor_id_key] = generate_id_schema_entry(ancestor_id_key, parent_fg)
-    columns[table].add(ancestor_id_key)
-    column_order[table][ancestor_id_key] = pid_index
-
-
-
-def add_case_id_to_table(schema, columns, column_order, table, case_id_index):
-    # add case_id to one-to-many table
-    case_id_name = get_table_case_id_name(table)
-    schema[case_id_name] = generate_id_schema_entry(case_id_name, 'main')
-    columns[table].add(case_id_name)
-    column_order[table][case_id_name] = case_id_index
-"""
-
-
 def add_ref_id_to_table(schema, columns, column_order, table, id_index,
                         id_col_name, program):
     # add parent id to one-to-many table
     parent_fg = get_parent_field_group(table)
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg, program)
-
-    # todo delete print
-    print("schema['{}']: {}".format(id_col_name, schema[id_col_name]))
-
     columns[table].add(id_col_name)
     column_order[table][id_col_name] = id_index
 
@@ -599,45 +556,6 @@ def create_schema_lists(schema, record_counts, merged_orders):
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
 
     return schema_field_lists
-
-'''
-def create_schemas(columns, record_counts):
-    """
-    Create ordered schema lists for final tables.
-    :param record_counts:
-    :param columns: dict containing table column keys
-    :return: lists of BQ SchemaFields.
-    """
-
-    # add bq abbreviations to schema field dicts
-    for entry in schema:
-        field = get_field_name(entry)
-        if field != 'case_id':
-            schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
-
-    schema_field_lists = dict()
-
-    for table in get_tables(record_counts):
-        # this is just alphabetizing the count columns
-        counts_idx = get_count_column_index(table, merged_orders[table])
-        count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
-
-        for count_column in sorted(count_cols):
-            merged_orders[table][count_column] = counts_idx
-            counts_idx += 1
-
-        sorted_column_names = [col for col, idx in sorted(merged_orders[table].items(),
-                                                          key=lambda i: i[1])]
-        schema_field_lists[table] = list()
-
-        for column in sorted_column_names:
-            if column in schema:
-                schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
-            else:
-                print("{} not found in src table, excluding schema field.".format(column))
-
-    return schema_field_lists
-'''
 
 
 def remove_excluded_fields(record, table):
@@ -848,74 +766,6 @@ def merge_or_count_records(flattened_case, record_counts):
     return flattened_case
 
 
-'''
-def merge_or_count_records(flattened_case, program_record_counts):
-    """
-    If program field group has max record count of 1, flattens into parent table.
-    Otherwise, counts record in one-to-many table and adds count field to parent record
-    in flattened_case
-    :param flattened_case: flattened dict containing case record's values
-    :param program_record_counts: max counts for program's field group records
-    :return: modified version of flattened_case
-    """
-    tables = get_tables(program_record_counts)
-    record_count_dict = dict()
-    flattened_fg_parents = dict()
-
-    for field_group in program_record_counts:
-        if field_group == 'cases':
-            continue
-        if program_record_counts[field_group] == 1:
-            if field_group in flattened_case:
-                # create list of flattened field group destination tables
-                flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
-        else:
-            # initialize record count dicts for one-to-many table records
-            # key: parent_id, val: child record count
-            record_count_dict[field_group] = dict()
-
-    # merge single entry field groups
-    for field_group, parent in flattened_fg_parents.items():
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent), parent)
-
-        for record in flattened_case[field_group]:
-            parent_id = record[bq_parent_id_key]
-            parent_idx = get_record_idx(flattened_case, parent, parent_id)
-            flattened_case[parent][parent_idx].update(record)
-
-        flattened_case.pop(field_group)
-
-    # initialize counts for parent_ids for every possible child table (some child tables
-    # won't actually have records, and this initialization adds 0 counts in that case)
-    for field_group in record_count_dict.copy().keys():
-        parent = get_parent_table(tables, field_group)
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_field_group_id_name(API_PARAMS, parent), parent)
-
-        # initialize record counts for parent id
-        if parent in flattened_case:
-            for record in flattened_case[parent]:
-                parent_table_id = record[bq_parent_id_key]
-                record_count_dict[field_group][parent_table_id] = 0
-
-        # count child records
-        if field_group in flattened_case:
-            for record in flattened_case[field_group]:
-                parent_id = record[bq_parent_id_key]
-                record_count_dict[field_group][parent_id] += 1
-
-    # insert record count into flattened dict entries
-    for field_group, parent_ids_dict in record_count_dict.items():
-        parent = get_parent_table(tables, field_group)
-        count_col_name = get_count_column_name(field_group)
-
-        for parent_id, count in parent_ids_dict.items():
-            parent_record_idx = get_record_idx(flattened_case, parent, parent_id)
-            flattened_case[parent][parent_record_idx][count_col_name] = count
-
-    return flattened_case
-'''
-
-
 def create_and_load_tables(program_name, cases, schemas, record_counts):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
@@ -1025,8 +875,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_programs_list()
-    programs = ['HCMI']
+    programs = get_programs_list()
+    # programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
