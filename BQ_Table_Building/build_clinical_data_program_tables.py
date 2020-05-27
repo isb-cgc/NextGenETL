@@ -553,7 +553,7 @@ def add_reference_columns(schema, table_columns, record_counts):
     print("merged_table_orders 1: {}".format(merged_table_orders))
 
     for table, columns in merged_table_orders.copy().items():
-        for column in columns:
+        for column in columns.copy():
             if column not in table_columns[table]:
                 merged_table_orders[table].pop(column)
 
