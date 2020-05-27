@@ -128,6 +128,16 @@ def get_required_columns(api_params, table):
     return [table_id_name]
 
 
+def get_master_table_name(api_params, bq_params):
+    """
+    # todo
+    :param api_params:
+    :param bq_params:
+    :return:
+    """
+    return api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+
+
 #####
 #
 # Functions for analyzing data
@@ -368,7 +378,7 @@ def create_schema_dict(api_params, bq_params):
     :return: flattened schema dict in format:
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
     """
-    table_name = api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    table_name = get_master_table_name(api_params, bq_params)
     table_id = get_table_id(bq_params, table_name)
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
@@ -458,7 +468,7 @@ def get_cases_by_program(api_params, bq_params, program_name):
     cases = []
 
     main_table_id = (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] +
-                     '.' + api_params["GDC_RELEASE"] + '_' + bq_params['MASTER_TABLE'])
+                     '.' + get_master_table_name(api_params, bq_params))
 
     programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
                          bq_params['METADATA_DATASET'] + '.' +
@@ -662,6 +672,17 @@ def get_bq_name(api_params, field_name, table_path=None):
 
     # prefix is blank, like in the instance of 'cases'
     return field
+
+
+def get_field_group_abbreviation(api_params, fg):
+    """
+    # todo
+    :param api_params:
+    :param fg:
+    :return:
+    """
+    prefixes = get_table_prefixes(api_params)
+    return prefixes[fg]
 
 
 def get_parent_field_group(field_name):

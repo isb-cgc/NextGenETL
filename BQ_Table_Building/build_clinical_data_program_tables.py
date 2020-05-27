@@ -30,7 +30,8 @@ from common_etl.utils import (
     get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_table_depths)
+    get_count_field, get_table_case_id_name, get_sorted_table_depths,
+    get_field_group_abbreviation)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -406,10 +407,12 @@ def generate_id_schema_entry(column, parent_table):
     :param parent_table: parent table name
     :return: schema entry dict for new reference id field
     """
+    bq_col_name = get_bq_name(API_PARAMS, column)
     parent_fg = get_field_name(parent_table)
+    fg_abbreviation = get_field_group_abbreviation(API_PARAMS, parent_table)
     source_table = '*_{}'.format(parent_fg) if parent_table != 'cases' else 'main'
     description = ("Reference to the record's parent id ({}), (located in {} table)."
-                   .format(column, source_table))
+                   .format(bq_col_name, fg_abbreviation))
 
     return {
         "name": get_field_name(column),
@@ -436,6 +439,7 @@ def generate_count_schema_entry(count_id_key, parent_table):
     }
 
 
+"""
 def add_parent_id_to_table(schema, columns, column_order, table, pid_index):
     parent_fg = get_parent_field_group(table)
     ancestor_id_key = parent_fg + '.' + get_table_id_key(parent_fg)
@@ -446,12 +450,29 @@ def add_parent_id_to_table(schema, columns, column_order, table, pid_index):
     column_order[table][ancestor_id_key] = pid_index
 
 
+
 def add_case_id_to_table(schema, columns, column_order, table, case_id_index):
     # add case_id to one-to-many table
     case_id_name = get_table_case_id_name(table)
     schema[case_id_name] = generate_id_schema_entry(case_id_name, 'main')
     columns[table].add(case_id_name)
     column_order[table][case_id_name] = case_id_index
+"""
+
+
+def add_ref_id_to_table(schema, columns, column_order, table, id_index, is_case_id=False):
+    if is_case_id:
+        # add case_id to one-to-many table
+        id_field = get_table_case_id_name(table)
+        schema[id_field] = generate_id_schema_entry(id_field, 'main')
+    else:
+        # add parent id to one-to-many table
+        parent_fg = get_parent_field_group(table)
+        id_field = parent_fg + '.' + get_table_id_key(parent_fg)
+        schema[id_field] = generate_id_schema_entry(id_field, parent_fg)
+
+    columns[table].add(id_field)
+    column_order[table][id_field] = id_index
 
 
 def add_count_col_to_parent_table(schema, columns, column_order, table):
@@ -493,10 +514,11 @@ def add_reference_columns(schema, columns, record_counts):
 
         # for formerly doubly-nested tables, ancestor id comes before case_id in schema
         if depth > 2:
-            add_parent_id_to_table(schema, columns, column_orders, table, curr_index)
+            add_ref_id_to_table(schema, columns, column_orders, table, curr_index)
             curr_index += 1
 
-        add_case_id_to_table(schema, columns, column_orders, table, curr_index)
+        add_ref_id_to_table(schema, columns, column_orders, table, curr_index,
+                            is_case_id=True)
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
@@ -530,6 +552,37 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
     return merged_column_orders
 
 
+def create_schema_lists(schema, record_counts, merged_orders):
+    # add bq abbreviations to schema field dicts
+    for entry in schema:
+        field = get_field_name(entry)
+        if field != 'case_id':
+            schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
+
+    schema_field_lists = dict()
+
+    for table in get_tables(record_counts):
+        # this is just alphabetizing the count columns
+        counts_idx = get_count_column_index(table, merged_orders[table])
+        count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
+
+        for count_column in sorted(count_cols):
+            merged_orders[table][count_column] = counts_idx
+            counts_idx += 1
+
+        schema_field_lists[table] = list()
+
+        # sort merged table columns by index
+        for column in [col for col, idx in sorted(merged_orders[table].items(),
+                                                  key=lambda i: i[1])]:
+            if column not in schema:
+                print("{} not found in src table, excluding schema field.".format(column))
+                continue
+            schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
+
+    return schema_field_lists
+
+'''
 def create_schemas(columns, record_counts):
     """
     Create ordered schema lists for final tables.
@@ -537,15 +590,6 @@ def create_schemas(columns, record_counts):
     :param columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
-    schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
-    # modify schema dict, add reference columns for this program
-    column_orders = add_reference_columns(schema, columns, record_counts)
-
-    # reassign merged_column_orders to column_orders
-    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
-
-    # todo delete print
-    print("merged_orders: \n{}".format(merged_orders))
 
     # add bq abbreviations to schema field dicts
     for entry in schema:
@@ -575,6 +619,7 @@ def create_schemas(columns, record_counts):
                 print("{} not found in src table, excluding schema field.".format(column))
 
     return schema_field_lists
+'''
 
 
 def remove_excluded_fields(record, table):
@@ -981,7 +1026,16 @@ def main(args):
             columns, record_counts = find_program_structure(cases)
 
             # generate table schemas
-            table_schemas = create_schemas(columns, record_counts)
+            schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
+
+            # modify schema dict, add reference columns for this program
+            column_orders = add_reference_columns(schema, columns, record_counts)
+
+            # reassign merged_column_orders to column_orders
+            merged_orders = merge_column_orders(schema, columns,
+                                                record_counts, column_orders)
+
+            table_schemas = create_schema_lists(schema, record_counts, merged_orders)
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
