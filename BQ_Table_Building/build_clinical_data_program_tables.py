@@ -861,6 +861,9 @@ def main(args):
     programs = get_programs_list()
     # programs = ['CPTAC']
 
+    # todo delete print
+    print("steps: {}".format(steps))
+
     for program in programs:
         prog_start = time.time()
         if 'create_and_load_tables' or 'validate_data' in steps:
