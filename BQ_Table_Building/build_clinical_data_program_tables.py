@@ -489,7 +489,6 @@ def add_reference_columns(schema, columns, record_counts):
         # todo delete print
         print("column_orders 1: {}".format(column_orders))
 
-
         if depth == 1 or table not in columns:
             continue
 
@@ -511,15 +510,6 @@ def add_reference_columns(schema, columns, record_counts):
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders):
-    # todo delete print
-    print("columns: {}".format(columns))
-
-    # todo delete print
-    print("record_counts: {}".format(record_counts))
-
-    # todo delete print
-    print("column_orders: {}".format(column_orders))
-
     merged_column_orders = dict()
 
     for table, depth in get_sorted_table_depths(record_counts, reverse=True):
