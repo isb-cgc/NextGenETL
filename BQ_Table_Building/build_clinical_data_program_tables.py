@@ -801,7 +801,9 @@ def generate_documentation(documentation_dict):
     json_doc_file = API_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
     json_doc_file += '_json_documentation_dump.json'
 
-    with open(API_PARAMS['SCRATCH_DIR'] + '/' + json_doc_file, 'w') as json_file:
+    doc_fp = get_scratch_dir(API_PARAMS) + '/' + json_doc_file
+
+    with open(doc_fp, 'w') as json_file:
         json.dump(documentation_dict, json_file)
 
     upload_to_bucket(BQ_PARAMS, API_PARAMS, json_doc_file)
