@@ -525,9 +525,6 @@ def remove_null_fields(table_columns, merged_orders):
         merged_orders_set = merged_orders[table].keys()
         null_fields_set = merged_orders_set - table_cols_set
 
-        # todo delete print
-        print("null_fields_set: {}".format(null_fields_set))
-
         for field in null_fields_set:
             merged_orders[table].pop(field)
 
@@ -571,9 +568,6 @@ def remove_excluded_fields(record, table):
     :return: Trimmed down record dict.
     """
     excluded_fields = get_excluded_fields(table)
-
-    # todo delete print
-    print("excluded_fields: {}".format(excluded_fields))
 
     if isinstance(record, set):
         return {field for field in record if field not in excluded_fields}
@@ -876,8 +870,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_programs_list()
-    programs = ['MMRF']
+    programs = get_programs_list()
+    # programs = ['MMRF']
 
     for program in programs:
         prog_start = time.time()
