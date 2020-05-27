@@ -408,11 +408,10 @@ def generate_id_schema_entry(column, parent_table):
     :return: schema entry dict for new reference id field
     """
     bq_col_name = get_bq_name(API_PARAMS, column)
-    parent_fg = get_field_name(parent_table)
     fg_abbreviation = get_field_group_abbreviation(API_PARAMS, parent_table)
-    source_table = '*_{}'.format(parent_fg) if parent_table != 'cases' else 'main'
+    source_table = 'main' if parent_table == 'cases' else '*_{}'.format(fg_abbreviation)
     description = ("Reference to the record's parent id ({}), (located in {} table)."
-                   .format(bq_col_name, fg_abbreviation))
+                   .format(bq_col_name, source_table))
 
     return {
         "name": get_field_name(column),
@@ -460,19 +459,13 @@ def add_case_id_to_table(schema, columns, column_order, table, case_id_index):
 """
 
 
-def add_ref_id_to_table(schema, columns, column_order, table, id_index, is_case_id=False):
-    if is_case_id:
-        # add case_id to one-to-many table
-        id_field = get_table_case_id_name(table)
-        schema[id_field] = generate_id_schema_entry(id_field, 'main')
-    else:
-        # add parent id to one-to-many table
-        parent_fg = get_parent_field_group(table)
-        id_field = parent_fg + '.' + get_table_id_key(parent_fg)
-        schema[id_field] = generate_id_schema_entry(id_field, parent_fg)
+def add_ref_id_to_table(schema, columns, column_order, table, id_index, id_col_name):
+    # add parent id to one-to-many table
+    parent_fg = get_parent_field_group(table)
+    schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg)
 
-    columns[table].add(id_field)
-    column_order[table][id_field] = id_index
+    columns[table].add(id_col_name)
+    column_order[table][id_col_name] = id_index
 
 
 def add_count_col_to_parent_table(schema, columns, column_order, table):
@@ -514,11 +507,18 @@ def add_reference_columns(schema, columns, record_counts):
 
         # for formerly doubly-nested tables, ancestor id comes before case_id in schema
         if depth > 2:
-            add_ref_id_to_table(schema, columns, column_orders, table, curr_index)
+
+            parent_fg = get_parent_field_group(table)
+            parent_id_name = parent_fg + '.' + get_table_id_key(parent_fg)
+
+            add_ref_id_to_table(schema, columns, column_orders, table,
+                                curr_index, parent_id_name)
             curr_index += 1
 
-        add_ref_id_to_table(schema, columns, column_orders, table, curr_index,
-                            is_case_id=True)
+        case_id_name = get_table_case_id_name(table)
+
+        add_ref_id_to_table(schema, columns, column_orders, table,
+                            curr_index, case_id_name)
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
