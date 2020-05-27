@@ -43,9 +43,9 @@ def convert_bytes_to_largest_unit(obj_bytes):
     curr_size = obj_bytes
 
     for unit, multiplier in units:
-        while obj_bytes / pow(1024, multiplier) > 1:
+        while int(obj_bytes) / pow(1024, multiplier) > 1:
             curr_unit = unit
-            curr_size = "{:.3f}".format(obj_bytes / pow(1024, multiplier))
+            curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
 
         return curr_unit, curr_size
 
