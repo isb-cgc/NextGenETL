@@ -138,7 +138,7 @@ def get_master_table_name(api_params, bq_params):
     return api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
 
 
-def get_field_group_id_name(api_params, table_key):
+def get_fg_id_name(api_params, table_key):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param api_params:
@@ -640,7 +640,7 @@ def get_table_case_id_name(field_group):
 
 def get_ancestor_id_name(api_params, field_group):
     parent_fg = get_parent_field_group(field_group)
-    id_col_name = get_field_group_id_name(api_params, parent_fg)
+    id_col_name = get_fg_id_name(api_params, parent_fg)
 
     return parent_fg + '.' + id_col_name
 
