@@ -364,11 +364,11 @@ def find_program_structure(cases):
                                                           record_counts=record_counts,
                                                           fg_name='cases')
     tables = get_tables(record_counts)
-    table_columns = flatten_tables(non_null_fields, tables)
+    columns = flatten_tables(non_null_fields, tables)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
-    return table_columns, tables, record_counts
+    return columns, record_counts
 
 
 ####
@@ -533,20 +533,20 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
     return merged_column_orders
 
 
-def create_schemas(table_columns, tables, record_counts):
+def create_schemas(columns, record_counts):
     """
     Create ordered schema lists for final tables.
     :param record_counts:
-    :param tables:
-    :param table_columns: dict containing table column keys
+    :param columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
+    tables = get_tables(record_counts)
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
     # modify schema dict, add reference columns for this program
-    column_orders = add_reference_columns(schema, table_columns, record_counts)
+    column_orders = add_reference_columns(schema, columns, record_counts)
 
-    column_orders = merge_column_orders(schema, table_columns,
-                                        record_counts, column_orders)
+    # reassign merged_column_orders to column_orders
+    column_orders = merge_column_orders(schema, columns, record_counts, column_orders)
 
     # add bq abbreviations to schema field dicts
     for entry in schema:
@@ -850,7 +850,7 @@ def merge_or_count_records(flattened_case, program_record_counts):
 '''
 
 
-def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
+def create_and_load_tables(program_name, cases, schemas, record_counts):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
@@ -858,8 +858,8 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
-    :param tables: set of table names
     """
+    tables = get_tables(record_counts)
     print("\nInserting case records...")
     for table in tables:
         jsonl_file_path = get_temp_filepath(program_name, table)
@@ -964,7 +964,8 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        if 'create_and_load_tables' in steps or 'validate_data' in steps:
+        # if 'create_and_load_tables' in steps or 'validate_data' in steps:
+        if 'create_and_load_tables' in steps:
 
             print("Executing script for program {}...".format(program))
 
@@ -974,18 +975,20 @@ def main(args):
                 continue
 
             # derive the program's table structure by analyzing its case records
-            table_columns, tables, record_counts = find_program_structure(cases)
+            columns, record_counts = find_program_structure(cases)
 
-        if 'create_and_load_tables' in steps:
             # generate table schemas
-            table_schemas = create_schemas(table_columns, tables, record_counts)
-            # create tables, flatten and insert data
-            create_and_load_tables(program, cases, table_schemas, tables, record_counts)
+            table_schemas = create_schemas(columns, record_counts)
 
-            print("{} processed in {:0.1f} seconds!\n".format(program,
-                                                              time.time() - prog_start))
+            # create tables, flatten and insert data
+            create_and_load_tables(program, cases, table_schemas, record_counts)
+
+            prog_end = time.time() - prog_start
+            print("{} processed in {:0.1f} seconds!\n".format(program, prog_end))
+
+            '''
             if 'generate_documentation' in steps:
-                """
+                
                 table_ids = {table: get_table_id(BQ_PARAMS, table) for table in tables}
 
                 # converting to JSON serializable form
@@ -997,14 +1000,13 @@ def main(args):
                     'table_ids': table_ids,
                     'table_order_dict': table_order_lists
                 }
-                """
+            '''
 
     if 'generate_documentation' in steps:
         # documentation_dict['metadata'] = dict()
         # documentation_dict['metadata']['API_PARAMS'] = API_PARAMS
         # documentation_dict['metadata']['BQ_PARAMS'] = BQ_PARAMS
         # documentation_dict['metadata']['schema_dict'] = schema_dict
-
         generate_documentation()
 
     if 'validate_data' in steps:
