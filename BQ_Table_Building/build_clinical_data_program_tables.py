@@ -738,7 +738,8 @@ def get_record_counts(flattened_case, record_counts):
     :return:
     """
     # initialize dict with field groups that can't be flattened
-    record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
+    # record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
+    record_count_dict = {fg: dict() for fg in record_counts if record_counts[fg] > 1}
     tables = get_tables(record_counts)
 
     for field_group in record_count_dict.copy().keys():
