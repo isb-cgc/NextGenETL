@@ -310,8 +310,7 @@ def examine_case(table_columns, field_group, record_counts, fg_name):
                 for child_field in record:
                     table_columns[fg_name].add(child_field)
             else:
-                if field:
-                    table_columns[fg_name].add(field)
+                table_columns[fg_name].add(field)
 
     return table_columns, record_counts
 
@@ -884,6 +883,9 @@ def main(args):
 
         # derive the program's table structure by analyzing its case records
         table_columns, tables, record_counts = find_program_structure(cases)
+
+        # todo delete print
+        print("table_columns: {}".format(table_columns))
 
         if 'create_and_load_tables' in steps:
             # generate table schemas
