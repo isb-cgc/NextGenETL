@@ -256,18 +256,19 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    data_fp = get_scratch_filepath(API_PARAMS)
+    scratch_path = get_scratch_filepath(API_PARAMS)
+    output_fp = scratch_path + '/' + API_PARAMS['DATA_OUTPUT_FILE']
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
-        retrieve_and_save_case_records(data_fp)
+        retrieve_and_save_case_records(output_fp)
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
         print('Creating BQ schema object!')
-        schema = create_bq_schema(data_fp)
+        schema = create_bq_schema(output_fp)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
