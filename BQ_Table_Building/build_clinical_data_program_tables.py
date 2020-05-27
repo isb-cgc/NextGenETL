@@ -467,7 +467,7 @@ def add_ref_id_to_table(schema, columns, column_order, table, id_index, id_col_n
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg)
 
     # todo delete print
-    print("schema[id_col_name]: {}".format(schema[id_col_name]))
+    print("schema['{}']: {}".format(id_col_name, schema[id_col_name]))
 
     columns[table].add(id_col_name)
     column_order[table][id_col_name] = id_index
