@@ -21,7 +21,6 @@ SOFTWARE.
 """
 import io
 import yaml
-import pprint
 import requests
 import time
 from google.cloud import bigquery, storage
@@ -327,24 +326,6 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
-def get_programs_from_bq():
-    results = get_query_results(
-        """
-        SELECT case_barcode, program_name
-        FROM `isb-project-zero.GDC_metadata.rel22_caseData`
-        """
-    )
-
-    program_submitter_dict = {}
-
-    for row in results:
-        program_name = row.get('program_name')
-        submitter_id = row.get('case_barcode')
-        program_submitter_dict[submitter_id] = program_name
-
-    return program_submitter_dict
-
-
 def get_query_results(query):
     client = bigquery.Client()
 
@@ -408,80 +389,15 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error(err)
 
 
-def pprint_json(json_obj):
-    """
-    Pretty prints json objects.
-    :param json_obj: json object to pprint
-    """
-    pp = pprint.PrettyPrinter(indent=1)
-    pp.pprint(json_obj)
-
-
-def ordered_print(flattened_case_dict, order_dict):
-    def make_tabs(indent_):
-        tab_list = indent_ * ['\t']
-        return "".join(tab_list)
-
-    tables_string = '{\n'
-    indent = 1
-
-    for table in sorted(flattened_case_dict.keys()):
-        tables_string += "{}'{}': [\n".format(make_tabs(indent), table)
-
-        split_prefix = table.split(".")
-        if len(split_prefix) == 1:
-            prefix = ''
-        else:
-            prefix = '__'.join(split_prefix[1:])
-            prefix += '__'
-
-        for entry in flattened_case_dict[table]:
-            entry_string = "{}{{\n".format(make_tabs(indent + 1))
-            field_order_dict = dict()
-
-            for key in entry.copy():
-                col_order_lookup_key = prefix + key
-
-                try:
-                    field_order_dict[key] = order_dict[col_order_lookup_key]
-                except KeyError:
-                    print("ORDERED PRINT -- {} not in column order dict".format(
-                        col_order_lookup_key))
-                    for k, v in sorted(order_dict.items(),
-                                       key=lambda item: item[0]):
-                        print("{}: {}".format(k, v))
-                    field_order_dict[key] = 0
-
-            for field_key, order in sorted(field_order_dict.items(),
-                                           key=lambda item: item[1]):
-                entry_string += "{}{}: {},\n".format(make_tabs(indent + 2),
-                                                     field_key,
-                                                     entry[field_key])
-            entry_string = entry_string.rstrip('\n')
-            entry_string = entry_string.rstrip(',')
-
-            entry_string += '{}}}\n'.format(make_tabs(indent + 1))
-            tables_string += entry_string
-        tables_string = tables_string.rstrip('\n')
-        tables_string = tables_string.rstrip(',')
-        tables_string += '\n'
-        tables_string += "{}],\n".format(make_tabs(indent))
-    tables_string = tables_string.rstrip('\n')
-    tables_string = tables_string.rstrip(',')
-    tables_string += "\n}"
-
-    print(tables_string)
-
-
-def get_cases_by_program(bq_params, table_suffix, program_name):
+def get_cases_by_program(api_params, bq_params, program_name):
     cases = []
 
-    dataset_path = bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"]
-    main_table_id = dataset_path + '.' + bq_params["GDC_RELEASE"] + '_' + table_suffix
+    main_table_id = (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] +
+                     '.' + api_params["GDC_RELEASE"] + '_' + bq_params['MASTER_TABLE'])
 
-    programs_table_id = bq_params['WORKING_PROJECT'] + '.' + \
-                        bq_params['METADATA_DATASET'] + '.' + \
-                        bq_params['GDC_RELEASE'] + '_caseData'
+    programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
+                         bq_params['METADATA_DATASET'] + '.' +
+                         api_params['GDC_RELEASE'] + '_caseData')
 
     results = get_query_results(
         """
@@ -496,11 +412,12 @@ def get_cases_by_program(bq_params, table_suffix, program_name):
 
     for case_row in results:
         cases.append(dict(case_row.items()))
+
     if cases:
         print("{} cases retrieved.".format(len(cases)))
     else:
-        print("No case records found for program {}, skipping."
-              .format(program_name))
+        print("No case records found for program {}, skipping.".format(program_name))
+
     return cases
 
 
@@ -580,37 +497,8 @@ def get_table_id(bq_params, table_name):
     :param table_name: Desired table name (can be created using get_table_id
     :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
     """
-    return bq_params["WORKING_PROJECT"] + '.' + \
-           bq_params["TARGET_DATASET"] + '.' + table_name
-
-
-def convert_bq_table_id_to_fg(table_id):
-    short_table_name = "_".join(table_id.split('_')[3:])
-
-    table_name = 'cases'
-
-    if short_table_name:
-        table_name += '.' + '.'.join(short_table_name.split('__'))
-
-    return table_name
-
-
-def get_max_count(record_count_list):
-    max_count = 0
-    max_count_id = None
-    for record_count_entry in record_count_list:
-        if record_count_entry['record_count'] > max_count:
-            max_count_id = record_count_entry
-            max_count = record_count_entry['record_count']
-
-    return max_count, max_count_id
-
-
-def in_bq_format(name):
-    if '__' in name:
-        return True
-    else:
-        return False
+    return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
+            table_name)
 
 
 def get_parent_table(table_keys, field_group):
@@ -666,11 +554,15 @@ def build_schema(api_params, flat_schema, field_group, schema_fields=None):
 
 
 def create_schema_dict(api_params, bq_params, master_table):
-    table_id = get_table_id(bq_params, bq_params['GDC_RELEASE'] + '_' + master_table)
+    table_id = get_table_id(bq_params, api_params['GDC_RELEASE'] + '_' + master_table)
     client = bigquery.Client()
     table = client.get_table(table_id)
 
     return build_schema(api_params, dict(), 'cases', table.schema)
+
+
+def to_bq_schema_obj(schema_field_dict):
+    return bigquery.SchemaField.from_api_repr(schema_field_dict)
 
 
 def upload_to_bucket(bq_params, fp, file_name):
@@ -684,13 +576,30 @@ def upload_to_bucket(bq_params, fp, file_name):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def get_dataset_table_list(bq_params, prefix_component):
+'''
+# currently unused, but would be a good addition to package
+def download_from_bucket(src_file, dest_file, api_params, bq_params):
+    client = storage.Client()
+
+    with open(dest_file) as file_obj:
+        bucket_path = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
+                       bq_params['WORKING_BUCKET_DIR'] + '/')
+        path_to_file = bucket_path + '/' + api_params['GDC_RELEASE'] + src_file
+
+        client.download_blob_to_file(path_to_file, file_obj)
+'''
+
+
+''' 
+# for test_data_integrity
+
+def get_dataset_table_list(api_params, bq_params, prefix_component):
     client = bigquery.Client()
     dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' +
                                  bq_params['TARGET_DATASET'])
     results = client.list_tables(dataset)
 
-    prefix = bq_params["GDC_RELEASE"] + '_' + prefix_component + '_'
+    prefix = api_params["GDC_RELEASE"] + '_' + prefix_component + '_'
 
     table_id_list = []
 
@@ -702,18 +611,6 @@ def get_dataset_table_list(bq_params, prefix_component):
     table_id_list.sort()
 
     return table_id_list
+'''
 
 
-def to_SchemaField(schema_field_dict):
-    return bigquery.SchemaField.from_api_repr(schema_field_dict)
-
-
-def download_from_bucket(src_file, dest_file, bq_params):
-    client = storage.Client()
-
-    with open(dest_file) as file_obj:
-        bucket_path = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
-                       bq_params['WORKING_BUCKET_DIR'] + '/')
-        path_to_file = bucket_path + '/' + bq_params['GDC_RELEASE'] + src_file
-
-        client.download_blob_to_file(path_to_file, file_obj)

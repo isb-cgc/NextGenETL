@@ -32,8 +32,17 @@ from common_etl.utils import (
     has_fatal_error
 )
 
+API_PARAMS = dict()
+BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
+
+
+def get_expand_groups():
+    if 'EXPAND_FIELD_GROUPS' not in API_PARAMS:
+        has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
+
+    return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
 
 
 def request_from_api(api_params, curr_index):
@@ -44,11 +53,12 @@ def request_from_api(api_params, curr_index):
     :return: response object
     """
     err_list = []
+
     try:
         request_params = {
             'from': curr_index,
             'size': api_params['BATCH_SIZE'],
-            'expand': api_params['EXPAND_FIELD_GROUPS']
+            'expand': get_expand_groups()
         }
 
         # retrieve and parse a "page" (batch) of case objects
@@ -111,7 +121,7 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
                 if 'days_to_index' in case:
                     print("Found days_to_index!\n{}".format(case))
                 case_copy = case.copy()
-                for field in api_params['EXCLUDE_FIELDS'].split(','):
+                for field in api_params['EXCLUDE_FIELDS']:
                     if field in case_copy:
                         case.pop(field)
 
@@ -224,15 +234,9 @@ def create_bq_schema(api_params, data_fp):
 
     endpoint_name = api_params['ENDPOINT'].split('/')[-1]
 
-    print("EXPAND FIELDS: {}".format(api_params['EXPAND_FIELD_GROUPS']))
-
-    bq_schema = generate_bq_schema(
-        schema_dict,
-        record_type=endpoint_name,
-        expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
-    )
-
-    return bq_schema
+    return generate_bq_schema(schema_dict,
+                                   record_type=endpoint_name,
+                                   expand_fields_list=get_expand_groups())
 
 
 def validate_params(api_params, bq_params):
@@ -333,11 +337,18 @@ def main(args):
     # Load the YAML config file
     with open(args[1], mode='r') as yaml_file:
         try:
+            # todo uncomment
+            # GLOBAL API_PARAMS, BQ_PARAMS
+            # API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
+
             api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
     # Validate YAML config params
+    # todo uncomment
+    # validate_params(API_PARAMS, BQ_PARAMS)
+
     validate_params(api_params, bq_params)
 
     data_fp = construct_filepath(api_params)
@@ -366,7 +377,7 @@ def main(args):
             bq_params,
             jsonl_rows_file=api_params['DATA_OUTPUT_FILE'],
             schema=schema,
-            table_name=bq_params['GDC_RELEASE'] + '_clinical_data')
+            table_name=api_params['GDC_RELEASE'] + '_clinical_data')
 
     end = time.time() - start
     print("Script executed in {:.0f} seconds\n".format(end))

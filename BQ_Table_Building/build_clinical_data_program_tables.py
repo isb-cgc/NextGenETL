@@ -29,8 +29,7 @@ from common_etl.utils import (
     get_table_prefixes, get_bq_name, has_fatal_error, get_query_results, get_field_name,
     get_tables, get_parent_table, get_parent_field_group, load_config,
     get_cases_by_program, get_table_id, upload_to_bucket, create_and_load_table,
-    get_field_depth, get_full_field_name, in_bq_format, create_schema_dict,
-    to_SchemaField)
+    get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -58,7 +57,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_NAME_PREFIX'], program_name]
+    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_PREFIX'], program_name]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -139,6 +138,10 @@ def get_id_index(table_key, column_order_dict):
     """
     table_id_key = get_table_id_key(table_key)
     return column_order_dict[table_key + '.' + table_id_key]
+
+
+def get_count_column_name(table_key):
+    return get_bq_name(API_PARAMS, 'count', table_key)
 
 
 ####
@@ -336,10 +339,6 @@ def find_program_structure(cases):
     return table_columns, tables, record_counts
 
 
-def get_count_column_name(table_key):
-    return get_bq_name(API_PARAMS, 'count', table_key)
-
-
 ####
 #
 # Functions used for schema creation
@@ -476,15 +475,6 @@ def add_reference_columns(schema, table_columns, record_counts):
     return schema, table_columns, merged_table_orders
 
 
-def prefix_field_names(schema_dict):
-    for entry in schema_dict:
-        if schema_dict[entry]['name'] == 'case_id':
-            continue
-        schema_dict[entry]['name'] = get_bq_name(API_PARAMS, entry)
-
-    return schema_dict
-
-
 def create_schemas(table_columns, tables, record_counts):
     """
     Create ordered schema lists for final tables.
@@ -493,14 +483,18 @@ def create_schemas(table_columns, tables, record_counts):
     :param table_columns: dict containing table column keys
     :return: lists of BQ SchemaFields.
     """
-    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, BQ_PARAMS['MASTER_TABLE_NAME'])
+    schema_dict = create_schema_dict(API_PARAMS, BQ_PARAMS, BQ_PARAMS['MASTER_TABLE'])
     # modify schema dict, add reference columns for this program
     schema_dict, table_columns, column_orders = add_reference_columns(schema_dict,
                                                                       table_columns,
                                                                       record_counts)
 
     # add bq abbreviations to schema field dicts
-    schema_dict = prefix_field_names(schema_dict)
+    for entry in schema_dict:
+        if schema_dict[entry]['name'] == 'case_id':
+            continue
+        schema_dict[entry]['name'] = get_bq_name(API_PARAMS, entry)
+
     schema_field_lists = dict()
 
     for table in tables:
@@ -514,15 +508,13 @@ def create_schemas(table_columns, tables, record_counts):
 
         sorted_column_names = [col for col, idx in sorted(column_orders[table].items(),
                                                           key=lambda i: i[1])]
-        schema_list = []
+        schema_field_lists[table] = list()
 
         for column in sorted_column_names:
             if column in schema_dict:
-                schema_list.append(to_SchemaField(schema_dict[column]))
+                schema_field_lists[table].append(to_bq_schema_obj(schema_dict[column]))
             else:
                 print("{} not found in src table, excluding schema field.".format(column))
-
-        schema_field_lists[table] = schema_list
 
     return schema_field_lists, column_orders
 
@@ -624,7 +616,7 @@ def flatten_case(case):
                               pid_field='case_id')
 
 
-def find_record_idx(flattened_case, field_group, record_id):
+def get_record_idx(flattened_case, field_group, record_id):
     fg_id_key = get_bq_name(API_PARAMS, get_table_id_key(field_group), field_group)
 
     idx = 0
@@ -634,8 +626,8 @@ def find_record_idx(flattened_case, field_group, record_id):
             return idx
         idx += 1
 
-    has_fatal_error("No parent record found in flattened_case with given parent id")
-    return None  # make the debugger be quiet
+    return has_fatal_error("No parent record with id {} found in flattened_case"
+                           .format(record_id))
 
 
 def merge_or_count_records(flattened_case, program_record_counts):
@@ -661,7 +653,7 @@ def merge_or_count_records(flattened_case, program_record_counts):
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
-            parent_idx = find_record_idx(flattened_case, parent, parent_id)
+            parent_idx = get_record_idx(flattened_case, parent, parent_id)
             flattened_case[parent][parent_idx].update(record)
 
         flattened_case.pop(field_group)
@@ -690,66 +682,10 @@ def merge_or_count_records(flattened_case, program_record_counts):
         count_col_name = get_count_column_name(field_group)
 
         for parent_id, count in parent_ids_dict.items():
-            parent_record_idx = find_record_idx(flattened_case, parent, parent_id)
+            parent_record_idx = get_record_idx(flattened_case, parent, parent_id)
             flattened_case[parent][parent_record_idx][count_col_name] = count
 
     return flattened_case
-
-
-def sort_fgs_by_depth(fgs, reverse=False):
-    fg_depths = {fg: get_field_depth(fg) for fg in fgs}
-    return sorted(fg_depths.items(), key=lambda item: item[1], reverse=reverse)
-
-
-def get_fg_ids(case, fg, curr_depth, fg_ids):
-    if curr_depth > get_field_depth(fg):
-        return None
-
-    if curr_depth != get_field_depth(fg):
-        next_field = fg.split('.')[curr_depth]
-
-        if case and next_field in case:
-            if isinstance(case[next_field], list):
-                for entry in case[next_field]:
-                    fg_ids = get_fg_ids(entry, fg, curr_depth + 1, fg_ids)
-            else:
-                fg_ids = get_fg_ids(case[next_field], fg, curr_depth + 1, fg_ids)
-    else:
-        fg_id = get_table_id_key(fg)
-
-        if isinstance(case, list):
-            fg_ids = fg_ids | {entry[fg_id] for entry in case}
-        else:
-            fg_ids.add(case[fg_id])
-
-    return fg_ids
-
-
-def get_case_fg_ids(case):
-    if not case:
-        return None
-
-    case_fg_ids = dict()
-    case_id = case['case_id']
-
-    for fg, vals in sort_fgs_by_depth(API_PARAMS['TABLE_ORDER'], reverse=False):
-        if fg not in case_fg_ids:
-            case_fg_ids[fg] = set()
-
-        fg_ids = case_fg_ids[fg]
-        case_fg_ids[fg] = get_fg_ids(case, fg, curr_depth=1, fg_ids=fg_ids)
-
-    return case_id, case_fg_ids
-
-
-def get_cases_fg_ids(cases):
-    cases_fg_ids = dict()
-
-    for case in cases:
-        case_id, case_fg_ids = get_case_fg_ids(case)
-        cases_fg_ids[case_id] = case_fg_ids
-
-    return cases_fg_ids
 
 
 def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
@@ -803,7 +739,7 @@ def generate_documentation(documentation_dict):
     :param documentation_dict:
     :return:
     """
-    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_NAME_PREFIX']
+    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
     json_doc_file += '_json_documentation_dump.json'
 
     with open(API_PARAMS['TEMP_PATH'] + '/' + json_doc_file, 'w') as json_file:
@@ -870,7 +806,7 @@ def main(args):
         prog_start = time.time()
         print("Executing script for program {}...".format(program))
 
-        cases = get_cases_by_program(BQ_PARAMS, BQ_PARAMS['MASTER_TABLE_NAME'], program)
+        cases = get_cases_by_program(API_PARAMS, BQ_PARAMS, program)
 
         if not cases:
             continue

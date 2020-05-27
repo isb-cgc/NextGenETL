@@ -1,3 +1,4 @@
+'''
 from common_etl.utils import *
 from BQ_Table_Building.build_clinical_data_program_tables import (
     find_program_structure, get_table_id_key, get_programs_list,
@@ -7,12 +8,9 @@ from BQ_Table_Building.build_clinical_data_program_tables import (
 API_PARAMS = None
 BQ_PARAMS = None
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+'''
 
-# todo include in YAML
-TABLE_NAME_PREFIX = 'clin'
-TABLE_NAME_FULL = 'clinical_data'
-
-
+'''
 ##
 # Functions used for validating inserted data
 ##
@@ -217,3 +215,4 @@ def test_table_output():
                     key, cases_tally_max_counts[key],
                     program_table_query_max_counts[key]))
         print("Counts all match! Moving on.")
+'''
