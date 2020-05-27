@@ -92,7 +92,7 @@ def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
 
     for program, tables in program_tables_json.items():
-        if len(tables) == 1:
+        if len(tables) > 1:
             print(program)
             for table, table_attrs in tables.items():
                 style_table_entry(table, table_attrs)
