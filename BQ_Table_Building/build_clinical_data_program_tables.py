@@ -57,7 +57,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [BQ_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_PREFIX'], program_name]
+    file_name_parts = [API_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_PREFIX'], program_name]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -161,7 +161,7 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         BQ_PARAMS['GDC_RELEASE'] + '_caseData')
+                         API_PARAMS['GDC_RELEASE'] + '_caseData')
 
     programs = set()
     results = get_query_results("SELECT distinct(program_name) FROM `{}`"
@@ -798,7 +798,7 @@ def generate_documentation(documentation_dict):
     :param documentation_dict:
     :return:
     """
-    json_doc_file = BQ_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
+    json_doc_file = API_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
     json_doc_file += '_json_documentation_dump.json'
 
     with open(API_PARAMS['SCRATCH_DIR'] + '/' + json_doc_file, 'w') as json_file:
