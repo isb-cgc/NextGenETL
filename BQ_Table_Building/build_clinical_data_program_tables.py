@@ -424,7 +424,7 @@ def generate_id_schema_entry(column, parent_table, program):
         "type": 'STRING',
         "description": ("Reference to ancestor {}, located in {}."
                         .format(bq_col_name, source_table)),
-        "mode": 'NULLABLE'
+        "mode": 'REQUIRED'
     }
 
 
@@ -1053,13 +1053,7 @@ def main(args):
             merged_orders = merge_column_orders(schema, columns,
                                                 record_counts, column_orders)
 
-            # todo delete print
-            print("merged_orders 1: {}".format(merged_orders))
-
             remove_null_fields(columns, merged_orders)
-
-            # todo delete print
-            print("merged_orders 2: {}".format(merged_orders))
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
 
