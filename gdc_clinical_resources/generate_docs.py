@@ -56,7 +56,6 @@ def get_table_list_for_curr_release(api_params, bq_params):
     client = bigquery.Client()
     table_iter = client.list_tables(dataset_id)
     program_tables_json = dict()
-    table_attr_objs = dict()
 
     for table_item in table_iter:
         table_name = table_item.table_id
@@ -86,6 +85,7 @@ def get_table_list_for_curr_release(api_params, bq_params):
 
 def style_table_entry(table_name, table_json_attr):
     print(table_name)
+    print(table_json_attr)
     print(convert_bytes_to_largest_unit(table_json_attr['numBytes']))
 
 
