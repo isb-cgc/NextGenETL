@@ -549,7 +549,9 @@ def create_schemas(columns, record_counts):
 
     # add bq abbreviations to schema field dicts
     for entry in schema:
-        schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
+        field = get_field_name(entry)
+        if field != 'case_id':
+            schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
 
     schema_field_lists = dict()
 
