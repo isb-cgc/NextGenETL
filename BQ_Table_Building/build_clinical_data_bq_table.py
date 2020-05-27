@@ -263,10 +263,13 @@ def main(args):
     # Load the YAML config file
     with open(args[1], mode='r') as yaml_file:
         try:
+            global API_PARAMS, BQ_PARAMS
             # todo uncomment
-            # GLOBAL API_PARAMS, BQ_PARAMS
             # API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
+            # todo eventually delete these 3 lines
             api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
+            API_PARAMS = api_params
+            BQ_PARAMS = bq_params
         except ValueError as e:
             has_fatal_error(str(e), ValueError)
 
