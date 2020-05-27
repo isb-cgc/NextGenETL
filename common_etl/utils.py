@@ -651,12 +651,11 @@ def upload_to_bucket(bq_params, api_params, file_name):
     :param api_params: api params from yaml config file
     :param file_name: name of file to upload to bucket
     """
-    filepath = api_params['SCRATCH_DIR']
+    filepath = get_scratch_filepath(api_params)
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
         blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
-
         blob.upload_from_filename(filepath + '/' + file_name)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
