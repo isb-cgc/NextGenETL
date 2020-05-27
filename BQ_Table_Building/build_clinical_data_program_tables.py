@@ -759,7 +759,7 @@ def get_record_counts(flattened_case, record_counts):
 
     # insert record count into flattened dict entries
     for field_group, parent_ids_dict in record_count_dict.items():
-        parent_table = get_parent_table(record_count_dict.keys(), field_group)
+        parent_table = get_parent_table(record_counts, field_group)
         count_col_name = get_count_column_name(field_group)
 
         for parent_id, count in parent_ids_dict.items():
