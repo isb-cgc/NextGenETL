@@ -486,6 +486,10 @@ def add_reference_columns(schema, columns, record_counts):
         # get ordering for table by only including relevant column indexes
         column_orders[table] = get_column_order(table)
 
+        # todo delete print
+        print("column_orders 1: {}".format(column_orders))
+
+
         if depth == 1 or table not in columns:
             continue
 
@@ -499,6 +503,9 @@ def add_reference_columns(schema, columns, record_counts):
         add_case_id_to_table(schema, columns, column_orders, table, curr_index)
 
         add_count_col_to_parent_table(schema, columns, column_orders, table)
+
+        # todo delete print
+        print("column_orders 2: {}".format(column_orders))
 
     return column_orders
 
