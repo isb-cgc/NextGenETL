@@ -16,7 +16,22 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-import json
+# import json
+# from common_etl.utils import has_fatal_error
+from google.cloud import bigquery
+
+
+def get_table_list_for_curr_release(api_params, bq_params):
+    dataset_id = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
+    client = bigquery.Client()
+    table_iter = client.list_tables(dataset_id)
+
+    for table in table_iter:
+        print(table)
+
+
+def generate_docs(api_params, bq_params):
+    get_table_list_for_curr_release(api_params, bq_params)
 
 """
 
@@ -41,7 +56,7 @@ documentation:
 - data source citation
 """
 
-
+'''
 def generate_table_documentation(table, table_id, record_count, columns, column_order):
     print()
     print("{}".format(table))
@@ -50,8 +65,6 @@ def generate_table_documentation(table, table_id, record_count, columns, column_
     print("{}".format(columns))
     print("{}".format(column_order))
     print()
-
-
 def main():
     with open('files/rel23_documentation.json', 'r') as json_file:
         doc_json = json.load(json_file)
@@ -71,16 +84,6 @@ def main():
                 record_count = record_counts[table]
 
                 generate_table_documentation(table, table_id, record_count, columns, column_order)
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     main()
+'''
