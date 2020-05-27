@@ -549,8 +549,17 @@ def add_reference_columns(schema, table_columns, record_counts):
 
         merged_table_orders[merged_key].update(table_orders[table])
 
+
     # todo delete print
-    print("merged_table_orders: {}".format(merged_table_orders))
+    print("merged_table_orders 1: {}".format(merged_table_orders))
+
+    for table in merged_table_orders.copy():
+        for column in table:
+            if column not in table_columns[table]:
+                merged_table_orders[table].pop(column)
+
+    # todo delete print
+    print("merged_table_orders 2: {}".format(merged_table_orders))
 
     return schema, table_columns, merged_table_orders
 
