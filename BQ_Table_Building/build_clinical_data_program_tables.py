@@ -542,7 +542,7 @@ def create_schemas(columns, record_counts):
     column_orders = add_reference_columns(schema, columns, record_counts)
 
     # todo delete print
-    print("schema: \n{}".format(schema))
+    print("columns: \n{}".format(columns))
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
