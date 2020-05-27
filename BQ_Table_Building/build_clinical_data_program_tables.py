@@ -866,7 +866,7 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        if 'create_and_load_tables' or 'validate_data' in steps:
+        if 'create_and_load_tables' in steps or 'validate_data' in steps:
 
             print("Executing script for program {}...".format(program))
 
