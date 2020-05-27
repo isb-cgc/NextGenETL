@@ -504,6 +504,15 @@ def add_reference_columns(schema, columns, record_counts):
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders):
+    # todo delete print
+    print("columns: {}".format(columns))
+
+    # todo delete print
+    print("record_counts: {}".format(record_counts))
+
+    # todo delete print
+    print("column_orders: {}".format(column_orders))
+
     merged_column_orders = dict()
 
     for table, depth in get_sorted_table_depths(record_counts, reverse=True):
@@ -540,9 +549,6 @@ def create_schemas(columns, record_counts):
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
     # modify schema dict, add reference columns for this program
     column_orders = add_reference_columns(schema, columns, record_counts)
-
-    # todo delete print
-    print("record_counts: {}".format(record_counts))
 
     # reassign merged_column_orders to column_orders
     column_orders = merge_column_orders(schema, columns, record_counts, column_orders)
@@ -958,7 +964,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_programs_list()
+    # programs = get_programs_list()
     programs = ['HCMI']
 
     for program in programs:
