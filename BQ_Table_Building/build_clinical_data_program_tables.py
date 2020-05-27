@@ -409,16 +409,21 @@ def generate_id_schema_entry(column, parent_table):
     :param parent_table: parent table name
     :return: schema entry dict for new reference id field
     """
-    bq_col_name = get_bq_name(API_PARAMS, column)
-    fg_abbreviation = get_field_group_abbreviation(API_PARAMS, parent_table)
-    source_table = 'main' if parent_table == 'cases' else '*_{}'.format(fg_abbreviation)
-    description = ("Reference to the record's parent id ({}), (located in {} table)."
-                   .format(bq_col_name, source_table))
+    field_name = get_field_name(column)
+
+    if field_name == 'case_id':
+        bq_col_name = 'case_id'
+        source_table = 'main'
+    else:
+        bq_col_name = get_bq_name(API_PARAMS, column)
+        fg_abbreviation = get_field_group_abbreviation(API_PARAMS, parent_table)
+        source_table = '*_{}'.format(fg_abbreviation)
 
     return {
         "name": get_field_name(column),
         "type": 'STRING',
-        "description": description,
+        "description": ("Reference to the record's parent id ({}), (located in {} table)."
+                        .format(bq_col_name, source_table)),
         "mode": 'NULLABLE'
     }
 
