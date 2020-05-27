@@ -724,7 +724,7 @@ def merge_or_count_records(flattened_case, program_record_counts):
     flattened_fg_parents = dict()
 
     for field_group in program_record_counts:
-        if field_group == 'cases':
+        if field_group == 'cases' or field_group not in flattened_case:
             continue
         if program_record_counts[field_group] == 1:
             # create list of flattened field group destination tables
