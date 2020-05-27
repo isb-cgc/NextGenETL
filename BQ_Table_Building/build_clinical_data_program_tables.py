@@ -577,9 +577,6 @@ def create_schemas(table_columns, tables, record_counts):
                                                                       table_columns,
                                                                       record_counts)
 
-    # todo delete print
-    print("column_orders: {}".format(column_orders))
-
     # add bq abbreviations to schema field dicts
     schema_dict = prefix_field_names(schema_dict)
     schema_field_lists = dict()
@@ -720,6 +717,8 @@ def find_record_idx(flattened_case, field_group, record_id):
 
 
 def merge_or_count_records(flattened_case, program_record_counts):
+    # todo delete print
+    print("flattened_case:\n{}".format(flattened_case))
     tables = get_tables(program_record_counts)
     record_count_dict = dict()
     flattened_fg_parents = dict()
@@ -943,8 +942,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_programs_list()
-    # programs = ['HCMI']
+    # programs = get_programs_list()
+    programs = ['CGCI']
 
     for program in programs:
         prog_start = time.time()
@@ -953,7 +952,6 @@ def main(args):
         cases = get_cases_by_program(BQ_PARAMS, BQ_PARAMS['MASTER_TABLE_NAME'], program)
 
         if not cases:
-            print("Skipping program {}, no cases found.")
             continue
 
         # derive the program's table structure by analyzing its case records
