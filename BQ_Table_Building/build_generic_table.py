@@ -75,7 +75,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, bq_filters, steps = load_config(yaml_file.read())
+        params, steps = load_config(yaml_file.read())
 
     #
     # publish table:
