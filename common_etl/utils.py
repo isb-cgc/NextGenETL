@@ -617,9 +617,8 @@ def get_parent_table(table_keys, field_group):
     base_table = field_group.split('.')[0]
 
     if not base_table or base_table not in table_keys:
-        has_fatal_error(
-            "'{}' has no parent table in tables list: {}".format(field_group,
-                                                                 table_keys))
+        has_fatal_error("'{}' has no parent table in tables list: {}"
+                        .format(field_group, table_keys))
 
     parent_table_key = get_parent_field_group(field_group)
 

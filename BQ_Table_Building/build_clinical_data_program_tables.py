@@ -654,121 +654,6 @@ def flatten_case(case):
                               pid_field='case_id')
 
 
-'''
-def merge_single_entry_field_groups(flattened_case, bq_program_tables):
-    """
-    Merge field groups which have a max of one record for every case in this
-    program.
-    These columns will be located in parent table.
-    :param flattened_case: flattened dictionary for case (used to
-    recursively capture the record as it's parsed).
-    :param bq_program_tables: list of tables to be created for this program.
-    :return: flattened_case_dict with single record tables merged.
-    """
-    fg_depths = {fg: get_field_depth(fg) for fg in flattened_case.keys()}
-
-    for fg_key, fg_depth in sorted(fg_depths.items(), key=lambda item: item[1], reverse=True):
-        # cases is the master table, merged into
-        if fg_depth == 1:
-            break
-
-        parent_table = get_parent_table(flattened_case.keys(), fg_key)
-        pid_key = get_table_id_key(parent_table)
-        pid_column = get_bq_name(API_PARAMS, pid_key, parent_table)
-
-        # don't merge
-        if fg_key in bq_program_tables:
-            max_record_count = dict()
-            idx = 0
-
-            for entry in flattened_case[parent_table].copy():
-                if pid_key not in entry and pid_column not in entry:
-                    has_fatal_error("No id key found, in bq or fg format.")
-
-                entry_id = entry[pid_key] if pid_key in entry else entry[pid_column]
-
-                if entry_id not in max_record_count:
-                    max_record_count[entry_id] = {'entry_idx': idx, 'record_count': 0}
-                    idx += 1
-
-            field_group = flattened_case[fg_key].copy()
-
-            for record in field_group:
-                if pid_column in record:
-                    pid = record[pid_column]
-                    max_record_count[pid]['record_count'] += 1
-            for pid in max_record_count:
-                entry_idx = max_record_count[pid]['entry_idx']
-                count_id = get_bq_name(API_PARAMS, 'count', fg_key)
-
-                flattened_case[parent_table][entry_idx][count_id] = max_record_count[pid]['record_count']
-        # merge
-        else:
-            field_group = flattened_case.pop(fg_key)[0]
-
-            if len(field_group) == 0:
-                continue
-            if 'case_id' in field_group:
-                field_group.pop('case_id')
-            # include keys with values
-            for key, fg_val in field_group.items():
-                flattened_case[parent_table][0][key] = fg_val
-    return flattened_case
-'''
-
-
-def get_case_fg_by_parent_id(case, parent_field, parent_id, parent_id_key):
-    parent_entries = case[parent_field]
-
-    for entry in parent_entries:
-        if entry and parent_id_key in entry:
-            if entry[parent_id_key] == parent_id:
-                return entry
-    return None
-
-
-def get_child_fgs(flattened_case, parent_fg):
-    child_fgs = set()
-    for fg in flattened_case:
-        if fg != parent_fg and fg.startswith(parent_fg):
-            child_fgs.add(fg)
-    return child_fgs
-
-
-def get_flattened_entry_by_id(flattened_case, entry_name, entry_id, id_column):
-    return_entry = None
-
-    if flattened_case and entry_name in flattened_case:
-        fg_list = flattened_case[entry_name].copy()
-
-        idx = 0
-        for entry in flattened_case[entry_name]:
-            if entry[id_column] == entry_id:
-                return_entry = fg_list.pop(idx)
-                break
-            idx += 1
-
-        flattened_case[entry_name] = fg_list
-
-    return flattened_case, entry_name, return_entry
-
-
-def find_parent_record_idx(flattened_case, field_group, parent_table):
-    parent_table_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
-                                      parent_table)
-    parent_table_id = flattened_case[field_group][0][parent_table_id_key]
-
-    idx = 0
-
-    for parent_table_record in flattened_case[parent_table]:
-        if parent_table_record[parent_table_id_key] == parent_table_id:
-            return idx
-        idx += 1
-
-    has_fatal_error("No parent record found in flattened_case with given parent id")
-    return None
-
-
 def find_record_idx(flattened_case, field_group, record_id):
     fg_id_key = get_bq_name(API_PARAMS, get_table_id_key(field_group), field_group)
 
@@ -780,10 +665,11 @@ def find_record_idx(flattened_case, field_group, record_id):
         idx += 1
 
     has_fatal_error("No parent record found in flattened_case with given parent id")
-    return None
+    return None  # make the debugger be quiet
 
 
-def merge_single_entry_field_groups(case, flattened_case, tables, program_record_counts):
+def merge_or_count_records(flattened_case, program_record_counts):
+    tables = get_tables(program_record_counts)
     record_count_dict = dict()
     flattened_fg_parents = dict()
 
@@ -799,22 +685,25 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
             record_count_dict[field_group] = dict()
 
     # merge single entry field groups
-    for field_group, parent_table in flattened_fg_parents.items():
+    for field_group, parent in flattened_fg_parents.items():
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent), parent)
+
         for record in flattened_case[field_group]:
-            parent_idx = find_parent_record_idx(flattened_case, field_group, parent_table)
-            flattened_case[parent_table][parent_idx].update(record)
+            parent_id = record[bq_parent_id_key]
+            parent_idx = find_record_idx(flattened_case, parent, parent_id)
+            flattened_case[parent][parent_idx].update(record)
+
         flattened_case.pop(field_group)
-        # todo remove case id and parent id
 
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
     for field_group in record_count_dict.copy().keys():
-        parent_table = get_parent_table(tables, field_group)
-        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent_table),
-                                          parent_table)
+        parent = get_parent_table(tables, field_group)
+        bq_parent_id_key = get_bq_name(API_PARAMS, get_table_id_key(parent), parent)
+
         # initialize record counts for parent id
-        if parent_table in flattened_case:
-            for record in flattened_case[parent_table]:
+        if parent in flattened_case:
+            for record in flattened_case[parent]:
                 parent_table_id = record[bq_parent_id_key]
                 record_count_dict[field_group][parent_table_id] = 0
 
@@ -824,142 +713,16 @@ def merge_single_entry_field_groups(case, flattened_case, tables, program_record
                 parent_id = record[bq_parent_id_key]
                 record_count_dict[field_group][parent_id] += 1
 
+    # insert record count into flattened dict entries
     for field_group, parent_ids_dict in record_count_dict.items():
-        parent_table = get_parent_table(tables, field_group)
+        parent = get_parent_table(tables, field_group)
         count_col_name = get_count_column_name(field_group)
 
         for parent_id, count in parent_ids_dict.items():
-            parent_record_idx = find_record_idx(flattened_case, parent_table, parent_id)
-            flattened_case[parent_table][parent_record_idx][count_col_name] = count
-
-    # todo delete print
-    print("record_count_dict: {}".format(record_count_dict))
-
-    # todo delete print
-    print("flattened_case: {}".format(flattened_case))
+            parent_record_idx = find_record_idx(flattened_case, parent, parent_id)
+            flattened_case[parent][parent_record_idx][count_col_name] = count
 
     return flattened_case
-
-
-    """
-    - get list of tables to flatten and their parent tables
-    - create dict with one-to-many tables and record counts (initialize with 0)
-    - find each parent table and insert the count reference field
-    """
-
-'''
-def merge_single_entry_field_groups(case, flattened_case, tables, case_fg_ids):
-    """
-    Merge field groups which have a max of one record for every case in this
-    program.
-    These columns will be located in parent table.
-    :param case_fg_ids:
-    :param case:
-    :param flattened_case: flattened dictionary for case (used to
-    recursively capture the record as it's parsed).
-    :param tables: list of tables to be created for this program.
-    :return: flattened_case_dict with single record tables merged.
-    """
-
-    for fg_key, fg_depth in sort_fgs_by_depth(flattened_case):
-        # cases is the master table, merged into
-        if fg_depth == 1:
-            continue
-        elif fg_depth == 2:
-            count_col = get_count_column_name(fg_key)
-            fg_count = len(case_fg_ids[fg_key])
-            fg_id_field = get_table_id_key(fg_key)
-            fg_id_column = get_bq_name(API_PARAMS, fg_id_field, fg_key)
-
-            child_fgs = get_child_fgs(flattened_case, fg_key)
-
-            for entry in flattened_case[fg_key].copy():
-                if entry and fg_id_column in entry:
-                    print("ENTRY and ID")
-                    entry_id = entry[fg_id_column]
-
-                    flattened_case, entry_name, flat_entry = get_flattened_entry_by_id(
-                        flattened_case, fg_key, entry_id, fg_id_column)
-
-                    id_entry_fields = get_case_fg_by_parent_id(
-                        case, get_field_name(fg_key), entry_id, fg_id_field)
-
-                    for child_fg in child_fgs:
-                        if child_fg in tables:
-                            if child_fg in id_entry_fields:
-                                child_fg_count = len(id_entry_fields[child_fg])
-                            else:
-                                child_fg_count = 0
-                            child_count_col = get_count_column_name(child_fg)
-                            flat_entry[child_count_col] = child_fg_count
-                    flattened_case[entry_name].append(flat_entry)
-                else:
-                    # todo here
-                    print("NO ENTRY and ID")
-
-            if fg_key in tables:
-                flattened_case['cases'][0][count_col] = fg_count
-            else:
-                for key, value in flattened_case[fg_key][0].copy().items():
-                    flattened_case['cases'][0][key] = value
-                flattened_case.pop(fg_key)
-        elif fg_depth == 3:
-            if fg_key not in tables:
-                parent_table = get_parent_table(fg_key, tables)
-                parent_id_field = get_table_id_key(parent_table)
-
-                fg_entry_list = flattened_case.pop(fg_key)
-                parent_id = flattened_case[fg_key][0][parent_id_field]
-
-                flattened_case, p_entry_name, p_flat_entry = get_flattened_entry_by_id(
-                    flattened_case, parent_table, parent_id, parent_id_field)
-
-                for key, value in fg_entry_list[0].items():
-                    p_flat_entry[key] = value
-
-                flattened_case[p_entry_name] = p_flat_entry
-
-    return flattened_case
-'''
-
-'''
-def merge_single_entry_field_groups(flattened_case, tables, case_fg_ids):
-    """
-    Merge field groups which have a max of one record for every case in this
-    program.
-    These columns will be located in parent table.
-    :param flattened_case: flattened dictionary for case (used to
-    recursively capture the record as it's parsed).
-    :param tables: list of tables to be created for this program.
-    :return: flattened_case_dict with single record tables merged.
-    """
-    
-    for fg_key, fg_depth in sort_fgs_by_depth(flattened_case, reverse=True):
-        # cases is the master table, merged into
-        if fg_depth == 1:
-            break
-
-        parent_table = get_parent_table(flattened_case.keys(), fg_key)
-        parent_fg = get_parent_field_group(fg_key)
-        parent_fg_id_key = get_table_id_key(parent_fg)
-        ancestor_column = get_bq_name(API_PARAMS, parent_fg_id_key, parent_fg)
-
-        # merge into parent table record
-        if fg_key not in tables:
-            field_group = flattened_case.pop(fg_key)[0]
-
-            if len(field_group) == 0:
-                continue
-            if 'case_id' in field_group:
-                field_group.pop('case_id')
-            if ancestor_column in field_group:
-                field_group.pop(ancestor_column)
-
-            # include keys with values
-            for key, fg_val in field_group.items():
-                flattened_case[parent_table][0][key] = fg_val
-    return flattened_case
-'''
 
 
 def sort_fgs_by_depth(fgs, reverse=False):
@@ -1035,32 +798,17 @@ def create_and_load_tables(program_name, cases, schemas, tables, record_counts):
             os.remove(jsonl_file_path)
 
     for case in cases:
-        flattened_case_dict = flatten_case(case)
-        case_id, case_fg_ids = get_case_fg_ids(case)
+        flattened_case = flatten_case(case)
+        flattened_case = merge_or_count_records(flattened_case, record_counts)
 
-        # todo delete print
-        # print("BEFORE: {}".format(flattened_case_dict))
-
-        # todo delete print
-        # print("record_counts: {}".format(record_counts))
-
-        # todo delete print
-        # print("tables: {}".format(tables))
-
-        flattened_case_dict = merge_single_entry_field_groups(case, flattened_case_dict,
-                                                              tables, record_counts)
-        exit()
-        # todo delete print
-        # print("AFTER: {}".format(flattened_case_dict))
-
-        for table in flattened_case_dict.keys():
+        for table in flattened_case.keys():
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
             with open(jsonl_fp, 'a') as jsonl_file:
-                for row in flattened_case_dict[table]:
+                for row in flattened_case[table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
