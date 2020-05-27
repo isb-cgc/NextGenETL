@@ -863,8 +863,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_programs_list()
-    # programs = ['CGCI']
+    # programs = get_programs_list()
+    programs = ['CPTAC']
 
     for program in programs:
         prog_start = time.time()
