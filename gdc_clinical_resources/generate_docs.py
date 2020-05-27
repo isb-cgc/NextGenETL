@@ -19,6 +19,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 # import json
 from common_etl.utils import get_table_id
 from google.cloud import bigquery
+from math import pow
 
 
 def get_program_name(api_params, bq_params, table_name):
@@ -27,6 +28,31 @@ def get_program_name(api_params, bq_params, table_name):
     table_name = table_name[start_idx:]
 
     return table_name.split('_')[0]
+
+
+def convert_bytes_to_largest_unit(obj_bytes):
+    units = [
+        ('bytes', 0),
+        ('Kb', 1),
+        ('MB', 2),
+        ('GB', 3),
+        ('TB', 4)
+    ]
+
+    curr_unit = 'bytes'
+    curr_size = obj_bytes
+
+    for unit, multiplier in units:
+        while obj_bytes / pow(1024, multiplier) > 1:
+            curr_unit = unit
+            curr_size = "{:.3f}".format(obj_bytes / pow(1024, multiplier))
+
+        return curr_unit, curr_size
+
+
+    curr_unit = 'bytes'
+    if obj_bytes / 1024 > 1:
+
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
@@ -59,11 +85,20 @@ def get_table_list_for_curr_release(api_params, bq_params):
 
         program_tables_json[prog_name][table_name] = table_json_attr
 
-    print(program_tables_json)
+    return program_tables_json
+
+
+def style_table_entry(table_name, table_json_attr):
+    print(table_name)
+    print(convert_bytes_to_largest_unit(table_json_attr['numBytes']))
 
 
 def generate_docs(api_params, bq_params):
-    get_table_list_for_curr_release(api_params, bq_params)
+    program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
+
+    for program, tables in program_tables_json:
+        for table, table_attrs in tables:
+            style_table_entry(table, table_attrs)
 
 """
 
