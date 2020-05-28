@@ -21,6 +21,7 @@ from common_etl.utils import get_table_id
 from google.cloud import bigquery
 from math import pow
 import requests
+from datetime import datetime
 
 
 def get_program_name(api_params, bq_params, table_name):
@@ -50,6 +51,12 @@ def convert_bytes_to_largest_unit(obj_bytes):
         curr_size = "{:.3f}".format(int(obj_bytes) / pow(1024, multiplier))
 
     return curr_unit, curr_size
+
+
+def convert_milliseconds_to_date(milli_time):
+    sec_time = milli_time / 1000
+    d_time = datetime.fromtimestamp(sec_time)
+    print(d_time.strftime("%Y-%d-%b %H:%M:%S"))
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
@@ -86,7 +93,9 @@ def get_table_list_for_curr_release(api_params, bq_params):
 
 def style_table_entry(table_name, table_json_attr):
     unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
+
     # print("\t{} - {} {}".format(table_name, size, unit))
+    convert_milliseconds_to_date(table_json_attr['creationTime'])
 
 
 def generate_docs(api_params, bq_params):
