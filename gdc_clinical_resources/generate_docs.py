@@ -56,7 +56,7 @@ def convert_bytes_to_largest_unit(obj_bytes):
 def convert_milliseconds_to_date(milli_time):
     sec_time = milli_time / 1000
     d_time = datetime.fromtimestamp(sec_time)
-    print(d_time.strftime("%Y-%d-%b %H:%M:%S"))
+    return d_time.strftime("%Y-%d-%b %H:%M:%S")
 
 
 def get_table_list_for_curr_release(api_params, bq_params):
@@ -95,22 +95,20 @@ def style_table_entry(table_name, table_json_attr):
     unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
     # print("\t{} - {} {}".format(table_name, size, unit))
 
-    convert_milliseconds_to_date(table_json_attr['creationTime'])
+    print("\t{}table created on: ".format(convert_milliseconds_to_date(table_json_attr['creationTime']))
 
 
 def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
     # print(program_tables_json)
-    style_table_entry()
 
-    """
-    print('single tables')
     for program, tables in program_tables_json.items():
-        if len(tables) == 1:
-            print(program)
-            for table, table_attrs in tables.items():
-                style_table_entry(table, table_attrs)
-    """
+        print("For program {}:".format(program))
+        print("\ttable list: {}".format(tables.keys()))
+
+        for table, table_attrs in tables.items():
+            style_table_entry(table, table_attrs)
+
 
 """
 def test_query(api_params, bq_params):
