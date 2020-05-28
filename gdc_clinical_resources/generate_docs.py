@@ -93,14 +93,15 @@ def get_table_list_for_curr_release(api_params, bq_params):
 
 def style_table_entry(table_name, table_json_attr):
     unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
-
     # print("\t{} - {} {}".format(table_name, size, unit))
+
     convert_milliseconds_to_date(table_json_attr['creationTime'])
 
 
 def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
     # print(program_tables_json)
+    style_table_entry()
 
     """
     print('single tables')
