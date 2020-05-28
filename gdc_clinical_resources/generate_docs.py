@@ -100,7 +100,7 @@ def style_table_entry(table_name, table_json_attr):
 
 def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
-    print(program_tables_json)
+    # print(program_tables_json)
 
     """
     print('single tables')
