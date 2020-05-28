@@ -54,7 +54,7 @@ def convert_bytes_to_largest_unit(obj_bytes):
 
 
 def convert_milliseconds_to_date(milli_time):
-    sec_time = milli_time / 1000
+    sec_time = int(milli_time) / 1000
     d_time = datetime.fromtimestamp(sec_time)
     return d_time.strftime("%Y-%d-%b %H:%M:%S")
 
