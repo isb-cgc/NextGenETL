@@ -803,27 +803,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
 ####
 #
-# Functions for creating documentation
-#
-##
-def generate_documentation():
-    """
-    Generate documentation for tables
-    """
-
-    # json_doc_file = API_PARAMS['GDC_RELEASE'] + '_' + BQ_PARAMS['TABLE_PREFIX']
-    # json_doc_file += '_json_documentation_dump.json'
-
-    # doc_fp = get_scratch_dir(API_PARAMS) + '/' + json_doc_file
-
-    # with open(doc_fp, 'w') as json_file:
-    #     json.dump(documentation_dict, json_file)
-
-    # upload_to_bucket(BQ_PARAMS, API_PARAMS, json_doc_file)
-
-
-####
-#
 # Script execution
 #
 ##

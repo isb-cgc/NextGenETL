@@ -91,6 +91,7 @@ def style_table_entry(table_name, table_json_attr):
 
 def generate_docs(api_params, bq_params):
     program_tables_json = get_table_list_for_curr_release(api_params, bq_params)
+    print(program_tables_json)
 
     """
     print('single tables')
@@ -101,9 +102,7 @@ def generate_docs(api_params, bq_params):
                 style_table_entry(table, table_attrs)
     """
 
-    test_query(api_params, bq_params)
-
-
+"""
 def test_query(api_params, bq_params):
     output_dict = dict()
     duplicates = dict()
@@ -173,7 +172,7 @@ def test_query(api_params, bq_params):
         print(submitter_id)
         print(output_dict[submitter_id]['different_values']['created_datetime'])
         print(output_dict[submitter_id]['different_values']['updated_datetime'])
-
+"""
 
 """
 
