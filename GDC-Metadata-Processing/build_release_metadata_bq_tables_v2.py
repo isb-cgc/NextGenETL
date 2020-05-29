@@ -800,32 +800,31 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_1_TABLE']))
 
     if 'pull_aliquot' in steps:
-        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
         success = extract_active_aliquot_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
-                                                   step_one_table, params['BQ_AS_BATCH'])
+                                                   step_zero_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_aliquot job failed".format(dataset_tuple[0], build))
             return False
 
-        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
-            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
-            print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
+        if bq_table_is_empty(params['TARGET_DATASET'], step_zero_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_zero_table)
+            print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_0_TABLE']))
 
-
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+    if 'expand_aliquots' in steps:
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                      params['TARGET_DATASET'], table_name)
 
+        if bq_table_exists(params['TARGET_DATASET'], table_name):
+            step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
 
-        #success = expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
+            success = expand_active_aliquot_file_data(in_table, params['TARGET_DATASET'],
+                                                      step_one_table, params['BQ_AS_BATCH'])
 
-
-
-
-
-
-
-
+            if not success:
+                print("{} {} expand_aliquots job failed".format(dataset_tuple[0], build))
+                return False
 
     if 'pull_case' in steps:
         step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_1_TABLE'])
@@ -1111,7 +1110,8 @@ def main(args):
                 aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
                 print ("{}:{}".format(build_tag, aliquot_count))
                 if aliquot_count > params['MAX_ALIQUOT_PARSE']:
-                    print("count_aliquots detected high aliquot count: {} > . Exiting.".format(aliquot_count))
+                    print("count_aliquots detected high aliquot count: {} > {}. Exiting.".format(aliquot_count,
+                                                                                                 params['MAX_ALIQUOT_PARSE']))
                     return
         except Exception as ex:
             print("count_aliquots failed: {}".format(str(ex)))
