@@ -817,7 +817,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                      params['TARGET_DATASET'], table_name)
 
 
-         success = expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
+        #success = expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
 
 
 
