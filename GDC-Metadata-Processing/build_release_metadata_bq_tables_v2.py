@@ -1111,7 +1111,8 @@ def main(args):
                 aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
                 print ("{}:{}".format(build_tag, aliquot_count))
                 if aliquot_count > params['MAX_ALIQUOT_PARSE']:
-                    print("count_aliquots detected high aliquot count: {}. Exiting.".format(aliquot_count))
+                    print("count_aliquots detected high aliquot count: {} > . Exiting.".format(aliquot_count))
+                    return
         except Exception as ex:
             print("count_aliquots failed: {}".format(str(ex)))
             return
