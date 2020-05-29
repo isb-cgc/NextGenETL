@@ -189,7 +189,7 @@ def expand_active_aliquot_file_data_sql(aliquot_table):
         SELECT
             file_gdc_id,
             case_gdc_id,
-            aliquot_id_one as aliquot_id
+            aliquot_id_one as aliquot_id,
             project_short_name,
             project_short_name_suffix,
             program_name,
