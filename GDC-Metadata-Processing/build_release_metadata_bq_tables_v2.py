@@ -172,12 +172,73 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
 
 '''
 ----------------------------------------------------------------------------------------------
+Get two rows from one where there are two aliquots present
+'''
+def expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
+
+    sql = expand_active_aliquot_file_data_sql(aliquot_table)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+With files that have two aliquots, we want to make one row per aliquot
+'''
+def expand_active_aliquot_file_data_sql(aliquot_table):
+
+    return '''
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_one as aliquot_id
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_two as aliquot_id
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_two IS NOT NULL)
+        '''.format(aliquot_table)
+
+'''
+----------------------------------------------------------------------------------------------
 Slide extraction
 '''
 def extract_active_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_active_file_data_sql_slides(release_table, program_name)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -750,6 +811,22 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
             print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
 
+
+        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                     params['TARGET_DATASET'], table_name)
+
+
+         success = expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
+
+
+
+
+
+
+
+
+
     if 'pull_case' in steps:
         step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_1_TABLE'])
         success = extract_active_case_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
@@ -1019,14 +1096,25 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
+    #
+    # The SQL is currently tailored to parse out up to two aliquots per file (understanding that
+    # we are only processing files that apply to a single case, and not multiple case files). This
+    # step checks that that assumption is not being violated:
+    #
+
     if 'count_aliquots' in steps:
         print('count_aliquots')
 
-        for build_tag in build_tags:
-            file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
-            aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
-            print ("{}:{}".format(build_tag, aliquot_count))
-
+        try:
+            for build_tag in build_tags:
+                file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
+                aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
+                print ("{}:{}".format(build_tag, aliquot_count))
+                if aliquot_count > params['MAX_ALIQUOT_PARSE']:
+                    print("count_aliquots detected high aliquot count: {}. Exiting.".format(aliquot_count))
+        except Exception as ex:
+            print("count_aliquots failed: {}".format(str(ex)))
+            return
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
