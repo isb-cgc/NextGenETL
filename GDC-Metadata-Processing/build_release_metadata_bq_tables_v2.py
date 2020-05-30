@@ -243,6 +243,52 @@ def expand_active_aliquot_file_data_sql(aliquot_table):
             acl
         FROM `{0}`
         WHERE (aliquot_id_two IS NOT NULL)
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_three as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_three IS NOT NULL)
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_four as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_four IS NOT NULL)
         '''.format(aliquot_table)
 
 '''
