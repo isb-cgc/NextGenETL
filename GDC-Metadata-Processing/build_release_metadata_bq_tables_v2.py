@@ -116,7 +116,6 @@ data (ORGANOID-PANCREATIC) will not have useful aliquot mapping data available.
 def extract_active_aliquot_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_active_aliquot_file_data_sql(release_table, program_name)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -131,16 +130,30 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
         SELECT
             a.file_id as file_gdc_id,
             a.case_gdc_id,
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 1
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^([a-zA-Z0-9-]+);[a-zA-Z0-9-]+$")
+                                     r"^([a-zA-Z0-9-]+);[a-zA-Z0-9-;]+$")
               ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id_one,
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 1
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+).*$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_two,
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 2
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+).*$")
+              ELSE CAST(null AS STRING)
+            END as aliquot_id_three,
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 3
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+              ELSE CAST(null AS STRING)
+            END as aliquot_id_four,
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
@@ -291,7 +304,6 @@ These tables do not hold the case id, nor the program or disease name. Fix this 
 def repair_slide_file_data(case_table, broken_table, target_dataset, dest_table, do_batch):
 
     sql = repair_missing_case_data_sql_slides(case_table, broken_table)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
