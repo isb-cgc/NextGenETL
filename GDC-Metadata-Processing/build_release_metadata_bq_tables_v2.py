@@ -295,9 +295,9 @@ def expand_active_aliquot_file_data_sql(aliquot_table):
 ----------------------------------------------------------------------------------------------
 Slide extraction
 '''
-def extract_active_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+def extract_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_active_file_data_sql_slides(release_table, program_name)
+    sql = extract_file_data_sql_slides(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -305,7 +305,10 @@ def extract_active_slide_file_data(release_table, program_name, target_dataset, 
 SQL for above:
 '''
 
-def extract_active_file_data_sql_slides(release_table, program_name):
+def extract_file_data_sql_slides(release_table, program_name):
+
+    optional_program = "" if program_name is None else "(a.program_name = '{0}') AND ".format(program_name)
+
     return '''
         SELECT
             a.file_id as file_gdc_id,
@@ -332,15 +335,21 @@ def extract_active_file_data_sql_slides(release_table, program_name):
             a.index_file_size,
             a.access,
             a.acl,
-            # Gotta have this for repairing busted slides with no case_id
-            CAST(null AS STRING) as slide_barcode
+            # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
+            # we need to pull that out to get that info
+            CASE WHEN (a.case_gdc_id IS NULL) THEN
+                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+).+$")
+                ELSE
+                   CAST(null AS STRING)
+            END as slide_barcode
         FROM `{1}` AS a
-        WHERE (a.program_name = "{0}") AND
+        WHERE {0}
               (a.case_gdc_id IS NOT NULL) AND
               (a.case_gdc_id NOT LIKE "%;%") AND
               (a.case_gdc_id != "multi") AND
               (a.associated_entities__entity_type = "slide")
-        '''.format(program_name, release_table)
+        '''.format(optional_program, release_table)
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -778,12 +787,10 @@ def install_uris_sql(union_table, mapping_table):
         FROM a1 LEFT OUTER JOIN `{1}` AS c ON a1.index_file_id = c.file_uuid
         '''.format(union_table, mapping_table)
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Do all the steps for a given dataset and build sequence
 '''
-
 
 def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                          aliquot_map_programs, params, schema_tags):
@@ -795,16 +802,32 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
      
     if 'pull_slides' in steps:
-        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
-        success = extract_active_slide_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
-                                                 step_one_table, params['BQ_AS_BATCH'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_0_TABLE'])
+        # Hardwired instead of configurable since this is a one-off problem:
+        use_project = None if (build_tag == "legacy") and (dataset_tuple[0] == "TCGA") else dataset_tuple[0]
+        success = extract_slide_file_data(file_table, use_project, params['TARGET_DATASET'],
+                                          step_zero_table, params['BQ_AS_BATCH'])
+
         if not success:
             print("{} {} pull_slides job failed".format(dataset_tuple[0], build))
             return False
 
-        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
-            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
-            print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_1_TABLE']))
+        if bq_table_is_empty(params['TARGET_DATASET'], step_zero_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_zero_table)
+            print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_0_TABLE']))
+
+
+    if 'repair_slides' in steps:
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
+
+        if bq_table_exists(params['TARGET_DATASET'], step_zero_table):
+            step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
+            case_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_TABLE'])
+            success = repair_slide_file_data(case_table, step_zero_table,
+                                             params['TARGET_DATASET'], step_one_table, params['BQ_AS_BATCH'])
+            if not success:
+                print("{} {} repair slides sub-job failed".format(dataset_tuple[0], build))
+                return False
 
     if 'pull_aliquot' in steps:
         step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
@@ -819,11 +842,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_0_TABLE']))
 
     if 'expand_aliquots' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                     params['TARGET_DATASET'], table_name)
+                                     params['TARGET_DATASET'], step_zero_table)
 
-        if bq_table_exists(params['TARGET_DATASET'], table_name):
+        if bq_table_exists(params['TARGET_DATASET'], step_zero_table):
             step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
 
             success = expand_active_aliquot_file_data(in_table, params['TARGET_DATASET'],
@@ -944,7 +967,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
             print("process_git_schemas failed")
-            return
+            return False
 
     # Customize generic schema to this data program:
 
@@ -980,7 +1003,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
         if not success:
             print("replace_schema_tags failed")
-            return
+            return False
 
     #
     # Update the per-field descriptions:
@@ -999,7 +1022,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
         if not success:
             print("install_field_descriptions failed")
-            return
+            return False
 
     #
     # Add description and labels to the target table:
@@ -1013,7 +1036,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                           project=params['WORKING_PROJECT'])
         if not success:
             print("install_table_description failed")
-            return
+            return False
 
     #
     # publish table:
@@ -1030,7 +1053,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
         if not success:
             print("publish failed")
-            return
+            return False
 
     #
     # Clear out working temp tables:
