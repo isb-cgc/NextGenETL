@@ -307,7 +307,7 @@ SQL for above:
 
 def extract_file_data_sql_slides(release_table, program_name):
 
-    optional_program = "" if program_name is None else "(a.program_name = '{0}') AND ".format(program_name)
+    optional_program = "" if program_name is None else "(a.program_name = '{0}') AND (a.case_gdc_id IS NOT NULL) AND ".format(program_name)
 
     return '''
         SELECT
@@ -344,10 +344,10 @@ def extract_file_data_sql_slides(release_table, program_name):
             END as slide_barcode
         FROM `{1}` AS a
         WHERE {0}
-              (a.case_gdc_id IS NOT NULL) AND
               (a.case_gdc_id NOT LIKE "%;%") AND
               (a.case_gdc_id != "multi") AND
-              (a.associated_entities__entity_type = "slide")
+              ((a.data_format = "SVS") OR
+              (a.associated_entities__entity_type = "slide"))
         '''.format(optional_program, release_table)
 
 
@@ -364,7 +364,7 @@ def repair_slide_file_data(case_table, broken_table, target_dataset, dest_table,
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above. Note this processing ends up throwing away one slide from case TCGA-08-0384, which
-actaully does not appear in the case file going back to at least release 6.
+actually does not appear in the case file going back to at least release 6.
 '''
 
 def repair_missing_case_data_sql_slides(case_table, broken_table):
