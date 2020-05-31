@@ -821,7 +821,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
 
     if 'repair_slides' in steps:
-        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_0_TABLE'])
         in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                      params['TARGET_DATASET'], step_zero_table)
 
