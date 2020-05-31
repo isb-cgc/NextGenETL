@@ -346,8 +346,8 @@ def extract_file_data_sql_slides(release_table, program_name):
             END as slide_barcode
         FROM `{1}` AS a
         WHERE {0}
-              (a.case_gdc_id NOT LIKE "%;%") AND
-              (a.case_gdc_id != "multi") AND
+              (((a.case_gdc_id NOT LIKE "%;%") AND
+               (a.case_gdc_id != "multi")) OR (a.case_gdc_id IS NULL)) AND
               ((a.data_format = "SVS") OR # catches legacy
               (a.associated_entities__entity_type = "slide")) # catches active
         '''.format(optional_program, release_table)
