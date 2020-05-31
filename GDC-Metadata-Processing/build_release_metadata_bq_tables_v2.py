@@ -298,7 +298,6 @@ Slide extraction
 def extract_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_file_data_sql_slides(release_table, program_name)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -361,7 +360,6 @@ These tables do not hold the case id, nor the program or disease name. Fix this 
 def repair_slide_file_data(case_table, broken_table, target_dataset, dest_table, do_batch):
 
     sql = repair_missing_case_data_sql_slides(case_table, broken_table)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
