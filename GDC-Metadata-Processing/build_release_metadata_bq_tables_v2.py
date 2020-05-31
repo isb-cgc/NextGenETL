@@ -298,6 +298,7 @@ Slide extraction
 def extract_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_file_data_sql_slides(release_table, program_name)
+    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -309,6 +310,7 @@ def extract_file_data_sql_slides(release_table, program_name):
 
     optional_program = "" if program_name is None else "(a.program_name = '{0}') AND (a.case_gdc_id IS NOT NULL) AND ".format(program_name)
 
+    print("optional program: {}".format(optional_program))
     return '''
         SELECT
             a.file_id as file_gdc_id,
@@ -346,8 +348,8 @@ def extract_file_data_sql_slides(release_table, program_name):
         WHERE {0}
               (a.case_gdc_id NOT LIKE "%;%") AND
               (a.case_gdc_id != "multi") AND
-              ((a.data_format = "SVS") OR
-              (a.associated_entities__entity_type = "slide"))
+              ((a.data_format = "SVS") OR # catches legacy
+              (a.associated_entities__entity_type = "slide")) # catches active
         '''.format(optional_program, release_table)
 
 
