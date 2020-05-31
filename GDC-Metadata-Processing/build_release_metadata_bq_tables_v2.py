@@ -824,8 +824,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
         if bq_table_exists(params['TARGET_DATASET'], step_zero_table):
             step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
-            case_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_TABLE'])
-            success = repair_slide_file_data(case_table, in_table,
+            success = repair_slide_file_data(params['CASE_TABLE'], in_table,
                                              params['TARGET_DATASET'], step_one_table, params['BQ_AS_BATCH'])
             if not success:
                 print("{} {} repair slides job failed".format(dataset_tuple[0], build))
