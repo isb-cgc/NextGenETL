@@ -307,6 +307,11 @@ SQL for above:
 
 def extract_file_data_sql_slides(release_table, program_name):
 
+    #
+    # If dealing with legacy TCGA slides, some do not even have a program name or case_id. We need to haul those
+    # out and parse the file name instead in a repair step.
+    #
+
     optional_program = "" if program_name is None else "(a.program_name = '{0}') AND (a.case_gdc_id IS NOT NULL) AND ".format(program_name)
 
     print("optional program: {}".format(optional_program))
@@ -344,11 +349,12 @@ def extract_file_data_sql_slides(release_table, program_name):
                    CAST(null AS STRING)
             END as slide_barcode
         FROM `{1}` AS a
-        WHERE {0}
+        WHERE {0} # Omit some conditions if we need to capture rows to repair
               (((a.case_gdc_id NOT LIKE "%;%") AND
-               (a.case_gdc_id != "multi")) OR (a.case_gdc_id IS NULL)) AND
+               # the second condition captures repair rows
+                (a.case_gdc_id != "multi")) OR (a.case_gdc_id IS NULL)) AND
               ((a.data_format = "SVS") OR # catches legacy
-              (a.associated_entities__entity_type = "slide")) # catches active
+               (a.associated_entities__entity_type = "slide")) # catches active
         '''.format(optional_program, release_table)
 
 
@@ -455,6 +461,9 @@ def extract_active_case_file_data_sql(release_table, program_name):
               (a.case_gdc_id IS NOT NULL) AND
               (a.case_gdc_id NOT LIKE "%;%") AND
               (a.case_gdc_id != "multi") AND
+              # Note we depend that a slide is not being sucked in here
+              # in the legacy case due to a "case" entity type being present and not a slide.
+              # Analysis indicates that is a safe conclusion
               (a.associated_entities__entity_type = "case")
         '''.format(program_name, release_table)
 
@@ -1067,8 +1076,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if 'dump_working_tables' in steps:
         print('dump_working_tables')
         dump_tables = []
-        dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIQUOT_STEP_1_TABLE',
-                           'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
+        dump_table_tags = ['SLIDE_STEP_0_TABLE', 'SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE',
+                           'ALIQUOT_STEP_0_TABLE', 'ALIQUOT_STEP_1_TABLE', 'ALIQUOT_STEP_2_TABLE',
+                           'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
                            'UNION_TABLE']
         for tag in dump_table_tags:
             table_name = "{}_{}_{}".format(dataset_tuple[1], build, params[tag])
