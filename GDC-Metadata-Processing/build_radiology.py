@@ -27,10 +27,10 @@ import io
 from git import Repo
 from json import loads as json_loads
 
-from common_etl.support import generic_bq_harness, confirm_google_vm, \
-                               bq_harness_with_result, delete_table_bq_job, \
+from common_etl.support import generic_bq_harness, \
+                               delete_table_bq_job, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
-                               generate_table_detail_files, customize_labels_and_desc, \
+                               generate_table_detail_files, \
                                update_schema_with_dict, install_labels_and_desc, publish_table
 
 '''
@@ -116,7 +116,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags, path_tags, programs, schema_tags = load_config(yaml_file.read())
+        params, steps = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -175,7 +175,7 @@ def main(args):
     if 'update_field_descriptions' in steps:
         print('update_field_descriptions')
 
-        if not bq_table_is_empty(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
+        if bq_table_exists(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['RADIOLOGY_TABLE_NAME'])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
@@ -197,7 +197,7 @@ def main(args):
     if 'update_table_description' in steps:
         print('update_table_description')
 
-        if not bq_table_is_empty(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
+        if bq_table_exists(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['RADIOLOGY_TABLE_NAME'])
             success = install_labels_and_desc(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME'], full_file_prefix)
             if not success:
@@ -210,7 +210,7 @@ def main(args):
 
     if 'publish' in steps:
 
-        if not bq_table_is_empty(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
+        if bq_table_exists(params['TARGET_DATASET'], params['RADIOLOGY_TABLE_NAME']):
             source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                              params['RADIOLOGY_TABLE_NAME'])
             publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
