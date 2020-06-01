@@ -762,7 +762,7 @@ def install_uris_sql(union_table, mapping_table):
             a.acl
         # THIS VERSION RETAINS THE GDC FILES THAT DO NOT EXIST IN DCF MANIFEST:
         # FROM `{0}` AS a LEFT OUTER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
-        # THIS VERSION DUMPS THE GDC FILES THAT DO NOT EXIST IN DCF MANIFEST:
+        # THIS VERSION DUMPS THE GDC ENTRIES THAT DO NOT EXIST IN DCF MANIFEST:
         FROM `{0}` AS a INNER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
         
         SELECT
