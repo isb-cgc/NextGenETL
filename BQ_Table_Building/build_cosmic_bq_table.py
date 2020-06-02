@@ -26,6 +26,7 @@ import os
 from os.path import expanduser
 import yaml
 import io
+import string
 from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
@@ -55,7 +56,16 @@ def load_config(yaml_config):
 Build Pull List from TXT
 '''
 
-def build_pull_list_from_txt(bucket_location, file):
+def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
+    success = bucket_to_local(bucket, bucket_file, local_file)
+    if not success:
+        return False
+    links = open(local_file, 'r').read().strip().split('\n')
+    filenames = [(y.split('?')[0]).strip(string.punctuation) for y in [x.split(version + '/')[1] for x in links]]
+    for link in len(links):
+
+        response = requests.get(link)
+        if response.status_code == 200:
 
 
 '''
