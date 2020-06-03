@@ -26,6 +26,7 @@ import os
 from os.path import expanduser
 import yaml
 import io
+import requests
 import string
 from git import Repo
 from json import loads as json_loads
@@ -57,21 +58,42 @@ Build Pull List from TXT
 '''
 
 def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
+    # move the txt file from the bucket to the VM
     success = bucket_to_local(bucket, bucket_file, local_file)
     if not success:
         return False
+    # open the file for reading
     links = open(local_file, 'r').read().strip().split('\n')
-    filenames = [(y.split('?')[0]).strip(string.punctuation) for y in [x.split(version + '/')[1] for x in links]]
-    for link in len(links):
+    # create a list of the files in the file list
+    all_filenames = [(y.split('?')[0]).strip(string.punctuation) for y in [x.split(version + '/')[1] for x in links]]
+    filenames = []
+    for i in len(all_filenames):
+        base_file, ext2 = os.path.splitext(all_filenames[i])
+        if ext_zip != ".gz":
+            file, ext1 = os.path.splitext(base_file)
+            # Check if tsv, add to files
+            if  ext1 == ".tsv":
 
-        response = requests.get(link)
-        if response.status_code == 200:
+            # Check if csv, add to files
+
+            # ignore all else
+
+
+
 
 
 '''
 ----------------------------------------------------------------------------------------------
 Download files
 '''
+
+def pull_from_aws():
+    for link in len(links):
+
+        response = requests.get(link)
+        if response.status_code == 200:
+
+    # Don't forget to unzip
 
 '''
 Fix column names
