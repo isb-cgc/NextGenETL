@@ -65,18 +65,22 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
     # open the file for reading
     links = open(local_file, 'r').read().strip().split('\n')
     # create a list of the files in the file list
-    all_filenames = [(y.split('?')[0]).strip(string.punctuation) for y in [x.split(version + '/')[1] for x in links]]
-    filenames = []
-    for i in len(all_filenames):
-        base_file, ext2 = os.path.splitext(all_filenames[i])
-        if ext_zip != ".gz":
-            file, ext1 = os.path.splitext(base_file)
-            # Check if tsv, add to files
-            if  ext1 == ".tsv":
+    all_filenames = [x.split('/') for x in links]
 
-            # Check if csv, add to files
+    with open(local_file, mode='w') as pull_list_file:
+        for i in all_filenames:
+            base_file, zip_ext = os.path.splitext(i[-1])
+            if zip_ext == ".gz":
+                file, ext = os.path.splitext(base_file)
+                # Check if tsv, add to files
+                if  ext == ".tsv" or ".csv":
+                    file = ''.join([i[6], "/", i[4], "/", i[7]])
+                    link = '/'.join(i)
+                    pull_list_file.write(file + "\t" + link)
 
-            # ignore all else
+    return
+
+
 
 
 
