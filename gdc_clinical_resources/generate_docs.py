@@ -95,7 +95,7 @@ def style_table_entry(table_name, table_json_attr):
     unit, size = convert_bytes_to_largest_unit(table_json_attr['numBytes'])
     # print("\t{} - {} {}".format(table_name, size, unit))
 
-    print("\t{}table created on: "
+    print("\ttable created on: {}"
           .format(convert_milliseconds_to_date(table_json_attr['creationTime'])))
 
 
