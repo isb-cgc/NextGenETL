@@ -32,7 +32,7 @@ from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
 
-from common_etl.support import create_clean_target, bucket_to_local
+from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -91,11 +91,11 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
 Download files
 '''
 
-def pull_from_aws():
-    for link in len(links):
+#def pull_from_aws():
+#    for link in len(links):
 
-        response = requests.get(link)
-        if response.status_code == 200:
+#        response = requests.get(link)
+#        if response.status_code == 200:
 
     # Don't forget to unzip
 
@@ -150,9 +150,11 @@ def main(args):
 
     if 'build_pull_list' in steps:
         print('build_pull_list')
-        bucket_location = '{}.{}.{}'
 
-        success =
+        success = build_pull_list_from_txt(params['WORKING_BUCKET'],
+                                           params['COSMIC_FILE'],
+                                           params['BQ_PULL_LIST_TABLE'],
+                                           params['VERSION'])
 
         if not success:
             print("Build pull list failed")
