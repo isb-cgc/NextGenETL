@@ -107,6 +107,7 @@ def attach_barcodes_sql(temp_table, aliquot_table):
     # sample_is_ffpe and sample_preservation_method fields. Previous release tables did not have these
     # fields. Added DISTINCT to avoid row duplication here:
     #
+    #
     return '''
         SELECT DISTINCT
                a.project_short_name,
@@ -114,7 +115,10 @@ def attach_barcodes_sql(temp_table, aliquot_table):
                c.sample_barcode,
                c.aliquot_barcode, 
                a.fileUUID
-        FROM `{0}`as a JOIN `{1}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id
+               c.case_gdc_id
+               c.sample_gdc_id,
+               a.aliquot_gdc_id
+        FROM `{0}`as a JOIN `{1}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id, a.project
         WHERE c.case_gdc_id = a.case_gdc_id
         '''.format(temp_table, aliquot_table)
 
@@ -139,6 +143,9 @@ def final_join_sql(isoform_table, barcodes_table):
                a.sample_barcode,
                a.aliquot_barcode, 
                b.*
+               a.case_gdc_id
+               a.sample_gdc_id
+               a.aliquot_gdc_id
         FROM `{0}` as a JOIN `{1}` as b ON a.fileUUID = b.fileUUID
         '''.format(barcodes_table, isoform_table)
 
