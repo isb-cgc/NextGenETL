@@ -142,21 +142,17 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    local_file = "{}/{}".format(home, params['COSMIC_FILE'])
+    local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
-    if 'move_download_file_to_local' in steps:
-        success = bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
-
-        if not success:
-            print("Move {} from bucket to local failed".format(params['COSMIC_FILE']))
-            return
-
     if 'build_pull_list' in steps:
+
+        bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
+
         print('build_pull_list')
 
         success = build_pull_list_from_txt(params['WORKING_BUCKET'],
