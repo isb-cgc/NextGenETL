@@ -65,9 +65,11 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file):
         return False
     print(local_file)
     # open the file for reading
-    #links = open(local_file, 'r').read().strip().split('\n')
+    links = open(local_file, 'r').read().strip().split('\n')
     # create a list of the files in the file list
-    #all_filenames = [x.split('/') for x in links]
+    all_filenames = [x.split('/') for x in links]
+
+    print(all_filenames)
 
     #with open(local_pull_list, mode='w') as pull_list_file:
     #    for i in all_filenames:
@@ -150,9 +152,11 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
 
-        success = build_pull_list_from_txt(params['WORKING_BUCKET'],
-                                           params['COSMIC_FILE'],
-                                           local_file)
+        success  = bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
+
+        #success = build_pull_list_from_txt(params['WORKING_BUCKET'],
+        #                                   params['COSMIC_FILE'],
+        #                                   local_file)
 
         if not success:
             print("Build pull list failed")
