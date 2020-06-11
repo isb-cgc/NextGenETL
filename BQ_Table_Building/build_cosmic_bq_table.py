@@ -152,11 +152,9 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
 
-        success  = bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
-
-        #success = build_pull_list_from_txt(params['WORKING_BUCKET'],
-        #                                   params['COSMIC_FILE'],
-        #                                   local_file)
+        success = build_pull_list_from_txt(params['WORKING_BUCKET'],
+                                           params['COSMIC_FILE'],
+                                           local_file)
 
         if not success:
             print("Build pull list failed")
