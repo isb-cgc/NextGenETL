@@ -149,6 +149,13 @@ def main(args):
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
+    if 'move_download_file_to_local' in steps:
+        success = bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
+
+        if not success:
+            print("Move {} from bucket to local failed".format(params['COSMIC_FILE']))
+            return
+
     if 'build_pull_list' in steps:
         print('build_pull_list')
 
