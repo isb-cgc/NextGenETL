@@ -146,16 +146,14 @@ def main(args):
         create_clean_target(local_files_dir)
 
     if 'build_pull_list' in steps:
-
         bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
-
         print('build_pull_list')
 
         success = build_pull_list_from_txt(local_file)
 
         if not success:
-            print("Build pull list failed")
-            return
+           print("Build pull list failed")
+           return
 
 if __name__ == "__main__":
     main(sys.argv)
