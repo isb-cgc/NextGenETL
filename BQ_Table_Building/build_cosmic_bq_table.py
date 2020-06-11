@@ -139,6 +139,7 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
+    local_file = "{}/{}".format(home, params['COSMIC_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
 
     if 'clear_target_directory' in steps:
@@ -150,6 +151,7 @@ def main(args):
 
         success = build_pull_list_from_txt(params['WORKING_BUCKET'],
                                            params['COSMIC_FILE'],
+                                           local_file,
                                            local_pull_list)
 
         if not success:
