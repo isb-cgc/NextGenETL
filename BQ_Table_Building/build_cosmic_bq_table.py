@@ -64,7 +64,7 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file):
     if not success:
         return False
     print(local_file)
-     open the file for reading
+    # open the file for reading
     links = open(local_file, 'r').read().strip().split('\n')
     # create a list of the files in the file list
     all_filenames = [x.split('/') for x in links]
