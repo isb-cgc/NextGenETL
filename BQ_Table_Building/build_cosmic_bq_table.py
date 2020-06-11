@@ -57,8 +57,9 @@ def load_config(yaml_config):
 Build Pull List from TXT
 '''
 
-def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
+def build_pull_list_from_txt(bucket, bucket_file, local_file, local_pull_list):
     # move the txt file from the bucket to the VM
+
     success = bucket_to_local(bucket, bucket_file, local_file)
     if not success:
         return False
@@ -67,7 +68,7 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file, version):
     # create a list of the files in the file list
     all_filenames = [x.split('/') for x in links]
 
-    with open(local_file, mode='w') as pull_list_file:
+    with open(local_pull_list, mode='w') as pull_list_file:
         for i in all_filenames:
             base_file, zip_ext = os.path.splitext(i[-1])
             if zip_ext == ".gz":
@@ -138,11 +139,7 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
-    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -153,8 +150,7 @@ def main(args):
 
         success = build_pull_list_from_txt(params['WORKING_BUCKET'],
                                            params['COSMIC_FILE'],
-                                           params['BQ_PULL_LIST_TABLE'],
-                                           params['VERSION'])
+                                           local_pull_list)
 
         if not success:
             print("Build pull list failed")
