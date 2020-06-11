@@ -73,7 +73,7 @@ def build_pull_list_from_txt(local_file, local_pull_list):
             if zip_ext == ".gz":
                 file, ext = os.path.splitext(base_file)
                 # Check if tsv, add to files
-                if  ext == ".tsv" or ".csv":
+                if ext == ".tsv" or ".csv":
                     file = ''.join([i[6], "/", i[4], "/", i[7]])
                     link = '/'.join(i)
                     pull_list_file.write(file + "\t" + link)
