@@ -57,7 +57,7 @@ def load_config(yaml_config):
 Build Pull List from TXT
 '''
 
-def build_pull_list_from_txt(bucket, bucket_file, local_file):
+def build_pull_list_from_txt(bucket, bucket_file, local_file, local_pull_list):
     # move the txt file from the bucket to the VM
 
     success = bucket_to_local(bucket, bucket_file, local_file)
@@ -152,7 +152,8 @@ def main(args):
 
         success = build_pull_list_from_txt(params['WORKING_BUCKET'],
                                            params['COSMIC_FILE'],
-                                           local_file)
+                                           local_file,
+                                           local_pull_list)
 
         if not success:
             print("Build pull list failed")
