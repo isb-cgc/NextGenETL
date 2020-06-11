@@ -157,3 +157,6 @@ def main(args):
         if not success:
             print("Build pull list failed")
             return
+
+if __name__ == "__main__":
+    main(sys.argv)
