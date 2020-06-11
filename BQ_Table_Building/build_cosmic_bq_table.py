@@ -57,7 +57,7 @@ def load_config(yaml_config):
 Build Pull List from TXT
 '''
 
-def build_pull_list_from_txt(local_file):
+def build_pull_list_from_txt(local_file, local_pull_list):
 
     # open the file for reading
     links = open(local_file, 'r').read().strip().split('\n')
@@ -67,16 +67,16 @@ def build_pull_list_from_txt(local_file):
     if not all_filenames:
         return False
 
-    #with open(local_pull_list, mode='w') as pull_list_file:
-    #    for i in all_filenames:
-    #        base_file, zip_ext = os.path.splitext(i[-1])
-    #        if zip_ext == ".gz":
-    #            file, ext = os.path.splitext(base_file)
-    #            # Check if tsv, add to files
-    #            if  ext == ".tsv" or ".csv":
-    #                file = ''.join([i[6], "/", i[4], "/", i[7]])
-    #                link = '/'.join(i)
-    #                pull_list_file.write(file + "\t" + link)
+    with open(local_pull_list, mode='w') as pull_list_file:
+        for i in all_filenames:
+            base_file, zip_ext = os.path.splitext(i[-1])
+            if zip_ext == ".gz":
+                file, ext = os.path.splitext(base_file)
+                # Check if tsv, add to files
+                if  ext == ".tsv" or ".csv":
+                    file = ''.join([i[6], "/", i[4], "/", i[7]])
+                    link = '/'.join(i)
+                    pull_list_file.write(file + "\t" + link)
 
     return True
 
@@ -149,7 +149,7 @@ def main(args):
         bucket_to_local(params['WORKING_BUCKET'], params['COSMIC_FILE'], local_file)
         print('build_pull_list')
 
-        success = build_pull_list_from_txt(local_file)
+        success = build_pull_list_from_txt(local_file, local_pull_list)
 
         if not success:
            print("Build pull list failed")
