@@ -57,7 +57,7 @@ def load_config(yaml_config):
 Build Pull List from TXT
 '''
 
-def build_pull_list_from_txt(bucket, bucket_file, local_file, local_pull_list):
+def build_pull_list_from_txt(bucket, bucket_file, local_file):
     # move the txt file from the bucket to the VM
 
     success = bucket_to_local(bucket, bucket_file, local_file)
@@ -65,20 +65,20 @@ def build_pull_list_from_txt(bucket, bucket_file, local_file, local_pull_list):
         return False
     print(local_file)
     # open the file for reading
-    links = open(local_file, 'r').read().strip().split('\n')
+    #links = open(local_file, 'r').read().strip().split('\n')
     # create a list of the files in the file list
-    all_filenames = [x.split('/') for x in links]
+    #all_filenames = [x.split('/') for x in links]
 
-    with open(local_pull_list, mode='w') as pull_list_file:
-        for i in all_filenames:
-            base_file, zip_ext = os.path.splitext(i[-1])
-            if zip_ext == ".gz":
-                file, ext = os.path.splitext(base_file)
-                # Check if tsv, add to files
-                if  ext == ".tsv" or ".csv":
-                    file = ''.join([i[6], "/", i[4], "/", i[7]])
-                    link = '/'.join(i)
-                    pull_list_file.write(file + "\t" + link)
+    #with open(local_pull_list, mode='w') as pull_list_file:
+    #    for i in all_filenames:
+    #        base_file, zip_ext = os.path.splitext(i[-1])
+    #        if zip_ext == ".gz":
+    #            file, ext = os.path.splitext(base_file)
+    #            # Check if tsv, add to files
+    #            if  ext == ".tsv" or ".csv":
+    #                file = ''.join([i[6], "/", i[4], "/", i[7]])
+    #                link = '/'.join(i)
+    #                pull_list_file.write(file + "\t" + link)
 
     return True
 
@@ -152,8 +152,7 @@ def main(args):
 
         success = build_pull_list_from_txt(params['WORKING_BUCKET'],
                                            params['COSMIC_FILE'],
-                                           local_file,
-                                           local_pull_list)
+                                           local_file)
 
         if not success:
             print("Build pull list failed")
