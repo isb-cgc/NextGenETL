@@ -79,7 +79,7 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                     link = '/'.join(i)
                     pull_list_file.write(file + "\t" + link + "\n")
             elif last_ext == ".tsv" or last_ext == ".csv":
-                file = ''.join([i[6], "/", i[4], "/", base_file, last_ext])
+                file = ''.join([base_file, "_", i[4], last_ext])
                 link = '/'.join(i)
                 pull_list_file.write(file + "\t" + link + "\n")
 
@@ -158,6 +158,16 @@ def main(args):
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
 
+    if 'unzip_files' in steps:
+        print("Unzipping Files")
+
+        with open(local_pull_list, mode = 'r') as pull_list_file:
+            file_list = pull_list_file.read().splitlines()
+        for line in file_list:
+            file_name = line.split('\t')[0]
+            file_location = ''.join([local_files_dir, "/", file_name])
+            ext =
+            toss_zip = False
 
 if __name__ == "__main__":
     main(sys.argv)
