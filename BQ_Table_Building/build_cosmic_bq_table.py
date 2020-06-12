@@ -75,7 +75,7 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                 file, ext = os.path.splitext(base_file)
                 # Check if tsv, add to files
                 if ext == ".tsv" or ext == ".csv":
-                    file = ''.join([i[6], "/", i[4], "/", file, ext, last_ext])
+                    file = ''.join([file, "_", i[4], ext, last_ext])
                     link = '/'.join(i)
                     pull_list_file.write(file + "\t" + link + "\n")
             elif last_ext == ".tsv" or last_ext == ".csv":
@@ -149,7 +149,7 @@ def main(args):
         print("Preaparing to download {} files from AWS buckets\n".format(len(pull_list)))
         for line in pull_list:
             file_name, url = line.split('\t')
-            file_location = ''.join([home, local_files_dir, "/", file_name])
+            file_location = ''.join([local_files_dir, "/", file_name])
             with open(file_location, mode='w') as data_file:
                 response = requests.get(url)
                 if response.status_code == 200:
