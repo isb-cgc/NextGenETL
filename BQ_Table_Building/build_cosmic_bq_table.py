@@ -75,7 +75,7 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                 file, ext = os.path.splitext(base_file)
                 # Check if tsv, add to files
                 if ext == ".tsv" or ext == ".csv":
-                    file = ''.join([i[6], "/", i[4], "/", i[7]])
+                    file = ''.join([i[6], "/", i[4], "/", file, ext])
                     link = '/'.join(i)
                     pull_list_file.write(file + "\t" + link + "\n")
             elif last_ext == ".tsv" or last_ext == ".csv":
