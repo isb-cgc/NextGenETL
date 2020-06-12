@@ -158,16 +158,16 @@ def main(args):
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
 
-    if 'unzip_files' in steps:
-        print("Unzipping Files")
-
-        with open(local_pull_list, mode = 'r') as pull_list_file:
-            file_list = pull_list_file.read().splitlines()
-        for line in file_list:
-            file_name = line.split('\t')[0]
-            file_location = ''.join([local_files_dir, "/", file_name])
-            ext =
-            toss_zip = False
+#    if 'unzip_files' in steps:
+#        print("Unzipping Files")
+#
+#        with open(local_pull_list, mode = 'r') as pull_list_file:
+#            file_list = pull_list_file.read().splitlines()
+#        for line in file_list:
+#            file_name = line.split('\t')[0]
+#            file_location = ''.join([local_files_dir, "/", file_name])
+#            ext =
+#            toss_zip = False
 
 if __name__ == "__main__":
     main(sys.argv)
