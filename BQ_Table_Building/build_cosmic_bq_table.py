@@ -149,7 +149,7 @@ def main(args):
         print("Preaparing to download {} files from AWS buckets\n".format(len(pull_list)))
         for line in pull_list:
             file_name, url = line.split('\t')
-            file_location = ''.join([local_files_dir, "/", file_name])
+            file_location = ''.join([home, local_files_dir, "/", file_name])
             with open(file_location, mode='w') as data_file:
                 response = requests.get(url)
                 if response.status_code == 200:
