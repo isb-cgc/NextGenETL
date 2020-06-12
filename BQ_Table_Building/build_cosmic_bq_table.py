@@ -75,7 +75,7 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                 file, ext = os.path.splitext(base_file)
                 # Check if tsv, add to files
                 if ext == ".tsv" or ext == ".csv":
-                    file = ''.join([i[6], "/", i[4], "/", file, ext])
+                    file = ''.join([i[6], "/", i[4], "/", file, ext, last_ext])
                     link = '/'.join(i)
                     pull_list_file.write(file + "\t" + link + "\n")
             elif last_ext == ".tsv" or last_ext == ".csv":
@@ -84,19 +84,6 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                 pull_list_file.write(file + "\t" + link + "\n")
 
     return True
-
-'''
-----------------------------------------------------------------------------------------------
-Download files
-'''
-
-#def pull_from_aws():
-#    for link in len(links):
-
-#        response = requests.get(link)
-#        if response.status_code == 200:
-
-    # Don't forget to unzip
 
 '''
 Fix column names
@@ -153,6 +140,24 @@ def main(args):
         if not success:
            print("Build pull list failed")
            return
+
+    if 'download_from_cosmic' in steps:
+        print("Download from Sanger")
+
+        with open(local_pull_list, mode='r') as pull_list_file:
+            pull_list = pull_list_file.read().splitlines()
+        print("Preaparing to download {} files from AWS buckets\n".format(len(pull_list)))
+        for line in pull_list_file:
+            file_name, url = line.split('\t')
+            file_location = ''.join([local_files_dir, "/", file_name])
+            with open(file_location, mode='w') as data_file:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    data_file.write(response.content)
+                else:
+                   print("Download failed. Problem downloading {}".format(file_name))
+                   return
+
 
 if __name__ == "__main__":
     main(sys.argv)
