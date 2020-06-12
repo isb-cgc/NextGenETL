@@ -150,7 +150,7 @@ def main(args):
         for line in pull_list:
             file_name, url = line.split('\t')
             file_location = ''.join([local_files_dir, "/", file_name])
-            with open(file_location, mode='w') as data_file:
+            with open(file_location, mode='wb') as data_file:
                 response = requests.get(url)
                 if response.status_code == 200:
                     data_file.write(response.content)
