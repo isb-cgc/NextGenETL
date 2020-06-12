@@ -147,7 +147,7 @@ def main(args):
         with open(local_pull_list, mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         print("Preaparing to download {} files from AWS buckets\n".format(len(pull_list)))
-        for line in pull_list_file:
+        for line in pull_list:
             file_name, url = line.split('\t')
             file_location = ''.join([local_files_dir, "/", file_name])
             with open(file_location, mode='w') as data_file:
