@@ -66,26 +66,27 @@ WARNING! Currently hardwired to CNV file heading!
 
 def concat_all_files(all_files, one_big_tsv):
     print("building {}".format(one_big_tsv))
-    first = True
+    global_line_count = 0
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
                 norm_path = os.path.normpath(filename)
                 path_pieces = norm_path.split(os.sep)
                 file_name = path_pieces[-1]
-                print(file_name)
                 gdc_id = path_pieces[-2]
+                local_line_count = 0
                 for line in readfile:
-                    if not line.startswith('GDC_Aliquot') or first:
-                        outfile.write(line.rstrip('\n'))
-                        outfile.write('\t')
-                        outfile.write('source_file_name' if first else file_name)
-                        outfile.write('\t')
-                        outfile.write('source_file_id' if first else gdc_id)
-                        outfile.write('\n')
-                    first = False
-
-
+                    if (global_line_count < 3) and (local_line_count < 3):
+                        outfile.write(line)
+                        global_line_count += 1
+                        local_line_count += 1
+                    elif local_line_count < 3:
+                        local_line_count += 1
+                        continue
+                    else:
+                        outfile.write(line)
+                        global_line_count += 1
+                        local_line_count += 1
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -262,15 +263,17 @@ def main(args):
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
 
-    if 'concat_all_files' in steps:
-        print('concat_all_files')
+    if 'group_by_type' in steps:
+        print('group_by_type')
         print(file_traversal_list)
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-        group_by_suffixes(all_files)
-        #with open(file_traversal_list, mode='r') as traversal_list_file:
-        #    all_files = traversal_list_file.read().splitlines()
-        #concat_all_files(all_files, one_big_tsv)
+        group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
+
+    if 'concat_all_files' in steps:
+        print('concat_all_files')
+        for k, v in group_dict.items():
+            concat_all_files(v, one_big_tsv.format(k))
 
     #
     # Schemas and table descriptions are maintained in the github repo:
