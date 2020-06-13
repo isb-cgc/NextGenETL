@@ -71,16 +71,17 @@ def concat_all_files(all_files, one_big_tsv, na_values):
 
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
+            outfile.write('\t'.join(header))
+            outfile.write('\n')
             with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
                 norm_path = os.path.normpath(filename)
                 path_pieces = norm_path.split(os.sep)
                 file_name = path_pieces[-1]
                 gdc_id = path_pieces[-2]
                 local_line_count = 0
-                outfile.write('\t'.join(header))
-                outfile.write('\n')
                 for line in readfile:
                     if local_line_count < skip_count:
+                        local_line_count += 1
                         continue
                     else:
                         split_line = line.rstrip('\n').split("\t")
