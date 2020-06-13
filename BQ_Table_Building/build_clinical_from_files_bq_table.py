@@ -32,7 +32,7 @@ from createSchemaP3 import build_schema
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, BucketPuller, build_combined_schema, \
+                               build_pull_list_with_bq_public, BucketPuller, build_combined_schema, \
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
                                generate_table_detail_files, publish_table
 
@@ -206,7 +206,7 @@ def main(args):
         full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                           params['TARGET_DATASET'],
                                           params['BQ_MANIFEST_TABLE'])
-        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+        success = build_pull_list_with_bq_public(full_manifest, params['INDEXD_BQ_TABLE'],
                                           params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                           params['BQ_PULL_LIST_TABLE'],
                                           params['WORKING_BUCKET'],
