@@ -84,6 +84,25 @@ def concat_all_files(all_files, one_big_tsv):
                         outfile.write('\n')
                     first = False
 
+
+
+'''
+----------------------------------------------------------------------------------------------
+There are a mixture of files, each with a different schema. Group the files into the different
+sets
+'''
+
+def group_by_suffixes(all_files):
+
+    names_only = []
+    for filename in all_files:
+        _, just_name = os.path.split(filename)
+        names_only.append(just_name)
+
+    prefix = longest_common_prefix(names_only)
+    print (prefix)
+    return
+
 '''
 ----------------------------------------------------------------------------------------------
 Merge Skeleton With Aliquot Data
@@ -91,47 +110,26 @@ Creates the final BQ table by joining the skeleton with the aliquot ID info
 '''
 
 def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table, do_batch):
+    return
 
-    sql = merge_bq_sql(cnv_table, aliquot_table)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
-# ### SQL Code For Final Table Generation
-# Original author: Sheila Reynolds
+Hat tip to:
+https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-70.php
 '''
-def merge_bq_sql(cnv_table, aliquot_table):
+def longest_common_prefix(str1):
+    if not str1:
+        return ""
 
-    return '''
-        WITH
-            a1 AS (SELECT DISTINCT GDC_Aliquot
-                   FROM `{0}`),
-            a2 AS (SELECT b.project_id AS project_short_name,
-                          b.case_barcode,
-                          b.sample_barcode,
-                          b.aliquot_barcode,
-                          b.case_gdc_id,
-                          b.sample_gdc_id,
-                          b.aliquot_gdc_id
-                   FROM a1
-                   JOIN `{1}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id)
-        SELECT
-            project_short_name,
-            case_barcode,
-            sample_barcode,
-            aliquot_barcode,
-            chromosome,
-            start AS start_pos,
-            `end` AS end_pos,
-            num_probes,
-            segment_mean,
-            case_gdc_id,
-            sample_gdc_id,
-            aliquot_gdc_id,
-            source_file_id AS file_gdc_id
-        FROM a2
-        JOIN `{0}` b ON a2.aliquot_gdc_id = b.GDC_Aliquot
-        '''.format(cnv_table, aliquot_table)
+    short_str = min(str1, key=len)
+
+    for i, char in enumerate(short_str):
+        for other in str1:
+            if other[i] != char:
+                return short_str[:i]
+
+    return short_str
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -238,9 +236,10 @@ def main(args):
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
-        with open(file_traversal_list, mode='r') as traversal_list_file:
-            all_files = traversal_list_file.read().splitlines()
-        concat_all_files(all_files, one_big_tsv)
+        group_by_suffixes(all_files)
+        #with open(file_traversal_list, mode='r') as traversal_list_file:
+        #    all_files = traversal_list_file.read().splitlines()
+        #concat_all_files(all_files, one_big_tsv)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
