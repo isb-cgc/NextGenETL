@@ -988,8 +988,10 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
         with open(scraped, mode='r') as scraped_hold_list:
             schema_list = json_loads(scraped_hold_list.read())
 
-    with open(augmented, mode='r') as augment_list:
-        augment_list = json_loads(augment_list.read())
+    augment_list = []
+    if augmented is not None:
+        with open(augmented, mode='r') as augment_list_file:
+            augment_list = json_loads(augment_list_file.read())
 
     full_schema_dict = {}
     for elem in schema_list:

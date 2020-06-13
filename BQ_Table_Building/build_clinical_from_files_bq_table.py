@@ -126,7 +126,7 @@ def build_a_header(all_files):
         if cde_toks[i] == 'CDE_ID:':
             result.append(header_lines[0][i])
         else:
-            result.append(cde_toks[i])
+            result.append(cde_toks[i].replace(":", "_").replace(".", "_"))
 
     return (result, cde_index)
 
@@ -351,11 +351,14 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list, hold_schema_dict)
+        for k in group_dict:
+            typing_tups = build_schema(one_big_tsv.format(k), params['SCHEMA_SAMPLE_SKIPS'])
+            #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+            #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            hold_schema_dict_for_group = hold_schema_dict.format(k)
+            hold_schema_list_for_group = hold_schema_list.format(k)
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_for_group, hold_schema_dict_for_group)
 
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
