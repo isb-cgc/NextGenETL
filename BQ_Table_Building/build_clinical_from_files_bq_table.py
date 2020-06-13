@@ -23,6 +23,7 @@ Make sure the VM has BigQuery and Storage Read/Write permissions!
 
 import sys
 import os
+import re
 from os.path import expanduser
 import yaml
 import io
@@ -106,11 +107,14 @@ def group_by_suffixes(all_files):
     for name in names_only:
         suffixes.add(name[len(prefix):])
 
+    groups = set()
+    p = re.compile('(^.*)_[a-z]+\.txt')
     for suf in suffixes:
-        print(suf)
+        m = p.match(suf)
+        groups.add(m.group(1))
 
-
-
+    for group in groups:
+        print(group)
 
     return
 
