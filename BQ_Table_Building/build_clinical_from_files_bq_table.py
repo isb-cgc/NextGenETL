@@ -95,28 +95,41 @@ sets
 
 def group_by_suffixes(all_files):
 
+    full_and_name = []
     names_only = []
     for filename in all_files:
         path, just_name = os.path.split(filename)
+        full_and_name.append((filename, just_name))
         names_only.append(just_name)
 
     prefix = longest_common_prefix(names_only)
 
-    suffixes = set()
+    path_suff = []
+    for tup in full_and_name:
+        path_suff.append((tup[0], tup[1][len(prefix):]))
 
-    for name in names_only:
-        suffixes.add(name[len(prefix):])
-
+    path_group = []
     groups = set()
     p = re.compile('(^.*)_[a-z]+\.txt')
-    for suf in suffixes:
-        m = p.match(suf)
-        groups.add(m.group(1))
+    for tup in path_suff:
+        m = p.match(tup[1])
+        group = m.group(1)
+        path_group.append((path_suff[0], group))
+        groups.add(group)
 
-    for group in groups:
-        print(group)
+    files_by_group = {}
 
-    return
+    for file_tup in path_group:
+        if file_tup[1] not in files_by_group:
+            files_by_group[file_tup[1]] = []
+        files_by_group[file_tup[1]].append(file_tup[0])
+
+    for k, v in files_by_group:
+        print(k)
+        for f in v:
+            print(f)
+
+    return files_by_group
 
 '''
 ----------------------------------------------------------------------------------------------
