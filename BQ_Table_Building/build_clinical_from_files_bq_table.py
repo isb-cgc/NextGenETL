@@ -96,7 +96,9 @@ def group_by_suffixes(all_files):
 
     names_only = []
     for filename in all_files:
-        _, just_name = os.path.split(filename)
+        print(filename)
+        path, just_name = os.path.split(filename)
+        print(path)
         print(just_name)
         names_only.append(just_name)
 
