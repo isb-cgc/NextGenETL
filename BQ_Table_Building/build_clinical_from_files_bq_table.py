@@ -72,6 +72,7 @@ def concat_all_files(all_files, one_big_tsv):
                 norm_path = os.path.normpath(filename)
                 path_pieces = norm_path.split(os.sep)
                 file_name = path_pieces[-1]
+                print(file_name)
                 gdc_id = path_pieces[-2]
                 for line in readfile:
                     if not line.startswith('GDC_Aliquot') or first:
