@@ -51,9 +51,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['no_data_values'], yaml_dict['steps']
 
 
 '''
@@ -64,9 +64,11 @@ def load_config(yaml_config):
 WARNING! Currently hardwired to CNV file heading!
 '''
 
-def concat_all_files(all_files, one_big_tsv):
+def concat_all_files(all_files, one_big_tsv, na_values):
     print("building {}".format(one_big_tsv))
-    global_line_count = 0
+
+    header, skip_count = build_a_header(all_files)
+
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
@@ -75,18 +77,57 @@ def concat_all_files(all_files, one_big_tsv):
                 file_name = path_pieces[-1]
                 gdc_id = path_pieces[-2]
                 local_line_count = 0
+                outfile.write('\t'.join(header))
+                outfile.write('\n')
                 for line in readfile:
-                    if (global_line_count < 3) and (local_line_count < 3):
-                        outfile.write(line)
-                        global_line_count += 1
-                        local_line_count += 1
-                    elif local_line_count < 3:
-                        local_line_count += 1
+                    if local_line_count < skip_count:
                         continue
                     else:
-                        outfile.write(line)
-                        global_line_count += 1
+                        split_line = line.rstrip('\n').split("\t")
+                        new_fields = []
+                        for field in split_line:
+                            new_fields.append("" if field in na_values else field)
+                        outfile.write('\t'.join(new_fields))
+                        outfile.write('\n')
                         local_line_count += 1
+    return
+
+'''
+----------------------------------------------------------------------------------------------
+Build a header for the bioclin files
+
+'''
+
+def build_a_header(all_files):
+    header_lines = []
+    cde_index = -1
+    with open(all_files[0], 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
+        for line in readfile:
+            # if we run into one field that is a pure number, it is no longer a header line
+            split_line = line.rstrip('\n').split("\t")
+            for field in split_line:
+                if field.isnumeric():
+                    break
+            header_lines.append(split_line)
+            if split_line[0].startswith("CDE_ID"):
+                cde_index = len(header_lines) - 1
+
+    if cde_index == -1:
+        raise Exception()
+
+    #
+    # If the CDE token is undefined, we use the first row field:
+    #
+
+    result = []
+    cde_toks = header_lines[cde_index]
+    for i in range(len(cde_toks)):
+        if cde_toks[i] == 'CDE_ID:':
+            result.append(header_lines[0][i])
+        else:
+            result.append(cde_toks[i])
+
+    return (result, cde_index)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -184,8 +225,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, bq_filters, steps = load_config(yaml_file.read())
-
+        params, bq_filters, na_values, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
@@ -199,6 +239,14 @@ def main(args):
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
+
+    #
+    # Actual fields have brackets:
+    #
+
+    na_set = set()
+    for val in na_values:
+        na_set.add("[{}]".format(val))
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -273,7 +321,7 @@ def main(args):
     if 'concat_all_files' in steps:
         print('concat_all_files')
         for k, v in group_dict.items():
-            concat_all_files(v, one_big_tsv.format(k))
+            concat_all_files(v, one_big_tsv.format(k), na_set)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
