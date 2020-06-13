@@ -124,7 +124,7 @@ def group_by_suffixes(all_files):
             files_by_group[file_tup[1]] = []
         files_by_group[file_tup[1]].append(file_tup[0])
 
-    for k, v in files_by_group:
+    for k, v in files_by_group.items():
         print(k)
         for f in v:
             print(f)
