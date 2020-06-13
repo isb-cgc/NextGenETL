@@ -96,13 +96,11 @@ def group_by_suffixes(all_files):
 
     names_only = []
     for filename in all_files:
-        print(filename)
         path, just_name = os.path.split(filename)
-        print(path)
-        print(just_name)
         names_only.append(just_name)
 
     prefix = longest_common_prefix(names_only)
+    print("prefix")
     print (prefix)
     return
 
@@ -126,8 +124,10 @@ def longest_common_prefix(str1):
         return ""
 
     short_str = min(str1, key=len)
+    print(short_str)
 
     for i, char in enumerate(short_str):
+        print(char)
         for other in str1:
             if other[i] != char:
                 return short_str[:i]
