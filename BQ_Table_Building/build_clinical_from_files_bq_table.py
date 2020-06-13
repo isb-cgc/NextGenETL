@@ -236,7 +236,7 @@ def main(args):
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
-        group_by_suffixes(all_files)
+        group_by_suffixes(file_traversal_list)
         #with open(file_traversal_list, mode='r') as traversal_list_file:
         #    all_files = traversal_list_file.read().splitlines()
         #concat_all_files(all_files, one_big_tsv)
