@@ -102,8 +102,8 @@ def group_by_suffixes(all_files):
         print(just_name)
         names_only.append(just_name)
 
-    #prefix = longest_common_prefix(names_only)
-    #print (prefix)
+    prefix = longest_common_prefix(names_only)
+    print (prefix)
     return
 
 '''
@@ -240,7 +240,9 @@ def main(args):
     if 'concat_all_files' in steps:
         print('concat_all_files')
         print(file_traversal_list)
-        group_by_suffixes(file_traversal_list)
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+        group_by_suffixes(all_files)
         #with open(file_traversal_list, mode='r') as traversal_list_file:
         #    all_files = traversal_list_file.read().splitlines()
         #concat_all_files(all_files, one_big_tsv)
