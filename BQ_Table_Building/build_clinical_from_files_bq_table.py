@@ -114,7 +114,7 @@ def group_by_suffixes(all_files):
     for tup in path_suff:
         m = p.match(tup[1])
         group = m.group(1)
-        path_group.append((path_suff[0], group))
+        path_group.append((tup[0], group))
         groups.add(group)
 
     files_by_group = {}
