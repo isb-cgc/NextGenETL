@@ -87,14 +87,14 @@ def concat_all_files(all_files, one_big_tsv, na_values):
                         for i in range(len(split_line)):
                             key_dict[cols_for_file[i]] = "" if split_line[i] in na_values else split_line[i]
 
-                write_line = []
-                for col in saf:
-                    if col in key_dict:
-                        write_line.append(key_dict[col])
-                    else:
-                        write_line.append("")
-                outfile.write('\t'.join(write_line))
-                outfile.write('\n')
+                    write_line = []
+                    for col in saf:
+                        if col in key_dict:
+                            write_line.append(key_dict[col])
+                        else:
+                            write_line.append("")
+                    outfile.write('\t'.join(write_line))
+                    outfile.write('\n')
     return
 
 '''
