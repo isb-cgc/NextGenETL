@@ -128,8 +128,8 @@ def build_a_header(all_files):
         if cde_index == -1:
             raise Exception()
 
-    for k, v in per_file:
-        for m, t in per_file:
+    for k, v in per_file.items():
+        for m, t in per_file.items():
             if v != t:
                 print("mismatch {} {}".format(k, m))
                 raise Exception()
