@@ -86,7 +86,7 @@ def concat_all_files(all_files, one_big_tsv, na_values):
                         continue
                     else:
                         split_line = line.rstrip('\n').split("\t")
-                        if split_line.startswith("CDE_ID"):
+                        if split_line[0].startswith("CDE_ID"):
                             raise Exception()
                         new_fields = []
                         for field in split_line:
@@ -136,7 +136,7 @@ def build_a_header(all_files):
         else:
             result.append(cde_toks[i].replace(":", "_").replace(".", "_"))
 
-    return (result, cde_index)
+    return (result, cde_index + 1)
 
 '''
 ----------------------------------------------------------------------------------------------
