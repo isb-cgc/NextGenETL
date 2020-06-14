@@ -102,19 +102,25 @@ Build a header for the bioclin files
 def build_a_header(all_files):
     header_lines = []
     cde_index = -1
-    with open(all_files[0], 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
-        for line in readfile:
-            # if we run into one field that is a pure number, it is no longer a header line
-            split_line = line.rstrip('\n').split("\t")
-            for field in split_line:
-                if field.isnumeric():
-                    break
-            header_lines.append(split_line)
-            if split_line[0].startswith("CDE_ID"):
-                cde_index = len(header_lines) - 1
+    ingress = True
+    for filename in all_files:
+        with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
+            for line in readfile:
+                # if we run into one field that is a pure number, it is no longer a header line
+                split_line = line.rstrip('\n').split("\t")
+                for field in split_line:
+                    if field.isnumeric():
+                        break
+                if ingress:
+                    header_lines.append(split_line)
+                    if split_line[0].startswith("CDE_ID"):
+                        cde_index = len(header_lines) - 1
+                else:
+                    print('\t'.join(header_lines[cde_index]))
+            ingress = False
 
-    if cde_index == -1:
-        raise Exception()
+        if cde_index == -1:
+            raise Exception()
 
     #
     # If the CDE token is undefined, we use the first row field:
@@ -166,11 +172,6 @@ def group_by_suffixes(all_files):
         if file_tup[1] not in files_by_group:
             files_by_group[file_tup[1]] = []
         files_by_group[file_tup[1]].append(file_tup[0])
-
-    for k, v in files_by_group.items():
-        print(k)
-        for f in v:
-            print(f)
 
     return files_by_group
 
