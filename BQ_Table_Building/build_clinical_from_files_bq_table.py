@@ -364,7 +364,7 @@ def main(args):
             with open(hold_schema_list.format(k), mode='r') as schema_hold_dict:
                 typed_schema = json_loads(schema_hold_dict.read())
             csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'],
-                      params['TARGET_TABLE'].format(k.replace(".", "_")), params['BQ_AS_BATCH'])
+                      params['FINAL_TARGET_TABLE'].format(k.replace(".", "_")), params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
