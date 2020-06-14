@@ -102,7 +102,7 @@ Build a header for the bioclin files
 def build_a_header(all_files):
     header_lines = []
     cde_index = -1
-    ingress = True
+    doing_headers = True
     for filename in all_files:
         with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
             for line in readfile:
@@ -110,14 +110,13 @@ def build_a_header(all_files):
                 split_line = line.rstrip('\n').split("\t")
                 for field in split_line:
                     if field.isnumeric():
+                        doing_headers = False
                         break
-                if ingress:
-                    header_lines.append(split_line)
-                    if split_line[0].startswith("CDE_ID"):
-                        cde_index = len(header_lines) - 1
-                else:
-                    print('\t'.join(header_lines[cde_index]))
-            ingress = False
+                if not doing_headers:
+                    break
+                header_lines.append(split_line)
+                if split_line[0].startswith("CDE_ID"):
+                    cde_index = len(header_lines) - 1
 
         if cde_index == -1:
             raise Exception()
