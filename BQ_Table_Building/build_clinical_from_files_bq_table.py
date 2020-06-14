@@ -106,7 +106,9 @@ def build_a_header(all_files):
     header_lines = []
     cde_index = -1
     doing_headers = True
+    per_file = {}
     for filename in all_files:
+        per_file[filename] = set()
         with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
             for line in readfile:
                 # if we run into one field that is a pure number, it is no longer a header line
@@ -119,10 +121,18 @@ def build_a_header(all_files):
                     break
                 header_lines.append(split_line)
                 if split_line[0].startswith("CDE_ID"):
+                    print("CDE LINE AT {}".format(str(len(header_lines) - 1)))
                     cde_index = len(header_lines) - 1
+                    per_file[filename].update(split_line)
 
         if cde_index == -1:
             raise Exception()
+
+    for k, v in per_file:
+        for m, t in per_file:
+            if v != t:
+                print("mismatch {} {}".format(k, m))
+                raise Exception()
 
     #
     # If the CDE token is undefined, we use the first row field:
