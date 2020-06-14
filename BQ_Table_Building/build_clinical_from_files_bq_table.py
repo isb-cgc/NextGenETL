@@ -354,14 +354,17 @@ def main(args):
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
+        for k in group_dict:
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob.format(k), one_big_tsv.format(k))
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-        with open(hold_schema_list, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
+        for k in group_dict:
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob.format(k))
+            with open(hold_schema_list.format(k), mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'],
+                      params['TARGET_TABLE'].format(k.replace(".", "_")), params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
