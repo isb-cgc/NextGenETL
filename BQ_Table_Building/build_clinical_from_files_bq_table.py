@@ -71,13 +71,12 @@ def concat_all_files(all_files, one_big_tsv, na_values):
     saf = sorted(all_fields)
 
     with open(one_big_tsv, 'w') as outfile:
+        outfile.write('\t'.join(saf))
+        outfile.write('\n')
         for filename in all_files:
-            outfile.write('\t'.join(saf))
-            outfile.write('\n')
             key_dict = {}
             skipping = True
             with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
-                local_line_count = 0
                 cols_for_file = per_file[filename]
                 for line in readfile:
                     split_line = line.rstrip('\n').split("\t")
@@ -87,6 +86,7 @@ def concat_all_files(all_files, one_big_tsv, na_values):
                     if not skipping:
                         for i in range(len(split_line)):
                             key_dict[cols_for_file[i]] = "" if split_line[i] in na_values else split_line[i]
+
                 write_line = []
                 for col in saf:
                     if col in key_dict:
@@ -104,12 +104,12 @@ Build a header for the bioclin files
 '''
 
 def build_a_header(all_files):
-    header_lines = []
     all_fields = set()
     per_file = {}
     for filename in all_files:
         per_file[filename] = []
         with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
+            header_lines = []
             for line in readfile:
                 # if we run into one field that is a pure number, it is no longer a header line
                 split_line = line.rstrip('\n').split("\t")
