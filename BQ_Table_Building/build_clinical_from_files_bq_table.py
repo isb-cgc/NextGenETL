@@ -67,33 +67,34 @@ WARNING! Currently hardwired to CNV file heading!
 def concat_all_files(all_files, one_big_tsv, na_values):
     print("building {}".format(one_big_tsv))
 
-    header, skip_count = build_a_header(all_files)
+    all_fields, per_file = build_a_header(all_files)
+    saf = sorted(all_fields)
 
-    print(skip_count)
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
-            outfile.write('\t'.join(header))
+            outfile.write('\t'.join(saf))
             outfile.write('\n')
+            key_dict = {}
+            skipping = True
             with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
-                norm_path = os.path.normpath(filename)
-                path_pieces = norm_path.split(os.sep)
-                file_name = path_pieces[-1]
-                gdc_id = path_pieces[-2]
                 local_line_count = 0
+                cols_for_file = per_file[filename]
                 for line in readfile:
-                    if local_line_count < skip_count:
-                        local_line_count += 1
+                    split_line = line.rstrip('\n').split("\t")
+                    if split_line[0].startswith("CDE_ID"):
+                        skipping = False
                         continue
+                    if not skipping:
+                        for i in range(len(split_line)):
+                            key_dict[cols_for_file[i]] = "" if split_line[i] in na_values else split_line[i]
+                write_line = []
+                for col in saf:
+                    if col in key_dict:
+                        write_line.append(key_dict[col])
                     else:
-                        split_line = line.rstrip('\n').split("\t")
-                        if split_line[0].startswith("CDE_ID"):
-                            raise Exception()
-                        new_fields = []
-                        for field in split_line:
-                            new_fields.append("" if field in na_values else field)
-                        outfile.write('\t'.join(new_fields))
-                        outfile.write('\n')
-                        local_line_count += 1
+                        write_line.append("")
+                outfile.write('\t'.join(write_line))
+                outfile.write('\n')
     return
 
 '''
@@ -104,49 +105,25 @@ Build a header for the bioclin files
 
 def build_a_header(all_files):
     header_lines = []
-    cde_index = -1
-    doing_headers = True
+    all_fields = set()
     per_file = {}
     for filename in all_files:
-        per_file[filename] = set()
+        per_file[filename] = []
         with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
             for line in readfile:
                 # if we run into one field that is a pure number, it is no longer a header line
                 split_line = line.rstrip('\n').split("\t")
-                for field in split_line:
-                    if field.isnumeric():
-                        doing_headers = False
-                        break
-                if not doing_headers:
-                    break
                 header_lines.append(split_line)
                 if split_line[0].startswith("CDE_ID"):
-                    print("CDE LINE AT {}".format(str(len(header_lines) - 1)))
-                    cde_index = len(header_lines) - 1
-                    per_file[filename].update(split_line)
+                    for i in range(len(split_line)):
+                        if split_line[i] == 'CDE_ID:':
+                            per_file[filename].append(header_lines[0][i])
+                        else:
+                            per_file[filename].append(split_line[i])
+                    all_fields.update(per_file[filename])
+                    break
 
-        if cde_index == -1:
-            raise Exception()
-
-    for k, v in per_file.items():
-        for m, t in per_file.items():
-            if v != t:
-                print("mismatch {} {}".format(k, m))
-                raise Exception()
-
-    #
-    # If the CDE token is undefined, we use the first row field:
-    #
-
-    result = []
-    cde_toks = header_lines[cde_index]
-    for i in range(len(cde_toks)):
-        if cde_toks[i] == 'CDE_ID:':
-            result.append(header_lines[0][i])
-        else:
-            result.append(cde_toks[i].replace(":", "_").replace(".", "_"))
-
-    return (result, cde_index + 1)
+    return all_fields, per_file
 
 '''
 ----------------------------------------------------------------------------------------------
