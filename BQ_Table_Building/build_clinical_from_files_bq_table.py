@@ -69,6 +69,7 @@ def concat_all_files(all_files, one_big_tsv, na_values):
 
     header, skip_count = build_a_header(all_files)
 
+    print(skip_count)
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             outfile.write('\t'.join(header))
@@ -85,6 +86,8 @@ def concat_all_files(all_files, one_big_tsv, na_values):
                         continue
                     else:
                         split_line = line.rstrip('\n').split("\t")
+                        if split_line.startswith("CDE_ID"):
+                            raise Exception()
                         new_fields = []
                         for field in split_line:
                             new_fields.append("" if field in na_values else field)
