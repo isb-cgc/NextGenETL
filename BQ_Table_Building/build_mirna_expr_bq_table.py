@@ -34,7 +34,7 @@ from common_etl.support import create_clean_target, build_file_list, generic_bq_
                                upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
                                build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, BucketPuller, \
-                               generate_table_detail_files, update_schema_with_dict
+                               generate_table_detail_files, update_schema_with_dict, install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
