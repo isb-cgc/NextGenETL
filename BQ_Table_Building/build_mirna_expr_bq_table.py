@@ -33,7 +33,8 @@ from createSchemaP3 import build_schema
 from common_etl.support import create_clean_target, build_file_list, generic_bq_harness, confirm_google_vm, \
                                upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
                                build_pull_list_with_bq, update_schema, \
-                               update_description, build_combined_schema, get_the_bq_manifest, BucketPuller
+                               update_description, build_combined_schema, get_the_bq_manifest, BucketPuller, \
+                               generate_table_detail_files
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -376,12 +377,11 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         for file_set in file_sets:
-            count_name, _ = next(iter(file_set.items()))
-            typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
+            typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             build_combined_schema(None, schema_dict_loc,
-                                  typing_tups, hold_schema_list.format(count_name), hold_schema_dict.format(count_name))
+                                  typing_tups, hold_schema_list, hold_schema_dict)
 
 
 
