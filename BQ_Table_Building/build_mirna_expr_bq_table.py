@@ -424,23 +424,6 @@ def main(args):
             return
 
     #
-    # The derived table we generate has no field descriptions. Add them from the scraped page:
-    #
-
-    # if 'update_final_schema' in steps:
-    #     success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], hold_schema_dict)
-    #     if not success:
-    #         print("Schema update failed")
-    #         return
-    
-    #
-    # Add the table description:
-    #
-    #
-    # if 'add_table_description' in steps:
-    #     update_description(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['TABLE_DESCRIPTION'])
-      
-    #
     # Clear out working temp tables:
     #
     
@@ -449,11 +432,22 @@ def main(args):
                            'BQ_MANIFEST_TABLE', 'BQ_PULL_LIST_TABLE']
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
-            delete_table_bq_job(params['TARGET_DATASET'], table)    
+            delete_table_bq_job(params['TARGET_DATASET'], table)
+
     #
-    # Done!
+    # publish table:
     #
-    
+
+    if 'publish' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+        success = publish_table(source_table, publication_dest)
+        if not success:
+            print("publish table failed")
+            return
+
     print('job completed')
 
 if __name__ == "__main__":
