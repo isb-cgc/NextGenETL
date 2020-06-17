@@ -32,7 +32,7 @@ from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
 
-from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local
+from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -126,6 +126,7 @@ def main(args):
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
     local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
+    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -158,16 +159,12 @@ def main(args):
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
 
-#    if 'unzip_files' in steps:
-#        print("Unzipping Files")
-#
-#        with open(local_pull_list, mode = 'r') as pull_list_file:
-#            file_list = pull_list_file.read().splitlines()
-#        for line in file_list:
-#            file_name = line.split('\t')[0]
-#            file_location = ''.join([local_files_dir, "/", file_name])
-#            ext =
-#            toss_zip = False
+    if 'build_file_list' in steps:
+        print('build_file_list')
+        all_files = build_file_list(local_files_dir)
+        with open(file_traversal_list, mode='w') as traversal_list:
+            for line in all_files:
+                traversal_list.write("{}\n".format(line))
 
 if __name__ == "__main__":
     main(sys.argv)
