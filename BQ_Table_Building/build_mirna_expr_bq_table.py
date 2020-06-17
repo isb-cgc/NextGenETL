@@ -114,11 +114,11 @@ def attach_barcodes_sql(temp_table, aliquot_table):
                c.case_barcode,
                c.sample_barcode,
                c.aliquot_barcode, 
-               a.fileUUID
-               c.case_gdc_id
+               a.fileUUID,
+               c.case_gdc_id,
                c.sample_gdc_id,
                a.aliquot_gdc_id
-        FROM `{0}`as a JOIN `{1}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id, a.project
+        FROM `{0}`as a JOIN `{1}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id
         WHERE c.case_gdc_id = a.case_gdc_id
         '''.format(temp_table, aliquot_table)
 
@@ -142,9 +142,13 @@ def final_join_sql(isoform_table, barcodes_table):
                a.case_barcode,
                a.sample_barcode,
                a.aliquot_barcode, 
-               b.*
-               a.case_gdc_id
-               a.sample_gdc_id
+               b.miRNA_ID as miRNA_id,
+               b.read_count,
+               b.reads_per_million_miRNA_mapped,
+               b.cross_mapped,
+               b.fileUUID as file_gdc_id,
+               a.case_gdc_id,
+               a.sample_gdc_id,
                a.aliquot_gdc_id
         FROM `{0}` as a JOIN `{1}` as b ON a.fileUUID = b.fileUUID
         '''.format(barcodes_table, isoform_table)
@@ -285,15 +289,40 @@ def main(args):
                          params['PROGRAM_PREFIX'], extra_cols, file_info, None)
             
     #
-    # For the legacy table, the descriptions had lots of analysis tidbits. Very nice, but hard to maintain.
-    # We just use hardwired schema descriptions now, most directly pulled from the GDC website:
+    # Schemas and table descriptions are maintained in the github repo:
     #
-    
-    if 'build_the_schema' in steps:
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
-                              typing_tups, hold_schema_list, hold_schema_dict)
-         
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        for file_set in file_sets:
+            count_name, _ = next(iter(file_set.items()))
+            typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list.format(count_name), hold_schema_dict.format(count_name))
+
     #
     # Upload the giant TSV into a cloud bucket:
     #
