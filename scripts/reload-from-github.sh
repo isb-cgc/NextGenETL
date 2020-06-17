@@ -20,7 +20,7 @@
 
 cd ~
 rm -rf ~/NextGenETL
-git clone https://github.com/isb-cgc/NextGenETL.git
+git clone https://github.com/isb-cgc/NextGenETL.git --branch fseidl_dev
 cd NextGenETL/scripts
 chmod u+x *.sh
 
