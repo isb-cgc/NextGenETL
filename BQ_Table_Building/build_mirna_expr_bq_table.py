@@ -376,12 +376,11 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        for file_set in file_sets:
-            typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-            build_combined_schema(None, schema_dict_loc,
-                                  typing_tups, hold_schema_list, hold_schema_dict)
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
+                                typing_tups, hold_schema_list, hold_schema_dict)
 
 
 
