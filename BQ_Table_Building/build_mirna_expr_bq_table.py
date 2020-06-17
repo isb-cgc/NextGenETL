@@ -291,6 +291,16 @@ def main(args):
                          params['PROGRAM_PREFIX'], extra_cols, file_info, None)
 
     #
+    # For the legacy table, the descriptions had lots of analysis tidbits. Very nice, but hard to maintain.
+    # We just use hardwired schema descriptions now, most directly pulled from the GDC website:
+    #
+
+    if 'build_the_schema' in steps:
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        build_combined_schema(None, AUGMENTED_SCHEMA_FILE,
+                              typing_tups, hold_schema_list, hold_schema_dict)
+
+    #
     # Upload the giant TSV into a cloud bucket:
     #
     

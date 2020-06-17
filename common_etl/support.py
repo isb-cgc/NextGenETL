@@ -982,7 +982,7 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
     with open(holding_dict, mode='w') as schema_hold_dict:
         schema_hold_dict.write(json_dumps(full_schema_dict))
-        print("writing schema_hold_dict to {}".format(holding_dict)
+        print("writing schema_hold_dict to {}".format(holding_dict))
 
     return True
 
