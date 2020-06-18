@@ -198,7 +198,10 @@ def main(args):
 
     if 'process_git_schemas' in steps:
         print('process_git_schema')
-        
+
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+
         for line in all_files:
             file, ext = os.path.splitext(line.split('/')[-1])
             print(file + '\t' + ext)
