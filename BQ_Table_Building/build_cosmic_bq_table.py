@@ -171,6 +171,8 @@ def main(args):
                     with open(new_file_location, "wb") as uncomp_out:
                         shutil.copyfileobj(gzip_in, uncomp_out)
                 os.remove(file_location)
+            else:
+                print("{} doesn't need to be uncompressed".format(file))
 
 
     if 'build_file_list' in steps:
@@ -194,9 +196,9 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-#    for line in all_files:
-#        file, ext = os.path.splitext(line.split('/')[-1])
-#        print(file + '\t' + ext)
+    for line in all_files:
+        file, ext = os.path.splitext(line.split('/')[-1])
+         print(file + '\t' + ext)
 
 #    if 'process_git_schemas' in steps:
 #        # This needs to be updated for multiple tables!!
