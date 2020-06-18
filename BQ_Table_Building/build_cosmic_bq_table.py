@@ -204,11 +204,12 @@ def main(args):
 
         for line in all_files:
             file, ext = os.path.splitext(line.split('/')[-1])
-            print(file + '\t' + ext)
+            # Where do we dump the schema git repository?
+            schema_file_name = ''.join(file, ".json")
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+            print(schema_file + "\t" + full_file_prefix)
 
-        # Where do we dump the schema git repository?
-#        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-#        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         # Write out the details
 #        success = generate_table_detail_files(schema_file, full_file_prefix)
 #        if not success:
