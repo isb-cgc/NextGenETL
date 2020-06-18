@@ -32,7 +32,8 @@ from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
 
-from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list
+from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
+                                generate_table_detail_files
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -165,6 +166,35 @@ def main(args):
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
+
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    for line in all_files:
+        print(line)
+
+#    if 'process_git_schemas' in steps:
+#        # This needs to be updated for multiple tables!!
+#        print('process_git_schema')
+#        # Where do we dump the schema git repository?
+#        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+#        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+#        # Write out the details
+#        success = generate_table_detail_files(schema_file, full_file_prefix)
+#        if not success:
+#            print("process_git_schemas failed")
+#            return
 
 if __name__ == "__main__":
     main(sys.argv)
