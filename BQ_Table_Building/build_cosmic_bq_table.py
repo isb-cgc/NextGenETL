@@ -27,6 +27,8 @@ from os.path import expanduser
 import yaml
 import io
 import requests
+import gzip
+import shutil
 import string
 from git import Repo
 from json import loads as json_loads
@@ -160,6 +162,15 @@ def main(args):
                 else:
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
+            file, ext = os.path.splitext(file_name.split('/')[-1])
+            if ext == ".gz":
+                # Unzip the file and remove zip file
+                print("Uncompressing {}".format(file))
+                with gzip.open(file_name, "rb") as gzip_in:
+                    with open(file, "wb") as uncomp_out:
+                        shutil.copyfileobj(gzip_in, uncomp_out)
+                os.remove(file_name)
+
 
     if 'build_file_list' in steps:
         print('build_file_list')
@@ -182,9 +193,9 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    for line in all_files:
-        file, ext = os.path.splitext(line.split('/')[-1])
-        print(file + '\t' + ext)
+#    for line in all_files:
+#        file, ext = os.path.splitext(line.split('/')[-1])
+#        print(file + '\t' + ext)
 
 #    if 'process_git_schemas' in steps:
 #        # This needs to be updated for multiple tables!!
