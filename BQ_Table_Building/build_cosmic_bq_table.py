@@ -156,6 +156,7 @@ def main(args):
                 response = requests.get(url)
                 if response.status_code == 200:
                     data_file.write(response.content)
+                    # add an unzip step & dump zip file
                 else:
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
@@ -182,7 +183,8 @@ def main(args):
             return
 
     for line in all_files:
-        print(line)
+        file, ext = os.path.splitext(line.split('/')[-1])
+        print(file + '\t' + ext)
 
 #    if 'process_git_schemas' in steps:
 #        # This needs to be updated for multiple tables!!
