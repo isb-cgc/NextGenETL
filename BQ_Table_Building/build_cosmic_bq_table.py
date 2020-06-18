@@ -196,17 +196,17 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    for line in all_files:
-        file, ext = os.path.splitext(line.split('/')[-1])
-         print(file + '\t' + ext)
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        
+        for line in all_files:
+            file, ext = os.path.splitext(line.split('/')[-1])
+            print(file + '\t' + ext)
 
-#    if 'process_git_schemas' in steps:
-#        # This needs to be updated for multiple tables!!
-#        print('process_git_schema')
-#        # Where do we dump the schema git repository?
+        # Where do we dump the schema git repository?
 #        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
 #        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-#        # Write out the details
+        # Write out the details
 #        success = generate_table_detail_files(schema_file, full_file_prefix)
 #        if not success:
 #            print("process_git_schemas failed")
