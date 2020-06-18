@@ -163,11 +163,12 @@ def main(args):
                    print("Download failed. Problem downloading {}".format(file_name))
                    return
             file, ext = os.path.splitext(file_name.split('/')[-1])
+            new_file_location = ''.join([local_files_dir, "/", file])
             if ext == ".gz":
                 # Unzip the file and remove zip file
                 print("Uncompressing {}".format(file))
-                with gzip.open(file_name, "rb") as gzip_in:
-                    with open(file, "wb") as uncomp_out:
+                with gzip.open(file_location, "rb") as gzip_in:
+                    with open(new_file_location, "wb") as uncomp_out:
                         shutil.copyfileobj(gzip_in, uncomp_out)
                 os.remove(file_name)
 
