@@ -170,7 +170,7 @@ def main(args):
                 with gzip.open(file_location, "rb") as gzip_in:
                     with open(new_file_location, "wb") as uncomp_out:
                         shutil.copyfileobj(gzip_in, uncomp_out)
-                os.remove(file_name)
+                os.remove(file_location)
 
 
     if 'build_file_list' in steps:
