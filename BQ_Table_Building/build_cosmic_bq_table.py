@@ -205,7 +205,7 @@ def main(args):
         for line in all_files:
             file, ext = os.path.splitext(line.split('/')[-1])
             # Where do we dump the schema git repository?
-            schema_file_name = ''.join(file, ".json")
+            schema_file_name = ''.join([file, ".json"])
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
             print(schema_file + "\t" + full_file_prefix)
