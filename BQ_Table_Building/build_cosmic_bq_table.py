@@ -96,7 +96,6 @@ Clean file names
 '''
 
 def clean_file_names(file_name):
-    print(file_name)
     split_name = file_name.split('_')
     print(split_name)
     if split_name[0] == "classification":
