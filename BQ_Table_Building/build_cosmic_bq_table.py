@@ -96,22 +96,32 @@ Clean file names
 '''
 
 def clean_file_names(file_name):
-    split_name = file_name.split('_')
-    if len(split_name) > 1:
-        new_name = [x.capitalize() for x in split_name]
-        return '_'.join(new_name)
-    else:
-        new_name = re.findall('[A-Z][^A-Z]*', file_name)
-        for i in new_name:
-            if i == "Cosmic":
-                new_name.remove(i)
-            if i == "Export":
-                new_name.remove(i)
-
-        if ''.join(new_name).isupper():
-            return ''.join(new_name)
-        else:
-            return '_'.join(new_name)
+     split_name = file_name.split('_')
+     if len(split_name) > 1:
+         new_name = [x.capitalize() for x in split_name]
+         if new_name[0] == "Ascat":
+             new_name[0] = "ASCAT"
+             new_name[1] = "Purity"
+             final_name = '_'.join(new_name)
+         else:
+             final_name = '_'.join(new_name)
+     else:
+         new_name = re.findall('[A-Z][^A-Z]*', file_name)
+         for i in new_name:
+             if i == "Cosmic":
+                 new_name.remove(i)
+             if i == "Export":
+                 new_name.remove(i)
+         if ''.join(new_name).isupper():
+             final_name = ''.join(new_name)
+         elif new_name[0] == "Complete":
+             abv = ''.join(new_name[1:len(new_name)])
+             final_name = ''.join([new_name[0], "_", abv])
+         else:
+             print("else")
+             print(new_name)
+             final_name = '_'.join(new_name)
+     return final_name
 
 '''
 Fix column names
