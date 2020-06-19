@@ -118,8 +118,6 @@ def clean_file_names(file_name):
              abv = ''.join(new_name[1:len(new_name)])
              final_name = ''.join([new_name[0], "_", abv])
          else:
-             print("else")
-             print(new_name)
              final_name = '_'.join(new_name)
      return final_name
 
