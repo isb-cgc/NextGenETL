@@ -107,7 +107,11 @@ def clean_file_names(file_name):
                 new_name.remove(i)
             if i == "Export":
                 new_name.remove(i)
-        return '_'.join(new_name)
+
+        if ''.join(new_name).isupper():
+            return ''.join(new_name)
+        else:
+            return '_'.join(new_name)
 
 '''
 Fix column names
