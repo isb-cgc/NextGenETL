@@ -29,6 +29,7 @@ import io
 import requests
 import gzip
 import shutil
+import re
 import string
 from git import Repo
 from json import loads as json_loads
@@ -78,15 +79,35 @@ def build_pull_list_from_txt(local_file, local_pull_list):
                 file, ext = os.path.splitext(base_file)
                 # Check if tsv, add to files
                 if ext == ".tsv" or ext == ".csv":
-                    file = ''.join([file, "_", i[4], ext, last_ext])
+                    cleaned_file_name = clean_file_names(file)
+                    new_file = ''.join([cleaned_file_name, "_", i[4], ext, last_ext])
                     link = '/'.join(i)
-                    pull_list_file.write(file + "\t" + link + "\n")
+                    pull_list_file.write(new_file + "\t" + link + "\n")
             elif last_ext == ".tsv" or last_ext == ".csv":
-                file = ''.join([base_file, "_", i[4], last_ext])
+                cleaned_file_name = clean_file_names(base_file)
+                new_file = ''.join([cleaned_file_name, "_", i[4], last_ext])
                 link = '/'.join(i)
-                pull_list_file.write(file + "\t" + link + "\n")
+                pull_list_file.write(new_file + "\t" + link + "\n")
 
     return True
+
+'''
+Clean file names
+'''
+
+def clean_file_names(file_name):
+    split_name = file_name.split('_')
+    if len(split_name) > 1:
+        new_name = [x.capitalize() for x in split_name]
+        return '_'.join(new_name)
+    else:
+        new_name = re.findall('[A-Z][^A-Z]*', file_name)
+        for i in new_name:
+            if i == "Cosmic":
+                new_name.remove(i)
+            if i == "Export":
+                new_name.remove(i)
+        return '_'.join(new_name)
 
 '''
 Fix column names
@@ -210,11 +231,11 @@ def main(args):
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
             print(schema_file + "\t" + full_file_prefix)
 
-        # Write out the details
-#        success = generate_table_detail_files(schema_file, full_file_prefix)
-#        if not success:
-#            print("process_git_schemas failed")
-#            return
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
 
 if __name__ == "__main__":
     main(sys.argv)
