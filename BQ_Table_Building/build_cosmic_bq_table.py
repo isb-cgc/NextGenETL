@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
+from typing import Union
 
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
@@ -36,7 +37,7 @@ from json import loads as json_loads
 from createSchemaP3 import build_schema
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files
+                                generate_table_detail_files, build_combined_schema
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -124,10 +125,6 @@ def clean_file_names(file_name):
     return final_name
 
 '''
-Fix column names
-'''
-
-'''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
@@ -165,6 +162,8 @@ def main(args):
     local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
+    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
+    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -231,25 +230,45 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
+    if 'process_and_create_schema' in steps:
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
         for line in all_files:
-            file, ext = os.path.splitext(line.split('/')[-1])
-            # Where do we dump the schema git repository?
-            schema_file_name = ''.join([file, ".json"])
-            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
-            print(schema_file + "\t" + full_file_prefix)
 
-            # Write out the details
-            success = generate_table_detail_files(schema_file, full_file_prefix)
-            if not success:
-                print("process_git_schemas failed")
-                return
+            file_name, ext = os.path.splitext(line.split('/'))
+            file_components = file_name.split("_")
+            file_name = "_".join(file_components[0:(len(file_components) - 2)])
+            print("file_name: " + file_name)
+
+            if 'process_git_schemas' in steps:
+                print('process_git_schema: {}'.format(line))
+
+                # Where do we dump the schema git repository?
+                schema_file_name = ''.join([file_name, ".json"])
+                print("schema_file_name: " + schema_file_name)
+                #schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                #print(schema_file + "\t" + full_file_prefix)
+
+                # Write out the details
+                #success = generate_table_detail_files(schema_file, full_file_prefix)
+                #if not success:
+                #    print("process_git_schemas failed")
+                #    return
+
+            #if 'analyze_the_schema' in steps:
+            #    print('analyze_the_schema: {}'.format(line))
+
+             #   typing_tups = build_schema(file_name, params['SCHEMA_SAMPLE_SKIPS'])
+             #   full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+             #   schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+             #   build_combined_schema(None, schema_dict_loc,
+             #                         typing_tups, hold_schema_list.format(file_name),
+             #                         hold_schema_dict.format(file_name))
+
+
 
 if __name__ == "__main__":
     main(sys.argv)
