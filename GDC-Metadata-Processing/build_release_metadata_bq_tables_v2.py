@@ -975,7 +975,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
                                         params['GENERIC_SCHEMA_FILE_NAME'])
-        table_name = "{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
@@ -1011,7 +1011,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
@@ -1024,7 +1024,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
 
     if 'install_field_descriptions' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         print('install_field_descriptions: {}'.format(table_name))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
@@ -1043,7 +1043,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
 
     if 'install_table_description' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         print('install_table_description: {}'.format(table_name))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
