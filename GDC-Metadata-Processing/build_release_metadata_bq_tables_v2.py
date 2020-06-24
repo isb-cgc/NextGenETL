@@ -963,7 +963,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                         "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE']))
         success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], path_tag),
                                params['TARGET_DATASET'], 
-                               "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
+                               "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE']), params['BQ_AS_BATCH'])
         if not success:
             print("{} {} create_final_table job failed".format(dataset_tuple[0], build))
             return False
@@ -1057,7 +1057,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
 
     if 'publish' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         print('publish: {}'.format(table_name))
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
