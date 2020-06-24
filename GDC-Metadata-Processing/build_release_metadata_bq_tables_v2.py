@@ -1011,7 +1011,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
