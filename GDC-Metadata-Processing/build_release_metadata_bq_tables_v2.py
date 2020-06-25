@@ -1057,7 +1057,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
 
     if 'publish' in steps:
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
         print('publish: {}'.format(table_name))
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
