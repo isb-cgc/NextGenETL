@@ -79,8 +79,6 @@ def shadow_datasets(source_project, shadow_project):
 
         shadow_dataset.location = src_dataset_obj.location
         shadow_dataset.description = src_dataset_obj.description
-
-        print(src_dataset.description)
         print(shadow_dataset.description)
         if src_dataset_obj.labels is not None:
             shadow_dataset.labels = src_dataset_obj.labels.copy()
