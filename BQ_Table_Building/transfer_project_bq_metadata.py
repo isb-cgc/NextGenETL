@@ -99,16 +99,31 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, src_d
         for tbl in table_list:
             print(str(tbl))
             tbl_obj = source_client.get_table(tbl)
-            print(str(tbl_obj))
-            print(tbl_obj.schema)
-            print(tbl_obj.labels)
-            print(tbl_obj.friendly_name)
-            print(tbl_obj.description)
-            print(tbl_obj.num_rows)
-            #print(tbl_metadata['labels'])
-            #print(tbl_metadata['friendlyName'])
-            #print(tbl_metadata['description'])
-            #print(tbl_metadata['numRows'])
+
+            # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+            targ_schema = []
+            for sf in tbl_obj.schema:
+                name = sf.name
+                field_type = sf.field_type
+                mode = sf.mode
+                desc = sf.description
+                fields = tuple(sf.fields)
+                # no "copy constructor"?
+                targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
+
+            table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.id)
+            print(table_id)
+
+            targ_table = bigquery.Table(table_id, schema=targ_schema)
+            targ_table.friendlyName = tbl_obj.friendly_name
+            targ_table.description = tbl_obj.description
+            if tbl_obj.labels is not None:
+                targ_table.labels = tbl_obj.labels.copy()
+            print(str(targ_table))
+
+            #table = client.create_table(table)  # Make an API request.
+
+
             '''
             print("\t- {} table added successfully".format(table_id.split('.')[-1]))
             table = bigquery.Table(table_id, schema=schema_list)
@@ -349,7 +364,7 @@ def main(args):
     if 'create_all_shadow_tables' in steps:
         source_client = bigquery.Client(project=source_project)
         shadow_client = bigquery.Client(project=shadow_project)
-        success = create_all_shadow_tables(source_client, shadow_client, None, None, None, None)
+        success = create_all_shadow_tables(source_client, shadow_client, None, None, None, shadow_project)
         if not success:
             print("create_all_shadow_tables failed")
             return
