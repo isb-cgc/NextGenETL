@@ -173,7 +173,7 @@ def main(args):
             return
 
     if 'shadow_datasets' in steps:
-        success = shadow_datasets(source_client, shadow_client, source_project, shadow_project)
+        success = shadow_datasets(source_client, shadow_client, shadow_project)
         if not success:
             print("shadow_datasets failed")
             return
