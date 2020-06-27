@@ -76,7 +76,7 @@ def shadow_datasets(source_project, shadow_project):
         print(shadow_dataset_id)
 
         shadow_dataset = bigquery.Dataset(shadow_dataset_id)
-        shadow_dataset.location = src_dataset.location
+        shadow_dataset.location = src_dataset.reference.location
         shadow_dataset.description = src_dataset.description
         if src_dataset.labels is not None:
             shadow_dataset.labels = src_dataset.labels.copy()
