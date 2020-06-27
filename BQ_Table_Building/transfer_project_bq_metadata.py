@@ -60,10 +60,13 @@ def clean_shadow_project(shadow_client, shadow_project):
 Copy over the dataset structure:
 '''
 
-def shadow_datasets(source_client, shadow_client, shadow_project, empty_datasets):
+def shadow_datasets(source_client, shadow_client, shadow_project, skip_datasets, empty_datasets):
 
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
+        # Some datasets (security logs) should be ignored outright:
+        if src_dataset.dataset_id in skip_datasets:
+            continue
         table_list = list(source_client.list_tables(src_dataset.dataset_id))
         # If it is already empty in the source, we do not delete it later when tables are deleted
         if len(table_list) == 0:
@@ -90,11 +93,14 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             do_batch, shadow_prefix, do_tables):
+                             do_batch, shadow_prefix, skip_datasets, do_tables):
 
     dataset_list = source_client.list_datasets()
 
     for dataset in dataset_list:
+        # Some datasets (security logs) should be ignored outright:
+        if dataset.dataset_id in skip_datasets:
+            continue
         table_list = list(source_client.list_tables(dataset.dataset_id))
         for tbl in table_list:
             tbl_obj = source_client.get_table(tbl)
@@ -122,20 +128,24 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 print(table_id)
 
                 #
-                # Not supposed to submit a schema for a view!
+                # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+                #
+                targ_schema = []
+                for sf in tbl_obj.schema:
+                    name = sf.name
+                    field_type = sf.field_type
+                    mode = sf.mode
+                    desc = sf.description
+                    fields = tuple(sf.fields)
+                    # no "copy constructor"?
+                    targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
+
+                #
+                # Not supposed to submit a schema for a view! But we need to update it later to get the
+                # descriptions brought across
                 #
 
                 if use_query is None:
-                    # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
-                    targ_schema = []
-                    for sf in tbl_obj.schema:
-                        name = sf.name
-                        field_type = sf.field_type
-                        mode = sf.mode
-                        desc = sf.description
-                        fields = tuple(sf.fields)
-                        # no "copy constructor"?
-                        targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
                     targ_table = bigquery.Table(table_id, schema=targ_schema)
                 else:
                     targ_table = bigquery.Table(table_id)
@@ -162,7 +172,15 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 if use_query is not None:
                     targ_table.view_query = use_query
 
-                shadow_client.create_table(targ_table)
+                shadow_table = shadow_client.create_table(targ_table)
+
+                #
+                # If we created a view, update the schema after creation:
+                #
+
+                if use_query is not None:
+                    shadow_table.schema = targ_schema
+                    shadow_client.update_table(shadow_table, ["schema"])
 
     return True
 
@@ -239,6 +257,8 @@ def main(args):
     do_batch = params['BQ_AS_BATCH']
     skip_tables = params['SKIP_TABLES']
     shadow_prefix = params['PRIVATE_METADATA_PREFIX']
+    skip_datasets = params['SKIP_DATASETS']
+
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
 
@@ -250,7 +270,7 @@ def main(args):
 
     empty_datasets = []
     if 'shadow_datasets' in steps:
-        success = shadow_datasets(source_client, shadow_client, shadow_project, empty_datasets)
+        success = shadow_datasets(source_client, shadow_client, shadow_project, skip_datasets, empty_datasets)
         if not success:
             print("shadow_datasets failed")
             return
@@ -268,7 +288,7 @@ def main(args):
     if 'create_all_shadow_tables' in steps:
         # Create just tables:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, True)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, True)
         if not success:
             print("create_all_shadow_tables failed")
             return
@@ -276,7 +296,7 @@ def main(args):
     if 'create_all_shadow_views' in steps:
         # Create just views:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, False)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, False)
         if not success:
             print("create_all_shadow_views failed")
             return
