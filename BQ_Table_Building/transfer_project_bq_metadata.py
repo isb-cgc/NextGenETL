@@ -90,7 +90,7 @@ def shadow_datasets(source_client, shadow_client, source_project, shadow_project
 Create all empty shadow tables
 '''
 
-def create_all_shadow_tables(source_client, shadow_client, source_project, src_dataset, src_table, target_project):
+def create_all_shadow_tables(source_client, shadow_client, target_project):
 
     dataset_list = source_client.list_datasets()
 
@@ -121,7 +121,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, src_d
                 targ_table.labels = tbl_obj.labels.copy()
             print(str(targ_table))
 
-            #table = client.create_table(table)  # Make an API request.
+            table = shadow_client.create_table(targ_table)  # Make an API request.
 
 
             '''
@@ -360,11 +360,10 @@ def main(args):
 
         print('job completed')
 
-
     if 'create_all_shadow_tables' in steps:
         source_client = bigquery.Client(project=source_project)
         shadow_client = bigquery.Client(project=shadow_project)
-        success = create_all_shadow_tables(source_client, shadow_client, None, None, None, shadow_project)
+        success = create_all_shadow_tables(source_client, shadow_client, shadow_project)
         if not success:
             print("create_all_shadow_tables failed")
             return
