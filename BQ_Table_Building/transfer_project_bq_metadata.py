@@ -114,7 +114,9 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 view_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
                 sql = 'SELECT COUNT(*) as count FROM `{}`'.format(view_id)
                 results = bq_harness_with_result(sql, do_batch)
-                use_row_count = results[0].count
+                for row in results:
+                    use_row_count = row.count
+                    break
                 use_query = tbl_obj.view_query.replace(source_project, target_project)
 
             if (not skip_tables) or (use_query is not None):
