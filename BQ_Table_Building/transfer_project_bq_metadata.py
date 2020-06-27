@@ -79,10 +79,15 @@ def shadow_datasets(source_project, shadow_project):
         shadow_dataset = bigquery.Dataset(shadow_dataset_id)
 
         shadow_dataset.location = src_dataset_obj.location
+        print(shadow_dataset.location)
         shadow_dataset.description = src_dataset_obj.description
+        print(src_dataset_obj.description)
+        print(shadow_dataset.description)
         if src_dataset_obj.labels is not None:
             shadow_dataset.labels = src_dataset_obj.labels.copy()
 
+        print(src_dataset_obj.labels)
+        print(shadow_dataset.labels)
         shadow_dataset = shadow_client.create_dataset(shadow_dataset)
 
 
