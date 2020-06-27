@@ -99,8 +99,9 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, src_d
         for tbl in table_list:
             print(str(tbl))
             tbl_metadata = source_client.get_table(tbl).to_api_repr()
+            print(str(tbl_metadata))
             print(tbl_metadata['schema'])
-            print(tbl_metadata['labels'])
+            #print(tbl_metadata['labels'])
             print(tbl_metadata['friendlyName'])
             print(tbl_metadata['description'])
             print(tbl_metadata['numRows'])
