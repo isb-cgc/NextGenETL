@@ -60,32 +60,27 @@ def clean_shadow_project(shadow_client, shadow_project):
 Copy over the dataset structure:
 '''
 
-def shadow_datasets(source_client, shadow_client, shadow_project, skip_tables):
+def shadow_datasets(source_client, shadow_client, shadow_project, empty_datasets):
 
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
-        have_a_view = False
-        if skip_tables:
-            table_list = list(source_client.list_tables(src_dataset.dataset_id))
-            for tbl in table_list:
-                tbl_obj = source_client.get_table(tbl)
-                if tbl_obj.view_query is not None:
-                    have_a_view = True
-                    break
+        table_list = list(source_client.list_tables(src_dataset.dataset_id))
+        # If it is already empty in the source, we do not delete it later when tables are deleted
+        if len(table_list) == 0:
+            empty_datasets.append(src_dataset.dataset_id)
 
-        if (not skip_tables) or have_a_view:
-            src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
-            copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
-            shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
+        src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
+        copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
+        shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
 
-            shadow_dataset = bigquery.Dataset(shadow_dataset_id)
+        shadow_dataset = bigquery.Dataset(shadow_dataset_id)
 
-            shadow_dataset.location = src_dataset_obj.location
-            shadow_dataset.description = src_dataset_obj.description
-            if src_dataset_obj.labels is not None:
-                shadow_dataset.labels = src_dataset_obj.labels.copy()
+        shadow_dataset.location = src_dataset_obj.location
+        shadow_dataset.description = src_dataset_obj.description
+        if src_dataset_obj.labels is not None:
+            shadow_dataset.labels = src_dataset_obj.labels.copy()
 
-            shadow_client.create_dataset(shadow_dataset)
+        shadow_client.create_dataset(shadow_dataset)
 
     return True
 
@@ -95,7 +90,7 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             skip_tables, do_batch, shadow_prefix, do_tables):
+                             do_batch, shadow_prefix, do_tables):
 
     dataset_list = source_client.list_datasets()
 
@@ -171,6 +166,43 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
     return True
 
+
+'''
+----------------------------------------------------------------------------------------------
+Delete all shadow tables (but keep views)
+'''
+
+def delete_all_tables(shadow_client, target_project):
+
+    dataset_list = shadow_client.list_datasets()
+
+    for dataset in dataset_list:
+        table_list = list(shadow_client.list_tables(dataset.dataset_id))
+        for tbl in table_list:
+            tbl_obj = shadow_client.get_table(tbl)
+            if tbl_obj.view_query is None:
+                table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
+                print("Deleting {}".format(table_id))
+                shadow_client.delete_table(table_id)
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
+Delete empty BQ datasets after tables deleted
+'''
+def delete_empty_datasets(shadow_client, empty_datasets):
+
+    dataset_list = shadow_client.list_datasets()
+    for chk_dataset in dataset_list:
+        if chk_dataset.dataset_id in empty_datasets:
+            continue
+        table_list = list(shadow_client.list_tables(chk_dataset.dataset_id))
+        if len(table_list) == 0:
+            shadow_client.delete_dataset(chk_dataset.dataset_id, delete_contents=True, not_found_ok=True)
+
+    return True
+
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
@@ -216,28 +248,54 @@ def main(args):
             print("clean_target failed")
             return
 
+    empty_datasets = []
     if 'shadow_datasets' in steps:
-        success = shadow_datasets(source_client, shadow_client, shadow_project, skip_tables)
+        success = shadow_datasets(source_client, shadow_client, shadow_project, empty_datasets)
         if not success:
             print("shadow_datasets failed")
             return
 
         print('job completed')
 
+    #
+    # Typically, shadow projects will contain views of tables. We advertise the views, the tables are
+    # not public. We just want to advertise the views, but the views need the tables to exist before
+    # Google will accept the view SQL! And the view SQL is what makes a table a view! So, we need
+    # to: 1) create all tables, 2) create all views, 3) delete the tables if the config says to do so,
+    # 4) delete empty datasets now that there are no tables.
+    #
+
     if 'create_all_shadow_tables' in steps:
+        # Create just tables:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, skip_tables, do_batch, shadow_prefix, True)
+                                           shadow_project, do_batch, shadow_prefix, True)
         if not success:
             print("create_all_shadow_tables failed")
             return
 
+    if 'create_all_shadow_views' in steps:
+        # Create just views:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, skip_tables, do_batch, shadow_prefix, False)
+                                           shadow_project, do_batch, shadow_prefix, False)
         if not success:
-            print("create_all_shadow_tables failed")
+            print("create_all_shadow_views failed")
             return
 
-        print('job completed')
+    if 'delete_all_shadow_tables' in steps:
+        if skip_tables:
+            success = delete_all_tables(shadow_client, shadow_project)
+            if not success:
+                print("delete_all_shadow_tables failed")
+                return
+
+    if 'delete_empty_datasets' in steps:
+        if skip_tables:
+            success = delete_empty_datasets(shadow_client, empty_datasets)
+            if not success:
+                print("delete_empty_datasets failed")
+                return
+
+    print('job completed')
 
 
 if __name__ == "__main__":
