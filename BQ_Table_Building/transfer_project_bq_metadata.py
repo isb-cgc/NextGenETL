@@ -146,7 +146,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 else:
                     targ_table.labels = {}
 
-                num_row_tag = "{}{}".format(shadow_prefix, "num_rows")
+                num_row_tag = "{}_{}".format(shadow_prefix, "num_rows")
                 targ_table.labels[num_row_tag] = use_row_count
 
                 #
