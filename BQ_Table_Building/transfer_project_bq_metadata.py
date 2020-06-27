@@ -64,13 +64,11 @@ def clean_shadow_project(shadow_project):
 ----------------------------------------------------------------------------------------------
 Copy over the dataset structure:
 '''
-def shadow_datasets(source_project, shadow_project):
 
-    source_client = bigquery.Client(project=source_project)
-    shadow_client = bigquery.Client(project=shadow_project)
+def shadow_datasets(source_client, shadow_client, source_project, shadow_project):
+
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
-        print(src_dataset.dataset_id)
         src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
         copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
         shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
@@ -79,32 +77,79 @@ def shadow_datasets(source_project, shadow_project):
 
         shadow_dataset.location = src_dataset_obj.location
         shadow_dataset.description = src_dataset_obj.description
-        print(shadow_dataset.description)
         if src_dataset_obj.labels is not None:
             shadow_dataset.labels = src_dataset_obj.labels.copy()
 
-        print(src_dataset_obj.labels)
-        print(shadow_dataset.labels)
-        shadow_dataset = shadow_client.create_dataset(shadow_dataset)
-
+        shadow_client.create_dataset(shadow_dataset)
 
     return True
 
 
+'''
+----------------------------------------------------------------------------------------------
+Create all empty shadow tables
+'''
 
+def create_all_shadow_tables(source_client, shadow_client, source_project, src_dataset, src_table, target_project):
+
+    dataset_list = source_client.list_datasets()
+
+    for dataset in dataset_list:
+        table_list = list(source_client.list_tables(dataset.dataset_id))
+        for tbl in table_list:
+            print(str(tbl))
+            tbl_metadata = source_client.get_table(tbl).to_api_repr()
+            print(tbl_metadata['schema'])
+            print(tbl_metadata['labels'])
+            print(tbl_metadata['friendlyName'])
+            print(tbl_metadata['description'])
+            print(tbl_metadata['numRows'])
+            '''
+            print("\t- {} table added successfully".format(table_id.split('.')[-1]))
+            table = bigquery.Table(table_id, schema=schema_list)
+            trg_toks = target_table.split('.')
+            trg_proj = trg_toks[0]
+            trg_dset = trg_toks[1]
+            trg_tab = trg_toks[2]
+
+            src_client = bigquery.Client(src_proj)
+            job = src_client.copy_table(source_table, target_table)
+            job.result()
+
+            src_table_ref = src_client.dataset(src_dset).table(src_tab)
+            s_table = src_client.get_table(src_table_ref)
+            src_friendly = s_table.friendly_name
+
+            trg_client = bigquery.Client(trg_proj)
+            trg_table_ref = trg_client.dataset(trg_dset).table(trg_tab)
+            t_table = src_client.get_table(trg_table_ref)
+            t_table.friendly_name = src_friendly
+
+
+
+
+            client.create_table(table)
+            '''
+
+    return True
 
 '''
 ----------------------------------------------------------------------------------------------
-Read metadata from one project, copy into another.
+Create an empty shadow table
 '''
-def build_bq_metadata(source_project, target_project):
-    bq_table_metadata_dict = {}
+
+def create_empty_shadow_table(source_client, shadow_client, source_project, src_dataset, src_table, target_project):
+    '''
+    src_table_ref = source_client.dataset(src_dataset).table(src_table)
+    s_table = src_client.get_table(src_table_ref)
+
+
 
     ctrl_client = bigquery.Client(project=source_project)
     dataset_list = ctrl_client.list_datasets()
 
 
-    '''
+
 
     for dataset in dataset_list:
         table_list = list(ctrl_client.list_tables(dataset.dataset_id))
@@ -286,9 +331,22 @@ def main(args):
             return
 
     if 'shadow_datasets' in steps:
-        success = shadow_datasets(source_project, shadow_project)
+        source_client = bigquery.Client(project=source_project)
+        shadow_client = bigquery.Client(project=shadow_project)
+        success = shadow_datasets(source_client, shadow_client, source_project, shadow_project)
         if not success:
             print("shadow_datasets failed")
+            return
+
+        print('job completed')
+
+
+    if 'create_all_shadow_tables' in steps:
+        source_client = bigquery.Client(project=source_project)
+        shadow_client = bigquery.Client(project=shadow_project)
+        success = create_all_shadow_tables(source_client, shadow_client, None, None, None, None)
+        if not success:
+            print("create_all_shadow_tables failed")
             return
 
         print('job completed')
