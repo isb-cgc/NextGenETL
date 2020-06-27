@@ -123,7 +123,7 @@ def create_all_shadow_tables(source_client, shadow_client, target_project):
             if tbl_obj.labels is not None:
                 targ_table.labels = tbl_obj.labels.copy()
 
-            targ_table.labels['isb_cgc_shadow_metadata_row_num'] = tbl_obj.row_num
+            targ_table.labels['isb_cgc_shadow_metadata_row_num'] = tbl_obj.num_rows
 
             #sql_template = 'SELECT name, post_abbr FROM `{}.{}.{}` WHERE name LIKE "W%"'
             #view.view_query = sql_template.format(project, source_dataset_id, source_table_id)
