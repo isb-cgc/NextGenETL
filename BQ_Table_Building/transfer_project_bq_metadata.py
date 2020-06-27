@@ -95,7 +95,7 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             skip_tables, do_batch, shadow_prefix):
+                             skip_tables, do_batch, shadow_prefix, do_tables):
 
     dataset_list = source_client.list_datasets()
 
@@ -111,6 +111,8 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
             #
 
             if tbl_obj.view_query is not None:
+                if do_tables:
+                    continue
                 view_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
                 sql = 'SELECT COUNT(*) as count FROM `{}`'.format(view_id)
                 results = bq_harness_with_result(sql, do_batch)
@@ -119,7 +121,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                     break
                 use_query = tbl_obj.view_query.replace(source_project, target_project)
 
-            if (not skip_tables) or (use_query is not None):
+            if do_tables or (use_query is not None):
 
                 table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
                 print(table_id)
@@ -224,7 +226,13 @@ def main(args):
 
     if 'create_all_shadow_tables' in steps:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, skip_tables, do_batch, shadow_prefix)
+                                           shadow_project, skip_tables, do_batch, shadow_prefix, True)
+        if not success:
+            print("create_all_shadow_tables failed")
+            return
+
+        success = create_all_shadow_tables(source_client, shadow_client, source_project,
+                                           shadow_project, skip_tables, do_batch, shadow_prefix, False)
         if not success:
             print("create_all_shadow_tables failed")
             return
