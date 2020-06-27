@@ -71,17 +71,17 @@ def shadow_datasets(source_project, shadow_project):
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
         print(src_dataset.dataset_id)
+        src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
         copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
         shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
         print(shadow_dataset_id)
 
-        src_dataset_obj = bigquery.Dataset(src_dataset.reference)
         shadow_dataset = bigquery.Dataset(shadow_dataset_id)
 
         shadow_dataset.location = src_dataset_obj.location
         print(shadow_dataset.location)
-        shadow_dataset.description = src_dataset_obj.description
-        print(src_dataset_obj.description)
+        shadow_dataset.description = src_dataset.description
+        print(src_dataset.description)
         print(shadow_dataset.description)
         if src_dataset_obj.labels is not None:
             shadow_dataset.labels = src_dataset_obj.labels.copy()
@@ -91,7 +91,7 @@ def shadow_datasets(source_project, shadow_project):
         shadow_dataset = shadow_client.create_dataset(shadow_dataset)
 
 
-    return
+    return True
 
 
 
@@ -291,7 +291,7 @@ def main(args):
     if 'shadow_datasets' in steps:
         success = shadow_datasets(source_project, shadow_project)
         if not success:
-            print("do_it failed")
+            print("shadow_datasets failed")
             return
 
         print('job completed')
