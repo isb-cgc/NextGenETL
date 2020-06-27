@@ -19,10 +19,9 @@ limitations under the License.
 import sys
 import yaml
 import io
-from git import Repo
 
 from google.cloud import bigquery
-from common_etl.support import create_clean_target, generate_dataset_desc_file, create_bq_dataset
+from common_etl.support import bq_harness_with_result, confirm_google_vm
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -41,7 +40,6 @@ def load_config(yaml_config):
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Drop all BQ datasets in shadow project
@@ -57,80 +55,106 @@ def clean_shadow_project(shadow_client, shadow_project):
 
     return True
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Copy over the dataset structure:
 '''
 
-def shadow_datasets(source_client, shadow_client, shadow_project):
+def shadow_datasets(source_client, shadow_client, shadow_project, skip_tables):
 
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
-        src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
-        copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
-        shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
+        have_a_view = False
+        if skip_tables:
+            table_list = list(source_client.list_tables(src_dataset.dataset_id))
+            for tbl in table_list:
+                tbl_obj = source_client.get_table(tbl)
+                if tbl_obj.view_query is not None:
+                    have_a_view = True
+                    break
 
-        shadow_dataset = bigquery.Dataset(shadow_dataset_id)
+        if (not skip_tables) or have_a_view:
+            src_dataset_obj =  source_client.get_dataset(src_dataset.dataset_id)
+            copy_did_suffix = src_dataset.dataset_id.split(".")[-1]
+            shadow_dataset_id = "{}.{}".format(shadow_project, copy_did_suffix)
 
-        shadow_dataset.location = src_dataset_obj.location
-        shadow_dataset.description = src_dataset_obj.description
-        if src_dataset_obj.labels is not None:
-            shadow_dataset.labels = src_dataset_obj.labels.copy()
+            shadow_dataset = bigquery.Dataset(shadow_dataset_id)
 
-        shadow_client.create_dataset(shadow_dataset)
+            shadow_dataset.location = src_dataset_obj.location
+            shadow_dataset.description = src_dataset_obj.description
+            if src_dataset_obj.labels is not None:
+                shadow_dataset.labels = src_dataset_obj.labels.copy()
+
+            shadow_client.create_dataset(shadow_dataset)
 
     return True
-
 
 '''
 ----------------------------------------------------------------------------------------------
 Create all empty shadow tables
 '''
 
-def create_all_shadow_tables(source_client, shadow_client, target_project):
+def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
+                             skip_tables, do_batch, shadow_prefix):
 
     dataset_list = source_client.list_datasets()
 
     for dataset in dataset_list:
         table_list = list(source_client.list_tables(dataset.dataset_id))
         for tbl in table_list:
-            print(str(tbl))
             tbl_obj = source_client.get_table(tbl)
+            use_row_count = tbl_obj.num_rows
+            use_query = None
+
+            #
+            # If we have a view, then we need to extract the row count through a query:
+            #
 
             if tbl_obj.view_query is not None:
-                print("WE HAVE A VIEW")
-                print(tbl_obj.view_query)
+                view_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
+                sql = 'SELECT COUNT(*) as count FROM `{}`'.format(view_id)
+                results = bq_harness_with_result(sql, do_batch)
+                use_row_count = results[0].count
+                use_query = tbl_obj.view_query.replace(source_project, target_project)
 
+            if (not skip_tables) or (use_query is not None):
 
-            # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
-            targ_schema = []
-            for sf in tbl_obj.schema:
-                name = sf.name
-                field_type = sf.field_type
-                mode = sf.mode
-                desc = sf.description
-                fields = tuple(sf.fields)
-                # no "copy constructor"?
-                targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
+                # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+                targ_schema = []
+                for sf in tbl_obj.schema:
+                    name = sf.name
+                    field_type = sf.field_type
+                    mode = sf.mode
+                    desc = sf.description
+                    fields = tuple(sf.fields)
+                    # no "copy constructor"?
+                    targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
 
-            table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
-            print(table_id)
+                table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
+                print(table_id)
 
-            targ_table = bigquery.Table(table_id, schema=targ_schema)
-            targ_table.friendlyName = tbl_obj.friendly_name
-            targ_table.description = tbl_obj.description
-            if tbl_obj.labels is not None:
-                targ_table.labels = tbl_obj.labels.copy()
+                targ_table = bigquery.Table(table_id, schema=targ_schema)
+                targ_table.friendlyName = tbl_obj.friendly_name
+                targ_table.description = tbl_obj.description
 
-            targ_table.labels['isb_cgc_shadow_metadata_row_num'] = tbl_obj.num_rows
+                #
+                # "Number of rows" in a shadow empty table is provided through a private tag label:
+                #
 
-            #sql_template = 'SELECT name, post_abbr FROM `{}.{}.{}` WHERE name LIKE "W%"'
-            #view.view_query = sql_template.format(project, source_dataset_id, source_table_id)
+                if tbl_obj.labels is not None:
+                    targ_table.labels = tbl_obj.labels.copy()
+                else:
+                    targ_table.labels = {}
 
-            table = shadow_client.create_table(targ_table)
+                num_row_tag = "{}{}".format(shadow_prefix, "num_rows")
+                targ_table.labels[num_row_tag] = use_row_count
 
+                #
+                # The way a table turns into a view is by setting the view_query property:
 
+                targ_table.view_query = use_query
+
+                shadow_client.create_table(targ_table)
 
     return True
 
@@ -148,6 +172,10 @@ def main(args):
         print(" Usage : {} <configuration_yaml>".format(args[0]))
         return
 
+    if confirm_google_vm():
+        print('This job needs to be run with personal credentials on a desktop, not a GCP VM [EXITING]')
+        #return
+
     print('job started')
 
     #
@@ -163,6 +191,9 @@ def main(args):
 
     source_project = params['SOURCE_PROJECT']
     shadow_project = params['SHADOW_PROJECT']
+    do_batch = params['BQ_AS_BATCH']
+    skip_tables = params['SKIP_TABLES']
+    shadow_prefix = params['PRIVATE_METADATA_PREFIX']
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
 
@@ -173,7 +204,7 @@ def main(args):
             return
 
     if 'shadow_datasets' in steps:
-        success = shadow_datasets(source_client, shadow_client, shadow_project)
+        success = shadow_datasets(source_client, shadow_client, shadow_project, skip_tables)
         if not success:
             print("shadow_datasets failed")
             return
@@ -181,7 +212,8 @@ def main(args):
         print('job completed')
 
     if 'create_all_shadow_tables' in steps:
-        success = create_all_shadow_tables(source_client, shadow_client, shadow_project)
+        success = create_all_shadow_tables(source_client, shadow_client, source_project,
+                                           shadow_project, skip_tables, do_batch, shadow_prefix)
         if not success:
             print("create_all_shadow_tables failed")
             return
