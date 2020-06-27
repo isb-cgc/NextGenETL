@@ -111,7 +111,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, src_d
                 # no "copy constructor"?
                 targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
 
-            table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.id)
+            table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
             print(table_id)
 
             targ_table = bigquery.Table(table_id, schema=targ_schema)
