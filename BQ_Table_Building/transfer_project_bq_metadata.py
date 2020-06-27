@@ -104,7 +104,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, src_d
             print(tbl_obj.labels)
             print(tbl_obj.friendly_name)
             print(tbl_obj.description)
-            print(tbl_obj.numRows)
+            print(tbl_obj.num_rows)
             #print(tbl_metadata['labels'])
             #print(tbl_metadata['friendlyName'])
             #print(tbl_metadata['description'])
