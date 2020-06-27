@@ -151,8 +151,10 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
                 #
                 # The way a table turns into a view is by setting the view_query property:
+                #
 
-                targ_table.view_query = use_query
+                if use_query is not None:
+                    targ_table.view_query = use_query
 
                 shadow_client.create_table(targ_table)
 
