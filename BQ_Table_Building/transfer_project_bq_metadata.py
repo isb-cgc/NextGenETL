@@ -121,21 +121,28 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
             if (not skip_tables) or (use_query is not None):
 
-                # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
-                targ_schema = []
-                for sf in tbl_obj.schema:
-                    name = sf.name
-                    field_type = sf.field_type
-                    mode = sf.mode
-                    desc = sf.description
-                    fields = tuple(sf.fields)
-                    # no "copy constructor"?
-                    targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
-
                 table_id = '{}.{}.{}'.format(target_project, dataset.dataset_id, tbl.table_id)
                 print(table_id)
 
-                targ_table = bigquery.Table(table_id, schema=targ_schema)
+                #
+                # Not supposed to submit a schema for a view!
+                #
+
+                if use_query is None:
+                    # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+                    targ_schema = []
+                    for sf in tbl_obj.schema:
+                        name = sf.name
+                        field_type = sf.field_type
+                        mode = sf.mode
+                        desc = sf.description
+                        fields = tuple(sf.fields)
+                        # no "copy constructor"?
+                        targ_schema.append(bigquery.SchemaField(name, field_type, mode, desc, fields))
+                    targ_table = bigquery.Table(table_id, schema=targ_schema)
+                else:
+                    targ_table = bigquery.Table(table_id)
+
                 targ_table.friendlyName = tbl_obj.friendly_name
                 targ_table.description = tbl_obj.description
 
