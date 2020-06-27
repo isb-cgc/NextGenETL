@@ -218,8 +218,8 @@ def main(args):
         return
 
     if confirm_google_vm():
-        print('This job needs to be run with personal credentials on a desktop, not a GCP VM [EXITING]')
-        #return
+        print('This job needs to be run with personal credentials on your desktop, not a GCP VM [EXITING]')
+        return
 
     print('job started')
 
