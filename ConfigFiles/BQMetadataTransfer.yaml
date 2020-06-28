@@ -1,0 +1,37 @@
+# Used for run-copy-bq-metadata.sh and run-copy-bq-metadata-from-desktop.sh
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we mirroring:
+  SOURCE_PROJECT: your-source-project-id
+
+  # What is the mirror project:
+  SHADOW_PROJECT: your-shadow-project-id
+
+  # Prefix for labels that represent private metadata:
+  PRIVATE_METADATA_PREFIX: your-private-label-prefix
+
+  # Do we make empty copies of tables? (For controlled data, no we do not:
+  SKIP_TABLES: True
+
+  # Just skip these datasets outright:
+  SKIP_DATASETS:
+    - your-skip-dataset-one
+    - your-skip-dataset-two
+
+steps:
+  # Clean the shadow project:
+  - clean_shadow
+  # Create shadow datasets:
+  - shadow_datasets
+  # Create shadow tables:
+  - create_all_shadow_tables
+  # Create shadow views:
+  - create_all_shadow_views
+  # Delete shadow tables (only run if SKIP_TABLES is True)
+  - delete_all_shadow_tables
+  # Delete datasets made empty by table deletion (only runs if SKIP_TABLES is True)
+  - delete_empty_datasets
