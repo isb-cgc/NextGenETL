@@ -322,6 +322,29 @@ def build_pull_list_with_bq(manifest_table, indexd_table, project, tmp_dataset, 
     bucket_to_local(tmp_bucket, tmp_bucket_file, local_file)
     return True
 
+
+def build_pull_list_with_bq_public(manifest_table, indexd_table, project, tmp_dataset, tmp_bq,
+                                   tmp_bucket, tmp_bucket_file, local_file, do_batch):
+    """
+    IndexD using BQ Tables
+    GDC provides us a file that allows us to not have to pound the IndexD API; we build a BQ table.
+    Use it to resolve URIs
+    """
+    #
+    # If we are using bq to build a manifest, we can use that table to build the pull list too!
+    #
+
+    sql = pull_list_builder_sql_public(manifest_table, indexd_table)
+    success = generic_bq_harness(sql, tmp_dataset, tmp_bq, do_batch, True)
+    if not success:
+        return False
+    success = bq_to_bucket_tsv(tmp_bq, project, tmp_dataset, tmp_bucket, tmp_bucket_file, do_batch, False)
+    if not success:
+        return False
+    bucket_to_local(tmp_bucket, tmp_bucket_file, local_file)
+    return True
+
+
 def pull_list_builder_sql(manifest_table, indexd_table):
     """
     Generates SQL for above function
@@ -329,6 +352,19 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     return '''
     SELECT b.gs_url
     FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
+    '''.format(manifest_table, indexd_table)
+
+#
+# Like the above function, but uses the final public mapping table instead:
+#
+
+def pull_list_builder_sql_public(manifest_table, indexd_table):
+    """
+    Generates SQL for above function
+    """
+    return '''
+    SELECT b.file_gdc_url
+    FROM `{0}` as a JOIN `{1}` as b ON a.id = b.file_gdc_id
     '''.format(manifest_table, indexd_table)
 
 
@@ -405,7 +441,9 @@ def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_b
     extract_job = client.extract_table(table_ref, destination_uri, location="US", job_config=job_config)
 
     # Query
-    job_state = 'NOT_STARTED'
+    extract_job = client.get_job(extract_job.job_id, location=location)
+    job_state = extract_job.state
+
     while job_state != 'DONE':
         extract_job = client.get_job(extract_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(extract_job.job_id, extract_job.state))
@@ -755,7 +793,9 @@ def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, wri
     query_job = client.query(sql, location=location, job_config=job_config)
 
     # Query
-    job_state = 'NOT_STARTED'
+    query_job = client.get_job(query_job.job_id, location=location)
+    job_state = query_job.state
+
     while job_state != 'DONE':
         query_job = client.get_job(query_job.job_id, location=location)
         print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
@@ -948,8 +988,10 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
         with open(scraped, mode='r') as scraped_hold_list:
             schema_list = json_loads(scraped_hold_list.read())
 
-    with open(augmented, mode='r') as augment_list:
-        augment_list = json_loads(augment_list.read())
+    augment_list = []
+    if augmented is not None:
+        with open(augmented, mode='r') as augment_list_file:
+            augment_list = json_loads(augment_list_file.read())
 
     full_schema_dict = {}
     for elem in schema_list:
