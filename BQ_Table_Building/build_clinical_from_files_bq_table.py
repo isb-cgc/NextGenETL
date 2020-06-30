@@ -70,6 +70,7 @@ def convert_excel_to_csv(all_files, local_files_dir):
         print(page_dict.keys())
         _, just_name = os.path.split(filename)
         for k, v in page_dict.items():
+            print("{}/{}-{}.tsv".format(local_files_dir, k, just_name))
             v.to_csv("{}/{}-{}.tsv".format(local_files_dir, k, just_name), sep = "\t", index = None, header=True)
 
 '''
