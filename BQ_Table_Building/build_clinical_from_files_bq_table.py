@@ -27,6 +27,7 @@ import re
 from os.path import expanduser
 import yaml
 import io
+import pandas as pd
 from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
@@ -54,6 +55,20 @@ def load_config(yaml_config):
         return None, None, None, None
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['no_data_values'], yaml_dict['steps']
+
+
+
+'''
+----------------------------------------------------------------------------------------------
+The configuration reader. Parses the YAML configuration into dictionaries
+'''
+def convet_excel_to_csv():
+
+
+    read_file = pd.read_excel (r'Path where the Excel file is stored\File name.xlsx', sheet_name='Your Excel sheet name')
+    read_file.to_csv (r'Path to store the CSV file\File name.csv', index = None, header=True)
+
+
 
 
 '''
