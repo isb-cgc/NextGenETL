@@ -62,13 +62,15 @@ def load_config(yaml_config):
 ----------------------------------------------------------------------------------------------
 Convert excel files to CSV files
 '''
-def convert_excel_to_csv(all_files):
+def convert_excel_to_csv(all_files, local_files_dir):
 
     for filename in all_files:
         page_dict = pd.read_excel(filename, None)
         print(filename)
         print(page_dict.keys())
-        #read_file.to_csv(r'Path to store the CSV file\File name.csv', index = None, header=True)
+        _, just_name = os.path.split(filename)
+        for k, v in page_dict.items():
+            v.to_csv("{}/{}-{}.tsv".format(local_files_dir, k, just_name), sep = "\t", index = None, header=True)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -327,7 +329,7 @@ def main(args):
         print('convert_excel_to_csv')
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-        convert_excel_to_csv(all_files)
+        convert_excel_to_csv(all_files, local_files_dir)
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
