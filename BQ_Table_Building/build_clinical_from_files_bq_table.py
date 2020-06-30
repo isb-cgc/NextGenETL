@@ -60,16 +60,15 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
-The configuration reader. Parses the YAML configuration into dictionaries
+Convert excel files to CSV files
 '''
-def convet_excel_to_csv():
+def convert_excel_to_csv(all_files):
 
-
-    read_file = pd.read_excel (r'Path where the Excel file is stored\File name.xlsx', sheet_name='Your Excel sheet name')
-    read_file.to_csv (r'Path to store the CSV file\File name.csv', index = None, header=True)
-
-
-
+    for filename in all_files:
+        page_dict = pd.read_excel(filename, None)
+        print(filename)
+        print(page_dict.keys())
+        #read_file.to_csv(r'Path to store the CSV file\File name.csv', index = None, header=True)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -323,6 +322,12 @@ def main(args):
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
         group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
+
+    if 'convert_excel_to_csv' in steps:
+        print('convert_excel_to_csv')
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+        convert_excel_to_csv(all_files)
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
