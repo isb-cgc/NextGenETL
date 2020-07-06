@@ -38,7 +38,7 @@ import io
 import re
 from json import loads as json_loads, dumps as json_dumps
 from os.path import expanduser
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 from createSchemaP3 import build_schema
 from common_etl.support import build_manifest_filter, get_the_manifest, create_clean_target, \
                                pull_from_buckets, build_file_list, generic_bq_harness, \
