@@ -303,9 +303,9 @@ def main(args):
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
-    hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
+    # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
-    AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
+    # AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
