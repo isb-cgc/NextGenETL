@@ -45,6 +45,7 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
+                               generate_table_detail_files, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm
 
 '''
@@ -122,12 +123,12 @@ Extract the Callers We Are Working With From File List
 Extract from downloaded file names, compare to expected list. Answer if they match.
 '''
 
-def check_caller_list(all_files, expected_callers):
+def check_caller_list(all_files, expected_callers, program):
     
     expected_set = set(expected_callers)
     callers = set()
     for filename in all_files:
-        info_list = file_info(filename, None)
+        info_list = file_info(filename, program)
         callers.add(info_list[1])
     
     return callers == expected_set  
@@ -247,7 +248,7 @@ out along with name and ID. Important! The order and semantics of this list matc
 of the extraFields parameter!
 '''
 
-def file_info(aFile, program_prefix):
+def file_info(aFile, program_prefix, program):
 
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
@@ -255,9 +256,14 @@ def file_info(aFile, program_prefix):
     file_name = path_pieces[-1]
     file_name_parts = file_name.split('.')
 
-    tumorType = program_prefix + file_name_parts[1] if program_prefix is not None else file_name_parts[1]
-    callerName = file_name_parts[2]
-    fileUUID = file_name_parts[3]
+    if program == 'TCGA':
+        tumorType = program_prefix + file_name_parts[1] if program_prefix is not None else file_name_parts[1]
+        callerName = file_name_parts[2]
+        fileUUID = file_name_parts[3]
+    else:
+        tumorType = None
+        callerName = file_name_parts[2]
+        fileUUID = file_name_parts[0]
 
     return ( [ tumorType, callerName, fileUUID, file_name ] )
 
@@ -379,7 +385,7 @@ def main(args):
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
         program_list = build_program_list(all_files)
-        if not check_caller_list(all_files, callers):
+        if not check_caller_list(all_files, callers,params['PROGRAM']):
             print("Unexpected caller mismatch! Expecting {}".format(callers))
             return
         with open(file_traversal_list, mode='w') as traversal_list:
