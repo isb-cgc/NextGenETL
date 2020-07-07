@@ -108,11 +108,11 @@ Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
 
-def build_program_list(all_files):
+def build_program_list(all_files, program):
     
     programs = set()
     for filename in all_files:
-        info_list = file_info(filename, None)
+        info_list = file_info(filename, program)
         programs.add(info_list[0])
     
     return sorted(programs)
@@ -384,8 +384,8 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        program_list = build_program_list(all_files)
-        if not check_caller_list(all_files, callers,params['PROGRAM']):
+        program_list = build_program_list(all_files, params['PROGRAM'])
+        if not check_caller_list(all_files, callers, params['PROGRAM']):
             print("Unexpected caller mismatch! Expecting {}".format(callers))
             return
         with open(file_traversal_list, mode='w') as traversal_list:
