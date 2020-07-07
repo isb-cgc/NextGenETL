@@ -384,7 +384,7 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        program_list = build_program_list(all_files, None)
+        #program_list = build_program_list(all_files, None)
         if not check_caller_list(all_files, callers, params['PROGRAM']):
             print("Unexpected caller mismatch! Expecting {}".format(callers))
             return
