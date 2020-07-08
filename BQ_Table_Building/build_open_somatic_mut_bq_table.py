@@ -431,7 +431,7 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-        concat_all_files(all_files, one_big_tsv, extra_cols, file_info)
+            concat_all_files(all_files, one_big_tsv, "".join([params['PROGRAM'],"-"]), extra_cols, file_info)
             
     #
     # Scrape the column descriptions from the GDC web page
