@@ -1,0 +1,128 @@
+[
+    {
+      "name": "seqname",
+      "type": "string",
+      "description": "Name of the chromosome or scaffold; chromosome names can be given with or without the 'chr' prefix. Important note: the seqname must be one used within Ensembl, i.e. a standard chromosome name or an Ensembl identifier such as a scaffold ID, without any additional content such as species or assembly. See the example GFF output below."
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "description": "Name of the program that generated this feature, or the data source (database or project name)"
+    },
+    {
+      "name": "feature",
+      "type": "string",
+      "description": "Feature type name, e.g. Gene, Variation, Similarity"
+    },
+    {
+      "name": "start",
+      "type": "integer",
+      "description": "Start position* of the feature, with sequence numbering starting at 1."
+    },
+    {
+      "name": "end",
+      "type": "integer",
+      "description": "End position* of the feature, with sequence numbering starting at 1."
+    },
+    {
+      "name": "score",
+      "type": "string",
+      "description": "A floating point value."
+    },
+    {
+      "name": "strand",
+      "type": "string",
+      "description": "Defined as + (forward) or - (reverse)."
+    },
+    {
+      "name": "frame",
+      "type": "string",
+      "description": " Frame (not filled in) "
+    },
+    {
+      "name": "gene_name",
+      "type": "string",
+      "description": "E.g. TTN, TP53, etc."
+    },
+    {
+      "name": "gene_id",
+      "type": "string",
+      "description": "Ensembl gene ID. Stable IDs are created in the form ENS[species prefix][feature type prefix][a unique eleven digit number]. For example, a mouse gene might be ENSMUSG###########. For human, there is no species code, so IDs are in the form ENS(object type)(identifier).(version). E.g., ENSG00000183091. See https://useast.ensembl.org/Help/Faq?id=488"
+    },
+    {
+      "name": "gene_type",
+      "type": "string",
+      "description": " E.g., protein_coding, lincRNA, etc. "
+    },
+    {
+      "name": "transcript_name",
+      "type": "string",
+      "description": "E.g., TTN-018 (corresponding to Ensembl transcript ID ENST00000589042.1 in GRCh37p.13) "
+    },
+    {
+      "name": "transcript_id",
+      "type": "string",
+      "description": " Ensembl transcript ID. Stable IDs are created in the form ENS[species prefix][feature type prefix][a unique eleven digit number].For human, there is no species code, so IDs are in the form ENS(object type)(identifier).(version) E.g, ENT00000589042. "
+    },
+    {
+      "name": "transcript_type",
+      "type": "string",
+      "description": " E.g., protein_coding, lincRNA, etc. "
+    },
+    {
+        "name": "transcript_support_level",
+        "type": "float",
+        "description": "  A number between 1 and 5. The Transcript Support Level (TSL) is a method to highlight the well-supported and poorly-supported transcript models for users. The method relies on the primary data that can support full-length transcript structure: mRNA and EST alignments supplied by UCSC and Ensembl.The mRNA and EST alignments are compared to the GENCODE transcripts and the transcripts are scored according to how well the alignment matches over its full length. The GENCODE TSL provides a consistent method of evaluating the level of support that a GENCODE transcript annotation is actually expressed in humans. See https://useast.ensembl.org/info/genome/genebuild/transcript_quality_tags.html  "
+    },
+    {
+    "name": "exon_number",
+    "type": "float",
+    "description": " Position number in set of of exons for parent gene. See https://useast.ensembl.org/info/genome/genebuild/genome_annotation.html "
+    },
+    {
+    "name": "exon_id",
+    "type": "string",
+    "description": " Ensembl exon ID. Stable IDs are created in the form ENS[species prefix][feature type prefix][a unique eleven digit number].For human, there is no species code, so IDs are in the form ENS(object type)(identifier).(version).E.g, ENSE00003674202 "
+    },
+    {
+    "name": "ccdsid",
+    "type": "string",
+    "description": " E.g., CCDS54408 The CCDS project is a collaborative effort to identify a core set ofprotein coding regions that are consistently annotated and of high quality.The CCDS set is built by consensus among Ensembl, the National Center for Biotechnology Information (NCBI), and the HUGO Gene Nomenclature Committee (HGNC) for human or Mouse Genome Informatics (MGI) for mouse. Annotated genes that are included in the CCDS set are associated with a unique identifier number and version number (e.g., CCDS1.1, CCDS234.1). The version number will update if the CDS structure changes, or if the underlying genome sequence changes at that location. See https://useast.ensembl.org/info/genome/genebuild/ccds.html"
+    },
+    {
+    "name": "protein_id",
+    "type": "string",
+    "description": "E.g., ENSP00000467141.1 The primary ID for the proteins defined in Ensembl and each (protein coding) Ensembl transcript has one protein ID assigned to it. See https://useast.ensembl.org/Help/Faq?id=488. For Versioning, see https://useast.ensembl.org/info/genome/stable_ids/index.html"
+    },
+    {
+    "name": "havana_gene",
+    "type": "string",
+    "description": " E.g., OTTHUMG00000154448 See https://useast.ensembl.org/info/genome/genebuild/manual_havana.html, https://www.sanger.ac.uk/science/projects/manual-annotation "
+    },
+    {
+    "name": "havana_transcript",
+    "type": "string",
+    "description": "  E.g., OTTHUMT00000450680 See https://useast.ensembl.org/info/genome/genebuild/manual_havana.html, https://www.sanger.ac.uk/science/projects/manual-annotation  "
+    },
+    {
+    "name": "level",
+    "type": "integer",
+    "description": "Either 1,2, or 3"
+    },
+    {
+    "name": "hgnc_id",
+    "type": "string",
+    "description": "Hugo genome nomenclature id E.g., HGNC id in human [0,1]; HGNC:* See https://www.gencodegenes.org/pages/data_format.html"
+    },
+    {
+    "name": "tag",
+    "type": "string",
+    "description": "Semi-colon separated list of tags"
+    },
+    {
+    "name": "ont",
+    "type": "string",
+    "description": " Semi-colon separated list of ontology ids"
+    }
+
+]
