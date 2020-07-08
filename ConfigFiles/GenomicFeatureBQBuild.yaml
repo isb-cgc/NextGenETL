@@ -1,13 +1,13 @@
 version: 1
 
 files_and_buckets_and_tables:
-  # Project that you are working in 
+  # Name of the staging project 
   STAGING_PROJECT: 
  
-  # Name of the Dataset 
+  # Name of the staging dataset 
   STAGING_DATASET_ID: 
  
-  # Name of the Table 
+  # Name of the staging table 
   STAGING_TABLE_ID:
 
   # Publish Project ID
@@ -25,10 +25,10 @@ files_and_buckets_and_tables:
   # File name to send all vcfs to a csv 
   PARSED_GENOMIC_FORMAT_FILE:
 
-  # File name to send the parsed NORMAL 
+  # File name to send the parsed 'attribute' column
   ATTRIBUTE_COLUMN_SPLIT_FILE: 
 
-  # File name that stores the merged csv file of the original parsed csv and attribute column csv
+  # File name that stores the merged csv file of the parsed gtf file 
   FINAL_MERGED_CSV: 
 
   # Schema file that holds all the description for each column. (Provide a path)
