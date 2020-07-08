@@ -30,7 +30,10 @@ import zipfile
 import gzip
 import threading
 from json import loads as json_loads, dumps as json_dumps
-
+import pandas as pd 
+from alive_progress import alive_bar
+import csv
+from tqdm import tqdm as progress
 
 def checkToken(aToken):
     """
@@ -1479,3 +1482,83 @@ def publish_table(source_table, target_table):
         return False
 
     return True
+
+
+
+def upload_to_staging_env(merged_csv,project, dataset_id, table_id):
+
+    df = pd.read_csv(merged_csv)
+    df = df.drop(['attribute'], axis=1)
+    client = bigquery.Client(project=project)
+    
+
+    table_id = "gencode_v34_annotation_gtf"
+    full_table_id = f'{client.project}.{dataset_id}.{table_id}'
+    job_config = bigquery.LoadJobConfig(write_disposition='WRITE_TRUNCATE')
+    job = client.load_table_from_dataframe(
+        df, full_table_id, job_config=job_config
+    )
+    job.result()
+    
+    table = client.get_table(table_id) 
+    print(f'Loaded {table.num_rows} rows and {len(table.schema)} columns to {table_id}')
+
+
+def parse_genomic_features_file(a_file, file_1):
+    
+    column_names = ['seqname', 
+                    'source', 
+                    'feature',
+                    'start', 
+                    'end', 
+                    'score',
+                    'strand', 
+                    'frame', 
+                    'attribute']
+
+    with open(file_1, 'w') as in_file:
+        writer = csv.writer(in_file)
+        writer.writerow(column_names)
+        with alive_bar(len(a_file)) as bar:
+            for line in a_file:
+                if line.decode().startswith('#'):
+                    pass
+                else:
+                    line_split= line.decode().strip().split('\t')
+                    writer.writerow(line_split)
+                bar()
+
+
+def merge_csv_files(file_1, file_2, file_3, number_of_lines):
+
+     with open(file_1,'r') as csv_1, open(file_2,'r') as csv_2, open(file_3,'w') as out_file:
+        reader_1 = csv.reader(csv_1)
+        reader_2 = csv.reader(csv_2)
+        writer = csv.writer(out_file)
+        with alive_bar(number_of_lines+1) as bar:
+            for row_1, row_2 in zip(reader_1,reader_2):
+                writer.writerow(row_1 + row_2)
+                bar()
+
+
+def check_table_existance(client, full_table_id, schema):
+
+    table_exists = None 
+
+    try:
+        client.get_table(full_table_id)
+        table_exists = True
+    except NotFound:
+        table_exists = False
+
+    if table_exists == True:
+        print(f'{full_table_id} exists. Making deletion of the table')
+        client.delete_table(full_table_id)
+        table = bigquery.Table(full_table_id, schema=schema)
+        table = client.create_table(table)
+        print(f"Created table {table.project}, {table.dataset_id}, {table.table_id}")
+    else:
+        print(f'{full_table_id} does not exist. Creating the table')
+        table = bigquery.Table(full_table_id, schema=schema)
+        table = client.create_table(table)
+        print(f"Created table {table.project}, {table.dataset_id}, {table.table_id}")
