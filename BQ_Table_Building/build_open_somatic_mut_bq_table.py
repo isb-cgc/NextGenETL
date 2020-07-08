@@ -108,14 +108,14 @@ Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
 
-def build_program_list(all_files, program):
-    
-    programs = set()
-    for filename in all_files:
-        info_list = file_info(filename, None, program)
-        programs.add(info_list[0])
-    
-    return sorted(programs)
+# def build_program_list(all_files, program):
+#
+#     programs = set()
+#     for filename in all_files:
+#         info_list = file_info(filename, None, program)
+#         programs.add(info_list[0])
+#
+#     return sorted(programs)
   
 '''
 ----------------------------------------------------------------------------------------------
@@ -318,14 +318,14 @@ def main(args):
     # merging, and requires at least 26 GB to be safe. Confirm that before starting!
     #
 
-    do_merging = params['DO_MERGED_OUTPUT']
-    if do_merging:
-        meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
-        mem_kib = meminfo['MemTotal']
-        print("Machine memory: {}".format(mem_kib))
-        if int(mem_kib) < 26000000:
-            print("Job requires at least 26 GB physical memory to complete")
-            return
+    # do_merging = params['DO_MERGED_OUTPUT']
+    # if do_merging:
+    #     meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    #     mem_kib = meminfo['MemTotal']
+    #     print("Machine memory: {}".format(mem_kib))
+    #     if int(mem_kib) < 26000000:
+    #         print("Job requires at least 26 GB physical memory to complete")
+    #         return
 
     #
     # Next, use the filter set to get a manifest from GDC using their API. Note that is a pull list is
@@ -384,7 +384,7 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        program_list = build_program_list(all_files, params['PROGRAM'])
+        # program_list = build_program_list(all_files, params['PROGRAM'])
         if not check_caller_list(all_files, callers, params['PROGRAM']):
             print("Unexpected caller mismatch! Expecting {}".format(callers))
             return
@@ -397,42 +397,41 @@ def main(args):
     # one row, or keep them separate:
     #
     
-    if do_merging:
-        do_debug = params['DO_DEBUG_LOGGING']
-        target_count = int(params['EXPECTED_COLUMNS'])
-        for program in program_list:
-            print("Look at MAFS for {}".format(program))
-            if 'run_maf_reader' in steps:
-                with open(file_traversal_list, mode='r') as traversal_list_file:
-                    all_files = traversal_list_file.read().splitlines()  
-                print("Start reading MAFS for {}".format(program))
-                mut_calls, hdr_pick = read_MAFs(program, all_files, 
-                                                params['PROGRAM_PREFIX'], extra_cols, 
-                                                target_count, do_debug, key_fields, 
-                                                params['FIRST_MAF_COL'], file_info)
-                print("Finish reading MAFS for {}".format(program))
+    #if do_merging:
+    #    do_debug = params['DO_DEBUG_LOGGING']
+    #    target_count = int(params['EXPECTED_COLUMNS'])
+    #    for program in program_list:
+    #        print("Look at MAFS for {}".format(program))
+    #        if 'run_maf_reader' in steps:
+    #            with open(file_traversal_list, mode='r') as traversal_list_file:
+    #                all_files = traversal_list_file.read().splitlines()
+    #            print("Start reading MAFS for {}".format(program))
+    #            mut_calls, hdr_pick = read_MAFs(program, all_files,
+    #                                            params['PROGRAM_PREFIX'], extra_cols,
+    #                                            target_count, do_debug, key_fields,
+    #                                            params['FIRST_MAF_COL'], file_info)
+    #            print("Finish reading MAFS for {}".format(program))
 
-            if 'run_maf_writer' in steps:
-                print("Start writing MAFS for {}".format(program))
-                hist_count = write_MAFs(program, mut_calls, hdr_pick, callers, do_debug)
-                for ii in range(len(hist_count)):
-                    if hist_count[ii] > 0:
-                        print(" %6d  %9d " % ( ii, hist_count[ii] ))
-                print("Finish writing MAFS for {}".format(program))
+    #        if 'run_maf_writer' in steps:
+    #            print("Start writing MAFS for {}".format(program))
+    #            hist_count = write_MAFs(program, mut_calls, hdr_pick, callers, do_debug)
+    #            for ii in range(len(hist_count)):
+    #                if hist_count[ii] > 0:
+    #                    print(" %6d  %9d " % ( ii, hist_count[ii] ))
+    #            print("Finish writing MAFS for {}".format(program))
     
     #
     # Take all the files and make one BIG TSV file to upload:
     #
     
     if 'concat_all_files' in steps:       
-        if do_merging:
-            maf_list = ["mergeA." + tumor + ".maf" for tumor in program_list]            
-            concat_all_merged_files(maf_list, one_big_tsv)
-        else:
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()  
-            concat_all_files(all_files, one_big_tsv,
-                             params['PROGRAM_PREFIX'], extra_cols, file_info)
+        # if do_merging:
+        #     maf_list = ["mergeA." + tumor + ".maf" for tumor in program_list]
+        #     concat_all_merged_files(maf_list, one_big_tsv)
+        # else:
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+        concat_all_files(all_files, one_big_tsv, extra_cols, file_info)
             
     #
     # Scrape the column descriptions from the GDC web page
