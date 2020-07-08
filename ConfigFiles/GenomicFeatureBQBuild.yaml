@@ -1,0 +1,49 @@
+version: 1
+
+files_and_buckets_and_tables:
+  # Project that you are working in 
+  STAGING_PROJECT: 
+ 
+  # Name of the Dataset 
+  STAGING_DATASET_ID: 
+ 
+  # Name of the Table 
+  STAGING_TABLE_ID:
+
+  # Publish Project ID
+  PUBLISH_PROJECT: 
+
+  # Publish Dataset ID
+  PUBLISH_DATASET_ID:
+
+  # Publish Table ID
+  PUBLISH_TABLE_ID: 
+
+  # Path to Genomic Feature File
+  FILE_PATH: 
+
+  # File name to send all vcfs to a csv 
+  PARSED_GENOMIC_FORMAT_FILE:
+
+  # File name to send the parsed NORMAL 
+  ATTRIBUTE_COLUMN_SPLIT_FILE: 
+
+  # File name that stores the merged csv file of the original parsed csv and attribute column csv
+  FINAL_MERGED_CSV: 
+
+  # Schema file that holds all the description for each column. (Provide a path)
+  SCHEMA_WITH_DESCRIPTION: 
+
+
+steps:
+  - count_number_of_lines
+
+  - parse_genomic_features_file
+
+  - create_new_columns 
+
+  - merge_csv_files
+
+  - upload_to_staging_env
+
+  - publish_table
