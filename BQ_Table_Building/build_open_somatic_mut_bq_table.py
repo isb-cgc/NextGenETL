@@ -384,13 +384,14 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        program_list = build_program_list(all_files, params['PROGRAM'])
-        if not check_caller_list(all_files, callers, params['PROGRAM']):
-            print("Unexpected caller mismatch! Expecting {}".format(callers))
-            return
-        with open(file_traversal_list, mode='w') as traversal_list:
-            for line in all_files:
-                traversal_list.write("{}\n".format(line)) 
+        print(params['PROGRAM'])
+        #program_list = build_program_list(all_files, params['PROGRAM'])
+        #if not check_caller_list(all_files, callers, params['PROGRAM']):
+        #    print("Unexpected caller mismatch! Expecting {}".format(callers))
+        #    return
+        #with open(file_traversal_list, mode='w') as traversal_list:
+        #    for line in all_files:
+        #        traversal_list.write("{}\n".format(line))
    
     #
     # We can create either a table that merges identical mutations from the different callers into
