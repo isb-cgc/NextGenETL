@@ -81,18 +81,18 @@ def main(args):
     # publish table:
     #
 
-    if 'publish' in steps:
+    for mydict in params['COPY_LIST']:
 
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'])
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             params['PUBLICATION_TABLE'])
+        from_table, to_table = next(iter(mydict.items()))
 
-        success = publish_table(source_table, publication_dest)
+        if 'publish' in steps:
+            print('Copy Table from {1} to {}'.format(from_table, to_table))
 
-        if not success:
-            print("publish table failed")
-            return
+            success = publish_table(from_table, to_table)
+
+            if not success:
+                print("publish table failed")
+                return
     print('job completed')
 
 if __name__ == "__main__":
