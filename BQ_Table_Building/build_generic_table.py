@@ -86,7 +86,7 @@ def main(args):
         from_table, to_table = next(iter(mydict.items()))
 
         if 'publish' in steps:
-            print('Copy Table from {1} to {}'.format(from_table, to_table))
+            print('Copy Table from {} to {}'.format(from_table, to_table))
 
             success = publish_table(from_table, to_table)
 
