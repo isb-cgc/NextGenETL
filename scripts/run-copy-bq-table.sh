@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/copy-_bq_table.py ~/config/GenericTableBuild.yaml
+python3 ./BQ_Table_Building/copy_bq_table.py ~/config/GenericTableBuild.yaml
 deactivate
