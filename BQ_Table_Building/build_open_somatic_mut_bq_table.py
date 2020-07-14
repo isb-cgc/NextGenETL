@@ -33,6 +33,9 @@ import sys
 
 import os
 import yaml
+import gzip
+import shutil
+import zipfile
 # import requests
 import io
 # import re
@@ -131,6 +134,68 @@ def check_caller_list(all_files, expected_callers):
     
     return callers == expected_set  
 
+'''
+------------------------------------------------------------------------------
+Concatenate all Files
+'''
+
+def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_info_func):
+    """
+    Concatenate all Files
+    Gather up all files and glue them into one big one. The file name and path often include features
+    that we want to add into the table. The provided file_info_func returns a list of elements from
+    the file path, and the extra_cols list maps these to extra column names. Note if file is zipped,
+    we unzip it, concat it, then toss the unzipped version.
+    THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
+    """
+    print("building {}".format(one_big_tsv))
+    first = True
+    header_id = None
+    hdr_line = None
+    with open(one_big_tsv, 'w') as outfile:
+        for filename in all_files:
+            toss_zip = False
+            if filename.endswith('.zip'):
+                dir_name = os.path.dirname(filename)
+                print("Unzipping {}".format(filename))
+                with zipfile.ZipFile(filename, "r") as zip_ref:
+                    zip_ref.extractall(dir_name)
+                use_file_name = filename[:-4]
+                toss_zip = True
+            elif filename.endswith('.gz'):
+                dir_name = os.path.dirname(filename)
+                use_file_name = filename[:-3]
+                print("Uncompressing {}".format(filename))
+                with gzip.open(filename, "rb") as gzip_in:
+                    with open(use_file_name, "wb") as uncomp_out:
+                        shutil.copyfileobj(gzip_in, uncomp_out)
+                toss_zip = True
+            else:
+                use_file_name = filename
+            if os.path.isfile(use_file_name):
+                with open(use_file_name, 'r') as readfile:
+                    file_info_list = file_info_func(use_file_name, program_prefix)
+                    for line in readfile:
+                        if line.startswith('#'):
+                            continue
+                        split_line = line.rstrip('\n').split("\t")
+                        if first:
+                            for col in extra_cols:
+                                split_line.append(col)
+                            header_id = split_line[0]
+                            hdr_line = split_line
+                            print("Header starts with {}".format(header_id))
+                        else:
+                            for i in range(len(extra_cols)):
+                                split_line.append(file_info_list[i])
+                        first = False
+            else:
+                print('{} was not found'.format(use_file_name))
+
+            if toss_zip and os.path.isfile(use_file_name):
+                os.remove(use_file_name)
+
+    return
 
 '''
 ----------------------------------------------------------------------------------------------
