@@ -73,31 +73,31 @@ Scrape the Schema Description From GDC
 The GDC has a page that describes the columns in the MAF file. Just scrape it off:
 '''
 
-def scrape_schema(maf_url, first_col):
-    schema = []
-    resp = requests.request("GET", maf_url)
-
-    maf_page = None
-    if resp.status_code == 200:
-        maf_page = resp.content
-    else:
-        print()
-        print("Request URL: {} ".format(maf_url))
-        print("Problem downloading schema file. HTTP Status Code: {}".format(resp.status_code))
-        print("HTTP content: {}".format(resp.content))
-    
-    soup = BeautifulSoup(maf_page, features="html.parser")
-    tbody = soup.find_all(text=re.compile('^.*{}.*$'.format(first_col)))[0].parent.parent.parent
-    for row in tbody.find_all('tr'):
-        elems = row.find_all('td')
-        desc = [x.string for x in elems[1]] # Have to deal with embedded link tags
-        row_dict = {
-            "name": elems[0].string.split(' - ', 1)[1],
-            "description": "".join(desc)
-        }
-        schema.append(row_dict)
-
-    return schema 
+# def scrape_schema(maf_url, first_col):
+#     schema = []
+#     resp = requests.request("GET", maf_url)
+#
+#     maf_page = None
+#     if resp.status_code == 200:
+#         maf_page = resp.content
+#     else:
+#         print()
+#         print("Request URL: {} ".format(maf_url))
+#         print("Problem downloading schema file. HTTP Status Code: {}".format(resp.status_code))
+#         print("HTTP content: {}".format(resp.content))
+#
+#     soup = BeautifulSoup(maf_page, features="html.parser")
+#     tbody = soup.find_all(text=re.compile('^.*{}.*$'.format(first_col)))[0].parent.parent.parent
+#     for row in tbody.find_all('tr'):
+#         elems = row.find_all('td')
+#         desc = [x.string for x in elems[1]] # Have to deal with embedded link tags
+#         row_dict = {
+#             "name": elems[0].string.split(' - ', 1)[1],
+#             "description": "".join(desc)
+#         }
+#         schema.append(row_dict)
+#
+#     return schema
 
 
 '''
@@ -302,7 +302,7 @@ def main(args):
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
-    hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
+    # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
     AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
