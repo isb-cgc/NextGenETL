@@ -274,7 +274,7 @@ def file_info(aFile, program_prefix, program):
 Concatenate all Files
 '''
 
-def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_info_func):
+def concat_all_files(all_files, one_big_tsv, program, extra_cols, file_info_func):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
@@ -309,7 +309,8 @@ def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_in
                 use_file_name = filename
             if os.path.isfile(use_file_name):
                 with open(use_file_name, 'r') as readfile:
-                    file_info_list = file_info_func(use_file_name, program_prefix)
+                    prefix = "".join([program, "-"])
+                    file_info_list = file_info_func(use_file_name, prefix, program)
                     for line in readfile:
                         if line.startswith('#'):
                             continue
@@ -496,8 +497,7 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            prefix = "".join([params['PROGRAM'],"-"])
-            concat_all_files(all_files, one_big_tsv, prefix, extra_cols, file_info)
+            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], extra_cols, file_info)
             
     #
     # Scrape the column descriptions from the GDC web page
