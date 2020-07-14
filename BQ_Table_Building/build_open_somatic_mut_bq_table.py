@@ -38,14 +38,13 @@ import io
 import re
 from json import loads as json_loads, dumps as json_dumps
 from os.path import expanduser
-# from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 from createSchemaP3 import build_schema
 from common_etl.support import build_manifest_filter, get_the_manifest, create_clean_target, \
                                pull_from_buckets, build_file_list, generic_bq_harness, \
                                upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
-                               generate_table_detail_files, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm
 
 '''
@@ -73,33 +72,32 @@ def load_config(yaml_config):
 Scrape the Schema Description From GDC
 The GDC has a page that describes the columns in the MAF file. Just scrape it off:
 '''
-# remove?
 
-# def scrape_schema(maf_url, first_col):
-#     schema = []
-#     resp = requests.request("GET", maf_url)
-#
-#     maf_page = None
-#     if resp.status_code == 200:
-#         maf_page = resp.content
-#     else:
-#         print()
-#         print("Request URL: {} ".format(maf_url))
-#         print("Problem downloading schema file. HTTP Status Code: {}".format(resp.status_code))
-#         print("HTTP content: {}".format(resp.content))
-#
-#     soup = BeautifulSoup(maf_page, features="html.parser")
-#     tbody = soup.find_all(text=re.compile('^.*{}.*$'.format(first_col)))[0].parent.parent.parent
-#     for row in tbody.find_all('tr'):
-#         elems = row.find_all('td')
-#         desc = [x.string for x in elems[1]] # Have to deal with embedded link tags
-#         row_dict = {
-#             "name": elems[0].string.split(' - ', 1)[1],
-#             "description": "".join(desc)
-#         }
-#         schema.append(row_dict)
-#
-#     return schema
+def scrape_schema(maf_url, first_col):
+    schema = []
+    resp = requests.request("GET", maf_url)
+
+    maf_page = None
+    if resp.status_code == 200:
+        maf_page = resp.content
+    else:
+        print()
+        print("Request URL: {} ".format(maf_url))
+        print("Problem downloading schema file. HTTP Status Code: {}".format(resp.status_code))
+        print("HTTP content: {}".format(resp.content))
+    
+    soup = BeautifulSoup(maf_page, features="html.parser")
+    tbody = soup.find_all(text=re.compile('^.*{}.*$'.format(first_col)))[0].parent.parent.parent
+    for row in tbody.find_all('tr'):
+        elems = row.find_all('td')
+        desc = [x.string for x in elems[1]] # Have to deal with embedded link tags
+        row_dict = {
+            "name": elems[0].string.split(' - ', 1)[1],
+            "description": "".join(desc)
+        }
+        schema.append(row_dict)
+
+    return schema 
 
 
 '''
@@ -108,14 +106,14 @@ Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
 
-# def build_program_list(all_files, program):
-#
-#     programs = set()
-#     for filename in all_files:
-#         info_list = file_info(filename, None, program)
-#         programs.add(info_list[0])
-#
-#     return sorted(programs)
+def build_program_list(all_files):
+    
+    programs = set()
+    for filename in all_files:
+        info_list = file_info(filename, None)
+        programs.add(info_list[0])
+    
+    return sorted(programs)
   
 '''
 ----------------------------------------------------------------------------------------------
@@ -123,12 +121,12 @@ Extract the Callers We Are Working With From File List
 Extract from downloaded file names, compare to expected list. Answer if they match.
 '''
 
-def check_caller_list(all_files, expected_callers, program):
+def check_caller_list(all_files, expected_callers):
     
     expected_set = set(expected_callers)
     callers = set()
     for filename in all_files:
-        info_list = file_info(filename, None, program)
+        info_list = file_info(filename, None)
         callers.add(info_list[1])
     
     return callers == expected_set  
@@ -248,7 +246,7 @@ out along with name and ID. Important! The order and semantics of this list matc
 of the extraFields parameter!
 '''
 
-def file_info(aFile, program_prefix, program):
+def file_info(aFile, program_prefix):
 
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
@@ -256,14 +254,9 @@ def file_info(aFile, program_prefix, program):
     file_name = path_pieces[-1]
     file_name_parts = file_name.split('.')
 
-    if program == 'TCGA':
-        tumorType = program_prefix + file_name_parts[1] if program_prefix is not None else file_name_parts[1]
-        callerName = file_name_parts[2]
-        fileUUID = file_name_parts[3]
-    else:
-        tumorType = None
-        callerName = file_name_parts[2]
-        fileUUID = file_name_parts[0]
+    tumorType = program_prefix + file_name_parts[1] if program_prefix is not None else file_name_parts[1]
+    callerName = file_name_parts[2]
+    fileUUID = file_name_parts[3]
 
     return ( [ tumorType, callerName, fileUUID, file_name ] )
 
@@ -309,9 +302,9 @@ def main(args):
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
-    # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
+    hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
-    # AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
+    AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
@@ -384,41 +377,41 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        # program_list = build_program_list(all_files, params['PROGRAM'])
-        if not check_caller_list(all_files, callers, params['PROGRAM']):
+        program_list = build_program_list(all_files)
+        if not check_caller_list(all_files, callers):
             print("Unexpected caller mismatch! Expecting {}".format(callers))
             return
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
-                traversal_list.write("{}\n".format(line))
+                traversal_list.write("{}\n".format(line)) 
    
     #
     # We can create either a table that merges identical mutations from the different callers into
     # one row, or keep them separate:
     #
     
-    #if do_merging:
-    #    do_debug = params['DO_DEBUG_LOGGING']
-    #    target_count = int(params['EXPECTED_COLUMNS'])
-    #    for program in program_list:
-    #        print("Look at MAFS for {}".format(program))
-    #        if 'run_maf_reader' in steps:
-    #            with open(file_traversal_list, mode='r') as traversal_list_file:
-    #                all_files = traversal_list_file.read().splitlines()
-    #            print("Start reading MAFS for {}".format(program))
-    #            mut_calls, hdr_pick = read_MAFs(program, all_files,
-    #                                            params['PROGRAM_PREFIX'], extra_cols,
-    #                                            target_count, do_debug, key_fields,
-    #                                            params['FIRST_MAF_COL'], file_info)
-    #            print("Finish reading MAFS for {}".format(program))
-
-    #        if 'run_maf_writer' in steps:
-    #            print("Start writing MAFS for {}".format(program))
-    #            hist_count = write_MAFs(program, mut_calls, hdr_pick, callers, do_debug)
-    #            for ii in range(len(hist_count)):
-    #                if hist_count[ii] > 0:
-    #                    print(" %6d  %9d " % ( ii, hist_count[ii] ))
-    #            print("Finish writing MAFS for {}".format(program))
+    # if do_merging:
+    #     do_debug = params['DO_DEBUG_LOGGING']
+    #     target_count = int(params['EXPECTED_COLUMNS'])
+    #     for program in program_list:
+    #         print("Look at MAFS for {}".format(program))
+    #         if 'run_maf_reader' in steps:
+    #             with open(file_traversal_list, mode='r') as traversal_list_file:
+    #                 all_files = traversal_list_file.read().splitlines()
+    #             print("Start reading MAFS for {}".format(program))
+    #             mut_calls, hdr_pick = read_MAFs(program, all_files,
+    #                                             params['PROGRAM_PREFIX'], extra_cols,
+    #                                             target_count, do_debug, key_fields,
+    #                                             params['FIRST_MAF_COL'], file_info)
+    #             print("Finish reading MAFS for {}".format(program))
+    #
+    #         if 'run_maf_writer' in steps:
+    #             print("Start writing MAFS for {}".format(program))
+    #             hist_count = write_MAFs(program, mut_calls, hdr_pick, callers, do_debug)
+    #             for ii in range(len(hist_count)):
+    #                 if hist_count[ii] > 0:
+    #                     print(" %6d  %9d " % ( ii, hist_count[ii] ))
+    #             print("Finish writing MAFS for {}".format(program))
     
     #
     # Take all the files and make one BIG TSV file to upload:
@@ -431,12 +424,13 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, "".join([params['PROGRAM'],"-"]), extra_cols, file_info)
+        concat_all_files(all_files, one_big_tsv,
+                         params['PROGRAM_PREFIX'], extra_cols, file_info)
             
     #
     # Scrape the column descriptions from the GDC web page
     #
-
+    
     # if 'scrape_schema' in steps:
     #     scrape_list = scrape_schema(params['MAF_URL'], params['FIRST_MAF_COL'])
     #     with open(hold_scraped_dict, mode='w') as scraped_hold_list:
@@ -451,40 +445,7 @@ def main(args):
     #     typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
     #     build_combined_schema(hold_scraped_dict, AUGMENTED_SCHEMA_FILE,
     #                           typing_tups, hold_schema_list, hold_schema_dict)
-
-    #
-    # Schemas and table descriptions are maintained in the github repo:
-    #
-
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        except Exception as ex:
-            print("pull_table_info_from_git failed: {}".format(str(ex)))
-            return
-
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        # Write out the details
-        success = generate_table_detail_files(schema_file, full_file_prefix)
-        if not success:
-            print("process_git_schemas failed")
-            return
-
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list, hold_schema_dict)
-
+         
     #
     # Upload the giant TSV into a cloud bucket:
     #
@@ -577,7 +538,6 @@ def main(args):
     #
     
     print('job completed')
-
 
 if __name__ == "__main__":
     main(sys.argv)
