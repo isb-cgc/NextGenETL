@@ -45,7 +45,7 @@ from os.path import expanduser
 # from createSchemaP3 import build_schema
 from common_etl.support import build_manifest_filter, get_the_manifest, create_clean_target, \
                                pull_from_buckets, build_file_list, generic_bq_harness, \
-                               upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
+                               upload_to_bucket, csv_to_bq, delete_table_bq_job, \
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm
