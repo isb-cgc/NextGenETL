@@ -246,11 +246,10 @@ def final_join_sql(maf_table, barcodes_table):
 ----------------------------------------------------------------------------------------------
 file_info() function Author: Sheila Reynolds
 File name includes important information, e.g. the program name and the caller. Extract that
-out along with name and ID. Important! The order and semantics of this list matches that
-of the extraFields parameter!
+out along with name and ID.
 '''
 
-def file_info(aFile, program_prefix, program):
+def file_info(aFile, program):
 
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
@@ -259,34 +258,31 @@ def file_info(aFile, program_prefix, program):
     file_name_parts = file_name.split('.')
 
     if program == 'TCGA':
-        tumorType = program_prefix + file_name_parts[1] if program_prefix is not None else file_name_parts[1]
         callerName = file_name_parts[2]
         fileUUID = file_name_parts[3]
     else:
-        tumorType = None
         callerName = file_name_parts[2]
         fileUUID = file_name_parts[0]
 
-    return ( [ tumorType, callerName, fileUUID, file_name ] )
+    return ( [ callerName, fileUUID, file_name ] )
 
 '''
 ------------------------------------------------------------------------------
 Concatenate all Files
 '''
 
-def concat_all_files(all_files, one_big_tsv, program, extra_cols, file_info_func):
+def concat_all_files(all_files, one_big_tsv, program):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
     that we want to add into the table. The provided file_info_func returns a list of elements from
-    the file path, and the extra_cols list maps these to extra column names. Note if file is zipped,
+    the file path. Note if file is zipped,
     we unzip it, concat it, then toss the unzipped version.
     THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
     """
     print("building {}".format(one_big_tsv))
     first = True
-    header_id = None
-    hdr_line = None
+
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             toss_zip = False
@@ -307,31 +303,32 @@ def concat_all_files(all_files, one_big_tsv, program, extra_cols, file_info_func
                 toss_zip = True
             else:
                 use_file_name = filename
-            if os.path.isfile(use_file_name):
-                with open(use_file_name, 'r') as readfile:
-                    prefix = "".join([program, "-"])
-                    file_info_list = file_info_func(use_file_name, prefix, program)
-                    for line in readfile:
-                        if line.startswith('#'):
-                            continue
-                        split_line = line.rstrip('\n').split("\t")
+            with open(use_file_name, 'r') as readfile:
+                callerName, fileUUID, file_name = file_info(use_file_name, program)
+                for line in readfile:
+                    # Seeing comments in MAF files.
+                    if not line.startswith('#'):
                         if first:
-                            for col in extra_cols:
-                                split_line.append(col)
-                            header_id = split_line[0]
-                            hdr_line = split_line
-                            print("Header starts with {}".format(header_id))
+                            outfile.write(line.rstrip('\n'))
+                            outfile.write('\t')
+                            outfile.write('fileName')
+                            outfile.write('\t')
+                            outfile.write('file_gdc_id')
+                            outfile.write('\t')
+                            outfile.write('caller')
+                            outfile.write('\n')
                         else:
-                            for i in range(len(extra_cols)):
-                                split_line.append(file_info_list[i])
-                        first = False
-            else:
-                print('{} was not found'.format(use_file_name))
-
-            if toss_zip and os.path.isfile(use_file_name):
-                os.remove(use_file_name)
-
-    return
+                            outfile.write(line.rstrip('\n'))
+                            outfile.write('\t')
+                            outfile.write(filename)
+                            outfile.write('\t')
+                            outfile.write(fileUUID)
+                            outfile.write('\t')
+                            outfile.write(callerName)
+                            outfile.write('\n')
+                    first = False
+                if toss_zip:
+                    os.remove(use_file_name)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -497,7 +494,7 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], extra_cols, file_info)
+            concat_all_files(all_files, one_big_tsv)
             
     #
     # Scrape the column descriptions from the GDC web page
