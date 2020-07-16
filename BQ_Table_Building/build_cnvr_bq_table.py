@@ -240,7 +240,7 @@ def main(args):
         print('concat_all_files')
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-        concat_all_files(all_files, one_big_tsv, params['PROGRAM'])
+        concat_all_files(all_files, one_big_tsv)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
