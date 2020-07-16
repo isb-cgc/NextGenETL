@@ -520,6 +520,7 @@ def main(args):
     #
     
     if 'upload_to_bucket' in steps:
+        print('upload_to_bucket')
         upload_to_bucket(params['WORKING_BUCKET'], params['BUCKET_SKEL_TSV'], one_big_tsv)
 
     #
@@ -527,10 +528,11 @@ def main(args):
     #
         
     if 'create_bq_from_tsv' in steps:
+        print('create_bq_from_tsv')
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], params['BUCKET_SKEL_TSV'])
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['SKELETON_TABLE'], params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
 
     #
     # Need to merge in aliquot and sample barcodes from other tables:
