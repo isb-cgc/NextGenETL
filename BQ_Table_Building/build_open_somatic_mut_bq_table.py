@@ -38,17 +38,20 @@ import shutil
 import zipfile
 # import requests
 import io
+from git import Repo
 # import re
 from json import loads as json_loads, dumps as json_dumps
 from os.path import expanduser
 # from bs4 import BeautifulSoup
-# from createSchemaP3 import build_schema
+from createSchemaP3 import build_schema
+
 from common_etl.support import build_manifest_filter, get_the_manifest, create_clean_target, \
                                pull_from_buckets, build_file_list, generic_bq_harness, \
                                upload_to_bucket, csv_to_bq, delete_table_bq_job, \
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
-                               update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm
+                               update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
+                               generate_table_detail_files
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -495,7 +498,40 @@ def main(args):
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
             concat_all_files(all_files, one_big_tsv, params['PROGRAM'])
-            
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
+                              typing_tups, hold_schema_list, hold_schema_dict)
+
+    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
     #
     # Scrape the column descriptions from the GDC web page
     #
