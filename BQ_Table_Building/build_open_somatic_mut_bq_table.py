@@ -320,6 +320,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                             outfile.write('\t')
                             outfile.write('caller')
                             outfile.write('\n')
+                            first = False
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
@@ -329,7 +330,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             outfile.write('\t')
                             outfile.write(callerName)
                             outfile.write('\n')
-                    first = False
                 if toss_zip:
                     os.remove(use_file_name)
 
