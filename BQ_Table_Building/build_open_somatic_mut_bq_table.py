@@ -316,16 +316,18 @@ def concat_all_files(all_files, one_big_tsv, program):
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
                             outfile.write('\t')
-                            outfile.write('caller')
-                            outfile.write('\n')
+                            if program == "TGCA":
+                                outfile.write('caller')
+                                outfile.write('\n')
                             first = False
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
                             outfile.write('\t')
-                            outfile.write(callerName)
-                            outfile.write('\n')
+                            if program == "TCGA":
+                                outfile.write(callerName)
+                                outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
 
