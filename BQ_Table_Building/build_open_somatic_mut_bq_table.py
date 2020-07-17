@@ -318,8 +318,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write('caller')
-                            else:
-                                continue
                             outfile.write('\n')
                             first = False
                         else:
@@ -329,8 +327,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write(callerName)
-                            else:
-                                continue
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
