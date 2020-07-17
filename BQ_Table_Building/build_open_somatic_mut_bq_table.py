@@ -267,7 +267,7 @@ def file_info(aFile, program):
         callerName = file_name_parts[2]
         fileUUID = file_name_parts[0]
 
-    return ( [ callerName, fileUUID, file_name ] )
+    return ( [ callerName, fileUUID ] )
 
 '''
 ------------------------------------------------------------------------------
@@ -307,14 +307,12 @@ def concat_all_files(all_files, one_big_tsv, program):
             else:
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
-                callerName, fileUUID, file_name = file_info(use_file_name, program)
+                callerName, fileUUID = file_info(use_file_name, program)
                 for line in readfile:
                     # Seeing comments in MAF files.
                     if not line.startswith('#'):
                         if first:
                             outfile.write(line.rstrip('\n'))
-                            outfile.write('\t')
-                            outfile.write('fileName')
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
                             outfile.write('\t')
@@ -323,8 +321,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             first = False
                         else:
                             outfile.write(line.rstrip('\n'))
-                            outfile.write('\t')
-                            outfile.write(filename)
                             outfile.write('\t')
                             outfile.write(fileUUID)
                             outfile.write('\t')
