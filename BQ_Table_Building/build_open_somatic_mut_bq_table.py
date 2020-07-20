@@ -602,7 +602,7 @@ def main(args):
     if 'create_final_table' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                        params['TARGET_DATASET'], 
-                                       params['SKELETON_TABLE'])
+                                       params['TARGET_TABLE'])
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                            params['TARGET_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
