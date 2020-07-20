@@ -577,7 +577,7 @@ def main(args):
     if 'collect_barcodes' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                        params['TARGET_DATASET'], 
-                                       params['SKELETON_TABLE'])
+                                       params['TARGET_TABLE'])
         
         success = attach_aliquot_ids(skel_table, params['FILE_TABLE'], 
                                      params['TARGET_DATASET'], 
