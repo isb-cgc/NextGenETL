@@ -448,10 +448,10 @@ def main(args):
     
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        program_list = build_program_list(all_files)
-        if not check_caller_list(all_files, callers):
-            print("Unexpected caller mismatch! Expecting {}".format(callers))
-            return
+        #program_list = build_program_list(all_files)
+        #if not check_caller_list(all_files, callers):
+        #    print("Unexpected caller mismatch! Expecting {}".format(callers))
+        #    return
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
