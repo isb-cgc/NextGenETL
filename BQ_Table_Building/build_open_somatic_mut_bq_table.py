@@ -69,8 +69,7 @@ def load_config(yaml_config):
         return None, None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'], 
-            yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'],
-            yaml_dict['callers'])
+            yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'])
 
 
 '''
@@ -355,7 +354,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, extra_cols, key_fields, callers = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, extra_cols, key_fields = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
