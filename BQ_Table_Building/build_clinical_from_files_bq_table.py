@@ -65,8 +65,8 @@ Convert excel files to CSV files
 def convert_excel_to_csv(all_files, local_files_dir):
 
     for filename in all_files:
-        page_dict = pd.read_excel(filename, None)
         print(filename)
+        page_dict = pd.read_excel(filename, None)
         print(page_dict.keys())
         _, just_name = os.path.split(filename)
         for k, v in page_dict.items():
