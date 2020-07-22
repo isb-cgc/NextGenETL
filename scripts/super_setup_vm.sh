@@ -80,6 +80,7 @@ python3 -m pip install wheel
 python3 -m pip install google-api-python-client
 python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
+python3 -m pip install pandas
 deactivate
 
 #
@@ -125,6 +126,8 @@ python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
 python3 -m pip install PyYaml
 python3 -m pip install gitpython
+python3 -m pip install pandas
+python3 -m pip install xlrd
 # used by build_schema:
 python3 -m pip install python-dateutil
 deactivate
