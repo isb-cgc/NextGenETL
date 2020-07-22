@@ -93,7 +93,7 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             do_batch, shadow_prefix, skip_datasets, do_tables):
+                             do_batch, shadow_prefix, skip_datasets, view_friendly_names, do_tables):
 
     dataset_list = source_client.list_datasets()
 
@@ -114,8 +114,8 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
             if tbl_obj.view_query is not None:
                 if do_tables:
                     continue
-                view_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
-                sql = 'SELECT COUNT(*) as count FROM `{}`'.format(view_id)
+                src_tab_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
+                sql = 'SELECT COUNT(*) as count FROM `{}`'.format(src_tab_id)
                 results = bq_harness_with_result(sql, do_batch)
                 for row in results:
                     use_row_count = row.count
@@ -153,17 +153,10 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 targ_table.friendlyName = tbl_obj.friendly_name
                 targ_table.description = tbl_obj.description
 
-                #
-                # "Number of rows" in a shadow empty table is provided through a private tag label:
-                #
-
                 if tbl_obj.labels is not None:
                     targ_table.labels = tbl_obj.labels.copy()
                 else:
                     targ_table.labels = {}
-
-                num_row_tag = "{}_{}".format(shadow_prefix, "num_rows")
-                targ_table.labels[num_row_tag] = use_row_count
 
                 #
                 # The way a table turns into a view is by setting the view_query property:
@@ -171,6 +164,23 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
                 if use_query is not None:
                     targ_table.view_query = use_query
+
+                    #
+                    # "Number of rows" in a shadow empty table is provided through a private tag label. Same
+                    # with friendly name:
+                    #
+
+                    num_row_tag = "{}_{}".format(shadow_prefix, "num_rows")
+                    targ_table.labels[num_row_tag] = use_row_count
+                    friendly_name_tag = "{}_{}".format(shadow_prefix, "friendly_name")
+                    friendly_name_key = "{}.{}".format(dataset.dataset_id, tbl.table_id)
+                    for adict in view_friendly_names:
+                        view_id, friendly = next(iter(adict.items()))
+                        if view_id == friendly_name_key:
+                            use_name = friendly
+                            break
+
+                    targ_table.labels[friendly_name_tag] = use_name
 
                 shadow_table = shadow_client.create_table(targ_table)
 
@@ -258,6 +268,7 @@ def main(args):
     skip_tables = params['SKIP_TABLES']
     shadow_prefix = params['PRIVATE_METADATA_PREFIX']
     skip_datasets = params['SKIP_DATASETS']
+    view_friendly_names = params['VIEW_FRIENDLY_NAMES']
 
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
@@ -288,7 +299,8 @@ def main(args):
     if 'create_all_shadow_tables' in steps:
         # Create just tables:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets, True)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets,
+                                           view_friendly_names, True)
         if not success:
             print("create_all_shadow_tables failed")
             return
@@ -296,7 +308,8 @@ def main(args):
     if 'create_all_shadow_views' in steps:
         # Create just views:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets, False)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets,
+                                           view_friendly_names, False)
         if not success:
             print("create_all_shadow_views failed")
             return
