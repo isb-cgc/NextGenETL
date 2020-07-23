@@ -284,7 +284,7 @@ def concat_all_files(all_files, one_big_tsv, program):
     """
     print("building {}".format(one_big_tsv))
     first = True
-
+    header_id = None
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             toss_zip = False
@@ -311,6 +311,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                     # Seeing comments in MAF files.
                     if not line.startswith('#'):
                         if first:
+                            header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
@@ -319,7 +320,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                                 outfile.write('caller')
                             outfile.write('\n')
                             first = False
-                        else:
+                        if not line.startswith(header_id):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
