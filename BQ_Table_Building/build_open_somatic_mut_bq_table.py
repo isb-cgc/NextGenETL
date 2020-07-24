@@ -326,10 +326,10 @@ def concat_all_files(all_files, one_big_tsv, program):
                                 outfile.write('\t')
                                 outfile.write('caller')
                             else:
+                                outfile.write('\t')
                                 outfile.write('aliquote_uuid_tumor')
                                 outfile.write('\t')
                                 outfile.write('aliquote_uuid_normal')
-                                outfile.write('\t')
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
@@ -340,10 +340,10 @@ def concat_all_files(all_files, one_big_tsv, program):
                                 outfile.write('\t')
                                 outfile.write(callerName)
                             else:
+                                outfile.write('\t')
                                 outfile.write(aliquot_tumor_uuid)
                                 outfile.write('\t')
                                 outfile.write(aliquot_normal_uuid)
-                                outfile.write('\t')
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
