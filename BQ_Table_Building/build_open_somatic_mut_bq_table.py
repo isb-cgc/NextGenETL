@@ -319,7 +319,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                     else:
                         if first:
                             if program != 'TCGA':
-                                outfile.write('\t')
                                 outfile.write('aliquote_uuid_tumor')
                                 outfile.write('\t')
                                 outfile.write('aliquote_uuid_normal')
@@ -335,7 +334,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             first = False
                         if not line.startswith(header_id):
                             if program != 'TCGA':
-                                outfile.write('\t')
                                 outfile.write(aliquot_tumor_uuid)
                                 outfile.write('\t')
                                 outfile.write(aliquot_normal_uuid)
