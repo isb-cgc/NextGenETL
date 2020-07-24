@@ -318,6 +318,11 @@ def concat_all_files(all_files, one_big_tsv, program):
                             aliquot_tumor_uuid = line.split(" ")[1].strip('\n')
                     else:
                         if first:
+                            if program != 'TCGA':
+                                outfile.write('\t')
+                                outfile.write('aliquote_uuid_tumor')
+                                outfile.write('\t')
+                                outfile.write('aliquote_uuid_normal')
                             header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
@@ -325,25 +330,20 @@ def concat_all_files(all_files, one_big_tsv, program):
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write('caller')
-                            else:
-                                outfile.write('\t')
-                                outfile.write('aliquote_uuid_tumor')
-                                outfile.write('\t')
-                                outfile.write('aliquote_uuid_normal')
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
+                            if program != 'TCGA':
+                                outfile.write('\t')
+                                outfile.write(aliquot_tumor_uuid)
+                                outfile.write('\t')
+                                outfile.write(aliquot_normal_uuid)
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write(callerName)
-                            else:
-                                outfile.write('\t')
-                                outfile.write(aliquot_tumor_uuid)
-                                outfile.write('\t')
-                                outfile.write(aliquot_normal_uuid)
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
