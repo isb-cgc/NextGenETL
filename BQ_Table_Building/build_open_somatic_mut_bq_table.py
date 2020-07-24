@@ -318,7 +318,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             aliquot_tumor_uuid = line.split(" ")[1]
                     else:
                         if first:
-                            if program != 'TCGA':
                             header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
