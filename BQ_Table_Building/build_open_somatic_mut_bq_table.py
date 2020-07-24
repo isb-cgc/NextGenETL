@@ -313,9 +313,9 @@ def concat_all_files(all_files, one_big_tsv, program):
                     # Seeing comments in MAF files.
                     if line.startswith('#'):
                         if line.split(" ")[0] == "#normal.aliquot":
-                            aliquot_normal_uuid = line.split(" ")[1]
+                            aliquot_normal_uuid = line.split(" ")[1].strip('\n')
                         elif line.split(" ")[0] == "#tumor.aliquot":
-                            aliquot_tumor_uuid = line.split(" ")[1]
+                            aliquot_tumor_uuid = line.split(" ")[1].strip('\n')
                     else:
                         if first:
                             header_id = line.split('\t')[0]
