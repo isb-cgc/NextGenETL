@@ -285,6 +285,8 @@ def concat_all_files(all_files, one_big_tsv, program):
     print("building {}".format(one_big_tsv))
     first = True
     header_id = None
+    aliquot_tumor_uuid = None
+    aliquot_normal_uuid = None
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             toss_zip = False
@@ -309,8 +311,20 @@ def concat_all_files(all_files, one_big_tsv, program):
                 callerName, fileUUID = file_info(use_file_name, program)
                 for line in readfile:
                     # Seeing comments in MAF files.
-                    if not line.startswith('#'):
+                    if line.startswith('#'):
+                        if line.split(" ")[0] == "#normal.aliquot":
+                            aliquot_normal_uuid = line.split(" ")[1]
+                        elif line.split(" ")[0] == "#tumor.aliquot":
+                            aliquot_tumor_uuid = line.split(" ")[1]
+                        else:
+                            continue
+                    else:
                         if first:
+                            if program != 'TCGA':
+                                outfile.write('aliquote_uuid_tumor')
+                                outfile.write('\t')
+                                outfile.write('aliquote_uuid_normal')
+                                outfile.write('\t')
                             header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
@@ -321,6 +335,11 @@ def concat_all_files(all_files, one_big_tsv, program):
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
+                            if program != 'TCGA':
+                                outfile.write(aliquot_tumor_uuid)
+                                outfile.write('\t')
+                                outfile.write(aliquot_normal_uuid)
+                                outfile.write('\t')
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
