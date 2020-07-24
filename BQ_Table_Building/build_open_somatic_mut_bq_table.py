@@ -323,6 +323,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                                 outfile.write('aliquote_uuid_tumor')
                                 outfile.write('\t')
                                 outfile.write('aliquote_uuid_normal')
+                                outfile.write('\t')
                             header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
@@ -338,6 +339,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                                 outfile.write(aliquot_tumor_uuid)
                                 outfile.write('\t')
                                 outfile.write(aliquot_normal_uuid)
+                                outfile.write('\t')
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
