@@ -128,7 +128,8 @@ python3 -m pip install gitpython
 python3 -m pip install pandas 
 python3 -m pip install tqdm 
 python3 -m pip install alive-progress
-
+python3 -m pip install pyarrow
+python3 -m pip install gcsfs 
 # used by build_schema:
 python3 -m pip install python-dateutil
 deactivate
@@ -156,6 +157,5 @@ echo "Be sure to now customize the ~/setEnvVarsGDCMetadata.sh file to your syste
 
 echo "A 30G machine is required to process the current/active collection"
 echo "A 60G machine is required to process the legacy collection"
-
 
 
