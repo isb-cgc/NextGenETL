@@ -1,0 +1,80 @@
+version: 1
+
+files_and_buckets_and_tables:
+  # Name of the staging project 
+  STAGING_PROJECT: 
+ 
+  # Name of the staging dataset 
+  STAGING_DATASET_ID: 
+ 
+  # Name of the staging table 
+  STAGING_TABLE_ID: 
+
+  # Publish Project ID
+  PUBLISH_PROJECT: 
+
+  # Publish Dataset ID
+  PUBLISH_DATASET_ID: 
+
+  # Publish Table ID
+  PUBLISH_TABLE_ID: 
+
+  # File name to send all vcfs to a csv 
+  PARSED_VARIANT_CALL_FILE : parsedVariantCallFile.csv 
+
+  # File name to send the parsed 'INFO' column 
+  FORMAT_COLUMN_SPLIT_FILE: formatColSplit.csv
+
+  # File name that stores the merged csv file (PARSED_VARIANT_CALL_FILE + FOMAT_COLUMN_SPLIT_FILE) 
+  FINAL_MERGED_CSV: myFinalMergedFile.csv
+
+  DATAFRAME_INFO_FILE: myDataFrameInfo.txt 
+
+  # Proved  a bucket path to store FINAL_MERGED_CSV 
+  BUCKET_PATH: gs://path/to/FINAL_MERGED_CSV
+
+  # Schema file that holds all the description for each column. (Provide a path)
+  SCHEMA_WITH_DESCRIPTION: 
+  
+  # This file will contain the format information of a Pandas Dataframe describing the schema of the FINAL_MERGED_CSV
+  FORMAT_INFO_FILE: format_info.txt 
+
+  # Name of the Program Ex. TCGA
+  PROGRAM_NAME: 
+
+  # Rel## table for filedata_active 
+  FILEDATA_ACTIVE: isb-cgc.GDC_metadata.rel##_fileData_active
+
+  # Rel## table for GDCID_TOGCSURL
+  GDCID_TO_GCSURL: isb-cgc.GDC_metadata.rel##_GDCfileID_to_GCSurl
+
+  # Rel## table for aliquot2caseid 
+  ALIQUOT_TO_CASEID: isb-cgc.GDC_metadata.rel##_aliquot2caseIDmap
+  
+  # Provide the path to the Labels, Descritptions, and FriendlyNames text file 
+  LABEL_DESCRIPTION_FREINDLYNAME: 
+
+  # Run 'True' only if LiftOver VCF files exist in the program 
+  LEGACY_TAG: False  
+
+  # Set the number of cores to run in parallel
+  MAX_WORKERS: 
+
+
+
+steps:
+  - extract_metadata_table
+
+  - transform_vcf  
+
+  - create_new_columns
+
+  - merge_csv_files
+
+  - build_a_simple_schema
+
+  - push_csv_to_bucket 
+
+  - load_to_staging_environment
+
+  - load_to_production_environment
