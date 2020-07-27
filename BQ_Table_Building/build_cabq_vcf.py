@@ -619,17 +619,17 @@ def main(args):
     
     # Directory to send each intermediary file to 
     home = expanduser('~')
-    variant_call_file_csv = f"{home}/Desktop/NextGenETL/intermediateFiles/{params['PARSED_VARIANT_CALL_FILE']}"
-    format_column_split_csv = f"{home}/Desktop/NextGenETL/intermediateFiles/{params['FORMAT_COLUMN_SPLIT_FILE']}"
-    final_merged_csv = f"{home}/Desktop/NextGenETL/intermediateFiles/{params['FINAL_MERGED_CSV']}"
-    format_information_file = f"{home}/Desktop/NextGenETL/intermediateFiles/{params['FORMAT_INFO_FILE']}"
-    dataframe_information_file = f"{home}/Desktop/NextGenETL/intermediateFiles/{params['DATAFRAME_INFO_FILE']}"
+    variant_call_file_csv = f"{home}/NextGenETL/intermediateFiles/{params['PARSED_VARIANT_CALL_FILE']}"
+    format_column_split_csv = f"{home}/NextGenETL/intermediateFiles/{params['FORMAT_COLUMN_SPLIT_FILE']}"
+    final_merged_csv = f"{home}/NextGenETL/intermediateFiles/{params['FINAL_MERGED_CSV']}"
+    format_information_file = f"{home}/NextGenETL/intermediateFiles/{params['FORMAT_INFO_FILE']}"
+    dataframe_information_file = f"{home}/NextGenETL/intermediateFiles/{params['DATAFRAME_INFO_FILE']}"
     
     # Google Cloud Storage bucket path 
     bucket_path = params['BUCKET_PATH']
     
     # Schemas
-    schema_path = f"{home}/Desktop/NextGenETL/intermediateFiles/{program_name.lower()}_simple_build_schema.json"
+    schema_path = f"{home}/NextGenETL/intermediateFiles/{program_name.lower()}_simple_build_schema.json"
 
     # Staging table info for staging env
     staging_project = params['STAGING_PROJECT']
