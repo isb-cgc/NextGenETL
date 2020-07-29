@@ -219,27 +219,27 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
             '''.format(maf_table, aliquot_table)
     else:
         return '''
-        WITH
-        a1 AS (SELECT b.project_id AS project_short_name,
-                      a.case_id AS case_gdc_id,
-                      b.aliquot_barcode AS aliquot_barcode_tumor,
-                      b.sample_barcode AS sample_barcode_tumor,
-                      a.Tumor_Sample_UUID AS aliquot_gdc_id_tumor,
-                      a.Matched_Norm_Sample_UUID AS aliquot_gdc_id_normal,
-                      a.tumor_bam_uuid AS tumor_file_submitter_uuid,
-                      a.normal_bam_uuid AS normal_file_submitter_uuid
-            FROM
-              `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Sample_UUID = b.aliquot_gdc_id)
-          SELECT a1.project_short_name,
-                 c.case_barcode,
-                 a1.sample_barcode_tumor,
-                 c.sample_barcode AS sample_barcode_normal,
-                 a1.aliquot_barcode_tumor,
-                 c.aliquot_barcode AS aliquot_barcode_normal,
-                 a1.tumor_file_submitter_uuid,
-                 a1.normal_file_submitter_uuid
-          FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-          WHERE c.case_gdc_id = a1.case_gdc_id
+            WITH
+            a1 AS (SELECT b.project_id AS project_short_name,
+                          a.case_id AS case_gdc_id,
+                          b.aliquot_barcode AS aliquot_barcode_tumor,
+                          b.sample_barcode AS sample_barcode_tumor,
+                          a.Tumor_Sample_UUID AS aliquot_gdc_id_tumor,
+                          a.Matched_Norm_Sample_UUID AS aliquot_gdc_id_normal,
+                          a.tumor_bam_uuid AS tumor_file_submitter_uuid,
+                          a.normal_bam_uuid AS normal_file_submitter_uuid
+                FROM
+                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Sample_UUID = b.aliquot_gdc_id)
+              SELECT a1.project_short_name,
+                     c.case_barcode,
+                     a1.sample_barcode_tumor,
+                     c.sample_barcode AS sample_barcode_normal,
+                     a1.aliquot_barcode_tumor,
+                     c.aliquot_barcode AS aliquot_barcode_normal,
+                     a1.tumor_file_submitter_uuid,
+                     a1.normal_file_submitter_uuid
+              FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
+              WHERE c.case_gdc_id = a1.case_gdc_id
         '''.format(maf_table, aliquot_table)
 '''
 ----------------------------------------------------------------------------------------------
@@ -258,28 +258,27 @@ SQL for above
 '''
 def final_join_sql(maf_table, barcodes_table, program):
     if program == 'TCGA':
-            return '''
-            SELECT a.project_short_name,
-                   a.case_barcode,
-                   a.sample_barcode_tumor,
-                   a.sample_barcode_normal,
-                   a.aliquot_barcode_tumor, 
-                   a.aliquot_barcode_normal,
-                   b.*
-            FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
-            '''.format(barcodes_table, maf_table)
+        return'''
+             SELECT a.project_short_name,
+                    a.case_barcode,
+                    a.sample_barcode_tumor,
+                    a.sample_barcode_normal,
+                    a.aliquot_barcode_tumor, 
+                    a.aliquot_barcode_normal,
+                    b.*
+             FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
+        '''.format(barcodes_table, maf_table)
     else:
-        if program == 'TCGA':
-            return '''
-                SELECT a.project_short_name,
-                       a.case_barcode,
-                       a.sample_barcode_tumor,
-                       a.sample_barcode_normal,
-                       a.aliquot_barcode_tumor, 
-                       a.aliquot_barcode_normal,
-                       b.*
-                FROM `{0}` as a JOIN `{1}` as b ON a.tumor_file_submitter_uuid = b.tumor_bam_uuid
-                '''.format(barcodes_table, maf_table)
+        return '''
+             SELECT a.project_short_name,
+                    a.case_barcode,
+                    a.sample_barcode_tumor,
+                    a.sample_barcode_normal,
+                    a.aliquot_barcode_tumor, 
+                    a.aliquot_barcode_normal,
+                    b.*
+             FROM `{0}` as a JOIN `{1}` as b ON a.tumor_file_submitter_uuid = b.tumor_bam_uuid
+        '''.format(barcodes_table, maf_table)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -629,7 +628,8 @@ def main(args):
             step_1_table = skel_table
 
         success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
-                                  params['TARGET_DATASET'], params['BARCODE_STEP_2_TABLE'], params['BQ_AS_BATCH'], params['PROGRAM'])
+                                  params['TARGET_DATASET'], params['BARCODE_STEP_2_TABLE'], params['BQ_AS_BATCH'],
+                                  params['PROGRAM'])
         if not success:
             print("attach_barcodes job failed")
             return
@@ -646,7 +646,8 @@ def main(args):
                                            params['TARGET_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
         success = final_merge(skel_table, barcodes_table, 
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'], params['PROGRAM'])
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'],
+                              params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
