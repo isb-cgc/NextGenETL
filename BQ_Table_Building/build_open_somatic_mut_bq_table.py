@@ -646,7 +646,7 @@ def main(args):
                                            params['TARGET_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
         success = final_merge(skel_table, barcodes_table, 
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'], params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
