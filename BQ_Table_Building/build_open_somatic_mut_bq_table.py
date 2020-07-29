@@ -256,15 +256,14 @@ def file_info(aFile, program):
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
 
-    file_name = path_pieces[-1]
-    file_name_parts = file_name.split('.')
-
     if program == 'TCGA':
+        file_name = path_pieces[-1]
+        file_name_parts = file_name.split('.')
         callerName = file_name_parts[2]
         fileUUID = file_name_parts[3]
     else:
-        callerName = file_name_parts[2]
-        fileUUID = file_name_parts[0]
+        fileUUID = path_pieces[-2]
+        callerName = None
 
     return ( [ callerName, fileUUID ] )
 
@@ -285,8 +284,6 @@ def concat_all_files(all_files, one_big_tsv, program):
     print("building {}".format(one_big_tsv))
     first = True
     header_id = None
-    aliquot_tumor_uuid = None
-    aliquot_normal_uuid = None
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             toss_zip = False
@@ -311,18 +308,8 @@ def concat_all_files(all_files, one_big_tsv, program):
                 callerName, fileUUID = file_info(use_file_name, program)
                 for line in readfile:
                     # Seeing comments in MAF files.
-                    if line.startswith('#'):
-                        if line.split(" ")[0] == "#normal.aliquot":
-                            aliquot_normal_uuid = line.split(" ")[1].strip('\n')
-                        elif line.split(" ")[0] == "#tumor.aliquot":
-                            aliquot_tumor_uuid = line.split(" ")[1].strip('\n')
-                    else:
+                    if not line.startswith('#'):
                         if first:
-                            if program != 'TCGA':
-                                outfile.write('aliquote_uuid_tumor')
-                                outfile.write('\t')
-                                outfile.write('aliquote_uuid_normal')
-                                outfile.write('\t')
                             header_id = line.split('\t')[0]
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
@@ -333,11 +320,6 @@ def concat_all_files(all_files, one_big_tsv, program):
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
-                            if program != 'TCGA':
-                                outfile.write(aliquot_tumor_uuid)
-                                outfile.write('\t')
-                                outfile.write(aliquot_normal_uuid)
-                                outfile.write('\t')
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
