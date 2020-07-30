@@ -237,7 +237,7 @@ def main(args):
 
         for line in all_files:
 
-            file_name, ext = os.path.splitext(line.split('/'))
+            file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
             file_name = "_".join(file_components[0:(len(file_components) - 2)])
             print("file_name: " + file_name)
