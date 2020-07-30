@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-sudo apt-get update
+sudo apt install python3.8
+sudo apt-get update 
 sudo apt-get upgrade -y
 
 sudo apt-get install -y	git
