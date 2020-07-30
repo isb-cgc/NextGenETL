@@ -33,7 +33,7 @@ files_and_buckets_and_tables:
   # Proved  a bucket path to store FINAL_MERGED_CSV 
   BUCKET_PATH: gs://path/to/FINAL_MERGED_CSV
 
-  # Schema file that holds all the description for each column. (Provide a path)
+  # Schema file that holds all the description for each column found in SchemaFiles directory (PROVIDE A PATH)
   SCHEMA_WITH_DESCRIPTION: 
   
   # This file will contain the format information of a Pandas Dataframe describing the schema of the FINAL_MERGED_CSV
@@ -42,13 +42,13 @@ files_and_buckets_and_tables:
   # Name of the Program Ex. TCGA
   PROGRAM_NAME: 
 
-  # Rel## table for filedata_active 
+  # Releasse table for filedata_active (make sure to change ## to the release number)
   FILEDATA_ACTIVE: isb-cgc.GDC_metadata.rel##_fileData_active
 
-  # Rel## table for GDCID_TOGCSURL
+  # Relealse table for GDCID_TOGCSURL
   GDCID_TO_GCSURL: isb-cgc.GDC_metadata.rel##_GDCfileID_to_GCSurl
 
-  # Rel## table for aliquot2caseid 
+  # Release table for aliquot2caseid 
   ALIQUOT_TO_CASEID: isb-cgc.GDC_metadata.rel##_aliquot2caseIDmap
   
   # Provide the path to the Labels, Descritptions, and FriendlyNames text file 
