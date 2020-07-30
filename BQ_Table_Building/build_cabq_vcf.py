@@ -52,9 +52,6 @@ def add_labels_and_descriptions(project,
    
     labels = dict(item.strip().split(':') for item in labels_str.strip().split(','))
    
-
-    
-    
     
     print('Adding Labels, Description, and Friendly name to table')
     table.description = description
@@ -147,7 +144,7 @@ def generate_a_simple_schema(file_path_to_json,
         for line in file_in:
             if '#' in line or '<class' in line or 'RangeIndex' in line or 'Data' in line or '-' in line or 'dtypes' in line or 'memory' in line:
                 continue
-            # cleaned_lines.append(line.strip())
+
             cleaned_lines = line.strip().split()
             name = cleaned_lines[1]
             dtype = cleaned_lines[2]
@@ -181,7 +178,7 @@ def generate_a_simple_schema(file_path_to_json,
     
 
 def write_df_information_to_file(df,
-                          dataframe_information_file):
+                                 dataframe_information_file):
     
     buffer = io.StringIO()
     
@@ -196,14 +193,15 @@ def write_df_information_to_file(df,
 
 def simple_schema_builder(program_name,
                           final_merged_csv,
-                          dataframe_information_file):
+                          dataframe_information_file,
+                          home):
     
     if program_name.lower() == 'tcga':
-        file_path_to_json = f'/Users/oshahzada98/Desktop/NextGenETL/intermediateFiles/tcga_simple_build_schema.json'
+        file_path_to_json = f'{home}/NextGenETL/intermediateFiles/tcga_simple_build_schema.json'
     elif program_name.lower() == 'target':
-        file_path_to_json = f'/Users/oshahzada98/Desktop/NextGenETL/intermediateFiles/target_simple_build_schema.json'
+        file_path_to_json = f'{home}/NextGenETL/intermediateFiles/target_simple_build_schema.json'
     elif program_name.lower() == 'fm':
-        file_path_to_json = f'/Users/oshahzada98/Desktop/NextGenETL/intermediateFiles/fm_simple_build_schema.json'
+        file_path_to_json = f'{home}/NextGenETL/intermediateFiles/fm_simple_build_schema.json'
     else:
         print('Program name does not match TCGA, TARGET, or FM')
     
@@ -647,9 +645,6 @@ def main(args):
     labels_and_desc = params['LABEL_DESCRIPTION_FREINDLYNAME']
     
     
-    
-    
-    
 
     if params is None:
         print("Bad YAML load")
@@ -770,7 +765,8 @@ def main(args):
         print('* Generating a Simple Schema! ')
         simple_schema_builder(program_name,
                               final_merged_csv,
-                              dataframe_information_file)
+                              dataframe_information_file,
+                              home)
         
     if 'push_csv_to_bucket' in steps:
         print('* Pushing CSV File to Bucket!')
