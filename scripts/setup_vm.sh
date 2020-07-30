@@ -51,6 +51,11 @@ python3 -m pip install google-cloud-storage
 python3 -m pip install google-cloud-bigquery
 python3 -m pip install PyYaml
 python3 -m pip install gitpython
+python3 -m pip install pandas 
+python3 -m pip install tqdm 
+python3 -m pip install alive-progress
+python3 -m pip install pyarrow
+python3 -m pip install gcsfs 
 # used by build_schema:
 python3 -m pip install python-dateutil
 deactivate
