@@ -252,10 +252,10 @@ def main(args):
                 print(schema_file + "\t" + full_file_prefix)
 
                 # Write out the details
-                #success = generate_table_detail_files(schema_file, full_file_prefix)
-                #if not success:
-                #    print("process_git_schemas failed")
-                #    return
+                success = generate_table_detail_files(schema_file, full_file_prefix)
+                if not success:
+                    print("process_git_schemas failed")
+                    return
 
             #if 'analyze_the_schema' in steps:
             #    print('analyze_the_schema: {}'.format(line))
