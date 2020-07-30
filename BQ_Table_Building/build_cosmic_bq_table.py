@@ -240,7 +240,6 @@ def main(args):
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
             file_name = "_".join(file_components[0:(len(file_components) - 2)])
-            print("file_name: " + file_name)
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
@@ -248,9 +247,9 @@ def main(args):
                 # Where do we dump the schema git repository?
                 schema_file_name = ''.join([file_name, ".json"])
                 print("schema_file_name: " + schema_file_name)
-                #schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
-                #print(schema_file + "\t" + full_file_prefix)
+                schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                print(schema_file + "\t" + full_file_prefix)
 
                 # Write out the details
                 #success = generate_table_detail_files(schema_file, full_file_prefix)
