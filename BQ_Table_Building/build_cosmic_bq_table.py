@@ -283,8 +283,7 @@ def main(args):
             file_name = "_".join(file_components[0:(len(file_components) - 2)])
             version = ''.join(['VERSION ', file_components[-1]])
             hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-            build = ''.join(['~lc-', hg])
-            schema_tags = {'---tag-ref-genome-0---' : build,
+            schema_tags = {'---tag-ref-genome-0---' : hg,
                             '---tag-release---' : version}
 
             if 'process_git_schemas' in steps:
@@ -306,23 +305,14 @@ def main(args):
 
             if 'replace_schema_tags' in steps:
                 print('replace_schema_tags')
+                version = ''.join(['VERSION ', file_components[-1]])
+                hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
+                schema_tags = {'---tag-ref-genome-0---': hg,
+                               '---tag-release---': version}
                 tag_map_list = []
-                for tag_pair in schema_tags:
-                    for tag in tag_pair:
-                        val = tag_pair[tag]
-                        use_pair = {}
-                        tag_map_list.append(use_pair)
-                        if val.find('~-') == 0 or val.find('~lc-') == 0:
-                            chunks = val.split('-', 1)
-                            if chunks[1] == 'builds':
-                                rep_val = build
-                            else:
-                                raise Exception()
-                            if val.find('~lc-') == 0:
-                                rep_val = rep_val.lower()
-                            use_pair[tag] = rep_val
-                        else:
-                            use_pair[tag] = val
+                for tag in schema_tags:
+                    use_pair = {tag : schema_tags[tag]}
+                    tag_map_list.append(use_pair)
                 full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
                 # Write out the details
                 success = customize_labels_and_desc(full_file_prefix, tag_map_list)
