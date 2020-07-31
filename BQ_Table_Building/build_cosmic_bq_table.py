@@ -126,6 +126,47 @@ def clean_file_names(file_name):
 
 '''
 ----------------------------------------------------------------------------------------------
+Take the staging files for a generic BQ metadata load and customize it for a single data set
+using tags.
+'''
+
+def customize_labels_and_desc(file_tag, tag_map_list):
+
+    try:
+        with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
+            desc = desc_file.read()
+        with open("{}_labels.json".format(file_tag), mode='r') as label_file:
+            labels = label_file.read()
+        with open("{}_friendly.txt".format(file_tag), mode='r') as friendly_file:
+            friendly = friendly_file.read()
+        with open("{}_schema.json".format(file_tag), mode='r') as schema_file:
+            schema = schema_file.read()
+
+        for tag_val in tag_map_list:
+            for tag in tag_val:
+                brack_tag = '{{{}}}'.format(tag)
+                desc = desc.replace(brack_tag, tag_val[tag])
+                labels = labels.replace(brack_tag, tag_val[tag])
+                friendly = friendly.replace(brack_tag, tag_val[tag])
+                schema = schema.replace(brack_tag, tag_val[tag])
+
+        with open("{}_desc.txt".format(file_tag), mode='w+') as desc_file:
+            desc_file.write(desc)
+        with open("{}_labels.json".format(file_tag), mode='w+') as label_file:
+            label_file.write(labels)
+        with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
+            schema_file.write(schema)
+        with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
+            friendly_file.write(friendly)
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+'''
+----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
 to e.g. skip previously run steps.
@@ -240,6 +281,11 @@ def main(args):
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
             file_name = "_".join(file_components[0:(len(file_components) - 2)])
+            version = ''.join(['VERSION ', file_components[-1]])
+            hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
+            build = ''.join(['~lc-', hg])
+            schema_tags = {'---tag-ref-genome-0---' : build,
+                            '---tag-release---' : version}
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
@@ -256,16 +302,33 @@ def main(args):
                 if not success:
                     print("process_git_schemas failed")
                     return
+            # Customize generic schema to this data program:
 
-            #if 'analyze_the_schema' in steps:
-            #    print('analyze_the_schema: {}'.format(line))
-
-             #   typing_tups = build_schema(file_name, params['SCHEMA_SAMPLE_SKIPS'])
-             #   full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-             #   schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-             #   build_combined_schema(None, schema_dict_loc,
-             #                         typing_tups, hold_schema_list.format(file_name),
-             #                         hold_schema_dict.format(file_name))
+            if 'replace_schema_tags' in steps:
+                print('replace_schema_tags')
+                tag_map_list = []
+                for tag_pair in schema_tags:
+                    for tag in tag_pair:
+                        val = tag_pair[tag]
+                        use_pair = {}
+                        tag_map_list.append(use_pair)
+                        if val.find('~-') == 0 or val.find('~lc-') == 0:
+                            chunks = val.split('-', 1)
+                            if chunks[1] == 'builds':
+                                rep_val = build
+                            else:
+                                raise Exception()
+                            if val.find('~lc-') == 0:
+                                rep_val = rep_val.lower()
+                            use_pair[tag] = rep_val
+                        else:
+                            use_pair[tag] = val
+                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
+                # Write out the details
+                success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+                if not success:
+                    print("replace_schema_tags failed")
+                    return
 
 
 
