@@ -431,10 +431,10 @@ def main(args):
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_program, params["PROG_TSV"])
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_case, params["CASE_TSV"])
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_sample, params["SAMPLE_TSV"])
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_aliquot, params["ALIQUOT_TSV"])
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_program, prog_tsv)
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_case, case_tsv)
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_sample, sample_tsv)
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_aliquot, aliquot_tsv)
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
