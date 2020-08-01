@@ -419,7 +419,7 @@ def main(args):
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_sample, hold_schema_dict_sample)
         typing_tups = build_schema(aliquot_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE_ALIQUOT'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['TARGET_TABLE_ALIQUOT'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_aliquot, hold_schema_dict_aliquot)
