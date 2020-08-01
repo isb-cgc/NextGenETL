@@ -403,22 +403,22 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = build_schema(params["PROG_TSV"], params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = build_schema(prog_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['TARGET_TABLE_PROG'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_prog, hold_schema_dict_prog)
-        typing_tups = build_schema(params["PROG_TSV"], params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = build_schema(case_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_CASE_TABLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_case, hold_schema_dict_case)
-        typing_tups = build_schema(params["PROG_TSV"], params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = build_schema(sample_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['TARGET_TABLE_SAMPLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_sample, hold_schema_dict_sample)
-        typing_tups = build_schema(params["PROG_TSV"], params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = build_schema(aliquot_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE_ALIQUOT'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
