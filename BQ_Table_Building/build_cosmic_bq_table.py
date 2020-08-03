@@ -333,7 +333,7 @@ def main(args):
             file_name, ext = os.path.splitext(file)
             file_components = file_name.split("_")
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
-            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
+            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], line)
 
             if 'upload_to_bucket' in steps:
                 print('upload_to_bucket')
