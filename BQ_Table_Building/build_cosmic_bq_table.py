@@ -37,7 +37,7 @@ from json import loads as json_loads
 from createSchemaP3 import build_schema
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files, build_combined_schema
+                                generate_table_detail_files, upload_to_bucket, build_combined_schema
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -280,7 +280,7 @@ def main(args):
 
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
-            file_name = "_".join(file_components[0:(len(file_components) - 2)])
+            data_type = "_".join(file_components[0:(len(file_components) - 2)])
             version = ''.join(['VERSION ', file_components[-1]])
             hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
             schema_tags = {'---tag-ref-genome-0---' : hg,
@@ -290,7 +290,7 @@ def main(args):
                 print('process_git_schema: {}'.format(line))
 
                 # Where do we dump the schema git repository?
-                schema_file_name = ''.join([file_name, ".json"])
+                schema_file_name = ''.join([data_type, ".json"])
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
                 full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
@@ -319,6 +319,23 @@ def main(args):
                 if not success:
                     print("replace_schema_tags failed")
                     return
+
+    # Create BQ tables
+
+    if 'create_bq_tables' in steps:
+
+        for line in all_files:
+
+            file = line.split('/')[-1]
+            file_name, ext = os.path.splitext(file)
+            file_components = file_name.split("_")
+            data_type = "_".join(file_components[0:(len(file_components) - 2)])
+            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
+
+            if 'upload_to_bucket' in steps:
+                print('upload_to_bucket')
+                upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, file)
+
 
 
 
