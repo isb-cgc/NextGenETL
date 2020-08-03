@@ -324,6 +324,9 @@ def main(args):
 
     if 'create_bq_tables' in steps:
 
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+
         for line in all_files:
 
             file = line.split('/')[-1]
