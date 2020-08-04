@@ -108,7 +108,7 @@ def main(args):
         #
 
         split_table = full_table.split('.')
-        target_program = split_table[0]
+        target_project = split_table[0]
         target_dataset = split_table[1]
         target_table = split_table[2]
 
@@ -149,23 +149,23 @@ def main(args):
                 full_schema_list = json_loads(schema_hold_dict.read())
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
-            success = update_schema_with_dict(params['TARGET_DATASET'], full_table, schema_dict, project=params['WORKING_PROJECT'])
+            success = update_schema_with_dict(target_dataset, target_table, schema_dict, project=target_project)
             if not success:
                 print("install_field_descriptions failed")
                 return False
 
-    #
-    # Add description and labels to the target table:
-    #
+        #
+        # Add description and labels to the target table:
+        #
 
-    if 'install_table_description' in steps:
-        print('install_table_description: {}'.format(full_table))
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], full_table)
-        success = install_labels_and_desc(params['TARGET_DATASET'], full_table, full_file_prefix,
-                                          project=params['WORKING_PROJECT'])
-        if not success:
-            print("install_table_description failed")
-            return False
+        if 'install_table_description' in steps:
+            print('install_table_description: {}'.format(full_table))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], full_table)
+            success = install_labels_and_desc(target_dataset, target_table, full_file_prefix,
+                                              project=target_project)
+            if not success:
+                print("install_table_description failed")
+                return False
 
     print('job completed')
 
