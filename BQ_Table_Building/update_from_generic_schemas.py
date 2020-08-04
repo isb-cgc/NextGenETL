@@ -141,15 +141,15 @@ def main(args):
         #
 
         if 'install_field_descriptions' in steps:
-            print('install_field_descriptions: {}'.format(table_name))
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            print('install_field_descriptions: {}'.format(full_table))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], full_table)
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
                 full_schema_list = json_loads(schema_hold_dict.read())
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
-            success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
+            success = update_schema_with_dict(params['TARGET_DATASET'], full_table, schema_dict, project=params['WORKING_PROJECT'])
             if not success:
                 print("install_field_descriptions failed")
                 return False
@@ -159,36 +159,14 @@ def main(args):
     #
 
     if 'install_table_description' in steps:
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        print('install_table_description: {}'.format(table_name))
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
+        print('install_table_description: {}'.format(full_table))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], full_table)
+        success = install_labels_and_desc(params['TARGET_DATASET'], full_table, full_file_prefix,
                                           project=params['WORKING_PROJECT'])
         if not success:
             print("install_table_description failed")
             return False
 
-
-
-
-
-
-
-
-    for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
-        file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
-        do_programs = extract_program_names(file_table, params['BQ_AS_BATCH']) if programs is None else programs
-        dataset_tuples = [(pn, pn.replace(".", "_")) for pn in do_programs] # handles BEATAML1.0 FIXME! Make it general
-         # Not all programs show up in the aliquot map table. So figure out who does:
-        aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
-        print(dataset_tuples)
-        for dataset_tuple in dataset_tuples:
-            print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset_tuple[0]))
-            ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
-                                      aliquot_map_programs, params, schema_tags)
-            if not ok:
-                return
-            
     print('job completed')
 
 if __name__ == "__main__":
