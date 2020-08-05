@@ -15,6 +15,7 @@
 # limitations under the License.
 
 sudo apt-get update
+sudo apt install python3.8
 sudo apt-get upgrade -y
 
 sudo apt-get install -y	git
@@ -53,13 +54,13 @@ deactivate
 # Do not use pip3 to upgrade pip. Does not play well with Debian pip
 #
 
-sudo apt-get install -y python3.8-pip
+sudo apt-get install -y python3-pip
 
 #
 # We want venv:
 #
 
-sudo apt-get install -y python3.8-venv
+sudo apt-get install -y python3-venv
 
 #
 # Google packages get the infamous "Failed building wheel for ..." message. SO suggestions
