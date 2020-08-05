@@ -53,13 +53,13 @@ deactivate
 # Do not use pip3 to upgrade pip. Does not play well with Debian pip
 #
 
-sudo apt-get install -y python3-pip
+sudo apt-get install -y python3.8-pip
 
 #
 # We want venv:
 #
 
-sudo apt-get install -y python3-venv
+sudo apt-get install -y python3.8-venv
 
 #
 # Google packages get the infamous "Failed building wheel for ..." message. SO suggestions
