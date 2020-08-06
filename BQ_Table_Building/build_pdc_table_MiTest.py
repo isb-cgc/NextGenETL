@@ -52,6 +52,11 @@ def pull_quant_matrix_one_study():
             print('no')
         else:
             print('yes')
+            first_row_data = json_res[u'data'][u'quantDataMatrix'][0]
+            for i in range(1, len(first_row_data)):
+                aliquot_submitter_id = first_row_data[i].split(":")[1]
+                study_id_and_aliquot_submitter_id = my_study_id + ':' + aliquot_submitter_id
+                print(first_row_data[i])
             # replace header from "internal_id:aliquot_submitter_id" to "study_id:aliquot_submitter_id"
             # use dict [study_id:aliquot_submitter_id -> aliquot_id]
             # use dict [aliquot_id -> gdc_case_id]
