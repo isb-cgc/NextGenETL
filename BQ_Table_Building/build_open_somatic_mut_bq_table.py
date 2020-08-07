@@ -226,8 +226,7 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
                           b.sample_barcode AS sample_barcode_tumor,
                           a.Tumor_Sample_UUID AS aliquot_gdc_id_tumor,
                           a.Matched_Norm_Sample_UUID AS aliquot_gdc_id_normal,
-                          a.tumor_bam_uuid AS tumor_file_submitter_uuid,
-                          a.normal_bam_uuid AS normal_file_submitter_uuid
+                          a.Start_Position
                 FROM
                   `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Sample_UUID = b.aliquot_gdc_id)
               SELECT a1.project_short_name,
@@ -237,7 +236,8 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
                      a1.aliquot_barcode_tumor,
                      c.aliquot_barcode AS aliquot_barcode_normal,
                      a1.tumor_file_submitter_uuid,
-                     a1.normal_file_submitter_uuid
+                     a1.normal_file_submitter_uuid,
+                     a1.Start_Position
               FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
               WHERE c.case_gdc_id = a1.case_gdc_id
         '''.format(maf_table, aliquot_table)
@@ -277,7 +277,8 @@ def final_join_sql(maf_table, barcodes_table, program):
                     a.aliquot_barcode_tumor, 
                     a.aliquot_barcode_normal,
                     b.*
-             FROM `{0}` as a JOIN `{1}` as b ON a.tumor_file_submitter_uuid = b.tumor_bam_uuid
+             FROM `{0}` as a JOIN `{1}` as b 
+             ON a.aliquot_gdc_id_tumor = b.Tumor_Sample_UUID AND a.Start_Position = b.Start_Position
         '''.format(barcodes_table, maf_table)
 
 '''
