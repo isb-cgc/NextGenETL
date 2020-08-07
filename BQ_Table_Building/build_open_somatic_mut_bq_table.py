@@ -235,8 +235,7 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
                      c.sample_barcode AS sample_barcode_normal,
                      a1.aliquot_barcode_tumor,
                      c.aliquot_barcode AS aliquot_barcode_normal,
-                     a1.tumor_file_submitter_uuid,
-                     a1.normal_file_submitter_uuid,
+                     a1.aliquot_gdc_id_tumor,
                      a1.Start_Position
               FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
               WHERE c.case_gdc_id = a1.case_gdc_id
