@@ -325,10 +325,7 @@ def clean_header_names(header_line, program):
             if header_id[header_name] == 'normal_bam_uuid':
                 header_id[header_name] = 'normal_bam_uuid'
     header_id.append('file_gdc_id')
-    if program == "TCGA":
-        header_id.append('caller')
-    final_headers = '\t'.join(header_id)
-    return final_headers
+    return header_id
 
 '''
 ------------------------------------------------------------------------------
@@ -375,7 +372,10 @@ def concat_all_files(all_files, one_big_tsv, program):
                         if first:
                             header_id = line.split('\t')[0]
                             header_names = clean_header_names(line, program)
-                            outfile.write(header_names.rstrip('\n'))
+                            outfile.write('\t'.join(header_names))
+                            if program == "TCGA":
+                                outfile.write('\t')
+                                outfile.write('caller')
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
