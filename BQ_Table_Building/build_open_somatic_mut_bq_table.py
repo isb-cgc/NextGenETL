@@ -224,11 +224,11 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
                           a.case_id AS case_gdc_id,
                           b.aliquot_barcode AS aliquot_barcode_tumor,
                           b.sample_barcode AS sample_barcode_tumor,
-                          a.Tumor_Sample_UUID AS aliquot_gdc_id_tumor,
-                          a.Matched_Norm_Sample_UUID AS aliquot_gdc_id_normal,
+                          a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
+                          a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
                           a.Start_Position
                 FROM
-                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Sample_UUID = b.aliquot_gdc_id)
+                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id)
               SELECT a1.project_short_name,
                      c.case_barcode,
                      a1.sample_barcode_tumor,
@@ -277,7 +277,7 @@ def final_join_sql(maf_table, barcodes_table, program):
                     a.aliquot_barcode_normal,
                     b.*
              FROM `{0}` as a JOIN `{1}` as b 
-             ON a.aliquot_gdc_id_tumor = b.Tumor_Sample_UUID AND a.Start_Position = b.Start_Position
+             ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position
         '''.format(barcodes_table, maf_table)
 
 '''
@@ -310,19 +310,20 @@ Clean header field names
 
 def clean_header_names(header_line, program):
     header_id = header_line.split('\t')
-    for header_name in range(len(header_id)):
-        if header_id[header_name] == 'Tumor_Sample_UUID':
-            header_id[header_name] = 'Tumor_Aliquot_UUID'
-        if header_id[header_name] == 'Matched_Norm_Sample_UUID':
-            header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
-        if header_id[header_name] == 'Tumor_Sample_Barcode':
-            header_id[header_name] = 'Tumor_Aliquot_Barcode'
-        if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
-            header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
-        if header_id[header_name] == 'tumor_bam_uuid':
-            header_id[header_name] = 'tumor_submitter_uuid'
-        if header_id[header_name] == 'normal_bam_uuid':
-            header_id[header_name] = 'normal_bam_uuid'
+    if program != 'TCGA':
+        for header_name in range(len(header_id)):
+            if header_id[header_name] == 'Tumor_Sample_UUID':
+                header_id[header_name] = 'Tumor_Aliquot_UUID'
+            if header_id[header_name] == 'Matched_Norm_Sample_UUID':
+                header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
+            if header_id[header_name] == 'Tumor_Sample_Barcode':
+                header_id[header_name] = 'Tumor_Aliquot_Barcode'
+            if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
+                header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
+            if header_id[header_name] == 'tumor_bam_uuid':
+                header_id[header_name] = 'tumor_submitter_uuid'
+            if header_id[header_name] == 'normal_bam_uuid':
+                header_id[header_name] = 'normal_bam_uuid'
     header_id.append('file_gdc_id')
     if program == "TCGA":
         header_id.append('caller')
