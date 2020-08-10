@@ -305,6 +305,32 @@ def file_info(aFile, program):
 
 '''
 ------------------------------------------------------------------------------
+Clean header field names
+'''
+
+def clean_header_names(header_line, program):
+    header_id = header_line.split('\t')
+    for header_name in range(len(header_id)):
+        if header_id[header_name] == 'Tumor_Sample_UUID':
+            header_id[header_name] = 'Tumor_Aliquot_UUID'
+        if header_id[header_name] == 'Matched_Norm_Sample_UUID':
+            header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
+        if header_id[header_name] == 'Tumor_Sample_Barcode':
+            header_id[header_name] = 'Tumor_Aliquot_Barcode'
+        if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
+            header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
+        if header_id[header_name] == 'tumor_bam_uuid':
+            header_id[header_name] = 'tumor_submitter_uuid'
+        if header_id[header_name] == 'normal_bam_uuid':
+            header_id[header_name] = 'normal_bam_uuid'
+    header_id.append('file_gdc_id')
+    if program == "TCGA":
+        header_id.append('caller')
+    final_headers = '\t'.join(header_id)
+    return final_headers
+
+'''
+------------------------------------------------------------------------------
 Concatenate all Files
 '''
 
@@ -347,12 +373,8 @@ def concat_all_files(all_files, one_big_tsv, program):
                     if not line.startswith('#'):
                         if first:
                             header_id = line.split('\t')[0]
-                            outfile.write(line.rstrip('\n'))
-                            outfile.write('\t')
-                            outfile.write('file_gdc_id')
-                            if program == "TCGA":
-                                outfile.write('\t')
-                                outfile.write('caller')
+                            header_names = clean_header_names(line, program)
+                            outfile.write(header_names.rstrip('\n'))
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
