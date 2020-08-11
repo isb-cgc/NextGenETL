@@ -39,7 +39,7 @@ import zipfile
 # import requests
 import io
 from git import Repo
-# import re
+import re
 from json import loads as json_loads, dumps as json_dumps
 from os.path import expanduser
 # from bs4 import BeautifulSoup
@@ -135,8 +135,6 @@ def check_caller_list(all_files, expected_callers):
         callers.add(info_list[1])
     
     return callers == expected_set  
-
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -306,6 +304,8 @@ def file_info(aFile, program):
 '''
 ------------------------------------------------------------------------------
 Clean header field names
+Some field names are not accurately named and as of 2020-08-05, the GDC has said they will not be updated. We decided to 
+update the field names to accurately reflect the data within th column.
 '''
 
 def clean_header_names(header_line, program):
@@ -328,10 +328,28 @@ def clean_header_names(header_line, program):
 
 '''
 ------------------------------------------------------------------------------
+Separate the Callers into their own columns
+The non-TCGA maf files has one column with a semicolon delim     iated 
+'''
+
+def process_callers(callers_str, callers):
+     line_callers = callers_str.split(';')
+     caller_list = dict.fromkeys(callers, 'No')
+     for caller in line_callers:
+         is_star = re.search(r'\*', caller)
+         if caller.rstrip('*') in caller_list.keys():
+             if is_star:
+                 caller_list[caller] = 'Yes*'
+             else:
+                 caller_list[caller] = 'Yes'
+     return caller_list
+
+'''
+------------------------------------------------------------------------------
 Concatenate all Files
 '''
 
-def concat_all_files(all_files, one_big_tsv, program):
+def concat_all_files(all_files, one_big_tsv, program, callers):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
@@ -387,6 +405,12 @@ def concat_all_files(all_files, one_big_tsv, program):
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write(callerName)
+                            else:
+                                caller_field = line.split('\t')[124]
+                                caller_data = process_callers(caller_field)
+                                for caller in callers:
+                                    outfile.write(caller_data[caller])
+                                    outfile.write('\t')
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
@@ -415,7 +439,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, extra_cols, key_fields = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, extra_cols, key_fields, callers = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -555,7 +579,7 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, params['PROGRAM'])
+            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers)
     #
     # Schemas and table descriptions are maintained in the github repo:
     #
