@@ -323,7 +323,7 @@ def clean_header_names(header_line, program):
             if header_id[header_name] == 'tumor_bam_uuid':
                 header_id[header_name] = 'tumor_submitter_uuid'
             if header_id[header_name] == 'normal_bam_uuid':
-                header_id[header_name] = 'normal_bam_uuid'
+                header_id[header_name] = 'normal_submitter_uuid'
     return header_id
 
 '''
@@ -371,8 +371,8 @@ def concat_all_files(all_files, one_big_tsv, program):
                         if first:
                             header_id = line.split('\t')[0]
                             header_names = clean_header_names(line, program)
-                            header_line = ','.join(header_names)
-                            outfile.write(header_line.replace(',','\t').rstrip('\n'))
+                            header_line = '\t'.join(header_names)
+                            outfile.write(header_line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
                             if program == "TCGA":
