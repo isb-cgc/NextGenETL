@@ -37,7 +37,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
-                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files
+                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -189,6 +189,8 @@ def attach_barcodes(step2_table, aliquot_table, target_dataset, output_table, do
 ----------------------------------------------------------------------------------------------
 SQL code for above
 Get the barcodes for the aliquot and case IDs
+Except statement removes one duplicated column 
+GDC creates a randomized analyte + portion id for TARGET
 '''
 def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
     return '''
@@ -202,9 +204,11 @@ def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
                a.file_gdc_id,
                a.platform,
                a.file_name
-        FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
+        FROM `{0}` AS a 
+        JOIN (SELECT DISTINCT * FROM 
+            (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
+        ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
         '''.format(step2_table, aliquot_table)
-
 '''
 ----------------------------------------------------------------------------------------------
 Merge Counts and Metadata
@@ -509,7 +513,6 @@ def main(args):
             with open(file_traversal_list_for_count, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
                 concat_all_files(all_files, one_big_tsv.format(count_name), header)
-
 
     #
     # Schemas and table descriptions are maintained in the github repo:
