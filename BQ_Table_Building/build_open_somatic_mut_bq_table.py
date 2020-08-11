@@ -373,7 +373,7 @@ def concat_all_files(all_files, one_big_tsv, program):
                             header_id = line.split('\t')[0]
                             header_names = clean_header_names(line, program)
                             header_line = ','.join(header_names)
-                            outfile.write(header_line.replace(',','\t'))
+                            outfile.write(header_line.replace(',','\t').strip('\n'))
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write('caller')
