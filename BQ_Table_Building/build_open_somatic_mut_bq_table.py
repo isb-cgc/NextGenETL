@@ -372,7 +372,8 @@ def concat_all_files(all_files, one_big_tsv, program):
                         if first:
                             header_id = line.split('\t')[0]
                             header_names = clean_header_names(line, program)
-                            outfile.write('\t'.join(header_names))
+                            header_line = ','.join(header_names)
+                            outfile.write(header_line.replace(',','\t'))
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write('caller')
@@ -587,7 +588,7 @@ def main(args):
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
 
-    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+    #bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
     #
     # Scrape the column descriptions from the GDC web page
     #
