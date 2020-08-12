@@ -439,8 +439,6 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     table_id = (bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' +
                 table_name)
 
-    print(schema)
-
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
