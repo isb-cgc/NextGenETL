@@ -396,6 +396,10 @@ def concat_all_files(all_files, one_big_tsv, program, callers):
                             if program == "TCGA":
                                 outfile.write('\t')
                                 outfile.write('caller')
+                            else:
+                                for field in callers:
+                                    outfile.write(field)
+                                    outfile.write('\t')
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
