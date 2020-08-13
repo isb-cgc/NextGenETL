@@ -407,7 +407,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers):
                                 outfile.write(callerName)
                             else:
                                 caller_field = line.split('\t')[124]
-                                caller_data = process_callers(caller_field)
+                                caller_data = process_callers(caller_field, callers)
                                 for caller in callers:
                                     outfile.write(caller_data[caller])
                                     outfile.write('\t')
