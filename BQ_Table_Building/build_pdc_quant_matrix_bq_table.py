@@ -15,6 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
+import os
+import shutil
+
 import requests
 
 '''
@@ -163,6 +166,25 @@ def write_to_tsv(quant_matrix_table, tsv_file):
                                     quant_matrix_table[i][2]]) + "\n")
     return True
 
+
+def create_clean_target(local_files_dir):
+    """
+    GDC download client builds a tree of files in directories. This routine clears the tree out if it exists.
+    """
+
+    if os.path.exists(local_files_dir):
+        print("deleting {}".format(local_files_dir))
+        try:
+            shutil.rmtree(local_files_dir)
+        except OSError as e:
+            print("Error: %s - %s." % (e.filename, e.strerror))
+
+        print("done {}".format(local_files_dir))
+
+    if not os.path.exists(local_files_dir):
+        os.makedirs(local_files_dir)
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
@@ -193,7 +215,12 @@ def main(args):
     # Schemas and table descriptions are maintained in the github repo:
     #
     home = expanduser("~")
+    local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
     quant_matrix_tsv = "{}/{}".format(home, params['QUANT_MATRIX_TSV'])
+
+    if 'clear_target_directory' in steps:
+        print('clear_target_directory')
+        create_clean_target(local_files_dir)
 
     if 'get_quant_matrix_table_one_study' in steps:
         print('get_quant_matrix_table_one_study')
