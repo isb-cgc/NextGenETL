@@ -333,7 +333,7 @@ The non-TCGA maf files has one column with a semicolon deliminated
 '''
 
 def process_callers(callers_str, callers):
-     line_callers = callers_str.split(';').rstrip('\t')
+     line_callers = callers_str.rstrip('\t').split(';')
      caller_list = dict.fromkeys(callers, 'No')
      for caller in line_callers:
          is_star = re.search(r'\*', caller)
