@@ -28,10 +28,12 @@ import io
 from git import Repo
 from json import loads as json_loads
 
-from common_etl.support import confirm_google_vm, create_clean_target, \
-                               generic_bq_harness, \
+from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
+                               generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
+                               build_pull_list_with_bq, BucketPuller, build_combined_schema, \
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
                                generate_table_detail_files, publish_table
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -151,6 +153,16 @@ def get_quant_matrix_table_one_study(pdc_api_end_point, study_id, study_submitte
 
     print('Converted quant matrix into rows of log2ratio values')
 
+
+def write_to_tsv(quant_matrix_table, tsv_file):
+    with open(tsv_file, "w") as tsv_out:
+        num_rows = len(quant_matrix_table)
+        for i in range(0, num_rows):
+            tsv_out.write("\t".join([quant_matrix_table[i][0],
+                                    quant_matrix_table[i][1],
+                                    quant_matrix_table[i][2]]) + "\n")
+    return True
+
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
@@ -180,6 +192,8 @@ def main(args):
     #
     # Schemas and table descriptions are maintained in the github repo:
     #
+    home = expanduser("~")
+    quant_matrix_tsv = "{}/{}".format(home, params['QUANT_MATRIX_TSV'])
 
     if 'get_quant_matrix_table_one_study' in steps:
         print('get_quant_matrix_table_one_study')
@@ -190,6 +204,19 @@ def main(args):
         except Exception as ex:
             print("get_quant_matrix_table_one_study failed: {}".format(str(ex)))
             return
+
+    if 'write_to_tsv' in steps:
+        print('write_to_tsv')
+        success = write_to_tsv(quant_matrix_table, quant_matrix_tsv)
+        if not success:
+            print("Failure writing to tsv")
+            return
+
+    bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
+
+    if 'upload_to_bucket' in steps:
+        print('upload_to_bucket')
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
 
     print('job completed')
 
