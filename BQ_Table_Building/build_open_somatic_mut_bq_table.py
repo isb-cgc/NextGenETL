@@ -397,9 +397,11 @@ def concat_all_files(all_files, one_big_tsv, program, callers):
                                 outfile.write('\t')
                                 outfile.write('caller')
                             else:
+                                counter = 0
                                 for field in callers:
                                     outfile.write(field)
-                                    outfile.write('\t')
+                                    counter += 1
+                                    if counter < len(callers): outfile.write('\t')
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
