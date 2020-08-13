@@ -339,7 +339,7 @@ def process_callers(callers_str, callers):
          is_star = re.search(r'\*', caller)
          if caller.rstrip('*') in caller_list.keys():
              if is_star:
-                 caller_list[caller] = 'Yes*'
+                 caller_list[caller.rstrip('*')] = 'Yes*'
              else:
                  caller_list[caller] = 'Yes'
      return caller_list
