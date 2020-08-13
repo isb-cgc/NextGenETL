@@ -413,8 +413,8 @@ def concat_all_files(all_files, one_big_tsv, program, callers):
                                 caller_field = line.split('\t')[124]
                                 caller_data = process_callers(caller_field, callers)
                                 for caller in callers:
-                                    outfile.write(caller_data[caller])
                                     outfile.write('\t')
+                                    outfile.write(caller_data[caller])
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
