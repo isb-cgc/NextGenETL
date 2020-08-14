@@ -69,7 +69,8 @@ def load_config(yaml_config):
         return None, None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'], 
-            yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'], yaml_dict['callers'])
+            yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'], yaml_dict['callers'],
+            yaml_dict['schema_tags'])
 
 
 '''
@@ -443,7 +444,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, extra_cols, key_fields, callers = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, extra_cols, key_fields, callers, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -608,6 +609,42 @@ def main(args):
         if not success:
             print("process_git_schemas failed")
             return
+
+        # Customize generic schema to this data program:
+
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = tag_pair[tag]
+                    use_pair = {}
+                    tag_map_list.append(use_pair)
+                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                        chunks = val.split('-', 1)
+                        if chunks[1] == 'programs':
+                            if val.find('~lcbqs-') == 0:
+                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                            else:
+                                rep_val = dataset_tuple[0]
+                        elif chunks[1] == 'path_tags':
+                            rep_val = path_tag
+                        elif chunks[1] == 'builds':
+                            rep_val = build
+                        else:
+                            raise Exception()
+                        if val.find('~lc-') == 0:
+                            rep_val = rep_val.lower()
+                        use_pair[tag] = rep_val
+                    else:
+                        use_pair[tag] = val
+            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+            if not success:
+                print("replace_schema_tags failed")
+                return False
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
