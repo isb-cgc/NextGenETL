@@ -645,8 +645,8 @@ def main(args):
             full_file_prefix_ver = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name_ver)
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-            success2 = customize_labels_and_desc(full_file_prefix_ver, tag_map_list)
-            if not success or not success2:
+            #success2 = customize_labels_and_desc(full_file_prefix_ver, tag_map_list)
+            if not success:
                 print("replace_schema_tags failed")
                 return False
 
