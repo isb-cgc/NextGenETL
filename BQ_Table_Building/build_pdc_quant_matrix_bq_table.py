@@ -155,6 +155,7 @@ def get_quant_matrix_table_one_study(pdc_api_end_point, study_id, study_submitte
             quant_matrix_table.append([study_id_and_aliquot_submitter_id, gene, log2_value])
 
     print('Converted quant matrix into rows of log2ratio values')
+    return quant_matrix_table
 
 
 def write_to_tsv(quant_matrix_table, tsv_file):
