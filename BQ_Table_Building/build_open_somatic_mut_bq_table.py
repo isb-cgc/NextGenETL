@@ -602,7 +602,7 @@ def main(args):
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['GENERIC_SCHEMA_FILE_NAME'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
