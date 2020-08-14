@@ -639,7 +639,7 @@ def main(args):
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
+        table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix_ver = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name_ver)
