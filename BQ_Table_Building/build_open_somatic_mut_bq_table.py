@@ -51,7 +51,7 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files
+                               generate_table_detail_files, customize_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -614,6 +614,9 @@ def main(args):
 
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
+            pn = params['PROGRAM']
+            dataset_tuple = (pn,  pn.replace(".", "_"))
+            build = 'hg38'
             tag_map_list = []
             for tag_pair in schema_tags:
                 for tag in tag_pair:
@@ -627,8 +630,6 @@ def main(args):
                                 rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
                             else:
                                 rep_val = dataset_tuple[0]
-                        elif chunks[1] == 'path_tags':
-                            rep_val = path_tag
                         elif chunks[1] == 'builds':
                             rep_val = build
                         else:
