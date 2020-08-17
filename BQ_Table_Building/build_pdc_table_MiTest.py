@@ -37,22 +37,21 @@ def replace_first_row_to_study_id_and_aliquot_submitter_id(study_id, quant_matri
         else:
             print('no : in here ' + first_row_data[i])
             aliquot_submitter_id = first_row_data[i]
-        study_id_and_aliquot_submitter_id = study_id + ':' + aliquot_submitter_id
-        quant_matrix[0][i] = study_id_and_aliquot_submitter_id
+        quant_matrix[0][i] = aliquot_submitter_id
     return quant_matrix
 
 
-def convert_quant_matrix_to_table(quant_matrix):
+def convert_quant_matrix_to_table(study_id, quant_matrix):
     num_rows = len(quant_matrix)
     num_cols = len(quant_matrix[0])
     table = []
-    table.append(['study_id:aliquot_submitter_id', 'gene', 'log2_ratio'])
+    table.append(['study_id', 'aliquot_submitter_id', 'gene', 'log2_ratio'])
     for i in range(1, num_rows):
         for j in range(1, num_cols):
             log2_value = quant_matrix[i][j]
             gene = quant_matrix[i][0]
-            study_id_and_aliquot_submitter_id = quant_matrix[0][j]
-            table.append([study_id_and_aliquot_submitter_id, gene, log2_value])
+            aliquot_submitter_id = quant_matrix[0][j]
+            table.append([study_id, aliquot_submitter_id, gene, log2_value])
     return table
 
 
@@ -106,7 +105,7 @@ def generate_quant_matrix_table_one_study(study_id, study_submitter_id):
     my_quant_matrix = pull_quant_matrix_one_study(study_submitter_id)
     if my_quant_matrix:
         my_quant_matrix = replace_first_row_to_study_id_and_aliquot_submitter_id(study_id, my_quant_matrix)
-        my_quant_table = convert_quant_matrix_to_table(my_quant_matrix)
+        my_quant_table = convert_quant_matrix_to_table(study_id, my_quant_matrix)
 
         # Optional: map study_id_aliquot_submitter_id to two new rows of case_id and aliquot_id
         build_mapping_dicts_one_study(study_id)
