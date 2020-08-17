@@ -763,8 +763,10 @@ def main(args):
     
     if 'add_table_description' in steps:
         print('update_table_description')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
+                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
+        success = install_labels_and_desc(params['TARGET_DATASET'],
+                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
