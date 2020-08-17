@@ -30,6 +30,7 @@ import yaml
 import io
 from git import Repo
 from json import loads as json_loads
+from createSchemaP3 import build_schema
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
@@ -138,21 +139,20 @@ def get_quant_matrix_table_one_study(pdc_api_end_point, study_id, study_submitte
         else:
             print('no : in here ' + first_row_data[i])
             aliquot_submitter_id = first_row_data[i]
-        study_id_and_aliquot_submitter_id = study_id + ':' + aliquot_submitter_id
-        quant_matrix[0][i] = study_id_and_aliquot_submitter_id
+        quant_matrix[0][i] = aliquot_submitter_id
 
-    print('Converted first row to study_id:aliquot_submitter_id')
+    print('Converted first row to aliquot_submitter_id')
 
     num_rows = len(quant_matrix)
     num_cols = len(quant_matrix[0])
     quant_matrix_table = []
-    quant_matrix_table.append(['study_id:aliquot_submitter_id', 'gene', 'log2_ratio'])
+    quant_matrix_table.append(['study_id', 'aliquot_submitter_id', 'gene', 'log2_ratio'])
     for i in range(1, num_rows):
         for j in range(1, num_cols):
             log2_value = quant_matrix[i][j]
             gene = quant_matrix[i][0]
-            study_id_and_aliquot_submitter_id = quant_matrix[0][j]
-            quant_matrix_table.append([study_id_and_aliquot_submitter_id, gene, log2_value])
+            aliquot_submitter_id = quant_matrix[0][j]
+            quant_matrix_table.append([study_id, aliquot_submitter_id, gene, log2_value])
 
     print('Converted quant matrix into rows of log2ratio values')
     return quant_matrix_table
@@ -219,6 +219,9 @@ def main(args):
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
     quant_matrix_tsv = "{}/{}".format(home, params['QUANT_MATRIX_TSV'])
 
+    hold_schema_dict_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_DICT_QUANT_MATRIX'])
+    hold_schema_list_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_LIST_QUANT_MATRIX'])
+
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
@@ -246,7 +249,23 @@ def main(args):
         print('upload_to_bucket')
         upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
 
+    if 'analyze_schema' in steps:
+        print('analyze_schema')
+        typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['TARGET_TABLE_PROG'])
+        # schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, None,
+                              typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
+
+    if 'create_bq_from_tsv' in steps:
+        print('create_bq_from_tsv')
+        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+        with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
+            typed_schema = json_loads(schema_hold_dict.read())
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_PROG'], params['BQ_AS_BATCH'])
+
     print('job completed')
+
 
 if __name__ == "__main__":
     main(sys.argv)
