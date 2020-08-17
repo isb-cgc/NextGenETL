@@ -740,18 +740,19 @@ def main(args):
                                            params['TARGET_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
         success = final_merge(skel_table, barcodes_table, 
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'],
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
-    
+
+
     #
     # The derived table we generate has no field descriptions. Add them from the scraped page:
     #
     
     if 'update_final_schema' in steps:    
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], hold_schema_dict)
+        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return       
@@ -760,10 +761,22 @@ def main(args):
     # Add the table description:
     #
     
-    if 'add_table_description' in steps:  
-        desc = params['TABLE_DESCRIPTION'].format(params['MAF_URL'])
-        update_description(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], desc)    
-      
+    if 'add_table_description' in steps:
+        print('update_table_description')
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        if not success:
+            print("update_table_description failed")
+            return
+
+    #
+    # Create second table
+    #
+
+    #if 'create_current_table' in steps:
+
+    # We need a publish step here
+
     #
     # Clear out working temp tables:
     #
