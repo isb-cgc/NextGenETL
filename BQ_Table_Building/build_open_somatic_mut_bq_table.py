@@ -51,7 +51,7 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files, customize_labels_and_desc
+                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
