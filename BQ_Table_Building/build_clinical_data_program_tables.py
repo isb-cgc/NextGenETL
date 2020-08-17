@@ -887,6 +887,9 @@ def main(args):
             print("{} processed in {:0.0f} seconds!\n"
                   .format(program, time.time() - prog_start))
 
+    if 'modify_metadata_and_schemas' in steps:
+        pass
+
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
 

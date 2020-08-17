@@ -60,6 +60,9 @@ steps:
   # Parse and insert table data
   - create_and_load_tables
 
+  # Modify table metadata and field schemas
+  - modify_metadata_and_schemas
+
   # Generate documentation files
   - generate_documentation
 
