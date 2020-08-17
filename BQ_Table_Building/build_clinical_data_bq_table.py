@@ -1,112 +1,141 @@
 """
 Copyright 2020, Institute for Systems Biology
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 import sys
-import requests
-import json
 import time
 import os
-from os.path import expanduser
-from common_etl.support import upload_to_bucket
-from common_etl.utils import infer_data_types, load_config, generate_bq_schema, collect_field_values, \
-    create_mapping_dict, create_and_load_table, arrays_to_str_list, has_fatal_error
+import json
+import requests
+from common_etl.utils import (
+    infer_data_types, load_config, generate_bq_schema, collect_values,
+    create_mapping_dict, create_and_load_table, convert_dict_to_string,
+    has_fatal_error, get_scratch_dir, upload_to_bucket)
 
+API_PARAMS = dict()
+BQ_PARAMS = dict()
 # used to capture returned yaml config sections
-YAML_HEADERS = ('api_and_file_params', 'bq_params', 'steps')
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def request_from_api(api_params, curr_index):
+####
+#
+# Getter functions, employed for readability/consistency
+#
+##
+def get_expand_groups():
+    """
+    Get expand field groups from yaml config
+    :return: list of expand field groups.
+    """
+    if 'EXPAND_FIELD_GROUPS' not in API_PARAMS:
+        has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
+
+    return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
+
+
+####
+#
+# Functions which retrieve and save GDC data in preparation for inserting into BQ tables
+#
+##
+def request_data_from_gdc_api(curr_index):
     """
     Make a POST API request and return response (if valid).
-    :param api_params: api params set in yaml config
     :param curr_index: current API poll start position
     :return: response object
     """
     err_list = []
+
     try:
         request_params = {
             'from': curr_index,
-            'size': api_params['BATCH_SIZE'],
-            'expand': api_params['EXPAND_FIELD_GROUPS']
+            'size': API_PARAMS['BATCH_SIZE'],
+            'expand': get_expand_groups()
         }
 
         # retrieve and parse a "page" (batch) of case objects
-        res = requests.post(url=api_params['ENDPOINT'], data=request_params)
+        res = requests.post(url=API_PARAMS['ENDPOINT'], data=request_params)
 
         # return response body if request was successful
         if res.status_code == requests.codes.ok:
             return res
 
+        err_list.append("{}".format(res.raise_for_status()))
+
         restart_idx = curr_index
-        err_list.append('API request returned status code {}.'.format(str(res.status_code)))
+        err_list.append('API request returned status code {}.'.format(res.status_code))
 
-        if api_params['IO_MODE'] == 'a':
-            err_list.append(
-                'Scripts is being run in "append" mode. '
-                'To resume without data loss or duplication, set START_INDEX = {} in your YAML config file.'
-                    .format(restart_idx))
-    except requests.exceptions.MissingSchema as e:
-        err_list.append(str(e) + '(Hint: check the ENDPOINT value supplied in yaml config.)')
+        if API_PARAMS['IO_MODE'] == 'a':
+            err_list.append('Script is being run in "append" mode. To resume, set '
+                            'START_INDEX = {} in yaml config.'.format(restart_idx))
+    except requests.exceptions.MissingSchema as err:
+        err_list.append(err)
 
-    has_fatal_error(err_list, res.raise_for_status())
+    has_fatal_error("{}\n(HINT: incorrect ENDPOINT url in yaml config?".format(err_list))
+    return None
 
 
-def retrieve_and_output_cases(api_params, bq_params, data_fp):
+def retrieve_and_save_case_records(data_fp):
     """
-    Retrieves case records from API and outputs them to a JSONL file,
-    which is later used to populate the clinical data BQ table.
-    :param api_params: API and file output params, from YAML config
-    :param bq_params: BQ params, from YAML config
+    Retrieves case records from API and outputs them to a JSONL file, which is later
+    used to populate the clinical data BQ table.
     :param data_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
     total_cases_count = 0
     is_last_page = False
 
-    with open(data_fp, api_params['IO_MODE']) as json_output_file:
-        curr_index = api_params['START_INDEX']
+    with open(data_fp, API_PARAMS['IO_MODE']) as json_output_file:
+        curr_index = API_PARAMS['START_INDEX']
         while not is_last_page:
-            res = request_from_api(api_params, curr_index)
+            res = request_data_from_gdc_api(curr_index)
 
             res_json = res.json()['data']
             cases_json = res_json['hits']
 
-            # Currently, if response doesn't contain this metadata, it indicates an invalid response or request.
-            if 'pagination' in res_json:
-                batch_record_count = res_json['pagination']['count']
-                total_cases_count = res_json['pagination']['total']
-                curr_page = res_json['pagination']['page']
-                last_page = res_json['pagination']['pages']
-            else:
-                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
+            # If response doesn't contain pagination, indicates an invalid request.
+            if 'pagination' not in res_json:
+                has_fatal_error("'pagination' key not found in response json, exiting.",
+                                KeyError)
+
+            batch_record_count = res_json['pagination']['count']
+            total_cases_count = res_json['pagination']['total']
+            curr_page = res_json['pagination']['page']
+            last_page = res_json['pagination']['pages']
 
             for case in cases_json:
+                if 'days_to_index' in case:
+                    print("Found days_to_index!\n{}".format(case))
                 case_copy = case.copy()
-                for field in api_params['EXCLUDE_FIELDS'].split(','):
+                for field in API_PARAMS['EXCLUDE_FIELDS']:
                     if field in case_copy:
                         case.pop(field)
 
-                no_list_value_case = arrays_to_str_list(case)
+                no_list_value_case = convert_dict_to_string(case)
                 # writing in jsonlines format, as required by BQ
                 json.dump(obj=no_list_value_case, fp=json_output_file)
                 json_output_file.write('\n')
 
-            if curr_page == last_page or (api_params['MAX_PAGES'] and curr_page == api_params['MAX_PAGES']):
+            if curr_page == last_page or (API_PARAMS['MAX_PAGES'] and
+                                          curr_page == API_PARAMS['MAX_PAGES']):
                 is_last_page = True
 
             print("Inserted page {} of {} ({} records) into jsonlines file"
@@ -114,59 +143,63 @@ def retrieve_and_output_cases(api_params, bq_params, data_fp):
             curr_index += batch_record_count
 
     # calculate processing time and file size
-    total_time = time.time()-start_time
+    total_time = time.time() - start_time
     file_size = os.stat(data_fp).st_size / 1048576.0
 
-    print(
-        "\nClinical data retrieval complete! \n\n"
-        "RESULTS REPORT \n"
-        "------------- \n"
-        "{} cases inserted \n"
-        "{} cases available \n"
-        "{:.3f} mb file size \n"
-        "{:.3f} sec to execute script \n".format(curr_index, total_cases_count, file_size, total_time)
-    )
+    print("\nClinical data retrieval complete!"
+          "\n\t{} of {} cases retrieved"
+          "\n\t{:.2f} mb jsonl file size"
+          "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
+          format(curr_index, total_cases_count, file_size, total_time))
 
-    # Insert the generated jsonl file into google storage bucket, for later ingestion by BQ.
-    # Not used when working locally.
-    if not api_params['IS_LOCAL_MODE']:
-        schema_filename = data_fp.split('/')[-1]
-        bucket_target_blob = bq_params['WORKING_BUCKET_DIR'] + '/' + schema_filename
-        upload_to_bucket(bq_params['WORKING_BUCKET'], bucket_target_blob, data_fp)
+    # Insert the generated jsonl file into google storage bucket, for later
+    # ingestion by BQ
+    upload_to_bucket(BQ_PARAMS, API_PARAMS, API_PARAMS['DATA_OUTPUT_FILE'])
 
 
-def create_field_records_dict(field_mapping_dict, field_data_type_dict):
+####
+#
+# Functions which create table schemas and insert cases into bq
+#
+##
+def create_field_records_dict(field_mappings, field_data_types):
     """
-    Generate flat dict containing schema metadata object with fields 'name', 'type', 'description'
-    :param field_mapping_dict:
-    :param field_data_type_dict:
-    :return: schema fields object dict
+    Generate flat dict containing schema object with fields 'name', 'type', 'description'
+    :param field_mappings: dict of {fields: schema entry dicts}
+    :param field_data_types: dict of {fields: data types}
+    :return: SchemaField object dict
     """
+    # this could use BQ Python API built-in method
+
     schema_dict = {}
 
-    for key in field_data_type_dict:
+    for field in field_data_types:
         try:
-            column_name = field_mapping_dict[key]['name'].split('.')[-1]
-            description = field_mapping_dict[key]['description']
+            column_name = field_mappings[field]['name'].split('.')[-1]
+            description = field_mappings[field]['description']
         except KeyError:
-            # cases.id not returned by mapping endpoint. In such cases, substitute an empty description string.
-            column_name = key.split(".")[-1]
+            # cases.id not returned by mapping endpoint. In such cases,
+            # substitute an empty description string.
+            column_name = field.split(".")[-1]
             description = ""
 
-        if field_data_type_dict[key]:
-            # if script was able to infer a data type using field's values, default to using that type
-            field_type = field_data_type_dict[key]
-        elif key in field_mapping_dict:
+        if field_data_types[field]:
+            # if script was able to infer a data type using field's values,
+            # default to using that type
+            field_type = field_data_types[field]
+        elif field in field_mappings:
             # otherwise, include type from _mapping endpoint
-            field_type = field_mapping_dict[key]['type']
+            field_type = field_mappings[field]['type']
         else:
-            # this could happen in the case where a field was added to the cases endpoint with only null values,
+            # this could happen in the case where a field was added to the
+            # cases endpoint with only null values,
             # and no entry for the field exists in mapping
-            print("[INFO] Not adding field {} because no type found".format(key))
+            print(
+                "[INFO] Not adding field {} because no type found".format(field))
             continue
 
         # this is the format for bq schema json object entries
-        schema_dict[key] = {
+        schema_dict[field] = {
             "name": column_name,
             "type": field_type,
             "description": description
@@ -175,142 +208,67 @@ def create_field_records_dict(field_mapping_dict, field_data_type_dict):
     return schema_dict
 
 
-def create_bq_schema(api_params, data_fp):
+def create_bq_schema(data_fp):
     """
     Generates two dicts (one using data type inference, one using _mapping API endpoint.)
-    Compares their values and builds a python SchemaField object that's used to initialize the db table.
+    Compares values and builds a SchemaField object, used to initialize the bq table.
     :param data_fp: path to API data output file (jsonl format)
-    :param api_params: dict of YAML api and file config params
     """
     # generate dict containing field mapping results
-    field_mapping_dict = create_mapping_dict(api_params['ENDPOINT'])
+    field_mapping_dict = create_mapping_dict(API_PARAMS['ENDPOINT'])
 
     with open(data_fp, 'r') as data_file:
         field_dict = dict()
 
         for line in data_file:
-            json_case_obj = json.loads(line)
-            for key in json_case_obj:
-                field_dict = collect_field_values(field_dict, key, json_case_obj, 'cases.')
+            json_case = json.loads(line)
+            for key in json_case:
+                field_dict = collect_values(field_dict, key, json_case, 'cases.')
 
     field_data_type_dict = infer_data_types(field_dict)
 
     # create a flattened dict of schema fields
     schema_dict = create_field_records_dict(field_mapping_dict, field_data_type_dict)
 
-    endpoint_name = api_params['ENDPOINT'].split('/')[-1]
+    endpoint_name = API_PARAMS['ENDPOINT'].split('/')[-1]
 
-    print("EXPAND FIELDS: {}".format(api_params['EXPAND_FIELD_GROUPS']))
-    
-    bq_schema = generate_bq_schema(
-        schema_dict,
-        record_type=endpoint_name,
-        expand_fields_list=api_params['EXPAND_FIELD_GROUPS']
-    )
-    print(bq_schema)
-    return bq_schema
-
-
-def validate_params(api_params, bq_params):
-    """
-    Validates yaml parameters before beginning to execute the script. This checks for reasonable (though not necessarily
-    correct) api request param types and values. It confirms all params are included in specified yaml file.
-    :param api_params: dict of api and file related params from user-provided yaml config
-    :param bq_params: dict of bq related params from user-provided yaml config
-    """
-    err_list = []
-
-    def is_valid_idx_param(yaml_param):
-        """
-        Verifies that index-type params provided are non-negative integer values.
-        :param yaml_param: value to verify
-        """
-        e_list = []
-
-        try:
-            if int(api_params[yaml_param]) < 0:
-                e_list.append('Invalid value for {} in yaml config (supplied: {}).'
-                              .format(yaml_param, type(api_params[yaml_param])))
-                e_list.append('Value should be a non-negative integer.')
-                has_fatal_error(e_list, ValueError)
-        except TypeError as e:
-            # triggered by casting an inappropriate type to int for testing
-            e_list.append('{} in yaml config should be of type int, not type {}).'
-                          .format(yaml_param, type(api_params[yaml_param])))
-            e_list.append(str(e))
-            has_fatal_error(e_list, TypeError)
-
-    try:
-        if api_params['IS_LOCAL_MODE']:
-            yaml_template_path = '../ConfigFiles/ClinicalBQBuild.yaml'
-        else:
-            home = expanduser('~')
-            yaml_template_path = home + '/NextGenETL/ConfigFiles/ClinicalBQBuild.yaml'
-
-        with open(yaml_template_path, mode='r') as yaml_file:
-            default_api_params, default_bq_params, steps = load_config(yaml_file, YAML_HEADERS)
-            default_api_param_keys = [k for k in default_api_params.keys()]
-            default_bq_param_keys = [k for k in default_bq_params.keys()]
-
-            # verify all required params exist in yaml config
-            for param in default_api_param_keys:
-                val = api_params[param]
-            for param in default_bq_param_keys:
-                val = bq_params[param]
-    except FileNotFoundError as e:
-        print('Default yaml config file not found, unable to compare with supplied yaml config.\n' + str(e))
-    except ValueError as e:
-        has_fatal_error(str(e), e)
-    except KeyError as e:
-        has_fatal_error('Missing param from yaml config file.', e)
-
-    # verify that api index-related params are set to non-negative integers
-    is_valid_idx_param('BATCH_SIZE') and is_valid_idx_param('START_INDEX') and is_valid_idx_param('MAX_PAGES')
-
-    # BATCH_SIZE must also be positive
-    if api_params['BATCH_SIZE'] == 0:
-        has_fatal_error('BATCH_SIZE set to 0 in yaml_config, should be > 0.', ValueError)
-
-
-def construct_filepath(api_params):
-    """
-    Construct filepath for temp local or VM output file
-    :param api_params: api and file params from yaml config
-    :return: output filepath for local machine or VM (depending on LOCAL_DEBUG_MODE)
-    """
-    if api_params['IS_LOCAL_MODE']:
-        return api_params['LOCAL_DIR'] + api_params['DATA_OUTPUT_FILE']
-    else:
-        home = expanduser('~')
-        return '/'.join([home, api_params['SCRATCH_DIR'], api_params['DATA_OUTPUT_FILE']])
+    return generate_bq_schema(schema_dict,
+                              record_type=endpoint_name,
+                              expand_fields_list=get_expand_groups())
 
 
 def main(args):
+    """
+    Script execution function.
+    :param args: command-line arguments
+    """
+    start = time.time()
+    steps = []
+
     if len(args) != 2:
-        has_fatal_error('Usage : {} <configuration_yaml>".format(args[0])', ValueError)
+        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
 
     # Load the YAML config file
     with open(args[1], mode='r') as yaml_file:
         try:
-            api_params, bq_params, steps = load_config(yaml_file, YAML_HEADERS)
-        except ValueError as e:
-            has_fatal_error(str(e), ValueError)
+            global API_PARAMS, BQ_PARAMS
+            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
+        except ValueError as err:
+            has_fatal_error("{}".format(err), ValueError)
 
-    # Validate YAML config params
-    validate_params(api_params, bq_params)
-
-    data_fp = construct_filepath(api_params)
+    scratch_path = get_scratch_dir(API_PARAMS)
+    output_fp = scratch_path + '/' + API_PARAMS['DATA_OUTPUT_FILE']
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
-        # Hits the GDC api endpoint, outputs data to jsonl file (newline-delineated json, required by BQ)
+        # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
-        retrieve_and_output_cases(api_params, bq_params, data_fp)
+        retrieve_and_save_case_records(output_fp)
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
         print('Creating BQ schema object!')
-        schema = create_bq_schema(api_params, data_fp)
+        schema = create_bq_schema(output_fp)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
@@ -319,11 +277,14 @@ def main(args):
         print('Building BQ Table!')
 
         # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(bq_params, api_params['DATA_OUTPUT_FILE'], schema)
+        create_and_load_table(bq_params=BQ_PARAMS,
+                              jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
+                              schema=schema,
+                              table_name=API_PARAMS['GDC_RELEASE'] + '_clinical_data')
+
+    end = time.time() - start
+    print("Script executed in {:.0f} seconds\n".format(end))
 
 
 if __name__ == '__main__':
-        # my_args = (sys.argv[0], '../temp/ClinicalBQBuild.yaml')
-
-        main(sys.argv)
-        # main(my_args)
+    main(sys.argv)
