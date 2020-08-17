@@ -164,7 +164,8 @@ def write_to_tsv(quant_matrix_table, tsv_file):
         for i in range(0, num_rows):
             tsv_out.write("\t".join([quant_matrix_table[i][0],
                                     quant_matrix_table[i][1],
-                                    quant_matrix_table[i][2]]) + "\n")
+                                    quant_matrix_table[i][2],
+                                     quant_matrix_table[i][3]]) + "\n")
     return True
 
 
