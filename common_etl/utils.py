@@ -582,6 +582,12 @@ def update_bq_table(table_id, metadata):
     assert table.description == metadata['description']
 
 
+def copy_bq_table(src_table, dest_table, project=None):
+    client = bigquery.Client()
+
+    client.copy_table(src_table, dest_table, project=project)
+
+
 def update_table_schema(table_id, new_descriptions):
     client = bigquery.Client()
     table = get_bq_table(table_id)

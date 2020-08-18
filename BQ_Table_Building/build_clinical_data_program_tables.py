@@ -861,6 +861,41 @@ def transform_json_name_to_table(json_name):
     return '_'.join([get_gdc_rel(API_PARAMS), program_name, partial_table_name])
 
 
+def copy_tables_into_public_project():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+
+        split_table_id = json_file.split('.')[:-1]
+
+        project = split_table_id[0]
+
+        dataset = split_table_id[1]
+        versioned_dataset = dataset + '_versioned'
+
+        versioned_table = split_table_id[2]
+        current_table = '_'.join(versioned_table.split('_')[:-1])
+        current_table += '_current'
+
+        source_table_id = get_table_id(BQ_PARAMS, table_name)
+        curr_table_id = '.'.join([project, dataset, current_table])
+        versioned_table_id = '.'.join([project, versioned_dataset, versioned_table])
+
+        if not exists_bq_table(source_table_id):
+            print('No table found for file (skipping): ' + json_file)
+            continue
+
+        print(source_table_id)
+        print(curr_table_id)
+        print(versioned_table_id)
+
+        # copy_bq_table(source_table_id, curr_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
+        # copy_bq_table(source_table_id, versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
+
 ####
 #
 # Script execution
@@ -886,6 +921,8 @@ def print_final_report(start, steps):
         print('\t - added/updated table metadata')
     if 'update_schema' in steps:
         print('\t - updated table field descriptions')
+    if 'copy_tables_into_production' in steps:
+        print('\t - copied tables into production (public-facing bq tables)')
     if 'validate_data' in steps:
         print('\t - validated data (tests not considered exhaustive)')
     if 'generate_documentation' in steps:
@@ -956,6 +993,9 @@ def main(args):
 
     if 'update_schema' in steps:
         update_schema()
+
+    if 'copy_tables_into_production' in steps:
+        copy_tables_into_public_project()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
