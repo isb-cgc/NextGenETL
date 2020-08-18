@@ -21,8 +21,9 @@ SOFTWARE.
 """
 import io
 import sys
-from os import listdir
-from os.path import expanduser, isfile, join
+import os
+# from os import listdir
+# from os.path import expanduser, isfile, join
 import time
 import requests
 import yaml
@@ -87,7 +88,7 @@ def get_scratch_dir(api_params):
     Construct filepath for VM output file
     :return: output filepath for VM
     """
-    home = expanduser('~')
+    home = os.path.expanduser('~')
     output_dir = api_params['SCRATCH_DIR']
 
     return home + '/' + output_dir
@@ -808,5 +809,8 @@ def get_dataset_table_list(api_params, bq_params, prefix_component):
 ##
 
 def get_dir_files(dir_path):
-    return [f for f in listdir(dir_path) if isfile(join(dir_path, f))]
+
+    print(os.getcwd())
+
+    return [f for f in os.listdir(dir_path) if os.isfile(os.join(dir_path, f))]
 
