@@ -276,11 +276,14 @@ def main(args):
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
+        table_name = API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] + '_' + \
+                     API_PARAMS['MASTER_TABLE']
+
         # don't want the entire fp for 2nd param, just the file name
         create_and_load_table(bq_params=BQ_PARAMS,
                               jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
                               schema=schema,
-                              table_name=API_PARAMS['GDC_RELEASE'] + '_clinical_data')
+                              table_name=table_name)
 
     end = time.time() - start
     print("Script executed in {:.0f} seconds\n".format(end))

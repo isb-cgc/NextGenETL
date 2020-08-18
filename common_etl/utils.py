@@ -136,7 +136,7 @@ def get_master_table_name(api_params, bq_params):
     :param bq_params:
     :return:
     """
-    return 'r' + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
 
 
 def get_fg_id_name(api_params, table_key):
@@ -490,7 +490,8 @@ def get_cases_by_program(api_params, bq_params, program_name):
 
     programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
                          bq_params['METADATA_DATASET'] + '.' +
-                         'rel' + api_params['GDC_RELEASE'] + '_caseData')
+                         api_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
+                         api_params['CASES_TABLE_SUFFIX'])
 
     results = get_query_results(
         """

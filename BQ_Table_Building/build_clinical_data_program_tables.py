@@ -58,7 +58,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    gdc_release = 'r' + API_PARAMS['GDC_RELEASE']
+    gdc_release = API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE']
 
     file_name_parts = [gdc_release, program_name, BQ_PARAMS['TABLE_PREFIX']]
 
@@ -150,7 +150,8 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         'rel' + str(API_PARAMS['GDC_RELEASE']) + '_caseData')
+                         API_PARAMS['CASES_REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] +
+                         API_PARAMS['CASES_TABLE_SUFFIX'])
 
     programs = set()
     results = get_query_results("SELECT distinct(program_name) FROM `{}`"
