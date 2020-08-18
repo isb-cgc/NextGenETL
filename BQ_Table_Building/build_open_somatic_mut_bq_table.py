@@ -51,7 +51,8 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc
+                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
+                               publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -464,7 +465,12 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
     # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
-    AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
+    # AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
+
+    if 'create_current_table' in steps:
+        release = 'current'
+    else:
+        release = params['RELEASE']
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
@@ -589,74 +595,7 @@ def main(args):
     # Schemas and table descriptions are maintained in the github repo:
     #
 
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        except Exception as ex:
-            print("pull_table_info_from_git failed: {}".format(str(ex)))
-            return
 
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        # Write out the details
-        success = generate_table_detail_files(schema_file, full_file_prefix)
-        if not success:
-            print("process_git_schemas failed")
-            return
-
-        # Customize generic schema to this data program:
-
-    if 'replace_schema_tags' in steps:
-        print('replace_schema_tags')
-        pn = params['PROGRAM']
-        dataset_tuple = (pn,  pn.replace(".", "_"))
-        build = 'hg38'
-        tag_map_list = []
-        for tag_pair in schema_tags:
-            for tag in tag_pair:
-                val = tag_pair[tag]
-                use_pair = {}
-                tag_map_list.append(use_pair)
-                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                    chunks = val.split('-', 1)
-                    if chunks[1] == 'programs':
-                        if val.find('~lcbqs-') == 0:
-                            rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-                        else:
-                            rep_val = dataset_tuple[0]
-                    elif chunks[1] == 'builds':
-                        rep_val = build
-                    else:
-                        raise Exception()
-                    if val.find('~lc-') == 0:
-                        rep_val = rep_val.lower()
-                    use_pair[tag] = rep_val
-                else:
-                    use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        full_file_prefix_ver = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name_ver)
-        # Write out the details
-        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-        #success2 = customize_labels_and_desc(full_file_prefix_ver, tag_map_list)
-        if not success:
-            print("replace_schema_tags failed")
-            return False
-
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list, hold_schema_dict)
 
     #bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
     #
@@ -740,19 +679,104 @@ def main(args):
                                            params['TARGET_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
         success = final_merge(skel_table, barcodes_table, 
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), params['BQ_AS_BATCH'],
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
 
+    #
+    # Create second table
+    #
 
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'].format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'].format('current'))
+
+        success = publish_table(source_table, current_dest)
+
+        if not success:
+            print("create current table failed")
+            return
+
+    #
+    # Update schema
+    #
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schema')
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+
+        # Customize generic schema to this data program:
+
+    if 'replace_schema_tags' in steps:
+        print('replace_schema_tags')
+        pn = params['PROGRAM']
+        dataset_tuple = (pn,  pn.replace(".", "_"))
+        build = 'hg38'
+        tag_map_list = []
+        for tag_pair in schema_tags:
+            for tag in tag_pair:
+                val = tag_pair[tag]
+                use_pair = {}
+                tag_map_list.append(use_pair)
+                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                    chunks = val.split('-', 1)
+                    if chunks[1] == 'programs':
+                        if val.find('~lcbqs-') == 0:
+                            rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                        else:
+                            rep_val = dataset_tuple[0]
+                    elif chunks[1] == 'builds':
+                        rep_val = build
+                    else:
+                        raise Exception()
+                    if val.find('~lc-') == 0:
+                        rep_val = rep_val.lower()
+                    use_pair[tag] = rep_val
+                else:
+                    use_pair[tag] = val
+        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', release)
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+        table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, release)
+        # Write out the details
+        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+        if not success:
+            print("replace_schema_tags failed")
+            return False
+
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
+                              typing_tups, hold_schema_list, hold_schema_dict)
     #
     # The derived table we generate has no field descriptions. Add them from the scraped page:
     #
     
     if 'update_final_schema' in steps:    
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), hold_schema_dict)
+        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return       
@@ -764,18 +788,14 @@ def main(args):
     if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
+                                          params['FINAL_TARGET_TABLE'].format(release))
         success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']), full_file_prefix)
+                                          params['FINAL_TARGET_TABLE'].format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
 
-    #
-    # Create second table
-    #
 
-    #if 'create_current_table' in steps:
 
     # We need a publish step here
 
