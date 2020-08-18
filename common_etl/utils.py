@@ -21,11 +21,14 @@ SOFTWARE.
 """
 import io
 import sys
-from os.path import expanduser
+import os
+# from os import listdir
+# from os.path import expanduser, isfile, join
 import time
 import requests
 import yaml
 from google.cloud import bigquery, storage, exceptions
+from google.api_core.exceptions import NotFound
 
 
 def has_fatal_error(err, exception=None):
@@ -81,17 +84,6 @@ def load_config(yaml_file, yaml_dict_keys):
 # Functions for getting param values in more readable format
 #
 ##
-def get_scratch_dir(api_params):
-    """
-    Construct filepath for VM output file
-    :return: output filepath for VM
-    """
-    home = expanduser('~')
-    output_dir = api_params['SCRATCH_DIR']
-
-    return home + '/' + output_dir
-
-
 def convert_dict_to_string(obj):
     """
     Converts dict/list of primitives or strings to a comma-separated string
@@ -135,7 +127,7 @@ def get_master_table_name(api_params, bq_params):
     :param bq_params:
     :return:
     """
-    return api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
 
 
 def get_fg_id_name(api_params, table_key):
@@ -153,6 +145,10 @@ def get_fg_id_name(api_params, table_key):
                         "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
 
     return api_params['TABLE_METADATA'][table_key]['table_id_key']
+
+
+def get_gdc_rel(api_params):
+    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE']
 
 
 #####
@@ -489,7 +485,8 @@ def get_cases_by_program(api_params, bq_params, program_name):
 
     programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
                          bq_params['METADATA_DATASET'] + '.' +
-                         api_params['GDC_RELEASE'] + '_caseData')
+                         bq_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
+                         bq_params['CASES_TABLE_SUFFIX'])
 
     results = get_query_results(
         """
@@ -522,6 +519,20 @@ def get_table_prefixes(api_params):
     prefixes = dict()
 
     for table, table_metadata in api_params['TABLE_METADATA'].items():
+        prefixes[table] = table_metadata['table_prefix'] if table_metadata['table_prefix'] else ''
+
+    return prefixes
+
+
+def get_prefixes(api_params):
+    """
+    Get abbreviations for included field groups
+    :param api_params: api params from yaml config file
+    :return: dict of {table name: abbreviation}
+    """
+    prefixes = dict()
+
+    for table, table_metadata in api_params['TABLE_METADATA'].items():
         prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
 
     return prefixes
@@ -536,6 +547,87 @@ def get_table_id(bq_params, table_name):
     """
     return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
             table_name)
+
+
+def exists_bq_table(table_id):
+    client = bigquery.Client()
+
+    try:
+        client.get_table(table_id)
+    except NotFound:
+        return False
+    return True
+
+
+def get_bq_table(table_id):
+    if not exists_bq_table(table_id):
+        return None
+
+    client = bigquery.Client()
+    return client.get_table(table_id)
+
+
+def update_bq_table(table_id, metadata):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+
+def modify_friendly_name(api_params, table_id):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    friendly_name = table.friendly_name
+    friendly_name += 'REL' + api_params['GDC_RELEASE'] + ' VERSIONED'
+
+    table.friendly_name = friendly_name
+
+    client.update_table(table, ["friendly_name"])
+
+
+def copy_bq_table(src_table, dest_table, project=None):
+    client = bigquery.Client()
+    client.delete_table(dest_table, not_found_ok=True)
+    client.copy_table(src_table, dest_table, project=project)
+
+
+def update_table_schema(table_id, new_descriptions):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        field = schema_field.to_api_repr()
+
+        if field['name'] in new_descriptions.keys():
+            name = field['name']
+            field['description'] = new_descriptions[name]
+        elif field['description'] == '':
+            print("Still no description for field: " + field['name'])
+
+        mod_field = bigquery.SchemaField.from_api_repr(field)
+        new_schema.append(mod_field)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
+
+
+def list_tables_in_dataset(bq_params):
+    dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
+    client = bigquery.Client()
+
+    return client.list_tables(dataset)
 
 
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
@@ -686,7 +778,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     if field_group == 'cases':
         return field
 
-    prefixes = get_table_prefixes(api_params)
+    prefixes = get_prefixes(api_params)
 
     if field_group not in prefixes:
         has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
@@ -705,7 +797,7 @@ def get_field_group_abbreviation(api_params, fg):
     :param fg:
     :return:
     """
-    prefixes = get_table_prefixes(api_params)
+    prefixes = get_prefixes(api_params)
     return prefixes[fg]
 
 
@@ -797,3 +889,34 @@ def get_dataset_table_list(api_params, bq_params, prefix_component):
 
     return table_id_list
 """
+
+
+#####
+#
+# Functions for filesystem operations
+#
+##
+def get_scratch_dir(api_params):
+    """
+    Construct filepath for VM output file
+    :return: output filepath for VM
+    """
+    home = os.path.expanduser('~')
+    output_dir = api_params['SCRATCH_DIR']
+
+    return home + '/' + output_dir
+
+
+def get_dir_files(dir_path):
+
+    home = os.path.expanduser('~')
+
+    f_path = home + '/' + dir_path
+
+    return [f for f in os.listdir(f_path) if os.path.isfile(os.path.join(f_path, f))]
+
+
+def get_filepath(dir, filename):
+    return os.path.expanduser('~') + '/' + dir + '/' + filename
+
+
