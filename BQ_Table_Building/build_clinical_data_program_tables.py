@@ -824,7 +824,7 @@ def get_table_metadata():
             continue
 
         with open(get_filepath(metadata_path, json_file)) as json_file_output:
-            json_data = json.joad(json_file_output)
+            json_data = json.load(json_file_output)
 
             print(json_data)
 
