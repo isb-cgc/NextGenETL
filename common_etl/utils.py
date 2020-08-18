@@ -83,17 +83,6 @@ def load_config(yaml_file, yaml_dict_keys):
 # Functions for getting param values in more readable format
 #
 ##
-def get_scratch_dir(api_params):
-    """
-    Construct filepath for VM output file
-    :return: output filepath for VM
-    """
-    home = os.path.expanduser('~')
-    output_dir = api_params['SCRATCH_DIR']
-
-    return home + '/' + output_dir
-
-
 def convert_dict_to_string(obj):
     """
     Converts dict/list of primitives or strings to a comma-separated string
@@ -804,13 +793,25 @@ def get_dataset_table_list(api_params, bq_params, prefix_component):
 
 #####
 #
-# Functions for handling json metadata/schema files
+# Functions for filesystem operations
 #
 ##
+def get_scratch_dir(api_params):
+    """
+    Construct filepath for VM output file
+    :return: output filepath for VM
+    """
+    home = os.path.expanduser('~')
+    output_dir = api_params['SCRATCH_DIR']
+
+    return home + '/' + output_dir
+
 
 def get_dir_files(dir_path):
 
-    print(os.getcwd())
+    home = os.path.expanduser('~')
 
-    return [f for f in os.listdir(dir_path) if os.isfile(os.join(dir_path, f))]
+    full_path = home + '/' + dir_path
+
+    return [f for f in os.listdir(full_path) if os.isfile(os.join(full_path, f))]
 
