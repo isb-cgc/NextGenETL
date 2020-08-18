@@ -34,6 +34,7 @@ from common_etl.utils import (
     get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath,
     update_bq_table, update_table_schema, copy_bq_table, modify_friendly_name)
 from gdc_clinical_resources.generate_docs import (generate_docs)
+
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
@@ -480,7 +481,6 @@ def add_reference_columns(schema, columns, record_counts, program):
 
         # for formerly doubly-nested tables, ancestor id comes before case_id in schema
         if depth > 2:
-
             parent_fg = get_parent_field_group(table)
             parent_id_name = parent_fg + '.' + get_fg_id_name(API_PARAMS, parent_fg)
 
@@ -898,6 +898,36 @@ def copy_tables_into_public_project():
         # modify_friendly_name(API_PARAMS, versioned_table_id)
 
 
+####
+#
+# Web App specific functions
+#
+##
+
+def make_biospecimen_stub_tables():
+    table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
+
+    query = ("""
+        SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        FROM
+          (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', ') as s_gdc_ids, SPLIT(submitter_sample_ids, ', ') as s_barcodes
+           FROM
+            (SELECT case_id as case_gdc_id, submitter_id as case_barcode, sample_ids, submitter_sample_ids, 
+              SPLIT(
+              (SELECT project_id
+               FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+             FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
+             UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+             UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+             WHERE pos1 = pos2
+        ORDER BY proj, case_gdc_id
+    """)
+
+    result_arr = get_query_results(query)
+
+    print(result_arr)
+
+
 def create_tables_for_webapp():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
                      get_gdc_rel(API_PARAMS) + '/')
@@ -965,13 +995,14 @@ def main(args):
     programs = get_programs_list()
     # programs = ['MMRF']
 
+    if 'create_biospecimen_stub_tables' in steps:
+        make_biospecimen_stub_tables()
+
     for program in programs:
         prog_start = time.time()
-        # if 'create_and_load_tables' in steps or 'validate_data' in steps:
+
         if 'create_and_load_tables' in steps:
-
             print("Executing script for program {}...".format(program))
-
             cases = get_cases_by_program(API_PARAMS, BQ_PARAMS, program)
 
             if not cases:
