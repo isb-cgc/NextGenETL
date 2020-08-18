@@ -815,16 +815,18 @@ def get_table_metadata():
 
     files = get_dir_files(metadata_path)
 
-    table_id = get_table_id(BQ_PARAMS, 'test_test')
-
-    print(exists_bq_table(table_id))
-
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
         table_id = get_table_id(BQ_PARAMS, table_name)
 
-        print(exists_bq_table(table_id))
-        break
+        if not exists_bq_table(table_id):
+            print('No table found for file (skipping): ' + json_file)
+            continue
+
+        with open(json_file) as json_file_output:
+            json_data = json.joad(json_file_output)
+
+            print(json_data)
 
 
 def transform_json_name_to_table(json_name):
