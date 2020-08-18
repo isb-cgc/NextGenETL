@@ -597,7 +597,7 @@ def main(args):
         print('process_git_schema')
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
@@ -635,11 +635,10 @@ def main(args):
                     use_pair[tag] = val
         table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        full_file_prefix_ver = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name_ver)
+
         # Write out the details
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-        #success2 = customize_labels_and_desc(full_file_prefix_ver, tag_map_list)
+
         if not success:
             print("replace_schema_tags failed")
             return False
@@ -647,7 +646,7 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
