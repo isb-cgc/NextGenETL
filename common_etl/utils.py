@@ -545,6 +545,24 @@ def exists_bq_table(table_name):
     return True
 
 
+def update_bq_table(table_name, metadata):
+    if not exists_bq_table(table_name):
+        return None
+
+    client = bigquery.Client()
+    table = client.get_table(table_name)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
