@@ -236,7 +236,6 @@ def create_bq_schema(data_fp):
                               record_type=endpoint_name,
                               expand_fields_list=get_expand_groups())
 
-
 def main(args):
     """
     Script execution function.
