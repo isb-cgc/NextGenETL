@@ -24,7 +24,6 @@ import sys
 import json
 import os
 import time
-import pandas
 # from gdc_clinical_resources.test_data_integrity import *
 from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import (generate_docs)
@@ -915,13 +914,10 @@ def make_biospecimen_stub_tables():
         ORDER BY proj, case_gdc_id
     """)
 
-    df = get_df_from_query(query)
-
-    print(df)
-
     table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
+    table = load_table_from_query(table_id, query)
 
-    table = load_table_from_df(df, table_id)
+    print(table.schema)
 
 
 def create_tables_for_webapp():

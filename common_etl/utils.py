@@ -27,7 +27,6 @@ import os
 import time
 import requests
 import yaml
-import pandas
 from google.cloud import bigquery, storage, exceptions
 from google.api_core.exceptions import NotFound
 
@@ -416,17 +415,12 @@ def get_query_results(query):
     return query_job.result()
 
 
-def get_df_from_query(query):
+def load_table_from_query(table_id, query):
     client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig(destination=table_id)
 
-    return client.query(query).to_dataframe()
-
-
-def load_table_from_df(df, table_id):
-    client = bigquery.Client()
-
-    job = client.load_table_from_dataframe(df, table_id)
-    job.result()
+    query_job = client.query(query, job_config=job_config)
+    query_job.result()
 
     return client.get_table(table_id)
 
