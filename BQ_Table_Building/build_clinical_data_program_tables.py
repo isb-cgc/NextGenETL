@@ -822,6 +822,10 @@ def get_table_metadata():
 
         exists_bq_table(table_id)
 
+    table_id = get_table_id(BQ_PARAMS, 'test_test')
+
+    exists_bq_table(table_id)
+
 
 def transform_json_name_to_table(json_name):
     # json file name 'isb-cgc-bq.HCMI.clinical_follow_ups_gdc_r24.json'
