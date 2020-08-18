@@ -571,7 +571,7 @@ def update_bq_table(table_name, metadata):
 def get_table_schema(table_name):
     table = get_bq_table(table_name)
 
-    return table.schema
+    return table.schema.to_api_repr()
 
 
 def update_table_schema(bq_params, table_name):
