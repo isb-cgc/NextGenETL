@@ -940,7 +940,7 @@ def main(args):
                   .format(program, time.time() - prog_start))
 
     if 'modify_metadata_and_schemas' in steps:
-        update_table_metadata()
+        # update_table_metadata()
         update_table_schema()
 
     if 'generate_documentation' in steps:
