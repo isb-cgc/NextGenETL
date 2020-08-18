@@ -418,8 +418,7 @@ def get_query_results(query):
 def get_df_from_query(query):
     client = bigquery.Client()
 
-    query_job = client.query(query)
-    return query_job.to_dataframe
+    return client.query(query).to_dataframe()
 
 
 def load_table_from_df(df, table_id):
