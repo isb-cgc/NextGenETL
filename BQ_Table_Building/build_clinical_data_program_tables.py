@@ -831,11 +831,6 @@ def update_table_metadata():
 
 
 def update_schema():
-    table_id = get_table_id(BQ_PARAMS, 'r24_CGCI_clinical')
-
-    update_table_schema(table_id)
-    return
-
     fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
     fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + \
                   get_gdc_rel(API_PARAMS) + '.json'
