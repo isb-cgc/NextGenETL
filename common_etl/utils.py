@@ -545,12 +545,17 @@ def exists_bq_table(table_name):
     return True
 
 
-def update_bq_table(table_name, metadata):
+def get_bq_table(table_name):
     if not exists_bq_table(table_name):
         return None
 
     client = bigquery.Client()
-    table = client.get_table(table_name)
+    return client.get_table(table_name)
+
+
+def update_bq_table(table_name, metadata):
+    client = bigquery.Client()
+    table = get_bq_table(table_name)
 
     table.labels = metadata['labels']
     table.friendly_name = metadata['friendlyName']
@@ -561,6 +566,19 @@ def update_bq_table(table_name, metadata):
     assert table.labels == metadata['labels']
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
+
+
+def get_table_schema(table_name):
+    table = get_bq_table(table_name)
+
+    return table.schema
+
+
+def list_tables_in_dataset(bq_params):
+    dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
+    client = bigquery.Client()
+
+    return client.list_tables(dataset)
 
 
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
@@ -851,4 +869,5 @@ def get_dir_files(dir_path):
 
 def get_filepath(dir, filename):
     return os.path.expanduser('~') + '/' + dir + '/' + filename
+
 

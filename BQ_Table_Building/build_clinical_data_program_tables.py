@@ -810,7 +810,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 #
 ##
 
-def get_table_metadata():
+def update_table_metadata():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
                      get_gdc_rel(API_PARAMS) + '/')
 
@@ -828,6 +828,16 @@ def get_table_metadata():
             metadata = json.load(json_file_output)
 
             update_bq_table(table_id, metadata)
+
+
+def update_table_schema():
+    fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
+    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + get_gdc_rel(API_PARAMS)
+
+    with open(get_filepath(fields_path, fields_file)) as json_file_output:
+        descriptions = json.load(json_file_output)
+
+        print(descriptions)
 
 
 def transform_json_name_to_table(json_name):
@@ -930,7 +940,8 @@ def main(args):
                   .format(program, time.time() - prog_start))
 
     if 'modify_metadata_and_schemas' in steps:
-        get_table_metadata()
+        update_table_metadata()
+        update_table_schema()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
