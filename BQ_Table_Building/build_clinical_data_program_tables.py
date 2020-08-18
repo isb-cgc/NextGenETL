@@ -62,8 +62,6 @@ def generate_long_name(program_name, table):
 
     file_name_parts = [gdc_release, program_name, BQ_PARAMS['TABLE_PREFIX']]
 
-    file_name_parts = [gdc_release, BQ_PARAMS['TABLE_PREFIX'], program_name]
-
     # if one-to-many table, append suffix
     if prefix:
         file_name_parts.append(prefix)
