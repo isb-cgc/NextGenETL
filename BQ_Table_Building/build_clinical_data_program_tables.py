@@ -32,7 +32,7 @@ from common_etl.utils import (
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
     get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath,
-    update_bq_table, update_table_schema)
+    update_bq_table, update_table_schema, copy_bq_table, modify_friendly_name)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -895,6 +895,18 @@ def copy_tables_into_public_project():
 
         # copy_bq_table(source_table_id, curr_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
         # copy_bq_table(source_table_id, versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
+        # modify_friendly_name(API_PARAMS, versioned_table_id)
+
+
+def create_tables_for_webapp():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+
 
 ####
 #
@@ -996,6 +1008,9 @@ def main(args):
 
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
+
+    if 'create_tables_for_webapp' in steps:
+        create_tables_for_webapp()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)

@@ -276,7 +276,7 @@ def main(args):
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
-        table_name = get_gdc_rel(API_PARAMS) + '_' + API_PARAMS['MASTER_TABLE']
+        table_name = get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE']
 
         # don't want the entire fp for 2nd param, just the file name
         create_and_load_table(bq_params=BQ_PARAMS,

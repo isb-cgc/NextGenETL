@@ -582,9 +582,21 @@ def update_bq_table(table_id, metadata):
     assert table.description == metadata['description']
 
 
+def modify_friendly_name(api_params, table_id):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    friendly_name = table.friendly_name
+    friendly_name += 'REL' + api_params['GDC_RELEASE'] + ' VERSIONED'
+
+    table.friendly_name = friendly_name
+
+    client.update_table(table, ["friendly_name"])
+
+
 def copy_bq_table(src_table, dest_table, project=None):
     client = bigquery.Client()
-
+    client.delete_table(dest_table, not_found_ok=True)
     client.copy_table(src_table, dest_table, project=project)
 
 
