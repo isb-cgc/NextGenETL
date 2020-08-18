@@ -490,8 +490,8 @@ def get_cases_by_program(api_params, bq_params, program_name):
 
     programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
                          bq_params['METADATA_DATASET'] + '.' +
-                         api_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
-                         api_params['CASES_TABLE_SUFFIX'])
+                         bq_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
+                         bq_params['CASES_TABLE_SUFFIX'])
 
     results = get_query_results(
         """
