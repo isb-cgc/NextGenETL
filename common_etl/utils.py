@@ -803,6 +803,10 @@ def get_dataset_table_list(api_params, bq_params, prefix_component):
 
 #####
 #
-# Functions for getting json files used to modify schema and
+# Functions for handling json metadata/schema files
 #
 ##
+
+def get_dir_files(dir_path):
+    return [f for f in listdir(dir_path) if isfile(join(dir_path, f))]
+

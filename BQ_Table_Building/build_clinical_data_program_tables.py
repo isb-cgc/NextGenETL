@@ -30,7 +30,8 @@ from common_etl.utils import (
     get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name)
+    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
+    get_dir_files)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -809,6 +810,21 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
 ####
 #
+# Modify existing tables
+#
+##
+
+def get_table_metadata():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] + '/')
+
+    files = get_dir_files(metadata_path)
+
+    print(files)
+
+
+####
+#
 # Script execution
 #
 ##
@@ -894,7 +910,7 @@ def main(args):
                   .format(program, time.time() - prog_start))
 
     if 'modify_metadata_and_schemas' in steps:
-        pass
+        get_table_metadata()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
