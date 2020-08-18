@@ -1,24 +1,18 @@
 """
-
 Copyright 2019, Institute for Systems Biology
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
    http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 """
 
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
-
 VM NEEDS 26 GB MEMORY FOR THIS TO NOT DIE IN MERGE MODE, MORE IF DEBUG == True
 In merge mode, the job needed 18 G peak to run, hitting the highest levels on UCEC
 and UCS (which are processed near the very end). This required running on a n1-highmem-4
@@ -51,8 +45,7 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
-                               publish_table
+                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -69,7 +62,7 @@ def load_config(yaml_config):
     if yaml_dict is None:
         return None, None, None, None, None, None, None, None
 
-    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'], 
+    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
             yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'], yaml_dict['callers'],
             yaml_dict['schema_tags'])
 
@@ -114,14 +107,14 @@ Extract from downloaded file names instead of using a specified list.
 '''
 
 def build_program_list(all_files):
-    
+
     programs = set()
     for filename in all_files:
         info_list = file_info(filename, None)
         programs.add(info_list[0])
-    
+
     return sorted(programs)
-  
+
 '''
 ----------------------------------------------------------------------------------------------
 Extract the Callers We Are Working With From File List
@@ -129,14 +122,14 @@ Extract from downloaded file names, compare to expected list. Answer if they mat
 '''
 
 def check_caller_list(all_files, expected_callers):
-    
+
     expected_set = set(expected_callers)
     callers = set()
     for filename in all_files:
         info_list = file_info(filename, None)
         callers.add(info_list[1])
-    
-    return callers == expected_set  
+
+    return callers == expected_set
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -465,12 +458,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
     # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
-    # AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
-
-    if 'current' in steps:
-        release = 'current'
-    else:
-        release = params['RELEASE']
+    AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
@@ -490,7 +478,7 @@ def main(args):
     # Next, use the filter set to get a manifest from GDC using their API. Note that is a pull list is
     # provided, these steps can be omitted:
     #
-    
+
     if 'build_manifest_from_filters' in steps:
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
@@ -505,17 +493,17 @@ def main(args):
     #
     # Best practice is to clear out the directory where the files are going. Don't want anything left over:
     #
-    
+
     if 'clear_target_directory' in steps:
         create_clean_target(local_files_dir)
 
     #
     # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
     # created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step. If creating a pull
-    # list, you can do it using IndexD calls on a manifest file, OR using BQ as long as you have 
+    # list, you can do it using IndexD calls on a manifest file, OR using BQ as long as you have
     # built the manifest using BQ (that route uses the BQ Manifest table that was created).
     #
-    
+
     if 'build_pull_list' in steps:
         full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                           params['TARGET_DATASET'],
@@ -532,7 +520,7 @@ def main(args):
     # Now hitting GDC cloud buckets, not "downloading". Get the files in the pull list:
     #
 
-    if 'download_from_gdc' in steps:       
+    if 'download_from_gdc' in steps:
         with open(local_pull_list, mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         pull_from_buckets(pull_list, local_files_dir)
@@ -540,7 +528,7 @@ def main(args):
     #
     # Traverse the tree of downloaded files and create a flat list of all files:
     #
-    
+
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
         #program_list = build_program_list(all_files)
@@ -550,12 +538,12 @@ def main(args):
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
-   
+
     #
     # We can create either a table that merges identical mutations from the different callers into
     # one row, or keep them separate:
     #
-    
+
     # if do_merging:
     #     do_debug = params['DO_DEBUG_LOGGING']
     #     target_count = int(params['EXPECTED_COLUMNS'])
@@ -578,12 +566,12 @@ def main(args):
     #                 if hist_count[ii] > 0:
     #                     print(" %6d  %9d " % ( ii, hist_count[ii] ))
     #             print("Finish writing MAFS for {}".format(program))
-    
+
     #
     # Take all the files and make one BIG TSV file to upload:
     #
-    
-    if 'concat_all_files' in steps:       
+
+    if 'concat_all_files' in steps:
         # if do_merging:
         #     maf_list = ["mergeA." + tumor + ".maf" for tumor in program_list]
         #     concat_all_merged_files(maf_list, one_big_tsv)
@@ -593,116 +581,6 @@ def main(args):
             concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers)
     #
     # Schemas and table descriptions are maintained in the github repo:
-    #
-
-
-
-    #bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
-    #
-    # Scrape the column descriptions from the GDC web page
-    #
-    
-    # if 'scrape_schema' in steps:
-    #     scrape_list = scrape_schema(params['MAF_URL'], params['FIRST_MAF_COL'])
-    #     with open(hold_scraped_dict, mode='w') as scraped_hold_list:
-    #         scraped_hold_list.write(json_dumps(scrape_list))
-
-    #
-    # For the legacy table, the descriptions had lots of analysis tidbits. Very nice, but hard to maintain.
-    # We just use hardwired schema descriptions now, most directly pulled from the GDC website:
-    #
-    
-    # if 'build_the_schema' in steps:
-    #     typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-    #     build_combined_schema(hold_scraped_dict, AUGMENTED_SCHEMA_FILE,
-    #                           typing_tups, hold_schema_list, hold_schema_dict)
-         
-    #
-    # Upload the giant TSV into a cloud bucket:
-    #
-
-    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
-
-    if 'upload_to_bucket' in steps:
-        print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
-
-    #
-    # Create the BQ table from the TSV:
-    #
-        
-    if 'create_bq_from_tsv' in steps:
-        print('create_bq_from_tsv')
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-        with open(hold_schema_list, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
-
-    #
-    # Need to merge in aliquot and sample barcodes from other tables:
-    #
-           
-    if 'collect_barcodes' in steps:
-        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                       params['TARGET_DATASET'], 
-                                       params['TARGET_TABLE'])
-        if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
-                                         params['TARGET_DATASET'],
-                                         params['BARCODE_STEP_1_TABLE'], params['BQ_AS_BATCH'])
-            if not success:
-                print("attach_aliquot_ids job failed")
-                return
-
-            step_1_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                           params['TARGET_DATASET'],
-                                             params['BARCODE_STEP_1_TABLE'])
-        else:
-            step_1_table = skel_table
-
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
-                                  params['TARGET_DATASET'], params['BARCODE_STEP_2_TABLE'], params['BQ_AS_BATCH'],
-                                  params['PROGRAM'])
-        if not success:
-            print("attach_barcodes job failed")
-            return
-   
-    #
-    # Merge the barcode info into the final table we are building:
-    #
-
-    if 'create_final_table' in steps:
-        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                       params['TARGET_DATASET'], 
-                                       params['TARGET_TABLE'])
-        barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                           params['TARGET_DATASET'], 
-                                           params['BARCODE_STEP_2_TABLE'])        
-        success = final_merge(skel_table, barcodes_table, 
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), params['BQ_AS_BATCH'],
-                              params['PROGRAM'])
-        if not success:
-            print("Join job failed")
-            return
-
-    #
-    # Create second table
-    #
-
-    if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'].format('current'))
-
-        success = publish_table(source_table, current_dest)
-
-        if not success:
-            print("create current table failed")
-            return
-
-    #
-    # Update schema
     #
 
     if 'pull_table_info_from_git' in steps:
@@ -719,7 +597,7 @@ def main(args):
         print('process_git_schema')
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
@@ -755,11 +633,13 @@ def main(args):
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', release)
+        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, release)
+        table_name_ver = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
+        full_file_prefix_ver = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name_ver)
         # Write out the details
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+        #success2 = customize_labels_and_desc(full_file_prefix_ver, tag_map_list)
         if not success:
             print("replace_schema_tags failed")
             return False
@@ -767,55 +647,147 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
+
+    #bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+    #
+    # Scrape the column descriptions from the GDC web page
+    #
+
+    # if 'scrape_schema' in steps:
+    #     scrape_list = scrape_schema(params['MAF_URL'], params['FIRST_MAF_COL'])
+    #     with open(hold_scraped_dict, mode='w') as scraped_hold_list:
+    #         scraped_hold_list.write(json_dumps(scrape_list))
+
+    #
+    # For the legacy table, the descriptions had lots of analysis tidbits. Very nice, but hard to maintain.
+    # We just use hardwired schema descriptions now, most directly pulled from the GDC website:
+    #
+
+    # if 'build_the_schema' in steps:
+    #     typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+    #     build_combined_schema(hold_scraped_dict, AUGMENTED_SCHEMA_FILE,
+    #                           typing_tups, hold_schema_list, hold_schema_dict)
+
+    #
+    # Upload the giant TSV into a cloud bucket:
+    #
+
+    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+
+    if 'upload_to_bucket' in steps:
+        print('upload_to_bucket')
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
+
+    #
+    # Create the BQ table from the TSV:
+    #
+
+    if 'create_bq_from_tsv' in steps:
+        print('create_bq_from_tsv')
+        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
+        with open(hold_schema_list, mode='r') as schema_hold_dict:
+            typed_schema = json_loads(schema_hold_dict.read())
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
+
+    #
+    # Need to merge in aliquot and sample barcodes from other tables:
+    #
+
+    if 'collect_barcodes' in steps:
+        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                       params['TARGET_DATASET'],
+                                       params['TARGET_TABLE'])
+        if params['PROGRAM'] == 'TCGA':
+            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
+                                         params['TARGET_DATASET'],
+                                         params['BARCODE_STEP_1_TABLE'], params['BQ_AS_BATCH'])
+            if not success:
+                print("attach_aliquot_ids job failed")
+                return
+
+            step_1_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                           params['TARGET_DATASET'],
+                                             params['BARCODE_STEP_1_TABLE'])
+        else:
+            step_1_table = skel_table
+
+        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
+                                  params['TARGET_DATASET'], params['BARCODE_STEP_2_TABLE'], params['BQ_AS_BATCH'],
+                                  params['PROGRAM'])
+        if not success:
+            print("attach_barcodes job failed")
+            return
+
+    #
+    # Merge the barcode info into the final table we are building:
+    #
+
+    if 'create_final_table' in steps:
+        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                       params['TARGET_DATASET'],
+                                       params['TARGET_TABLE'])
+        barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                           params['TARGET_DATASET'],
+                                           params['BARCODE_STEP_2_TABLE'])
+        success = final_merge(skel_table, barcodes_table,
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), params['BQ_AS_BATCH'],
+                              params['PROGRAM'])
+        if not success:
+            print("Join job failed")
+            return
+
+
     #
     # The derived table we generate has no field descriptions. Add them from the scraped page:
     #
-    
+
     if 'update_final_schema' in steps:
-        print()
         success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), hold_schema_dict)
         if not success:
             print("Schema update failed")
-            return       
-    
+            return
+
     #
     # Add the table description:
     #
-    
+
     if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          params['FINAL_TARGET_TABLE'].format(release))
+                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
         success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          params['FINAL_TARGET_TABLE'].format(release), full_file_prefix)
+                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
 
+    #
+    # Create second table
+    #
 
+    #if 'create_current_table' in steps:
 
     # We need a publish step here
 
     #
     # Clear out working temp tables:
     #
-    
-    if 'dump_working_tables' in steps:   
-        dump_table_tags = ['SKELETON_TABLE', 'BARCODE_STEP_1_TABLE', 'BARCODE_STEP_2_TABLE', 
+
+    if 'dump_working_tables' in steps:
+        dump_table_tags = ['SKELETON_TABLE', 'BARCODE_STEP_1_TABLE', 'BARCODE_STEP_2_TABLE',
                            'BQ_MANIFEST_TABLE', 'BQ_PULL_LIST_TABLE']
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
-            delete_table_bq_job(params['TARGET_DATASET'], table)    
+            delete_table_bq_job(params['TARGET_DATASET'], table)
     #
     # Done!
     #
-    
+
     print('job completed')
 
 if __name__ == "__main__":
     main(sys.argv)
-
