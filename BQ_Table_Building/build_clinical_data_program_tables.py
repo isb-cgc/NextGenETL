@@ -24,15 +24,10 @@ import sys
 import json
 import os
 import time
+import numpy
+import pandas
 # from gdc_clinical_resources.test_data_integrity import *
-from common_etl.utils import (
-    get_table_prefixes, get_bq_name, has_fatal_error, get_query_results, get_field_name,
-    get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
-    get_cases_by_program, upload_to_bucket, create_and_load_table,
-    get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
-    get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath,
-    update_bq_table, update_table_schema, copy_bq_table, modify_friendly_name)
+from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import (generate_docs)
 
 API_PARAMS = dict()
@@ -905,8 +900,6 @@ def copy_tables_into_public_project():
 ##
 
 def make_biospecimen_stub_tables():
-    table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
-
     query = ("""
         SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
@@ -923,10 +916,10 @@ def make_biospecimen_stub_tables():
         ORDER BY proj, case_gdc_id
     """)
 
-    result_arr = get_query_results(query)
+    df = get_df_from_query(query)
+    table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
 
-    for row in result_arr:
-        print(row)
+    table = load_table_from_df(df, table_id)
 
 
 def create_tables_for_webapp():

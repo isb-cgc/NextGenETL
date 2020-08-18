@@ -415,6 +415,22 @@ def get_query_results(query):
     return query_job.result()
 
 
+def get_df_from_query(query):
+    client = bigquery.Client()
+
+    query_job = client.query(query)
+    return query_job.to_dataframe
+
+
+def load_table_from_df(df, table_id):
+    client = bigquery.Client()
+
+    job = client.load_table_from_dataframe(df, table_id)
+    job.result()
+
+    return client.get_table(table_id)
+
+
 def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     """
     Creates BQ table and inserts case data from jsonl file.
