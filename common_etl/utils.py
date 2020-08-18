@@ -549,27 +549,27 @@ def get_table_id(bq_params, table_name):
             table_name)
 
 
-def exists_bq_table(table_name):
+def exists_bq_table(table_id):
     client = bigquery.Client()
 
     try:
-        client.get_table(table_name)
+        client.get_table(table_id)
     except NotFound:
         return False
     return True
 
 
-def get_bq_table(table_name):
-    if not exists_bq_table(table_name):
+def get_bq_table(table_id):
+    if not exists_bq_table(table_id):
         return None
 
     client = bigquery.Client()
-    return client.get_table(table_name)
+    return client.get_table(table_id)
 
 
-def update_bq_table(table_name, metadata):
+def update_bq_table(table_id, metadata):
     client = bigquery.Client()
-    table = get_bq_table(table_name)
+    table = get_bq_table(table_id)
 
     table.labels = metadata['labels']
     table.friendly_name = metadata['friendlyName']
@@ -589,9 +589,14 @@ def get_table_schema(table_name):
         print(schema_field.to_api_repr())
 
 
-def update_table_schema(bq_params, table_name):
-    table_id = get_table_id(bq_params, table_name)
-    print(get_table_schema(table_id))
+def update_table_schema(table_id):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    table.schema = [bigquery.SchemaField('updated_datetime', 'STRING', 'NULLABLE',
+                                         description='TEST TEST')]
+
+    client.update_table(table, ['schema'])
 
 
 def list_tables_in_dataset(bq_params):
