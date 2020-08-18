@@ -534,6 +534,13 @@ def get_table_id(bq_params, table_name):
             table_name)
 
 
+def exists_bq_table(table_name):
+    client = bigquery.Client()
+    bq_table = client.get_table(table_name)
+
+    print(bq_table)
+
+
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute

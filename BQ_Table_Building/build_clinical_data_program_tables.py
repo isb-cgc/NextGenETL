@@ -31,7 +31,7 @@ from common_etl.utils import (
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
-    get_dir_files, get_gdc_rel)
+    get_dir_files, get_gdc_rel, get_table_id, exists_bq_table)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -817,11 +817,13 @@ def get_table_metadata():
 
     for json_file in files:
         print(json_file)
-        print(translate_json_name_to_bq_table_name(json_file))
-        print()
+        table_name = transform_json_name_to_table(json_file)
+        table_id = get_table_id(BQ_PARAMS, table_name)
+
+        exists_bq_table(table_id)
 
 
-def translate_json_name_to_bq_table_name(json_name):
+def transform_json_name_to_table(json_name):
     # json file name 'isb-cgc-bq.HCMI.clinical_follow_ups_gdc_r24.json'
     # def table name 'r24_HCMI_clinical_follow_ups'
 
