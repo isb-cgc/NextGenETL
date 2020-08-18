@@ -150,7 +150,7 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         API_PARAMS['CASES_REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] +
+                         BQ_PARAMS['CASES_REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] +
                          API_PARAMS['CASES_TABLE_SUFFIX'])
 
     programs = set()
