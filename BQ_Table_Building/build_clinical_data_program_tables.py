@@ -801,9 +801,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
         jsonl_file = get_jsonl_filename(program_name, table)
         table_id = get_full_table_name(program_name, table)
 
-        print(table_id)
-        continue
-
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
 
