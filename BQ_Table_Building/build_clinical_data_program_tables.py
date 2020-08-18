@@ -815,16 +815,16 @@ def get_table_metadata():
 
     files = get_dir_files(metadata_path)
 
+    table_id = get_table_id(BQ_PARAMS, 'test_test')
+
+    print(exists_bq_table(table_id))
+
     for json_file in files:
-        print(json_file)
         table_name = transform_json_name_to_table(json_file)
         table_id = get_table_id(BQ_PARAMS, table_name)
 
-        exists_bq_table(table_id)
-
-    table_id = get_table_id(BQ_PARAMS, 'test_test')
-
-    exists_bq_table(table_id)
+        print(exists_bq_table(table_id))
+        break
 
 
 def transform_json_name_to_table(json_name):

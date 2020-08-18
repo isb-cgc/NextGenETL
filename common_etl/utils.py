@@ -27,7 +27,8 @@ import os
 import time
 import requests
 import yaml
-from google.cloud import bigquery, storage, exceptions
+from google.cloud import bigquery, storage
+from google.api_core.exceptions import NotFound
 
 
 def has_fatal_error(err, exception=None):
@@ -536,9 +537,12 @@ def get_table_id(bq_params, table_name):
 
 def exists_bq_table(table_name):
     client = bigquery.Client()
-    bq_table = client.get_table(table_name)
 
-    print(bq_table)
+    try:
+        client.get_table(table_name)
+    except NotFound:
+        return False
+    return True
 
 
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
