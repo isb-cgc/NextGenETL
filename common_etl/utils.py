@@ -811,7 +811,7 @@ def get_dir_files(dir_path):
 
     home = os.path.expanduser('~')
 
-    full_path = home + '/' + dir_path
+    f_path = home + '/' + dir_path
 
-    return [f for f in os.listdir(full_path) if os.isfile(os.join(full_path, f))]
+    return [f for f in os.listdir(f_path) if os.path.isfile(os.path.join(f_path, f))]
 
