@@ -582,7 +582,7 @@ def update_bq_table(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def update_table_schema(table_id):
+def update_table_schema(table_id, new_descs):
     client = bigquery.Client()
     table = get_bq_table(table_id)
 
