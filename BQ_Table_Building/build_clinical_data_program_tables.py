@@ -882,6 +882,10 @@ def print_final_report(start, steps):
 
     if 'create_and_load_tables' in steps:
         print('\t - created tables and inserted data')
+    if 'update_table_metadata' in steps:
+        print('\t - added/updated table metadata')
+    if 'update_schema' in steps:
+        print('\t - updated table field descriptions')
     if 'validate_data' in steps:
         print('\t - validated data (tests not considered exhaustive)')
     if 'generate_documentation' in steps:
