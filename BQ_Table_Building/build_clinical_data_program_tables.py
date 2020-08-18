@@ -831,6 +831,8 @@ def update_table_metadata():
 
 
 def update_table_schema():
+    update_table_schema(BQ_PARAMS, 'r24_CGCI_clinical')
+
     fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
     fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + \
                   get_gdc_rel(API_PARAMS) + '.json'
@@ -921,9 +923,6 @@ def main(args):
             # generate table schemas
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
 
-            print(schema)
-            continue
-
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(schema, columns, record_counts, program)
 
@@ -941,8 +940,10 @@ def main(args):
             print("{} processed in {:0.0f} seconds!\n"
                   .format(program, time.time() - prog_start))
 
-    if 'modify_metadata_and_schemas' in steps:
-        # update_table_metadata()
+    if 'update_table_metadata' in steps:
+        update_table_metadata()
+
+    if 'update_schema' in steps:
         update_table_schema()
 
     if 'generate_documentation' in steps:

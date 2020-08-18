@@ -574,6 +574,11 @@ def get_table_schema(table_name):
     return table.schema
 
 
+def update_table_schema(bq_params, table_name):
+    table_id = get_table_id(bq_params, table_name)
+    print(get_table_schema(table_id))
+
+
 def list_tables_in_dataset(bq_params):
     dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
     client = bigquery.Client()
