@@ -31,7 +31,7 @@ from common_etl.utils import (
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
-    get_dir_files)
+    get_dir_files, get_gdc_rel)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -59,9 +59,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    gdc_release = API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE']
-
-    file_name_parts = [gdc_release, program_name, BQ_PARAMS['TABLE_PREFIX']]
+    file_name_parts = [get_gdc_rel(API_PARAMS), program_name, BQ_PARAMS['TABLE_PREFIX']]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -813,11 +811,25 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
 def get_table_metadata():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] + '/')
+                     get_gdc_rel(API_PARAMS) + '/')
 
     files = get_dir_files(metadata_path)
 
-    print(files)
+    for json_file in files:
+        print(json_file)
+        print(translate_json_name_to_bq_table_name(json_file))
+        print()
+
+
+def translate_json_name_to_bq_table_name(json_name):
+    # json file name 'isb-cgc-bq.HCMI.clinical_follow_ups_gdc_r24.json'
+    # def table name 'r24_HCMI_clinical_follow_ups'
+
+    json_name_split = json_name.split('.')
+    program_name = json_name_split[1]
+    split_table_name = json_name_split[2].split('_')
+    partial_table_name = '_'.join(split_table_name[0:-2])
+    return '_'.join([get_gdc_rel(API_PARAMS), program_name, partial_table_name])
 
 
 ####

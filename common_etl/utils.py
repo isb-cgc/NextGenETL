@@ -146,6 +146,10 @@ def get_fg_id_name(api_params, table_key):
     return api_params['TABLE_METADATA'][table_key]['table_id_key']
 
 
+def get_gdc_rel(api_params):
+    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE']
+
+
 #####
 #
 # Functions for analyzing data

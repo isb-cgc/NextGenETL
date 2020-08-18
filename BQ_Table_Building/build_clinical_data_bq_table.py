@@ -27,7 +27,7 @@ import requests
 from common_etl.utils import (
     infer_data_types, load_config, generate_bq_schema, collect_values,
     create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error, get_scratch_dir, upload_to_bucket)
+    has_fatal_error, get_scratch_dir, upload_to_bucket, get_gdc_rel)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -276,8 +276,7 @@ def main(args):
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
-        table_name = API_PARAMS['REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] + '_' + \
-                     API_PARAMS['MASTER_TABLE']
+        table_name = get_gdc_rel(API_PARAMS) + '_' + API_PARAMS['MASTER_TABLE']
 
         # don't want the entire fp for 2nd param, just the file name
         create_and_load_table(bq_params=BQ_PARAMS,
