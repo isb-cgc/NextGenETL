@@ -691,7 +691,7 @@ def main(args):
 
     if 'create_current_table' in steps:
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'].format(release))
+                                         params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
         current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                          params['FINAL_TARGET_TABLE'].format('current'))
 
