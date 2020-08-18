@@ -979,7 +979,6 @@ def main(args):
     """
     start = time.time()
     steps = []
-    # documentation_dict = dict()
 
     # Load YAML configuration
     if len(args) != 2:
@@ -992,11 +991,12 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_programs_list()
-    # programs = ['MMRF']
-
     if 'create_biospecimen_stub_tables' in steps:
         make_biospecimen_stub_tables()
+
+    exit()
+
+    programs = get_programs_list()
 
     for program in programs:
         prog_start = time.time()
