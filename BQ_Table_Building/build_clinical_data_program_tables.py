@@ -58,7 +58,11 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [API_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_PREFIX'], program_name]
+    gdc_release = 'r' + API_PARAMS['GDC_RELEASE']
+
+    file_name_parts = [gdc_release, program_name, BQ_PARAMS['TABLE_PREFIX']]
+
+    file_name_parts = [gdc_release, BQ_PARAMS['TABLE_PREFIX'], program_name]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -146,7 +150,7 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         API_PARAMS['GDC_RELEASE'] + '_caseData')
+                         'rel' + API_PARAMS['GDC_RELEASE'] + '_caseData')
 
     programs = set()
     results = get_query_results("SELECT distinct(program_name) FROM `{}`"
@@ -796,6 +800,9 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
     for table in tables:
         jsonl_file = get_jsonl_filename(program_name, table)
         table_id = get_full_table_name(program_name, table)
+
+        print(table_id)
+        continue
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)

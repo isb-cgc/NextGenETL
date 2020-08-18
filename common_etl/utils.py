@@ -21,7 +21,8 @@ SOFTWARE.
 """
 import io
 import sys
-from os.path import expanduser
+from os import listdir
+from os.path import expanduser, isfile, join
 import time
 import requests
 import yaml
@@ -135,7 +136,7 @@ def get_master_table_name(api_params, bq_params):
     :param bq_params:
     :return:
     """
-    return api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    return 'r' + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
 
 
 def get_fg_id_name(api_params, table_key):
@@ -489,7 +490,7 @@ def get_cases_by_program(api_params, bq_params, program_name):
 
     programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
                          bq_params['METADATA_DATASET'] + '.' +
-                         api_params['GDC_RELEASE'] + '_caseData')
+                         'rel' + api_params['GDC_RELEASE'] + '_caseData')
 
     results = get_query_results(
         """
@@ -797,3 +798,10 @@ def get_dataset_table_list(api_params, bq_params, prefix_component):
 
     return table_id_list
 """
+
+
+#####
+#
+# Functions for getting json files used to modify schema and
+#
+##
