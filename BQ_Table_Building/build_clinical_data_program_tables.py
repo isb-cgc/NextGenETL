@@ -150,7 +150,7 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         'rel' + API_PARAMS['GDC_RELEASE'] + '_caseData')
+                         'rel' + str(API_PARAMS['GDC_RELEASE']) + '_caseData')
 
     programs = set()
     results = get_query_results("SELECT distinct(program_name) FROM `{}`"
