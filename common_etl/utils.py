@@ -594,6 +594,8 @@ def update_table_schema(table_id, new_descriptions):
         if field['name'] in new_descriptions.keys():
             name = field['name']
             field['description'] = new_descriptions[name]
+        elif field['description'] == '':
+            print("Still no description for field: " + field['name'])
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)
