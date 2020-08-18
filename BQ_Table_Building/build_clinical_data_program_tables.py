@@ -925,7 +925,8 @@ def make_biospecimen_stub_tables():
 
     result_arr = get_query_results(query)
 
-    print(result_arr)
+    for row in result_arr:
+        print(row)
 
 
 def create_tables_for_webapp():
