@@ -775,8 +775,9 @@ def main(args):
     # The derived table we generate has no field descriptions. Add them from the scraped page:
     #
     
-    if 'update_final_schema' in steps:    
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), hold_schema_dict)
+    if 'update_final_schema' in steps:
+        print()
+        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return       
