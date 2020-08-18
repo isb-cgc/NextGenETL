@@ -915,6 +915,9 @@ def make_biospecimen_stub_tables():
     """)
 
     df = get_df_from_query(query)
+
+    print(df)
+
     table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
 
     table = load_table_from_df(df, table_id)
