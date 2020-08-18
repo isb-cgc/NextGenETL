@@ -32,7 +32,7 @@ from common_etl.utils import (
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
     get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath,
-    update_bq_table)
+    update_bq_table, update_table_schema)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -830,7 +830,7 @@ def update_table_metadata():
             update_bq_table(table_id, metadata)
 
 
-def update_table_schema():
+def update_schema():
     update_table_schema(BQ_PARAMS, 'r24_CGCI_clinical')
 
     fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
@@ -944,7 +944,7 @@ def main(args):
         update_table_metadata()
 
     if 'update_schema' in steps:
-        update_table_schema()
+        update_schema()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
