@@ -830,3 +830,7 @@ def get_dir_files(dir_path):
 
     return [f for f in os.listdir(f_path) if os.path.isfile(os.path.join(f_path, f))]
 
+
+def get_filepath(dir, filename):
+    return os.path.expanduser('~') + '/' + dir + '/' + filename
+

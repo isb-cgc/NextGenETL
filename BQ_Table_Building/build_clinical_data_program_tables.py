@@ -31,7 +31,7 @@ from common_etl.utils import (
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
     get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
-    get_dir_files, get_gdc_rel, get_table_id, exists_bq_table)
+    get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -823,7 +823,7 @@ def get_table_metadata():
             print('No table found for file (skipping): ' + json_file)
             continue
 
-        with open(json_file) as json_file_output:
+        with open(get_filepath(metadata_path, json_file)) as json_file_output:
             json_data = json.joad(json_file_output)
 
             print(json_data)
