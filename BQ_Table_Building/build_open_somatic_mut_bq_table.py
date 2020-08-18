@@ -467,7 +467,7 @@ def main(args):
 
     # AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
-    if 'create_current_table' in steps:
+    if 'current' in steps:
         release = 'current'
     else:
         release = params['RELEASE']
