@@ -60,7 +60,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [get_gdc_rel(API_PARAMS), program_name, BQ_PARAMS['TABLE_PREFIX']]
+    file_name_parts = [get_gdc_rel(API_PARAMS), program_name, BQ_PARAMS['DATA_PREFIX']]
 
     # if one-to-many table, append suffix
     if prefix:

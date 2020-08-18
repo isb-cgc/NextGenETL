@@ -519,6 +519,20 @@ def get_table_prefixes(api_params):
     prefixes = dict()
 
     for table, table_metadata in api_params['TABLE_METADATA'].items():
+        prefixes[table] = table_metadata['table_prefix'] if table_metadata['table_prefix'] else ''
+
+    return prefixes
+
+
+def get_prefixes(api_params):
+    """
+    Get abbreviations for included field groups
+    :param api_params: api params from yaml config file
+    :return: dict of {table name: abbreviation}
+    """
+    prefixes = dict()
+
+    for table, table_metadata in api_params['TABLE_METADATA'].items():
         prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
 
     return prefixes
@@ -735,7 +749,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     if field_group == 'cases':
         return field
 
-    prefixes = get_table_prefixes(api_params)
+    prefixes = get_prefixes(api_params)
 
     if field_group not in prefixes:
         has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
@@ -754,7 +768,7 @@ def get_field_group_abbreviation(api_params, fg):
     :param fg:
     :return:
     """
-    prefixes = get_table_prefixes(api_params)
+    prefixes = get_prefixes(api_params)
     return prefixes[fg]
 
 
