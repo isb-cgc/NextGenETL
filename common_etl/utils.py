@@ -27,6 +27,7 @@ import os
 import time
 import requests
 import yaml
+import pandas
 from google.cloud import bigquery, storage, exceptions
 from google.api_core.exceptions import NotFound
 

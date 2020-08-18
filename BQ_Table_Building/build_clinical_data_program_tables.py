@@ -24,6 +24,7 @@ import sys
 import json
 import os
 import time
+import pandas
 # from gdc_clinical_resources.test_data_integrity import *
 from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import (generate_docs)
