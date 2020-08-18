@@ -582,7 +582,7 @@ def update_bq_table(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def update_table_schema(table_id, new_descs):
+def update_table_schema(table_id, new_descriptions):
     client = bigquery.Client()
     table = get_bq_table(table_id)
 
@@ -590,8 +590,10 @@ def update_table_schema(table_id, new_descs):
 
     for schema_field in table.schema:
         field = schema_field.to_api_repr()
-        if field['name'] == 'updated_datetime':
-            field['description'] = 'TEST TEST'
+
+        if field['name'] in new_descriptions.keys():
+            name = field['name']
+            field['description'] = new_descriptions[name]
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)

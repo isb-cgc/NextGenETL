@@ -838,7 +838,16 @@ def update_schema():
     with open(get_filepath(fields_path, fields_file)) as json_file_output:
         descriptions = json.load(json_file_output)
 
-        print(descriptions)
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+        table_id = get_table_id(BQ_PARAMS, table_name)
+
+        update_table_schema(table_id, descriptions)
 
 
 def transform_json_name_to_table(json_name):
