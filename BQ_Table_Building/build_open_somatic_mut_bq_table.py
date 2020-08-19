@@ -463,9 +463,12 @@ def main(args):
 
     # Which table are we building?
     release = params['RELEASE']
+    use_schema = params['SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
         release = 'current'
+        use_schema = params['VER_SCHEMA_FILE_NAME']
+
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
@@ -603,7 +606,7 @@ def main(args):
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
