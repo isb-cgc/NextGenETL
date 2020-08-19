@@ -478,20 +478,6 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error(err)
 
 
-def get_case_ids_by_program(bq_params, program):
-    sample_table_name = build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']])
-
-    query = ("""
-        SELECT distinct(case_gdc_id) 
-        FROM `{}.{}.{}` 
-        WHERE proj = {}
-    """).format(
-        bq_params['WORKING_PROJECT'], bq_params['TARGET_DATASET'],
-        sample_table_name, program)
-
-    return {case.case_gdc_id for case in get_query_results(query)}
-
-
 def get_cases_by_program(bq_params, program):
     cases = []
 
@@ -691,15 +677,15 @@ def get_working_table_id(bq_params, table_name=None):
     if not table_name:
         table_name = get_master_table_name(bq_params)
 
-    return build_table_name([bq_params["WORKING_PROJECT"],
-                             bq_params["WORKING_DATASET"],
-                             table_name])
+    return ".".join([bq_params["WORKING_PROJECT"],
+                     bq_params["WORKING_DATASET"],
+                     table_name])
 
 
 def get_webapp_table_id(bq_params, table_name):
-    return build_table_name([bq_params['WORKING_PROJECT'],
-                             bq_params['TARGET_DATASET'],
-                             table_name])
+    return ".".join([bq_params['WORKING_PROJECT'],
+                     bq_params['TARGET_DATASET'],
+                     table_name])
 
 
 #####
