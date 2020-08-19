@@ -582,6 +582,9 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
+    if not is_valid_fg(API_PARAMS, field_group):
+        return flat_case
+
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
