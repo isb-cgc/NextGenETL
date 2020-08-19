@@ -135,6 +135,7 @@ def get_count_column_name(table_key):
 # schemas / ingesting data
 #
 ##
+'''
 def get_programs_list():
     """
     Get list of programs represented in GDC API master pull.
@@ -153,6 +154,7 @@ def get_programs_list():
         programs.add(result.program_name)
 
     return programs
+'''
 
 
 def get_program_list():
@@ -170,13 +172,7 @@ def get_program_list():
         BQ_PARAMS['WORKING_DATASET'],
         get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE'])
 
-    programs = {prog.proj for prog in get_query_results(programs_query)}
-
-    print(programs)
-
-    return programs
-
-
+    return {prog.proj for prog in get_query_results(programs_query)}
 
 
 def build_column_order_dict():
@@ -1016,7 +1012,7 @@ def main(args):
 
     exit()
 
-    programs = get_programs_list()
+    programs = get_program_list()
 
     for program in programs:
         prog_start = time.time()

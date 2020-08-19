@@ -418,6 +418,7 @@ def get_query_results(query):
 def load_table_from_query(table_id, query):
     client = bigquery.Client()
     job_config = bigquery.QueryJobConfig(destination=table_id)
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
     query_job = client.query(query, job_config=job_config)
     query_job.result()
