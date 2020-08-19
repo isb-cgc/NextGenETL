@@ -457,11 +457,11 @@ def main(args):
 
     # Which table are we building?
     release = params['RELEASE']
-    use_schema = params['SCHEMA_FILE_NAME']
+    use_schema = params['VER_SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
         release = 'current'
-        use_schema = params['VER_SCHEMA_FILE_NAME']
+        use_schema = params['SCHEMA_FILE_NAME']
 
 
     #
@@ -782,9 +782,25 @@ def main(args):
 
         if not success:
             print("create current table failed")
+            print("remember to rerun schema steps for current table")
             return
 
-    # We need a publish step here
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
+            return
 
     #
     # Clear out working temp tables:
