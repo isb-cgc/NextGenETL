@@ -922,19 +922,19 @@ def make_biospecimen_stub_tables():
         query = str.format("""
                 SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
                 FROM
-                  (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', 
-                  ') as s_gdc_ids, 
+                  (SELECT proj, case_gdc_id, case_barcode, 
+                  SPLIT(sample_ids, ',') as s_gdc_ids, 
                   SPLIT(submitter_sample_ids, ', ') as s_barcodes
-                   FROM
-                    (SELECT case_id as case_gdc_id, submitter_id as case_barcode, 
+                  FROM
+                    (SELECT case_id as case_gdc_id, 
+                            submitter_id as case_barcode, 
                             sample_ids, submitter_sample_ids, 
-                      SPLIT(
-                      (SELECT project_id
-                       FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+                            SPLIT((SELECT project_id
+                                   FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
                      FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
-                     UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-                     UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-                     WHERE pos1 = pos2
+                  UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+                  UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+                  WHERE pos1 = pos2
                 WHERE proj == {}
             """, program)
 
