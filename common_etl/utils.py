@@ -858,6 +858,10 @@ def get_parent_table(tables, field_name):
     return parent_table
 
 
+def is_valid_fg(api_params, fg_name):
+    return fg_name in api_params['TABLE_METADATA'].keys()
+
+
 #####
 #
 # Functions for filesystem operations

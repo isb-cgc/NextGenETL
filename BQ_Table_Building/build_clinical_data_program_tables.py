@@ -240,8 +240,9 @@ def get_excluded_fields(table):
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
 
-    if (table not in API_PARAMS['TABLE_METADATA']) or \
-            ('excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]):
+    elif table not in API_PARAMS['TABLE_METADATA']:
+        return None
+    elif 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
         return None
 
     return API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
@@ -317,32 +318,36 @@ def examine_case(non_null_fields, record_counts, field_group, fg_name):
     :param fg_name: name of currently-traversed field group
     :return: dicts of non-null field lists and max record counts (keys = field groups)
     """
-    for field, record in field_group.items():
-        if isinstance(record, list):
-            child_fg = fg_name + '.' + field
+    if is_valid_fg(API_PARAMS, fg_name):
+        for field, record in field_group.items():
 
-            if child_fg not in record_counts:
-                non_null_fields[child_fg] = set()
-                record_counts[child_fg] = len(record)
+            if isinstance(record, list):
+                child_fg = fg_name + '.' + field
+
+                if not is_valid_fg(API_PARAMS, child_fg):
+                    continue
+                elif child_fg not in record_counts:
+                    non_null_fields[child_fg] = set()
+                    record_counts[child_fg] = len(record)
+                else:
+                    record_counts[child_fg] = max(record_counts[child_fg], len(record))
+
+                for entry in record:
+                    examine_case(non_null_fields, record_counts,
+                                 field_group=entry, fg_name=child_fg)
             else:
-                record_counts[child_fg] = max(record_counts[child_fg], len(record))
+                if fg_name not in non_null_fields:
+                    non_null_fields[fg_name] = set()
+                    record_counts[fg_name] = 1
 
-            for entry in record:
-                examine_case(non_null_fields, record_counts,
-                             field_group=entry, fg_name=child_fg)
-        else:
-            if fg_name not in non_null_fields:
-                non_null_fields[fg_name] = set()
-                record_counts[fg_name] = 1
+                if isinstance(record, dict):
+                    for child_field in record:
+                        non_null_fields[fg_name].add(child_field)
+                else:
+                    if record:
+                        non_null_fields[fg_name].add(field)
 
-            if isinstance(record, dict):
-                for child_field in record:
-                    non_null_fields[fg_name].add(child_field)
-            else:
-                if record:
-                    non_null_fields[fg_name].add(field)
-
-    return non_null_fields, record_counts
+        return non_null_fields, record_counts
 
 
 def find_program_structure(cases):
@@ -362,9 +367,9 @@ def find_program_structure(cases):
 
     for fg in field_groups:
         if fg not in API_PARAMS['TABLE_METADATA']:
+            print("{} not in metadata".format(fg))
             field_groups.pop(fg)
-            print(cases)
-            # cases.pop(fg)
+            cases.pop(fg)
 
     columns = flatten_tables(field_groups, record_counts)
 
