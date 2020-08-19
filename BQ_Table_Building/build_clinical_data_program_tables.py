@@ -352,15 +352,21 @@ def find_program_structure(cases):
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
-    non_null_fields = {}
+    field_groups = {}
     record_counts = {}
 
     for case in cases:
         if not case:
             continue
-        examine_case(non_null_fields, record_counts, field_group=case, fg_name='cases')
+        examine_case(field_groups, record_counts, field_group=case, fg_name='cases')
 
-    columns = flatten_tables(non_null_fields, record_counts)
+    for fg in field_groups:
+        if fg not in API_PARAMS['TABLE_METADATA']:
+            field_groups.pop(fg)
+            print(cases)
+            # cases.pop(fg)
+
+    columns = flatten_tables(field_groups, record_counts)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
