@@ -779,7 +779,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
                     temp_dict = flattened_case[table].pop(old_name)
                     flattened_case[table][new_name] = temp_dict
 
-            print(flattened_case[table])
+            print(flattened_case)
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
