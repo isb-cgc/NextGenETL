@@ -804,12 +804,14 @@ def main(args):
         #                                               params['FINAL_TARGET_TABLE'])
         for table in tables:
             if table == 'versioned':
+                print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                                          params['FINAL_TARGET_TABLE'].format(release))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                      params['PUBLICATION_TABLE'].format(release))
             elif table == 'current':
+                print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                                          params['FINAL_TARGET_TABLE'].format('current'))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
