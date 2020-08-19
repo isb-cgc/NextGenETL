@@ -155,6 +155,30 @@ def get_programs_list():
     return programs
 
 
+def get_program_list():
+    programs_query = str.format(
+        """
+        SELECT DISTINCT(proj) 
+        FROM (
+          SELECT SPLIT(
+            (SELECT project_id
+             FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+          FROM `{}.{}.{}`)
+        ORDER BY proj
+        """,
+        BQ_PARAMS['WORKING_PROJECT'],
+        BQ_PARAMS['WORKING_DATASET'],
+        get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE'])
+
+    programs = {prog.proj for prog in get_query_results(programs_query)}
+
+    print(programs)
+
+    return programs
+
+
+
+
 def build_column_order_dict():
     """
     Using table order provided in YAML, with add't ordering for reference
@@ -901,9 +925,11 @@ def make_biospecimen_stub_tables():
     query = ("""
         SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
-          (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', ') as s_gdc_ids, SPLIT(submitter_sample_ids, ', ') as s_barcodes
+          (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', ') as s_gdc_ids, 
+          SPLIT(submitter_sample_ids, ', ') as s_barcodes
            FROM
-            (SELECT case_id as case_gdc_id, submitter_id as case_barcode, sample_ids, submitter_sample_ids, 
+            (SELECT case_id as case_gdc_id, submitter_id as case_barcode, 
+                    sample_ids, submitter_sample_ids, 
               SPLIT(
               (SELECT project_id
                FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
@@ -913,6 +939,8 @@ def make_biospecimen_stub_tables():
              WHERE pos1 = pos2
         ORDER BY proj, case_gdc_id
     """)
+
+    programs = get_program_list()
 
     table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
     table = load_table_from_query(table_id, query)
