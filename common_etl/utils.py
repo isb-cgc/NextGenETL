@@ -504,7 +504,7 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
-def get_table_prefixes(api_params):
+def get_table_suffixes(api_params):
     """
     Get abbreviations for included field groups
     :param api_params: api params from yaml config file

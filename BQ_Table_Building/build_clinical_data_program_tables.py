@@ -47,18 +47,18 @@ def generate_long_name(program_name, table):
     :param table: Table name.
     :return: String representing a unique string identifier.
     """
-    prefixes = get_table_prefixes(API_PARAMS)
-    prefix = prefixes[table]
+    suffixes = get_table_suffixes(API_PARAMS)
+    suffix = suffixes[table]
 
     # remove invalid char from program name
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [get_gdc_rel(BQ_PARAMS), program_name, BQ_PARAMS['DATA_PREFIX']]
+    file_name_parts = [get_gdc_rel(BQ_PARAMS), program_name, BQ_PARAMS['MASTER_TABLE']]
 
     # if one-to-many table, append suffix
-    if prefix:
-        file_name_parts.append(prefix)
+    if suffix:
+        file_name_parts.append(suffix)
 
     return '_'.join(file_name_parts)
 
@@ -127,34 +127,6 @@ def get_count_column_name(table_key):
     :return: count column name
     """
     return get_bq_name(API_PARAMS, 'count', table_key)
-
-
-####
-#
-# Functions which retrieve preliminary information used for creating table
-# schemas / ingesting data
-#
-##
-'''
-def get_programs_list():
-    """
-    Get list of programs represented in GDC API master pull.
-    :return: List of GDC programs.
-    """
-    programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
-                         BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         BQ_PARAMS['CASES_REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] +
-                         BQ_PARAMS['CASES_TABLE_SUFFIX'])
-
-    programs = set()
-    results = get_query_results("SELECT distinct(program_name) FROM `{}`"
-                                .format(programs_table_id))
-
-    for result in results:
-        programs.add(result.program_name)
-
-    return programs
-'''
 
 
 def get_program_list():
@@ -797,9 +769,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
     """
     tables = get_tables(record_counts)
 
-    print(tables)
-    return
-
     print("\nInserting case records...")
     for table in tables:
         jsonl_file_path = get_temp_filepath(program_name, table)
@@ -1016,10 +985,12 @@ def main(args):
         prog_start = time.time()
 
         if 'create_biospecimen_stub_tables' in steps:
+
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
-        if 'create_web_app_tables' or 'create_and_load_table' in steps:
+        if 'create_webapp_tables' or 'create_and_load_table' in steps:
+
             print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
 
@@ -1047,8 +1018,7 @@ def main(args):
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
 
-            print("{} processed in {:0.0f} seconds!\n"
-                  .format(program, time.time() - prog_start))
+            print("{} processed in {:0.0f}s!\n".format(program, time.time() - prog_start))
 
     if 'update_table_metadata' in steps:
         update_table_metadata()
@@ -1058,9 +1028,6 @@ def main(args):
 
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
-
-    if 'create_tables_for_webapp' in steps:
-        create_tables_for_webapp()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
