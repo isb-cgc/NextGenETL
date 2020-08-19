@@ -787,6 +787,10 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
     :param schemas: dict of schema lists for all of this program's tables
     """
     tables = get_tables(record_counts)
+
+    print(tables)
+    return
+
     print("\nInserting case records...")
     for table in tables:
         jsonl_file_path = get_temp_filepath(program_name, table)
@@ -1030,9 +1034,6 @@ def main(args):
             remove_null_fields(columns, merged_orders)
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-
-            print(table_schemas)
-            break
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
