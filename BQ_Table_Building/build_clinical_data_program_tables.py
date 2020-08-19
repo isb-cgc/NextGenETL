@@ -369,28 +369,23 @@ def get_case_id_index(table_key, column_orders):
 def generate_id_schema_entry(column, parent_table, program):
     """
     Create schema entry for inserted parent reference id.
+    :param program: program name
     :param column: parent id column
     :param parent_table: parent table name
-    :param program: program name
     :return: schema entry dict for new reference id field
     """
     field_name = get_field_name(column)
 
-    if is_renamed(API_PARAMS, field_name):
-        field_name = get_new_name(API_PARAMS, field_name)
-
     if field_name == 'case_id':
-        if is_renamed(API_PARAMS, field_name):
-            bq_col_name = field_name
-        else:
-            bq_col_name = 'case_id'
+        bq_col_name = 'case_id'
+        # source_table = 'main'
         source_table = get_full_table_name(program, 'cases')
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
         source_table = get_full_table_name(program, parent_table)
 
     return {
-        "name": field_name,
+        "name": get_field_name(column),
         "type": 'STRING',
         "description": ("Reference to ancestor {}, located in {}."
                         .format(bq_col_name, source_table)),
@@ -520,9 +515,6 @@ def create_schema_lists(schema, record_counts, merged_orders):
     # add bq abbreviations to schema field dicts
     for entry in schema:
         field = get_field_name(entry)
-        if is_renamed(API_PARAMS, field):
-            field = get_new_name(API_PARAMS, field)
-            schema[entry]['name'] = get_bq_name(API_PARAMS, field)
         if field != 'case_id':
             schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
 
@@ -590,9 +582,6 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    if not is_valid_fg(API_PARAMS, field_group):
-        return flat_case
-
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
@@ -618,18 +607,10 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     row_dict[pid_column] = pid
 
                 if id_field != 'case_id':
-                    if is_renamed(API_PARAMS, 'case_id'):
-                        new_id_field = get_new_name(API_PARAMS, 'case_id')
-                        row_dict[new_id_field] = case_id
-                    else:
-                        row_dict['case_id'] = case_id
+                    row_dict['case_id'] = case_id
                 # Field converted bq column name
-                if is_renamed(API_PARAMS, field):
-                    field = get_new_name(API_PARAMS, field)
-
                 column = get_bq_name(API_PARAMS, field, field_group)
                 row_dict[column] = field_val
-
         if field_group not in flat_case:
             flat_case[field_group] = list()
 
@@ -650,18 +631,12 @@ def flatten_case(case):
     :param case: dict containing case data
     :return: flattened case dict
     """
-
-    if is_renamed(API_PARAMS, 'case_id'):
-        parent_id = get_new_name(API_PARAMS, 'case_id')
-    else:
-        parent_id = 'case_id'
-
     return flatten_case_entry(record=case,
                               field_group='cases',
                               flat_case=dict(),
-                              case_id=case[parent_id],
-                              pid=case[parent_id],
-                              pid_field=parent_id)
+                              case_id=case['case_id'],
+                              pid=case['case_id'],
+                              pid_field='case_id')
 
 
 def get_record_idx(flattened_case, field_group, record_id):
@@ -793,17 +768,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
         for table in flattened_case.keys():
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
-
-            rename_dict = API_PARAMS['RENAME_FIELDS']
-
-            for old_name, new_name in rename_dict.items():
-                for element in flattened_case[table]:
-                    if old_name in element:
-                        value = element[old_name]
-                        element[new_name] = value
-                        del element[old_name]
-
-                        assert element[new_name] == value
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
