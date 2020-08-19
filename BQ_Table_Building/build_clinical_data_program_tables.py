@@ -515,9 +515,9 @@ def create_schema_lists(schema, record_counts, merged_orders):
     # add bq abbreviations to schema field dicts
     for entry in schema:
         field = get_field_name(entry)
-        if is_renamed(API_PARAMS, field):
-            field = get_new_name(API_PARAMS, field)
-            schema[entry]['name'] = get_bq_name(API_PARAMS, field)
+        # if is_renamed(API_PARAMS, field):
+        #    field = get_new_name(API_PARAMS, field)
+        #    schema[entry]['name'] = get_bq_name(API_PARAMS, field)
         if field != 'case_id':
             schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
 
@@ -775,6 +775,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
+            """
             rename_dict = API_PARAMS['RENAME_FIELDS']
 
             for old_name, new_name in rename_dict.items():
@@ -785,6 +786,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
                         del element[old_name]
 
                         assert element[new_name] == value
+                        
+            """
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
