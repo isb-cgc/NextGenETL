@@ -1017,6 +1017,10 @@ def main(args):
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
 
+            print(table_schemas)
+            print("YO")
+            exit()
+
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
 
