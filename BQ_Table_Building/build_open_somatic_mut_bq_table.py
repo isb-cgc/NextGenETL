@@ -793,15 +793,6 @@ def main(args):
 
         tables = ['versioned','current']
 
-        #current_source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-        #                                         params['FINAL_TARGET_TABLE'].format('current'))
-        #version_source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-        #                                         params['FINAL_TARGET_TABLE'].format(release))
-        #current_publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-        #                                             params['PUBLICATION_TABLE'])
-        #versioned_publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-        #                                               "_".join([params['PUBLICATION_DATASET'],'versioned']),
-        #                                               params['FINAL_TARGET_TABLE'])
         for table in tables:
             if table == 'versioned':
                 print(table)
