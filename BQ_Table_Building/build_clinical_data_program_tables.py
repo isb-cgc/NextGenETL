@@ -38,7 +38,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 #
 ##
-def generate_long_name(program_name, table):
+def generate_long_name(program_name, table, has_rel=True):
     """
     Generate string representing a unique name, constructed from elements of
     the table name, program name and GDC release number. Used for storage
@@ -47,20 +47,20 @@ def generate_long_name(program_name, table):
     :param table: Table name.
     :return: String representing a unique string identifier.
     """
-    suffixes = get_table_suffixes(API_PARAMS)
-    suffix = suffixes[table]
+    table_name = []
 
-    # remove invalid char from program name
-    if '.' in program_name:
-        program_name = '_'.join(program_name.split('.'))
+    if has_rel:
+        table_name.append(get_gdc_rel(BQ_PARAMS))
 
-    file_name_parts = [get_gdc_rel(BQ_PARAMS), program_name, BQ_PARAMS['MASTER_TABLE']]
+    table_name += [program_name, BQ_PARAMS['MASTER_TABLE']]
 
     # if one-to-many table, append suffix
-    if suffix:
-        file_name_parts.append(suffix)
+    suffix = get_table_suffixes(API_PARAMS)[table]
 
-    return '_'.join(file_name_parts)
+    if suffix:
+        table_name.append(suffix)
+
+    return build_table_name(table_name)
 
 
 def get_jsonl_filename(program_name, table):
@@ -768,6 +768,9 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
         for table in flattened_case.keys():
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
+
+            print(flattened_case[table])
+            exit(0)
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
