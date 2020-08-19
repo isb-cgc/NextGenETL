@@ -113,7 +113,7 @@ def get_required_columns(api_params, table):
     if not api_params['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
     elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
-        has_fatal_error("table_id_key not found in table metadata for {}".format(table))
+        return None
 
     table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
     table_id_name = get_full_field_name(table, table_id_field)
