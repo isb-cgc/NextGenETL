@@ -175,7 +175,7 @@ def get_program_list():
     programs = set()
 
     for prog in get_query_results(programs_query):
-        program = prog.replace('.', '_')
+        program = str(prog).replace('.', '_')
         programs.add(program)
 
     return programs
