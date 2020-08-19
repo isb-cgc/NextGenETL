@@ -142,6 +142,9 @@ def get_fg_id_name(api_params, table_key):
     if not api_params['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
 
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
+
     if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
         has_fatal_error("table_id_key not found in "
                         "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
