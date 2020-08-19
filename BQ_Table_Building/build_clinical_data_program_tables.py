@@ -369,23 +369,28 @@ def get_case_id_index(table_key, column_orders):
 def generate_id_schema_entry(column, parent_table, program):
     """
     Create schema entry for inserted parent reference id.
-    :param program: program name
     :param column: parent id column
     :param parent_table: parent table name
+    :param program: program name
     :return: schema entry dict for new reference id field
     """
     field_name = get_field_name(column)
 
+    if is_renamed(API_PARAMS, field_name):
+        field_name = get_new_name(API_PARAMS, field_name)
+
     if field_name == 'case_id':
-        bq_col_name = 'case_id'
-        # source_table = 'main'
+        if is_renamed(API_PARAMS, field_name):
+            bq_col_name = field_name
+        else:
+            bq_col_name = 'case_id'
         source_table = get_full_table_name(program, 'cases')
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
         source_table = get_full_table_name(program, parent_table)
 
     return {
-        "name": get_field_name(column),
+        "name": field_name,
         "type": 'STRING',
         "description": ("Reference to ancestor {}, located in {}."
                         .format(bq_col_name, source_table)),
@@ -1016,10 +1021,6 @@ def main(args):
             remove_null_fields(columns, merged_orders)
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-
-            print(table_schemas)
-            print("YO")
-            exit()
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
