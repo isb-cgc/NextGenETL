@@ -172,7 +172,13 @@ def get_program_list():
         BQ_PARAMS['WORKING_DATASET'],
         get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE'])
 
-    return {prog.proj for prog in get_query_results(programs_query)}
+    programs = set()
+
+    for prog in get_query_results(programs_query):
+        program = prog.replace('.', '_')
+        programs.add(program)
+
+    return programs
 
 
 def build_column_order_dict():
@@ -935,7 +941,7 @@ def make_biospecimen_stub_tables():
                 UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
                 UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
                 WHERE pos1 = pos2
-                AND proj == {}
+                AND proj == '{}'
             """, program)
 
         table_name = program + '_biospecimen_reference'
