@@ -786,7 +786,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     prefixes = get_prefixes(api_params)
 
     if field_group not in prefixes:
-        has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
+        return None
 
     if prefixes[field_group]:
         return prefixes[field_group] + '__' + field
