@@ -858,44 +858,6 @@ def get_parent_table(tables, field_name):
     return parent_table
 
 
-"""
-# currently unused, but would be a good addition to package
-def download_from_bucket(src_file, dest_file, api_params, bq_params):
-    client = storage.Client()
-
-    with open(dest_file) as file_obj:
-        bucket_path = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
-                       bq_params['WORKING_BUCKET_DIR'] + '/')
-        path_to_file = bucket_path + '/' + api_params['GDC_RELEASE'] + src_file
-
-        client.download_blob_to_file(path_to_file, file_obj)
-"""
-
-
-"""
-# for test_data_integrity
-
-def get_dataset_table_list(api_params, bq_params, prefix_component):
-    client = bigquery.Client()
-    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' +
-                                 bq_params['TARGET_DATASET'])
-    results = client.list_tables(dataset)
-
-    prefix = api_params["GDC_RELEASE"] + '_' + prefix_component + '_'
-
-    table_id_list = []
-
-    for table in results:
-        table_id_name = table.table_id
-        if table_id_name and prefix in table_id_name:
-            table_id_list.append(table_id_name)
-
-    table_id_list.sort()
-
-    return table_id_list
-"""
-
-
 #####
 #
 # Functions for filesystem operations
@@ -906,22 +868,15 @@ def get_scratch_dir(api_params):
     Construct filepath for VM output file
     :return: output filepath for VM
     """
-    home = os.path.expanduser('~')
-    output_dir = api_params['SCRATCH_DIR']
-
-    return home + '/' + output_dir
+    return '/'.join([os.path.expanduser('~'), api_params['SCRATCH_DIR']])
 
 
 def get_dir_files(dir_path):
-
-    home = os.path.expanduser('~')
-
-    f_path = home + '/' + dir_path
-
+    f_path = '/'.join([os.path.expanduser('~'), dir_path])
     return [f for f in os.listdir(f_path) if os.path.isfile(os.path.join(f_path, f))]
 
 
-def get_filepath(dir, filename):
-    return os.path.expanduser('~') + '/' + dir + '/' + filename
+def get_filepath(dir_path, filename):
+    return '/'.join([os.path.expanduser('~'), dir_path, filename])
 
 
