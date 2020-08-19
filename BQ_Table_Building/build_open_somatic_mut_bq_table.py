@@ -304,22 +304,27 @@ Some field names are not accurately named and as of 2020-08-05, the GDC has said
 update the field names to accurately reflect the data within th column.
 '''
 
-def clean_header_names(header_line, program):
+def clean_header_names(header_line, fields_to_fix, program):
     header_id = header_line.split('\t')
     if program != 'TCGA':
         for header_name in range(len(header_id)):
-            if header_id[header_name] == 'Tumor_Sample_UUID':
-                header_id[header_name] = 'Tumor_Aliquot_UUID'
-            if header_id[header_name] == 'Matched_Norm_Sample_UUID':
-                header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
-            if header_id[header_name] == 'Tumor_Sample_Barcode':
-                header_id[header_name] = 'Tumor_Aliquot_Barcode'
-            if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
-                header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
-            if header_id[header_name] == 'tumor_bam_uuid':
-                header_id[header_name] = 'tumor_submitter_uuid'
-            if header_id[header_name] == 'normal_bam_uuid':
-                header_id[header_name] = 'normal_submitter_uuid'
+            for dict in fields_to_fix:
+                original, new = next(iter(dict.items()))
+
+                if header_id[header_name] == original:
+                    header_id[header_name] = new
+            #if header_id[header_name] == 'Tumor_Sample_UUID':
+            #    header_id[header_name] = 'Tumor_Aliquot_UUID'
+            #if header_id[header_name] == 'Matched_Norm_Sample_UUID':
+            #    header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
+            #if header_id[header_name] == 'Tumor_Sample_Barcode':
+            #    header_id[header_name] = 'Tumor_Aliquot_Barcode'
+            #if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
+            #    header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
+            #if header_id[header_name] == 'tumor_bam_uuid':
+            #    header_id[header_name] = 'tumor_submitter_uuid'
+            #if header_id[header_name] == 'normal_bam_uuid':
+            #    header_id[header_name] = 'normal_submitter_uuid'
     return header_id
 
 '''
@@ -345,7 +350,7 @@ def process_callers(callers_str, callers):
 Concatenate all Files
 '''
 
-def concat_all_files(all_files, one_big_tsv, program, callers):
+def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
@@ -384,7 +389,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers):
                     if not line.startswith('#'):
                         if first:
                             header_id = line.split('\t')[0]
-                            header_names = clean_header_names(line, program)
+                            header_names = clean_header_names(line, fields_to_fix, program)
                             header_line = '\t'.join(header_names)
                             outfile.write(header_line.rstrip('\n'))
                             outfile.write('\t')
@@ -588,7 +593,7 @@ def main(args):
         # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers)
+            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers, params['FIELDS_TO_FIX'])
     #
     # Schemas and table descriptions are maintained in the github repo:
     #
