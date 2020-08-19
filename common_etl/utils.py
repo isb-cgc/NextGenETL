@@ -623,6 +623,9 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
     :return: flattened schema dict {full field name:
         {name: 'name', type: 'field_type', description: 'description'}}
     """
+    if not is_valid_fg(field_group):
+        return flat_schema
+
     for field in fields:
         field_dict = field.to_api_repr()
         schema_key = field_group + '.' + field_dict['name']
