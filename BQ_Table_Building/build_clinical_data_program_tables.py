@@ -775,9 +775,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
             rename_dict = API_PARAMS['RENAME_FIELDS']
 
             for old_name, new_name in rename_dict.items():
-                if old_name in flattened_case[table]:
-                    temp_dict = flattened_case[table].pop(old_name)
-                    flattened_case[table][new_name] = temp_dict
+                for element in flattened_case[table]:
+                    if old_name in element:
+                        value = element[old_name]
+                        element[new_name] = value
+                        del element[old_name]
+
+                        assert element[new_name] == value
 
             print(flattened_case)
 
