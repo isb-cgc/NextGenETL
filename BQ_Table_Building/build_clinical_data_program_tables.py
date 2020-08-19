@@ -772,13 +772,14 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
 
-            print(flattened_case[table])
             rename_dict = API_PARAMS['RENAME_FIELDS']
 
             for old_name, new_name in rename_dict.items():
                 if old_name in flattened_case[table]:
                     temp_dict = flattened_case[table].pop(old_name)
                     flattened_case[table][new_name] = temp_dict
+
+            print(flattened_case[table])
 
             jsonl_fp = get_temp_filepath(program_name, table)
 
