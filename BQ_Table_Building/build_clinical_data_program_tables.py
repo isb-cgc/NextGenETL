@@ -54,7 +54,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [get_gdc_rel(API_PARAMS), program_name, BQ_PARAMS['DATA_PREFIX']]
+    file_name_parts = [get_gdc_rel(BQ_PARAMS), program_name, BQ_PARAMS['DATA_PREFIX']]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -158,32 +158,21 @@ def get_programs_list():
 
 
 def get_program_list():
-    programs_query = str.format(
-        """
-        SELECT DISTINCT(proj) 
-        FROM (
-          SELECT SPLIT(
-            (SELECT project_id
-             FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-          FROM `{}.{}.{}`)
-        ORDER BY proj
-        """,
+    programs_query = ("""
+    SELECT DISTINCT(proj) 
+    FROM (
+      SELECT SPLIT(
+        (SELECT project_id
+         FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+      FROM `{}.{}.{}`)
+    ORDER BY proj
+    """).format(
         BQ_PARAMS['WORKING_PROJECT'],
         BQ_PARAMS['WORKING_DATASET'],
-        get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE'])
-
-    """
-    programs = set()
-
-    for program in get_query_results(programs_query):
-        formatted_program = str(program.proj).replace('.', '_')
-        programs.add(formatted_program)
-    return programs
-    """
+        get_gdc_rel(BQ_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE']
+    )
 
     return {prog.proj for prog in get_query_results(programs_query)}
-
-
 
 
 def build_column_order_dict():
@@ -836,13 +825,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
 def update_table_metadata():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(API_PARAMS) + '/')
+                     get_gdc_rel(BQ_PARAMS) + '/')
 
     files = get_dir_files(metadata_path)
 
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
-        table_id = get_table_id(BQ_PARAMS, table_name)
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         if not exists_bq_table(table_id):
             print('No table found for file (skipping): ' + json_file)
@@ -857,19 +846,19 @@ def update_table_metadata():
 def update_schema():
     fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
     fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + \
-                  get_gdc_rel(API_PARAMS) + '.json'
+                  get_gdc_rel(BQ_PARAMS) + '.json'
 
     with open(get_filepath(fields_path, fields_file)) as json_file_output:
         descriptions = json.load(json_file_output)
 
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(API_PARAMS) + '/')
+                     get_gdc_rel(BQ_PARAMS) + '/')
 
     files = get_dir_files(metadata_path)
 
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
-        table_id = get_table_id(BQ_PARAMS, table_name)
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         update_table_schema(table_id, descriptions)
 
@@ -882,12 +871,12 @@ def transform_json_name_to_table(json_name):
     program_name = json_name_split[1]
     split_table_name = json_name_split[2].split('_')
     partial_table_name = '_'.join(split_table_name[0:-2])
-    return '_'.join([get_gdc_rel(API_PARAMS), program_name, partial_table_name])
+    return '_'.join([get_gdc_rel(BQ_PARAMS), program_name, partial_table_name])
 
 
 def copy_tables_into_public_project():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(API_PARAMS) + '/')
+                     get_gdc_rel(BQ_PARAMS) + '/')
 
     files = get_dir_files(metadata_path)
 
@@ -905,7 +894,7 @@ def copy_tables_into_public_project():
         current_table = '_'.join(versioned_table.split('_')[:-1])
         current_table += '_current'
 
-        source_table_id = get_table_id(BQ_PARAMS, table_name)
+        source_table_id = get_working_table_id(BQ_PARAMS, table_name)
         curr_table_id = '.'.join([project, dataset, current_table])
         versioned_table_id = '.'.join([project, versioned_dataset, versioned_table])
 
@@ -928,42 +917,31 @@ def copy_tables_into_public_project():
 #
 ##
 
-def make_biospecimen_stub_tables():
-    for program in get_program_list():
-        query = str.format("""
-                SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-                FROM
-                  (SELECT proj, case_gdc_id, case_barcode, 
-                    SPLIT(sample_ids, ',') as s_gdc_ids, 
-                    SPLIT(submitter_sample_ids, ', ') as s_barcodes
-                    FROM
-                        (SELECT case_id as case_gdc_id, 
-                            submitter_id as case_barcode, 
-                            sample_ids, submitter_sample_ids, 
-                            SPLIT((SELECT project_id
-                                   FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-                        FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
-                UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-                UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-                WHERE pos1 = pos2
-                AND proj = '{}'
-            """, program)
+def make_biospecimen_stub_tables(program):
+    query = ("""
+        SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        FROM
+          (SELECT proj, case_gdc_id, case_barcode, 
+            SPLIT(sample_ids, ',') as s_gdc_ids, 
+            SPLIT(submitter_sample_ids, ', ') as s_barcodes
+            FROM
+                (SELECT case_id as case_gdc_id, 
+                    submitter_id as case_barcode, 
+                    sample_ids, submitter_sample_ids, 
+                    SPLIT((SELECT project_id
+                           FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+                FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
+        UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+        UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+        WHERE pos1 = pos2
+        AND proj = '{}'
+    """).format(program)
 
-        table_name = str(program).replace('.', '_') + '_biospecimen_ref'
-        table_id = get_table_id(BQ_PARAMS, table_name)
-        table = load_table_from_query(table_id, query)
+    table_name = build_table_name([str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    table_id = get_working_table_id(BQ_PARAMS, table_name)
+    table = load_table_from_query(table_id, query)
 
-        print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
-
-
-def create_tables_for_webapp():
-    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(API_PARAMS) + '/')
-
-    files = get_dir_files(metadata_path)
-
-    for json_file in files:
-        table_name = transform_json_name_to_table(json_file)
+    print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
 
 
 ####
@@ -1019,21 +997,21 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    if 'create_biospecimen_stub_tables' in steps:
-        make_biospecimen_stub_tables()
-
-    exit()
-
     programs = get_program_list()
 
     for program in programs:
         prog_start = time.time()
 
-        if 'create_and_load_tables' in steps:
-            print("Executing script for program {}...".format(program))
-            cases = get_cases_by_program(API_PARAMS, BQ_PARAMS, program)
+        if 'create_biospecimen_stub_tables' in steps:
+            print("Creating biospecimen stub tables!")
+            make_biospecimen_stub_tables(program)
 
-            if not cases:
+        if 'create_web_app_tables' or 'create_and_load_table' in steps:
+            print("Executing script for program {}...".format(program))
+            cases = get_cases_by_program(BQ_PARAMS, program)
+
+            if len(cases) == 0:
+                print("No case records found for program {}, skipping.".format(program))
                 continue
 
             # derive the program's table structure by analyzing its case records
@@ -1052,6 +1030,9 @@ def main(args):
             remove_null_fields(columns, merged_orders)
 
             table_schemas = create_schema_lists(schema, record_counts, merged_orders)
+
+            print(table_schemas)
+            break
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)

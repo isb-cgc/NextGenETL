@@ -120,14 +120,14 @@ def get_required_columns(api_params, table):
     return [table_id_name]
 
 
-def get_master_table_name(api_params, bq_params):
+def get_master_table_name(bq_params):
     """
     # todo
     :param api_params:
     :param bq_params:
     :return:
     """
-    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
 
 
 def get_fg_id_name(api_params, table_key):
@@ -145,10 +145,6 @@ def get_fg_id_name(api_params, table_key):
                         "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
 
     return api_params['TABLE_METADATA'][table_key]['table_id_key']
-
-
-def get_gdc_rel(api_params):
-    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE']
 
 
 #####
@@ -391,10 +387,11 @@ def create_schema_dict(api_params, bq_params):
     :return: flattened schema dict in format:
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
     """
-    table_name = get_master_table_name(api_params, bq_params)
-    table_id = get_table_id(bq_params, table_name)
+    table_id = get_working_table_id(bq_params)
+
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
+
     return get_schema_from_master_table(api_params, dict(), 'cases', table_obj.schema)
 
 
@@ -481,42 +478,39 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error(err)
 
 
-def get_cases_by_program(api_params, bq_params, program_name):
-    """
-    Returns list of case records by program name.
-    :param api_params: api params from yaml config file
-    :param bq_params: bq params from yaml config file
-    :param program_name: name of program for which to retrieve cases
-    :return: list of cases for program
-    """
+def get_case_ids_by_program(bq_params, program):
+    sample_table_name = build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']])
+
+    query = ("""
+        SELECT distinct(case_gdc_id) 
+        FROM `{}.{}.{}` 
+        WHERE proj = {}
+    """).format(
+        bq_params['WORKING_PROJECT'], bq_params['TARGET_DATASET'],
+        sample_table_name, program)
+
+    return {case.case_gdc_id for case in get_query_results(query)}
+
+
+def get_cases_by_program(bq_params, program):
     cases = []
 
-    main_table_id = (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] +
-                     '.' + get_master_table_name(api_params, bq_params))
+    sample_table_id = get_webapp_table_id(
+        bq_params, build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']]))
 
-    programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
-                         bq_params['METADATA_DATASET'] + '.' +
-                         bq_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
-                         bq_params['CASES_TABLE_SUFFIX'])
-
-    results = get_query_results(
-        """
-        SELECT *
-        FROM `{}`
-        WHERE case_id
-        IN (SELECT case_gdc_id
+    query = ("""
+        SELECT * FROM `{}` 
+        WHERE case_gdc_id IN (
+            SELECT distinct(case_gdc_id) 
             FROM `{}`
-            WHERE program_name = '{}')
-        """.format(main_table_id, programs_table_id, program_name)
-    )
+            WHERE proj = {}})
+    """).format(
+        get_working_table_id(bq_params),
+        sample_table_id,
+        program)
 
-    for case_row in results:
+    for case_row in get_query_results(query):
         cases.append(dict(case_row.items()))
-
-    if cases:
-        print("{} cases retrieved.".format(len(cases)))
-    else:
-        print("No case records found for program {}, skipping.".format(program_name))
 
     return cases
 
@@ -547,17 +541,6 @@ def get_prefixes(api_params):
         prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
 
     return prefixes
-
-
-def get_table_id(bq_params, table_name):
-    """
-    Get the full table_id (Including project and dataset) for a given table.
-    :param bq_params: bq params from yaml config file
-    :param table_name: Desired table name (can be created using get_table_id
-    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
-    """
-    return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
-            table_name)
 
 
 def exists_bq_table(table_id):
@@ -693,6 +676,30 @@ def upload_to_bucket(bq_params, api_params, file_name):
         blob.upload_from_filename(filepath + '/' + file_name)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+
+def get_gdc_rel(bq_params):
+    return bq_params['REL_PREFIX'] + bq_params['GDC_RELEASE']
+
+
+def build_table_name(arr):
+    table_name = "_".join(arr)
+    return table_name.replace('.', '_')
+
+
+def get_working_table_id(bq_params, table_name=None):
+    if not table_name:
+        table_name = get_master_table_name(bq_params)
+
+    return build_table_name([bq_params["WORKING_PROJECT"],
+                             bq_params["WORKING_DATASET"],
+                             table_name])
+
+
+def get_webapp_table_id(bq_params, table_name):
+    return build_table_name([bq_params['WORKING_PROJECT'],
+                             bq_params['TARGET_DATASET'],
+                             table_name])
 
 
 #####
