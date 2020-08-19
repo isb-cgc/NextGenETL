@@ -240,13 +240,11 @@ def get_excluded_fields(table):
     if not API_PARAMS['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
 
-    if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
-        has_fatal_error("excluded_fields not found in API_PARAMS for {}".format(table))
+    if (table not in API_PARAMS['TABLE_METADATA']) or \
+            ('excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]):
+        return None
 
-    excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
-
-    # return [get_full_field_name(table, field) for field in excluded_fields]
-    return excluded_fields
+    return API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
 
 
 def get_all_excluded_columns():
