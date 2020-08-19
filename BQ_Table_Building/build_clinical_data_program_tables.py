@@ -650,12 +650,18 @@ def flatten_case(case):
     :param case: dict containing case data
     :return: flattened case dict
     """
+
+    if is_renamed(API_PARAMS, 'case_id'):
+        parent_id = get_new_name(API_PARAMS, 'case_id')
+    else:
+        parent_id = 'case_id'
+
     return flatten_case_entry(record=case,
                               field_group='cases',
                               flat_case=dict(),
-                              case_id=case['case_id'],
-                              pid=case['case_id'],
-                              pid_field='case_id')
+                              case_id=case[parent_id],
+                              pid=case[parent_id],
+                              pid_field=parent_id)
 
 
 def get_record_idx(flattened_case, field_group, record_id):
