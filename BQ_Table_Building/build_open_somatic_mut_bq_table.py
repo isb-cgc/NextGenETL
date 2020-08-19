@@ -313,18 +313,7 @@ def clean_header_names(header_line, fields_to_fix, program):
 
                 if header_id[header_name] == original:
                     header_id[header_name] = new
-            #if header_id[header_name] == 'Tumor_Sample_UUID':
-            #    header_id[header_name] = 'Tumor_Aliquot_UUID'
-            #if header_id[header_name] == 'Matched_Norm_Sample_UUID':
-            #    header_id[header_name] = 'Matched_Norm_Aliquot_UUID'
-            #if header_id[header_name] == 'Tumor_Sample_Barcode':
-            #    header_id[header_name] = 'Tumor_Aliquot_Barcode'
-            #if header_id[header_name] == 'Matched_Norm_Sample_Barcode':
-            #    header_id[header_name] = 'Matched_Norm_Aliquot_Barcode'
-            #if header_id[header_name] == 'tumor_bam_uuid':
-            #    header_id[header_name] = 'tumor_submitter_uuid'
-            #if header_id[header_name] == 'normal_bam_uuid':
-            #    header_id[header_name] = 'normal_submitter_uuid'
+
     return header_id
 
 '''
