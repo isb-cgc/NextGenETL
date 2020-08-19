@@ -758,6 +758,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
     """
+    print(schemas)
+    exit()
     tables = get_tables(record_counts)
 
     print("\nInserting case records...")
