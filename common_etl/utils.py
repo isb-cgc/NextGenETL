@@ -485,15 +485,16 @@ def get_cases_by_program(bq_params, program):
         bq_params, build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']]))
 
     query = ("""
-        SELECT * FROM `{}` 
-        WHERE case_gdc_id IN (
-            SELECT distinct(case_gdc_id) 
+        SELECT * 
+        FROM `{}` 
+        WHERE case_id IN (
+            SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
-            WHERE proj = {})
-        """).format(
-            get_working_table_id(bq_params),
-            sample_table_id,
-            program)
+            WHERE proj = '{}')
+    """).format(
+        get_working_table_id(bq_params),
+        sample_table_id,
+        program)
 
     for case_row in get_query_results(query):
         cases.append(dict(case_row.items()))
