@@ -618,10 +618,17 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     row_dict[pid_column] = pid
 
                 if id_field != 'case_id':
-                    row_dict['case_id'] = case_id
+                    if is_renamed(API_PARAMS, 'case_id'):
+                        new_id_field = get_new_name(API_PARAMS, 'case_id')
+                        row_dict[new_id_field] = case_id
+                    else:
+                        row_dict['case_id'] = case_id
                 # Field converted bq column name
-                column = get_bq_name(API_PARAMS, field, field_group)
+                if is_renamed(API_PARAMS, field):
+                    new_field = get_new_name(API_PARAMS, field)
+                    column = get_bq_name(API_PARAMS, new_field, field_group)
                 row_dict[column] = field_val
+
         if field_group not in flat_case:
             flat_case[field_group] = list()
 
