@@ -14,6 +14,7 @@ source bin/activate
 popd > /dev/null
 
 mkdir -p ~/scratch
+mkdir -p ~/scratch_webapp
 
 cd ..
 python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalProgramBQBuild.yaml

@@ -519,8 +519,6 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
-
-
 def get_table_suffixes(api_params):
     """
     Get abbreviations for included field groups
@@ -765,6 +763,7 @@ def get_ancestor_id_name(api_params, field_group):
 
     return parent_fg + '.' + id_col_name
 """
+
 
 def get_field_depth(full_field_name):
     """
