@@ -918,30 +918,32 @@ def copy_tables_into_public_project():
 ##
 
 def make_biospecimen_stub_tables():
-    query = ("""
-        SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-        FROM
-          (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', ') as s_gdc_ids, 
-          SPLIT(submitter_sample_ids, ', ') as s_barcodes
-           FROM
-            (SELECT case_id as case_gdc_id, submitter_id as case_barcode, 
-                    sample_ids, submitter_sample_ids, 
-              SPLIT(
-              (SELECT project_id
-               FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-             FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
-             UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-             UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-             WHERE pos1 = pos2
-        ORDER BY proj, case_gdc_id
-    """)
+    for program in get_program_list():
+        query = str.format("""
+                SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+                FROM
+                  (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', 
+                  ') as s_gdc_ids, 
+                  SPLIT(submitter_sample_ids, ', ') as s_barcodes
+                   FROM
+                    (SELECT case_id as case_gdc_id, submitter_id as case_barcode, 
+                            sample_ids, submitter_sample_ids, 
+                      SPLIT(
+                      (SELECT project_id
+                       FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+                     FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
+                     UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+                     UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+                     WHERE pos1 = pos2
+                WHERE proj == {}
+            """, program)
 
-    programs = get_program_list()
+        table_name = program + '_biospecimen_reference'
 
-    table_id = get_table_id(BQ_PARAMS, "master_biospecimen_table")
-    table = load_table_from_query(table_id, query)
+        table_id = get_table_id(BQ_PARAMS, table_name)
+        table = load_table_from_query(table_id, query)
 
-    print(table.schema)
+        print(table.table_id)
 
 
 def create_tables_for_webapp():
