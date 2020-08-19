@@ -791,12 +791,31 @@ def main(args):
 
     if 'publish' in steps:
 
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'])
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             params['PUBLICATION_TABLE'])
+        tables = ['versioned','current']
 
-        success = publish_table(source_table, publication_dest)
+        #current_source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        #                                         params['FINAL_TARGET_TABLE'].format('current'))
+        #version_source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        #                                         params['FINAL_TARGET_TABLE'].format(release))
+        #current_publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+        #                                             params['PUBLICATION_TABLE'])
+        #versioned_publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+        #                                               "_".join([params['PUBLICATION_DATASET'],'versioned']),
+        #                                               params['FINAL_TARGET_TABLE'])
+        for table in tables:
+            if table == 'versioned':
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                                         params['FINAL_TARGET_TABLE'].format(release))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                                     params['FINAL_TARGET_TABLE'])
+            elif table == 'current':
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                                         params['FINAL_TARGET_TABLE'].format('current'))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                             params['PUBLICATION_DATASET'],
+                                                             params['PUBLICATION_TABLE'])
+            success = publish_table(source_table, publication_dest)
 
         if not success:
             print("publish table failed")
