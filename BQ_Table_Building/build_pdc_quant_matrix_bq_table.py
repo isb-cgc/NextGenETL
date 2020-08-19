@@ -58,58 +58,36 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
-Final Table Generation
+Table comparison
 '''
 
-def build_final_table(pdc_meta_aliquot_table, pdc_quant_aliquot_table,
-                      pdc_meta_cases_table, gdc_case_data_table,
-                      target_dataset, dest_table, do_batch):
-
-    sql = build_final_table_sql(pdc_meta_aliquot_table, pdc_quant_aliquot_table, pdc_meta_cases_table, gdc_case_data_table)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+def compare_mi_ron_table(mi_table, ron_table, target_dataset, compare_result_table, do_batch):
+    sql = build_compare_mi_ron_table_sql(mi_table, ron_table)
+    return generic_bq_harness(sql, target_dataset, compare_result_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
-# SQL Code For Final Table Generation
+# SQL Code For Table comparison
 '''
-def build_final_table_sql(pdc_meta_aliquot_table, pdc_quant_aliquot_table, pdc_meta_cases_table, gdc_case_data_table):
+def build_compare_mi_ron_table_sql(mi_table, ron_table):
 
     return '''
-      WITH
-        a1 AS (
-          SELECT
-            a.case_id,
-            a.sample_id,
-            a.aliquot_id,
-            a.aliquot_submitter_id,
-            b.pdc_internal_aliquot_id as pdc_internal_aliquot_id_quant,
-            b.pdc_external_aliquot_id as pdc_external_id_quant
-          FROM `{0}` AS a
-          JOIN `{1}` AS b
-            ON (a.aliquot_submitter_id = b.pdc_external_aliquot_id)),
-        b1 AS (
-          SELECT
-            c.external_case_id,
-            a1.*
-          FROM a1
-          JOIN `{2}` AS c
-            ON (a1.case_id = c.case_id)),
-        c1 as (
-          SELECT
-            # Magic number: cut off the "GDC: "
-            SUBSTR(b1.external_case_id, 6, 100) AS gdc_id,
-            b1.* from b1
-          WHERE b1.external_case_id is not NULL and b1.external_case_id LIKE "GDC: %")
-      SELECT
-        d.project_name,
-        d.case_barcode,
-        d.case_gdc_id,
-        c1.*
-      FROM `{3}` as d
-      JOIN c1
-        ON (c1.gdc_id = d.case_gdc_id)
-      ORDER BY d.project_name, d.case_barcode
-        '''.format(pdc_meta_aliquot_table, pdc_quant_aliquot_table, pdc_meta_cases_table, gdc_case_data_table)
+      WITH a1 as (
+          SELECT 
+            A.gene, 
+            A.aliquot_submitter_id, 
+            CAST(A.log2_ratio as FLOAT64) as log2_ratio_f,
+            CAST(B.protein_abundance_log2ratio as FLOAT64) as protein_abundance_log2ratio_f, 
+            CAST(A.log2_ratio as FLOAT64) - CAST(B.protein_abundance_log2ratio as FLOAT64) as diff 
+          FROM `{0}` as A 
+          JOIN `{1}` as B 
+          ON ((B.aliquot_submitter_id = A.aliquot_submitter_id) AND (B.gene_symbol = A.gene)))
+    SELECT * FROM a1 WHERE 
+      diff != 0.0 
+      AND (IS_NAN(log2_ratio_f) AND NOT IS_NAN(protein_abundance_log2ratio_f))
+      AND (NOT IS_NAN(log2_ratio_f) AND IS_NAN(protein_abundance_log2ratio_f))  
+      AND NOT IS_NAN(diff)
+        '''.format(mi_table, ron_table)
 
 
 
@@ -261,9 +239,17 @@ def main(args):
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
-        with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
+        with open(hold_schema_dict_quant_matrix, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_PROG'], params['BQ_AS_BATCH'])
+
+    if 'compare_mi_ron_table' in steps:
+        print('compare_mi_ron_table')
+        compare_mi_ron_table(params['MI_TABLE'],
+                             params['RON_TABLE'],
+                             params['TARGET_DATASET'],
+                             params['COMPARE_RESULT'],
+                             params['BQ_AS_BATCH'])
 
     print('job completed')
 

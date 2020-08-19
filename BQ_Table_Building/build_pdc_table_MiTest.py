@@ -186,8 +186,8 @@ def main():
     # pull_and_map_quant_matrix_all_studies()
 
     # single hard-coded study test...
-    my_study_id = u'96296fd1-89a4-11ea-b1fd-0aad30af8a83'
-    my_study_submitter_id = u'CPTAC HNSCC Discovery Study - Proteome'
+    my_study_id = u'cfe9f4a2-1797-11ea-9bfa-0a42f3c845fe'
+    my_study_submitter_id = u'CPTAC GBM Discovery Study - Proteome'
     generate_quant_matrix_table_one_study(my_study_id, my_study_submitter_id)
 
 
