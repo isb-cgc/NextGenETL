@@ -480,6 +480,21 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error(err)
 
 
+def get_program_list(bq_params):
+    programs_query = ("""
+        SELECT DISTINCT(proj) 
+        FROM (
+            SELECT SPLIT(
+                (SELECT project_id
+                 FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+            FROM `{}`)
+        ORDER BY proj
+    """).format(
+        get_working_table_id(bq_params))
+
+    return {prog.proj for prog in get_query_results(programs_query)}
+
+
 def get_cases_by_program(bq_params, program):
     cases = []
 
@@ -504,18 +519,20 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
+
+
 def get_table_suffixes(api_params):
     """
     Get abbreviations for included field groups
     :param api_params: api params from yaml config file
     :return: dict of {table name: abbreviation}
     """
-    prefixes = dict()
+    suffixes = dict()
 
-    for table, table_metadata in api_params['TABLE_METADATA'].items():
-        prefixes[table] = table_metadata['table_prefix'] if table_metadata['table_prefix'] else ''
+    for table, metadata in api_params['TABLE_METADATA'].items():
+        suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
 
-    return prefixes
+    return suffixes
 
 
 def get_prefixes(api_params):
@@ -605,12 +622,13 @@ def update_table_schema(table_id, new_descriptions):
 
     client.update_table(table, ['schema'])
 
-
+'''
 def list_tables_in_dataset(bq_params):
     dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
     client = bigquery.Client()
 
     return client.list_tables(dataset)
+'''
 
 
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
@@ -740,12 +758,13 @@ def get_table_case_id_name(field_group):
     return field_group + '.case_id'
 
 
+"""
 def get_ancestor_id_name(api_params, field_group):
     parent_fg = get_parent_field_group(field_group)
     id_col_name = get_fg_id_name(api_params, parent_fg)
 
     return parent_fg + '.' + id_col_name
-
+"""
 
 def get_field_depth(full_field_name):
     """
@@ -798,17 +817,6 @@ def get_bq_name(api_params, field_name, table_path=None):
 
     # prefix is blank, like in the instance of 'cases'
     return field
-
-
-def get_field_group_abbreviation(api_params, fg):
-    """
-    # todo
-    :param api_params:
-    :param fg:
-    :return:
-    """
-    prefixes = get_prefixes(api_params)
-    return prefixes[fg]
 
 
 def get_parent_field_group(field_name):

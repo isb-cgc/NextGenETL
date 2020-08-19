@@ -97,6 +97,7 @@ def get_full_table_name(program_name, table):
     return generate_long_name(program_name, table)
 
 
+'''
 def get_required_columns(table):
     """
     Get list of required columns. Currently generated, but intended to also
@@ -107,6 +108,7 @@ def get_required_columns(table):
     table_id_field = get_fg_id_name(API_PARAMS, table)
     table_id_name = get_full_field_name(table, table_id_field)
     return [table_id_name]
+'''
 
 
 def get_id_index(table_key, column_order_dict):
@@ -127,24 +129,6 @@ def get_count_column_name(table_key):
     :return: count column name
     """
     return get_bq_name(API_PARAMS, 'count', table_key)
-
-
-def get_program_list():
-    programs_query = ("""
-    SELECT DISTINCT(proj) 
-    FROM (
-      SELECT SPLIT(
-        (SELECT project_id
-         FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-      FROM `{}.{}.{}`)
-    ORDER BY proj
-    """).format(
-        BQ_PARAMS['WORKING_PROJECT'],
-        BQ_PARAMS['WORKING_DATASET'],
-        get_gdc_rel(BQ_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE']
-    )
-
-    return {prog.proj for prog in get_query_results(programs_query)}
 
 
 def build_column_order_dict():
@@ -370,7 +354,7 @@ def get_count_column_index(table_key, column_order_dict):
 
     return id_column_index + id_index_gap
 
-
+'''
 def get_case_id_index(table_key, column_orders):
     """
     Get case_id's position index for given table
@@ -379,6 +363,7 @@ def get_case_id_index(table_key, column_orders):
     :return: case_id index for provided table
     """
     return get_count_column_index(table_key, column_orders) - 1
+'''
 
 
 def generate_id_schema_entry(column, parent_table, program):
@@ -979,7 +964,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_program_list()
+    programs = get_program_list(BQ_PARAMS)
 
     for program in programs:
         prog_start = time.time()
@@ -989,7 +974,7 @@ def main(args):
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
-        if 'create_webapp_tables' or 'create_and_load_table' in steps:
+        if 'create_webapp_tables' in steps or 'create_and_load_table' in steps:
 
             print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
