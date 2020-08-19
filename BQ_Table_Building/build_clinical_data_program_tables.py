@@ -172,13 +172,18 @@ def get_program_list():
         BQ_PARAMS['WORKING_DATASET'],
         get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE'])
 
+    """
     programs = set()
 
     for program in get_query_results(programs_query):
         formatted_program = str(program.proj).replace('.', '_')
         programs.add(formatted_program)
-
     return programs
+    """
+
+    return {prog.proj for prog in get_query_results(programs_query)}
+
+
 
 
 def build_column_order_dict():
@@ -944,12 +949,11 @@ def make_biospecimen_stub_tables():
                 AND proj = '{}'
             """, program)
 
-        table_name = program + '_biospecimen_reference'
-
+        table_name = str(program).replace('.', '_') + '_biospecimen_ref'
         table_id = get_table_id(BQ_PARAMS, table_name)
         table = load_table_from_query(table_id, query)
 
-        print(table.table_id)
+        print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
 
 
 def create_tables_for_webapp():
