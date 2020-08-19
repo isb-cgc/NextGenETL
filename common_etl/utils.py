@@ -433,17 +433,19 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     :param schema: list of SchemaFields representing desired BQ table schema
     :param table_name: name of table to create
     """
+    client = bigquery.Client()
+
     job_config = bigquery.LoadJobConfig()
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    client = bigquery.Client()
-    gs_uri = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
-              bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file)
+    gs_uri = "/".join(['gs:/',
+                       bq_params['WORKING_BUCKET'],
+                       bq_params['WORKING_BUCKET_DIR'],
+                       jsonl_rows_file])
 
-    table_id = (bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' +
-                table_name)
+    table_id = get_webapp_table_id(bq_params, table_name)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
@@ -620,6 +622,7 @@ def update_table_schema(table_id, new_descriptions):
 
     client.update_table(table, ['schema'])
 
+
 '''
 def list_tables_in_dataset(bq_params):
     dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
@@ -782,7 +785,7 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     :return:
     """
     table_depths = {table: get_field_depth(table) for table in record_counts}
-    return sorted(table_depths.items(), key=lambda item:item[1], reverse=reverse)
+    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
 
 
 def get_bq_name(api_params, field_name, table_path=None):
@@ -874,6 +877,17 @@ def is_valid_fg(api_params, fg_name):
     return fg_name in api_params['TABLE_METADATA'].keys()
 
 
+def is_renamed(api_params, field_name):
+    if field_name in api_params['RENAME_FIELDS']:
+        return True
+    return False
+
+
+def get_new_name(api_params, field_name):
+    if field_name in api_params['RENAME_FIELDS']:
+        return api_params['RENAME_FIELDS'][field_name]
+
+
 #####
 #
 # Functions for filesystem operations
@@ -894,5 +908,3 @@ def get_dir_files(dir_path):
 
 def get_filepath(dir_path, filename):
     return '/'.join([os.path.expanduser('~'), dir_path, filename])
-
-
