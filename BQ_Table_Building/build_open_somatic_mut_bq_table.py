@@ -45,7 +45,8 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
                                build_pull_list_with_indexd, concat_all_merged_files, \
                                read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
                                update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc
+                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
+                               publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -460,6 +461,12 @@ def main(args):
 
     AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
 
+    # Which table are we building?
+    release = params['RELEASE']
+    if 'current' in steps:
+        print('This workflow will update the schema for the "current" table')
+        release = 'current'
+
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
     # merging, and requires at least 26 GB to be safe. Confirm that before starting!
@@ -597,7 +604,7 @@ def main(args):
         print('process_git_schema')
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
@@ -633,7 +640,7 @@ def main(args):
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
+        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', release)
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
 
         # Write out the details
@@ -646,7 +653,7 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
@@ -733,7 +740,7 @@ def main(args):
                                            params['TARGET_DATASET'],
                                            params['BARCODE_STEP_2_TABLE'])
         success = final_merge(skel_table, barcodes_table,
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), params['BQ_AS_BATCH'],
+                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
@@ -745,7 +752,7 @@ def main(args):
     #
 
     if 'update_final_schema' in steps:
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(params['RELEASE']), hold_schema_dict)
+        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return
@@ -757,9 +764,9 @@ def main(args):
     if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']))
+                                          params['FINAL_TARGET_TABLE'].format(release))
         success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          params['FINAL_TARGET_TABLE'].format(params['RELEASE']), full_file_prefix)
+                                          params['FINAL_TARGET_TABLE'].format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
@@ -768,7 +775,17 @@ def main(args):
     # Create second table
     #
 
-    #if 'create_current_table' in steps:
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'].format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'].format('current'))
+
+        success = publish_table(source_table, current_dest)
+
+        if not success:
+            print("create current table failed")
+            return
 
     # We need a publish step here
 
