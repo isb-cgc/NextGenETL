@@ -466,6 +466,8 @@ def main(args):
     # Create table names
     data_type = 'Masked_Somatic_Mutations'
     versioned_draft = '_'.join([params['PROGRAM'],data_type])
+    current_draft
+    final_table = '_'.join([data_type, params['BUILD'], 'gdc', '{}'])
 
 
     #
@@ -605,7 +607,7 @@ def main(args):
         print('process_git_schema')
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], final_table.format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
@@ -654,7 +656,7 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'].format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], final_table.format(release))
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
@@ -741,7 +743,7 @@ def main(args):
                                            params['TARGET_DATASET'],
                                            params['BARCODE_STEP_2_TABLE'])
         success = final_merge(skel_table, barcodes_table,
-                              params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), params['BQ_AS_BATCH'],
+                              params['TARGET_DATASET'], final_table.format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
@@ -753,7 +755,7 @@ def main(args):
     #
 
     if 'update_final_schema' in steps:
-        success = update_schema(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'].format(release), hold_schema_dict)
+        success = update_schema(params['TARGET_DATASET'], final_table.format(release), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return
@@ -765,9 +767,9 @@ def main(args):
     if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          params['FINAL_TARGET_TABLE'].format(release))
+                                          final_table.format(release))
         success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          params['FINAL_TARGET_TABLE'].format(release), full_file_prefix)
+                                          final_table.format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
@@ -778,9 +780,9 @@ def main(args):
 
     if 'create_current_table' in steps:
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'].format(release))
+                                         final_table.format(release))
         current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'].format('current'))
+                                         final_table.format('current'))
 
         success = publish_table(source_table, current_dest)
 
@@ -801,14 +803,14 @@ def main(args):
             if table == 'versioned':
                 print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                                         params['FINAL_TARGET_TABLE'].format(release))
+                                                         final_table.format(release))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                      params['PUBLICATION_TABLE'].format(release))
             elif table == 'current':
                 print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                                         params['FINAL_TARGET_TABLE'].format('current'))
+                                                         final_table.format('current'))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                              params['PUBLICATION_DATASET'],
                                                              params['PUBLICATION_TABLE'].format('current'))
