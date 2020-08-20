@@ -463,6 +463,10 @@ def main(args):
         release = 'current'
         use_schema = params['SCHEMA_FILE_NAME']
 
+    # Create table names
+    data_type = 'Open_Somatic_Mutations'
+    versioned_draft = '_'.join([params['PROGRAM'],data_type])
+
 
     #
     # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
@@ -694,7 +698,7 @@ def main(args):
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], versioned_draft, params['BQ_AS_BATCH'])
 
     #
     # Need to merge in aliquot and sample barcodes from other tables:
@@ -703,7 +707,7 @@ def main(args):
     if 'collect_barcodes' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['TARGET_DATASET'],
-                                       params['TARGET_TABLE'])
+                                       versioned_draft)
         if params['PROGRAM'] == 'TCGA':
             success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
                                          params['TARGET_DATASET'],
@@ -732,7 +736,7 @@ def main(args):
     if 'create_final_table' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['TARGET_DATASET'],
-                                       params['TARGET_TABLE'])
+                                       versioned_draft)
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                            params['TARGET_DATASET'],
                                            params['BARCODE_STEP_2_TABLE'])
