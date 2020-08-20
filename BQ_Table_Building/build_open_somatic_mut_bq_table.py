@@ -464,7 +464,7 @@ def main(args):
         use_schema = params['SCHEMA_FILE_NAME']
 
     # Create table names
-    data_type = 'Open_Somatic_Mutations'
+    data_type = 'Masked_Somatic_Mutations'
     versioned_draft = '_'.join([params['PROGRAM'],data_type])
 
 
