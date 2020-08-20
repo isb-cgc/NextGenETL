@@ -30,21 +30,17 @@ import yaml
 import gzip
 import shutil
 import zipfile
-# import requests
 import io
 from git import Repo
 import re
-from json import loads as json_loads, dumps as json_dumps
+from json import loads as json_loads
 from os.path import expanduser
-# from bs4 import BeautifulSoup
 from createSchemaP3 import build_schema
 
-from common_etl.support import build_manifest_filter, get_the_manifest, create_clean_target, \
-                               pull_from_buckets, build_file_list, generic_bq_harness, \
+from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
                                upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-                               build_pull_list_with_indexd, concat_all_merged_files, \
-                               read_MAFs, write_MAFs, build_pull_list_with_bq, update_schema, \
-                               update_description, build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
+                               build_pull_list_with_bq, update_schema, \
+                               build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
                                generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
                                publish_table
 
@@ -68,40 +64,6 @@ def load_config(yaml_config):
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
             yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'], yaml_dict['callers'],
             yaml_dict['schema_tags'])
-
-
-'''
-----------------------------------------------------------------------------------------------
-Scrape the Schema Description From GDC
-The GDC has a page that describes the columns in the MAF file. Just scrape it off:
-'''
-
-# def scrape_schema(maf_url, first_col):
-#     schema = []
-#     resp = requests.request("GET", maf_url)
-#
-#     maf_page = None
-#     if resp.status_code == 200:
-#         maf_page = resp.content
-#     else:
-#         print()
-#         print("Request URL: {} ".format(maf_url))
-#         print("Problem downloading schema file. HTTP Status Code: {}".format(resp.status_code))
-#         print("HTTP content: {}".format(resp.content))
-#
-#     soup = BeautifulSoup(maf_page, features="html.parser")
-#     tbody = soup.find_all(text=re.compile('^.*{}.*$'.format(first_col)))[0].parent.parent.parent
-#     for row in tbody.find_all('tr'):
-#         elems = row.find_all('td')
-#         desc = [x.string for x in elems[1]] # Have to deal with embedded link tags
-#         row_dict = {
-#             "name": elems[0].string.split(' - ', 1)[1],
-#             "description": "".join(desc)
-#         }
-#         schema.append(row_dict)
-#
-#     return schema
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -472,9 +434,6 @@ def main(args):
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
-    # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
-
-    # AUGMENTED_SCHEMA_FILE = "SchemaFiles/augmented_schema_list.json"
 
     # Which table are we building?
     release = params['RELEASE']
@@ -489,26 +448,6 @@ def main(args):
     barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
     draft_table = '_'.join(params['PROGRAM'], [params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-
-
-    #
-    # Empirical evidence suggests this workflow is going to be very memory hungry if you are doing
-    # merging, and requires at least 26 GB to be safe. Confirm that before starting!
-    #
-
-    # do_merging = params['DO_MERGED_OUTPUT']
-    # if do_merging:
-    #     meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
-    #     mem_kib = meminfo['MemTotal']
-    #     print("Machine memory: {}".format(mem_kib))
-    #     if int(mem_kib) < 26000000:
-    #         print("Job requires at least 26 GB physical memory to complete")
-    #         return
-
-    #
-    # Next, use the filter set to get a manifest from GDC using their API. Note that is a pull list is
-    # provided, these steps can be omitted:
-    #
 
     if 'build_manifest_from_filters' in steps:
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
@@ -562,51 +501,11 @@ def main(args):
 
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        # program_list = build_program_list(all_files)
-        # if not check_caller_list(all_files, callers):
-        #    print("Unexpected caller mismatch! Expecting {}".format(callers))
-        #    return
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
 
-    #
-    # We can create either a table that merges identical mutations from the different callers into
-    # one row, or keep them separate:
-    #
-
-    # if do_merging:
-    #     do_debug = params['DO_DEBUG_LOGGING']
-    #     target_count = int(params['EXPECTED_COLUMNS'])
-    #     for program in program_list:
-    #         print("Look at MAFS for {}".format(program))
-    #         if 'run_maf_reader' in steps:
-    #             with open(file_traversal_list, mode='r') as traversal_list_file:
-    #                 all_files = traversal_list_file.read().splitlines()
-    #             print("Start reading MAFS for {}".format(program))
-    #             mut_calls, hdr_pick = read_MAFs(program, all_files,
-    #                                             params['PROGRAM_PREFIX'], extra_cols,
-    #                                             target_count, do_debug, key_fields,
-    #                                             params['FIRST_MAF_COL'], file_info)
-    #             print("Finish reading MAFS for {}".format(program))
-    #
-    #         if 'run_maf_writer' in steps:
-    #             print("Start writing MAFS for {}".format(program))
-    #             hist_count = write_MAFs(program, mut_calls, hdr_pick, callers, do_debug)
-    #             for ii in range(len(hist_count)):
-    #                 if hist_count[ii] > 0:
-    #                     print(" %6d  %9d " % ( ii, hist_count[ii] ))
-    #             print("Finish writing MAFS for {}".format(program))
-
-    #
-    # Take all the files and make one BIG TSV file to upload:
-    #
-
     if 'concat_all_files' in steps:
-        # if do_merging:
-        #     maf_list = ["mergeA." + tumor + ".maf" for tumor in program_list]
-        #     concat_all_merged_files(maf_list, one_big_tsv)
-        # else:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
             concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers, params['FIELDS_TO_FIX'])
@@ -635,7 +534,7 @@ def main(args):
             print("process_git_schemas failed")
             return
 
-        # Customize generic schema to this data program:
+    # Customize generic schema to this data program:
 
     if 'replace_schema_tags' in steps:
         print('replace_schema_tags')
@@ -681,30 +580,6 @@ def main(args):
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
-
-    # bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
-    #
-    # Scrape the column descriptions from the GDC web page
-    #
-
-    # if 'scrape_schema' in steps:
-    #     scrape_list = scrape_schema(params['MAF_URL'], params['FIRST_MAF_COL'])
-    #     with open(hold_scraped_dict, mode='w') as scraped_hold_list:
-    #         scraped_hold_list.write(json_dumps(scrape_list))
-
-    #
-    # For the legacy table, the descriptions had lots of analysis tidbits. Very nice, but hard to maintain.
-    # We just use hardwired schema descriptions now, most directly pulled from the GDC website:
-    #
-
-    # if 'build_the_schema' in steps:
-    #     typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-    #     build_combined_schema(hold_scraped_dict, AUGMENTED_SCHEMA_FILE,
-    #                           typing_tups, hold_schema_list, hold_schema_dict)
-
-    #
-    # Upload the giant TSV into a cloud bucket:
-    #
 
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
