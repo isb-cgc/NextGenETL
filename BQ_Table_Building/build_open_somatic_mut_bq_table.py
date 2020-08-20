@@ -52,6 +52,8 @@ from common_etl.support import build_manifest_filter, get_the_manifest, create_c
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
 '''
+
+
 def load_config(yaml_config):
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
@@ -107,8 +109,8 @@ Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
 
-def build_program_list(all_files):
 
+def build_program_list(all_files):
     programs = set()
     for filename in all_files:
         info_list = file_info(filename, None)
@@ -116,14 +118,15 @@ def build_program_list(all_files):
 
     return sorted(programs)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Extract the Callers We Are Working With From File List
 Extract from downloaded file names, compare to expected list. Answer if they match.
 '''
 
-def check_caller_list(all_files, expected_callers):
 
+def check_caller_list(all_files, expected_callers):
     expected_set = set(expected_callers)
     callers = set()
     for filename in all_files:
@@ -131,6 +134,7 @@ def check_caller_list(all_files, expected_callers):
         callers.add(info_list[1])
 
     return callers == expected_set
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -140,15 +144,17 @@ associated barcodes. We get this by first attaching the aliquot IDs using the fi
 that provides aliquot UUIDs for BAM files.
 '''
 
-def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
 
+def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
     sql = attach_aliquot_ids_sql(maf_table, file_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above
 '''
+
 
 def attach_aliquot_ids_sql(maf_table, file_table):
     return '''
@@ -177,15 +183,17 @@ Second BQ Processing: Add Barcodes
 With the aliquot UUIDs known, we can now use the aliquot table to glue in sample info
 '''
 
-def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program):
 
+def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program):
     sql = attach_barcodes_sql(temp_table, aliquot_table, program)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above
 '''
+
 
 def attach_barcodes_sql(maf_table, aliquot_table, program):
     if program == 'TCGA':
@@ -234,24 +242,29 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
               FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
               WHERE c.case_gdc_id = a1.case_gdc_id
         '''.format(maf_table, aliquot_table)
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Final BQ Step: Glue the New Info to the Original Table
 All the new info we have pulled together goes in the first columns of the final table
 '''
 
-def final_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
 
+def final_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
     sql = final_join_sql(maf_table, barcode_table, program)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above
 '''
+
+
 def final_join_sql(maf_table, barcodes_table, program):
     if program == 'TCGA':
-        return'''
+        return '''
              SELECT a.project_short_name,
                     a.case_barcode,
                     a.sample_barcode_tumor,
@@ -274,6 +287,7 @@ def final_join_sql(maf_table, barcodes_table, program):
              ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position
         '''.format(barcodes_table, maf_table)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 file_info() function Author: Sheila Reynolds
@@ -281,8 +295,8 @@ File name includes important information, e.g. the program name and the caller. 
 out along with name and ID.
 '''
 
-def file_info(aFile, program):
 
+def file_info(aFile, program):
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
 
@@ -295,7 +309,8 @@ def file_info(aFile, program):
         fileUUID = path_pieces[-2]
         callerName = None
 
-    return ( [ callerName, fileUUID ] )
+    return ([callerName, fileUUID])
+
 
 '''
 ------------------------------------------------------------------------------
@@ -303,6 +318,7 @@ Clean header field names
 Some field names are not accurately named and as of 2020-08-05, the GDC has said they will not be updated. We decided to 
 update the field names to accurately reflect the data within th column.
 '''
+
 
 def clean_header_names(header_line, fields_to_fix, program):
     header_id = header_line.split('\t')
@@ -316,28 +332,32 @@ def clean_header_names(header_line, fields_to_fix, program):
 
     return header_id
 
+
 '''
 ------------------------------------------------------------------------------
 Separate the Callers into their own columns
 The non-TCGA maf files has one column with a semicolon deliminated 
 '''
 
+
 def process_callers(callers_str, callers):
-     line_callers = callers_str.rstrip('\n').split(';')
-     caller_list = dict.fromkeys(callers, 'No')
-     for caller in line_callers:
-         is_star = re.search(r'\*', caller)
-         if caller.rstrip('*') in caller_list.keys():
-             if is_star:
-                 caller_list[caller.rstrip('*')] = 'Yes*'
-             else:
-                 caller_list[caller] = 'Yes'
-     return caller_list
+    line_callers = callers_str.rstrip('\n').split(';')
+    caller_list = dict.fromkeys(callers, 'No')
+    for caller in line_callers:
+        is_star = re.search(r'\*', caller)
+        if caller.rstrip('*') in caller_list.keys():
+            if is_star:
+                caller_list[caller.rstrip('*')] = 'Yes*'
+            else:
+                caller_list[caller] = 'Yes'
+    return caller_list
+
 
 '''
 ------------------------------------------------------------------------------
 Concatenate all Files
 '''
+
 
 def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     """
@@ -409,14 +429,15 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                 if toss_zip:
                     os.remove(use_file_name)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you to e.g. skip previously run steps.
 '''
 
-def main(args):
 
+def main(args):
     if not confirm_google_vm():
         print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
         return
@@ -453,7 +474,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
     # hold_scraped_dict = "{}/{}".format(home, params['HOLD_SCRAPED_DICT'])
 
-    AUGMENTED_SCHEMA_FILE =  "SchemaFiles/augmented_schema_list.json"
+    # AUGMENTED_SCHEMA_FILE = "SchemaFiles/augmented_schema_list.json"
 
     # Which table are we building?
     release = params['RELEASE']
@@ -464,10 +485,10 @@ def main(args):
         use_schema = params['SCHEMA_FILE_NAME']
 
     # Create table names
-    versioned_draft = '_'.join([params['PROGRAM'],[params['DATA_TYPE'],'draft'])
-    publication_table =
-    final_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-    publication_table =
+    concat_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'concat'])
+    barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
+    draft_table = '_'.join(params['PROGRAM'], [params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
 
 
     #
@@ -541,8 +562,8 @@ def main(args):
 
     if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
-        #program_list = build_program_list(all_files)
-        #if not check_caller_list(all_files, callers):
+        # program_list = build_program_list(all_files)
+        # if not check_caller_list(all_files, callers):
         #    print("Unexpected caller mismatch! Expecting {}".format(callers))
         #    return
         with open(file_traversal_list, mode='w') as traversal_list:
@@ -607,7 +628,7 @@ def main(args):
         print('process_git_schema')
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], final_table.format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
@@ -619,7 +640,7 @@ def main(args):
     if 'replace_schema_tags' in steps:
         print('replace_schema_tags')
         pn = params['PROGRAM']
-        dataset_tuple = (pn,  pn.replace(".", "_"))
+        dataset_tuple = (pn, pn.replace(".", "_"))
         build = 'hg38'
         tag_map_list = []
         for tag_pair in schema_tags:
@@ -656,12 +677,12 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], final_table.format(release))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
 
-    #bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+    # bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
     #
     # Scrape the column descriptions from the GDC web page
     #
@@ -700,7 +721,7 @@ def main(args):
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], versioned_draft, params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], concat_table, params['BQ_AS_BATCH'])
 
     #
     # Need to merge in aliquot and sample barcodes from other tables:
@@ -709,23 +730,23 @@ def main(args):
     if 'collect_barcodes' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['TARGET_DATASET'],
-                                       versioned_draft)
+                                       concat_table)
         if params['PROGRAM'] == 'TCGA':
             success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
                                          params['TARGET_DATASET'],
-                                         params['BARCODE_STEP_1_TABLE'], params['BQ_AS_BATCH'])
+                                         '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
                 print("attach_aliquot_ids job failed")
                 return
 
             step_1_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                           params['TARGET_DATASET'],
-                                             params['BARCODE_STEP_1_TABLE'])
+                                             params['TARGET_DATASET'],
+                                             '_'.join([barcode_table, 'pre']))
         else:
             step_1_table = skel_table
 
         success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
-                                  params['TARGET_DATASET'], params['BARCODE_STEP_2_TABLE'], params['BQ_AS_BATCH'],
+                                  params['TARGET_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'])
         if not success:
             print("attach_barcodes job failed")
@@ -738,24 +759,23 @@ def main(args):
     if 'create_final_table' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['TARGET_DATASET'],
-                                       versioned_draft)
+                                       concat_table)
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                            params['TARGET_DATASET'],
-                                           params['BARCODE_STEP_2_TABLE'])
+                                           barcode_table)
         success = final_merge(skel_table, barcodes_table,
-                              params['TARGET_DATASET'], final_table.format(release), params['BQ_AS_BATCH'],
+                              params['TARGET_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
-
 
     #
     # The derived table we generate has no field descriptions. Add them from the scraped page:
     #
 
     if 'update_final_schema' in steps:
-        success = update_schema(params['TARGET_DATASET'], final_table.format(release), hold_schema_dict)
+        success = update_schema(params['TARGET_DATASET'], draft_table.format(release), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return
@@ -767,9 +787,9 @@ def main(args):
     if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          final_table.format(release))
+                                          draft_table.format(release))
         success = install_labels_and_desc(params['TARGET_DATASET'],
-                                          final_table.format(release), full_file_prefix)
+                                          draft_table.format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
@@ -780,9 +800,9 @@ def main(args):
 
     if 'create_current_table' in steps:
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         final_table.format(release))
+                                         draft_table.format(release))
         current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         final_table.format('current'))
+                                         draft_table.format('current'))
 
         success = publish_table(source_table, current_dest)
 
@@ -797,23 +817,23 @@ def main(args):
 
     if 'publish' in steps:
 
-        tables = ['versioned','current']
+        tables = ['versioned', 'current']
 
         for table in tables:
             if table == 'versioned':
                 print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                                         final_table.format(release))
+                                                 draft_table.format(release))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                                     params['PUBLICATION_TABLE'].format(release))
+                                                     publication_table.format(release))
             elif table == 'current':
                 print(table)
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                                         final_table.format('current'))
+                                                 draft_table.format('current'))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                             params['PUBLICATION_DATASET'],
-                                                             params['PUBLICATION_TABLE'].format('current'))
+                                                     params['PUBLICATION_DATASET'],
+                                                     publication_table.format('current'))
             success = publish_table(source_table, publication_dest)
 
         if not success:
@@ -825,7 +845,7 @@ def main(args):
     #
 
     if 'dump_working_tables' in steps:
-        dump_table_tags = ['SKELETON_TABLE', 'BARCODE_STEP_1_TABLE', 'BARCODE_STEP_2_TABLE',
+        dump_table_tags = ['SKELETON_TABLE', '_'.join([barcode_table, 'pre']), barcode_table,
                            'BQ_MANIFEST_TABLE', 'BQ_PULL_LIST_TABLE']
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
@@ -835,6 +855,7 @@ def main(args):
     #
 
     print('job completed')
+
 
 if __name__ == "__main__":
     main(sys.argv)
