@@ -464,10 +464,10 @@ def main(args):
         use_schema = params['SCHEMA_FILE_NAME']
 
     # Create table names
-    data_type = 'Masked_Somatic_Mutations'
-    versioned_draft = '_'.join([params['PROGRAM'],data_type])
-    current_draft
-    final_table = '_'.join([data_type, params['BUILD'], 'gdc', '{}'])
+    versioned_draft = '_'.join([params['PROGRAM'],[params['DATA_TYPE'],'draft'])
+    publication_table =
+    final_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    publication_table =
 
 
     #
@@ -643,7 +643,7 @@ def main(args):
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', release)
+        table_name = "{}_{}_{}_{}".format(params['DATA_TYPE'], build, 'gdc', release)
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
 
         # Write out the details
