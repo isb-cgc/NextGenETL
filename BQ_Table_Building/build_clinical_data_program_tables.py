@@ -30,7 +30,9 @@ from common_etl.utils import (
     get_tables, get_parent_table, get_parent_field_group, load_config, get_scratch_dir,
     get_cases_by_program, upload_to_bucket, create_and_load_table,
     get_field_depth, get_full_field_name, create_schema_dict, to_bq_schema_obj,
-    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name)
+    get_count_field, get_table_case_id_name, get_sorted_fg_depths, get_fg_id_name,
+    get_dir_files, get_gdc_rel, get_table_id, exists_bq_table, get_filepath,
+    update_bq_table, update_table_schema, copy_bq_table, modify_friendly_name)
 from gdc_clinical_resources.generate_docs import (generate_docs)
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -58,7 +60,7 @@ def generate_long_name(program_name, table):
     if '.' in program_name:
         program_name = '_'.join(program_name.split('.'))
 
-    file_name_parts = [API_PARAMS['GDC_RELEASE'], BQ_PARAMS['TABLE_PREFIX'], program_name]
+    file_name_parts = [get_gdc_rel(API_PARAMS), program_name, BQ_PARAMS['DATA_PREFIX']]
 
     # if one-to-many table, append suffix
     if prefix:
@@ -146,7 +148,8 @@ def get_programs_list():
     """
     programs_table_id = (BQ_PARAMS['WORKING_PROJECT'] + '.' +
                          BQ_PARAMS['METADATA_DATASET'] + '.' +
-                         API_PARAMS['GDC_RELEASE'] + '_caseData')
+                         BQ_PARAMS['CASES_REL_PREFIX'] + API_PARAMS['GDC_RELEASE'] +
+                         BQ_PARAMS['CASES_TABLE_SUFFIX'])
 
     programs = set()
     results = get_query_results("SELECT distinct(program_name) FROM `{}`"
@@ -803,6 +806,110 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
 ####
 #
+# Modify existing tables
+#
+##
+
+def update_table_metadata():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+        table_id = get_table_id(BQ_PARAMS, table_name)
+
+        if not exists_bq_table(table_id):
+            print('No table found for file (skipping): ' + json_file)
+            continue
+
+        with open(get_filepath(metadata_path, json_file)) as json_file_output:
+            metadata = json.load(json_file_output)
+
+            update_bq_table(table_id, metadata)
+
+
+def update_schema():
+    fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
+    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + \
+                  get_gdc_rel(API_PARAMS) + '.json'
+
+    with open(get_filepath(fields_path, fields_file)) as json_file_output:
+        descriptions = json.load(json_file_output)
+
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+        table_id = get_table_id(BQ_PARAMS, table_name)
+
+        update_table_schema(table_id, descriptions)
+
+
+def transform_json_name_to_table(json_name):
+    # json file name 'isb-cgc-bq.HCMI.clinical_follow_ups_gdc_r24.json'
+    # def table name 'r24_HCMI_clinical_follow_ups'
+
+    json_name_split = json_name.split('.')
+    program_name = json_name_split[1]
+    split_table_name = json_name_split[2].split('_')
+    partial_table_name = '_'.join(split_table_name[0:-2])
+    return '_'.join([get_gdc_rel(API_PARAMS), program_name, partial_table_name])
+
+
+def copy_tables_into_public_project():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+
+        split_table_id = json_file.split('.')[:-1]
+
+        project = split_table_id[0]
+
+        dataset = split_table_id[1]
+        versioned_dataset = dataset + '_versioned'
+
+        versioned_table = split_table_id[2]
+        current_table = '_'.join(versioned_table.split('_')[:-1])
+        current_table += '_current'
+
+        source_table_id = get_table_id(BQ_PARAMS, table_name)
+        curr_table_id = '.'.join([project, dataset, current_table])
+        versioned_table_id = '.'.join([project, versioned_dataset, versioned_table])
+
+        if not exists_bq_table(source_table_id):
+            print('No table found for file (skipping): ' + json_file)
+            continue
+
+        print(source_table_id)
+        print(curr_table_id)
+        print(versioned_table_id)
+
+        # copy_bq_table(source_table_id, curr_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
+        # copy_bq_table(source_table_id, versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
+        # modify_friendly_name(API_PARAMS, versioned_table_id)
+
+
+def create_tables_for_webapp():
+    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
+                     get_gdc_rel(API_PARAMS) + '/')
+
+    files = get_dir_files(metadata_path)
+
+    for json_file in files:
+        table_name = transform_json_name_to_table(json_file)
+
+
+####
+#
 # Script execution
 #
 ##
@@ -822,6 +929,12 @@ def print_final_report(start, steps):
 
     if 'create_and_load_tables' in steps:
         print('\t - created tables and inserted data')
+    if 'update_table_metadata' in steps:
+        print('\t - added/updated table metadata')
+    if 'update_schema' in steps:
+        print('\t - updated table field descriptions')
+    if 'copy_tables_into_production' in steps:
+        print('\t - copied tables into production (public-facing bq tables)')
     if 'validate_data' in steps:
         print('\t - validated data (tests not considered exhaustive)')
     if 'generate_documentation' in steps:
@@ -887,8 +1000,17 @@ def main(args):
             print("{} processed in {:0.0f} seconds!\n"
                   .format(program, time.time() - prog_start))
 
-    if 'modify_metadata_and_schemas' in steps:
-        pass
+    if 'update_table_metadata' in steps:
+        update_table_metadata()
+
+    if 'update_schema' in steps:
+        update_schema()
+
+    if 'copy_tables_into_production' in steps:
+        copy_tables_into_public_project()
+
+    if 'create_tables_for_webapp' in steps:
+        create_tables_for_webapp()
 
     if 'generate_documentation' in steps:
         generate_docs(API_PARAMS, BQ_PARAMS)
