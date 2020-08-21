@@ -1098,6 +1098,16 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
+def update_status_tag(dataset_id, status):
+    """
+    Update the status tag of a big query table once a new version of the table has been created
+    """
+    client = bigquery.Client()
+    dataset = client.get_dataset(dataset_id)
+    dataset.labels = {"status": status}
+    dataset = client.update_dataset(dataset, ["labels"])
+    return True
+
 def bq_table_exists(target_dataset, dest_table):
     """
     Does table exist?

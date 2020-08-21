@@ -42,7 +42,7 @@ from common_etl.support import create_clean_target, pull_from_buckets, build_fil
                                build_pull_list_with_bq, update_schema, \
                                build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
                                generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
-                               publish_table
+                               publish_table, update_status_tag
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -686,6 +686,13 @@ def main(args):
             print("remember to rerun schema steps for current table")
             return
 
+
+    #
+    # removed compare and remove old current table
+    #
+
+
+
     #
     # publish table:
     #
@@ -713,6 +720,22 @@ def main(args):
 
         if not success:
             print("publish table failed")
+            return
+
+
+    #
+    # Update previous versioned table with correct tag
+    #
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+        previous_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                           "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                           publication_table.format(params['PREVIOUS_RELEASE']))
+        success = update_status_tag(previous_table, 'archived')
+
+        if not success:
+            print("update status tag table failed")
             return
 
     #
