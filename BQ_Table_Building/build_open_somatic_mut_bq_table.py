@@ -540,7 +540,6 @@ def main(args):
         print('replace_schema_tags')
         pn = params['PROGRAM']
         dataset_tuple = (pn, pn.replace(".", "_"))
-        build = 'hg38'
         tag_map_list = []
         for tag_pair in schema_tags:
             for tag in tag_pair:
@@ -555,7 +554,7 @@ def main(args):
                         else:
                             rep_val = dataset_tuple[0]
                     elif chunks[1] == 'builds':
-                        rep_val = build
+                        rep_val = params['BUILD']
                     else:
                         raise Exception()
                     if val.find('~lc-') == 0:
@@ -563,7 +562,7 @@ def main(args):
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(params['DATA_TYPE'], build, 'gdc', release)
+        table_name = "{}_{}_{}_{}".format(draft_table.format(release))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
 
         # Write out the details
