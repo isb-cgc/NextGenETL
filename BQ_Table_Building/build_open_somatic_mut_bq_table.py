@@ -446,7 +446,7 @@ def main(args):
     # Create table names
     concat_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'concat'])
     barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
-    draft_table = '_'.join(params['PROGRAM'], [params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
 
     if 'build_manifest_from_filters' in steps:
