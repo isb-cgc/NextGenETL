@@ -54,6 +54,17 @@ def convert_quant_matrix_to_table(study_id, quant_matrix):
             table.append([study_id, aliquot_submitter_id, gene, log2_value])
     return table
 
+def convert_biospecimen_per_study_table(study_id, study_name, biospecimen):
+    num_rows = len(biospecimen)
+    table = []
+    table.append(['study_id', 'Aliquot_submitter_id', 'study_name', 'aliquot_id', 'sample_id'])
+    for i in range(0, num_rows):
+        aliquot_id = biospecimen[i][u'aliquot_id']
+        sample_id = biospecimen[i][u'sample_id']
+        aliquot_submitter_id = biospecimen[i][u'aliquot_submitter_id']
+        table.append([study_id, aliquot_submitter_id, study_name, aliquot_id, sample_id])
+    return table
+
 
 def build_mapping_dicts_one_study(study_id):
     query = '{ biospecimenPerStudy(study_id: "' + \
@@ -78,6 +89,17 @@ def build_mapping_dicts_one_study(study_id):
                 study_id_aliquot_submitter_id = study_id + ":" + biospecimen_per_study_list[i][u'aliquot_submitter_id']
                 GLOBAL_STUDY_ID_ALIQUOT_SUBMITTER_ID_TO_ALIQUOT_ID_DICT[study_id_aliquot_submitter_id] = aliquot_id
                 GLOBAL_ALIQUOT_ID_TO_CASE_ID_DICT[aliquot_id] = case_id
+
+        query = '{ study(study_id: "' + \
+                study_id + '"' + \
+                ') { study_id pdc_study_id study_submitter_id study_name} }'
+        response = requests.post(PDC_END_POINT, json={'query': query})
+        if response.ok:
+            json_res = response.json()
+        study_list = json_res[u'data'][u'study']
+        study_name = study_list[0][u'study_name']
+        table = convert_biospecimen_per_study_table(study_id, study_name, biospecimen_per_study_list)
+        length = len(biospecimen_per_study_list[0])
     return
 
 
