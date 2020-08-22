@@ -1105,8 +1105,8 @@ def update_status_tag(target_dataset, dest_table, status):
     client = bigquery.Client()
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
-    labels = {"status": status}
-    table.labels = labels
+    table.labels = {"status": status}
+    table = client.update_table(table, ["labels"])
     return True
 
 def bq_table_exists(target_dataset, dest_table):
