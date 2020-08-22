@@ -727,9 +727,9 @@ def main(args):
 
     if 'update_status_tag' in steps:
         print('Update previous table')
-        previous_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                           publication_table.format(params['PREVIOUS_RELEASE']))
-        success = update_status_tag(params['PUBLICATION_PROJECT'], previous_table, 'archived')
+
+        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                    publication_table.format(params['PREVIOUS_RELEASE']), 'archived')
 
         if not success:
             print("update status tag table failed")
