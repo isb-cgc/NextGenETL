@@ -136,7 +136,7 @@ def get_quant_matrix_table_one_study(pdc_api_end_point, study_id, study_submitte
     return quant_matrix_table
 
 
-def write_to_tsv(quant_matrix_table, tsv_file):
+def write_quant_matrix_table_to_tsv(quant_matrix_table, tsv_file):
     with open(tsv_file, "w") as tsv_out:
         num_rows = len(quant_matrix_table)
         for i in range(0, num_rows):
@@ -144,6 +144,68 @@ def write_to_tsv(quant_matrix_table, tsv_file):
                                     quant_matrix_table[i][1],
                                     quant_matrix_table[i][2],
                                      quant_matrix_table[i][3]]) + "\n")
+    return True
+
+
+def get_biospeciman_table_one_study(pdc_api_end_point, study_id):
+    print('Getting biospeciman table for study ' + study_id)
+    biospeciman_query = '{ biospecimenPerStudy(study_id: "' + \
+            study_id + '"' + \
+            ') { aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id aliquot_status' \
+            ' case_status sample_status project_name sample_type disease_type primary_site pool taxon} }'
+
+    biospeciman_res = requests.post(pdc_api_end_point, json={'query': biospeciman_query})
+
+    if not biospeciman_res.ok:
+        print('Error: PDC API request did not return OK')
+        return None
+
+    json_res = biospeciman_res.json()
+
+    if 'errors' in json_res:
+        print('No biospeciman table for study_id = ' + study_id)
+        return None
+
+    print('Got biospeciman table for study_id = ' + study_id)
+    biospeciman = json_res[u'data'][u'biospecimenPerStudy']
+
+    print('Getting study info for study ' + study_id)
+    study_info_query = '{ study(study_id: "' + \
+                study_id + '"' + \
+                ') { study_id pdc_study_id study_submitter_id study_name} }'
+
+    study_info_res = requests.post(pdc_api_end_point, json={'query': study_info_query})
+
+    if not study_info_res.ok:
+        print('Error: PDC API request did not return OK')
+        return None
+
+    json_res = study_info_res.json()
+    study_info = json_res[u'data'][u'study']
+    study_name = study_info[0][u'study_name']
+
+    print('Generating biospeciman table')
+    num_rows = len(biospeciman)
+    table = []
+    table.append(['study_id', 'aliquot_submitter_id', 'study_name', 'aliquot_id', 'sample_id'])
+    for i in range(0, num_rows):
+        aliquot_id = biospeciman[i][u'aliquot_id']
+        sample_id = biospeciman[i][u'sample_id']
+        aliquot_submitter_id = biospeciman[i][u'aliquot_submitter_id']
+        table.append([study_id, aliquot_submitter_id, study_name, aliquot_id, sample_id])
+
+    return table
+
+
+def write_biospeciman_table_to_tsv(biospeciman_table, tsv_file):
+    with open(tsv_file, "w") as tsv_out:
+        num_rows = len(biospeciman_table)
+        for i in range(0, num_rows):
+            tsv_out.write("\t".join([biospeciman_table[i][0],
+                                    biospeciman_table[i][1],
+                                    biospeciman_table[i][2],
+                                    biospeciman_table[i][3],
+                                    biospeciman_table[i][4], ]) + "\n")
     return True
 
 
@@ -197,14 +259,18 @@ def main(args):
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
     quant_matrix_tsv = "{}/{}".format(home, params['QUANT_MATRIX_TSV'])
+    biospeciman_tsv = "{}/{}".format(home, params['BIOSPECIMAN_TSV'])
 
     hold_schema_dict_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_DICT_QUANT_MATRIX'])
     hold_schema_list_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_LIST_QUANT_MATRIX'])
+    hold_schema_dict_biospeciman = "{}/{}".format(home, params['HOLD_SCHEMA_DICT_BIOSPECIMAN'])
+    hold_schema_list_biospeciman = "{}/{}".format(home, params['HOLD_SCHEMA_LIST_BIOSPECIMAN'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
+    # Quant matrix table...
     if 'get_quant_matrix_table_one_study' in steps:
         print('get_quant_matrix_table_one_study')
         try:
@@ -215,34 +281,63 @@ def main(args):
             print("get_quant_matrix_table_one_study failed: {}".format(str(ex)))
             return
 
-    if 'write_to_tsv' in steps:
-        print('write_to_tsv')
-        success = write_to_tsv(quant_matrix_table, quant_matrix_tsv)
+    if 'write_quant_matrix_table_to_tsv' in steps:
+        print('write_quant_matrix_table_to_tsv')
+        success = write_quant_matrix_table_to_tsv(quant_matrix_table, quant_matrix_tsv)
         if not success:
-            print("Failure writing to tsv")
+            print("Failure writing quant matrix table to tsv")
             return
 
     bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
 
-    if 'upload_to_bucket' in steps:
-        print('upload_to_bucket')
+    if 'upload_quant_matrix_tsv_to_bucket' in steps:
+        print('upload_quant_matrix_tsv_to_bucket')
         upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
 
-    if 'analyze_schema' in steps:
-        print('analyze_schema')
+    if 'create_quant_matrix_bq_from_tsv' in steps:
+        print('create_quant_matrix_bq_from_tsv')
         typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['TARGET_TABLE_PROG'])
-        # schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
-
-    if 'create_bq_from_tsv' in steps:
-        print('create_bq_from_tsv')
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
         with open(hold_schema_dict_quant_matrix, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_PROG'], params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_QUANT_MATRIX'], params['BQ_AS_BATCH'])
 
+
+    # Biospeciman table...
+    if 'get_biospeciman_table_one_study' in steps:
+        print('get_biospeciman_table_one_study')
+        try:
+            biospeciman_table = get_biospeciman_table_one_study(params['PDC_API_END_POINT'],
+                                                                params['ONE_STUDY_ID'])
+        except Exception as ex:
+            print("get_biospeciman_table_one_study failed: {}".format(str(ex)))
+            return
+
+    if 'write_biospeciman_table_to_tsv' in steps:
+        print('write_biospeciman_table_to_tsv')
+        success = write_biospeciman_table_to_tsv(biospeciman_table, biospeciman_tsv)
+        if not success:
+            print("Failure writing biospeciman table to tsv")
+            return
+
+    if 'upload_biospeciman_tsv_to_bucket' in steps:
+        print('upload_biospeciman_tsv_to_bucket')
+        upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, biospeciman_tsv)
+
+    if 'create_biospeciman_bq_from_tsv' in steps:
+        print('create_biospeciman_bq_from_tsv')
+        typing_tups = build_schema(biospeciman_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        build_combined_schema(None, None,
+                              typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
+        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+        with open(hold_schema_dict_biospeciman, mode='r') as schema_hold_dict:
+            typed_schema = json_loads(schema_hold_dict.read())
+        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_BIOSPECIMAN'], params['BQ_AS_BATCH'])
+
+
+    # Compare result to Ron's table...
     if 'compare_mi_ron_table' in steps:
         print('compare_mi_ron_table')
         compare_mi_ron_table(params['MI_TABLE'],
