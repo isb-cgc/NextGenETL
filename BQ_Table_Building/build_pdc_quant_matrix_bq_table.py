@@ -300,7 +300,7 @@ def main(args):
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
-        with open(hold_schema_dict_quant_matrix, mode='r') as schema_hold_dict:
+        with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_QUANT_MATRIX'], params['BQ_AS_BATCH'])
 
@@ -332,7 +332,7 @@ def main(args):
         build_combined_schema(None, None,
                               typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
-        with open(hold_schema_dict_biospeciman, mode='r') as schema_hold_dict:
+        with open(hold_schema_list_biospeciman, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_BIOSPECIMAN'], params['BQ_AS_BATCH'])
 
