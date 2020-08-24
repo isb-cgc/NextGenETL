@@ -514,7 +514,6 @@ def main(args):
                 all_files = traversal_list_file.read().splitlines()
                 concat_all_files(all_files, one_big_tsv.format(count_name), header)
 
-
     #
     # Schemas and table descriptions are maintained in the github repo:
     #

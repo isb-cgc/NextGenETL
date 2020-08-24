@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2019, Institute for Systems Biology
+# Copyright 2020, Institute for Systems Biology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ~/setEnvVars.sh
+#
+# Working on the desktop, you need to run this to authenticate:
+#
 
-export MY_VENV=~/virtualEnvETL
-export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
+gcloud auth login ${1}
 
-mkdir -p ~/config
-pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenericTableBuild.yaml .
+source ~/setEnvVarsForDesktop.sh
+
+export PYTHONPATH=.:${MY_VENV}/lib
+
+mkdir -p ${CONFIG_DIR}
+pushd ${CONFIG_DIR} > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/BQMetadataTransfer.yaml .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_generic_table.py ~/config/GenericTableBuild.yaml
+python3 ./BQ_Table_Building/transfer_project_bq_metadata.py ${CONFIG_DIR}/BQMetadataTransfer.yaml
 deactivate
+
