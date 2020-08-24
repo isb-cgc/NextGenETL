@@ -1006,11 +1006,11 @@ def main(args):
             # derive the program's table structure by analyzing its case records
             columns, record_counts = find_program_structure(cases)
 
-            print(record_counts)
-            return
-
             # generate table schemas
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
+
+            print(schema)
+            return
 
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(schema, columns, record_counts, program)
