@@ -1010,21 +1010,17 @@ def main(args):
             # generate table schemas
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
 
-        if 'create_webapp_tables' in steps:
-            print(schema)
+            if 'create_webapp_tables' in steps:
 
-            column_orders = add_reference_columns(schema, columns, record_counts, program)
+                webapp_schema = modify_schema_for_webapp(schema.copy(), API_PARAMS)
 
-            # print(column_orders)
-            print(schema)
+                print(webapp_schema)
+
+
+            # column_orders = add_reference_columns(schema, columns, record_counts, program)
 
             # reassign merged_column_orders to column_orders
-            merged_orders = merge_column_orders(schema, columns,
-                                                record_counts, column_orders)
-
-            # print(merged_orders)
-
-
+            # merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
 
         if 'create_and_load_table' in steps:
 

@@ -665,6 +665,30 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
     return flat_schema
 
 
+def modify_schema_for_webapp(schema, api_params):
+    exclude_fields = set()
+    exclude_fgs = set()
+
+    fgs = api_params['TABLE_METADATA'].keys()
+
+    for fg in fgs:
+        if 'webapp_excluded_fields' in api_params['TABLE_METADATA'][fg]:
+            for field in api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
+                exclude_fields.add('.'.join(fg, field))
+
+    if 'WEBAPP_EXCLUDED_FG' in api_params:
+        for fg in api_params['WEBAPP_EXCLUDED_FG']:
+            exclude_fgs.add(fg)
+
+    for field in schema:
+        parent_fg = ".".join(field.split('.')[:-1])
+
+        if parent_fg in exclude_fgs or field in exclude_fields:
+            schema.pop(field)
+
+    return schema
+
+
 def to_bq_schema_obj(schema_field_dict):
     """
     Convert schema entry dict to SchemaField object.
