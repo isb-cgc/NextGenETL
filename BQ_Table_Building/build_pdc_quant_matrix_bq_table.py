@@ -58,6 +58,32 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
+Join quant matrix table and biospeciman table
+'''
+
+def join_quant_matrix_and_biospeciman_table(quant_matrix_table, biospeciman_table, target_dataset, joined_table, do_batch):
+    sql = build_join_quant_matrix_and_biospeciman_table_sql(quant_matrix_table, biospeciman_table)
+    return generic_bq_harness(sql, target_dataset, joined_table, do_batch, True)
+
+def build_join_quant_matrix_and_biospeciman_table_sql(quant_matrix_table, biospeciman_table):
+    return '''
+      WITH a1 as (
+          SELECT 
+            A.study_id, 
+            A.aliquot_submitter_id,
+            A.gene,
+            A.log2_ratio,
+            B.study_name,
+            B.aliquot_id,
+            B.sample_id 
+          FROM `{0}` as A 
+          JOIN `{1}` as B 
+          ON ((B.aliquot_submitter_id = A.aliquot_submitter_id) AND (B.study_id = A.study_id)))
+    SELECT * FROM a1
+        '''.format(quant_matrix_table, biospeciman_table)
+
+'''
+----------------------------------------------------------------------------------------------
 Table comparison
 '''
 
@@ -336,6 +362,15 @@ def main(args):
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_BIOSPECIMAN'], params['BQ_AS_BATCH'])
 
+
+    # Join quant matrix table and biospeciman table...
+    if 'join_quant_matrix_and_biospeciman_table' in steps:
+        print('join_quant_matrix_and_biospeciman_table')
+        join_quant_matrix_and_biospeciman_table(params['TARGET_TABLE_QUANT_MATRIX'],
+                                                params['TARGET_TABLE_BIOSPECIMAN'],
+                                                params['TARGET_DATASET'],
+                                                params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'],
+                                                params['BQ_AS_BATCH'])
 
     # Compare result to Ron's table...
     if 'compare_mi_ron_table' in steps:
