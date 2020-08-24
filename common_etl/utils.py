@@ -671,7 +671,7 @@ def modify_schema_for_webapp(schema, api_params):
 
     fgs = api_params['TABLE_METADATA'].keys()
 
-    for fg in fgs:
+    for fg in fgs.keys():
         if 'webapp_excluded_fields' in api_params['TABLE_METADATA'][fg] \
                 and api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
             for field in api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
