@@ -76,7 +76,7 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
             A.log2_ratio,
             A.study_name,
             A.aliquot_id,
-            A.sample_id 
+            A.sample_id,
             B.ncbi_gene_id,
             B.authority,
             B.description,
@@ -91,7 +91,7 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
             B.gene_uuid
           FROM `{0}` as A 
           JOIN `{1}` as B 
-          ON ((B.gene_name = A.gene))
+          ON ((B.gene_name = A.gene)))
     SELECT * FROM a1
         '''.format(quant_matrix_table, pdc_genes_to_protein_table)
 
