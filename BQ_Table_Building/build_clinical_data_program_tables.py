@@ -476,6 +476,8 @@ def add_reference_columns(schema, columns, record_counts, program):
         add_ref_id_to_table(schema, columns, column_orders, table,
                             (curr_index, case_id_name, program))
 
+        print(column_orders)
+
         add_count_col_to_parent_table(schema, columns, column_orders, table)
 
     return column_orders
