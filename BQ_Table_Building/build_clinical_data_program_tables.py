@@ -1015,7 +1015,8 @@ def main(args):
 
                 webapp_schema = modify_schema_for_webapp(schema.copy(), API_PARAMS)
 
-                print(webapp_schema)
+                print(columns)
+                print(record_counts)
 
 
             # column_orders = add_reference_columns(schema, columns, record_counts, program)
