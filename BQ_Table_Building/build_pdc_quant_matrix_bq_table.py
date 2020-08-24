@@ -427,7 +427,7 @@ def main(args):
         pdc_genes_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
                                                   params['TARGET_DATASET'],
                                                   params['TARGET_TABLE_PDC_GENES_PROTEIN'])
-        join_quant_matrix_and_biospeciman_table(quant_matrix_biospeciman_bq_table,
+        join_quant_natrix_and_pdc_genes_to_protein_table(quant_matrix_biospeciman_bq_table,
                                                 pdc_genes_protein_table,
                                                 params['TARGET_DATASET'],
                                                 params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'],
