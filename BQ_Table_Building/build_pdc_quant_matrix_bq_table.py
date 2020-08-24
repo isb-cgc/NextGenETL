@@ -62,7 +62,7 @@ Join PDC_Quant _Matrix_Biospeciman_Joined_Table_One_Study and PDC_Genes_To_Prote
 spread sheet
 '''
 
-def join_quant_natrix_and_pdc_genes_to_protein_table(quant_matrix_table, pdc_genes_to_protein_table, target_dataset, joined_table,do_batch)
+def join_quant_natrix_and_pdc_genes_to_protein_table(quant_matrix_table, pdc_genes_to_protein_table, target_dataset, joined_table, do_batch):
     sql = build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc_genes_to_protein_table)
     return generic_bq_harness(sql, target_dataset, joined_table, do_batch, True)
 
