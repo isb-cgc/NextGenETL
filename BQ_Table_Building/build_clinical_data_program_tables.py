@@ -1014,13 +1014,14 @@ def main(args):
             column_orders = add_reference_columns(schema, columns, record_counts, program)
 
             # print(column_orders)
+            print(schema)
 
             # reassign merged_column_orders to column_orders
             merged_orders = merge_column_orders(schema, columns,
                                                 record_counts, column_orders)
 
             # print(merged_orders)
-            print(schema)
+
 
 
         if 'create_and_load_table' in steps:
