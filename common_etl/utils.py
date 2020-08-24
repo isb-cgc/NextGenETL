@@ -689,8 +689,6 @@ def modify_schema_for_webapp(schema, api_params):
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
-    print(schema)
-
     return schema
 
 

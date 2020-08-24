@@ -985,7 +985,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_program_list(BQ_PARAMS)
+    #programs = get_program_list(BQ_PARAMS)
+    programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
@@ -1014,7 +1015,7 @@ def main(args):
 
                 webapp_schema = modify_schema_for_webapp(schema.copy(), API_PARAMS)
 
-                # print(webapp_schema)
+                print(webapp_schema)
 
 
             # column_orders = add_reference_columns(schema, columns, record_counts, program)
