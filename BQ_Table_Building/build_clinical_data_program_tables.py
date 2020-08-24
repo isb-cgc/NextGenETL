@@ -468,6 +468,7 @@ def add_reference_columns(schema, columns, record_counts, program):
             curr_index += 1
 
         case_id_name = get_table_case_id_name(table)
+
         add_ref_id_to_table(schema, columns, column_orders, table,
                             (curr_index, case_id_name, program))
 
@@ -1009,8 +1010,13 @@ def main(args):
             # generate table schemas
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
 
-            print(schema)
-            return
+        if 'create_webapp_tables' in steps:
+            column_orders = add_reference_columns(schema, columns, record_counts, program)
+
+            print(column_orders)
+
+
+        if 'create_and_load_table' in steps:
 
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(schema, columns, record_counts, program)
@@ -1025,6 +1031,8 @@ def main(args):
 
             # create tables, flatten and insert data
             create_and_load_tables(program, cases, table_schemas, record_counts)
+
+        if 'create_webapp_tables' in steps or 'create_and_load_table' in steps:
 
             print("{} processed in {:0.0f}s!\n".format(program, time.time() - prog_start))
 
