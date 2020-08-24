@@ -1015,6 +1015,12 @@ def main(args):
 
             print(column_orders)
 
+            # reassign merged_column_orders to column_orders
+            merged_orders = merge_column_orders(schema, columns,
+                                                record_counts, column_orders)
+
+            print(merged_orders)
+
 
         if 'create_and_load_table' in steps:
 
