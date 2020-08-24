@@ -58,8 +58,42 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
-Join quant matrix table and biospeciman table
+Join PDC_Quant _Matrix_Biospeciman_Joined_Table_One_Study and PDC_Genes_To_Protein_Mapping_File(generate fron Ron's csv
+spread sheet
 '''
+
+def join_quant_natrix_and_pdc_genes_to_protein_table(quant_matrix_table, pdc_genes_to_protein_table, target_dataset, joined_table,do_batch)
+    sql = build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc_genes_to_protein_table)
+    return generic_bq_harness(sql, target_dataset, joined_table, do_batch, True)
+
+def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc_genes_to_protein_table):
+    return '''
+      WITH a1 as (
+          SELECT 
+            A.study_id, 
+            A.aliquot_submitter_id,
+            A.gene,
+            A.log2_ratio,
+            A.study_name,
+            A.aliquot_id,
+            A.sample_id 
+            B.ncbi_gene_id,
+            B.authority,
+            B.description,
+            B.organism,
+            B.chromosome,
+            B.locus,
+            B.proteins,
+            B.assays,
+            B.access,
+            B.cud_label,
+            B.updated,
+            B.gene_uuid
+          FROM `{0}` as A 
+          JOIN `{1}` as B 
+          ON ((B.gene_name= A.gene))
+    SELECT * FROM a1
+        '''.format(quant_matrix_table, pdc_genes_to_protein_table)
 
 def join_quant_matrix_and_biospeciman_table(quant_matrix_table, biospeciman_table, target_dataset, joined_table, do_batch):
     sql = build_join_quant_matrix_and_biospeciman_table_sql(quant_matrix_table, biospeciman_table)
@@ -81,6 +115,11 @@ def build_join_quant_matrix_and_biospeciman_table_sql(quant_matrix_table, biospe
           ON ((B.aliquot_submitter_id = A.aliquot_submitter_id) AND (B.study_id = A.study_id)))
     SELECT * FROM a1
         '''.format(quant_matrix_table, biospeciman_table)
+
+'''
+----------------------------------------------------------------------------------------------
+Join quant matrix table and biospeciman table
+'''
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -366,6 +405,21 @@ def main(args):
     # Join quant matrix table and biospeciman table...
     if 'join_quant_matrix_and_biospeciman_table' in steps:
         print('join_quant_matrix_and_biospeciman_table')
+        quant_matrix_biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                  params['TARGET_DATASET'],
+                                                  params['TARGET_TABLE_QUANT_MATRIX_BIOSPECIMAN'])
+        pdc_genes_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                  params['TARGET_DATASET'],
+                                                  params['TARGET_TABLE_PDC_GENES_PROTEIN'])
+        join_quant_matrix_and_biospeciman_table(quant_matrix_biospeciman_bq_table,
+                                                pdc_genes_protein_table,
+                                                params['TARGET_DATASET'],
+                                                params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'],
+                                                params['BQ_AS_BATCH'])
+
+    #Join PDC_Quant _Matrix_Biospeciman_Joined_Table_One_Study and PDC_Genes_To_Protein_Mapping_File
+    if 'join_quant_natrix_and_pdc_genes_to_protein_table' in steps:
+        print('join_quant_natrix_and_pdc_genes_to_protein_table')
         quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
                                                   params['TARGET_DATASET'],
                                                   params['TARGET_TABLE_QUANT_MATRIX'])
