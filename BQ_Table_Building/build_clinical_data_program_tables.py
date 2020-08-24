@@ -465,8 +465,10 @@ def add_reference_columns(schema, columns, record_counts, program, is_webapp=Fal
             print("table: {}, parent_fg: {}, parent_id_name: {}".format(
                 table, parent_fg, parent_id_name))
 
+            columns[table].add(parent_id_name)
+            column_orders[table][parent_id_name] = curr_index
         else:
-            # for formerly doubly-nested tables, ancestor id comes before case_id in schema
+            # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
                 parent_fg = get_parent_field_group(table)
                 parent_id_name = parent_fg + '.' + get_fg_id_name(API_PARAMS, parent_fg)
@@ -1043,8 +1045,8 @@ def main(args):
                                                              program,
                                                              is_webapp=True)
 
-                # print(webapp_schema)
-                # print(webapp_column_orders)
+                print(webapp_schema)
+                print(webapp_column_orders)
 
             # reassign merged_column_orders to column_orders
             # merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
