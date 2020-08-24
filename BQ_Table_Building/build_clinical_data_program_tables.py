@@ -999,15 +999,15 @@ def main(args):
             print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
 
-            print(cases)
-            return
-
             if len(cases) == 0:
                 print("No case records found for program {}, skipping.".format(program))
                 continue
 
             # derive the program's table structure by analyzing its case records
             columns, record_counts = find_program_structure(cases)
+
+            print(columns)
+            return
 
             # generate table schemas
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
