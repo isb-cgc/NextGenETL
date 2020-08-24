@@ -999,6 +999,9 @@ def main(args):
             print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
 
+            print(cases)
+            return
+
             if len(cases) == 0:
                 print("No case records found for program {}, skipping.".format(program))
                 continue

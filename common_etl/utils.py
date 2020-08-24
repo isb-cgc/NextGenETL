@@ -892,6 +892,7 @@ def get_new_name(api_params, field_name):
         return api_params['RENAME_FIELDS'][field_name]
 """
 
+
 #####
 #
 # Functions for filesystem operations
