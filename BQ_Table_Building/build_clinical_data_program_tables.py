@@ -1046,7 +1046,6 @@ def main(args):
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
-                print(webapp_schema)
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
@@ -1055,6 +1054,8 @@ def main(args):
                                                            webapp_column_orders)
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
+
+                print(webapp_schema)
 
                 webapp_table_schemas = create_schema_lists(webapp_schema,
                                                            webapp_record_counts,
