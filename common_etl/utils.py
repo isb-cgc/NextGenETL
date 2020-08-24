@@ -677,10 +677,13 @@ def modify_schema_for_webapp(schema, api_params):
             has_fatal_error("YAML config missing one of the excluded_field "
                             "field group parameters.", KeyError)
 
-        for field in api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
-            exclude_fields.add('.'.join([fg, field]))
-        for field in api_params['TABLE_METADATA'][fg]['excluded_fields']:
-            exclude_fields.add('.'.join([fg, field]))
+        if api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
+            for field in api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
+                exclude_fields.add('.'.join([fg, field]))
+
+        if api_params['TABLE_METADATA'][fg]['excluded_fields']:
+            for field in api_params['TABLE_METADATA'][fg]['excluded_fields']:
+                exclude_fields.add('.'.join([fg, field]))
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
         for fg in api_params['WEBAPP_EXCLUDED_FG']:
