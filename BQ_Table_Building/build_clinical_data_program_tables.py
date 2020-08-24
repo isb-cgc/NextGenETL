@@ -1011,6 +1011,8 @@ def main(args):
             schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
 
         if 'create_webapp_tables' in steps:
+            print(schema)
+
             column_orders = add_reference_columns(schema, columns, record_counts, program)
 
             # print(column_orders)
