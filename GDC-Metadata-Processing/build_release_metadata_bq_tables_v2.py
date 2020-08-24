@@ -55,6 +55,37 @@ def load_config(yaml_config):
             yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
             yaml_dict['programs'], yaml_dict['schema_tags'])
 
+
+'''
+----------------------------------------------------------------------------------------------
+Figure out the number of aliquots present
+'''
+def extract_aliquot_count(release_table, do_batch):
+
+    sql = extract_aliquot_count_sql(release_table)
+    results = bq_harness_with_result(sql, do_batch)
+    retval = [row.max_delim for row in results]
+    return retval[0] + 1
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above:
+'''
+def extract_aliquot_count_sql(release_table):
+
+    return '''
+            # Count the number of delimeters in the field:
+            WITH a1 AS (SELECT file_gdc_id,
+                        LENGTH(TRIM(associated_entities__entity_gdc_id)) -
+                        LENGTH(TRIM(REPLACE(associated_entities__entity_gdc_id, ';',''))) as delim
+            FROM `{0}`
+            WHERE (case_gdc_id IS NOT NULL) AND
+                  (case_gdc_id NOT LIKE "%;%") AND
+                  (case_gdc_id != "multi") AND
+                  (associated_entities__entity_type = "aliquot"))
+            SELECT MAX(delim) as max_delim FROM a1
+            '''.format(release_table)
+
 '''
 ----------------------------------------------------------------------------------------------
 Figure out the programs represented in the data
@@ -85,7 +116,6 @@ data (ORGANOID-PANCREATIC) will not have useful aliquot mapping data available.
 def extract_active_aliquot_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
     sql = extract_active_aliquot_file_data_sql(release_table, program_name)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -100,16 +130,30 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
         SELECT
             a.file_id as file_gdc_id,
             a.case_gdc_id,
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 1
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^([a-zA-Z0-9-]+);[a-zA-Z0-9-]+$")
+                                     r"^([a-zA-Z0-9-]+);[a-zA-Z0-9-;]+$")
               ELSE a.associated_entities__entity_gdc_id
             END as aliquot_id_one,
-            CASE WHEN (STRPOS(a.associated_entities__entity_gdc_id, ";") != 0)
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 1
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+                                     r"^[a-zA-Z0-9-]+;([a-zA-Z0-9-]+).*$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_two,
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 2
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+).*$")
+              ELSE CAST(null AS STRING)
+            END as aliquot_id_three,
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 3
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+              ELSE CAST(null AS STRING)
+            END as aliquot_id_four,
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
@@ -141,12 +185,119 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
 
 '''
 ----------------------------------------------------------------------------------------------
+Get two rows from one where there are two aliquots present
+'''
+def expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
+
+    sql = expand_active_aliquot_file_data_sql(aliquot_table)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+'''
+----------------------------------------------------------------------------------------------
+With files that have two aliquots, we want to make one row per aliquot
+'''
+def expand_active_aliquot_file_data_sql(aliquot_table):
+
+    return '''
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_one as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_two as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_two IS NOT NULL)
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_three as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_three IS NOT NULL)
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_four as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_four IS NOT NULL)
+        '''.format(aliquot_table)
+
+'''
+----------------------------------------------------------------------------------------------
 Slide extraction
 '''
-def extract_active_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
+def extract_slide_file_data(release_table, program_name, target_dataset, dest_table, do_batch):
 
-    sql = extract_active_file_data_sql_slides(release_table, program_name)
-    print(sql)
+    sql = extract_file_data_sql_slides(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -154,7 +305,16 @@ def extract_active_slide_file_data(release_table, program_name, target_dataset, 
 SQL for above:
 '''
 
-def extract_active_file_data_sql_slides(release_table, program_name):
+def extract_file_data_sql_slides(release_table, program_name):
+
+    #
+    # If dealing with legacy TCGA slides, some do not even have a program name or case_id. We need to haul those
+    # out and parse the file name instead in a repair step.
+    #
+
+    optional_program = "" if program_name is None else "(a.program_name = '{0}') AND (a.case_gdc_id IS NOT NULL) AND ".format(program_name)
+
+    print("optional program: {}".format(optional_program))
     return '''
         SELECT
             a.file_id as file_gdc_id,
@@ -181,15 +341,22 @@ def extract_active_file_data_sql_slides(release_table, program_name):
             a.index_file_size,
             a.access,
             a.acl,
-            # Gotta have this for repairing busted slides with no case_id
-            CAST(null AS STRING) as slide_barcode
+            # Some legacy entries have no case ID or sample ID, it is embedded in the file name, and
+            # we need to pull that out to get that info
+            CASE WHEN (a.case_gdc_id IS NULL) THEN
+                   REGEXP_EXTRACT(a.file_name, r"^([A-Z0-9-]+).+$")
+                ELSE
+                   CAST(null AS STRING)
+            END as slide_barcode
         FROM `{1}` AS a
-        WHERE (a.program_name = "{0}") AND
-              (a.case_gdc_id IS NOT NULL) AND
-              (a.case_gdc_id NOT LIKE "%;%") AND
-              (a.case_gdc_id != "multi") AND
-              (a.associated_entities__entity_type = "slide")
-        '''.format(program_name, release_table)
+        WHERE {0} # Omit some conditions if we need to capture rows to repair
+              (((a.case_gdc_id NOT LIKE "%;%") AND
+               # the second condition captures repair rows
+                (a.case_gdc_id != "multi")) OR (a.case_gdc_id IS NULL)) AND
+              ((a.data_format = "SVS") OR # catches legacy
+               (a.associated_entities__entity_type = "slide")) # catches active
+        '''.format(optional_program, release_table)
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -199,13 +366,12 @@ These tables do not hold the case id, nor the program or disease name. Fix this 
 def repair_slide_file_data(case_table, broken_table, target_dataset, dest_table, do_batch):
 
     sql = repair_missing_case_data_sql_slides(case_table, broken_table)
-    print(sql)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above. Note this processing ends up throwing away one slide from case TCGA-08-0384, which
-actaully does not appear in the case file going back to at least release 6.
+actually does not appear in the case file going back to at least release 6.
 '''
 
 def repair_missing_case_data_sql_slides(case_table, broken_table):
@@ -295,6 +461,9 @@ def extract_active_case_file_data_sql(release_table, program_name):
               (a.case_gdc_id IS NOT NULL) AND
               (a.case_gdc_id NOT LIKE "%;%") AND
               (a.case_gdc_id != "multi") AND
+              # Note we depend that a slide is not being sucked in here
+              # in the legacy case due to a "case" entity type being present and not a slide.
+              # Analysis indicates that is a safe conclusion
               (a.associated_entities__entity_type = "case")
         '''.format(program_name, release_table)
 
@@ -320,12 +489,9 @@ def case_barcodes_sql(release_table, case_table, program_name):
             a.file_gdc_id,
             a.case_gdc_id,
             a1.case_barcode,
-            CAST(null AS STRING) as sample_one_gdc_id,
-            CAST(null AS STRING) as sample_one_barcode,
-            CAST(null AS STRING) as sample_one_type_name,
-            CAST(null AS STRING) as sample_two_gdc_id,
-            CAST(null AS STRING) as sample_two_barcode,
-            CAST(null AS STRING) as sample_two_type_name,
+            CAST(null AS STRING) as sample_gdc_id,
+            CAST(null AS STRING) as sample_barcode,
+            CAST(null AS STRING) as sample_type_name,
             a.project_short_name,
             a.project_short_name_suffix,
             a.program_name,
@@ -368,12 +534,9 @@ def aliquot_barcodes_without_map_sql(release_table, case_table, program_name):
                 d.file_gdc_id,
                 d.case_gdc_id,
                 e.case_barcode,
-                CAST(null AS STRING) as sample_one_gdc_id,
-                CAST(null AS STRING) as sample_one_barcode,
-                CAST(null AS STRING) as sample_one_type_name,
-                CAST(null AS STRING) as sample_two_gdc_id,
-                CAST(null AS STRING) as sample_two_barcode,
-                CAST(null AS STRING) as sample_two_type_name,
+                CAST(null AS STRING) as sample_gdc_id,
+                CAST(null AS STRING) as sample_barcode,
+                CAST(null AS STRING) as sample_type_name,
                 d.project_short_name,
                 d.project_short_name_suffix,
                 d.program_name,
@@ -414,60 +577,30 @@ case data for Rel22.
 def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
 
     return '''
-        WITH
-          a1 AS (
-            SELECT
-                a.file_gdc_id,
-                a.case_gdc_id,
-                c.case_barcode,
-                c.sample_gdc_id as sample_one_gdc_id,
-                c.sample_barcode as sample_one_barcode,
-                c.sample_type_name as sample_one_type_name,
-                a.aliquot_id_two,
-                a.project_short_name,
-                a.project_short_name_suffix,
-                a.program_name,
-                a.data_type,
-                a.data_category,
-                a.experimental_strategy,
-                a.file_type,
-                a.file_size,
-                a.data_format,
-                a.platform,
-                a.file_name_key,
-                a.index_file_id,
-                a.index_file_name_key,
-                a.index_file_size,
-                a.access,
-                a.acl
-            FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_id_one = c.aliquot_gdc_id WHERE a.aliquot_id_one != "multi" )
         SELECT
-                a1.file_gdc_id,
-                a1.case_gdc_id,
-                a1.case_barcode,
-                a1.sample_one_gdc_id,
-                a1.sample_one_barcode,
-                a1.sample_one_type_name,
-                c.sample_gdc_id as sample_two_gdc_id,
-                c.sample_barcode as sample_two_barcode,
-                c.sample_type_name as sample_two_type_name,
-                a1.project_short_name,
-                a1.project_short_name_suffix,
-                a1.program_name,
-                a1.data_type,
-                a1.data_category,
-                a1.experimental_strategy,
-                a1.file_type,
-                a1.file_size,
-                a1.data_format,
-                a1.platform,
-                a1.file_name_key,
-                a1.index_file_id,
-                a1.index_file_name_key,
-                a1.index_file_size,
-                a1.access,
-                a1.acl
-        FROM a1 LEFT JOIN `{1}` AS c ON a1.aliquot_id_two = c.aliquot_gdc_id
+            a.file_gdc_id,
+            a.case_gdc_id,
+            c.case_barcode,
+            c.sample_gdc_id,
+            c.sample_barcode,
+            c.sample_type_name,
+            a.project_short_name,
+            a.project_short_name_suffix,
+            a.program_name,
+            a.data_type,
+            a.data_category,
+            a.experimental_strategy,
+            a.file_type,
+            a.file_size,
+            a.data_format,
+            a.platform,
+            a.file_name_key,
+            a.index_file_id,
+            a.index_file_name_key,
+            a.index_file_size,
+            a.access,
+            a.acl
+        FROM `{0}` AS a JOIN `{1}` AS c ON a.aliquot_id = c.aliquot_gdc_id WHERE a.aliquot_id != "multi"
         # Those cases with a "multi" as an aliquot id, we still need to just haul them in,
         # but also get the case barcode as well:
         UNION DISTINCT
@@ -475,12 +608,9 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 d.file_gdc_id,
                 d.case_gdc_id,
                 e.case_barcode,
-                CAST(null AS STRING) as sample_one_gdc_id,
-                CAST(null AS STRING) as sample_one_barcode,
-                CAST(null AS STRING) as sample_one_type_name,
-                CAST(null AS STRING) as sample_two_gdc_id,
-                CAST(null AS STRING) as sample_two_barcode,
-                CAST(null AS STRING) as sample_two_type_name,
+                CAST(null AS STRING) as sample_gdc_id,
+                CAST(null AS STRING) as sample_barcode,
+                CAST(null AS STRING) as sample_type_name,
                 d.project_short_name,
                 d.project_short_name_suffix,
                 d.program_name,
@@ -497,7 +627,7 @@ def aliquot_barcodes_sql(release_table, aliquot_2_case_table, program_name):
                 d.index_file_size,
                 d.access,
                 d.acl
-        FROM `{0}` AS d JOIN `{1}` AS e ON d.case_gdc_id = e.case_gdc_id WHERE d.aliquot_id_one = "multi"
+        FROM `{0}` AS d JOIN `{1}` AS e ON d.case_gdc_id = e.case_gdc_id WHERE d.aliquot_id = "multi"
         '''.format(release_table, aliquot_2_case_table, program_name)
 
 '''
@@ -516,7 +646,7 @@ SQL for above:
 def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
 
     return '''
-        # Some slides have two entries in the slide_2_case table if they depict two portions. Remove the dups:
+        # Some slides have two or more entries in the slide_2_case table if they depict multiple portions. Remove the dups:
         WITH a1 as (
         SELECT DISTINCT
             case_barcode,
@@ -530,12 +660,9 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             a.file_gdc_id,
             a.case_gdc_id,
             a1.case_barcode,
-            a1.sample_gdc_id as sample_one_gdc_id,
-            a1.sample_barcode as sample_one_barcode,
-            a1.sample_type_name as sample_one_type_name,
-            CAST(null AS STRING) as sample_two_gdc_id,
-            CAST(null AS STRING) as sample_two_barcode,
-            CAST(null AS STRING) as sample_two_type_name,
+            a1.sample_gdc_id as sample_gdc_id,
+            a1.sample_barcode as sample_barcode,
+            a1.sample_type_name as sample_type_name,
             a.project_short_name,
             a.project_short_name_suffix,
             a.program_name,
@@ -558,12 +685,9 @@ def slide_barcodes_sql(release_table, slide_2_case_table, program_name):
             a.file_gdc_id,
             a.case_gdc_id,
             a1.case_barcode,
-            a1.sample_gdc_id as sample_one_gdc_id,
-            a1.sample_barcode as sample_one_barcode,
-            a1.sample_type_name as sample_one_type_name,
-            CAST(null AS STRING) as sample_two_gdc_id,
-            CAST(null AS STRING) as sample_two_barcode,
-            CAST(null AS STRING) as sample_two_type_name,
+            a1.sample_gdc_id as sample_gdc_id,
+            a1.sample_barcode as sample_barcode,
+            a1.sample_type_name as sample_type_name,
             a.project_short_name,
             a.project_short_name_suffix,
             a.program_name,
@@ -626,12 +750,9 @@ def install_uris_sql(union_table, mapping_table):
             a.file_gdc_id,
             a.case_gdc_id,
             a.case_barcode,
-            a.sample_one_gdc_id,
-            a.sample_one_barcode,
-            a.sample_one_type_name,
-            a.sample_two_gdc_id,
-            a.sample_two_barcode,
-            a.sample_two_type_name,
+            a.sample_gdc_id,
+            a.sample_barcode,
+            a.sample_type_name,
             a.project_short_name,
             a.project_short_name_suffix,
             a.program_name,
@@ -648,18 +769,18 @@ def install_uris_sql(union_table, mapping_table):
             a.index_file_size,
             a.access,
             a.acl
-        FROM `{0}` AS a LEFT OUTER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
+        # THIS VERSION RETAINS THE GDC FILES THAT DO NOT EXIST IN DCF MANIFEST:
+        # FROM `{0}` AS a LEFT OUTER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
+        # THIS VERSION DUMPS THE GDC ENTRIES THAT DO NOT EXIST IN DCF MANIFEST:
+        FROM `{0}` AS a INNER JOIN `{1}` AS c ON a.file_gdc_id = c.file_uuid )
         
         SELECT
             a1.file_gdc_id,
             a1.case_gdc_id,
             a1.case_barcode,
-            a1.sample_one_gdc_id,
-            a1.sample_one_barcode,
-            a1.sample_one_type_name,
-            a1.sample_two_gdc_id,
-            a1.sample_two_barcode,
-            a1.sample_two_type_name,
+            a1.sample_gdc_id,
+            a1.sample_barcode,
+            a1.sample_type_name,
             a1.project_short_name,
             a1.project_short_name_suffix,
             a1.program_name,
@@ -679,12 +800,10 @@ def install_uris_sql(union_table, mapping_table):
         FROM a1 LEFT OUTER JOIN `{1}` AS c ON a1.index_file_id = c.file_uuid
         '''.format(union_table, mapping_table)
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Do all the steps for a given dataset and build sequence
 '''
-
 
 def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                          aliquot_map_programs, params, schema_tags):
@@ -696,28 +815,60 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     #
      
     if 'pull_slides' in steps:
-        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
-        success = extract_active_slide_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
-                                                 step_one_table, params['BQ_AS_BATCH'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_0_TABLE'])
+        # Hardwired instead of configurable since this is a one-off problem:
+        use_project = None if (build_tag == "legacy") and (dataset_tuple[0] == "TCGA") else dataset_tuple[0]
+        success = extract_slide_file_data(file_table, use_project, params['TARGET_DATASET'],
+                                          step_zero_table, params['BQ_AS_BATCH'])
+
         if not success:
             print("{} {} pull_slides job failed".format(dataset_tuple[0], build))
             return False
 
-        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
-            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
-            print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_1_TABLE']))
+        if bq_table_is_empty(params['TARGET_DATASET'], step_zero_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_zero_table)
+            print("{} pull_slide table result was empty: table deleted".format(params['SLIDE_STEP_0_TABLE']))
+
+
+    if 'repair_slides' in steps:
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_0_TABLE'])
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                     params['TARGET_DATASET'], step_zero_table)
+
+        if bq_table_exists(params['TARGET_DATASET'], step_zero_table):
+            step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['SLIDE_STEP_1_TABLE'])
+            success = repair_slide_file_data(params['CASE_TABLE'], in_table,
+                                             params['TARGET_DATASET'], step_one_table, params['BQ_AS_BATCH'])
+            if not success:
+                print("{} {} repair slides job failed".format(dataset_tuple[0], build))
+                return False
 
     if 'pull_aliquot' in steps:
-        step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
         success = extract_active_aliquot_file_data(file_table, dataset_tuple[0], params['TARGET_DATASET'],
-                                                   step_one_table, params['BQ_AS_BATCH'])
+                                                   step_zero_table, params['BQ_AS_BATCH'])
         if not success:
             print("{} {} pull_aliquot job failed".format(dataset_tuple[0], build))
             return False
 
-        if bq_table_is_empty(params['TARGET_DATASET'], step_one_table):
-            delete_table_bq_job(params['TARGET_DATASET'], step_one_table)
-            print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_1_TABLE']))
+        if bq_table_is_empty(params['TARGET_DATASET'], step_zero_table):
+            delete_table_bq_job(params['TARGET_DATASET'], step_zero_table)
+            print("{} pull_aliquot table result was empty: table deleted".format(params['ALIQUOT_STEP_0_TABLE']))
+
+    if 'expand_aliquots' in steps:
+        step_zero_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_0_TABLE'])
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                     params['TARGET_DATASET'], step_zero_table)
+
+        if bq_table_exists(params['TARGET_DATASET'], step_zero_table):
+            step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_1_TABLE'])
+
+            success = expand_active_aliquot_file_data(in_table, params['TARGET_DATASET'],
+                                                      step_one_table, params['BQ_AS_BATCH'])
+
+            if not success:
+                print("{} {} expand_aliquots job failed".format(dataset_tuple[0], build))
+                return False
 
     if 'pull_case' in steps:
         step_one_table = "{}_{}_{}".format(dataset_tuple[1], build, params['CASE_STEP_1_TABLE'])
@@ -812,7 +963,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                         "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE']))
         success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], path_tag),
                                params['TARGET_DATASET'], 
-                               "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE']), params['BQ_AS_BATCH'])
+                               "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE']), params['BQ_AS_BATCH'])
         if not success:
             print("{} {} create_final_table job failed".format(dataset_tuple[0], build))
             return False
@@ -824,13 +975,13 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         # Where do we dump the schema git repository?
         schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
                                         params['GENERIC_SCHEMA_FILE_NAME'])
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
             print("process_git_schemas failed")
-            return
+            return False
 
     # Customize generic schema to this data program:
 
@@ -860,20 +1011,20 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     use_pair[tag] = rep_val
                 else:
                     use_pair[tag] = val
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         # Write out the details
         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
         if not success:
             print("replace_schema_tags failed")
-            return
+            return False
 
     #
     # Update the per-field descriptions:
     #
 
     if 'install_field_descriptions' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         print('install_field_descriptions: {}'.format(table_name))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
@@ -885,28 +1036,28 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
         if not success:
             print("install_field_descriptions failed")
-            return
+            return False
 
     #
     # Add description and labels to the target table:
     #
 
     if 'install_table_description' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
         print('install_table_description: {}'.format(table_name))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
         success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
                                           project=params['WORKING_PROJECT'])
         if not success:
             print("install_table_description failed")
-            return
+            return False
 
     #
     # publish table:
     #
 
     if 'publish' in steps:
-        table_name = "{}_{}_{}".format(dataset_tuple[1], build, params['FINAL_TABLE'])
+        table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
         print('publish: {}'.format(table_name))
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
@@ -916,7 +1067,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
         if not success:
             print("publish failed")
-            return
+            return False
 
     #
     # Clear out working temp tables:
@@ -925,8 +1076,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if 'dump_working_tables' in steps:
         print('dump_working_tables')
         dump_tables = []
-        dump_table_tags = ['SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE', 'ALIQUOT_STEP_1_TABLE',
-                           'ALIQUOT_STEP_2_TABLE', 'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
+        dump_table_tags = ['SLIDE_STEP_0_TABLE', 'SLIDE_STEP_1_TABLE', 'SLIDE_STEP_2_TABLE',
+                           'ALIQUOT_STEP_0_TABLE', 'ALIQUOT_STEP_1_TABLE', 'ALIQUOT_STEP_2_TABLE',
+                           'CASE_STEP_1_TABLE', 'CASE_STEP_2_TABLE',
                            'UNION_TABLE']
         for tag in dump_table_tags:
             table_name = "{}_{}_{}".format(dataset_tuple[1], build, params[tag])
@@ -986,6 +1138,28 @@ def main(args):
             repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
         except Exception as ex:
             print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    #
+    # The SQL is currently tailored to parse out up to two aliquots per file (understanding that
+    # we are only processing files that apply to a single case, and not multiple case files). This
+    # step checks that that assumption is not being violated:
+    #
+
+    if 'count_aliquots' in steps:
+        print('count_aliquots')
+
+        try:
+            for build_tag in build_tags:
+                file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
+                aliquot_count = extract_aliquot_count(file_table, params['BQ_AS_BATCH'])
+                print ("{}:{}".format(build_tag, aliquot_count))
+                if aliquot_count > params['MAX_ALIQUOT_PARSE']:
+                    print("count_aliquots detected high aliquot count: {} > {}. Exiting.".format(aliquot_count,
+                                                                                                 params['MAX_ALIQUOT_PARSE']))
+                    return
+        except Exception as ex:
+            print("count_aliquots failed: {}".format(str(ex)))
             return
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):

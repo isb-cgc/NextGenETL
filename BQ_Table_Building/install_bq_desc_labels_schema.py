@@ -109,6 +109,7 @@ def main(args):
                 full_schema_list = json_loads(schema_hold_dict.read())
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
+            print(table)
             set_and_table = table.split('.', maxsplit=1)
             success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['TARGET_PROJECT'])
             if not success:

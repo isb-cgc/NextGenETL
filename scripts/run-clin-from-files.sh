@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2019, Institute for Systems Biology
+# Copyright 2020, Institute for Systems Biology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,12 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenericTableBuild.yaml .
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ClinicalFromFilesBQBuild.yaml .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_generic_table.py ~/config/GenericTableBuild.yaml
+python3 ./BQ_Table_Building/build_clinical_from_files_bq_table.py ~/config/ClinicalFromFilesBQBuild.yaml
 deactivate

@@ -637,7 +637,7 @@ def get_case_info(cases_endpt, case_id):
         ## and instead added the samples.portions.* fields ...
 
         ## added preservation_method and is_ffpe fields to the samples.* (04/03/2019)
-        fieldsList = 'case_id,sample_ids,state,' \
+        fieldsList = 'case_id,sample_ids,state,primary_site,' \
                      + 'submitter_id,' \
                      + 'submitter_sample_ids,' \
                      + 'files.file_id,' \
