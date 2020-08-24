@@ -1052,6 +1052,8 @@ def main(args):
                                                            webapp_record_counts,
                                                            webapp_column_orders)
 
+                remove_null_fields(webapp_columns, webapp_merged_orders)
+
                 print(webapp_merged_orders)
 
         if 'create_and_load_table' in steps:
