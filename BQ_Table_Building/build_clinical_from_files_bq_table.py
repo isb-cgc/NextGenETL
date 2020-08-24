@@ -27,6 +27,7 @@ import re
 from os.path import expanduser
 import yaml
 import io
+import pandas as pd
 from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
@@ -55,6 +56,23 @@ def load_config(yaml_config):
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['no_data_values'], yaml_dict['steps']
 
+
+
+'''
+----------------------------------------------------------------------------------------------
+Convert excel files to CSV files
+'''
+def convert_excel_to_csv(all_files, local_files_dir):
+
+    for filename in all_files:
+        print(filename)
+        page_dict = pd.read_excel(filename, None)
+        print(page_dict.keys())
+        _, just_name = os.path.split(filename)
+        for k, v in page_dict.items():
+            print("{}/{}-{}.tsv".format(local_files_dir, k, just_name))
+            print(v)
+            #v.to_csv("{}/{}-{}.tsv".format(local_files_dir, k, just_name), sep = "\t", index = None, header=True)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -308,6 +326,12 @@ def main(args):
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
         group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
+
+    if 'convert_excel_to_csv' in steps:
+        print('convert_excel_to_csv')
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+        convert_excel_to_csv(all_files, local_files_dir)
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
