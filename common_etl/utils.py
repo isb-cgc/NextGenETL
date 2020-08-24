@@ -681,7 +681,9 @@ def modify_schema_for_webapp(schema, api_params):
         for fg in api_params['WEBAPP_EXCLUDED_FG']:
             exclude_fgs.add(fg)
 
-    for field in schema.keys().copy():
+    fields = schema.keys()
+
+    for field in fields:
         parent_fg = ".".join(field.split('.')[:-1])
 
         if parent_fg in exclude_fgs or field in exclude_fields:
