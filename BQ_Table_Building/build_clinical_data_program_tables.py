@@ -1046,6 +1046,8 @@ def main(args):
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
+                print(webapp_schema)
+
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
                                                            webapp_columns,
@@ -1058,7 +1060,10 @@ def main(args):
                                                            webapp_record_counts,
                                                            webapp_merged_orders)
 
-                print(webapp_table_schemas)
+                # print(webapp_table_schemas)
+
+                create_and_load_tables(
+                    program, cases, webapp_table_schemas, webapp_record_counts)
 
         if 'create_and_load_table' in steps:
 
