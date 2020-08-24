@@ -686,10 +686,10 @@ def modify_schema_for_webapp(schema, api_params):
     for field in fields:
         parent_fg = ".".join(field.split('.')[:-1])
 
-        print(parent_fg)
-
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
+
+    print(schema)
 
     return schema
 
