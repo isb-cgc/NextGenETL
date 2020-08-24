@@ -1015,11 +1015,28 @@ def main(args):
 
                 webapp_schema = modify_schema_for_webapp(schema.copy(), API_PARAMS)
 
-                print(columns)
-                print(record_counts)
+                webapp_columns = columns.copy()
+                webapp_record_counts = record_counts.copy()
 
+                if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
+                    has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
 
-            # column_orders = add_reference_columns(schema, columns, record_counts, program)
+                excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
+
+                if excluded_fgs:
+                    for excluded_fg in excluded_fgs:
+                        if excluded_fg in webapp_columns:
+                            webapp_columns.pop(excluded_fg)
+                        if excluded_fg in webapp_record_counts:
+                            webapp_record_counts.pop(excluded_fg)
+
+                webapp_column_orders = add_reference_columns(webapp_schema,
+                                                             webapp_columns,
+                                                             webapp_record_counts,
+                                                             program)
+
+                print(webapp_schema)
+                print(webapp_column_orders)
 
             # reassign merged_column_orders to column_orders
             # merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
