@@ -463,6 +463,10 @@ def add_reference_columns(schema, columns, record_counts, program):
             parent_fg = get_parent_field_group(table)
             parent_id_name = parent_fg + '.' + get_fg_id_name(API_PARAMS, parent_fg)
 
+            print("table: {}, parent_fg: {}, parent_id_name: {}".format(table,
+                                                                        parent_fg,
+                                                                        parent_id_name))
+
             add_ref_id_to_table(schema, columns, column_orders, table,
                                 (curr_index, parent_id_name, program))
             curr_index += 1
@@ -1035,8 +1039,8 @@ def main(args):
                                                              webapp_record_counts,
                                                              program)
 
-                print(webapp_schema)
-                print(webapp_column_orders)
+                # print(webapp_schema)
+                # print(webapp_column_orders)
 
             # reassign merged_column_orders to column_orders
             # merged_orders = merge_column_orders(schema, columns, record_counts, column_orders)
