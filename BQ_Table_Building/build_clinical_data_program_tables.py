@@ -465,27 +465,25 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         curr_index = get_id_index(table, column_orders[table]) + 1
 
+        pid_field = '.'.join([get_parent_field_group(table),
+                              get_fg_id_name(API_PARAMS,
+                                             get_parent_field_group(table))])
         if is_webapp:
-            pid_field = '.'.join([get_parent_field_group(table),
-                              get_fg_id_name(API_PARAMS, parent_fg)])
-
             columns[table].add(pid_field)
             column_orders[table][pid_field] = curr_index
             curr_index += 1
         else:
             # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
-                parent_fg = get_parent_field_group(table)
-                pid_field = parent_fg + '.' + get_fg_id_name(API_PARAMS, parent_fg)
-
                 add_ref_id_to_table(schema, columns, column_orders, table,
                                     (curr_index, pid_field, program))
                 curr_index += 1
 
-            case_id_name = get_table_case_id_name(table)
+            case_id_name = get_case_id_field(table)
 
             add_ref_id_to_table(schema, columns, column_orders, table,
                                 (curr_index, case_id_name, program))
+
             add_count_col_to_parent_table(schema, columns, column_orders, table)
 
     return column_orders

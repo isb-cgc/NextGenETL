@@ -783,7 +783,7 @@ def get_count_field(field_group):
     return field_group + '.count'
 
 
-def get_table_case_id_name(field_group):
+def get_case_id_field(field_group):
     """
     # todo
     :param field_group:
