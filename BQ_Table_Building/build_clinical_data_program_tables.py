@@ -1006,7 +1006,7 @@ def main(args):
             # derive the program's table structure by analyzing its case records
             columns, record_counts = find_program_structure(cases)
 
-            print(columns)
+            print(record_counts)
             return
 
             # generate table schemas
