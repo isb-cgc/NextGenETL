@@ -1054,7 +1054,11 @@ def main(args):
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
-                print(webapp_merged_orders)
+                webapp_table_schemas = create_schema_lists(webapp_schema,
+                                                           webapp_record_counts,
+                                                           webapp_merged_orders)
+
+                print(webapp_table_schemas)
 
         if 'create_and_load_table' in steps:
 
