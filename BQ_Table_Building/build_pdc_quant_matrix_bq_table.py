@@ -366,8 +366,14 @@ def main(args):
     # Join quant matrix table and biospeciman table...
     if 'join_quant_matrix_and_biospeciman_table' in steps:
         print('join_quant_matrix_and_biospeciman_table')
-        join_quant_matrix_and_biospeciman_table(params['TARGET_TABLE_QUANT_MATRIX'],
-                                                params['TARGET_TABLE_BIOSPECIMAN'],
+        quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                  params['TARGET_DATASET'],
+                                                  params['TARGET_TABLE_QUANT_MATRIX'])
+        biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                  params['TARGET_DATASET'],
+                                                  params['TARGET_TABLE_BIOSPECIMAN'])
+        join_quant_matrix_and_biospeciman_table(quant_matrix_bq_table,
+                                                biospeciman_bq_table,
                                                 params['TARGET_DATASET'],
                                                 params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'],
                                                 params['BQ_AS_BATCH'])
