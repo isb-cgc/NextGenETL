@@ -843,6 +843,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         merge_or_count_records(flattened_case, record_counts, is_webapp)
 
+        print(flattened_case)
+
         for table in flattened_case.keys():
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
