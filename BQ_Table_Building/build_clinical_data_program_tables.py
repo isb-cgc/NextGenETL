@@ -494,9 +494,6 @@ def add_reference_columns(columns, record_counts, schema=None,
 
             add_count_col_to_parent_table(schema, columns, column_orders, table)
 
-    # todo
-    print(column_orders)
-
     return column_orders
 
 
@@ -1096,7 +1093,13 @@ def main(args):
 
                 webapp_schema = {k:v for (k,v) in schema.items()}
 
+                print(webapp_schema)
+
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
+
+                print()
+                print(webapp_schema)
+
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
