@@ -711,6 +711,18 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
     return schema
 
 
+def rename_case_fields(flattened_case, api_params):
+    old_keys = api_params['RENAME_FIELDS']
+
+    for key in old_keys:
+        if key in flattened_case['cases']:
+            val = flattened_case['cases'][key]
+            flattened_case['cases'].pop(key)
+
+            new_key = api_params['RENAME_FIELDS'][key]
+            flattened_case['cases'][new_key] = val
+
+
 def to_bq_schema_obj(schema_field_dict):
     """
     Convert schema entry dict to SchemaField object.

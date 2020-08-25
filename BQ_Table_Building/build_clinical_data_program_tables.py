@@ -809,7 +809,8 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     merge_single_entry_fgs(flattened_case, record_counts, is_webapp)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
-    get_record_counts(flattened_case, record_counts, is_webapp)
+    if not is_webapp:
+        get_record_counts(flattened_case, record_counts, is_webapp)
 
 
 def create_and_load_tables(program_name, cases, schemas, record_counts, is_webapp=False):
@@ -838,6 +839,9 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         merge_or_count_records(flattened_case, record_counts, is_webapp)
 
         print(flattened_case)
+
+        rename_case_fields(flattened_case, API_PARAMS)
+
         exit()
 
         for table in flattened_case.keys():
