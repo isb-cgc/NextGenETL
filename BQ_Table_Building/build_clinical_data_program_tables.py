@@ -827,6 +827,12 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
     """
+
+    print(("\n\nschemas\n {} \n\n"
+           "\n\nrecord_counts\n {} \n\n").format(schemas, record_counts))
+    exit()
+
+
     tables = get_tables(record_counts)
 
     print("\nInserting case records...")
@@ -1093,17 +1099,6 @@ def main(args):
                 webapp_schema = schema.copy()
 
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
-
-                print(("webapp_schema:          \n{}\n"
-                       "webapp_columns:         \n{}\n"
-                       "webapp_record_counts:   \n{}\n"
-                       "webapp_column_orders:   \n{}\n").format(webapp_schema,
-                                                                webapp_columns,
-                                                                webapp_record_counts,
-                                                                webapp_column_orders))
-
-                exit()
-
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
