@@ -716,13 +716,13 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
             schema[new_schema_name] = schema[field]
             schema.pop(field)
 
-        print(schema)
-        print("YES")
-
         if (parent_fg in webapp_column_orders
                 and field in webapp_column_orders[parent_fg]
                 and field in exclude_fields):
             webapp_column_orders[parent_fg].pop(field)
+
+
+    print(schema)
 
     return schema
 
