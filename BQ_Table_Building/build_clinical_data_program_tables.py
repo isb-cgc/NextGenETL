@@ -494,17 +494,17 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        table_id_schema_key = table + "." + get_fg_id_name(API_PARAMS, table)
+        schema_key = '.'.join([table, get_fg_id_name(API_PARAMS, table)])
 
         if table in columns:
             merged_order_key = table
-            schema[table_id_schema_key]['mode'] = 'REQUIRED'
+            schema[schema_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
             merged_order_key = get_parent_table(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
-            schema[table_id_schema_key]['mode'] = 'NULLABLE'
+            schema[schema_key]['mode'] = 'NULLABLE'
 
         if merged_order_key not in merged_column_orders:
             merged_column_orders[merged_order_key] = dict()
@@ -1049,7 +1049,6 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-                webapp_schema = modify_schema_for_webapp(schema.copy(), API_PARAMS)
 
                 webapp_columns = columns.copy()
                 webapp_record_counts = record_counts.copy()
@@ -1065,11 +1064,17 @@ def main(args):
                             webapp_columns.pop(excluded_fg)
                         if excluded_fg in webapp_record_counts:
                             webapp_record_counts.pop(excluded_fg)
-
+                
                 webapp_column_orders = add_reference_columns(webapp_columns,
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
+                webapp_schema = modify_fields_for_webapp(schema.copy(),
+                                                         webapp_column_orders,
+                                                         API_PARAMS)
+
+                print(webapp_column_orders)
+                exit()
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
