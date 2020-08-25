@@ -540,7 +540,7 @@ def create_webapp_schema_lists(schema, record_counts, merged_orders):
         if table not in merged_orders:
             has_fatal_error("record counts and merged orders disagree on program's "
                             "table architecture")
-        print("\nTable: {} merged orders: {}\n".format(table, merged_orders))
+        print("\nTable: {} \nmerged orders: {}\n".format(table, merged_orders))
 
         for field in merged_orders[table]:
             schema_field_lists[table].append(schema[field])
@@ -1101,6 +1101,9 @@ def main(args):
                                                            webapp_record_counts,
                                                            webapp_column_orders,
                                                            is_webapp=True)
+
+                print(webapp_merged_orders)
+                exit()
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
