@@ -666,13 +666,10 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
 
 
 def modify_fields_for_webapp(schema, column_order_dict, api_params):
-    print(schema)
-
     exclude_fields = set()
     excluded_fgs = set()
     renamed_fields = dict()
 
-    # todo
     fgs = column_order_dict.keys()
     # fgs = api_params['TABLE_METADATA'].keys()
 
@@ -718,32 +715,24 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
         # exclude any field groups or fields explicitly excluded in yaml
         if field in exclude_fields or base_fg in excluded_fgs:
             schema.pop(field)
-
         # field exists in renamed_fields, change its name
         elif field in renamed_fields:
             new_field = renamed_fields[field]
 
-            print(schema[field])
-            exit()
-
-            schema_field = {k:v for (k,v) in schema[field]}
-
-            schema_field['name'] = new_field.split('.')[-1]
-            schema[new_field] = schema_field
-
-            if (base_fg in column_order_dict
-                    and field in column_order_dict[base_fg]):
-
-                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
-                column_order_dict[base_fg].pop(field)
-
+            schema[field]['name'] = new_field.split('.')[-1]
+            schema[new_field] = schema[field]
             schema.pop(field)
 
-        # remove excluded field from column order lists
-        if (base_fg in column_order_dict
-                and field in column_order_dict[base_fg]
-                and field in exclude_fields):
-            column_order_dict[base_fg].pop(field)
+            # change the field name in the column order dict
+            if base_fg in column_order_dict and field in column_order_dict[base_fg]:
+                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
+                column_order_dict[base_fg].pop(field)
+                return
+
+        if field in exclude_fields and base_fg in column_order_dict:
+            # remove excluded field from column order lists
+            if field in column_order_dict[base_fg]:
+                column_order_dict[base_fg].pop(field)
 
     print()
     print(schema)
