@@ -110,7 +110,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, file_sets, steps = load_config(yaml_file.read())
+        params, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
