@@ -534,7 +534,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
                 columns[table].add(new_schema_key)
 
                 if new_schema_key != old_schema_key:
-                    columns[table].pop(old_schema_key)
+                    columns[table].remove(old_schema_key)
         else:
             # this field group will be merged into table with parent fg
             merge_dict_key = get_parent_table(columns.keys(), table)
