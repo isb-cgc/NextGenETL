@@ -110,8 +110,6 @@ def get_required_columns(api_params, table):
     :param table: name of table for which to retrieve required columns.
     :return: list of required columns (currently, only returns table's primary id)
     """
-    if not api_params['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
     elif table not in api_params['TABLE_METADATA']:
         return None
     elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
@@ -139,9 +137,6 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
     :param table_key: Table for which to determine the id key.
     :return: String representing table key.
     """
-    if not api_params['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
-
     if table_key not in api_params['TABLE_METADATA']:
         return None
 
@@ -403,7 +398,7 @@ def create_schema_dict(api_params, bq_params):
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
 
-    return get_schema_from_master_table(api_params, dict(), 'cases', table_obj.schema)
+    return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'], table_obj.schema)
 
 
 #####
@@ -632,9 +627,6 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-
-
-
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
@@ -665,45 +657,53 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
     return flat_schema
 
 
-def modify_fields_for_webapp(schema, column_order_dict, api_params):
+def get_excluded_fields(fgs, api_params, is_webapp=False):
     exclude_fields = set()
-    excluded_fgs = set()
-    renamed_fields = dict()
-
-    fgs = column_order_dict.keys()
-    # fgs = api_params['TABLE_METADATA'].keys()
-
-    field_transforms = api_params['RENAME_FIELDS']
-
-    for old_field_name, new_field_name in field_transforms.items():
-        old_field = ".".join(['cases', old_field_name])
-        new_field = ".".join(['cases', new_field_name])
-
-        renamed_fields[old_field] = new_field
 
     for fg in fgs:
         fg_metadata = api_params['TABLE_METADATA'][fg]
 
-        if ('webapp_excluded_fields' not in fg_metadata
-                or 'excluded_fields' not in fg_metadata):
+        if ('excluded_fields' not in fg_metadata
+                or (is_webapp and 'webapp_excluded_fields' not in fg_metadata)):
             has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
-
-        if fg_metadata['webapp_excluded_fields']:
-            for w_field in fg_metadata['webapp_excluded_fields']:
-                # add webapp-specific excluded fields
-                exclude_fields.add('.'.join([fg, w_field]))
 
         if fg_metadata['excluded_fields']:
             for field in fg_metadata['excluded_fields']:
                 # add generic excluded fields
                 exclude_fields.add('.'.join([fg, field]))
 
+        if is_webapp:
+            if fg_metadata['webapp_excluded_fields']:
+                for w_field in fg_metadata['webapp_excluded_fields']:
+                    # add webapp-specific excluded fields
+                    exclude_fields.add('.'.join([fg, w_field]))
+
+            # rename case_id no matter which fg it's in
+            for old_field in api_params['RENAME_FIELDS']:
+                exclude_fields.add(".".join([api_params['BASE_FG'], old_field]))
+
+    return exclude_fields
+
+
+def modify_fields_for_webapp(schema, column_order_dict, api_params):
+    excluded_fgs = set()
+    renamed_fields = dict()
+
+    for old_field_name, new_field_name in api_params['RENAME_FIELDS'].items():
+        old_field = ".".join([api_params['BASE_FG'], old_field_name])
+        new_field = ".".join([api_params['BASE_FG'], new_field_name])
+        renamed_fields[old_field] = new_field
+
+    fgs = column_order_dict.keys()
+
+    exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
+
+    for fg in fgs:
         # rename case_id no matter which fg it's in
         for renamed_field in renamed_fields.keys():
             if renamed_field in column_order_dict[fg]:
-                idx = column_order_dict[fg][renamed_field]
                 new_field = renamed_fields[renamed_field]
-                column_order_dict[fg][new_field] = idx
+                column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
                 column_order_dict[fg].pop(renamed_field)
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
@@ -712,10 +712,8 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
 
     # field is fully associated name
     for field in {k for k in schema.keys()}:
-        split_field = field.split('.')
-
-        base_fg = ".".join(split_field[:-1])
-        field_name = split_field[-1]
+        base_fg = ".".join(field.split('.')[:-1])
+        field_name = field.split('.')[-1]
 
         # substitute base field name for prefixed
         schema[field]['name'] = field_name
@@ -742,10 +740,7 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
                 column_order_dict[base_fg].pop(field)
 
 
-
-
 def rename_case_fields(case, api_params):
-
     for key in api_params['RENAME_FIELDS']:
         if key not in case:
             continue
@@ -893,13 +888,13 @@ def get_bq_name(api_params, field_name, table_path=None):
         field_name = table_path + '.' + field_name
 
     split_name = field_name.split('.')
-    if split_name[0] != 'cases':
-        split_name.insert(0, 'cases')
+    if split_name[0] != api_params['BASE_FG']:
+        split_name.insert(0, api_params['BASE_FG'])
 
     field_group = '.'.join(split_name[:-1])
     field = split_name[-1]
 
-    if field_group == 'cases':
+    if field_group == api_params['BASE_FG']:
         return field
 
     prefixes = get_prefixes(api_params)
@@ -910,7 +905,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     if prefixes[field_group]:
         return prefixes[field_group] + '__' + field
 
-    # prefix is blank, like in the instance of 'cases'
+    # prefix is blank, like in the instance of api_params['BASE_FG']
     return field
 
 
@@ -926,9 +921,10 @@ def get_parent_field_group(field_name):
     return ".".join(split_field_name[:-1])
 
 
-def get_tables(record_counts):
+def get_tables(record_counts, api_params):
     """
     Get one-to-many tables for program.
+    :param api_params:
     :param record_counts: dict max field group record counts for program
     :return: set of table names
     """
@@ -938,7 +934,7 @@ def get_tables(record_counts):
         if record_counts[table] > 1:
             table_keys.add(table)
 
-    table_keys.add('cases')
+    table_keys.add(api_params['BASE_FG'])
 
     return table_keys
 

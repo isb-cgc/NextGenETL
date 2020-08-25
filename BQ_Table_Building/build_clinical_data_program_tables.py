@@ -195,21 +195,20 @@ def get_column_order(table):
 # Functions used to determine a program's table structure(s)
 #
 ##
+'''
 def get_excluded_fields(table):
     """
     Get list of fields to exclude from final BQ tables (from yaml config file)
     :param table: table key for which to return excluded fields
     :return: list of excluded fields
     """
-    if not API_PARAMS['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
-
-    elif table not in API_PARAMS['TABLE_METADATA']:
+    if table not in API_PARAMS['TABLE_METADATA']:
         return None
     elif 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
         return None
 
     return API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
+'''
 
 
 def get_all_excluded_columns():
@@ -218,9 +217,6 @@ def get_all_excluded_columns():
     :return: list of excluded fields
     """
     excluded_columns = set()
-
-    if not API_PARAMS['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
 
     if not API_PARAMS['TABLE_ORDER']:
         has_fatal_error("params['TABLE_ORDER'] not found")
@@ -246,31 +242,45 @@ def flatten_tables(field_groups, record_counts):
     :param record_counts: set of table names
     :return: flattened table column dict.
     """
-    record_counts = get_tables(record_counts)
+    one_many_tables = get_tables(record_counts, API_PARAMS)
     table_columns = dict()
 
     fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
 
-    for field_group, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
+    for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             has_fatal_error("This script isn't confirmed to work with field groups "
                             "nested more than two levels.")
 
-        field_groups[field_group] = remove_excluded_fields(field_groups[field_group],
-                                                           field_group)
+        field_groups[fg] = remove_excluded_fields(field_groups[fg], fg)
+        full_field_names = {get_full_field_name(fg, field) for field in field_groups[fg]}
 
-        full_field_names = {get_full_field_name(field_group, field)
-                            for field in field_groups[field_group]}
-
-        if field_group in record_counts:
-            table_columns[field_group] = full_field_names
+        if fg in one_many_tables:
+            table_columns[fg] = full_field_names
         else:
             # field group can be flattened
-            parent_table = get_parent_table(record_counts, field_group)
-
+            parent_table = get_parent_table(one_many_tables, fg)
             table_columns[parent_table] |= full_field_names
 
     return table_columns
+
+
+def remove_excluded_fields(field_groups, fg):
+    excluded_fields = API_PARAMS['TABLE_METADATA'][fg]['excluded_fields']
+
+    if isinstance(field_groups[fg], dict):
+        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded_fields}
+
+        for field in field_groups[fg].copy().keys():
+            if field in excluded_fields or not field_groups[fg][field]:
+                field_groups[fg].pop(field)
+
+        return field_groups[fg]
+
+    elif isinstance(field_groups[fg], set):
+        return {field for field in field_groups[fg] if field not in excluded_fields}
+    else:
+        return [field for field in field_groups[fg] if field not in excluded_fields]
 
 
 def examine_case(non_null_fields, record_counts, field_group, fg_name):
@@ -327,7 +337,7 @@ def find_program_structure(cases):
     for case in cases:
         if not case:
             continue
-        examine_case(field_groups, record_counts, field_group=case, fg_name='cases')
+        examine_case(field_groups, record_counts, field_group=case, fg_name=API_PARAMS['BASE_FG'])
 
     for fg in field_groups:
         if fg not in API_PARAMS['TABLE_METADATA']:
@@ -362,6 +372,7 @@ def get_count_column_index(table_key, column_order_dict):
 
     return id_column_index + id_index_gap
 
+
 '''
 def get_case_id_index(table_key, column_orders):
     """
@@ -387,7 +398,7 @@ def generate_id_schema_entry(column, parent_table, program):
     if field_name == 'case_id':
         bq_col_name = 'case_id'
         # source_table = 'main'
-        source_table = get_full_table_name(program, 'cases')
+        source_table = get_full_table_name(program, API_PARAMS['BASE_FG'])
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
         source_table = get_full_table_name(program, parent_table)
@@ -535,7 +546,7 @@ def remove_null_fields(table_columns, merged_orders):
 def create_webapp_schema_lists(schema, record_counts, merged_orders):
     schema_field_lists = dict()
 
-    for table in get_tables(record_counts):
+    for table in get_tables(record_counts, API_PARAMS):
         schema_field_lists[table] = list()
 
         if table not in merged_orders:
@@ -559,7 +570,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
     schema_field_lists = dict()
 
-    for table in get_tables(record_counts):
+    for table in get_tables(record_counts, API_PARAMS):
         # this is just alphabetizing the count columns
         counts_idx = get_count_column_index(table, merged_orders[table])
         count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
@@ -581,26 +592,32 @@ def create_schema_lists(schema, record_counts, merged_orders):
     return schema_field_lists
 
 
-def remove_excluded_fields(record, table):
+def remove_excluded_fields(case, fg):
     """
     Remove columns with only None values, as well as those excluded.
-    :param record: table record to parse.
-    :param table: name of destination table.
+    :param case: fg record to parse.
+    :param fg: name of destination table.
     :return: Trimmed down record dict.
     """
-    excluded_fields = get_excluded_fields(table)
+    fg_metadata = API_PARAMS['TABLE_METADATA']
 
-    if isinstance(record, set):
-        return {field for field in record if field not in excluded_fields}
-    if isinstance(record, dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, table)
-                           for field in excluded_fields}
-        for field in record.copy().keys():
-            if field in excluded_fields or not record[field]:
-                record.pop(field)
-        return record
+    if fg not in fg_metadata or 'excluded_fields' not in fg_metadata[fg]:
+        return None
 
-    return [field for field in record if field not in excluded_fields]
+    excluded = fg_metadata[fg]['excluded_fields']
+
+    if isinstance(case, dict):
+        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded}
+
+        for field in case.copy().keys():
+            if field in excluded_fields or not case[field]:
+                case.pop(field)
+
+        return case
+    elif isinstance(case, set):
+        return {field for field in case if field not in excluded}
+    else:
+        return [field for field in case if field not in excluded]
 
 
 ####
@@ -608,12 +625,14 @@ def remove_excluded_fields(record, table):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, is_webapp):
+def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field,
+                       is_webapp):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
-    :param record:
-    :param field_group:
+    :param is_webapp: todo
+    :param record: todo
+    :param field_group: todo
     :param flat_case: partially-built flattened case dict
     :param case_id: case id
     :param pid: parent field group id
@@ -680,17 +699,23 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
 def flatten_case(case, is_webapp):
     """
     Converts nested case object into a flattened representation of its records.
+    :param is_webapp: todo
     :param case: dict containing case data
     :return: flattened case dict
     """
 
-    case_id_key = API_PARAMS['TABLE_METADATA']['cases']['table_id_key']
+    if (API_PARAMS['BASE_FG'] not in API_PARAMS['TABLE_METADATA'] or
+        'table_id_key' not in API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]):
+        has_fatal_error("")
+
+
+    case_id_key = API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]['table_id_key']
 
     if is_webapp and case_id_key in API_PARAMS['RENAME_FIELDS']:
         case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
 
     return flatten_case_entry(record=case,
-                              field_group='cases',
+                              field_group=API_PARAMS['BASE_FG'],
                               flat_case=dict(),
                               case_id=case[case_id_key],
                               pid=case[case_id_key],
@@ -698,9 +723,26 @@ def flatten_case(case, is_webapp):
                               is_webapp=is_webapp)
 
 
+def filter_flat_case(flat_case):
+    fgs = {k for k in flat_case.keys()}
+    pop_fields = get_excluded_fields(fgs, API_PARAMS, is_webapp=True)
+
+    for fg in fgs:
+        flat_fg = flat_case[fg]
+        flat_case[fg] = {f: flat_fg.pop(f, None) for f in pop_fields if f in pop_fields}
+
+'''
+    for exclude_field in exclude_fields:
+        for fg in fgs:
+            if exclude_field in flat_case[fg]:
+                flat_case[fg].pop(exclude_field)
+'''
+
+
 def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     """
     Get index of record associated with record_id from flattened_case
+    :param is_webapp:
     :param flattened_case: dict containing {field group names: list of record dicts}
     :param field_group: field group containing record_id
     :param record_id: id of record for which to retrieve position
@@ -726,15 +768,16 @@ def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
 def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
     """
     # Merge flatten-able field groups.
+    :param is_webapp:
     :param flattened_case: flattened case dict
     :param record_counts: field group count dict
     """
-    tables = get_tables(record_counts)
+    tables = get_tables(record_counts, API_PARAMS)
 
     flattened_fg_parents = dict()
 
     for field_group in record_counts:
-        if field_group == 'cases':
+        if field_group == API_PARAMS['BASE_FG']:
             continue
         if record_counts[field_group] == 1:
             if field_group in flattened_case:
@@ -760,13 +803,14 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
 def get_record_counts(flattened_case, record_counts, is_webapp=False):
     """
     # Get record counts for field groups in case record
+    :param is_webapp:
     :param flattened_case: flattened dict containing case record entries
     :param record_counts: field group count dict
     """
     # initialize dict with field groups that can't be flattened
     # record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
     record_count_dict = {fg: dict() for fg in record_counts if record_counts[fg] > 1}
-    tables = get_tables(record_counts)
+    tables = get_tables(record_counts, API_PARAMS)
 
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
@@ -806,6 +850,7 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     If program field group has max record count of 1, flattens into parent table.
     Otherwise, counts record in one-to-many table and adds count field to parent record
     in flattened_case
+    :param is_webapp:
     :param flattened_case: flattened dict containing case record's values
     :param record_counts: max counts for program's field group records
     :return: modified version of flattened_case
@@ -821,17 +866,18 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
+    :param is_webapp:
     :param record_counts:
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
     """
 
-    tables = get_tables(record_counts)
+    tables = get_tables(record_counts, API_PARAMS)
 
     print("\nInserting case records...")
-    for table in tables:
-        jsonl_file_path = get_temp_filepath(program_name, table, is_webapp)
+    for json_table in tables:
+        jsonl_file_path = get_temp_filepath(program_name, json_table, is_webapp)
         # delete last jsonl scratch file so we don't append to it
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
@@ -839,33 +885,34 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         rename_case_fields(case, API_PARAMS)
 
-        flattened_case = flatten_case(case, is_webapp)
+        flat_case = flatten_case(case, is_webapp)
 
-        merge_or_count_records(flattened_case, record_counts, is_webapp)
+        merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        for fg in {k for k in flattened_case.keys()}:
+        for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
-                flattened_case.pop(fg)
+                flat_case.pop(fg)
 
-        print(flattened_case)
+        filter_flat_case(flat_case)
+        # todo
 
-        for table in flattened_case.keys():
-            if table not in tables:
-                has_fatal_error("Table {} not found in table keys".format(table))
+        for bq_table in flat_case.keys():
+            if bq_table not in tables:
+                has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_fp = get_temp_filepath(program_name, table, is_webapp)
+            jsonl_fp = get_temp_filepath(program_name, bq_table, is_webapp)
 
             with open(jsonl_fp, 'a') as jsonl_file:
-                for row in flattened_case[table]:
+                for row in flat_case[bq_table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
-    for table in tables:
-        jsonl_file = get_jsonl_filename(program_name, table, is_webapp)
-        table_id = get_full_table_name(program_name, table)
+    for json_table in tables:
+        jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
+        table_id = get_full_table_name(program_name, json_table)
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
-        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[table], table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
 
 
 ####
@@ -1044,17 +1091,19 @@ def main(args):
         try:
             global API_PARAMS, BQ_PARAMS
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
+
+            if not API_PARAMS['TABLE_METADATA']:
+                has_fatal_error("params['TABLE_METADATA'] not found")
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    #programs = get_program_list(BQ_PARAMS)
+    # programs = get_program_list(BQ_PARAMS)
     programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
 
         if 'create_biospecimen_stub_tables' in steps:
-
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
@@ -1075,8 +1124,8 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-                webapp_columns = {k:v for (k,v) in columns.items()}
-                webapp_record_counts = {k:v for (k,v) in record_counts.items()}
+                webapp_columns = {k: v for (k, v) in columns.items()}
+                webapp_record_counts = {k: v for (k, v) in record_counts.items()}
 
                 if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
                     has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
@@ -1095,17 +1144,11 @@ def main(args):
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
-                webapp_schema = {k:v for (k,v) in schema.items()}
+                webapp_schema = {k: v for (k, v) in schema.items()}
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
-
-                print()
-                print(webapp_schema)
-                print()
-                print(webapp_column_orders)
-                print()
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
@@ -1128,7 +1171,6 @@ def main(args):
                                        is_webapp=True)
 
         if 'create_and_load_table' in steps:
-
             # modify schema dict, add reference columns for this program
             column_orders = add_reference_columns(columns, record_counts, schema, program)
 
@@ -1144,7 +1186,6 @@ def main(args):
             create_and_load_tables(program, cases, table_schemas, record_counts)
 
         if 'create_webapp_tables' in steps or 'create_and_load_table' in steps:
-
             print("{} processed in {:0.0f}s!\n".format(program, time.time() - prog_start))
 
     if 'update_table_metadata' in steps:
