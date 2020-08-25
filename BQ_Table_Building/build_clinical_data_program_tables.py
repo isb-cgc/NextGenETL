@@ -520,18 +520,19 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         if new_schema_key:
             "{} to {}!".format(schema_key, new_schema_key)
+            schema_key = new_schema_key
         else:
             print("keys didn't change")
 
         if table in columns:
             merged_order_key = table
-            schema[new_schema_key]['mode'] = 'REQUIRED'
+            schema[schema_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
             merged_order_key = get_parent_table(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
-            schema[new_schema_key]['mode'] = 'NULLABLE'
+            schema[schema_key]['mode'] = 'NULLABLE'
 
         if merged_order_key not in merged_column_orders:
             merged_column_orders[merged_order_key] = dict()
