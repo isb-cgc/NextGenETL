@@ -1084,22 +1084,17 @@ def main(args):
                             webapp_columns.pop(excluded_fg)
                         if excluded_fg in webapp_record_counts:
                             webapp_record_counts.pop(excluded_fg)
-                
+
+                # add the parent id to field group dicts that will create separate tables
                 webapp_column_orders = add_reference_columns(webapp_columns,
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
                 webapp_schema = {k:v for (k,v) in schema.items()}
 
-                print()
-                print(webapp_column_orders)
-
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
-
-                print()
-                print(webapp_column_orders)
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
@@ -1108,7 +1103,13 @@ def main(args):
                                                            webapp_column_orders,
                                                            is_webapp=True)
 
+                print(webapp_merged_orders)
+                print()
                 remove_null_fields(webapp_columns, webapp_merged_orders)
+
+                print(webapp_merged_orders)
+                print()
+
 
                 webapp_table_schemas = create_webapp_schema_lists(
                     webapp_schema, webapp_record_counts, webapp_merged_orders)
