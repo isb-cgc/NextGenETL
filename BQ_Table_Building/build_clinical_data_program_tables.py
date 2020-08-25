@@ -767,6 +767,7 @@ def get_record_counts(flattened_case, record_counts, is_webapp=False):
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
         fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
+
         if is_webapp:
             bq_parent_id_key = fg_id_name
         else:
@@ -790,7 +791,9 @@ def get_record_counts(flattened_case, record_counts, is_webapp=False):
         count_col_name = get_count_column_name(field_group)
 
         for parent_id, count in parent_ids_dict.items():
-            parent_record_idx = get_record_idx(flattened_case, parent_table, parent_id)
+            parent_record_idx = get_record_idx(flattened_case, parent_table,
+                                               parent_id, is_webapp)
+
             flattened_case[parent_table][parent_record_idx][count_col_name] = count
 
 
