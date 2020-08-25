@@ -565,12 +565,9 @@ def remove_null_fields(table_columns, merged_orders):
         merged_orders_set = set(merged_orders[table].keys())
 
         null_fields_set = merged_orders_set - table_cols_set
-        # print(null_fields_set)
-        continue
 
         for field in null_fields_set:
             merged_orders[table].pop(field)
-
 
 
 def create_app_schema_lists(schema, record_counts, merged_orders):
