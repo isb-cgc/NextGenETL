@@ -833,7 +833,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
     for case in cases:
         print(case)
-        case = rename_case_fields(case, API_PARAMS)
+        rename_case_fields(case, API_PARAMS)
 
         print(case)
         exit()
