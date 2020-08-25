@@ -835,30 +835,15 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(case)
         rename_case_fields(case, API_PARAMS)
 
-        print(case)
-        exit()
-
         flattened_case = flatten_case(case, is_webapp)
 
         merge_or_count_records(flattened_case, record_counts, is_webapp)
 
+        print(flattened_case)
+
         for table in flattened_case.keys():
             if table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(table))
-
-            """
-            rename_dict = API_PARAMS['RENAME_FIELDS']
-
-            for old_name, new_name in rename_dict.items():
-                for element in flattened_case[table]:
-                    if old_name in element:
-                        value = element[old_name]
-                        element[new_name] = value
-                        del element[old_name]
-
-                        assert element[new_name] == value
-                        
-            """
 
             jsonl_fp = get_temp_filepath(program_name, table, is_webapp)
 
