@@ -1090,10 +1090,17 @@ def main(args):
                 webapp_column_orders = add_reference_columns(webapp_columns,
                                                              webapp_record_counts,
                                                              is_webapp=True)
-
                 webapp_schema = schema.copy()
 
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
+
+                print(("webapp_schema:          \n{}\n"
+                       "webapp_columns:         \n{}\n"
+                       "webapp_record_counts:   \n{}\n"
+                       "webapp_column_orders:   \n{}\n").format(webapp_schema,
+                                                                webapp_columns,
+                                                                webapp_record_counts,
+                                                                webapp_column_orders))
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
