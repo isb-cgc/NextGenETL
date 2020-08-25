@@ -708,7 +708,7 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
-        if field_name in renamed_fields:
+        elif field_name in renamed_fields:
             new_field_name = renamed_fields[field_name]
             new_schema_name = '.'.join([parent_fg, new_field_name])
 
