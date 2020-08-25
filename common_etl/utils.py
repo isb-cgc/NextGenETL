@@ -761,7 +761,7 @@ def replace_key(key, api_params):
         new_key = ".".join([field_root, rename_fields[rename_field]])
         key_dict[old_key] = new_key
 
-    if len(key.split('.')) <= 1:
+    if len(key.split('.')) < 1:
         curr_key = ".".join([field_root, key])
     else:
         curr_key = key
