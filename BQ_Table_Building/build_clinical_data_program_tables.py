@@ -867,7 +867,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 # Modify existing tables
 #
 ##
-
 def update_table_metadata():
     metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
                      get_gdc_rel(BQ_PARAMS) + '/')
@@ -1106,17 +1105,15 @@ def main(args):
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
+                # creates dictionary of lists of schemafield objects in json format
                 webapp_table_schemas = create_webapp_schema_lists(webapp_schema,
                                                                   webapp_record_counts,
                                                                   webapp_merged_orders)
-                print(webapp_record_counts)
-                print()
-                print(webapp_merged_orders)
-                print()
-
-                create_and_load_tables(
-                    program, cases, webapp_table_schemas,
-                    webapp_record_counts, is_webapp=True)
+                create_and_load_tables(program,
+                                       cases,
+                                       webapp_table_schemas,
+                                       webapp_record_counts,
+                                       is_webapp=True)
 
         if 'create_and_load_table' in steps:
 

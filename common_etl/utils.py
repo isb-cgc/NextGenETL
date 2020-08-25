@@ -632,13 +632,7 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-'''
-def list_tables_in_dataset(bq_params):
-    dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
-    client = bigquery.Client()
 
-    return client.list_tables(dataset)
-'''
 
 
 def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
@@ -675,6 +669,10 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
     exclude_fields = set()
     exclude_fgs = set()
     renamed_fields = dict()
+
+    # todo
+    print(webapp_column_orders)
+    quit()
 
     fgs = api_params['TABLE_METADATA'].keys()
 
