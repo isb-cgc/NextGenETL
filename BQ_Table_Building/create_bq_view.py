@@ -145,7 +145,7 @@ def main(args):
 
     if 'create_view' in steps:
 
-    print('job completed')
+        print('job completed')
 
     if __name__ == "__main__":
         main(sys.argv)
