@@ -683,12 +683,19 @@ def flatten_case(case, is_webapp):
     :param case: dict containing case data
     :return: flattened case dict
     """
+
+    if is_webapp:
+        case_id_key = API_PARAMS['TABLE_METADATA']['cases']['table_id_key']
+
+        if case_id_key in API_PARAMS['RENAME_FIELDS'] and is_webapp:
+            case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
+
     return flatten_case_entry(record=case,
                               field_group='cases',
                               flat_case=dict(),
-                              case_id=case['case_id'],
-                              pid=case['case_id'],
-                              pid_field='case_id',
+                              case_id=case[case_id_key],
+                              pid=case[case_id_key],
+                              pid_field=case_id_key,
                               is_webapp=is_webapp)
 
 
