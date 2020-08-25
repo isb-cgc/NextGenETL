@@ -130,7 +130,7 @@ def main(args):
         print('Compare {} to {}'.format(table_old, table_new))
 
         success = compare_two_tables(table_old, table_new, params['BQ_AS_BATCH'])
-        print(success.head())
+        print(success.total_rows)
 
         if not success:
             print('compare_tables failed')
