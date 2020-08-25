@@ -1102,15 +1102,15 @@ def main(args):
                                                                 webapp_record_counts,
                                                                 webapp_column_orders))
 
+                exit()
+
+
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
                                                            webapp_columns,
                                                            webapp_record_counts,
                                                            webapp_column_orders,
                                                            is_webapp=True)
-
-                print(webapp_column_orders)
-                exit()
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
