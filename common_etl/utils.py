@@ -674,10 +674,19 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
 def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
     exclude_fields = set()
     exclude_fgs = set()
+    renamed_fields = dict()
 
     fgs = api_params['TABLE_METADATA'].keys()
 
-    renamed_fields = api_params['RENAME_FIELDS']
+    cases_fg = api_params['TABLE_METADATA']['cases']['table_id_key']
+
+    altered_field_names = api_params['RENAME_FIELDS']
+
+    for old_field_name, new_field_name in altered_field_names.items():
+        old_field = ".".join([cases_fg, old_field_name])
+        new_field = ".".join([cases_fg, new_field_name])
+
+        renamed_fields[old_field] = new_field
 
     for fg in fgs:
         if ('webapp_excluded_fields' not in api_params['TABLE_METADATA'][fg] or
@@ -697,41 +706,38 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         for fg in api_params['WEBAPP_EXCLUDED_FG']:
             exclude_fgs.add(fg)
 
-    schema_keys = schema.copy().keys()
-
-    for field in schema_keys:
+    for field in schema.copy().keys():
         # field is fully associated name
 
         field_name = field.split('.')[-1]
         parent_fg = ".".join(field.split('.')[:-1])
 
-        # move?
         schema[field]['name'] = field_name
 
+        # exclude any field groups or fields explicitly excluded in yaml
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
-        elif field_name in renamed_fields:
-            old_schema_key = field
-            altered_name = renamed_fields[field_name]
-            new_schema_key = '.'.join([parent_fg, altered_name])
+        # field exists in renamed_fields, change its name
+        elif field in renamed_fields:
+            new_field = renamed_fields[field]
 
-            schema[field]['name'] = altered_name
-            schema[new_schema_key] = schema[field].copy()
+            schema[field]['name'] = new_field.split('.')[-1]
+            schema[new_field] = schema[field].copy()
 
             if (parent_fg in webapp_column_orders
-                    and old_schema_key in webapp_column_orders[parent_fg]):
-                order_idx = webapp_column_orders[parent_fg][old_schema_key]
+                    and field in webapp_column_orders[parent_fg]):
 
-                webapp_column_orders[parent_fg][new_schema_key] = order_idx
-                webapp_column_orders[parent_fg].pop(old_schema_key)
+                order_idx = webapp_column_orders[parent_fg][field]
+                webapp_column_orders[parent_fg][new_field] = order_idx
+                webapp_column_orders[parent_fg].pop(field)
 
             schema.pop(field)
 
-        if (field in exclude_fields
-                and parent_fg in webapp_column_orders
-                and field in webapp_column_orders[parent_fg]):
-
+        # remove excluded field from column order lists
+        if (parent_fg in webapp_column_orders
+                and field in webapp_column_orders[parent_fg]
+                and field in exclude_fields):
             webapp_column_orders[parent_fg].pop(field)
 
     return schema
