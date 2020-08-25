@@ -692,7 +692,7 @@ def flatten_case(case, is_webapp):
                               is_webapp=is_webapp)
 
 
-def get_record_idx(flattened_case, field_group, record_id):
+def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     """
     Get index of record associated with record_id from flattened_case
     :param flattened_case: dict containing {field group names: list of record dicts}
@@ -701,7 +701,11 @@ def get_record_idx(flattened_case, field_group, record_id):
     :return: position index of record in field group's record list
     """
     fg_id_name = get_fg_id_name(API_PARAMS, field_group)
-    fg_id_key = get_bq_name(API_PARAMS, fg_id_name, field_group)
+
+    if is_webapp:
+        fg_id_key = fg_id_name
+    else:
+        fg_id_key = get_bq_name(API_PARAMS, fg_id_name, field_group)
 
     idx = 0
 
@@ -713,7 +717,7 @@ def get_record_idx(flattened_case, field_group, record_id):
     return has_fatal_error("id {} not found by get_record_idx.".format(record_id))
 
 
-def merge_single_entry_fgs(flattened_case, record_counts):
+def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
     """
     # Merge flatten-able field groups.
     :param flattened_case: flattened case dict
@@ -733,11 +737,15 @@ def merge_single_entry_fgs(flattened_case, record_counts):
 
     for field_group, parent in flattened_fg_parents.items():
         fg_id_name = get_fg_id_name(API_PARAMS, parent)
-        bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
+
+        if is_webapp:
+            bq_parent_id_key = fg_id_name
+        else:
+            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
-            parent_idx = get_record_idx(flattened_case, parent, parent_id)
+            parent_idx = get_record_idx(flattened_case, parent, parent_id, is_webapp)
             flattened_case[parent][parent_idx].update(record)
 
         flattened_case.pop(field_group)
@@ -793,7 +801,7 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     :param record_counts: max counts for program's field group records
     :return: modified version of flattened_case
     """
-    merge_single_entry_fgs(flattened_case, record_counts)
+    merge_single_entry_fgs(flattened_case, record_counts, is_webapp)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
     get_record_counts(flattened_case, record_counts, is_webapp)
