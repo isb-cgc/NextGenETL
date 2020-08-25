@@ -25,6 +25,7 @@ import json
 import os
 import time
 # from gdc_clinical_resources.test_data_integrity import *
+import copy
 from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import (generate_docs)
 
@@ -600,7 +601,7 @@ def remove_excluded_fields(record, table):
     if isinstance(record, dict):
         excluded_fields = {get_bq_name(API_PARAMS, field, table)
                            for field in excluded_fields}
-        for field in record.deepcopy():
+        for field in record.copy().keys():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
         return record
@@ -674,7 +675,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
         excluded_columns = get_all_excluded_columns()
 
         if row_dict:
-            for field in row_dict.copy():
+            for field in row_dict.copy().keys():
                 if field in excluded_columns or not row_dict[field]:
                     row_dict.pop(field)
         flat_case[field_group].append(row_dict)
@@ -1082,8 +1083,8 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-                webapp_columns = columns.deepcopy()
-                webapp_record_counts = record_counts.deepcopy()
+                webapp_columns = {k:v for (k,v) in columns.items()}
+                webapp_record_counts = {k:v for (k,v) in record_counts.items()}
 
                 if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
                     has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
@@ -1100,7 +1101,8 @@ def main(args):
                 webapp_column_orders = add_reference_columns(webapp_columns,
                                                              webapp_record_counts,
                                                              is_webapp=True)
-                webapp_schema = schema.deepcopy()
+
+                webapp_schema = {k:v for (k,v) in schema.items()}
 
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
