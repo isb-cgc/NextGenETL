@@ -730,7 +730,6 @@ def filter_flat_case(flat_case):
     for fg in fgs:
         flat_fg = flat_case[fg]
         flat_case[fg] = {f: flat_fg.pop(f, None) for f in pop_fields if f in pop_fields}
-
 '''
     for exclude_field in exclude_fields:
         for fg in fgs:
@@ -894,7 +893,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 flat_case.pop(fg)
 
         filter_flat_case(flat_case)
-        # todo
 
         for bq_table in flat_case.keys():
             if bq_table not in tables:

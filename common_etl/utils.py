@@ -110,7 +110,7 @@ def get_required_columns(api_params, table):
     :param table: name of table for which to retrieve required columns.
     :return: list of required columns (currently, only returns table's primary id)
     """
-    elif table not in api_params['TABLE_METADATA']:
+    if table not in api_params['TABLE_METADATA']:
         return None
     elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
         return None
