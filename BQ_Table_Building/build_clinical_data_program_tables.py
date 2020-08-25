@@ -518,10 +518,10 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         new_schema_key = replace_key(schema_key, API_PARAMS)
 
-        if schema_key == new_schema_key:
-            print("keys didn't change")
-        else:
+        if new_schema_key:
             "{} to {}!".format(schema_key, new_schema_key)
+        else:
+            print("keys didn't change")
 
         if table in columns:
             merged_order_key = table

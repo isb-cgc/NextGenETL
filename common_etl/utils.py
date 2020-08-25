@@ -763,11 +763,13 @@ def replace_key(key, api_params):
 
     if len(key.split('.')) <= 1:
         curr_key = ".".join([field_root, key])
+    else:
+        curr_key = key
 
     if curr_key in key_dict:
         return key_dict[curr_key]
     else:
-        return key
+        return None
 
 
 def to_bq_schema_obj(schema_field_dict):
