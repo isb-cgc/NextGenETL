@@ -545,9 +545,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         merge_order_dicts[merge_dict_key].update(column_orders[table])
 
-    print(merge_order_dicts)
-    exit()
-
     return merge_order_dicts
 
 
