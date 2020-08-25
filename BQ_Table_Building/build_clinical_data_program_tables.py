@@ -1093,12 +1093,15 @@ def main(args):
 
                 webapp_schema = {k:v for (k,v) in schema.items()}
 
-                print(webapp_schema)
+                print()
+                print(webapp_column_orders)
 
+                # removes the prefix from schema field name attributes
+                # removes the excluded fields/field groups
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
                 print()
-                print(webapp_schema)
+                print(webapp_column_orders)
 
 
                 # reassign merged_column_orders to column_orders
