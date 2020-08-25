@@ -843,7 +843,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         merge_or_count_records(flattened_case, record_counts, is_webapp)
 
-        for fg in flattened_case.keys():
+        for fg in {k for k in flattened_case.keys()}:
             if fg not in record_counts.keys():
                 flattened_case.pop(fg)
 
