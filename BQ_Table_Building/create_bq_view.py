@@ -117,7 +117,7 @@ def main(args):
     #
 
     home = expanduser("~")
-    local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
+    #local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
 
     #
     # Create table variables
