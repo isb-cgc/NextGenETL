@@ -175,13 +175,13 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
 
     if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
-        replace_key(table_key, api_params)  # todo
+        replace_key(api_params, table_key)  # todo
         table_id_name = api_params['RENAME_FIELDS'][table_id_name]
 
     return table_id_name
 
 
-def get_fg_id_key(api_params, table_key, is_webapp=False):
+def get_table_id_key(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param is_webapp:
@@ -802,7 +802,7 @@ def rename_case_fields(case, api_params):
         case.pop(key)
 
 
-def replace_key(key, api_params):
+def replace_key(api_params, key):
     key_dict = dict()
     field_root = api_params['BASE_FG']
     rename_fields = api_params['RENAME_FIELDS']
@@ -946,7 +946,9 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     :return:
     """
     table_depths = {table: get_field_depth(table) for table in record_counts}
-    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
+    table_depths_dict = sorted(table_depths.items(),
+                               key=lambda item: item[1], reverse=reverse)
+    return table_depths_dict.keys()
 
 
 def get_bq_name(api_params, field_name, table_path=None):

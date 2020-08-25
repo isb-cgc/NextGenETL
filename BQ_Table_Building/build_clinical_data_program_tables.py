@@ -126,7 +126,7 @@ def get_id_index(table_key, column_order_dict):
     :param column_order_dict: Dictionary containing column names : indexes
     :return: Int representing relative column position in schema.
     """
-    table_id_key = get_fg_id_key(API_PARAMS, table_key)
+    table_id_key = get_table_id_key(API_PARAMS, table_key)
     return column_order_dict[table_id_key]
 
 
@@ -514,56 +514,26 @@ def add_reference_columns(columns, record_counts, schema=None,
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
     merge_order_dicts = dict()
 
-    for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
+    for table in get_sorted_fg_depths(record_counts, reverse=True):
+        schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
+        new_schema_key = replace_key(API_PARAMS, schema_key)
 
-        schema_key = get_fg_id_key(API_PARAMS, table, is_webapp)
+        schema_key = new_schema_key if new_schema_key != schema_key else schema_key
 
-        new_schema_key = replace_key(schema_key, API_PARAMS)
-
-        if new_schema_key:
-            schema_key = new_schema_key
+        print("{}, {}".format(schema_key, new_schema_key))
 
         if table in columns:
             merge_order_key = table
             schema[schema_key]['mode'] = 'REQUIRED'
         else:
-            # not a standalone table, merge
             merge_order_key = get_parent_table(columns.keys(), table)
-            # if merging key into parent table, that key is no longer required, might
-            # not exist in some cases
             schema[schema_key]['mode'] = 'NULLABLE'
 
         if merge_order_key not in merge_order_dicts:
             merge_order_dicts[merge_order_key] = dict()
 
         merge_order_dicts[merge_order_key].update(column_orders[table])
-    """
-    print()
-    # cases.diagnoses.annotations.submitter_id, datetimes still there
-    # correct conversion of case_id and sub_id
-    
-    print("schema")
-    print(schema)
-    print()
-    # only reference ids in foreign tables
-    print("columns")
-    print(columns)
-    print()
-    # correct conversion of case_id and sub_id
-    # limited to set of fields from YAML
-    # no datetime or state
-    print("cols_orders")
-    print(column_orders)
-    print()
-    """
     return merge_order_dicts
-
-"""
-def remove_null_fields(table_columns, merged_orders):
-    for table, columns in table_columns.copy().items():
-        table_cols_set = set(columns)
-        merged_orders_set = set(merged_orders[table].keys())
-"""
 
 
 def remove_null_fields(table_columns, merged_orders):
@@ -573,12 +543,14 @@ def remove_null_fields(table_columns, merged_orders):
         merged_orders_set = merged_orders[table].keys()
         null_fields_set = merged_orders_set - table_cols_set
 
+        """
         print(merged_orders_set)
         print()
         print()
         print(table_cols_set)
         print()
         print()
+        """
 
         for field in null_fields_set:
             merged_orders[table].pop(field)
