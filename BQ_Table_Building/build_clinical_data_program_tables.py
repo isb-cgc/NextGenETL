@@ -1071,7 +1071,6 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-
                 webapp_columns = columns.copy()
                 webapp_record_counts = record_counts.copy()
 
@@ -1100,7 +1099,7 @@ def main(args):
                                                            webapp_columns,
                                                            webapp_record_counts,
                                                            webapp_column_orders,
-                                                           is_webapp)
+                                                           is_webapp=True)
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
