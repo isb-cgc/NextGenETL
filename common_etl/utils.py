@@ -667,42 +667,41 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
 
 def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
     exclude_fields = set()
-    exclude_fgs = set()
+    excluded_fgs = set()
     renamed_fields = dict()
 
     # todo
-    print(webapp_column_orders)
-    quit()
+    fgs = webapp_column_orders.keys()
+    # fgs = api_params['TABLE_METADATA'].keys()
 
-    fgs = api_params['TABLE_METADATA'].keys()
+    field_transforms = api_params['RENAME_FIELDS']
 
-    cases_fg = api_params['TABLE_METADATA']['cases']['table_id_key']
-
-    altered_field_names = api_params['RENAME_FIELDS']
-
-    for old_field_name, new_field_name in altered_field_names.items():
-        old_field = ".".join([cases_fg, old_field_name])
-        new_field = ".".join([cases_fg, new_field_name])
+    for old_field_name, new_field_name in field_transforms.items():
+        old_field = ".".join(['cases', old_field_name])
+        new_field = ".".join(['cases', new_field_name])
 
         renamed_fields[old_field] = new_field
 
     for fg in fgs:
-        if ('webapp_excluded_fields' not in api_params['TABLE_METADATA'][fg] or
-                'excluded_fields' not in api_params['TABLE_METADATA'][fg]):
-            has_fatal_error("YAML config missing one of the excluded_field "
-                            "field group parameters.", KeyError)
+        fg_metadata = api_params['TABLE_METADATA'][fg]
 
-        if api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
-            for field in api_params['TABLE_METADATA'][fg]['webapp_excluded_fields']:
-                exclude_fields.add('.'.join([fg, field]))
+        if ('webapp_excluded_fields' not in fg_metadata
+                or 'excluded_fields' not in fg_metadata):
+            has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
 
-        if api_params['TABLE_METADATA'][fg]['excluded_fields']:
-            for field in api_params['TABLE_METADATA'][fg]['excluded_fields']:
+        if fg_metadata['webapp_excluded_fields']:
+            for w_field in fg_metadata['webapp_excluded_fields']:
+                # add webapp-specific excluded fields
+                exclude_fields.add('.'.join([fg, w_field]))
+
+        if fg_metadata['excluded_fields']:
+            for field in fg_metadata['excluded_fields']:
+                # add generic excluded fields
                 exclude_fields.add('.'.join([fg, field]))
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
-        for fg in api_params['WEBAPP_EXCLUDED_FG']:
-            exclude_fgs.add(fg)
+        for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
+            excluded_fgs.add(excluded_fg)
 
     for field in schema.copy().keys():
         # field is fully associated name
@@ -710,10 +709,13 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         field_name = field.split('.')[-1]
         parent_fg = ".".join(field.split('.')[:-1])
 
+        #substitute base field name for prefixed
         schema[field]['name'] = field_name
 
+        print(exclude_fields)
+
         # exclude any field groups or fields explicitly excluded in yaml
-        if parent_fg in exclude_fgs or field in exclude_fields:
+        if parent_fg in excluded_fgs or field in exclude_fields:
             schema.pop(field)
 
         # field exists in renamed_fields, change its name
