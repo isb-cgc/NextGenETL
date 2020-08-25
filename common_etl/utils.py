@@ -132,7 +132,7 @@ def get_master_table_name(bq_params):
     return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
 
 
-def get_fg_id_name(api_params, table_key):
+def get_fg_id_name(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param api_params:
@@ -150,7 +150,12 @@ def get_fg_id_name(api_params, table_key):
             "table_id_key not found in API_PARAMS['TABLE_METADATA']['{}']".format(
                 table_key))
 
-    return api_params['TABLE_METADATA'][table_key]['table_id_key']
+    table_id_key = api_params['TABLE_METADATA'][table_key]['table_id_key']
+
+    if is_webapp and table_id_key in api_params['RENAME_FIELDS']:
+        table_id_key = api_params['RENAME_FIELDS'][table_id_key]
+
+    return table_id_key
 
 
 #####
