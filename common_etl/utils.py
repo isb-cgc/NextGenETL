@@ -666,6 +666,8 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
 
 
 def modify_fields_for_webapp(schema, column_order_dict, api_params):
+    print(schema)
+
     exclude_fields = set()
     excluded_fgs = set()
     renamed_fields = dict()
@@ -745,6 +747,7 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
     print()
     print(column_order_dict)
     print()
+
 
 def rename_case_fields(case, api_params):
 
