@@ -743,7 +743,7 @@ def merge_single_entry_fgs(flattened_case, record_counts):
         flattened_case.pop(field_group)
 
 
-def get_record_counts(flattened_case, record_counts):
+def get_record_counts(flattened_case, record_counts, is_webapp=False):
     """
     # Get record counts for field groups in case record
     :param flattened_case: flattened dict containing case record entries
@@ -757,7 +757,10 @@ def get_record_counts(flattened_case, record_counts):
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
         fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
-        bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent_table)
+        if is_webapp:
+            bq_parent_id_key = fg_id_name
+        else:
+            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent_table)
 
         # initialize record counts for parent id
         if parent_table in flattened_case:
@@ -781,7 +784,7 @@ def get_record_counts(flattened_case, record_counts):
             flattened_case[parent_table][parent_record_idx][count_col_name] = count
 
 
-def merge_or_count_records(flattened_case, record_counts):
+def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     """
     If program field group has max record count of 1, flattens into parent table.
     Otherwise, counts record in one-to-many table and adds count field to parent record
@@ -793,7 +796,7 @@ def merge_or_count_records(flattened_case, record_counts):
     merge_single_entry_fgs(flattened_case, record_counts)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
-    get_record_counts(flattened_case, record_counts)
+    get_record_counts(flattened_case, record_counts, is_webapp)
 
 
 def create_and_load_tables(program_name, cases, schemas, record_counts, is_webapp=False):
@@ -819,7 +822,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         print(flattened_case)
 
-        merge_or_count_records(flattened_case, record_counts)
+        merge_or_count_records(flattened_case, record_counts, is_webapp)
 
         print(flattened_case)
         exit()
