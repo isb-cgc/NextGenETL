@@ -497,11 +497,15 @@ def add_reference_columns(columns, record_counts, schema=None,
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
+    print("\nschema\n\n{}\n\n columns\n\n{}\n\n "
+          "record_counts\n\n{}\n\n  column_orders\n\n{}\n\n "
+          .format(schema, columns, record_counts, column_orders))
+
     merged_column_orders = dict()
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        schema_key = '.'.join([table, get_fg_id_name(API_PARAMS, table, is_webapp)])
+        schema_key = '.'.join([table, get_fg_id_name(API_PARAMS, table)])
 
         if table in columns:
             merged_order_key = table
