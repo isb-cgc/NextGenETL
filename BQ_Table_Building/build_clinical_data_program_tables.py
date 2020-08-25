@@ -515,24 +515,39 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     merge_order_dicts = dict()
 
     for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
-
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
-        new_schema_key = replace_key(API_PARAMS, schema_key)
+        replacement_key = replace_key(API_PARAMS, schema_key)
 
-        if new_schema_key and new_schema_key != schema_key:
-            schema_key = new_schema_key
+        if replacement_key and replacement_key != schema_key:
+            new_schema_key = replacement_key
+            old_schema_key = schema_key
+        else:
+            new_schema_key = schema_key
+            old_schema_key = None
 
         if table in columns:
-            merge_order_key = table
-            schema[schema_key]['mode'] = 'REQUIRED'
+            # this field group will be the parent fg of its table
+            merge_dict_key = table
+            schema[new_schema_key]['mode'] = 'REQUIRED'
+
+            if new_schema_key not in columns[table]:
+                columns[table].add(new_schema_key)
+
+                if new_schema_key != old_schema_key:
+                    columns[table].pop(old_schema_key)
         else:
-            merge_order_key = get_parent_table(columns.keys(), table)
-            schema[schema_key]['mode'] = 'NULLABLE'
+            # this field group will be merged into table with parent fg
+            merge_dict_key = get_parent_table(columns.keys(), table)
+            schema[new_schema_key]['mode'] = 'NULLABLE'
 
-        if merge_order_key not in merge_order_dicts:
-            merge_order_dicts[merge_order_key] = dict()
+        if merge_dict_key not in merge_order_dicts:
+            merge_order_dicts[merge_dict_key] = dict()
 
-        merge_order_dicts[merge_order_key].update(column_orders[table])
+        merge_order_dicts[merge_dict_key].update(column_orders[table])
+
+    print(merge_order_dicts)
+    exit()
+
     return merge_order_dicts
 
 
