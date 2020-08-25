@@ -723,6 +723,9 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
         elif field in renamed_fields:
             new_field = renamed_fields[field]
 
+            print(schema[field])
+            exit()
+
             schema_field = {k:v for (k,v) in schema[field]}
 
             schema_field['name'] = new_field.split('.')[-1]
