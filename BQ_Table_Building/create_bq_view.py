@@ -127,7 +127,7 @@ def main(args):
     table_new = '{}.{}.{}'.format(params['PROJECT_NEW'], params['DATASET_NEW'], params['TABLE_NEW'])
 
     if 'compare_tables' in steps:
-        print('Compare {} to {}').format(table_old, table_new)
+        print('Compare {} to {}'.format(table_old, table_new))
 
         success = compare_two_tables(table_old, table_new, params['BQ_AS_BATCH'])
 
