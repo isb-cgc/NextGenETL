@@ -628,7 +628,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, 
         # flatten each record in field group list
         for entry in record:
             flat_case = flatten_case_entry(entry, field_group, flat_case,
-                                           case_id, pid, pid_field)
+                                           case_id, pid, pid_field, is_webapp)
     else:
         row_dict = dict()
         id_field = get_fg_id_name(API_PARAMS, field_group)
