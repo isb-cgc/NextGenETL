@@ -145,15 +145,7 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
         has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
 
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
-
-    print(table_id_name)
-
     table_id_key = '.'.join([table_key, table_id_name])
-    print()
-    print(table_id_key)
-    print()
-    print(api_params['RENAME_FIELDS'])
-    print()
 
     if is_webapp and table_id_key in api_params['RENAME_FIELDS']:
         table_id_key = api_params['RENAME_FIELDS'][table_id_key]
