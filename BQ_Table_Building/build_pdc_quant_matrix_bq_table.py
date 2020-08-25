@@ -70,15 +70,15 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
     return '''
       WITH a1 as (
           SELECT 
-            A.study_id, 
-            A.aliquot_submitter_id,
-            A.gene,
-            A.log2_ratio,
             A.study_name,
-            A.aliquot_id,
             A.sample_id,
-            B.ncbi_gene_id,
+            A.aliquot_id,
+            A.aliquot_submitter_id,
+            A.log2_ratio,
+            B.gene_name,
             B.authority,
+            B.ncbi_gene_id,
+            b.gene_id,
             B.description,
             B.organism,
             B.chromosome,
@@ -88,7 +88,6 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
             B.access,
             B.cud_label,
             B.updated,
-            B.gene_uuid
           FROM `{0}` as A 
           JOIN `{1}` as B 
           ON ((B.gene_name = A.gene)))
