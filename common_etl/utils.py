@@ -110,27 +110,53 @@ def get_required_columns(api_params, table):
     :param table: name of table for which to retrieve required columns.
     :return: list of required columns (currently, only returns table's primary id)
     """
-    if not api_params['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
+    if table not in api_params['TABLE_METADATA']:
+        return None
     elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
-        has_fatal_error("table_id_key not found in table metadata for {}".format(table))
+        return None
 
     table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
     table_id_name = get_full_field_name(table, table_id_field)
     return [table_id_name]
 
 
-def get_master_table_name(api_params, bq_params):
+def get_master_table_name(bq_params):
     """
     # todo
     :param api_params:
     :param bq_params:
     :return:
     """
-    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE'] + '_' + bq_params['MASTER_TABLE']
+    return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
 
 
-def get_fg_id_name(api_params, table_key):
+"""
+def get_fg_id_name(api_params, table_key, is_webapp=False):
+    '''
+    Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
+    :param api_params:
+    :param table_key: Table for which to determine the id key.
+    :return: String representing table key.
+    '''
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
+
+    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
+
+    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+    table_id_key = '.'.join([table_key, table_id_name])
+
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        new_name = api_params['RENAME_FIELDS'][table_id_name]
+        table_id_key = '.'.join([table_key, new_name])
+
+    return table_id_key
+"""
+
+
+def get_fg_id_name(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param api_params:
@@ -140,16 +166,43 @@ def get_fg_id_name(api_params, table_key):
     if not api_params['TABLE_METADATA']:
         has_fatal_error("params['TABLE_METADATA'] not found")
 
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
+
     if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in "
-                        "API_PARAMS['TABLE_METADATA']['{}']".format(table_key))
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
 
-    return api_params['TABLE_METADATA'][table_key]['table_id_key']
+    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        replace_key(table_key, api_params)  # todo
+        table_id_name = api_params['RENAME_FIELDS'][table_id_name]
+
+    return table_id_name
 
 
-def get_gdc_rel(api_params):
-    return api_params['REL_PREFIX'] + api_params['GDC_RELEASE']
+def get_fg_id_key(api_params, table_key, is_webapp=False):
+    """
+    Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
+    :param api_params:
+    :param table_key: Table for which to determine the id key.
+    :return: String representing table key.
+    """
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
 
+    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
+
+    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+    table_id_key = '.'.join([table_key, table_id_name])
+
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        new_name = api_params['RENAME_FIELDS'][table_id_name]
+        table_id_key = '.'.join([table_key, new_name])
+
+    return table_id_key
 
 #####
 #
@@ -332,7 +385,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     for field in schema_dict:
         # record_lists_dict key is equal to the parent field components of
         # full field name
-        record_lists_dict[get_parent_field_group(field)].append(schema_dict[field])
+        record_lists_dict[get_field_group(field)].append(schema_dict[field])
 
     temp_schema_field_dict = {}
 
@@ -358,7 +411,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                                          fields=()))
 
             # parent_name = '.'.join(split_group_name[:-1])
-            parent_name = get_parent_field_group(field_group_name)
+            parent_name = get_field_group(field_group_name)
 
             if field_group_name in temp_schema_field_dict:
                 schema_field_sublist += temp_schema_field_dict[field_group_name]
@@ -391,11 +444,12 @@ def create_schema_dict(api_params, bq_params):
     :return: flattened schema dict in format:
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
     """
-    table_name = get_master_table_name(api_params, bq_params)
-    table_id = get_table_id(bq_params, table_name)
+    table_id = get_working_table_id(bq_params)
+
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
-    return get_schema_from_master_table(api_params, dict(), 'cases', table_obj.schema)
+
+    return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'], table_obj.schema)
 
 
 #####
@@ -415,6 +469,17 @@ def get_query_results(query):
     return query_job.result()
 
 
+def load_table_from_query(table_id, query):
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig(destination=table_id)
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    query_job = client.query(query, job_config=job_config)
+    query_job.result()
+
+    return client.get_table(table_id)
+
+
 def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     """
     Creates BQ table and inserts case data from jsonl file.
@@ -423,17 +488,19 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
     :param schema: list of SchemaFields representing desired BQ table schema
     :param table_name: name of table to create
     """
+    client = bigquery.Client()
+
     job_config = bigquery.LoadJobConfig()
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    client = bigquery.Client()
-    gs_uri = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
-              bq_params['WORKING_BUCKET_DIR'] + '/' + jsonl_rows_file)
+    gs_uri = "/".join(['gs:/',
+                       bq_params['WORKING_BUCKET'],
+                       bq_params['WORKING_BUCKET_DIR'],
+                       jsonl_rows_file])
 
-    table_id = (bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET'] + '.' +
-                table_name)
+    table_id = get_webapp_table_id(bq_params, table_name)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
@@ -470,58 +537,57 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
         has_fatal_error(err)
 
 
-def get_cases_by_program(api_params, bq_params, program_name):
-    """
-    Returns list of case records by program name.
-    :param api_params: api params from yaml config file
-    :param bq_params: bq params from yaml config file
-    :param program_name: name of program for which to retrieve cases
-    :return: list of cases for program
-    """
+def get_program_list(bq_params):
+    programs_query = ("""
+        SELECT DISTINCT(proj) 
+        FROM (
+            SELECT SPLIT(
+                (SELECT project_id
+                 FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+            FROM `{}`)
+        ORDER BY proj
+    """).format(
+        get_working_table_id(bq_params))
+
+    return {prog.proj for prog in get_query_results(programs_query)}
+
+
+def get_cases_by_program(bq_params, program):
     cases = []
 
-    main_table_id = (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] +
-                     '.' + get_master_table_name(api_params, bq_params))
+    sample_table_id = get_webapp_table_id(
+        bq_params, build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']]))
 
-    programs_table_id = (bq_params['WORKING_PROJECT'] + '.' +
-                         bq_params['METADATA_DATASET'] + '.' +
-                         bq_params['CASES_REL_PREFIX'] + api_params['GDC_RELEASE'] +
-                         bq_params['CASES_TABLE_SUFFIX'])
-
-    results = get_query_results(
-        """
-        SELECT *
-        FROM `{}`
-        WHERE case_id
-        IN (SELECT case_gdc_id
+    query = ("""
+        SELECT * 
+        FROM `{}` 
+        WHERE case_id IN (
+            SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
-            WHERE program_name = '{}')
-        """.format(main_table_id, programs_table_id, program_name)
-    )
+            WHERE proj = '{}')
+    """).format(
+        get_working_table_id(bq_params),
+        sample_table_id,
+        program)
 
-    for case_row in results:
+    for case_row in get_query_results(query):
         cases.append(dict(case_row.items()))
-
-    if cases:
-        print("{} cases retrieved.".format(len(cases)))
-    else:
-        print("No case records found for program {}, skipping.".format(program_name))
 
     return cases
 
 
-def get_table_prefixes(api_params):
+def get_table_suffixes(api_params):
     """
     Get abbreviations for included field groups
     :param api_params: api params from yaml config file
     :return: dict of {table name: abbreviation}
     """
-    prefixes = dict()
+    suffixes = dict()
 
-    for table, table_metadata in api_params['TABLE_METADATA'].items():
-        prefixes[table] = table_metadata['table_prefix'] if table_metadata['table_prefix'] else ''
+    for table, metadata in api_params['TABLE_METADATA'].items():
+        suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
 
-    return prefixes
+    return suffixes
 
 
 def get_prefixes(api_params):
@@ -536,17 +602,6 @@ def get_prefixes(api_params):
         prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
 
     return prefixes
-
-
-def get_table_id(bq_params, table_name):
-    """
-    Get the full table_id (Including project and dataset) for a given table.
-    :param bq_params: bq params from yaml config file
-    :param table_name: Desired table name (can be created using get_table_id
-    :return: String of the form bq_project_name.bq_dataset_name.bq_table_name.
-    """
-    return (bq_params["WORKING_PROJECT"] + '.' + bq_params["TARGET_DATASET"] + '.' +
-            table_name)
 
 
 def exists_bq_table(table_id):
@@ -623,38 +678,148 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def list_tables_in_dataset(bq_params):
-    dataset = bq_params['WORKING_PROJECT'] + '.' + bq_params['TARGET_DATASET']
-    client = bigquery.Client()
-
-    return client.list_tables(dataset)
-
-
-def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
+def get_schema_from_master_table(api_params, flat_schema, fg, fields=None):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
     :param api_params: api params from yaml config file
     :param flat_schema: dict of flattened schema entries
-    :param field_group: current field group name
+    :param fg: current field group name
     :param fields: schema field entries for field_group
     :return: flattened schema dict {full field name:
         {name: 'name', type: 'field_type', description: 'description'}}
     """
+    if fg not in api_params['TABLE_METADATA'].keys():
+        return flat_schema
+
     for field in fields:
         field_dict = field.to_api_repr()
-        schema_key = field_group + '.' + field_dict['name']
+        schema_key = fg + '.' + field_dict['name']
 
         if 'fields' in field_dict:
             flat_schema = get_schema_from_master_table(api_params, flat_schema,
                                                        schema_key, field.fields)
 
-            for required_column in get_required_columns(api_params, field_group):
+            for required_column in get_required_columns(api_params, fg):
                 flat_schema[required_column]['mode'] = 'REQUIRED'
         else:
             field_dict['name'] = get_bq_name(api_params, schema_key)
             flat_schema[schema_key] = field_dict
 
     return flat_schema
+
+
+def get_excluded_fields(fgs, api_params, is_webapp=False):
+    exclude_fields = set()
+
+    for fg in fgs:
+        fg_metadata = api_params['TABLE_METADATA'][fg]
+
+        if ('excluded_fields' not in fg_metadata
+                or (is_webapp and 'webapp_excluded_fields' not in fg_metadata)):
+            has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
+
+        if fg_metadata['excluded_fields']:
+            for field in fg_metadata['excluded_fields']:
+                # add generic excluded fields
+                exclude_fields.add('.'.join([fg, field]))
+
+        if is_webapp:
+            if fg_metadata['webapp_excluded_fields']:
+                for w_field in fg_metadata['webapp_excluded_fields']:
+                    # add webapp-specific excluded fields
+                    exclude_fields.add('.'.join([fg, w_field]))
+
+            # rename case_id no matter which fg it's in
+            # for old_field in api_params['RENAME_FIELDS']:
+            #    exclude_fields.add(".".join([api_params['BASE_FG'], old_field]))
+
+    return exclude_fields
+
+
+def modify_fields_for_app(schema, column_order_dict, api_params):
+    excluded_fgs = set()
+    renamed_fields = dict()
+
+    for old_field_name, new_field_name in api_params['RENAME_FIELDS'].items():
+        old_field = ".".join([api_params['BASE_FG'], old_field_name])
+        new_field = ".".join([api_params['BASE_FG'], new_field_name])
+        renamed_fields[old_field] = new_field
+
+    fgs = column_order_dict.keys()
+
+    exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
+
+    for fg in fgs:
+        # rename case_id no matter which fg it's in
+        for renamed_field in renamed_fields.keys():
+            if renamed_field in column_order_dict[fg]:
+                new_field = renamed_fields[renamed_field]
+                column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
+                column_order_dict[fg].pop(renamed_field)
+
+    if 'WEBAPP_EXCLUDED_FG' in api_params:
+        for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
+            excluded_fgs.add(excluded_fg)
+
+    # field is fully associated name
+    for field in {k for k in schema.keys()}:
+        base_fg = ".".join(field.split('.')[:-1])
+        field_name = field.split('.')[-1]
+
+        # substitute base field name for prefixed
+        schema[field]['name'] = field_name
+
+        # exclude any field groups or fields explicitly excluded in yaml
+        if field in exclude_fields or base_fg in excluded_fgs:
+            schema.pop(field)
+        # field exists in renamed_fields, change its name
+        elif field in renamed_fields:
+            new_field = renamed_fields[field]
+
+            schema[field]['name'] = new_field.split('.')[-1]
+            schema[new_field] = schema[field]
+            schema.pop(field)
+
+            # change the field name in the column order dict
+            if base_fg in column_order_dict and field in column_order_dict[base_fg]:
+                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
+                column_order_dict[base_fg].pop(field)
+
+        if field in exclude_fields and base_fg in column_order_dict:
+            # remove excluded field from column order lists
+            if field in column_order_dict[base_fg]:
+                column_order_dict[base_fg].pop(field)
+
+
+def rename_case_fields(case, api_params):
+    for key in api_params['RENAME_FIELDS']:
+        if key not in case:
+            continue
+
+        new_key = api_params['RENAME_FIELDS'][key]
+        case[new_key] = case[key]
+        case.pop(key)
+
+
+def replace_key(key, api_params):
+    key_dict = dict()
+    field_root = api_params['BASE_FG']
+    rename_fields = api_params['RENAME_FIELDS']
+
+    for rename_field in rename_fields:
+        old_key = ".".join([field_root, rename_field])
+        new_key = ".".join([field_root, rename_fields[rename_field]])
+        key_dict[old_key] = new_key
+
+    if len(key.split('.')) < 1:
+        curr_key = ".".join([field_root, key])
+    else:
+        curr_key = key
+
+    if curr_key in key_dict:
+        return key_dict[curr_key]
+    else:
+        return None
 
 
 def to_bq_schema_obj(schema_field_dict):
@@ -682,6 +847,30 @@ def upload_to_bucket(bq_params, api_params, file_name):
         blob.upload_from_filename(filepath + '/' + file_name)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+
+def get_gdc_rel(bq_params):
+    return bq_params['REL_PREFIX'] + bq_params['GDC_RELEASE']
+
+
+def build_table_name(arr):
+    table_name = "_".join(arr)
+    return table_name.replace('.', '_')
+
+
+def get_working_table_id(bq_params, table_name=None):
+    if not table_name:
+        table_name = get_master_table_name(bq_params)
+
+    return ".".join([bq_params["WORKING_PROJECT"],
+                     bq_params["WORKING_DATASET"],
+                     table_name])
+
+
+def get_webapp_table_id(bq_params, table_name):
+    return ".".join([bq_params['WORKING_PROJECT'],
+                     bq_params['TARGET_DATASET'],
+                     table_name])
 
 
 #####
@@ -721,7 +910,7 @@ def get_count_field(field_group):
     return field_group + '.count'
 
 
-def get_table_case_id_name(field_group):
+def get_case_id_field(field_group):
     """
     # todo
     :param field_group:
@@ -730,11 +919,13 @@ def get_table_case_id_name(field_group):
     return field_group + '.case_id'
 
 
+"""
 def get_ancestor_id_name(api_params, field_group):
     parent_fg = get_parent_field_group(field_group)
     id_col_name = get_fg_id_name(api_params, parent_fg)
 
     return parent_fg + '.' + id_col_name
+"""
 
 
 def get_field_depth(full_field_name):
@@ -754,7 +945,7 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     :return:
     """
     table_depths = {table: get_field_depth(table) for table in record_counts}
-    return sorted(table_depths.items(), key=lambda item:item[1], reverse=reverse)
+    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
 
 
 def get_bq_name(api_params, field_name, table_path=None):
@@ -769,39 +960,28 @@ def get_bq_name(api_params, field_name, table_path=None):
         field_name = table_path + '.' + field_name
 
     split_name = field_name.split('.')
-    if split_name[0] != 'cases':
-        split_name.insert(0, 'cases')
+    if split_name[0] != api_params['BASE_FG']:
+        split_name.insert(0, api_params['BASE_FG'])
 
     field_group = '.'.join(split_name[:-1])
     field = split_name[-1]
 
-    if field_group == 'cases':
+    if field_group == api_params['BASE_FG']:
         return field
 
     prefixes = get_prefixes(api_params)
 
     if field_group not in prefixes:
-        has_fatal_error("{} not found in prefixes: {}".format(field_group, prefixes))
+        return None
 
     if prefixes[field_group]:
         return prefixes[field_group] + '__' + field
 
-    # prefix is blank, like in the instance of 'cases'
+    # prefix is blank, like in the instance of api_params['BASE_FG']
     return field
 
 
-def get_field_group_abbreviation(api_params, fg):
-    """
-    # todo
-    :param api_params:
-    :param fg:
-    :return:
-    """
-    prefixes = get_prefixes(api_params)
-    return prefixes[fg]
-
-
-def get_parent_field_group(field_name):
+def get_field_group(field_name):
     """
     Gets ancestor field group. (Might not be the parent table,
     as ancestor could be flattened.)
@@ -813,9 +993,10 @@ def get_parent_field_group(field_name):
     return ".".join(split_field_name[:-1])
 
 
-def get_tables(record_counts):
+def get_tables(record_counts, api_params):
     """
     Get one-to-many tables for program.
+    :param api_params:
     :param record_counts: dict max field group record counts for program
     :return: set of table names
     """
@@ -825,7 +1006,7 @@ def get_tables(record_counts):
         if record_counts[table] > 1:
             table_keys.add(table)
 
-    table_keys.add('cases')
+    table_keys.add(api_params['BASE_FG'])
 
     return table_keys
 
@@ -842,10 +1023,10 @@ def get_parent_table(tables, field_name):
     if not base_table or base_table not in tables:
         has_fatal_error("'{}' has no parent table: {}".format(field_name, tables))
 
-    parent_table = get_parent_field_group(field_name)
+    parent_table = get_field_group(field_name)
 
     while parent_table and parent_table not in tables:
-        parent_table = get_parent_field_group(parent_table)
+        parent_table = get_field_group(parent_table)
 
     if not parent_table:
         has_fatal_error("No parent found for {}".format(field_name))
@@ -853,42 +1034,8 @@ def get_parent_table(tables, field_name):
     return parent_table
 
 
-"""
-# currently unused, but would be a good addition to package
-def download_from_bucket(src_file, dest_file, api_params, bq_params):
-    client = storage.Client()
-
-    with open(dest_file) as file_obj:
-        bucket_path = ('gs://' + bq_params['WORKING_BUCKET'] + "/" +
-                       bq_params['WORKING_BUCKET_DIR'] + '/')
-        path_to_file = bucket_path + '/' + api_params['GDC_RELEASE'] + src_file
-
-        client.download_blob_to_file(path_to_file, file_obj)
-"""
-
-
-"""
-# for test_data_integrity
-
-def get_dataset_table_list(api_params, bq_params, prefix_component):
-    client = bigquery.Client()
-    dataset = client.get_dataset(bq_params['WORKING_PROJECT'] + '.' +
-                                 bq_params['TARGET_DATASET'])
-    results = client.list_tables(dataset)
-
-    prefix = api_params["GDC_RELEASE"] + '_' + prefix_component + '_'
-
-    table_id_list = []
-
-    for table in results:
-        table_id_name = table.table_id
-        if table_id_name and prefix in table_id_name:
-            table_id_list.append(table_id_name)
-
-    table_id_list.sort()
-
-    return table_id_list
-"""
+def is_valid_fg(api_params, fg_name):
+    return fg_name in api_params['TABLE_METADATA'].keys()
 
 
 #####
@@ -901,22 +1048,13 @@ def get_scratch_dir(api_params):
     Construct filepath for VM output file
     :return: output filepath for VM
     """
-    home = os.path.expanduser('~')
-    output_dir = api_params['SCRATCH_DIR']
-
-    return home + '/' + output_dir
+    return '/'.join([os.path.expanduser('~'), api_params['SCRATCH_DIR']])
 
 
 def get_dir_files(dir_path):
-
-    home = os.path.expanduser('~')
-
-    f_path = home + '/' + dir_path
-
+    f_path = '/'.join([os.path.expanduser('~'), dir_path])
     return [f for f in os.listdir(f_path) if os.path.isfile(os.path.join(f_path, f))]
 
 
-def get_filepath(dir, filename):
-    return os.path.expanduser('~') + '/' + dir + '/' + filename
-
-
+def get_filepath(dir_path, filename):
+    return '/'.join([os.path.expanduser('~'), dir_path, filename])
