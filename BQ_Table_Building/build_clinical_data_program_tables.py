@@ -1154,11 +1154,11 @@ def main(args):
                                                            webapp_column_orders,
                                                            is_webapp=True)
 
-                print(webapp_merged_orders)
-                exit()
-
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(webapp_columns, webapp_merged_orders)
+
+                print(webapp_merged_orders)
+                exit()
 
                 # creates dictionary of lists of schemafield objects in json format
                 webapp_table_schemas = create_webapp_schema_lists(webapp_schema,
