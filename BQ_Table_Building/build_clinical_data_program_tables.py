@@ -570,9 +570,8 @@ def remove_null_fields(table_columns, merged_orders):
     for table, columns in table_columns.items():
         table_cols_set = columns
 
-        print(table_cols_set)
-
         merged_orders_set = merged_orders[table].keys()
+        print(merged_orders_set)
         null_fields_set = merged_orders_set - table_cols_set
 
         for field in null_fields_set:
