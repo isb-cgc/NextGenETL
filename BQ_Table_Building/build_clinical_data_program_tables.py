@@ -1189,12 +1189,12 @@ def main(args):
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(app_columns, app_merged_orders)
 
-                """
+
                 print()
                 print("app_merged_orders")
                 print(app_merged_orders)
                 print()
-                """
+
 
                 # creates dictionary of lists of schemafield objects in json format
                 app_table_schemas = create_app_schema_lists(app_schema,
