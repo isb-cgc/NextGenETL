@@ -514,7 +514,7 @@ def add_reference_columns(columns, record_counts, schema=None,
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
     merge_order_dicts = dict()
 
-    for table in get_sorted_fg_depths(record_counts, reverse=True):
+    for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
         new_schema_key = replace_key(API_PARAMS, schema_key)
 

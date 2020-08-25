@@ -450,7 +450,8 @@ def create_schema_dict(api_params, bq_params):
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
 
-    return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'], table_obj.schema)
+    return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'],
+                                        table_obj.schema)
 
 
 #####
@@ -946,14 +947,14 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     :return:
     """
     table_depths = {table: get_field_depth(table) for table in record_counts}
-    table_depths_dict = sorted(table_depths.items(),
-                               key=lambda item: item[1], reverse=reverse)
+    table_depth_tuples = sorted(table_depths.items(),
+                                key=lambda item: item[1], reverse=reverse)
 
     print("table_depths_dict")
-    print(table_depths_dict)
+    print(table_depth_tuples)
     print()
 
-    return table_depths_dict.keys()
+    return table_depth_tuples
 
 
 def get_bq_name(api_params, field_name, table_path=None):
