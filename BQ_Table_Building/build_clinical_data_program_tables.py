@@ -538,6 +538,7 @@ def create_webapp_schema_lists(schema, record_counts, merged_orders):
             schema_field_lists[table].append(schema[field])
 
     print(schema_field_lists)
+    exit(0)
 
     return schema_field_lists
 
@@ -1073,11 +1074,8 @@ def main(args):
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
-                webapp_table_schemas = create_schema_lists(webapp_schema,
-                                                           webapp_record_counts,
-                                                           webapp_merged_orders)
-
-                # print(webapp_table_schemas)
+                webapp_table_schemas = create_webapp_schema_lists(
+                    webapp_schema, webapp_record_counts, webapp_merged_orders)
 
                 create_and_load_tables(
                     program, cases, webapp_table_schemas, webapp_record_counts)
