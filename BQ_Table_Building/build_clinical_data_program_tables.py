@@ -512,7 +512,7 @@ def add_reference_columns(columns, record_counts, schema=None,
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
-    merged_column_orders = dict()
+    merge_order_dicts = dict()
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
@@ -524,21 +524,28 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             schema_key = new_schema_key
 
         if table in columns:
-            merged_order_key = table
+            merge_order_key = table
             schema[schema_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
-            merged_order_key = get_parent_table(columns.keys(), table)
+            merge_order_key = get_parent_table(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
             schema[schema_key]['mode'] = 'NULLABLE'
 
-        if merged_order_key not in merged_column_orders:
-            merged_column_orders[merged_order_key] = dict()
+        if merge_order_key not in merge_order_dicts:
+            merge_order_dicts[merge_order_key] = dict()
 
-        merged_column_orders[merged_order_key].update(column_orders[table])
+        merge_order_dicts[merge_order_key].update(column_orders[table])
+    print()
+    print(schema)
+    print()
+    print(columns)
+    print()
+    print(column_orders)
+    print()
 
-    return merged_column_orders
+    return merge_order_dicts
 
 
 def remove_null_fields(table_columns, merged_orders):
