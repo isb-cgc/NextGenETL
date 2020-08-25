@@ -684,11 +684,10 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    if is_webapp:
-        case_id_key = API_PARAMS['TABLE_METADATA']['cases']['table_id_key']
+    case_id_key = API_PARAMS['TABLE_METADATA']['cases']['table_id_key']
 
-        if case_id_key in API_PARAMS['RENAME_FIELDS'] and is_webapp:
-            case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
+    if is_webapp and case_id_key in API_PARAMS['RENAME_FIELDS']:
+        case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
 
     return flatten_case_entry(record=case,
                               field_group='cases',
@@ -840,8 +839,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
     for case in cases:
         rename_case_fields(case, API_PARAMS)
-
-        print(case)
 
         flattened_case = flatten_case(case, is_webapp)
 
