@@ -948,6 +948,11 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     table_depths = {table: get_field_depth(table) for table in record_counts}
     table_depths_dict = sorted(table_depths.items(),
                                key=lambda item: item[1], reverse=reverse)
+
+    print("table_depths_dict")
+    print(table_depths_dict)
+    print()
+
     return table_depths_dict.keys()
 
 
