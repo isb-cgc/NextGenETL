@@ -680,8 +680,8 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
                     exclude_fields.add('.'.join([fg, w_field]))
 
             # rename case_id no matter which fg it's in
-            for old_field in api_params['RENAME_FIELDS']:
-                exclude_fields.add(".".join([api_params['BASE_FG'], old_field]))
+            # for old_field in api_params['RENAME_FIELDS']:
+            #    exclude_fields.add(".".join([api_params['BASE_FG'], old_field]))
 
     return exclude_fields
 
