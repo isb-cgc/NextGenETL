@@ -1182,16 +1182,14 @@ def main(args):
                                                         app_column_orders,
                                                         is_webapp=True)
 
-                print()
-                # reference ids yes
-                # renamed properly yes
-                # excluded properly yes
-                # null not removed yet
-                print("app_merged_orders")
-                print(app_merged_orders)
-
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(app_columns, app_merged_orders)
+
+                # reference ids yes, renamed properly yes
+                # excluded properly yes, null not removed yet
+                print()
+                print("app_merged_orders")
+                print(app_merged_orders)
 
                 # creates dictionary of lists of schemafield objects in json format
                 app_table_schemas = create_app_schema_lists(app_schema,
