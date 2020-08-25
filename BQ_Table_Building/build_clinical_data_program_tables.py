@@ -127,7 +127,7 @@ def get_id_index(table_key, column_order_dict):
     :return: Int representing relative column position in schema.
     """
     table_id_key = get_fg_id_name(API_PARAMS, table_key)
-    return column_order_dict[table_key + '.' + table_id_key]
+    return column_order_dict[table_id_key]
 
 
 def get_count_column_name(table_key):
