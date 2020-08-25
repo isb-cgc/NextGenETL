@@ -514,7 +514,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        print(schema)
+        print(schema.keys())
         print()
 
         schema_key = get_fg_id_name(API_PARAMS, table, is_webapp=False)
