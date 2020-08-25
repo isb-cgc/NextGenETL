@@ -432,7 +432,6 @@ def generate_count_schema_entry(count_id_key, parent_table):
 
 def add_ref_id_to_table(schema, columns, column_order, table, id_tuple):
     # add parent id to one-to-many table
-
     id_index, id_col_name, program = id_tuple
     parent_fg = get_parent_field_group(table)
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg, program)
@@ -519,10 +518,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
         new_schema_key = replace_key(schema_key, API_PARAMS)
 
         if new_schema_key:
-            "{} to {}!".format(schema_key, new_schema_key)
             schema_key = new_schema_key
-        else:
-            print("keys didn't change")
 
         if table in columns:
             merged_order_key = table
@@ -553,6 +549,9 @@ def remove_null_fields(table_columns, merged_orders):
 
 
 def create_webapp_schema_lists(schema, record_counts, merged_orders):
+    print(merged_orders)
+    exit()
+
     schema_field_lists = dict()
 
     for table in get_tables(record_counts, API_PARAMS):
