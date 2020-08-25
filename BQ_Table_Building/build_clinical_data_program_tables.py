@@ -516,9 +516,9 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         print(schema)
         print()
-        print(schema_key)
 
         schema_key = get_fg_id_name(API_PARAMS, table, is_webapp=False)
+        print(schema_key)
 
         if table in columns:
             merged_order_key = table
