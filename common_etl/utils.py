@@ -734,8 +734,6 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
 
             webapp_column_orders[parent_fg].pop(field)
 
-    print(webapp_column_orders)
-
     return schema
 
 

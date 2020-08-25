@@ -1095,9 +1095,6 @@ def main(args):
 
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
-
-                exit()
-
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
                                                            webapp_columns,
