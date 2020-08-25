@@ -600,7 +600,7 @@ def remove_excluded_fields(record, table):
     if isinstance(record, dict):
         excluded_fields = {get_bq_name(API_PARAMS, field, table)
                            for field in excluded_fields}
-        for field in record.copy():
+        for field in record.deepcopy():
             if field in excluded_fields or not record[field]:
                 record.pop(field)
         return record
@@ -1082,8 +1082,8 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-                webapp_columns = columns.copy()
-                webapp_record_counts = record_counts.copy()
+                webapp_columns = columns.deepcopy()
+                webapp_record_counts = record_counts.deepcopy()
 
                 if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
                     has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
@@ -1100,7 +1100,7 @@ def main(args):
                 webapp_column_orders = add_reference_columns(webapp_columns,
                                                              webapp_record_counts,
                                                              is_webapp=True)
-                webapp_schema = schema.copy()
+                webapp_schema = schema.deepcopy()
 
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
