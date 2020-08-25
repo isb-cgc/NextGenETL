@@ -565,13 +565,12 @@ def remove_null_fields(table_columns, merged_orders):
         merged_orders_set = set(merged_orders[table].keys())
 
         null_fields_set = merged_orders_set - table_cols_set
-        print(null_fields_set)
+        # print(null_fields_set)
         continue
 
         for field in null_fields_set:
             merged_orders[table].pop(field)
 
-    exit()
 
 
 def create_app_schema_lists(schema, record_counts, merged_orders):
@@ -1177,15 +1176,26 @@ def main(args):
                                                         app_record_counts,
                                                         app_column_orders,
                                                         is_webapp=True)
+
+                """
                 print()
+                
+                # reference ids yes
+                # renamed properly yes
+                # excluded properly yes
+                # null not removed yet
+                
                 print("app_merged_orders")
                 print(app_merged_orders)
                 print()
                 print("app_columns")
                 print(app_columns)
+                """
 
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(app_columns, app_merged_orders)
+
+                exit()
 
                 # creates dictionary of lists of schemafield objects in json format
                 app_table_schemas = create_app_schema_lists(app_schema,
