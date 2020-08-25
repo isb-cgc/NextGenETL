@@ -494,14 +494,13 @@ def add_reference_columns(columns, record_counts, schema=None,
 
             add_count_col_to_parent_table(schema, columns, column_orders, table)
 
+    # todo
+    print(column_orders)
+
     return column_orders
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
-    print("\nschema\n\n{}\n\n columns\n\n{}\n\n "
-          "record_counts\n\n{}\n\n  column_orders\n\n{}\n\n "
-          .format(schema, columns, record_counts, column_orders))
-
     merged_column_orders = dict()
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
@@ -833,11 +832,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     :param schemas: dict of schema lists for all of this program's tables
     """
 
-    print(("\n\nschemas\n {} \n\n"
-           "\n\nrecord_counts\n {} \n\n").format(schemas, record_counts))
-    exit()
-
-
     tables = get_tables(record_counts)
 
     print("\nInserting case records...")
@@ -853,8 +847,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         flattened_case = flatten_case(case, is_webapp)
 
         merge_or_count_records(flattened_case, record_counts, is_webapp)
-
-        # print(flattened_case)
 
         for table in flattened_case.keys():
             if table not in tables:
