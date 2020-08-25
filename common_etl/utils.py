@@ -751,6 +751,25 @@ def rename_case_fields(case, api_params):
         case.pop(key)
 
 
+def replace_key(key, api_params):
+    key_dict = dict()
+    field_root = api_params['BASE_FG']
+    rename_fields = api_params['RENAME_FIELDS']
+
+    for rename_field in rename_fields:
+        old_key = ".".join([field_root, rename_field])
+        new_key = ".".join([field_root, rename_fields[rename_field]])
+        key_dict[old_key] = new_key
+
+    if len(key.split('.')) <= 1:
+        curr_key = ".".join([field_root, key])
+
+    if curr_key in key_dict:
+        return key_dict[curr_key]
+    else:
+        return key
+
+
 def to_bq_schema_obj(schema_field_dict):
     """
     Convert schema entry dict to SchemaField object.

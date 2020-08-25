@@ -514,21 +514,24 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        print(schema.keys())
-        print()
-
         schema_key = get_fg_id_name(API_PARAMS, table, is_webapp=False)
-        print(schema_key)
+
+        new_schema_key = replace_key(schema_key, API_PARAMS)
+
+        if schema_key == new_schema_key:
+            print("keys didn't change")
+        else:
+            "{} to {}!".format(schema_key, new_schema_key)
 
         if table in columns:
             merged_order_key = table
-            schema[schema_key]['mode'] = 'REQUIRED'
+            schema[new_schema_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
             merged_order_key = get_parent_table(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
-            schema[schema_key]['mode'] = 'NULLABLE'
+            schema[new_schema_key]['mode'] = 'NULLABLE'
 
         if merged_order_key not in merged_column_orders:
             merged_column_orders[merged_order_key] = dict()
