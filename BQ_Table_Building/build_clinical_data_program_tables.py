@@ -1106,11 +1106,12 @@ def main(args):
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(webapp_columns, webapp_merged_orders)
 
-
                 webapp_table_schemas = create_webapp_schema_lists(webapp_schema,
                                                                   webapp_record_counts,
                                                                   webapp_merged_orders)
-                print(webapp_table_schemas)
+                print(webapp_record_counts)
+                print()
+                print(webapp_merged_orders)
                 print()
 
                 create_and_load_tables(
