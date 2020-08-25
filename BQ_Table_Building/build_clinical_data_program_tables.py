@@ -537,16 +537,25 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             merge_order_dicts[merge_order_key] = dict()
 
         merge_order_dicts[merge_order_key].update(column_orders[table])
+    """
     print()
+    # cases.diagnoses.annotations.submitter_id, datetimes still there
+    # correct conversion of case_id and sub_id
+    
     print("schema")
     print(schema)
     print()
+    # only reference ids in foreign tables
     print("columns")
     print(columns)
     print()
+    # correct conversion of case_id and sub_id
+    # limited to set of fields from YAML
+    # no datetime or state
     print("cols_orders")
     print(column_orders)
     print()
+    """
     return merge_order_dicts
 
 
@@ -1168,6 +1177,12 @@ def main(args):
                                                         app_record_counts,
                                                         app_column_orders,
                                                         is_webapp=True)
+                print()
+                print("app_merged_orders")
+                print(app_merged_orders)
+                print()
+                print("app_columns")
+                print(app_columns)
 
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(app_columns, app_merged_orders)
