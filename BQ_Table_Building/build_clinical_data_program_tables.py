@@ -283,45 +283,45 @@ def remove_excluded_fields(field_groups, fg):
         return [field for field in field_groups[fg] if field not in excluded_fields]
 
 
-def examine_case(non_null_fields, record_counts, field_group, fg_name):
+def examine_case(set_fields, record_cnts, fg, fg_name):
     """
     Recursively examines case and updates dicts of non-null fields and max record counts.
-    :param non_null_fields: current dict of non-null fields for each field group
-    :param field_group: whole or partial case record json object
-    :param record_counts: dict of max field group record counts observed in program so far
+    :param set_fields: current dict of non-null fields for each field group
+    :param fg: whole or partial case record json object
+    :param record_cnts: dict of max field group record counts observed in program so far
     :param fg_name: name of currently-traversed field group
     :return: dicts of non-null field lists and max record counts (keys = field groups)
     """
-    if is_valid_fg(API_PARAMS, fg_name):
-        for field, record in field_group.items():
+    fgs = API_PARAMS['TABLE_METADATA'].keys()
+    if fg_name in fgs:
+        for field, record in fg.items():
 
             if isinstance(record, list):
                 child_fg = fg_name + '.' + field
 
-                if not is_valid_fg(API_PARAMS, child_fg):
+                if child_fg not in fgs:
                     continue
-                elif child_fg not in record_counts:
-                    non_null_fields[child_fg] = set()
-                    record_counts[child_fg] = len(record)
+                elif child_fg not in record_cnts:
+                    set_fields[child_fg] = set()
+                    record_cnts[child_fg] = len(record)
                 else:
-                    record_counts[child_fg] = max(record_counts[child_fg], len(record))
+                    record_cnts[child_fg] = max(record_cnts[child_fg], len(record))
 
                 for entry in record:
-                    examine_case(non_null_fields, record_counts,
-                                 field_group=entry, fg_name=child_fg)
+                    examine_case(set_fields, record_cnts, entry, child_fg)
             else:
-                if fg_name not in non_null_fields:
-                    non_null_fields[fg_name] = set()
-                    record_counts[fg_name] = 1
+                if fg_name not in set_fields:
+                    set_fields[fg_name] = set()
+                    record_cnts[fg_name] = 1
 
                 if isinstance(record, dict):
                     for child_field in record:
-                        non_null_fields[fg_name].add(child_field)
+                        set_fields[fg_name].add(child_field)
                 else:
                     if record:
-                        non_null_fields[fg_name].add(field)
+                        set_fields[fg_name].add(field)
 
-        return non_null_fields, record_counts
+        return set_fields, record_cnts
 
 
 def find_program_structure(cases):
@@ -337,7 +337,8 @@ def find_program_structure(cases):
     for case in cases:
         if not case:
             continue
-        examine_case(field_groups, record_counts, field_group=case, fg_name=API_PARAMS['BASE_FG'])
+        examine_case(field_groups, record_counts, fg=case,
+                     fg_name=API_PARAMS['BASE_FG'])
 
     for fg in field_groups:
         if fg not in API_PARAMS['TABLE_METADATA']:
@@ -625,14 +626,13 @@ def remove_excluded_fields(case, fg):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field,
-                       is_webapp):
+def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
     :param is_webapp: todo
     :param record: todo
-    :param field_group: todo
+    :param fg: todo
     :param flat_case: partially-built flattened case dict
     :param case_id: case id
     :param pid: parent field group id
@@ -640,59 +640,51 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field,
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    if not is_valid_fg(API_PARAMS, field_group):
+    if fg not in API_PARAMS['TABLE_METADATA'].keys():
         return flat_case
 
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
-            flat_case = flatten_case_entry(entry, field_group, flat_case,
-                                           case_id, pid, pid_field, is_webapp)
-    else:
-        row_dict = dict()
-        id_field = get_fg_id_name(API_PARAMS, field_group, is_webapp)
+            flat_case = flatten_case_entry(entry, fg, flat_case, case_id, pid,
+                                           pid_field, is_webapp)
+        return
 
-        for field, field_val in record.items():
-            if isinstance(field_val, list):
-                flat_case = flatten_case_entry(
-                    record=field_val,
-                    field_group=field_group + '.' + field,
-                    flat_case=flat_case,
-                    case_id=case_id,
-                    pid=record[id_field],
-                    pid_field=id_field,
-                    is_webapp=is_webapp)
-            else:
-                if id_field != pid_field:
-                    parent_fg = get_parent_field_group(field_group)
+    rows = dict()
+    id_field = get_fg_id_name(API_PARAMS, fg, is_webapp)
 
-                    if not is_webapp:
-                        pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
-                    else:
-                        pid_column = pid_field
+    for field, field_val in record.items():
+        if isinstance(field_val, list):
+            flat_case = flatten_case_entry(record=field_val,
+                                           fg=fg + '.' + field,
+                                           flat_case=flat_case,
+                                           case_id=case_id,
+                                           pid=record[id_field],
+                                           pid_field=id_field,
+                                           is_webapp=is_webapp)
+        else:
+            if id_field != pid_field:
+                parent_fg = get_parent_field_group(fg)
 
-                    row_dict[pid_column] = pid
+                pid_column = pid_field if is_webapp else get_bq_name(API_PARAMS,
+                                                                     pid_field, parent_fg)
+                rows[pid_column] = pid
 
-                if id_field != 'case_id':
-                    row_dict['case_id'] = case_id
-                # Field converted bq column name
-                if not is_webapp:
-                    column = get_bq_name(API_PARAMS, field, field_group)
-                else:
-                    column = field
+            rows['case_id'] = case_id if id_field != 'case_id' else rows['case_id']
 
-                row_dict[column] = field_val
-        if field_group not in flat_case:
-            flat_case[field_group] = list()
+            # Field converted bq column name
+            column = field if is_webapp else get_bq_name(API_PARAMS, field, fg)
 
-        excluded_columns = get_all_excluded_columns()
+            rows[column] = field_val
 
-        if row_dict:
-            for field in row_dict.copy().keys():
-                if field in excluded_columns or not row_dict[field]:
-                    row_dict.pop(field)
-        flat_case[field_group].append(row_dict)
+    if fg not in flat_case:
+        flat_case[fg] = list()
 
+    if rows:
+        excluded = get_all_excluded_columns()
+        return {f: rows.pop(f) for f in rows.keys() if not rows[f] or f in excluded}
+
+    flat_case[fg].append(rows)
     return flat_case
 
 
@@ -715,7 +707,7 @@ def flatten_case(case, is_webapp):
         case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
 
     return flatten_case_entry(record=case,
-                              field_group=API_PARAMS['BASE_FG'],
+                              fg=API_PARAMS['BASE_FG'],
                               flat_case=dict(),
                               case_id=case[case_id_key],
                               pid=case[case_id_key],

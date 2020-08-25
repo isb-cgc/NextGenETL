@@ -627,28 +627,28 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def get_schema_from_master_table(api_params, flat_schema, field_group, fields=None):
+def get_schema_from_master_table(api_params, flat_schema, fg, fields=None):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
     :param api_params: api params from yaml config file
     :param flat_schema: dict of flattened schema entries
-    :param field_group: current field group name
+    :param fg: current field group name
     :param fields: schema field entries for field_group
     :return: flattened schema dict {full field name:
         {name: 'name', type: 'field_type', description: 'description'}}
     """
-    if not is_valid_fg(api_params, field_group):
+    if fg not in api_params['TABLE_METADATA'].keys():
         return flat_schema
 
     for field in fields:
         field_dict = field.to_api_repr()
-        schema_key = field_group + '.' + field_dict['name']
+        schema_key = fg + '.' + field_dict['name']
 
         if 'fields' in field_dict:
             flat_schema = get_schema_from_master_table(api_params, flat_schema,
                                                        schema_key, field.fields)
 
-            for required_column in get_required_columns(api_params, field_group):
+            for required_column in get_required_columns(api_params, fg):
                 flat_schema[required_column]['mode'] = 'REQUIRED'
         else:
             field_dict['name'] = get_bq_name(api_params, schema_key)
