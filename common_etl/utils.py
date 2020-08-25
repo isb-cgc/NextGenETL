@@ -665,13 +665,13 @@ def get_schema_from_master_table(api_params, flat_schema, field_group, fields=No
     return flat_schema
 
 
-def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
+def modify_fields_for_webapp(schema, column_order_dict, api_params):
     exclude_fields = set()
     excluded_fgs = set()
     renamed_fields = dict()
 
     # todo
-    fgs = webapp_column_orders.keys()
+    fgs = column_order_dict.keys()
     # fgs = api_params['TABLE_METADATA'].keys()
 
     field_transforms = api_params['RENAME_FIELDS']
@@ -703,45 +703,48 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
             excluded_fgs.add(excluded_fg)
 
-    for field in schema.copy().keys():
-        # field is fully associated name
+    # field is fully associated name
+    for field in {k for k in schema.keys()}:
+        split_field = field.split('.')
 
-        field_name = field.split('.')[-1]
-        parent_fg = ".".join(field.split('.')[:-1])
+        base_fg = ".".join(split_field[:-1])
+        field_name = split_field[-1]
 
-        #substitute base field name for prefixed
+        # substitute base field name for prefixed
         schema[field]['name'] = field_name
 
-        print(exclude_fields)
-
         # exclude any field groups or fields explicitly excluded in yaml
-        if parent_fg in excluded_fgs or field in exclude_fields:
+        if field in exclude_fields or base_fg in excluded_fgs:
             schema.pop(field)
 
         # field exists in renamed_fields, change its name
         elif field in renamed_fields:
             new_field = renamed_fields[field]
 
-            schema[field]['name'] = new_field.split('.')[-1]
-            schema[new_field] = schema[field].copy()
+            schema_field = {k:v for (k,v) in schema[field]}
 
-            if (parent_fg in webapp_column_orders
-                    and field in webapp_column_orders[parent_fg]):
+            schema_field['name'] = new_field.split('.')[-1]
+            schema[new_field] = schema_field
 
-                order_idx = webapp_column_orders[parent_fg][field]
-                webapp_column_orders[parent_fg][new_field] = order_idx
-                webapp_column_orders[parent_fg].pop(field)
+            if (base_fg in column_order_dict
+                    and field in column_order_dict[base_fg]):
+
+                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
+                column_order_dict[base_fg].pop(field)
 
             schema.pop(field)
 
         # remove excluded field from column order lists
-        if (parent_fg in webapp_column_orders
-                and field in webapp_column_orders[parent_fg]
+        if (base_fg in column_order_dict
+                and field in column_order_dict[base_fg]
                 and field in exclude_fields):
-            webapp_column_orders[parent_fg].pop(field)
+            column_order_dict[base_fg].pop(field)
 
-    return schema
-
+    print()
+    print(schema)
+    print()
+    print(column_order_dict)
+    print()
 
 def rename_case_fields(case, api_params):
 
