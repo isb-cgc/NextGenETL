@@ -734,12 +734,6 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
 
-    print()
-    print(schema)
-    print()
-    print(column_order_dict)
-    print()
-
 
 def rename_case_fields(case, api_params):
 
@@ -965,19 +959,6 @@ def get_parent_table(tables, field_name):
 
 def is_valid_fg(api_params, fg_name):
     return fg_name in api_params['TABLE_METADATA'].keys()
-
-
-"""
-def is_renamed(api_params, field_name):
-    if field_name in api_params['RENAME_FIELDS']:
-        return True
-    return False
-
-
-def get_new_name(api_params, field_name):
-    if field_name in api_params['RENAME_FIELDS']:
-        return api_params['RENAME_FIELDS'][field_name]
-"""
 
 
 #####

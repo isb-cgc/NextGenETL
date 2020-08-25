@@ -1095,6 +1095,12 @@ def main(args):
                 # removes the excluded fields/field groups
                 modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
+                print()
+                print(webapp_schema)
+                print()
+                print(webapp_column_orders)
+                print()
+
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,
                                                            webapp_columns,
