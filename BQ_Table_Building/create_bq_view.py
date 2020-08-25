@@ -130,7 +130,10 @@ def main(args):
         print('Compare {} to {}'.format(table_old, table_new))
 
         success = compare_two_tables(table_old, table_new, params['BQ_AS_BATCH'])
-        print(success.total_rows)
+        if success.total_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same')
 
         if not success:
             print('compare_tables failed')
