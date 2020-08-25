@@ -682,6 +682,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
         return
 
     rows = dict()
+
     id_field = get_fg_id_name(API_PARAMS, fg, is_webapp)
 
     for field, field_val in record.items():
@@ -713,7 +714,9 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
     if rows:
         excluded = get_all_excluded_columns()
-        return {f: rows.pop(f) for f in rows.keys() if not rows[f] or f in excluded}
+
+        return {f: rows.pop(f) for f in rows.copy().keys()
+                if not rows[f] or f in excluded}
 
     flat_case[fg].append(rows)
     return flat_case
