@@ -518,9 +518,11 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
         new_schema_key = replace_key(API_PARAMS, schema_key)
 
+        print("{}, {}".format(schema_key, new_schema_key))
+
         schema_key = new_schema_key if new_schema_key != schema_key else None
 
-        print("{}, {}".format(schema_key, new_schema_key))
+
 
         if table in columns:
             merge_order_key = table
