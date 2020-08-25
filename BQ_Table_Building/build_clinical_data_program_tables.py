@@ -832,15 +832,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
             os.remove(jsonl_file_path)
 
     for case in cases:
-        print(case)
+        case = rename_case_fields(case, API_PARAMS)
 
         flattened_case = flatten_case(case, is_webapp)
 
         merge_or_count_records(flattened_case, record_counts, is_webapp)
 
         print(flattened_case)
-
-        rename_case_fields(flattened_case, API_PARAMS)
 
         exit()
 
