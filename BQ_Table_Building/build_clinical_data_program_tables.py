@@ -63,7 +63,7 @@ def generate_long_name(program_name, table, has_rel=True):
     return build_table_name(table_name)
 
 
-def get_jsonl_filename(program_name, table):
+def get_jsonl_filename(program_name, table, is_webapp=False):
     """
     Gets unique (per release) jsonl filename, used for intermediately storing
     the table rows after they're flattened, but before BQ insertion. Allows for
@@ -74,17 +74,24 @@ def get_jsonl_filename(program_name, table):
         relXX_TABLE_NAME_FULL_PROGRAM_supplemental-table-name
         (_supplemental-table-name optional)
     """
-    return generate_long_name(program_name, table) + '.jsonl'
+    file_name = 'webapp_' if is_webapp else ''
+
+    file_name += generate_long_name(program_name, table) + '.jsonl'
+
+    return file_name
 
 
-def get_temp_filepath(program_name, table):
+def get_temp_filepath(program_name, table, is_webapp=False):
     """
     Get filepath for the temp storage folder.
     :param program_name: Program
     :param table: Program to which this table is associated.
     :return: String representing the temp file path.
     """
-    return get_scratch_dir(API_PARAMS) + '/' + get_jsonl_filename(program_name, table)
+
+    path = get_scratch_dir(API_PARAMS) + '/'
+
+    return path + get_jsonl_filename(program_name, table, is_webapp)
 
 
 def get_full_table_name(program_name, table):
@@ -537,9 +544,6 @@ def create_webapp_schema_lists(schema, record_counts, merged_orders):
         for field in merged_orders[table]:
             schema_field_lists[table].append(schema[field])
 
-    print(schema_field_lists)
-    exit(0)
-
     return schema_field_lists
 
 
@@ -781,7 +785,7 @@ def merge_or_count_records(flattened_case, record_counts):
     get_record_counts(flattened_case, record_counts)
 
 
-def create_and_load_tables(program_name, cases, schemas, record_counts):
+def create_and_load_tables(program_name, cases, schemas, record_counts, is_webapp=False):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
@@ -794,14 +798,21 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
 
     print("\nInserting case records...")
     for table in tables:
-        jsonl_file_path = get_temp_filepath(program_name, table)
+        jsonl_file_path = get_temp_filepath(program_name, table, is_webapp)
         # delete last jsonl scratch file so we don't append to it
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
 
     for case in cases:
         flattened_case = flatten_case(case)
+
+        print(flattened_case)
+
         merge_or_count_records(flattened_case, record_counts)
+
+        print(flattened_case)
+        exit()
+
 
         for table in flattened_case.keys():
             if table not in tables:
@@ -821,7 +832,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
                         
             """
 
-            jsonl_fp = get_temp_filepath(program_name, table)
+            jsonl_fp = get_temp_filepath(program_name, table, is_webapp)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flattened_case[table]:
@@ -829,7 +840,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts):
                     jsonl_file.write('\n')
 
     for table in tables:
-        jsonl_file = get_jsonl_filename(program_name, table)
+        jsonl_file = get_jsonl_filename(program_name, table, is_webapp)
         table_id = get_full_table_name(program_name, table)
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
@@ -1080,7 +1091,8 @@ def main(args):
                     webapp_schema, webapp_record_counts, webapp_merged_orders)
 
                 create_and_load_tables(
-                    program, cases, webapp_table_schemas, webapp_record_counts)
+                    program, cases, webapp_table_schemas,
+                    webapp_record_counts, is_webapp=True)
 
         if 'create_and_load_table' in steps:
 
