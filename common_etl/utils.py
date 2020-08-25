@@ -698,6 +698,14 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
                 # add generic excluded fields
                 exclude_fields.add('.'.join([fg, field]))
 
+        # rename case_id no matter which fg it's in
+        for renamed_field in renamed_fields.keys():
+            if renamed_field in column_order_dict[fg]:
+                idx = column_order_dict[fg][renamed_field]
+                new_field = renamed_fields[renamed_field]
+                column_order_dict[fg][new_field] = idx
+                column_order_dict[fg].pop(renamed_field)
+
     if 'WEBAPP_EXCLUDED_FG' in api_params:
         for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
             excluded_fgs.add(excluded_fg)
@@ -727,12 +735,13 @@ def modify_fields_for_webapp(schema, column_order_dict, api_params):
             if base_fg in column_order_dict and field in column_order_dict[base_fg]:
                 column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
                 column_order_dict[base_fg].pop(field)
-                return
 
         if field in exclude_fields and base_fg in column_order_dict:
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
+
+
 
 
 def rename_case_fields(case, api_params):
