@@ -716,7 +716,7 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
             schema[new_schema_name] = schema[field]
             schema.pop(field)
 
-        print(webapp_column_orders)
+        print(schema)
         print("YES")
 
         if (parent_fg in webapp_column_orders
