@@ -608,7 +608,7 @@ def remove_excluded_fields(record, table):
 # Functions used for parsing and loading data into BQ tables
 #
 ##
-def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
+def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field, is_webapp):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
@@ -641,17 +641,27 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
                     flat_case=flat_case,
                     case_id=case_id,
                     pid=record[id_field],
-                    pid_field=id_field)
+                    pid_field=id_field,
+                    is_webapp=is_webapp)
             else:
                 if id_field != pid_field:
                     parent_fg = get_parent_field_group(field_group)
-                    pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
+
+                    if not is_webapp:
+                        pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
+                    else:
+                        pid_column = pid_field
+
                     row_dict[pid_column] = pid
 
                 if id_field != 'case_id':
                     row_dict['case_id'] = case_id
                 # Field converted bq column name
-                column = get_bq_name(API_PARAMS, field, field_group)
+                if not is_webapp:
+                    column = get_bq_name(API_PARAMS, field, field_group)
+                else:
+                    column = field
+
                 row_dict[column] = field_val
         if field_group not in flat_case:
             flat_case[field_group] = list()
@@ -667,7 +677,7 @@ def flatten_case_entry(record, field_group, flat_case, case_id, pid, pid_field):
     return flat_case
 
 
-def flatten_case(case):
+def flatten_case(case, is_webapp):
     """
     Converts nested case object into a flattened representation of its records.
     :param case: dict containing case data
@@ -678,7 +688,8 @@ def flatten_case(case):
                               flat_case=dict(),
                               case_id=case['case_id'],
                               pid=case['case_id'],
-                              pid_field='case_id')
+                              pid_field='case_id',
+                              is_webapp=is_webapp)
 
 
 def get_record_idx(flattened_case, field_group, record_id):
@@ -804,7 +815,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
             os.remove(jsonl_file_path)
 
     for case in cases:
-        flattened_case = flatten_case(case)
+        flattened_case = flatten_case(case, is_webapp)
 
         print(flattened_case)
 
@@ -812,7 +823,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         print(flattened_case)
         exit()
-
 
         for table in flattened_case.keys():
             if table not in tables:
