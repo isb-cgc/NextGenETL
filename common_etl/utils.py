@@ -720,6 +720,13 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
                 and field in webapp_column_orders[parent_fg]
                 and field in exclude_fields):
             webapp_column_orders[parent_fg].pop(field)
+        else:
+            for renamed_field in renamed_fields:
+                if renamed_field in webapp_column_orders[parent_fg]:
+                    new_field_name = renamed_fields[renamed_field]
+                    webapp_column_orders[parent_fg][new_field_name] = \
+                        webapp_column_orders[parent_fg][renamed_field]
+
 
     print(webapp_column_orders)
 
