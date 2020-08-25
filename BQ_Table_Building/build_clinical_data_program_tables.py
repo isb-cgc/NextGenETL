@@ -546,7 +546,10 @@ def remove_null_fields(table_columns, merged_orders):
         table_cols_set = set(columns)
         merged_orders_set = set(merged_orders[table].keys())
 
-        print(merged_orders_set - table_cols_set)
+        print(merged_orders_set)
+        print()
+        print(table_cols_set)
+        print()
         continue
 
         null_fields_set = merged_orders_set - table_cols_set
