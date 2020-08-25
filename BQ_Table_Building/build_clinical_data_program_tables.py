@@ -565,9 +565,13 @@ def remove_null_fields(table_columns, merged_orders):
         merged_orders_set = set(merged_orders[table].keys())
 """
 
+
 def remove_null_fields(table_columns, merged_orders):
     for table, columns in table_columns.items():
         table_cols_set = columns
+
+        print(table_cols_set)
+
         merged_orders_set = merged_orders[table].keys()
         null_fields_set = merged_orders_set - table_cols_set
 
@@ -1181,6 +1185,7 @@ def main(args):
                                                         app_record_counts,
                                                         app_column_orders,
                                                         is_webapp=True)
+
 
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(app_columns, app_merged_orders)
