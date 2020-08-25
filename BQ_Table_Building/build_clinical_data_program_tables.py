@@ -524,6 +524,24 @@ def remove_null_fields(table_columns, merged_orders):
             merged_orders[table].pop(field)
 
 
+def create_webapp_schema_lists(schema, record_counts, merged_orders):
+    schema_field_lists = dict()
+
+    for table in get_tables(record_counts):
+        schema_field_lists[table] = list()
+
+        if table not in merged_orders:
+            has_fatal_error("record counts and merged orders disagree on program's "
+                            "table architecture")
+
+        for field in merged_orders[table]:
+            schema_field_lists[table].append(schema[field])
+
+    print(schema_field_lists)
+
+    return schema_field_lists
+
+
 def create_schema_lists(schema, record_counts, merged_orders):
     # add bq abbreviations to schema field dicts
     for entry in schema:
@@ -1054,8 +1072,6 @@ def main(args):
                                                            webapp_column_orders)
 
                 remove_null_fields(webapp_columns, webapp_merged_orders)
-
-                print(webapp_schema)
 
                 webapp_table_schemas = create_schema_lists(webapp_schema,
                                                            webapp_record_counts,
