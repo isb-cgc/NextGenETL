@@ -697,40 +697,44 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         for fg in api_params['WEBAPP_EXCLUDED_FG']:
             exclude_fgs.add(fg)
 
-    fields = schema.copy().keys()
+    schema_keys = schema.copy().keys()
 
-    for field in fields:
-        print(field)
-        continue
+    for field in schema_keys:
+        # field is fully associated name
 
-        field_name = schema[field]['name'].split('__')[-1]
-        schema[field]['name'] = field_name
+        field_name = field.split('.')[-1]
         parent_fg = ".".join(field.split('.')[:-1])
+
+        # move?
+        schema[field]['name'] = field_name
 
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
         elif field_name in renamed_fields:
-            old_schema_name = '.'.join([parent_fg, field_name])
-            new_field_name = renamed_fields[field_name]
-            new_schema_name = '.'.join([parent_fg, new_field_name])
+            old_schema_key = field
+            altered_name = renamed_fields[field_name]
+            new_schema_key = '.'.join([parent_fg, altered_name])
 
-            schema[field]['name'] = new_field_name
-            schema[new_schema_name] = schema[field]
+            schema[field]['name'] = altered_name
+            schema[new_schema_key] = schema[field].copy()
 
-            if new_schema_name in webapp_column_orders[parent_fg]:
-                webapp_column_orders[parent_fg][new_schema_name] = \
-                    webapp_column_orders[parent_fg][old_schema_name]
-                webapp_column_orders[parent_fg].pop(old_schema_name)
+            if (parent_fg in webapp_column_orders
+                    and old_schema_key in webapp_column_orders[parent_fg]):
+                order_idx = webapp_column_orders[parent_fg][old_schema_key]
+
+                webapp_column_orders[parent_fg][new_schema_key] = order_idx
+                webapp_column_orders[parent_fg].pop(old_schema_key)
 
             schema.pop(field)
 
-        if (parent_fg in webapp_column_orders
-                and field in webapp_column_orders[parent_fg]
-                and field in exclude_fields):
+        if (field in exclude_fields
+                and parent_fg in webapp_column_orders
+                and field in webapp_column_orders[parent_fg]):
+
             webapp_column_orders[parent_fg].pop(field)
 
-    # print(webapp_column_orders)
+    print(webapp_column_orders)
 
     return schema
 
