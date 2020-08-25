@@ -532,6 +532,9 @@ def remove_null_fields(table_columns, merged_orders):
 
 
 def create_webapp_schema_lists(schema, record_counts, merged_orders):
+    print(merged_orders)
+    exit()
+
     schema_field_lists = dict()
 
     for table in get_tables(record_counts):
@@ -1090,9 +1093,9 @@ def main(args):
                                                              webapp_record_counts,
                                                              is_webapp=True)
 
-                webapp_schema = modify_fields_for_webapp(schema.copy(),
-                                                         webapp_column_orders,
-                                                         API_PARAMS)
+                webapp_schema = schema.copy()
+
+                modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
 
                 # reassign merged_column_orders to column_orders
                 webapp_merged_orders = merge_column_orders(webapp_schema,

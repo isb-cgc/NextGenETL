@@ -721,8 +721,6 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
                 and field in exclude_fields):
             webapp_column_orders[parent_fg].pop(field)
 
-    print(schema)
-
     return schema
 
 
