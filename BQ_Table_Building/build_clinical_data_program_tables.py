@@ -126,7 +126,7 @@ def get_id_index(table_key, column_order_dict):
     :param column_order_dict: Dictionary containing column names : indexes
     :return: Int representing relative column position in schema.
     """
-    table_id_key = get_fg_id_name(API_PARAMS, table_key)
+    table_id_key = get_fg_id_key(API_PARAMS, table_key)
     return column_order_dict[table_id_key]
 
 
@@ -269,7 +269,8 @@ def remove_excluded_fields(field_groups, fg):
     excluded_fields = API_PARAMS['TABLE_METADATA'][fg]['excluded_fields']
 
     if isinstance(field_groups[fg], dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded_fields}
+        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in
+                           excluded_fields}
 
         for field in field_groups[fg].copy().keys():
             if field in excluded_fields or not field_groups[fg][field]:
@@ -358,15 +359,15 @@ def find_program_structure(cases):
 # Functions used for schema creation
 #
 ##
-def get_count_column_index(table_key, column_order_dict):
+def get_count_column_index(table_name, column_order_dict):
     """
     Get index of child table record count reference column.
-    :param table_key: table for which to get index
+    :param table_name: table for which to get index
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_fg_id_name(API_PARAMS, table_key)
-    id_column_index = column_order_dict[table_key + '.' + table_id_key]
+    table_id_key = get_fg_id_name(API_PARAMS, table_name)
+    id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
     field_groups = API_PARAMS['TABLE_ORDER']
     id_index_gap = len(field_groups) - 1
@@ -433,7 +434,7 @@ def generate_count_schema_entry(count_id_key, parent_table):
 def add_ref_id_to_table(schema, columns, column_order, table, id_tuple):
     # add parent id to one-to-many table
     id_index, id_col_name, program = id_tuple
-    parent_fg = get_parent_field_group(table)
+    parent_fg = get_field_group(table)
     schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg, program)
     columns[table].add(id_col_name)
     column_order[table][id_col_name] = id_index
@@ -475,35 +476,37 @@ def add_reference_columns(columns, record_counts, schema=None,
         has_fatal_error("invalid arguments for add_reference_columns. if not is_webapp, "
                         "schema and program are required.", ValueError)
 
-    for table, depth in get_sorted_fg_depths(record_counts):
+    for fg, depth in get_sorted_fg_depths(record_counts):
         # get ordering for table by only including relevant column indexes
-        column_orders[table] = get_column_order(table)
+        column_orders[fg] = get_column_order(fg)
 
-        if depth == 1 or table not in columns:
+        if depth == 1 or fg not in columns:
             continue
 
-        curr_index = get_id_index(table, column_orders[table]) + 1
+        curr_index = get_id_index(fg, column_orders[fg]) + 1
 
-        pid_field = '.'.join([get_parent_field_group(table),
-                              get_fg_id_name(API_PARAMS,
-                                             get_parent_field_group(table))])
+        fg_id_name = get_fg_id_name(API_PARAMS, get_field_group(fg))
+        root_fg = get_field_group(fg)
+
+        pid_field = '.'.join([root_fg, fg_id_name])
+
         if is_webapp:
-            columns[table].add(pid_field)
-            column_orders[table][pid_field] = curr_index
+            columns[fg].add(pid_field)
+            column_orders[fg][pid_field] = curr_index
             curr_index += 1
         else:
             # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
-                add_ref_id_to_table(schema, columns, column_orders, table,
+                add_ref_id_to_table(schema, columns, column_orders, fg,
                                     (curr_index, pid_field, program))
                 curr_index += 1
 
-            case_id_name = get_case_id_field(table)
+            case_id_name = get_case_id_field(fg)
 
-            add_ref_id_to_table(schema, columns, column_orders, table,
+            add_ref_id_to_table(schema, columns, column_orders, fg,
                                 (curr_index, case_id_name, program))
 
-            add_count_col_to_parent_table(schema, columns, column_orders, table)
+            add_count_col_to_parent_table(schema, columns, column_orders, fg)
 
     return column_orders
 
@@ -513,7 +516,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        schema_key = get_fg_id_name(API_PARAMS, table, is_webapp=False)
+        schema_key = get_fg_id_key(API_PARAMS, table, is_webapp)
 
         new_schema_key = replace_key(schema_key, API_PARAMS)
 
@@ -551,7 +554,7 @@ def remove_null_fields(table_columns, merged_orders):
             merged_orders[table].pop(field)
 
 
-def create_webapp_schema_lists(schema, record_counts, merged_orders):
+def create_app_schema_lists(schema, record_counts, merged_orders):
     print(merged_orders)
     exit()
 
@@ -674,7 +677,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
                                            is_webapp=is_webapp)
         else:
             if id_field != pid_field:
-                parent_fg = get_parent_field_group(fg)
+                parent_fg = get_field_group(fg)
 
                 pid_column = pid_field if is_webapp else get_bq_name(API_PARAMS,
                                                                      pid_field, parent_fg)
@@ -707,9 +710,8 @@ def flatten_case(case, is_webapp):
     """
 
     if (API_PARAMS['BASE_FG'] not in API_PARAMS['TABLE_METADATA'] or
-        'table_id_key' not in API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]):
+            'table_id_key' not in API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]):
         has_fatal_error("")
-
 
     case_id_key = API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]['table_id_key']
 
@@ -732,6 +734,8 @@ def filter_flat_case(flat_case):
     for fg in fgs:
         flat_fg = flat_case[fg]
         flat_case[fg] = {f: flat_fg.pop(f, None) for f in pop_fields if f in pop_fields}
+
+
 '''
     for exclude_field in exclude_fields:
         for fg in fgs:
@@ -1124,8 +1128,8 @@ def main(args):
 
             if 'create_webapp_tables' in steps:
 
-                webapp_columns = {k: v for (k, v) in columns.items()}
-                webapp_record_counts = {k: v for (k, v) in record_counts.items()}
+                app_columns = {k: v for (k, v) in columns.items()}
+                app_record_counts = {k: v for (k, v) in record_counts.items()}
 
                 if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
                     has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
@@ -1134,40 +1138,40 @@ def main(args):
 
                 if excluded_fgs:
                     for excluded_fg in excluded_fgs:
-                        if excluded_fg in webapp_columns:
-                            webapp_columns.pop(excluded_fg)
-                        if excluded_fg in webapp_record_counts:
-                            webapp_record_counts.pop(excluded_fg)
+                        if excluded_fg in app_columns:
+                            app_columns.pop(excluded_fg)
+                        if excluded_fg in app_record_counts:
+                            app_record_counts.pop(excluded_fg)
 
                 # add the parent id to field group dicts that will create separate tables
-                webapp_column_orders = add_reference_columns(webapp_columns,
-                                                             webapp_record_counts,
-                                                             is_webapp=True)
+                app_column_orders = add_reference_columns(app_columns,
+                                                          app_record_counts,
+                                                          is_webapp=True)
 
-                webapp_schema = {k: v for (k, v) in schema.items()}
+                app_schema = {k: v for (k, v) in schema.items()}
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
-                modify_fields_for_webapp(webapp_schema, webapp_column_orders, API_PARAMS)
+                modify_fields_for_app(app_schema, app_column_orders, API_PARAMS)
 
                 # reassign merged_column_orders to column_orders
-                webapp_merged_orders = merge_column_orders(webapp_schema,
-                                                           webapp_columns,
-                                                           webapp_record_counts,
-                                                           webapp_column_orders,
-                                                           is_webapp=True)
+                app_merged_orders = merge_column_orders(app_schema,
+                                                        app_columns,
+                                                        app_record_counts,
+                                                        app_column_orders,
+                                                        is_webapp=True)
 
                 # drop any null fields from the merged column order dicts
-                remove_null_fields(webapp_columns, webapp_merged_orders)
+                remove_null_fields(app_columns, app_merged_orders)
 
                 # creates dictionary of lists of schemafield objects in json format
-                webapp_table_schemas = create_webapp_schema_lists(webapp_schema,
-                                                                  webapp_record_counts,
-                                                                  webapp_merged_orders)
+                app_table_schemas = create_app_schema_lists(app_schema,
+                                                            app_record_counts,
+                                                            app_merged_orders)
                 create_and_load_tables(program,
                                        cases,
-                                       webapp_table_schemas,
-                                       webapp_record_counts,
+                                       app_table_schemas,
+                                       app_record_counts,
                                        is_webapp=True)
 
         if 'create_and_load_table' in steps:

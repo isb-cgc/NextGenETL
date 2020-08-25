@@ -130,7 +130,58 @@ def get_master_table_name(bq_params):
     return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
 
 
+"""
 def get_fg_id_name(api_params, table_key, is_webapp=False):
+    '''
+    Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
+    :param api_params:
+    :param table_key: Table for which to determine the id key.
+    :return: String representing table key.
+    '''
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
+
+    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
+
+    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+    table_id_key = '.'.join([table_key, table_id_name])
+
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        new_name = api_params['RENAME_FIELDS'][table_id_name]
+        table_id_key = '.'.join([table_key, new_name])
+
+    return table_id_key
+"""
+
+
+def get_fg_id_name(api_params, table_key, is_webapp=False):
+    """
+    Retrieves the id key used to uniquely identify a table record.
+    :param api_params:
+    :param table_key: Table for which to determine the id key.
+    :return: String representing table key.
+    """
+    if not api_params['TABLE_METADATA']:
+        has_fatal_error("params['TABLE_METADATA'] not found")
+
+    if table_key not in api_params['TABLE_METADATA']:
+        return None
+
+    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
+
+    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        replace_key(table_key, api_params)  # todo
+        table_id_name = api_params['RENAME_FIELDS'][table_id_name]
+
+    return table_id_name
+
+
+def get_fg_id_key(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param is_webapp:
@@ -152,7 +203,6 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
         table_id_key = '.'.join([table_key, new_name])
 
     return table_id_key
-
 
 #####
 #
@@ -335,7 +385,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     for field in schema_dict:
         # record_lists_dict key is equal to the parent field components of
         # full field name
-        record_lists_dict[get_parent_field_group(field)].append(schema_dict[field])
+        record_lists_dict[get_field_group(field)].append(schema_dict[field])
 
     temp_schema_field_dict = {}
 
@@ -361,7 +411,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                                          fields=()))
 
             # parent_name = '.'.join(split_group_name[:-1])
-            parent_name = get_parent_field_group(field_group_name)
+            parent_name = get_field_group(field_group_name)
 
             if field_group_name in temp_schema_field_dict:
                 schema_field_sublist += temp_schema_field_dict[field_group_name]
@@ -686,7 +736,7 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
     return exclude_fields
 
 
-def modify_fields_for_webapp(schema, column_order_dict, api_params):
+def modify_fields_for_app(schema, column_order_dict, api_params):
     excluded_fgs = set()
     renamed_fields = dict()
 
@@ -931,7 +981,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     return field
 
 
-def get_parent_field_group(field_name):
+def get_field_group(field_name):
     """
     Gets ancestor field group. (Might not be the parent table,
     as ancestor could be flattened.)
@@ -973,10 +1023,10 @@ def get_parent_table(tables, field_name):
     if not base_table or base_table not in tables:
         has_fatal_error("'{}' has no parent table: {}".format(field_name, tables))
 
-    parent_table = get_parent_field_group(field_name)
+    parent_table = get_field_group(field_name)
 
     while parent_table and parent_table not in tables:
-        parent_table = get_parent_field_group(parent_table)
+        parent_table = get_field_group(parent_table)
 
     if not parent_table:
         has_fatal_error("No parent found for {}".format(field_name))
