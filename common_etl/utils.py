@@ -700,6 +700,8 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
+        print(webapp_column_orders)
+
         if parent_fg in exclude_fgs:
             webapp_column_orders.pop(parent_fg)
         elif field in exclude_fields[parent_fg]:
