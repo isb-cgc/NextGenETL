@@ -538,13 +538,15 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         merge_order_dicts[merge_order_key].update(column_orders[table])
     print()
+    print("schema")
     print(schema)
     print()
+    print("columns")
     print(columns)
     print()
+    print("cols_orders")
     print(column_orders)
     print()
-
     return merge_order_dicts
 
 
