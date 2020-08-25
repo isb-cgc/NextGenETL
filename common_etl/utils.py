@@ -677,6 +677,8 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
 
     fgs = api_params['TABLE_METADATA'].keys()
 
+    renamed_fields = api_params['RENAME_FIELDS']
+
     for fg in fgs:
         if ('webapp_excluded_fields' not in api_params['TABLE_METADATA'][fg] or
                 'excluded_fields' not in api_params['TABLE_METADATA'][fg]):
@@ -706,8 +708,14 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
+        if field in renamed_fields:
+            new_field_name = renamed_fields[field]
+            new_schema_name = '.'.join([parent_fg, new_field_name])
 
-        print("YES")
+            schema[field]['name'] = new_field_name
+            schema[new_schema_name] = schema[field]
+            schema.pop(field)
+
         print(webapp_column_orders)
         print("YES")
 
