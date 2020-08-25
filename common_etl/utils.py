@@ -701,15 +701,15 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
 
     for field in fields:
 
-        schema[field]['name'] = schema[field]['name'].split('__')[-1]
-
+        field_name = schema[field]['name'].split('__')[-1]
+        schema[field]['name'] = field_name
         parent_fg = ".".join(field.split('.')[:-1])
 
         if parent_fg in exclude_fgs or field in exclude_fields:
             schema.pop(field)
 
-        if field in renamed_fields:
-            new_field_name = renamed_fields[field]
+        if field_name in renamed_fields:
+            new_field_name = renamed_fields[field_name]
             new_schema_name = '.'.join([parent_fg, new_field_name])
 
             schema[field]['name'] = new_field_name
@@ -720,7 +720,6 @@ def modify_fields_for_webapp(schema, webapp_column_orders, api_params):
                 and field in webapp_column_orders[parent_fg]
                 and field in exclude_fields):
             webapp_column_orders[parent_fg].pop(field)
-
 
     print(schema)
 
