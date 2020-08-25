@@ -950,10 +950,6 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     table_depth_tuples = sorted(table_depths.items(),
                                 key=lambda item: item[1], reverse=reverse)
 
-    print("table_depths_dict")
-    print(table_depth_tuples)
-    print()
-
     return table_depth_tuples
 
 
