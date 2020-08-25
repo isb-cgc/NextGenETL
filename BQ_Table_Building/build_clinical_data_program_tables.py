@@ -713,8 +713,6 @@ def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     else:
         fg_id_key = get_bq_name(API_PARAMS, fg_id_name, field_group)
 
-    print("fg_id_key: " + fg_id_key)
-
     idx = 0
 
     for record in flattened_case[field_group]:
