@@ -147,8 +147,9 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
     table_id_key = '.'.join([table_key, table_id_name])
 
-    if is_webapp and table_id_key in api_params['RENAME_FIELDS']:
-        table_id_key = api_params['RENAME_FIELDS'][table_id_key]
+    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
+        new_name = api_params['RENAME_FIELDS'][table_id_name]
+        table_id_key = '.'.join([table_key, new_name])
 
     return table_id_key
 
