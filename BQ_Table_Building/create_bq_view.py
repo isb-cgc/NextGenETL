@@ -151,8 +151,7 @@ def main(args):
             print('Old Table was not moved and will not be deleted')
         elif table_moved:
             print('Deleting old table: {}'.format(table_old))
-            success = True
-            #success = delete_table_bq_job(params['DATASE_OLD'], params['TABLE_OLD'])
+            success = delete_table_bq_job(params['DATASE_OLD'], params['TABLE_OLD'])
 
         if not success:
             print('delete table failed')
