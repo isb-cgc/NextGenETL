@@ -195,22 +195,6 @@ def get_column_order(table):
 # Functions used to determine a program's table structure(s)
 #
 ##
-'''
-def get_excluded_fields(table):
-    """
-    Get list of fields to exclude from final BQ tables (from yaml config file)
-    :param table: table key for which to return excluded fields
-    :return: list of excluded fields
-    """
-    if table not in API_PARAMS['TABLE_METADATA']:
-        return None
-    elif 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
-        return None
-
-    return API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
-'''
-
-
 def get_all_excluded_columns():
     """
     Get excluded fields for all field groups (from yaml config file)
@@ -366,25 +350,13 @@ def get_count_column_index(table_name, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_fg_id_name(API_PARAMS, table_name)
+    table_id_key = get_table_id_name(API_PARAMS, table_name)
     id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
     field_groups = API_PARAMS['TABLE_ORDER']
     id_index_gap = len(field_groups) - 1
 
     return id_column_index + id_index_gap
-
-
-'''
-def get_case_id_index(table_key, column_orders):
-    """
-    Get case_id's position index for given table
-    :param table_key: table in which to lookup case_id
-    :param column_orders: dict of {field names: position indexes}
-    :return: case_id index for provided table
-    """
-    return get_count_column_index(table_key, column_orders) - 1
-'''
 
 
 def generate_id_schema_entry(column, parent_table, program):
@@ -485,7 +457,8 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         curr_index = get_id_index(fg, column_orders[fg]) + 1
 
-        fg_id_name = get_fg_id_name(API_PARAMS, get_field_group(fg))
+        fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
+        fg_id_name = get_table_id_name(API_PARAMS, get_field_group(fg))
         root_fg = get_field_group(fg)
 
         pid_field = '.'.join([root_fg, fg_id_name])
@@ -513,6 +486,10 @@ def add_reference_columns(columns, record_counts, schema=None,
 
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
     merge_order_dicts = dict()
+
+    print("col 1")
+    print(columns)
+    print()
 
     for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
@@ -544,21 +521,16 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             merge_order_dicts[merge_dict_key] = dict()
 
         merge_order_dicts[merge_dict_key].update(column_orders[table])
+    print("col 2")
+    print(columns)
+    print()
 
     return merge_order_dicts
 
 
 def remove_null_fields(table_columns, merged_orders):
     for table, columns in table_columns.items():
-        print()
-        print(table)
-        print()
-        print(columns)
-
         null_fields_set = set(merged_orders[table].keys()) - columns
-
-        print()
-        print(null_fields_set)
 
         for field in null_fields_set:
             merged_orders[table].pop(field)
@@ -672,7 +644,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
     rows = dict()
 
-    id_field = get_fg_id_name(API_PARAMS, fg, is_webapp)
+    id_field = get_table_id_name(API_PARAMS, fg, is_webapp)
 
     for field, field_val in record.items():
         if isinstance(field_val, list):
@@ -763,7 +735,7 @@ def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     :param record_id: id of record for which to retrieve position
     :return: position index of record in field group's record list
     """
-    fg_id_name = get_fg_id_name(API_PARAMS, field_group)
+    fg_id_name = get_table_id_name(API_PARAMS, field_group)
 
     if is_webapp:
         fg_id_key = fg_id_name
@@ -800,7 +772,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
                 flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
 
     for field_group, parent in flattened_fg_parents.items():
-        fg_id_name = get_fg_id_name(API_PARAMS, parent)
+        fg_id_name = get_table_id_name(API_PARAMS, parent)
 
         if is_webapp:
             bq_parent_id_key = fg_id_name
@@ -829,7 +801,7 @@ def get_record_counts(flattened_case, record_counts, is_webapp=False):
 
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
-        fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
+        fg_id_name = get_table_id_name(API_PARAMS, parent_table)
 
         if is_webapp:
             bq_parent_id_key = fg_id_name
@@ -1027,7 +999,6 @@ def copy_tables_into_public_project():
 # Web App specific functions
 #
 ##
-
 def make_biospecimen_stub_tables(program):
     query = ("""
         SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode

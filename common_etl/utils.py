@@ -156,16 +156,13 @@ def get_fg_id_name(api_params, table_key, is_webapp=False):
 """
 
 
-def get_fg_id_name(api_params, table_key, is_webapp=False):
+def get_table_id_name(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
     :param api_params:
     :param table_key: Table for which to determine the id key.
     :return: String representing table key.
     """
-    if not api_params['TABLE_METADATA']:
-        has_fatal_error("params['TABLE_METADATA'] not found")
-
     if table_key not in api_params['TABLE_METADATA']:
         return None
 
@@ -196,6 +193,7 @@ def get_table_id_key(api_params, table_key, is_webapp=False):
         has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
 
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
+
     table_id_key = '.'.join([table_key, table_id_name])
 
     if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
