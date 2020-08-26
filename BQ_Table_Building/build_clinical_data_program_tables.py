@@ -457,7 +457,7 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         curr_index = get_id_index(fg, column_orders[fg]) + 1
 
-        fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
+        # fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
         fg_id_name = get_table_id_name(API_PARAMS, get_field_group(fg))
         root_fg = get_field_group(fg)
 
