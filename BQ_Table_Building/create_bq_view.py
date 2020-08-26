@@ -38,7 +38,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
                                install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table, \
-                               bq_harness_with_result
+                               bq_harness_with_result, delete_table_bq_job
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -125,6 +125,7 @@ def main(args):
 
     table_old = '{}.{}.{}'.format(params['PROJECT_OLD'], params['DATASET_OLD'], params['TABLE_OLD'])
     table_new = '{}.{}.{}'.format(params['PROJECT_NEW'], params['DATASET_NEW'], params['TABLE_NEW'])
+    table_temp = '{}.{}.{}'.format(params['PROJECT_TEMP'], params['DATASET_TEMP'], params['TABLE_OLD'])
 
     if 'compare_tables' in steps:
         print('Compare {} to {}'.format(table_old, table_new))
@@ -142,14 +143,27 @@ def main(args):
             print('compare_tables failed')
             return
 
-    if 'move_old_to_temp_and_delete table' in steps:
+    if 'move_old_to_temp_and_delete_table' in steps:
         print('Move old table to temp location')
+        table_moved = publish_table(table_old, table_temp)
 
-        print('Deleting old table: {}').format(table_old)
+        if not table_moved:
+            print('Old Table was not moved and will not be deleted')
+        elif table_moved:
+            print('Deleting old table: {}').format(table_old)
+            success = True
+            #success = delete_table_bq_job(params['DATASE_OLD'], params['TABLE_OLD'])
+
+        if not success:
+            print('delete table failed')
+            return
+
 
     if 'create_view' in steps:
+        print('create view')
 
-
+    if 'update_view_schema' in steps:
+        print('')
     print('job completed')
 
 if __name__ == "__main__":
