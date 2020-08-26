@@ -142,17 +142,15 @@ def main(args):
             print('compare_tables failed')
             return
 
-    if 'move_old_to_temp' in steps:
+    if 'move_old_to_temp_and_delete table' in steps:
         print('Move old table to temp location')
 
         print('Deleting old table: {}').format(table_old)
 
-    if 'remove_old_table' in steps:
-        print('compare and remove old table')
-
     if 'create_view' in steps:
 
-        print('job completed')
+
+    print('job completed')
 
 if __name__ == "__main__":
     main(sys.argv)
