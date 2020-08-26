@@ -70,10 +70,11 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
     return '''
       WITH a1 as (
           SELECT 
+            A.study_id,
+            A.aliquot_submitter_id,
             A.study_name,
             A.sample_id,
             A.aliquot_id,
-            A.aliquot_submitter_id,
             A.log2_ratio,
             B.gene_name,
             B.authority,
