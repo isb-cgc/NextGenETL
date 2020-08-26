@@ -136,7 +136,7 @@ def main(args):
         if num_rows == 0:
             print('the tables are the same')
         else:
-            print('the tables are NOT the same')
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
 
         if not success:
             print('compare_tables failed')
