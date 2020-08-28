@@ -968,7 +968,7 @@ def copy_tables_into_public_project():
         'BEATAML 1.0 CLINICAL DATA'
     )
     modify_friendly_name_custom(
-        'isb-cgc-bq:BEATAML1_0.clinical_gdc_r24',
+        'isb-cgc-bq.BEATAML1_0.clinical_gdc_r24',
         'BEATAML 1.0 CLINICAL DATA REL24 VERSIONED'
     )
 
