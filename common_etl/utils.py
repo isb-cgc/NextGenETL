@@ -656,7 +656,6 @@ def delete_bq_table(table):
 
 def copy_bq_table(src_table, dest_table, project=None):
     client = bigquery.Client()
-    client.delete_table(dest_table, not_found_ok=True)
     client.copy_table(src_table, dest_table, project=project)
 
 
