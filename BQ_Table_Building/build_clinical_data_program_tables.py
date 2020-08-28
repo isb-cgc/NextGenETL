@@ -997,9 +997,8 @@ def copy_tables_into_public_project():
 
         copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
                       BQ_PARAMS['PUBLIC_PROJECT'])
-
+        time.sleep(4)
         modify_friendly_name(BQ_PARAMS, versioned_table_id)
-        exit()
 
 
 ####
