@@ -655,6 +655,8 @@ def modify_friendly_name_custom(table_id, new_name):
 
     table.friendly_name = new_name
 
+    print(table.friendly_name)
+
     client.update_table(table, ["friendly_name"])
 
 
