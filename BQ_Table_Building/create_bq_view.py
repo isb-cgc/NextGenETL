@@ -33,6 +33,7 @@ from json import loads as json_loads
 from createSchemaP3 import build_schema
 from datetime import date
 import re
+from google.cloud import bigquery
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
@@ -84,6 +85,32 @@ def compare_two_tables_sql(old_table, new_table):
             SELECT * from `{0}`
         )
     '''.format(old_table, new_table)
+
+'''
+----------------------------------------------------------------------------------------------
+Create a view in place of the old table
+'''
+
+def create_view(old_table_name, new_table, project_old, dataset_old):
+    client = bigquery.Client()
+    shared_dataset_ref = bigquery.DatasetReference(project_old, dataset_old)
+    sql = create_view_sql(new_table)
+    view_ref = shared_dataset_ref.table(old_table_name)
+    view = bigquery.Table(view_ref)
+    view.view_query = sql
+    view = client.create_table(view)  # API request
+    return view
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for the create_view function
+'''
+
+def create_view_sql(new_table):
+    return '''
+    SELECT *
+    FROM `{}`
+    '''.format(new_table)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -157,12 +184,18 @@ def main(args):
             print('delete table failed')
             return
 
-
     if 'create_view' in steps:
         print('create view')
+        success = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
+
+        if not success:
+            print('create view failed')
+            return
 
     if 'update_view_schema' in steps:
         print('')
+
+
     print('job completed')
 
 if __name__ == "__main__":
