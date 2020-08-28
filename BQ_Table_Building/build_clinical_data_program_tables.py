@@ -992,10 +992,13 @@ def copy_tables_into_public_project():
         print(curr_table_id)
         print(versioned_table_id)
 
-        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
-                      BQ_PARAMS['PUBLIC_PROJECT'])
         copy_bq_table(BQ_PARAMS, source_table_id,
                       versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'], versioned=True)
+
+        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
+                      BQ_PARAMS['PUBLIC_PROJECT'])
+
+        modify_friendly_name(BQ_PARAMS, versioned_table_id)
         exit()
 
 
