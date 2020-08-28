@@ -963,6 +963,12 @@ def copy_tables_into_public_project():
 
     files = get_dir_files(metadata_path)
 
+    modify_friendly_name(
+        API_PARAMS,
+        'isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
+
+
+    """
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
 
@@ -993,7 +999,7 @@ def copy_tables_into_public_project():
         copy_bq_table(source_table_id, versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
         modify_friendly_name(API_PARAMS, versioned_table_id)
         exit()
-
+    """
 
 ####
 #
