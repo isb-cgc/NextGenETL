@@ -649,6 +649,11 @@ def modify_friendly_name(bq_params, table_id):
     client.update_table(table, ["friendly_name"])
 
 
+def delete_bq_table(table):
+    client = bigquery.Client()
+    client.delete_table(table, not_found_ok=True)
+
+
 def copy_bq_table(src_table, dest_table, project=None):
     client = bigquery.Client()
     client.delete_table(dest_table, not_found_ok=True)

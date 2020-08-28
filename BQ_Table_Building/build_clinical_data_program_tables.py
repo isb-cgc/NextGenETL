@@ -963,10 +963,8 @@ def copy_tables_into_public_project():
 
     files = get_dir_files(metadata_path)
 
-    modify_friendly_name(
-        BQ_PARAMS,
-        'isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
-
+    delete_bq_table('isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
+    delete_bq_table('isb-cgc-bq.MMRF.clinical_follow_ups_molecular_tests_gdc_current')
 
     """
     for json_file in files:
