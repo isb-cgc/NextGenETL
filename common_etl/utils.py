@@ -659,7 +659,7 @@ def copy_bq_table(bq_params, src_table, dest_table, project=None, versioned=Fals
     client.copy_table(src_table, dest_table, project=project)
 
     if versioned:
-        modify_friendly_name
+        modify_friendly_name(bq_params, dest_table)
 
 
 def update_table_schema(table_id, new_descriptions):
