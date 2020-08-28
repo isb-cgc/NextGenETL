@@ -654,9 +654,12 @@ def delete_bq_table(table):
     client.delete_table(table, not_found_ok=True)
 
 
-def copy_bq_table(src_table, dest_table, project=None):
+def copy_bq_table(bq_params, src_table, dest_table, project=None, versioned=False):
     client = bigquery.Client()
     client.copy_table(src_table, dest_table, project=project)
+
+    if versioned:
+        modify_friendly_name
 
 
 def update_table_schema(table_id, new_descriptions):

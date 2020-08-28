@@ -963,8 +963,8 @@ def copy_tables_into_public_project():
 
     files = get_dir_files(metadata_path)
 
-    # delete_bq_table('isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
-    # delete_bq_table('isb-cgc-bq.MMRF.clinical_follow_ups_molecular_tests_gdc_current')
+    delete_bq_table('isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
+    delete_bq_table('isb-cgc-bq.MMRF.clinical_follow_ups_molecular_tests_gdc_current')
 
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
@@ -992,9 +992,10 @@ def copy_tables_into_public_project():
         print(curr_table_id)
         print(versioned_table_id)
 
-        copy_bq_table(source_table_id, curr_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
-        copy_bq_table(source_table_id, versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
-        modify_friendly_name(BQ_PARAMS, versioned_table_id)
+        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
+                      BQ_PARAMS['PUBLIC_PROJECT'])
+        copy_bq_table(BQ_PARAMS, source_table_id,
+                      versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'], versioned=True)
         exit()
 
 
