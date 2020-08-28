@@ -649,6 +649,15 @@ def modify_friendly_name(bq_params, table_id):
     client.update_table(table, ["friendly_name"])
 
 
+def modify_friendly_name_custom(table_id, new_name):
+    client = bigquery.Client()
+    table = get_bq_table(table_id)
+
+    table.friendly_name = new_name
+
+    client.update_table(table, ["friendly_name"])
+
+
 def delete_bq_table(table):
     client = bigquery.Client()
     client.delete_table(table, not_found_ok=True)
@@ -657,11 +666,6 @@ def delete_bq_table(table):
 def copy_bq_table(bq_params, src_table, dest_table, project=None, versioned=False):
     client = bigquery.Client()
     client.copy_table(src_table, dest_table, project=project)
-
-    """
-    if versioned:
-        modify_friendly_name(bq_params, dest_table)
-    """
 
 
 def update_table_schema(table_id, new_descriptions):

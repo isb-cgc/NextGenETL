@@ -963,8 +963,19 @@ def copy_tables_into_public_project():
 
     files = get_dir_files(metadata_path)
 
-    delete_bq_table('isb-cgc-bq.MMRF_versioned.clinical_follow_ups_molecular_tests_gdc_r24')
-    delete_bq_table('isb-cgc-bq.MMRF.clinical_follow_ups_molecular_tests_gdc_current')
+    modify_friendly_name_custom(
+        'isb-cgc-bq.BEATAML1_0.clinical_gdc_current',
+        'BEATAML 1.0 CLINICAL DATA'
+    )
+    modify_friendly_name_custom(
+        'isb-cgc-bq:BEATAML1_0.clinical_gdc_r24',
+        'BEATAML 1.0 CLINICAL DATA REL24 VERSIONED'
+    )
+
+    modify_friendly_name_custom(
+        'isb-project-zero.GDC_Clinical_Data.r24_BEATAML1_0_clinical',
+        'BEATAML 1.0 CLINICAL DATA'
+    )
 
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
