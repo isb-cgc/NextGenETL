@@ -977,6 +977,8 @@ def copy_tables_into_public_project():
         'BEATAML 1.0 CLINICAL DATA'
     )
 
+    exit()
+
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
 
