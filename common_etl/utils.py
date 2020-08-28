@@ -637,12 +637,12 @@ def update_bq_table(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def modify_friendly_name(api_params, table_id):
+def modify_friendly_name(bq_params, table_id):
     client = bigquery.Client()
     table = get_bq_table(table_id)
 
     friendly_name = table.friendly_name
-    friendly_name += 'REL' + api_params['GDC_RELEASE'] + ' VERSIONED'
+    friendly_name += 'REL' + bq_params['GDC_RELEASE'] + ' VERSIONED'
 
     table.friendly_name = friendly_name
 
