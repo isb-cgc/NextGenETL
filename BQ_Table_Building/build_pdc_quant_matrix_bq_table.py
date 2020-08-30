@@ -94,7 +94,7 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
     return '''
       WITH a1 as (
           SELECT 
-            A.*
+            A.*,
             B.authority,
             B.ncbi_gene_id,
             b.gene_id,
@@ -106,10 +106,10 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
             B.assays,
             B.access,
             B.cud_label,
-            B.updated,
+            B.updated
           FROM `{0}` as A 
           JOIN `{1}` as B 
-          ON ((B.gene_name = A.gene)))
+          ON (B.gene_name = A.gene))
     SELECT * FROM a1
         '''.format(quant_matrix_table, pdc_genes_to_protein_table)
 
@@ -126,11 +126,11 @@ def build_join_quant_matrix_and_pdc_to_gdc_case_id_table_sql(quant_matrix_table,
     return '''
       WITH a1 as (
           SELECT 
-            A.*
-            B.gdc_id as gdc_case_id,
+            A.*,
+            B.gdc_id as gdc_case_id
           FROM `{0}` as A 
           JOIN `{1}` as B 
-          ON ((B.case_id = A.case_id)))
+          ON (B.case_id = A.case_id))
     SELECT * FROM a1
         '''.format(quant_matrix_table, pdc_to_gdc_case_id_table)
 
