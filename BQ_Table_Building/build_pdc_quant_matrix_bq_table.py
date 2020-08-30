@@ -70,7 +70,10 @@ def build_join_quant_matrix_and_biospeciman_table_sql(quant_matrix_table, biospe
       WITH a1 as (
           SELECT 
             A.*,
-            B.* 
+            B.study_name,
+            B.aliquot_id,
+            B.sample_id,
+            B.pdc_case_id
           FROM `{0}` as A 
           JOIN `{1}` as B 
           ON ((B.aliquot_submitter_id = A.aliquot_submitter_id) AND (B.study_id = A.study_id)))
@@ -92,7 +95,6 @@ def build_join_quant_matrix_and_pdc_genes_to_protein_sql(quant_matrix_table, pdc
       WITH a1 as (
           SELECT 
             A.*
-            B.gene_name,
             B.authority,
             B.ncbi_gene_id,
             b.gene_id,
