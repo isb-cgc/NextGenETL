@@ -130,7 +130,7 @@ def build_join_quant_matrix_and_pdc_to_gdc_case_id_table_sql(quant_matrix_table,
             B.gdc_id as gdc_case_id
           FROM `{0}` as A 
           JOIN `{1}` as B 
-          ON (B.case_id = A.case_id))
+          ON (B.case_id = A.pdc_case_id))
     SELECT * FROM a1
         '''.format(quant_matrix_table, pdc_to_gdc_case_id_table)
 
