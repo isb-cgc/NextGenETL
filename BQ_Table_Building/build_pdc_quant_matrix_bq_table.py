@@ -126,7 +126,7 @@ def build_join_quant_matrix_and_pdc_to_gdc_case_id_table_sql(quant_matrix_table,
     return '''
       WITH a1 as (
           SELECT 
-            A.log2_ratio,
+            A.*,
             B.gdc_id as gdc_case_id
           FROM `{0}` as A 
           JOIN `{1}` as B 
