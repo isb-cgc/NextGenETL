@@ -315,7 +315,7 @@ def find_program_structure(cases, is_webapp=False):
     if is_webapp:
         excluded_fgs = get_app_excluded_fgs(API_PARAMS)
 
-        for fg in record_counts:
+        for fg in record_counts.copy().keys():
             if fg in excluded_fgs:
                 record_counts.pop(fg)
 
