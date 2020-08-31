@@ -868,6 +868,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         rename_case_fields(case, API_PARAMS)
 
         flat_case = flatten_case(case, is_webapp)
+        print("flat_case 1")
+        print(flat_case)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
@@ -875,8 +877,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
 
+        print("flat_case 2")
+        print(flat_case)
+
+
         filter_flat_case(flat_case)
 
+        print("flat_case 3")
         print(flat_case)
 
         for bq_table in flat_case.keys():
