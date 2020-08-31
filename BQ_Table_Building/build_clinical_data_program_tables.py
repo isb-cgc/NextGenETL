@@ -729,8 +729,10 @@ def flatten_case(case, is_webapp):
                 case[new_name] = case[old_name]
                 case.pop(old_name)
 
-
     case_id_key = get_table_id_key(API_PARAMS, API_PARAMS['BASE_FG'], is_webapp)
+
+    print("case_id_key")
+    print(case_id_key)
 
     case_id_name = get_field_name(case_id_key)
 
