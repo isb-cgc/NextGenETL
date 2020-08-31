@@ -105,20 +105,6 @@ def get_full_table_name(program_name, table):
     return generate_long_name(program_name, table)
 
 
-'''
-def get_required_columns(table):
-    """
-    Get list of required columns. Currently generated, but intended to also
-    work if supplied in YAML config file.
-    :param table: name of table for which to retrieve required columns.
-    :return: list of required columns (currently, only includes the table's id column)
-    """
-    table_id_field = get_fg_id_name(API_PARAMS, table)
-    table_id_name = get_full_field_name(table, table_id_field)
-    return [table_id_name]
-'''
-
-
 def get_id_index(table_key, column_order_dict):
     """
     Get the relative order index of the table's id column.
@@ -478,17 +464,21 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         curr_index = get_id_index(fg, column_orders[fg]) + 1
 
-        fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
+        root_fg = get_field_group(fg)
+
+        fg_id_name = get_table_id_name(API_PARAMS, root_fg)
+
+        pid_field = '.'.join([root_fg, fg_id_name])
 
         if is_webapp:
-            columns[fg].add(fg_id_key)
-            column_orders[fg][fg_id_key] = curr_index
+            columns[fg].add(pid_field)
+            column_orders[fg][pid_field] = curr_index
             curr_index += 1
         else:
             # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
                 add_ref_id_to_table(schema, columns, column_orders, fg,
-                                    (curr_index, fg_id_key, program))
+                                    (curr_index, pid_field, program))
                 curr_index += 1
 
             case_id_name = get_case_id_field(fg)
@@ -505,6 +495,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     merge_order_dicts = dict()
 
     for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
+        # todo
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
         replacement_key = replace_key(API_PARAMS, schema_key)
 
@@ -1180,7 +1171,7 @@ def main(args):
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
-                modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+                # modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
 
                 # reassign merged_column_orders to column_orders
                 merged_orders = merge_column_orders(schema,

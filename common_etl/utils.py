@@ -130,32 +130,6 @@ def get_master_table_name(bq_params):
     return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
 
 
-"""
-def get_fg_id_name(api_params, table_key, is_webapp=False):
-    '''
-    Retrieves the id key used to uniquely identify a table record.
-    :param is_webapp:
-    :param api_params:
-    :param table_key: Table for which to determine the id key.
-    :return: String representing table key.
-    '''
-    if table_key not in api_params['TABLE_METADATA']:
-        return None
-
-    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
-
-    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
-    table_id_key = '.'.join([table_key, table_id_name])
-
-    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
-        new_name = api_params['RENAME_FIELDS'][table_id_name]
-        table_id_key = '.'.join([table_key, new_name])
-
-    return table_id_key
-"""
-
-
 def get_table_id_name(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
@@ -171,9 +145,10 @@ def get_table_id_name(api_params, table_key, is_webapp=False):
 
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
 
-    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
-        replace_key(api_params, table_key)  # todo
-        table_id_name = api_params['RENAME_FIELDS'][table_id_name]
+    table_id_key = ".".join(table_key, table_id_name)
+
+    if is_webapp and table_id_key in api_params['RENAME_FIELDS_FULL']:
+        table_id_name = api_params['RENAME_FIELDS_FULL'][table_id_key].split(".")[-1]
 
     return table_id_name
 
@@ -748,13 +723,10 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
                     # add webapp-specific excluded fields
                     exclude_fields.add('.'.join([fg, w_field]))
 
-            # rename case_id no matter which fg it's in
-            # for old_field in api_params['RENAME_FIELDS']:
-            #    exclude_fields.add(".".join([api_params['BASE_FG'], old_field]))
-
     return exclude_fields
 
 
+"""
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     excluded_fgs = set()
     renamed_fields = dict()
@@ -813,6 +785,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
+"""
 
 
 def rename_case_fields(case, api_params):
@@ -826,6 +799,7 @@ def rename_case_fields(case, api_params):
 
 
 def replace_key(api_params, key):
+    # todo delete
     key_dict = dict()
     field_root = api_params['BASE_FG']
     rename_fields = api_params['RENAME_FIELDS']
@@ -941,15 +915,6 @@ def get_case_id_field(field_group):
     :return:
     """
     return field_group + '.case_id'
-
-
-"""
-def get_ancestor_id_name(api_params, field_group):
-    parent_fg = get_parent_field_group(field_group)
-    id_col_name = get_fg_id_name(api_params, parent_fg)
-
-    return parent_fg + '.' + id_col_name
-"""
 
 
 def get_field_depth(full_field_name):
