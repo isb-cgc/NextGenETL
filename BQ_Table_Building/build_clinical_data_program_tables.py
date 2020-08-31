@@ -190,23 +190,18 @@ def get_all_excluded_columns(fg, is_webapp=False):
     if not API_PARAMS['TABLE_ORDER']:
         has_fatal_error("params['TABLE_ORDER'] not found")
 
-    if is_webapp:
-        if fg in API_PARAMS['TABLE_METADATA'] \
-                and 'webapp_excluded_fields' in API_PARAMS['TABLE_METADATA'][fg]:
-            excluded_columns = API_PARAMS['TABLE_METADATA'][fg]['webapp_excluded_fields']
-            return excluded_columns
+    if (is_webapp and fg in API_PARAMS['TABLE_METADATA']
+            and 'webapp_excluded_fields' in API_PARAMS['TABLE_METADATA'][fg]):
+
+        excluded_columns = API_PARAMS['TABLE_METADATA'][fg]['webapp_excluded_fields']
     else:
-        for table in API_PARAMS['TABLE_ORDER']:
-            if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
-                has_fatal_error("{}'s excluded_fields not found.".format(table))
+        if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][fg]:
+            has_fatal_error("{}'s excluded_fields not found.".format(fg))
 
-            excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
+        for field in API_PARAMS['TABLE_METADATA'][fg]['excluded_fields']:
+            excluded_columns.add(get_bq_name(API_PARAMS, field, fg))
 
-            for field in excluded_fields:
-                excluded_columns.add(
-                    get_bq_name(API_PARAMS, field, table))
-
-            return excluded_columns
+    return excluded_columns
 
 
 def flatten_tables(field_groups, record_counts, is_webapp=False):
