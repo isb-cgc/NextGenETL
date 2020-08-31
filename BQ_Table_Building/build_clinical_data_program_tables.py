@@ -478,21 +478,17 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         curr_index = get_id_index(fg, column_orders[fg]) + 1
 
-        # fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
-        fg_id_name = get_table_id_name(API_PARAMS, get_field_group(fg))
-        root_fg = get_field_group(fg)
-
-        pid_field = '.'.join([root_fg, fg_id_name])
+        fg_id_key = get_table_id_key(API_PARAMS, fg_id_key, is_webapp)
 
         if is_webapp:
-            columns[fg].add(pid_field)
-            column_orders[fg][pid_field] = curr_index
+            columns[fg].add(fg_id_key)
+            column_orders[fg][fg_id_key] = curr_index
             curr_index += 1
         else:
             # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
                 add_ref_id_to_table(schema, columns, column_orders, fg,
-                                    (curr_index, pid_field, program))
+                                    (curr_index, fg_id_key, program))
                 curr_index += 1
 
             case_id_name = get_case_id_field(fg)
