@@ -653,7 +653,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
     else:
 
         rows = dict()
-        id_field = get_table_id_name(API_PARAMS, fg, is_webapp)
+        id_field = get_table_id_name(API_PARAMS, fg)
 
         for field, field_val in record.items():
             if isinstance(field_val, list):
