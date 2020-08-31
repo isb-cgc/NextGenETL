@@ -910,11 +910,16 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 for row in flat_case[bq_table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
-    exit()
 
     for json_table in tables:
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
         table_id = get_full_table_name(program_name, json_table)
+
+
+        print("\nschemas[json_table]\n")
+        print(schemas[json_table])
+        print()
+        continue
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
