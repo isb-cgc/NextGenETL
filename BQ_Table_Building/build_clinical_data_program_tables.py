@@ -606,6 +606,11 @@ def remove_excluded_fields(case, fg):
         return [field for field in case if field not in excluded]
 
 
+def remove_excluded_webapp_fields(case):
+    print(case)
+    exit()
+
+
 ####
 #
 # Functions used for parsing and loading data into BQ tables
@@ -888,9 +893,10 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(jsonl_file_path)
 
     for case in cases:
-        rename_case_fields(case, API_PARAMS)
+        if is_webapp:
+            remove_excluded_webapp_fields(case)
 
-        # print(case)
+        rename_case_fields(case, API_PARAMS)
 
         flat_case = flatten_case(case, is_webapp)
 
