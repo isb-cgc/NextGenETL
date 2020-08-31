@@ -396,28 +396,13 @@ def await_job(bq_params, client, bq_job):
 def await_insert_job(bq_params, client, table_id, load_job):
     print(' - Starting insert for {}... '.format(table_id), end="")
 
-    last_report_time = time.time()
-
     location = bq_params['LOCATION']
-    job_state = "NOT_STARTED"
-
-    while job_state != 'DONE':
-        load_job = client.get_job(load_job.job_id, location=location)
-
-        if time.time() - last_report_time > 15:
-            print('\t- job is currently in state {}'.format(load_job.state))
-            last_report_time = time.time()
-
-        job_state = load_job.state
-
-        if job_state != 'DONE':
-            time.sleep(2)
-
     load_job = client.get_job(load_job.job_id, location=location)
+    load_job.done(timeout=3)
 
     if load_job.error_result is not None:
-        has_fatal_error('While running BQ job: {}\n{}'
-                        .format(load_job.error_result, load_job.errors), ValueError)
+        has_fatal_error('[ERROR] While running BQ job: {}\n{}'.format(
+            load_job.error_result, load_job.errors))
 
     table = client.get_table(table_id)
 
