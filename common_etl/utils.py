@@ -307,10 +307,9 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
 
-    # todo remove 3rd arg
     return get_schema_from_master_table(api_params,
                                         dict(),
-                                        api_params['FG_CONFIG']['base_fg'],
+                                        get_base_fg(api_params),
                                         table_obj.schema,
                                         is_webapp)
 
@@ -562,37 +561,41 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def get_schema_from_master_table(api_params, flat_schema, fg, fields=None,
-                                 is_webapp=False):
+def get_schema_from_master_table(api_params, schema, fg, fields=None, is_webapp=False):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
     :param is_webapp:
     :param api_params: api params from yaml config file
-    :param flat_schema: dict of flattened schema entries
+    :param schema: dict of flattened schema entries
     :param fg: current field group name
     :param fields: schema field entries for field_group
     :return: flattened schema dict {full field name:
         {name: 'name', type: 'field_type', description: 'description'}}
     """
     if fg not in api_params['FIELD_CONFIG'].keys():
-        return flat_schema
+        return schema
 
     for field in fields:
         field_dict = field.to_api_repr()
-        schema_key = fg + '.' + field_dict['name']
+        schema_key = get_field_key(fg, field_dict['name'])
 
         if 'fields' in field_dict:
-            flat_schema = get_schema_from_master_table(api_params, flat_schema,
-                                                       schema_key, field.fields,
-                                                       is_webapp)
+            schema = get_schema_from_master_table(api_params,
+                                                  schema,
+                                                  schema_key,
+                                                  field.fields,
+                                                  is_webapp)
 
             for required_column in get_required_columns(api_params, fg):
-                flat_schema[required_column]['mode'] = 'REQUIRED'
+                schema[required_column]['mode'] = 'REQUIRED'
         else:
-            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp=is_webapp)
-            flat_schema[schema_key] = field_dict
+            field_dict['name'] = get_bq_name(api_params,
+                                             schema_key,
+                                             is_webapp=is_webapp)
 
-    return flat_schema
+            schema[schema_key] = field_dict
+
+    return schema
 
 
 def rename_fields_for_app(column_orders, api_params):
@@ -700,7 +703,7 @@ def get_required_columns(api_params, table):
         return None
 
     table_id_field = api_params['FIELD_CONFIG'][table]['id_key']
-    table_id_name = get_full_field_name(table, table_id_field)
+    table_id_name = get_field_key(table, table_id_field)
     return [table_id_name]
 
 
@@ -898,14 +901,14 @@ def build_table_name(arr):
 #########################################
 
 
-def get_full_field_name(field_group, field):
+def get_field_key(field_group, field):
     """
     get full field name for field
     :param field_group: field group to which the field belongs
     :param field: field name
     :return: full field name string
     """
-    return field_group + '.' + field
+    return '.'.join([field_group, field])
 
 
 def get_field_name(field_or_column_name):

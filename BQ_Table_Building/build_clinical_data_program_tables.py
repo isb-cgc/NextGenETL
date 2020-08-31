@@ -234,14 +234,14 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
                                                   excluded_fields,
                                                   is_webapp)
 
-        full_field_names = {get_full_field_name(fg, field) for field in field_groups[fg]}
+        field_keys = {get_field_key(fg, field) for field in field_groups[fg]}
 
         if fg in one_many_tables:
-            table_columns[fg] = full_field_names
+            table_columns[fg] = field_keys
         else:
             # field group can be flattened
             parent_table = get_parent_table(one_many_tables, fg)
-            table_columns[parent_table] |= full_field_names
+            table_columns[parent_table] |= field_keys
 
     return table_columns
 
@@ -491,13 +491,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
 
 def remove_null_fields(table_columns, merged_orders):
-    print("\ntable_columns\n")
-    print(table_columns)
-
-    print("\nmerged_orders\n")
-    print(merged_orders)
-
-
     for table, columns in table_columns.items():
         null_fields_set = set(merged_orders[table].keys()) - columns
 
