@@ -877,6 +877,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         filter_flat_case(flat_case)
 
+        print(flat_case)
+
         for bq_table in flat_case.keys():
             if bq_table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
