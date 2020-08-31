@@ -451,16 +451,17 @@ def add_reference_columns(columns, record_counts, schema=None, program=None, is_
         pid_field = '.'.join([root_fg, fg_id_name])
 
         if is_webapp:
-            case_id_field = get_case_id_field(fg)
+            base_fg = get_base_fg(API_PARAMS)
+            case_id_field = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
-            columns[fg].add(case_id_field)
             columns[fg].add(pid_field)
-
             column_orders[fg][pid_field] = curr_index
             curr_index += 1
 
-            column_orders[fg][case_id_field] = curr_index
-            curr_index += 1
+            if pid_field != case_id_field:
+                columns[fg].add(case_id_field)
+                column_orders[fg][case_id_field] = curr_index + 1
+                curr_index += 1
         else:
             # for former doubly-nested tables, ancestor id precedes case_id in table
             if depth > 2:
