@@ -751,9 +751,12 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
     return exclude_fields
 
 
-def modify_fields_for_app(schema, column_order_dict, api_params):
+def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     excluded_fgs = set()
     renamed_fields = dict()
+
+    print("\ncolumns\n")
+    print(columns)
 
     for old_field_name, new_field_name in api_params['RENAME_FIELDS'].items():
         old_field = ".".join([api_params['BASE_FG'], old_field_name])

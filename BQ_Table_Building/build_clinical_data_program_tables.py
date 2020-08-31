@@ -523,8 +523,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
 def remove_null_fields(table_columns, merged_orders):
     for table, columns in table_columns.items():
-        print("\ncolumns\n")
-        print(columns)
         null_fields_set = set(merged_orders[table].keys()) - columns
 
         for field in null_fields_set:
@@ -1135,7 +1133,8 @@ def main(args):
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
-                modify_fields_for_app(app_schema, app_column_orders, API_PARAMS)
+                modify_fields_for_app(app_schema, app_column_orders, app_columns,
+                                      API_PARAMS)
 
                 # reassign merged_column_orders to column_orders
                 app_merged_orders = merge_column_orders(app_schema,
