@@ -1164,6 +1164,7 @@ def main(args):
 
                 print("record_counts\n")
                 print(record_counts)
+                exit()
 
                 """
 
