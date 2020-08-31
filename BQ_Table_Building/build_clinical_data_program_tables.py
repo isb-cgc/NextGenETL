@@ -711,15 +711,14 @@ def flatten_case(case, is_webapp):
                                    pid_field=case_id_key,
                                    is_webapp=is_webapp)
 
-    print("flat_case in flatten_case")
-    print(flat_case)
-
     return flat_case
 
 
 def filter_flat_case(flat_case):
     fgs = {k for k in flat_case.keys()}
     pop_fields = get_excluded_fields(fgs, API_PARAMS, is_webapp=True)
+
+    print(pop_fields)
 
     for fg in fgs:
         flat_fg = flat_case[fg]
@@ -890,20 +889,12 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         # print(case)
 
         flat_case = flatten_case(case, is_webapp)
-        print("flat_case 1")
-        print(flat_case)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
-
-        print("flat_case 2")
-        print(flat_case)
 
         for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
-
-        print("flat_case 3")
-        print(flat_case)
 
         filter_flat_case(flat_case)
 
