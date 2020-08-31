@@ -721,7 +721,15 @@ def flatten_case(case, is_webapp):
             'table_id_key' not in API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]):
         has_fatal_error("")
 
-    case_id_key = API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]['table_id_key']
+    if is_webapp:
+        rename_fields = API_PARAMS['RENAME_FIELDS']
+
+        for old_name, new_name in rename_fields.items():
+            if old_name in case:
+                case[new_name] = case[old_name]
+                case.pop(old_name)
+
+    case_id_key = get_table_id_key(API_PARAMS, API_PARAMS['BASE_FG'], is_webapp)
 
     flat_case = dict()
 
@@ -785,11 +793,6 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
     :param record_counts: field group count dict
     """
     tables = get_tables(record_counts, API_PARAMS)
-
-    print("flattened_case")
-    print(flattened_case)
-    print("record counts")
-    print(record_counts)
 
     flattened_fg_parents = dict()
 
@@ -908,6 +911,10 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
+
+        print("\nflat_case\n")
+        print(flat_case)
+        exit()
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
