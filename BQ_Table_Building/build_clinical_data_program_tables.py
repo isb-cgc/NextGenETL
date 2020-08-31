@@ -754,6 +754,11 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
     """
     tables = get_tables(record_counts, API_PARAMS)
 
+    print("flattened_case")
+    print(flattened_case)
+    print("record counts")
+    print(record_counts)
+
     flattened_fg_parents = dict()
 
     for field_group in record_counts:
@@ -886,7 +891,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(flat_case)
 
         filter_flat_case(flat_case)
-
 
         for bq_table in flat_case.keys():
             if bq_table not in tables:
