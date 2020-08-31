@@ -355,6 +355,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
     :param schema: list of SchemaFields representing desired BQ table schema
     :param table_name: name of table to create
     """
+
     client = bigquery.Client()
 
     job_config = bigquery.LoadJobConfig()

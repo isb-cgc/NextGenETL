@@ -840,7 +840,11 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
     tables = get_tables(record_counts, API_PARAMS)
 
-    print("\nInserting case records for {}:".format(program_name))
+    if is_webapp:
+        print("{}: insert webapp tables".format(program_name))
+    else:
+        print("{}: insert records into BQ".format(program_name))
+
     for json_table in tables:
         jsonl_file_path = get_temp_filepath(program_name, json_table, is_webapp)
         # delete last jsonl scratch file so we don't append to it
@@ -856,6 +860,15 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 flat_case.pop(fg)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
+
+        print("\nflat_case\n")
+        print(flat_case)
+
+        print("\nrecord_counts\n")
+        print(record_counts)
+        exit()
+
+
 
         for bq_table in flat_case.keys():
             if bq_table not in tables:
