@@ -319,6 +319,10 @@ def find_program_structure(cases, is_webapp=False):
             if fg in excluded_fgs:
                 record_counts.pop(fg)
 
+        for fg in columns.copy().keys():
+            if fg in excluded_fgs:
+                columns.pop(fg)
+
     return columns, record_counts
 
 
@@ -1054,7 +1058,6 @@ def create_tables(program, cases, is_webapp=False):
 
     print("\nrecord_counts\n")
     print(record_counts)
-
 
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
