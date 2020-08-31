@@ -1124,7 +1124,6 @@ def main(args):
         if 'create_biospecimen_stub_tables' in steps:
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
-            exit()
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
             cases = get_cases_by_program(BQ_PARAMS, program)
