@@ -528,8 +528,8 @@ def remove_null_fields(table_columns, merged_orders):
         for field in null_fields_set:
             merged_orders[table].pop(field)
 
-    # print("\nmerged_orders\n")
-    # print(merged_orders)
+    print("\nmerged_orders\n")
+    print(merged_orders)
 
 
 def create_app_schema_lists(schema, record_counts, merged_orders):
@@ -1135,10 +1135,6 @@ def main(args):
                 # removes the excluded fields/field groups
                 modify_fields_for_app(app_schema, app_column_orders, app_columns,
                                       API_PARAMS)
-
-                print(app_schema)
-                print()
-                print(app_column_orders)
 
                 # reassign merged_column_orders to column_orders
                 app_merged_orders = merge_column_orders(app_schema,
