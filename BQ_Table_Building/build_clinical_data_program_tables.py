@@ -904,15 +904,19 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
 
+        for fg in {fg for fg in flat_case.keys()}:
+            if fg not in record_counts.keys():
+                flat_case.pop(fg)
+
         print("\nflat_case\n")
         print(flat_case)
         exit()
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        for fg in {fg for fg in flat_case.keys()}:
-            if fg not in record_counts.keys():
-                flat_case.pop(fg)
+        print("\nflat_case\n")
+        print(flat_case)
+        exit()
 
         filter_flat_case(flat_case)
 
