@@ -841,9 +841,9 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     tables = get_tables(record_counts, API_PARAMS)
 
     if is_webapp:
-        print("{}: insert webapp tables".format(program_name))
+        print("\n{}: insert webapp tables".format(program_name))
     else:
-        print("{}: insert records into BQ".format(program_name))
+        print("\n{}: insert records into BQ".format(program_name))
 
     for json_table in tables:
         jsonl_file_path = get_temp_filepath(program_name, json_table, is_webapp)
@@ -1102,12 +1102,12 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     # programs = get_program_list(BQ_PARAMS)
-    # programs = ['BEATAML1.0']
-    programs = ['HCMI']
+    programs = ['BEATAML1.0']
+    # programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
-        print("\nExecuting script for program {}...".format(program))
+        print("\nCurrently processing {}...\n".format(program))
 
         if 'create_biospecimen_stub_tables' in steps:
             print("Creating biospecimen stub tables!")

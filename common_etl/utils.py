@@ -426,7 +426,7 @@ def await_insert_job(bq_params, client, table_id, load_job):
 
     table = client.get_table(table_id)
 
-    print(" done. {} rows inserted.\n".format(table.num_rows))
+    print(" done. {} rows inserted.".format(table.num_rows))
 
 
 def get_program_list(bq_params):
