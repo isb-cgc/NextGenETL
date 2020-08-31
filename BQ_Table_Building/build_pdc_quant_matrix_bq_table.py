@@ -16,6 +16,7 @@ limitations under the License.
 
 """
 import os
+import re
 import shutil
 
 import requests
@@ -300,21 +301,22 @@ def generate_quant_matrix_bq_table_all_studies(params):
 
         # Some study does not have quant_matrix
         if quant_matrix_table:
-            bq_table_name_quant_matrix = "PDC_Quant_Matrix_{}".format(study_submitter_id)
-            bq_table_name_biospeciman = "PDC_Biospeciman_{}".format(study_submitter_id)
-            bq_table_name_joined_quant_matrix_biospeciman = "PDC_Joined_QM_Bio_{}".format(study_submitter_id)
-            bq_table_name_joined_pdc_gene_map = "PDC_Joined_QM_Bio_Gene_Map_{}".format(study_submitter_id)
-            bq_table_name_final_table = "PDC_Final_Table_{}".format(study_submitter_id)
+            study_bq_name = re.sub("[^0-9a-zA-Z]+", "_", study_submitter_id)
+            bq_table_name_quant_matrix = "PDC_Quant_Matrix_{}".format(study_bq_name)
+            bq_table_name_biospeciman = "PDC_Biospeciman_{}".format(study_bq_name)
+            bq_table_name_joined_quant_matrix_biospeciman = "PDC_Joined_QM_Bio_{}".format(study_bq_name)
+            bq_table_name_joined_pdc_gene_map = "PDC_Joined_QM_Bio_Gene_Map_{}".format(study_bq_name)
+            bq_table_name_final_table = "PDC_Final_Table_{}".format(study_bq_name)
 
-            print("Step 2: write_quant_matrix_table_to_tsv")
+            print("> Step 2: write_quant_matrix_table_to_tsv")
             write_quant_matrix_table_to_tsv(quant_matrix_table, quant_matrix_tsv)
 
             bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
 
-            print("Step 3: upload_quant_matrix_tsv_to_bucket")
+            print("> Step 3: upload_quant_matrix_tsv_to_bucket")
             upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
 
-            print("Step 4: create_quant_matrix_bq_from_tsv")
+            print("> Step 4: create_quant_matrix_bq_from_tsv")
             typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             build_combined_schema(None, None,
                                   typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
@@ -324,17 +326,17 @@ def generate_quant_matrix_bq_table_all_studies(params):
             csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], bq_table_name_quant_matrix,
                       params['BQ_AS_BATCH'])
 
-            print("Step 5: get_biospeciman_table_one_study")
+            print("> Step 5: get_biospeciman_table_one_study")
             biospeciman_table = get_biospeciman_table_one_study(params['PDC_API_END_POINT'],
                                                                 study_id)
 
-            print("Step 6: write_biospeciman_table_to_tsv")
+            print("> Step 6: write_biospeciman_table_to_tsv")
             write_biospeciman_table_to_tsv(biospeciman_table, biospeciman_tsv)
 
-            print("Step 7: upload_biospeciman_tsv_to_bucket")
+            print("> Step 7: upload_biospeciman_tsv_to_bucket")
             upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, biospeciman_tsv)
 
-            print("Step 8: create_biospeciman_bq_from_tsv")
+            print("> Step 8: create_biospeciman_bq_from_tsv")
             typing_tups = build_schema(biospeciman_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             build_combined_schema(None, None,
                                   typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
@@ -344,7 +346,7 @@ def generate_quant_matrix_bq_table_all_studies(params):
             csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], bq_table_name_biospeciman,
                       params['BQ_AS_BATCH'])
 
-            print("Step 9: join_quant_matrix_and_biospeciman_table")
+            print("> Step 9: join_quant_matrix_and_biospeciman_table")
             quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
                                                       params['TARGET_DATASET'],
                                                       bq_table_name_quant_matrix)
@@ -357,7 +359,7 @@ def generate_quant_matrix_bq_table_all_studies(params):
                                                     bq_table_name_joined_quant_matrix_biospeciman,
                                                     params['BQ_AS_BATCH'])
 
-            print("Step 10: join_quant_matrix_and_pdc_genes_to_protein_table")
+            print("> Step 10: join_quant_matrix_and_pdc_genes_to_protein_table")
             quant_matrix_biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
                                                                   params['TARGET_DATASET'],
                                                                   bq_table_name_joined_quant_matrix_biospeciman)
@@ -371,7 +373,7 @@ def generate_quant_matrix_bq_table_all_studies(params):
                                                              params['BQ_AS_BATCH'])
 
             # TODO: This step not successful for one study test, join with pdc_to_gdc_case_id do not have case_id match
-            # print("Step 11: join_quant_matrix_and_pdc_to_gdc_case_id_table")
+            # print("> Step 11: join_quant_matrix_and_pdc_to_gdc_case_id_table")
             # quant_matrix_and_pdc_genes_to_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
             #                                                                 params['TARGET_DATASET'],
             #                                                                 bq_table_name_joined_pdc_gene_map)
