@@ -659,6 +659,9 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
             if rows:
                 excluded = get_all_excluded_columns(fg, is_webapp)
 
+                print("\nexcluded\n")
+                print(excluded)
+
                 for r_field in rows.copy():
                     if r_field in excluded or not rows[r_field]:
                         rows.pop(r_field)
@@ -1066,7 +1069,6 @@ def create_tables(program, cases, is_webapp=False):
         table_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
     else:
         table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-        print(table_schemas)
 
     create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
 
