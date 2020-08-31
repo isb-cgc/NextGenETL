@@ -522,13 +522,6 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
             has_fatal_error("record counts and merged orders disagree on program's "
                             "table architecture")
         for field in merged_orders[table]:
-            '''
-            print('merged_orders[table]\n')
-            print(merged_orders[table])
-
-            print('schema\n')
-            print(schema)
-            '''
             schema_field_lists[table].append(schema[field])
 
     return schema_field_lists
@@ -1022,7 +1015,7 @@ def make_biospecimen_stub_tables(program):
         AND proj = '{}'
     """).format(program)
 
-    table_name = build_table_name([str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    table_name = build_table_name([get_gdc_rel(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     table_id = get_webapp_table_id(BQ_PARAMS, table_name)
     load_table_from_query(BQ_PARAMS, table_id, query)
 
@@ -1077,16 +1070,9 @@ def create_tables(program, cases, is_webapp=False):
         # add the parent id to field group dicts that will create separate tables
         column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
 
-        '''
-        print("columns\n")
-        print(columns)
-        '''
-
         modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
-
     else:
         column_orders = add_reference_columns(columns, record_counts, schema, program)
-
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
@@ -1127,8 +1113,6 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     programs = get_program_list(BQ_PARAMS)
-    # programs = ['BEATAML1.0']
-    # programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
@@ -1158,6 +1142,15 @@ def main(args):
 
     if 'update_schema' in steps:
         update_schema()
+
+    if 'cleanup_tables' in steps:
+        for table_id in BQ_PARAMS['DELETE_TABLES']:
+            project = table_id.split('.')[0]
+
+            if project != BQ_PARAMS['DEV_PROJECT']:
+                has_fatal_error("Can only use cleanup_tables on DEV_PROJECT.")
+
+            delete_bq_table(table_id)
 
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()

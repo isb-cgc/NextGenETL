@@ -382,20 +382,15 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
 
 def await_job(bq_params, client, bq_job):
     location = bq_params['LOCATION']
-    job_state = "NOT_STARTED"
-
-    while job_state != 'DONE':
-        bq_job = client.get_job(bq_job.job_id, location=location)
-        job_state = bq_job.state
-
-        if job_state != 'DONE':
-            time.sleep(2)
 
     bq_job = client.get_job(bq_job.job_id, location=location)
 
+    bq_job.done(timeout=3)
+
     if bq_job.error_result is not None:
-        has_fatal_error('While running BQ job: {}\n{}'
-                        .format(bq_job.error_result, bq_job.errors), ValueError)
+        has_fatal_error('[ERROR] While running BQ job: {}\n{}'.format(
+            bq_job.error_result, bq_job.errors))
+    return True
 
 
 def await_insert_job(bq_params, client, table_id, load_job):
@@ -416,7 +411,7 @@ def await_insert_job(bq_params, client, table_id, load_job):
         job_state = load_job.state
 
         if job_state != 'DONE':
-            time.sleep(3)
+            time.sleep(2)
 
     load_job = client.get_job(load_job.job_id, location=location)
 
@@ -524,19 +519,24 @@ def modify_friendly_name_custom(table_id, new_name):
     client.update_table(table, ["friendly_name"])
 
 
-def delete_bq_table(bq_params, table):
+def delete_bq_table(table):
     client = bigquery.Client()
-    bq_job = client.delete_table(table, not_found_ok=True)
+    res = client.delete_table(table, not_found_ok=True)
 
-    await_job(bq_params, client, bq_job)
+    if res:
+        has_fatal_error(res)
+    else:
+        print("deleted table: {}".format(table))
 
 
-def copy_bq_table(bq_params, src_table, dest_table, project=None):
+def copy_bq_table(bq_params, src_table, dest_table):
     client = bigquery.Client()
 
-    # bq_job = client.copy_table(src_table, dest_table, project=project)
     bq_job = client.copy_table(src_table, dest_table)
-    await_job(bq_params, client, bq_job)
+
+    if await_job(bq_params, client, bq_job):
+        print("Successfully copied table:")
+        print("src:  {}\n dest: {}\n".format(src_table, dest_table))
 
 
 def update_table_schema(table_id, new_descriptions):
