@@ -304,7 +304,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, fg=case, fg_name=API_PARAMS['BASE_FG'])
+            examine_case(fgs, record_counts, fg=case, fg_name=get_base_fg(API_PARAMS))
 
     for fg in fgs:
         if fg not in API_PARAMS['FIELD_CONFIG']:
@@ -362,7 +362,7 @@ def generate_id_schema_entry(column, parent_table, program):
     if field_name == 'case_id':
         bq_col_name = 'case_id'
         # source_table = 'main'
-        source_table = get_full_table_name(program, API_PARAMS['BASE_FG'])
+        source_table = get_full_table_name(program, get_base_fg(API_PARAMS))
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
         source_table = get_full_table_name(program, parent_table)
@@ -673,8 +673,10 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    if (API_PARAMS['BASE_FG'] not in API_PARAMS['FIELD_CONFIG'] or
-            'id_key' not in API_PARAMS['FIELD_CONFIG'][API_PARAMS['BASE_FG']]):
+    base_fg = get_base_fg(API_PARAMS)
+
+    if (base_fg not in API_PARAMS['FIELD_CONFIG'] or
+            'id_key' not in API_PARAMS['FIELD_CONFIG'][base_fg]):
         has_fatal_error("")
 
     if is_webapp:
@@ -686,12 +688,12 @@ def flatten_case(case, is_webapp):
                 case[new_name] = val
                 case.pop(old_name)
 
-    case_id_key = get_fg_id_key(API_PARAMS, API_PARAMS['BASE_FG'], is_webapp)
+    case_id_key = get_fg_id_key(API_PARAMS, base_fg, is_webapp)
 
     case_id_name = get_field_name(case_id_key)
 
     flat_case = flatten_case_entry(record=case,
-                                   fg=API_PARAMS['BASE_FG'],
+                                   fg=base_fg,
                                    flat_case=dict(),
                                    case_id=case[case_id_name],
                                    pid=case[case_id_name],
@@ -739,7 +741,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
     flattened_fg_parents = dict()
 
     for field_group in record_counts:
-        if field_group == API_PARAMS['BASE_FG']:
+        if field_group == get_base_fg(API_PARAMS):
             continue
         if record_counts[field_group] == 1:
             if field_group in flattened_case:
