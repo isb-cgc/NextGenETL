@@ -650,8 +650,6 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    print(pid_field)
-
     if fg not in API_PARAMS['TABLE_METADATA'].keys():
         return flat_case
 
@@ -734,15 +732,18 @@ def flatten_case(case, is_webapp):
 
     case_id_name = get_field_name(case_id_key)
 
-    flat_case = dict()
+    # flat_case = dict()
 
     flat_case = flatten_case_entry(record=case,
                                    fg=API_PARAMS['BASE_FG'],
-                                   flat_case=flat_case,
+                                   flat_case=dict(),
                                    case_id=case[case_id_name],
                                    pid=case[case_id_name],
                                    pid_field=case_id_name,
                                    is_webapp=is_webapp)
+
+    print(flat_case)
+    exit()
 
     return flat_case
 
