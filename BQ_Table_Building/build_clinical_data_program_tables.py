@@ -1180,6 +1180,9 @@ def main(args):
                 # derive the program's table structure by analyzing its case records
                 columns, record_counts = find_program_structure(cases, is_webapp)
 
+                print("\nschema\n")
+                print(schema)
+
                 print("\ncolumns\n")
                 print(columns)
 
