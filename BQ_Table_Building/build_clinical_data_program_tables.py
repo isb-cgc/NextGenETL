@@ -1080,13 +1080,13 @@ def create_tables(program, cases, is_webapp=False):
     else:
         column_orders = add_reference_columns(columns, record_counts, schema, program)
 
+    print("columns\n")
+    print(columns)
+
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
                                         is_webapp)
 
-    print("merged_orders\n")
-    print(merged_orders)
-    exit()
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
