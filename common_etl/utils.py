@@ -735,7 +735,7 @@ def rename_fields_for_app(column_orders, api_params):
             column_orders[fg][new_name] = idx
             column_orders[fg].pop(old_name)
 
-"""
+
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     excluded_fgs = set()
     renamed_fields = dict()
@@ -794,7 +794,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
-"""
+
 
 
 def rename_case_fields(case, api_params):
