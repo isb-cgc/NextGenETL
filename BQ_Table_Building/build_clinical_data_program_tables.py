@@ -703,6 +703,7 @@ def flatten_case(case, is_webapp):
                        pid_field=case_id_key,
                        is_webapp=is_webapp)
 
+    print("flat_case in flatten_case")
     print(flat_case)
 
     return flat_case
