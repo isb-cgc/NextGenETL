@@ -906,10 +906,11 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
     for json_table in tables:
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
-        table_id = get_full_table_name(program_name, json_table)
+        table_name = get_full_table_name(program_name, json_table)
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
-        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table],
+                              table_name, is_webapp)
 
 
 ####
@@ -1036,9 +1037,7 @@ def make_biospecimen_stub_tables(program):
 
     table_name = build_table_name([str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     table_id = get_working_table_id(BQ_PARAMS, table_name)
-    table = load_table_from_query(table_id, query)
-
-    print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
+    load_table_from_query(BQ_PARAMS, table_id, query)
 
 
 ####
@@ -1148,8 +1147,6 @@ def main(args):
                 # creates dictionary of lists of schemafield objects in json format
                 table_schemas = create_app_schema_lists(schema, record_counts,
                                                         merged_orders)
-
-                # todo sample_ids still not in schema
 
                 create_and_load_tables(program,
                                        cases,

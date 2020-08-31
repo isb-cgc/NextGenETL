@@ -443,20 +443,45 @@ def get_query_results(query):
     return query_job.result()
 
 
-def load_table_from_query(table_id, query):
+def load_table_from_query(bq_params, table_id, query):
     client = bigquery.Client()
     job_config = bigquery.QueryJobConfig(destination=table_id)
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    query_job = client.query(query, job_config=job_config)
-    query_job.result()
+    try:
+        query_job = client.query(query, job_config=job_config)
+        await_insert_job(bq_params, client, table_id, query_job)
+        """
 
-    return client.get_table(table_id)
+        job_state = "NOT_STARTED"
+
+        print('\tStarting insert for {}, job ID: {}'.format(table_id, query_job.job_id))
+
+        while job_state != 'DONE':
+            query_job = client.get_job(query_job.job_id, location='US')
+            job_state = query_job.state
+
+            if job_state != 'DONE':
+                time.sleep(3)
+
+        query_job = client.get_job(query_job.job_id, location='US')
+
+        if query_job.error_result is not None:
+            has_fatal_error('While running BQ job: {}\n{}'
+                            .format(query_job.error_result, query_job.errors),
+                            ValueError)
+
+        return client.get_table(table_id)
+        """
+    except TypeError as err:
+        has_fatal_error(err)
 
 
-def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
+def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
+                          is_webapp=False):
     """
     Creates BQ table and inserts case data from jsonl file.
+    :param is_webapp:
     :param bq_params: bq params from yaml config file
     :param jsonl_rows_file: file containing case records in jsonl format
     :param schema: list of SchemaFields representing desired BQ table schema
@@ -474,12 +499,17 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
                        bq_params['WORKING_BUCKET_DIR'],
                        jsonl_rows_file])
 
-    table_id = get_webapp_table_id(bq_params, table_name)
+    if is_webapp:
+        table_id = get_webapp_table_id(bq_params, table_name)
+    else:
+        table_id = get_working_table_id(bq_params, table_name)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        print('\tStarting insert for {}, job ID: {}'.format(table_name, load_job.job_id))
+        await_insert_job(bq_params, client, table_id, load_job)
+        """
+        print('\tStarting insert for {}, job ID: {}'.format(table_id, load_job.job_id))
 
         last_report_time = time.time()
 
@@ -507,8 +537,41 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name):
 
         destination_table = client.get_table(table_id)
         print('\tDone! {} rows inserted.\n'.format(destination_table.num_rows))
+        """
     except TypeError as err:
         has_fatal_error(err)
+
+
+def await_insert_job(bq_params, client, table_id, load_job):
+    print('\tStarting insert for {}, job ID: {}'.format(table_id, load_job.job_id))
+
+    last_report_time = time.time()
+
+    location = bq_params['LOCATION']
+    job_state = "NOT_STARTED"
+
+    while job_state != 'DONE':
+        load_job = client.get_job(load_job.job_id, location=location)
+
+        if time.time() - last_report_time > 15:
+            print('\t- job is currently in state {}'.format(load_job.state))
+            last_report_time = time.time()
+
+        job_state = load_job.state
+
+        if job_state != 'DONE':
+            time.sleep(3)
+
+    load_job = client.get_job(load_job.job_id, location=location)
+
+    if load_job.error_result is not None:
+        has_fatal_error('While running BQ job: {}\n{}'
+                        .format(load_job.error_result, load_job.errors),
+                        ValueError)
+
+    table = client.get_table(table_id)
+
+    print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
 
 
 def get_program_list(bq_params):
