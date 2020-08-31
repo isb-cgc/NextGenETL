@@ -892,23 +892,17 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
 
-
-        print("\nflat_case\n")
-        print(flat_case)
-        print()
-        exit()
-
         # remove excluded field groups
         for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
-        """
+
         print("\nflat_case\n")
         print(flat_case)
         print()
-        """
+        exit()
         for bq_table in flat_case.keys():
             if bq_table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
