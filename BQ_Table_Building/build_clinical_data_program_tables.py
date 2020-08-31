@@ -353,7 +353,8 @@ def find_program_structure(cases, is_webapp=False):
 
         excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
 
-        record_counts = {fg: cnt for (fg, cnt) in record_counts.items() if fg not in excluded_fgs}
+        record_counts = {fg: cnt for (fg, cnt) in record_counts.items() if
+                         fg not in excluded_fgs}
 
     return columns, record_counts
 
@@ -1168,7 +1169,8 @@ def main(args):
                 columns, record_counts = find_program_structure(cases, is_webapp)
 
                 # add the parent id to field group dicts that will create separate tables
-                column_orders = add_reference_columns(columns, record_counts, is_webapp)
+                column_orders = add_reference_columns(columns, record_counts,
+                                                      is_webapp=is_webapp)
 
                 print("\ncolumn_orders\n")
                 print(column_orders)
