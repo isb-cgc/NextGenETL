@@ -1037,6 +1037,37 @@ def print_final_report(start, steps):
     print('\n\n')
 
 
+def create_tables(program, cases, is_webapp=False):
+    # generate table schemas
+    schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
+
+    # derive the program's table structure by analyzing its case records
+    columns, record_counts = find_program_structure(cases, is_webapp)
+
+    # add the parent id to field group dicts that will create separate tables
+    column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
+
+    # removes the prefix from schema field name attributes
+    # removes the excluded fields/field groups
+    if is_webapp:
+        modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+
+    # reassign merged_column_orders to column_orders
+    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
+                                        is_webapp)
+
+    # drop any null fields from the merged column order dicts
+    remove_null_fields(columns, merged_orders)
+
+    # creates dictionary of lists of schemafield objects in json format
+    if is_webapp:
+        table_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
+    else:
+        table_schemas = create_schema_lists(schema, record_counts, merged_orders)
+
+    create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
+
+
 def main(args):
     """
     Script execution function.
@@ -1069,7 +1100,7 @@ def main(args):
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
-        if 'create_webapp_tables' in steps or 'create_and_load_table' in steps:
+        if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
 
             print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
@@ -1079,65 +1110,10 @@ def main(args):
                 continue
 
             if 'create_webapp_tables' in steps:
-                is_webapp = True
+                create_tables(program, dict(cases), is_webapp=True)
 
-                # generate table schemas
-                schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
-
-                # derive the program's table structure by analyzing its case records
-                columns, record_counts = find_program_structure(cases, is_webapp)
-
-                # add the parent id to field group dicts that will create separate tables
-                column_orders = add_reference_columns(columns, record_counts,
-                                                      is_webapp=is_webapp)
-
-                # rename_fields_for_app(column_orders, API_PARAMS)
-
-                # removes the prefix from schema field name attributes
-                # removes the excluded fields/field groups
-                modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
-
-                # reassign merged_column_orders to column_orders
-                merged_orders = merge_column_orders(schema,
-                                                    columns,
-                                                    record_counts,
-                                                    column_orders,
-                                                    is_webapp)
-
-                # drop any null fields from the merged column order dicts
-                remove_null_fields(columns, merged_orders)
-
-                # creates dictionary of lists of schemafield objects in json format
-                table_schemas = create_app_schema_lists(schema, record_counts,
-                                                        merged_orders)
-
-                create_and_load_tables(program,
-                                       cases,
-                                       table_schemas,
-                                       record_counts,
-                                       is_webapp)
-
-            if 'create_and_load_table' in steps:
-                # generate table schemas
-                schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
-
-                # derive the program's table structure by analyzing its case records
-                columns, record_counts = find_program_structure(cases)
-
-                # modify schema dict, add reference columns for this program
-                column_orders = add_reference_columns(columns, record_counts, schema,
-                                                      program)
-
-                # reassign merged_column_orders to column_orders
-                merged_orders = merge_column_orders(schema, columns,
-                                                    record_counts, column_orders)
-
-                remove_null_fields(columns, merged_orders)
-
-                table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-
-                # create tables, flatten and insert data
-                create_and_load_tables(program, cases, table_schemas, record_counts)
+            if 'create_and_load_tables' in steps:
+                create_tables(program, cases)
 
             print("{} processed in {:0.0f}s!\n".format(program, time.time() - prog_start))
 
