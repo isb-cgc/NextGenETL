@@ -300,7 +300,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, fg=case, fg_name=get_base_fg(API_PARAMS))
+            examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
 
     for fg in fgs:
         if fg not in API_PARAMS['FIELD_CONFIG']:
@@ -313,8 +313,11 @@ def find_program_structure(cases, is_webapp=False):
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     if is_webapp:
-        record_counts = {fg: cnt for (fg, cnt) in record_counts.items()
-                         if fg not in get_app_excluded_fgs(API_PARAMS)}
+        excluded_fgs = get_app_excluded_fgs(API_PARAMS)
+
+        for fg in record_counts:
+            if fg in excluded_fgs:
+                record_counts.pop(fg)
 
     return columns, record_counts
 
