@@ -1156,12 +1156,14 @@ def main(args):
                 # generate table schemas
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
 
-                print("schema\n")
-                print(schema)
-                exit()
-
                 # derive the program's table structure by analyzing its case records
                 columns, record_counts = find_program_structure(cases, is_webapp)
+
+                print("columns\n")
+                print(columns)
+
+                print("record_counts\n")
+                print(record_counts)
 
                 """
 
