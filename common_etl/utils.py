@@ -774,6 +774,11 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
                 new_field = renamed_fields[renamed_field]
                 column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
                 column_order_dict[fg].pop(renamed_field)
+            if renamed_field in columns[fg]:
+                columns[fg].add(renamed_fields[renamed_field])
+                columns[fg].remove(renamed_field)
+                print("removed field: {}, added field: {}".format(
+                    renamed_field, renamed_fields[renamed_field]))
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
         for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
