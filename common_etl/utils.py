@@ -451,28 +451,6 @@ def load_table_from_query(bq_params, table_id, query):
     try:
         query_job = client.query(query, job_config=job_config)
         await_insert_job(bq_params, client, table_id, query_job)
-        """
-
-        job_state = "NOT_STARTED"
-
-        print('\tStarting insert for {}, job ID: {}'.format(table_id, query_job.job_id))
-
-        while job_state != 'DONE':
-            query_job = client.get_job(query_job.job_id, location='US')
-            job_state = query_job.state
-
-            if job_state != 'DONE':
-                time.sleep(3)
-
-        query_job = client.get_job(query_job.job_id, location='US')
-
-        if query_job.error_result is not None:
-            has_fatal_error('While running BQ job: {}\n{}'
-                            .format(query_job.error_result, query_job.errors),
-                            ValueError)
-
-        return client.get_table(table_id)
-        """
     except TypeError as err:
         has_fatal_error(err)
 
@@ -506,38 +484,7 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-
         await_insert_job(bq_params, client, table_id, load_job)
-        """
-        print('\tStarting insert for {}, job ID: {}'.format(table_id, load_job.job_id))
-
-        last_report_time = time.time()
-
-        location = 'US'
-        job_state = "NOT_STARTED"
-
-        while job_state != 'DONE':
-            load_job = client.get_job(load_job.job_id, location=location)
-
-            if time.time() - last_report_time > 15:
-                print('\t- job is currently in state {}'.format(load_job.state))
-                last_report_time = time.time()
-
-            job_state = load_job.state
-
-            if job_state != 'DONE':
-                time.sleep(3)
-
-        load_job = client.get_job(load_job.job_id, location=location)
-
-        if load_job.error_result is not None:
-            has_fatal_error('While running BQ job: {}\n{}'
-                            .format(load_job.error_result, load_job.errors),
-                            ValueError)
-
-        destination_table = client.get_table(table_id)
-        print('\tDone! {} rows inserted.\n'.format(destination_table.num_rows))
-        """
     except TypeError as err:
         has_fatal_error(err)
 
@@ -798,9 +745,6 @@ def rename_fields_for_app(column_orders, api_params):
 
 
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
-    print(column_order_dict)
-    print(columns)
-
     excluded_fgs = set()
     renamed_fields = dict()
 
@@ -812,9 +756,6 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     fgs = column_order_dict.keys()
 
     exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
-
-    print("\nexclude_fields\n")
-    print(exclude_fields)
 
     for fg in fgs:
         # rename case_id no matter which fg it's in
