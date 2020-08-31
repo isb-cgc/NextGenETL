@@ -606,12 +606,12 @@ def rename_fields_for_app(column_orders, api_params):
 
 
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
-    excluded_fgs = set()
     renamed_fields = dict(api_params['RENAMED_FIELDS'])
 
     fgs = column_order_dict.keys()
 
-    exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
+    excluded_fgs = get_app_excluded_fgs(api_params)
+    excluded_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
 
     for fg in fgs:
         # rename case_id no matter which fg it's in
@@ -624,10 +624,6 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
                 columns[fg].add(renamed_fields[renamed_field])
                 columns[fg].remove(renamed_field)
 
-    if 'WEBAPP_EXCLUDED_FG' in api_params:
-        for excluded_fg in api_params['FG_CONFIG']['app_excluded_fgs']:
-            excluded_fgs.add(excluded_fg)
-
     # field is fully associated name
     for field in {k for k in schema.keys()}:
         base_fg = ".".join(field.split('.')[:-1])
@@ -637,7 +633,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
         schema[field]['name'] = field_name
 
         # exclude any field groups or fields explicitly excluded in yaml
-        if field in exclude_fields or base_fg in excluded_fgs:
+        if field in excluded_fields or base_fg in excluded_fgs:
             schema.pop(field)
         # field exists in renamed_fields, change its name
         elif field in renamed_fields:
@@ -652,7 +648,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
                 column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
                 column_order_dict[base_fg].pop(field)
 
-        if field in exclude_fields and base_fg in column_order_dict:
+        if field in excluded_fields and base_fg in column_order_dict:
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
@@ -843,6 +839,15 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
                     exclude_fields.add('.'.join([fg, field]))
 
     return exclude_fields
+
+
+def get_app_excluded_fgs(api_params):
+    if 'FG_CONFIG' not in api_params or not api_params['FG_CONFIG']:
+        has_fatal_error('FG_CONFIG not in api_params, or is empty', KeyError)
+    if 'app_excluded_fgs' not in api_params['FG_CONFIG']:
+        has_fatal_error('app_excluded_fgs not found in not in FG_CONFIG', KeyError)
+
+    return api_params['FG_CONFIG']['app_excluded_fgs']
 
 
 def get_gdc_rel(bq_params):

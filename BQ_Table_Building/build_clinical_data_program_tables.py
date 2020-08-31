@@ -219,24 +219,20 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
 
-    if is_webapp:
-        if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
-            has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
-
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth > 3:
-            has_fatal_error("This script isn't confirmed to work with field groups "
-                            "nested more than two levels.")
+            print("\n[INFO] **** Caution, not confirmed to work with nested depth > 3\n")
+
+        excluded_fields = get_excluded_fields(field_groups, API_PARAMS, is_webapp)
 
         if is_webapp:
-            if fg in API_PARAMS['WEBAPP_EXCLUDED_FG']:
+            if fg in excluded_fields:
                 continue
-            exclude_config_str = 'webapp_excluded_fields'
-        else:
-            exclude_config_str = 'excluded_fields'
 
-        field_groups[fg] = remove_excluded_fields(field_groups[fg], fg,
-                                                  exclude_config_str)
+        field_groups[fg] = remove_excluded_fields(field_groups[fg],
+                                                  fg,
+                                                  excluded_fields,
+                                                  is_webapp)
 
         full_field_names = {get_full_field_name(fg, field) for field in field_groups[fg]}
 
@@ -317,13 +313,8 @@ def find_program_structure(cases, is_webapp=False):
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     if is_webapp:
-        if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
-            has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
-
-        excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
-
-        record_counts = {fg: cnt for (fg, cnt) in record_counts.items() if
-                         fg not in excluded_fgs}
+        record_counts = {fg: cnt for (fg, cnt) in record_counts.items()
+                         if fg not in get_app_excluded_fgs(API_PARAMS)}
 
     return columns, record_counts
 
@@ -556,28 +547,31 @@ def create_schema_lists(schema, record_counts, merged_orders):
     return schema_field_lists
 
 
-def remove_excluded_fields(case, fg, config_str):
+def remove_excluded_fields(case, fg, excluded, is_webapp):
     """
     Remove columns with only None values, as well as those excluded.
-    :param config_str:
+    :param is_webapp: todo
+    :param excluded: todo
     :param case: fg record to parse.
     :param fg: name of destination table.
     :return: Trimmed down record dict.
     """
+    '''
     fg_metadata = API_PARAMS['FIELD_CONFIG']
 
     if fg not in fg_metadata or config_str not in fg_metadata[fg]:
         return None
 
     excluded = fg_metadata[fg][config_str]
+    '''
 
     if isinstance(case, dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded}
+        excluded_fields = \
+            {get_bq_name(API_PARAMS, field, fg, is_webapp) for field in excluded}
 
         for field in case.copy().keys():
             if field in excluded_fields or not case[field]:
                 case.pop(field)
-
         return case
     elif isinstance(case, set):
         return {field for field in case if field not in excluded}
