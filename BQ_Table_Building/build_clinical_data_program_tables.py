@@ -1197,7 +1197,16 @@ def main(args):
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
-                # modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+                modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+
+                print("\nschema\n")
+                print(schema)
+
+                print("\ncolumns\n")
+                print(columns)
+
+                print("\nrecord_counts\n")
+                print(record_counts)
 
                 # reassign merged_column_orders to column_orders
                 merged_orders = merge_column_orders(schema,
@@ -1205,6 +1214,8 @@ def main(args):
                                                     record_counts,
                                                     column_orders,
                                                     is_webapp)
+
+
 
                 print("\nmerged_orders\n")
                 print(merged_orders)
