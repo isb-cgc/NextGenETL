@@ -683,7 +683,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
                     rows[pid_column] = pid
 
-                if id_field != 'case_id':
+                if not is_webapp and id_field != 'case_id':
                     rows['case_id'] = case_id
 
                 # Field converted bq column name
