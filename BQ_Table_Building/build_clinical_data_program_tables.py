@@ -21,6 +21,7 @@ SOFTWARE.
 """
 import math
 import json
+import copy
 from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import generate_docs
 
@@ -1110,7 +1111,7 @@ def main(args):
                 continue
 
             if 'create_webapp_tables' in steps:
-                create_tables(program, dict(cases), is_webapp=True)
+                create_tables(program, copy.deepcopy(cases), is_webapp=True)
 
             if 'create_and_load_tables' in steps:
                 create_tables(program, cases)
