@@ -718,6 +718,10 @@ def filter_flat_case(flat_case):
     fgs = {k for k in flat_case.keys()}
     pop_fields = get_excluded_fields(fgs, API_PARAMS, is_webapp=True)
 
+    print("fgs\n")
+
+    print(fgs)
+    print("pop_fields\n")
     print(pop_fields)
 
     for fg in fgs:
