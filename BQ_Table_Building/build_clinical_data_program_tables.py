@@ -760,13 +760,11 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
             bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
 
         for record in flattened_case[field_group]:
-            print(record)
             parent_id = record[bq_parent_id_key]
             parent_idx = get_record_idx(flattened_case, parent, parent_id, is_webapp)
             flattened_case[parent][parent_idx].update(record)
 
         flattened_case.pop(field_group)
-    exit()
 
 
 def get_record_counts(flattened_case, record_counts, is_webapp=False):
@@ -862,9 +860,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
-
-        print("\nflat_case\n")
-        print(flat_case)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
