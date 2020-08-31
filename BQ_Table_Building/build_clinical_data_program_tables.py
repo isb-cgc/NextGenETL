@@ -1050,9 +1050,7 @@ def create_tables(program, cases, is_webapp=False):
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
         column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
-
         modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
-
     else:
         column_orders = add_reference_columns(columns, record_counts, schema, program)
 
@@ -1063,11 +1061,12 @@ def create_tables(program, cases, is_webapp=False):
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
-    # creates dictionary of lists of schemafield objects in json format
+    # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
         table_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
     else:
         table_schemas = create_schema_lists(schema, record_counts, merged_orders)
+        print(table_schemas)
 
     create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
 
