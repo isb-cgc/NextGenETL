@@ -1146,6 +1146,10 @@ def main(args):
 
                 rename_fields_for_app(column_orders, API_PARAMS)
 
+                print("\nschema\n")
+                print(schema)
+                exit()
+
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
