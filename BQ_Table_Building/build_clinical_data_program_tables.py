@@ -1076,12 +1076,16 @@ def create_tables(program, cases, is_webapp=False):
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
         column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
+        print("columns\n")
+        print(columns)
+
         modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+        print("columns\n")
+        print(columns)
+
     else:
         column_orders = add_reference_columns(columns, record_counts, schema, program)
 
-    print("columns\n")
-    print(columns)
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
