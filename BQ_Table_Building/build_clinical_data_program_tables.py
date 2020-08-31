@@ -855,9 +855,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
             if fg not in record_counts.keys():
                 flat_case.pop(fg)
 
-        print("flat_case")
-        print(flat_case)
-
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
         for bq_table in flat_case.keys():
@@ -1052,12 +1049,6 @@ def create_tables(program, cases, is_webapp=False):
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
-
-    print("\ncolumns\n")
-    print(columns)
-
-    print("\nrecord_counts\n")
-    print(record_counts)
 
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
