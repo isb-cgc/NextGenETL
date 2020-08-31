@@ -669,7 +669,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
                 rows[column] = field_val
 
-            if flat_case and fg not in flat_case:
+            if fg not in flat_case:
                 flat_case[fg] = list()
 
             if rows:
