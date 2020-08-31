@@ -135,75 +135,6 @@ def build_join_quant_matrix_and_pdc_to_gdc_case_id_table_sql(quant_matrix_table,
         '''.format(quant_matrix_table, pdc_to_gdc_case_id_table)
 
 
-# def pull_all_studies():
-#     all_progs_query = """{allPrograms{
-#             program_id
-#             program_submitter_id
-#             name
-#             projects {
-#                 project_id
-#                 project_submitter_id
-#                 name
-#                 studies {
-#                     study_id
-#                     submitter_id_name
-#                     study_submitter_id
-#                     analytical_fraction
-#                     experiment_type
-#                     acquisition_type
-#                 }
-#             }
-#         }}"""
-#
-#     response = requests.post(PDC_END_POINT, json={'query': all_progs_query})
-#
-#     studies = []
-#
-#     if response.ok:
-#         json_res = response.json()
-#         for program in json_res['data']['allPrograms']:
-#             for project in program['projects']:
-#                 for study in project['studies']:
-#                     study_dict = study.copy()
-#                     study_dict['program_id'] = program['program_id']
-#                     study_dict['program_submitter_id'] = program['program_submitter_id']
-#                     study_dict['program_name'] = program['name']
-#                     study_dict['project_id'] = project['project_id']
-#                     study_dict['project_submitter_id'] = project['project_submitter_id']
-#                     study_dict['project_name'] = project['name']
-#                     studies.append(study_dict)
-#     else:
-#         response.raise_for_status()
-#
-#     return studies
-#
-# def generate_quant_matrix_table_all_studies():
-#     studies = pull_all_studies()
-#     for study in studies:
-#         submitter_id = study['study_submitter_id']
-#         study_id = study['study_id']
-#         quant_matrix = pull_quant_matrix_one_study(submitter_id)
-#         if quant_matrix:
-#             quant_matrix_table = get_quant_matrix_table_one_study(PDC_END_POINT,study_id,submitter_id)
-#
-#
-# def pull_quant_matrix_one_study(study_submitter_id):
-#     quant_log2_ratio_query = ('{ quantDataMatrix(study_submitter_id: \"'
-#                               + study_submitter_id + '\" data_type: \"log2_ratio\") }')
-#
-#     quant_res = requests.post(PDC_END_POINT, json={'query': quant_log2_ratio_query})
-#
-#     if quant_res.ok:
-#         json_res = quant_res.json()
-#
-#         if 'errors' in json_res:
-#             print('No quant matrix for study_submitter_id = ' + study_submitter_id)
-#             return None
-#         else:
-#             print('Found quant matrix for study_submitter_id = ' + study_submitter_id)
-#             return json_res[u'data'][u'quantDataMatrix']
-
-
 def get_quant_matrix_table_one_study(pdc_api_end_point, study_id, study_submitter_id):
     quant_log2_ratio_query = ('{ quantDataMatrix(study_submitter_id: \"'
                               + study_submitter_id + '\" data_type: \"log2_ratio\") }')
@@ -344,6 +275,162 @@ def create_clean_target(local_files_dir):
 
 '''
 ----------------------------------------------------------------------------------------------
+Pipeline for all studies
+'''
+
+def generate_quant_matrix_bq_table_all_studies(params):
+    pdc_end_point = params['PDC_API_END_POINT']
+
+    home = expanduser("~")
+    quant_matrix_tsv = "{}/{}".format(home, params['QUANT_MATRIX_TSV'])
+    biospeciman_tsv = "{}/{}".format(home, params['BIOSPECIMAN_TSV'])
+
+    hold_schema_dict_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_DICT_QUANT_MATRIX'])
+    hold_schema_list_quant_matrix = "{}/{}".format(home, params['HOLD_SCHEMA_LIST_QUANT_MATRIX'])
+    hold_schema_dict_biospeciman = "{}/{}".format(home, params['HOLD_SCHEMA_DICT_BIOSPECIMAN'])
+    hold_schema_list_biospeciman = "{}/{}".format(home, params['HOLD_SCHEMA_LIST_BIOSPECIMAN'])
+
+    studies = pull_all_studies(pdc_end_point)
+    for study in studies:
+        study_submitter_id = study['study_submitter_id']
+        study_id = study['study_id']
+        print("** Study ID = {}, Study submitter ID = {} **".format(study_id, study_submitter_id))
+        print("Step 1: get_quant_matrix_table_one_study")
+        quant_matrix_table = get_quant_matrix_table_one_study(pdc_end_point, study_id, study_submitter_id)
+
+        # Some study does not have quant_matrix
+        if quant_matrix_table:
+            bq_table_name_quant_matrix = "PDC_Quant_Matrix_{}".format(study_submitter_id)
+            bq_table_name_biospeciman = "PDC_Biospeciman_{}".format(study_submitter_id)
+            bq_table_name_joined_quant_matrix_biospeciman = "PDC_Joined_QM_Bio_{}".format(study_submitter_id)
+            bq_table_name_joined_pdc_gene_map = "PDC_Joined_QM_Bio_Gene_Map_{}".format(study_submitter_id)
+            bq_table_name_final_table = "PDC_Final_Table_{}".format(study_submitter_id)
+
+            print("Step 2: write_quant_matrix_table_to_tsv")
+            write_quant_matrix_table_to_tsv(quant_matrix_table, quant_matrix_tsv)
+
+            bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
+
+            print("Step 3: upload_quant_matrix_tsv_to_bucket")
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
+
+            print("Step 4: create_quant_matrix_bq_from_tsv")
+            typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+            with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], bq_table_name_quant_matrix,
+                      params['BQ_AS_BATCH'])
+
+            print("Step 5: get_biospeciman_table_one_study")
+            biospeciman_table = get_biospeciman_table_one_study(params['PDC_API_END_POINT'],
+                                                                study_id)
+
+            print("Step 6: write_biospeciman_table_to_tsv")
+            write_biospeciman_table_to_tsv(biospeciman_table, biospeciman_tsv)
+
+            print("Step 7: upload_biospeciman_tsv_to_bucket")
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, biospeciman_tsv)
+
+            print("Step 8: create_biospeciman_bq_from_tsv")
+            typing_tups = build_schema(biospeciman_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+            with open(hold_schema_list_biospeciman, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], bq_table_name_biospeciman,
+                      params['BQ_AS_BATCH'])
+
+            print("Step 9: join_quant_matrix_and_biospeciman_table")
+            quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      bq_table_name_quant_matrix)
+            biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                     params['TARGET_DATASET'],
+                                                     bq_table_name_biospeciman)
+            join_quant_matrix_and_biospeciman_table(quant_matrix_bq_table,
+                                                    biospeciman_bq_table,
+                                                    params['TARGET_DATASET'],
+                                                    bq_table_name_joined_quant_matrix_biospeciman,
+                                                    params['BQ_AS_BATCH'])
+
+            print("Step 10: join_quant_matrix_and_pdc_genes_to_protein_table")
+            quant_matrix_biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                                  params['TARGET_DATASET'],
+                                                                  bq_table_name_joined_quant_matrix_biospeciman)
+            pdc_genes_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                        params['TARGET_DATASET'],
+                                                        params['TARGET_TABLE_PDC_GENES_PROTEIN'])
+            join_quant_matrix_and_pdc_genes_to_protein_table(quant_matrix_biospeciman_bq_table,
+                                                             pdc_genes_protein_table,
+                                                             params['TARGET_DATASET'],
+                                                             bq_table_name_joined_pdc_gene_map,
+                                                             params['BQ_AS_BATCH'])
+
+            # TODO: This step not successful for one study test, join with pdc_to_gdc_case_id do not have case_id match
+            # print("Step 11: join_quant_matrix_and_pdc_to_gdc_case_id_table")
+            # quant_matrix_and_pdc_genes_to_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+            #                                                                 params['TARGET_DATASET'],
+            #                                                                 bq_table_name_joined_pdc_gene_map)
+            # pdc_to_gdc_case_id_table = "{}.{}".format(params['WORKING_PROJECT'],
+            #                                           params['PDC_TO_GDC_CASE_ID_MAPPING_TABLE'])
+            # join_quant_matrix_and_pdc_to_gdc_case_id_table(quant_matrix_and_pdc_genes_to_protein_table,
+            #                                                pdc_to_gdc_case_id_table,
+            #                                                params['TARGET_DATASET'],
+            #                                                bq_table_name_final_table,
+            #                                                params['BQ_AS_BATCH'])
+
+            print("--- Finished process Study ID = {}, Study submitter ID = {}---".format(study_id, study_submitter_id))
+
+
+def pull_all_studies(pdc_end_point):
+    all_progs_query = """{allPrograms{
+            program_id
+            program_submitter_id
+            name
+            projects {
+                project_id
+                project_submitter_id
+                name
+                studies {
+                    study_id
+                    submitter_id_name
+                    study_submitter_id
+                    analytical_fraction
+                    experiment_type
+                    acquisition_type
+                }
+            }
+        }}"""
+
+    response = requests.post(pdc_end_point, json={'query': all_progs_query})
+
+    studies = []
+
+    if response.ok:
+        json_res = response.json()
+        for program in json_res['data']['allPrograms']:
+            for project in program['projects']:
+                for study in project['studies']:
+                    study_dict = study.copy()
+                    study_dict['program_id'] = program['program_id']
+                    study_dict['program_submitter_id'] = program['program_submitter_id']
+                    study_dict['program_name'] = program['name']
+                    study_dict['project_id'] = project['project_id']
+                    study_dict['project_submitter_id'] = project['project_submitter_id']
+                    study_dict['project_name'] = project['name']
+                    studies.append(study_dict)
+    else:
+        response.raise_for_status()
+
+    return studies
+
+
+'''
+----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
 to e.g. skip previously run steps.
@@ -385,117 +472,124 @@ def main(args):
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
-    # Quant matrix table...
-    if 'get_quant_matrix_table_one_study' in steps:
-        print('get_quant_matrix_table_one_study')
-        try:
-            quant_matrix_table = get_quant_matrix_table_one_study(params['PDC_API_END_POINT'],
-                                                                  params['ONE_STUDY_ID'],
-                                                                  params['ONE_STUDY_SUBMITTER_ID'])
-        except Exception as ex:
-            print("get_quant_matrix_table_one_study failed: {}".format(str(ex)))
-            return
+    if 'generate_quant_matrix_bq_table_all_studies' in steps:
+        # Do all studies...
+        print('generate_quant_matrix_bq_table_all_studies')
+        generate_quant_matrix_bq_table_all_studies(params)
 
-    if 'write_quant_matrix_table_to_tsv' in steps:
-        print('write_quant_matrix_table_to_tsv')
-        success = write_quant_matrix_table_to_tsv(quant_matrix_table, quant_matrix_tsv)
-        if not success:
-            print("Failure writing quant matrix table to tsv")
-            return
+    else:
+        # Do one hard coded study to test...
+        # Quant matrix table...
+        if 'get_quant_matrix_table_one_study' in steps:
+            print('get_quant_matrix_table_one_study')
+            try:
+                quant_matrix_table = get_quant_matrix_table_one_study(params['PDC_API_END_POINT'],
+                                                                      params['ONE_STUDY_ID'],
+                                                                      params['ONE_STUDY_SUBMITTER_ID'])
+            except Exception as ex:
+                print("get_quant_matrix_table_one_study failed: {}".format(str(ex)))
+                return
 
-    bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
+        if 'write_quant_matrix_table_to_tsv' in steps:
+            print('write_quant_matrix_table_to_tsv')
+            success = write_quant_matrix_table_to_tsv(quant_matrix_table, quant_matrix_tsv)
+            if not success:
+                print("Failure writing quant matrix table to tsv")
+                return
 
-    if 'upload_quant_matrix_tsv_to_bucket' in steps:
-        print('upload_quant_matrix_tsv_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
+        bucket_quant_matrix = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV_QUANT_MATRIX'])
 
-    if 'create_quant_matrix_bq_from_tsv' in steps:
-        print('create_quant_matrix_bq_from_tsv')
-        typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        build_combined_schema(None, None,
-                              typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
-        with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_QUANT_MATRIX'], params['BQ_AS_BATCH'])
+        if 'upload_quant_matrix_tsv_to_bucket' in steps:
+            print('upload_quant_matrix_tsv_to_bucket')
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, quant_matrix_tsv)
 
-
-    # Biospeciman table...
-    if 'get_biospeciman_table_one_study' in steps:
-        print('get_biospeciman_table_one_study')
-        try:
-            biospeciman_table = get_biospeciman_table_one_study(params['PDC_API_END_POINT'],
-                                                                params['ONE_STUDY_ID'])
-        except Exception as ex:
-            print("get_biospeciman_table_one_study failed: {}".format(str(ex)))
-            return
-
-    if 'write_biospeciman_table_to_tsv' in steps:
-        print('write_biospeciman_table_to_tsv')
-        success = write_biospeciman_table_to_tsv(biospeciman_table, biospeciman_tsv)
-        if not success:
-            print("Failure writing biospeciman table to tsv")
-            return
-
-    if 'upload_biospeciman_tsv_to_bucket' in steps:
-        print('upload_biospeciman_tsv_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, biospeciman_tsv)
-
-    if 'create_biospeciman_bq_from_tsv' in steps:
-        print('create_biospeciman_bq_from_tsv')
-        typing_tups = build_schema(biospeciman_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        build_combined_schema(None, None,
-                              typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
-        with open(hold_schema_list_biospeciman, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_BIOSPECIMAN'], params['BQ_AS_BATCH'])
+        if 'create_quant_matrix_bq_from_tsv' in steps:
+            print('create_quant_matrix_bq_from_tsv')
+            typing_tups = build_schema(quant_matrix_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_quant_matrix, hold_schema_dict_quant_matrix)
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+            with open(hold_schema_list_quant_matrix, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_QUANT_MATRIX'], params['BQ_AS_BATCH'])
 
 
-    # Join quant matrix table and biospeciman table...
-    if 'join_quant_matrix_and_biospeciman_table' in steps:
-        print('join_quant_matrix_and_biospeciman_table')
-        quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['TARGET_DATASET'],
-                                                  params['TARGET_TABLE_QUANT_MATRIX'])
-        biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['TARGET_DATASET'],
-                                                  params['TARGET_TABLE_BIOSPECIMAN'])
-        join_quant_matrix_and_biospeciman_table(quant_matrix_bq_table,
-                                                biospeciman_bq_table,
-                                                params['TARGET_DATASET'],
-                                                params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'],
-                                                params['BQ_AS_BATCH'])
+        # Biospeciman table...
+        if 'get_biospeciman_table_one_study' in steps:
+            print('get_biospeciman_table_one_study')
+            try:
+                biospeciman_table = get_biospeciman_table_one_study(params['PDC_API_END_POINT'],
+                                                                    params['ONE_STUDY_ID'])
+            except Exception as ex:
+                print("get_biospeciman_table_one_study failed: {}".format(str(ex)))
+                return
+
+        if 'write_biospeciman_table_to_tsv' in steps:
+            print('write_biospeciman_table_to_tsv')
+            success = write_biospeciman_table_to_tsv(biospeciman_table, biospeciman_tsv)
+            if not success:
+                print("Failure writing biospeciman table to tsv")
+                return
+
+        if 'upload_biospeciman_tsv_to_bucket' in steps:
+            print('upload_biospeciman_tsv_to_bucket')
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_quant_matrix, biospeciman_tsv)
+
+        if 'create_biospeciman_bq_from_tsv' in steps:
+            print('create_biospeciman_bq_from_tsv')
+            typing_tups = build_schema(biospeciman_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_biospeciman, hold_schema_dict_biospeciman)
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_quant_matrix)
+            with open(hold_schema_list_biospeciman, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE_BIOSPECIMAN'], params['BQ_AS_BATCH'])
 
 
-    # Join PDC_Quant_Matrix_Biospeciman_Joined_Table_One_Study and PDC_Genes_To_Protein_Mapping_File
-    if 'join_quant_matrix_and_pdc_genes_to_protein_table' in steps:
-        print('join_quant_matrix_and_pdc_genes_to_protein_table')
-        quant_matrix_biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['TARGET_DATASET'],
-                                                  params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'])
-        pdc_genes_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['TARGET_DATASET'],
-                                                  params['TARGET_TABLE_PDC_GENES_PROTEIN'])
-        join_quant_matrix_and_pdc_genes_to_protein_table(quant_matrix_biospeciman_bq_table,
-                                                pdc_genes_protein_table,
-                                                params['TARGET_DATASET'],
-                                                params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'],
-                                                params['BQ_AS_BATCH'])
+        # Join quant matrix table and biospeciman table...
+        if 'join_quant_matrix_and_biospeciman_table' in steps:
+            print('join_quant_matrix_and_biospeciman_table')
+            quant_matrix_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      params['TARGET_TABLE_QUANT_MATRIX'])
+            biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      params['TARGET_TABLE_BIOSPECIMAN'])
+            join_quant_matrix_and_biospeciman_table(quant_matrix_bq_table,
+                                                    biospeciman_bq_table,
+                                                    params['TARGET_DATASET'],
+                                                    params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'],
+                                                    params['BQ_AS_BATCH'])
 
-    # Join with PDC_to_GDC_case_id mapping file
-    if 'join_quant_matrix_and_pdc_to_gdc_case_id_table' in steps:
-        print('join_quant_matrix_and_pdc_to_gdc_case_id_table')
-        quant_matrix_and_pdc_genes_to_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['TARGET_DATASET'],
-                                                  params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'])
-        pdc_to_gdc_case_id_table = "{}.{}".format(params['WORKING_PROJECT'],
-                                                  params['PDC_TO_GDC_CASE_ID_MAPPING_TABLE'])
-        join_quant_matrix_and_pdc_to_gdc_case_id_table(quant_matrix_and_pdc_genes_to_protein_table,
-                                                pdc_to_gdc_case_id_table,
-                                                params['TARGET_DATASET'],
-                                                params['FINAL_TABLE_ONE_STUDY'],
-                                                params['BQ_AS_BATCH'])
+
+        # Join PDC_Quant_Matrix_Biospeciman_Joined_Table_One_Study and PDC_Genes_To_Protein_Mapping_File
+        if 'join_quant_matrix_and_pdc_genes_to_protein_table' in steps:
+            print('join_quant_matrix_and_pdc_genes_to_protein_table')
+            quant_matrix_biospeciman_bq_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      params['JOINED_QUANT_MATRIX_BIOSPECIMAN_TABLE'])
+            pdc_genes_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      params['TARGET_TABLE_PDC_GENES_PROTEIN'])
+            join_quant_matrix_and_pdc_genes_to_protein_table(quant_matrix_biospeciman_bq_table,
+                                                    pdc_genes_protein_table,
+                                                    params['TARGET_DATASET'],
+                                                    params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'],
+                                                    params['BQ_AS_BATCH'])
+
+        # Join with PDC_to_GDC_case_id mapping file
+        if 'join_quant_matrix_and_pdc_to_gdc_case_id_table' in steps:
+            print('join_quant_matrix_and_pdc_to_gdc_case_id_table')
+            quant_matrix_and_pdc_genes_to_protein_table = "{}.{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'],
+                                                      params['JOINED_QUANT_MATRIX_BIOSPECIMAN_PDC_GENE_PROTEIN_TABLE'])
+            pdc_to_gdc_case_id_table = "{}.{}".format(params['WORKING_PROJECT'],
+                                                      params['PDC_TO_GDC_CASE_ID_MAPPING_TABLE'])
+            join_quant_matrix_and_pdc_to_gdc_case_id_table(quant_matrix_and_pdc_genes_to_protein_table,
+                                                    pdc_to_gdc_case_id_table,
+                                                    params['TARGET_DATASET'],
+                                                    params['FINAL_TABLE_ONE_STUDY'],
+                                                    params['BQ_AS_BATCH'])
 
     print('job completed')
 
