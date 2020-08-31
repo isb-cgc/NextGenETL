@@ -861,9 +861,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        print("\nlat_case\n")
-        print(flat_case)
-
         for bq_table in flat_case.keys():
             if bq_table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
@@ -890,8 +887,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 #
 ##
 def update_table_metadata():
-    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(BQ_PARAMS) + '/')
+    metadata_path = "/".join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'],
+                              get_gdc_rel(BQ_PARAMS), ''])
 
     files = get_dir_files(metadata_path)
 
