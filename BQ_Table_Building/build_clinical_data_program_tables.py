@@ -770,7 +770,7 @@ def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     :param record_id: id of record for which to retrieve position
     :return: position index of record in field group's record list
     """
-    fg_id_name = get_table_id_name(API_PARAMS, field_group)
+    fg_id_name = get_table_id_name(API_PARAMS, field_group, is_webapp)
 
     if is_webapp:
         fg_id_key = fg_id_name
