@@ -862,6 +862,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
 
+        print(jsonl_file_path)
+
     for case in cases:
         rename_case_fields(case, API_PARAMS)
 
@@ -1147,10 +1149,6 @@ def main(args):
                 app_table_schemas = create_app_schema_lists(app_schema,
                                                             app_record_counts,
                                                             app_merged_orders)
-
-
-                print("app_table_schemas")
-                print(app_table_schemas)
 
                 create_and_load_tables(program,
                                        cases,
