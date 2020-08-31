@@ -356,7 +356,7 @@ def find_program_structure(cases, is_webapp=False):
 
         excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
 
-        record_counts = {fg for fg in record_counts if fg not in excluded_fgs}
+        record_counts = {fg: cnt for (fg, cnt) in record_counts.items() if fg not in excluded_fgs}
 
         print("\nrecord_counts post\n")
         print(record_counts)
