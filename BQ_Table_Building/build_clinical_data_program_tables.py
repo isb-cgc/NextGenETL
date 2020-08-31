@@ -192,7 +192,6 @@ def get_all_excluded_columns(fg, is_webapp=False):
     if is_webapp:
         if fg in API_PARAMS['TABLE_METADATA'] \
                 and 'webapp_excluded_fields' in API_PARAMS['TABLE_METADATA'][fg]:
-
             excluded_columns = API_PARAMS['TABLE_METADATA'][fg]['webapp_excluded_fields']
             return excluded_columns
     else:
@@ -228,20 +227,20 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
             has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
 
-        excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
-
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             has_fatal_error("This script isn't confirmed to work with field groups "
                             "nested more than two levels.")
 
         if is_webapp:
-            if fg in excluded_fgs:
+            if fg in API_PARAMS['WEBAPP_EXCLUDED_FG']:
                 continue
-
-            field_groups[fg] = remove_excluded_webapp_fields(field_groups[fg], fg)
+            exclude_config_str = 'webapp_excluded_fields'
         else:
-            field_groups[fg] = remove_excluded_fields(field_groups[fg], fg)
+            exclude_config_str = 'excluded_fields'
+
+        field_groups[fg] = remove_excluded_fields(field_groups[fg], fg,
+                                                  exclude_config_str)
 
         full_field_names = {get_full_field_name(fg, field) for field in field_groups[fg]}
 
@@ -253,25 +252,6 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             table_columns[parent_table] |= full_field_names
 
     return table_columns
-
-
-def remove_excluded_fields(field_groups, fg):
-    excluded_fields = API_PARAMS['TABLE_METADATA'][fg]['excluded_fields']
-
-    if isinstance(field_groups[fg], dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in
-                           excluded_fields}
-
-        for field in field_groups[fg].copy().keys():
-            if field in excluded_fields or not field_groups[fg][field]:
-                field_groups[fg].pop(field)
-
-        return field_groups[fg]
-
-    elif isinstance(field_groups[fg], set):
-        return {field for field in field_groups[fg] if field not in excluded_fields}
-    else:
-        return [field for field in field_groups[fg] if field not in excluded_fields]
 
 
 def examine_case(set_fields, record_cnts, fg, fg_name):
@@ -580,41 +560,20 @@ def create_schema_lists(schema, record_counts, merged_orders):
     return schema_field_lists
 
 
-def remove_excluded_fields(case, fg):
+def remove_excluded_fields(case, fg, config_str):
     """
     Remove columns with only None values, as well as those excluded.
+    :param config_str:
     :param case: fg record to parse.
     :param fg: name of destination table.
     :return: Trimmed down record dict.
     """
     fg_metadata = API_PARAMS['TABLE_METADATA']
 
-    if fg not in fg_metadata or 'excluded_fields' not in fg_metadata[fg]:
+    if fg not in fg_metadata or config_str not in fg_metadata[fg]:
         return None
 
-    excluded = fg_metadata[fg]['excluded_fields']
-
-    if isinstance(case, dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded}
-
-        for field in case.copy().keys():
-            if field in excluded_fields or not case[field]:
-                case.pop(field)
-
-        return case
-    elif isinstance(case, set):
-        return {field for field in case if field not in excluded}
-    else:
-        return [field for field in case if field not in excluded]
-
-
-def remove_excluded_webapp_fields(case, fg):
-    fg_metadata = API_PARAMS['TABLE_METADATA']
-
-    if fg not in fg_metadata or 'webapp_excluded_fields' not in fg_metadata[fg]:
-        return None
-
-    excluded = fg_metadata[fg]['webapp_excluded_fields']
+    excluded = fg_metadata[fg][config_str]
 
     if isinstance(case, dict):
         excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded}
@@ -973,8 +932,10 @@ def transform_json_name_to_table(json_name):
 
 
 def copy_tables_into_public_project():
-    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(BQ_PARAMS) + '/')
+    metadata_path = "/".join([BQ_PARAMS['BQ_REPO'],
+                              BQ_PARAMS['TABLE_METADATA_DIR'],
+                              get_gdc_rel(BQ_PARAMS),
+                              ''])
 
     files = get_dir_files(metadata_path)
 
@@ -1000,16 +961,12 @@ def copy_tables_into_public_project():
             print('No table found for file (skipping): ' + json_file)
             continue
 
-        print(source_table_id)
-        print(curr_table_id)
-        print(versioned_table_id)
-
         copy_bq_table(BQ_PARAMS, source_table_id,
-                      versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'], versioned=True)
+                      versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
 
         copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
                       BQ_PARAMS['PUBLIC_PROJECT'])
-        time.sleep(4)
+
         modify_friendly_name(BQ_PARAMS, versioned_table_id)
 
 

@@ -121,7 +121,6 @@ def get_required_columns(api_params, table):
 def get_master_table_name(bq_params):
     """
     # todo
-    :param api_params:
     :param bq_params:
     :return:
     """
@@ -131,6 +130,7 @@ def get_master_table_name(bq_params):
 def get_table_id_name(api_params, table_key, is_webapp=False):
     """
     Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
     :param api_params:
     :param table_key: Table for which to determine the id key.
     :return: String representing table key.
@@ -489,6 +489,24 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
         has_fatal_error(err)
 
 
+def await_job(bq_params, client, bq_job):
+    location = bq_params['LOCATION']
+    job_state = "NOT_STARTED"
+
+    while job_state != 'DONE':
+        bq_job = client.get_job(bq_job.job_id, location=location)
+        job_state = bq_job.state
+
+        if job_state != 'DONE':
+            time.sleep(2)
+
+    bq_job = client.get_job(bq_job.job_id, location=location)
+
+    if bq_job.error_result is not None:
+        has_fatal_error('While running BQ job: {}\n{}'
+                        .format(bq_job.error_result, bq_job.errors), ValueError)
+
+
 def await_insert_job(bq_params, client, table_id, load_job):
     print('\tStarting insert for {}, job ID: {}'.format(table_id, load_job.job_id))
 
@@ -513,8 +531,7 @@ def await_insert_job(bq_params, client, table_id, load_job):
 
     if load_job.error_result is not None:
         has_fatal_error('While running BQ job: {}\n{}'
-                        .format(load_job.error_result, load_job.errors),
-                        ValueError)
+                        .format(load_job.error_result, load_job.errors), ValueError)
 
     table = client.get_table(table_id)
 
@@ -644,14 +661,18 @@ def modify_friendly_name_custom(table_id, new_name):
     client.update_table(table, ["friendly_name"])
 
 
-def delete_bq_table(table):
+def delete_bq_table(bq_params, table):
     client = bigquery.Client()
-    client.delete_table(table, not_found_ok=True)
+    bq_job = client.delete_table(table, not_found_ok=True)
+
+    await_job(bq_params, client, bq_job)
 
 
-def copy_bq_table(bq_params, src_table, dest_table, project=None, versioned=False):
+def copy_bq_table(bq_params, src_table, dest_table, project=None):
     client = bigquery.Client()
-    client.copy_table(src_table, dest_table, project=project)
+
+    bq_job = client.copy_table(src_table, dest_table, project=project)
+    await_job(bq_params, client, bq_job)
 
 
 def update_table_schema(table_id, new_descriptions):
@@ -802,28 +823,6 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
-
-
-def replace_key(api_params, key):
-    # todo delete
-    key_dict = dict()
-    field_root = api_params['BASE_FG']
-    rename_fields = api_params['RENAME_FIELDS']
-
-    for rename_field in rename_fields:
-        old_key = ".".join([field_root, rename_field])
-        new_key = ".".join([field_root, rename_fields[rename_field]])
-        key_dict[old_key] = new_key
-
-    if len(key.split('.')) < 1:
-        curr_key = ".".join([field_root, key])
-    else:
-        curr_key = key
-
-    if curr_key in key_dict:
-        return key_dict[curr_key]
-    else:
-        return None
 
 
 def to_bq_schema_obj(schema_field_dict):
