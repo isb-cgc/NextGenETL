@@ -181,7 +181,7 @@ def get_column_order(table):
 # Functions used to determine a program's table structure(s)
 #
 ##
-def get_all_excluded_columns():
+def get_all_excluded_columns(is_webapp=False):
     """
     Get excluded fields for all field groups (from yaml config file)
     :return: list of excluded fields
@@ -195,10 +195,15 @@ def get_all_excluded_columns():
         if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
             has_fatal_error("{}'s excluded_fields not found in API_PARAMS".format(table))
 
-        excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
+        if is_webapp:
+            excluded_fields = API_PARAMS['TABLE_METADATA'][table][
+                'webapp_excluded_fields']
+        else:
+            excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
 
         for field in excluded_fields:
-            excluded_columns.add(get_bq_name(API_PARAMS, field, table))
+            excluded_columns.add(
+                get_bq_name(API_PARAMS, field, table, is_webapp=is_webapp))
 
     return excluded_columns
 
