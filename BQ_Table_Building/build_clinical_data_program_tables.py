@@ -1165,6 +1165,8 @@ def main(args):
                 column_orders = add_reference_columns(columns, record_counts,
                                                       is_webapp=is_webapp)
 
+                rename_fields_for_app(column_orders, API_PARAMS)
+
                 print("\ncolumn_orders\n")
                 print(column_orders)
                 exit()
