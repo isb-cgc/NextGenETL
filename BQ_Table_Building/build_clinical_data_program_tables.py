@@ -1192,10 +1192,6 @@ def main(args):
 
                 rename_fields_for_app(column_orders, API_PARAMS)
 
-                print("\ncolumn_orders\n")
-                print(column_orders)
-                exit()
-
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 # modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
@@ -1206,6 +1202,11 @@ def main(args):
                                                     record_counts,
                                                     column_orders,
                                                     is_webapp)
+
+                print("\nmerged_orders\n")
+                print(merged_orders)
+                exit()
+
 
                 # drop any null fields from the merged column order dicts
                 remove_null_fields(columns, merged_orders)
