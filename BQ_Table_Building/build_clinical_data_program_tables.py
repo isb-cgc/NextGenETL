@@ -1084,6 +1084,9 @@ def create_tables(program, cases, is_webapp=False):
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
                                         is_webapp)
 
+    print("merged_orders\n")
+    print(merged_orders)
+    exit()
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
