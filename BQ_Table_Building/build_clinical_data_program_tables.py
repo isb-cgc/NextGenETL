@@ -1167,33 +1167,12 @@ def main(args):
                 # derive the program's table structure by analyzing its case records
                 columns, record_counts = find_program_structure(cases, is_webapp)
 
-                print("columns\n")
-                print(columns)
-
-                print("record_counts\n")
-                print(record_counts)
-                exit()
-
-                """
-
-                if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
-                    has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
-
-                excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
-
-                if excluded_fgs:
-                    for excluded_fg in excluded_fgs:
-                        if excluded_fg in app_columns:
-                            app_columns.pop(excluded_fg)
-                        if excluded_fg in app_record_counts:
-                            app_record_counts.pop(excluded_fg)
-                            
-                """
-
                 # add the parent id to field group dicts that will create separate tables
                 column_orders = add_reference_columns(columns, record_counts, is_webapp)
 
-                app_schema = {k: v for (k, v) in schema.items()}
+                print("\ncolumn_orders\n")
+                print(column_orders)
+                exit()
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
