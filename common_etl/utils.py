@@ -796,7 +796,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
                 column_order_dict[base_fg].pop(field)
 
 
-
+"""
 def rename_case_fields(case, api_params):
     for key in api_params['RENAME_FIELDS']:
         if key not in case:
@@ -805,6 +805,7 @@ def rename_case_fields(case, api_params):
         new_key = api_params['RENAME_FIELDS'][key]
         case[new_key] = case[key]
         case.pop(key)
+"""
 
 
 def replace_key(api_params, key):

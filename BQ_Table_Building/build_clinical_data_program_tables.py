@@ -515,44 +515,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     return merged_column_orders
 
-'''
-def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
-    merge_order_dicts = dict()
-
-    for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
-        # todo
-        schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
-        replacement_key = replace_key(API_PARAMS, schema_key)
-
-        if replacement_key and replacement_key != schema_key:
-            new_schema_key = replacement_key
-            old_schema_key = schema_key
-        else:
-            new_schema_key = schema_key
-            old_schema_key = None
-
-        if table in columns:
-            # this field group will be the parent fg of its table
-            merge_dict_key = table
-            schema[new_schema_key]['mode'] = 'REQUIRED'
-
-            if new_schema_key not in columns[table]:
-                columns[table].add(new_schema_key)
-
-                if new_schema_key != old_schema_key and old_schema_key in columns[table]:
-                    columns[table].remove(old_schema_key)
-        else:
-            # this field group will be merged into table with parent fg
-            merge_dict_key = get_parent_table(columns.keys(), table)
-            schema[new_schema_key]['mode'] = 'NULLABLE'
-
-        if merge_dict_key not in merge_order_dicts:
-            merge_order_dicts[merge_dict_key] = dict()
-
-        merge_order_dicts[merge_dict_key].update(column_orders[table])
-
-    return merge_order_dicts
-'''
 
 def remove_null_fields(table_columns, merged_orders):
     for table, columns in table_columns.items():
@@ -935,11 +897,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(jsonl_file_path)
 
     for case in cases:
-        print(case)
-        exit()
-        rename_case_fields(case, API_PARAMS)
+        # rename_case_fields(case, API_PARAMS)
 
         flat_case = flatten_case(case, is_webapp)
+
+        print("\nflat_case\n")
+        print(flat_case)
+        exit()
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
@@ -1205,6 +1169,8 @@ def main(args):
                 # creates dictionary of lists of schemafield objects in json format
                 table_schemas = create_app_schema_lists(schema, record_counts,
                                                         merged_orders)
+
+                # todo sample_ids still not in schema
 
                 create_and_load_tables(program,
                                        cases,
