@@ -491,6 +491,13 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
 
 def remove_null_fields(table_columns, merged_orders):
+    print("\ntable_columns\n")
+    print(table_columns)
+
+    print("\nmerged_orders\n")
+    print(merged_orders)
+
+
     for table, columns in table_columns.items():
         null_fields_set = set(merged_orders[table].keys()) - columns
 
