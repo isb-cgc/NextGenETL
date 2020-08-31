@@ -861,7 +861,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         print("\nflat_case\n")
         print(flat_case)
-        exit()
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
