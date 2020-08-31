@@ -741,9 +741,6 @@ def flatten_case(case, is_webapp):
                                    pid_field=case_id_name,
                                    is_webapp=is_webapp)
 
-    print(flat_case)
-    exit()
-
     return flat_case
 
 
@@ -895,12 +892,12 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
 
-        """
+
         print("\nflat_case\n")
         print(flat_case)
         print()
-        continue
-        """
+        exit()
+
         # remove excluded field groups
         for fg in {fg for fg in flat_case.keys()}:
             if fg not in record_counts.keys():
