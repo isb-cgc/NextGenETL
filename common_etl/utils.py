@@ -767,9 +767,11 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
 
     exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
 
+    print("columns[fg]")
+
     for fg in fgs:
-        print("columns[fg]")
-        print(columns[fg])
+        if fg in columns[fg]:
+            print(columns[fg])
         # rename case_id no matter which fg it's in
         for renamed_field in renamed_fields.keys():
             if renamed_field in column_order_dict[fg]:
