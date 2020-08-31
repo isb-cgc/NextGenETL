@@ -715,9 +715,6 @@ def flatten_case(case, is_webapp):
 
     case_id_key = API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]['table_id_key']
 
-    if is_webapp and case_id_key in API_PARAMS['RENAME_FIELDS']:
-        case_id_key = API_PARAMS['RENAME_FIELDS'][case_id_key]
-
     flat_case = dict()
 
     flat_case = flatten_case_entry(record=case,
@@ -897,8 +894,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(jsonl_file_path)
 
     for case in cases:
-        # rename_case_fields(case, API_PARAMS)
-
         flat_case = flatten_case(case, is_webapp)
 
         print("\nflat_case\n")
