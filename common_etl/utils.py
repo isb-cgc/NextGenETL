@@ -435,9 +435,10 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
-def create_schema_dict(api_params, bq_params):
+def create_schema_dict(api_params, bq_params, is_webapp):
     """
     Creates schema dict using master table's bigquery.table.Table.schema attribute
+    :param is_webapp:
     :param api_params: api params from yaml config file
     :param bq_params: bq params from yaml config file
     :return: flattened schema dict in format:
@@ -449,7 +450,7 @@ def create_schema_dict(api_params, bq_params):
     table_obj = client.get_table(table_id)
 
     return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'],
-                                        table_obj.schema)
+                                        table_obj.schema, is_webapp)
 
 
 #####
@@ -693,9 +694,11 @@ def update_table_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def get_schema_from_master_table(api_params, flat_schema, fg, fields=None):
+def get_schema_from_master_table(api_params, flat_schema, fg, fields=None,
+                                 is_webapp=False):
     """
     Recursively build schema using master table's bigquery.table.Table.schema attribute
+    :param is_webapp:
     :param api_params: api params from yaml config file
     :param flat_schema: dict of flattened schema entries
     :param fg: current field group name
@@ -712,12 +715,13 @@ def get_schema_from_master_table(api_params, flat_schema, fg, fields=None):
 
         if 'fields' in field_dict:
             flat_schema = get_schema_from_master_table(api_params, flat_schema,
-                                                       schema_key, field.fields)
+                                                       schema_key, field.fields,
+                                                       is_webapp)
 
             for required_column in get_required_columns(api_params, fg):
                 flat_schema[required_column]['mode'] = 'REQUIRED'
         else:
-            field_dict['name'] = get_bq_name(api_params, schema_key)
+            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp)
             flat_schema[schema_key] = field_dict
 
     return flat_schema
@@ -971,9 +975,10 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     return table_depth_tuples
 
 
-def get_bq_name(api_params, field_name, table_path=None):
+def get_bq_name(api_params, field_name, table_path=None, is_webapp=False):
     """
     Get column name (in bq format) from full field name.
+    :param is_webapp:
     :param api_params: api params from yaml config file
     :param field_name: if not table_path, full field name; else short field name
     :param table_path: field group containing field
@@ -997,7 +1002,7 @@ def get_bq_name(api_params, field_name, table_path=None):
     if field_group not in prefixes:
         return None
 
-    if prefixes[field_group]:
+    if prefixes[field_group] and not is_webapp:
         return prefixes[field_group] + '__' + field
 
     # prefix is blank, like in the instance of api_params['BASE_FG']

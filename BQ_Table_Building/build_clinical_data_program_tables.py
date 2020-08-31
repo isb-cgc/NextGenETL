@@ -217,7 +217,7 @@ def get_all_excluded_columns():
     return excluded_columns
 
 
-def flatten_tables(field_groups, record_counts):
+def flatten_tables(field_groups, record_counts, is_webapp=False):
     """
     From dict containing table_name keys and sets of column names, remove
     excluded columns and merge into parent table if the field group can be
@@ -231,12 +231,25 @@ def flatten_tables(field_groups, record_counts):
 
     fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
 
+    if is_webapp:
+        if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
+            has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
+
+        excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
+
     for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             has_fatal_error("This script isn't confirmed to work with field groups "
                             "nested more than two levels.")
 
-        field_groups[fg] = remove_excluded_fields(field_groups[fg], fg)
+        if is_webapp:
+            if fg in excluded_fgs:
+                continue
+
+            field_groups[fg] = remove_excluded_webapp_fields(field_groups[fg], fg)
+        else:
+            field_groups[fg] = remove_excluded_fields(field_groups[fg], fg)
+
         full_field_names = {get_full_field_name(fg, field) for field in field_groups[fg]}
 
         if fg in one_many_tables:
@@ -309,29 +322,28 @@ def examine_case(set_fields, record_cnts, fg, fg_name):
         return set_fields, record_cnts
 
 
-def find_program_structure(cases):
+def find_program_structure(cases, is_webapp=False):
     """
     Determine table structure required for the given program.
+    :param is_webapp:
     :param cases: dict of program's case records
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
-    field_groups = {}
+    fgs = {}
     record_counts = {}
 
     for case in cases:
-        if not case:
-            continue
-        examine_case(field_groups, record_counts, fg=case,
-                     fg_name=API_PARAMS['BASE_FG'])
+        if case:
+            examine_case(fgs, record_counts, fg=case, fg_name=API_PARAMS['BASE_FG'])
 
-    for fg in field_groups:
+    for fg in fgs:
         if fg not in API_PARAMS['TABLE_METADATA']:
             print("{} not in metadata".format(fg))
-            field_groups.pop(fg)
+            fgs.pop(fg)
             cases.pop(fg)
 
-    columns = flatten_tables(field_groups, record_counts)
+    columns = flatten_tables(fgs, record_counts, is_webapp)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -606,9 +618,26 @@ def remove_excluded_fields(case, fg):
         return [field for field in case if field not in excluded]
 
 
-def remove_excluded_webapp_fields(case):
-    print(case)
-    exit()
+def remove_excluded_webapp_fields(case, fg):
+    fg_metadata = API_PARAMS['TABLE_METADATA']
+
+    if fg not in fg_metadata or 'webapp_excluded_fields' not in fg_metadata[fg]:
+        return None
+
+    excluded = fg_metadata[fg]['webapp_excluded_fields']
+
+    if isinstance(case, dict):
+        excluded_fields = {get_bq_name(API_PARAMS, field, fg) for field in excluded}
+
+        for field in case.copy().keys():
+            if field in excluded_fields or not case[field]:
+                case.pop(field)
+
+        return case
+    elif isinstance(case, set):
+        return {field for field in case if field not in excluded}
+    else:
+        return [field for field in case if field not in excluded]
 
 
 ####
@@ -732,14 +761,6 @@ def filter_flat_case(flat_case):
     for fg in fgs:
         flat_fg = flat_case[fg]
         flat_case[fg] = {f: flat_fg.pop(f, None) for f in pop_fields if f in pop_fields}
-
-
-'''
-    for exclude_field in exclude_fields:
-        for fg in fgs:
-            if exclude_field in flat_case[fg]:
-                flat_case[fg].pop(exclude_field)
-'''
 
 
 def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
@@ -893,9 +914,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(jsonl_file_path)
 
     for case in cases:
-        if is_webapp:
-            remove_excluded_webapp_fields(case)
-
         rename_case_fields(case, API_PARAMS)
 
         flat_case = flatten_case(case, is_webapp)
@@ -1132,16 +1150,20 @@ def main(args):
                 print("No case records found for program {}, skipping.".format(program))
                 continue
 
-            # derive the program's table structure by analyzing its case records
-            columns, record_counts = find_program_structure(cases)
-
-            # generate table schemas
-            schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
-
             if 'create_webapp_tables' in steps:
+                is_webapp = True
 
-                app_columns = {k: v for (k, v) in columns.items()}
-                app_record_counts = {k: v for (k, v) in record_counts.items()}
+                # generate table schemas
+                schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
+
+                print("schema\n")
+                print(schema)
+                exit()
+
+                # derive the program's table structure by analyzing its case records
+                columns, record_counts = find_program_structure(cases, is_webapp)
+
+                """
 
                 if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
                     has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
@@ -1154,56 +1176,60 @@ def main(args):
                             app_columns.pop(excluded_fg)
                         if excluded_fg in app_record_counts:
                             app_record_counts.pop(excluded_fg)
+                            
+                """
 
                 # add the parent id to field group dicts that will create separate tables
-                app_column_orders = add_reference_columns(app_columns,
-                                                          app_record_counts,
-                                                          is_webapp=True)
+                column_orders = add_reference_columns(columns, record_counts, is_webapp)
 
                 app_schema = {k: v for (k, v) in schema.items()}
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
-                modify_fields_for_app(app_schema, app_column_orders, app_columns,
-                                      API_PARAMS)
+                modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
 
                 # reassign merged_column_orders to column_orders
-                app_merged_orders = merge_column_orders(app_schema,
-                                                        app_columns,
-                                                        app_record_counts,
-                                                        app_column_orders,
-                                                        is_webapp=True)
+                merged_orders = merge_column_orders(schema,
+                                                    columns,
+                                                    record_counts,
+                                                    column_orders,
+                                                    is_webapp)
 
                 # drop any null fields from the merged column order dicts
-                remove_null_fields(app_columns, app_merged_orders)
+                remove_null_fields(columns, merged_orders)
 
                 # creates dictionary of lists of schemafield objects in json format
-                app_table_schemas = create_app_schema_lists(app_schema,
-                                                            app_record_counts,
-                                                            app_merged_orders)
+                table_schemas = create_app_schema_lists(schema, record_counts,
+                                                        merged_orders)
 
                 create_and_load_tables(program,
                                        cases,
-                                       app_table_schemas,
-                                       app_record_counts,
-                                       is_webapp=True)
+                                       table_schemas,
+                                       record_counts,
+                                       is_webapp)
 
-        if 'create_and_load_table' in steps:
-            # modify schema dict, add reference columns for this program
-            column_orders = add_reference_columns(columns, record_counts, schema, program)
+            if 'create_and_load_table' in steps:
+                # generate table schemas
+                schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
 
-            # reassign merged_column_orders to column_orders
-            merged_orders = merge_column_orders(schema, columns,
-                                                record_counts, column_orders)
+                # derive the program's table structure by analyzing its case records
+                columns, record_counts = find_program_structure(cases)
 
-            remove_null_fields(columns, merged_orders)
+                # modify schema dict, add reference columns for this program
+                column_orders = add_reference_columns(columns, record_counts, schema,
+                                                      program)
 
-            table_schemas = create_schema_lists(schema, record_counts, merged_orders)
+                # reassign merged_column_orders to column_orders
+                merged_orders = merge_column_orders(schema, columns,
+                                                    record_counts, column_orders)
 
-            # create tables, flatten and insert data
-            create_and_load_tables(program, cases, table_schemas, record_counts)
+                remove_null_fields(columns, merged_orders)
 
-        if 'create_webapp_tables' in steps or 'create_and_load_table' in steps:
+                table_schemas = create_schema_lists(schema, record_counts, merged_orders)
+
+                # create tables, flatten and insert data
+                create_and_load_tables(program, cases, table_schemas, record_counts)
+
             print("{} processed in {:0.0f}s!\n".format(program, time.time() - prog_start))
 
     if 'update_table_metadata' in steps:
