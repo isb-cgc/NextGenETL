@@ -22,8 +22,6 @@ SOFTWARE.
 import io
 import sys
 import os
-# from os import listdir
-# from os.path import expanduser, isfile, join
 import time
 import requests
 import yaml

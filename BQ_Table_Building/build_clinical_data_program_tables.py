@@ -20,14 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import math
-import sys
 import json
-import os
-import time
-# from gdc_clinical_resources.test_data_integrity import *
-import copy
 from common_etl.utils import *
-from gdc_clinical_resources.generate_docs import (generate_docs)
+from gdc_clinical_resources.generate_docs import generate_docs
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -888,8 +883,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
 
-        print(jsonl_file_path)
-
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
 
@@ -905,7 +898,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
             jsonl_fp = get_temp_filepath(program_name, bq_table, is_webapp)
-            print(jsonl_fp)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flat_case[bq_table]:
@@ -915,13 +907,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for json_table in tables:
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
         table_id = get_full_table_name(program_name, json_table)
-
-        """
-        print("\nschemas[json_table]\n")
-        print(schemas[json_table])
-        print()
-        continue
-        """
 
         upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
@@ -1034,7 +1019,7 @@ def make_biospecimen_stub_tables(program):
         SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
           (SELECT proj, case_gdc_id, case_barcode, 
-            SPLIT(sample_ids, ',') as s_gdc_ids, 
+            SPLIT(sample_ids, ', ') as s_gdc_ids, 
             SPLIT(submitter_sample_ids, ', ') as s_barcodes
             FROM
                 (SELECT case_id as case_gdc_id, 
@@ -1149,9 +1134,6 @@ def main(args):
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
-
-                print("\nschema\n")
-                print(schema)
 
                 # reassign merged_column_orders to column_orders
                 merged_orders = merge_column_orders(schema,
