@@ -957,35 +957,43 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     return table_depth_tuples
 
 
-def get_bq_name(api_params, field_name, table_path=None, is_webapp=False):
+def get_bq_name(api_params, field, table_path=None, is_webapp=False):
     """
     Get column name (in bq format) from full field name.
-    :param is_webapp:
     :param api_params: api params from yaml config file
-    :param field_name: if not table_path, full field name; else short field name
+    :param field: if not table_path, full field name; else short field name
     :param table_path: field group containing field
+    :param is_webapp:
     :return: bq column name for given field name
     """
-    if table_path:
-        field_key = table_path + '.' + field_name
+    base_fg = get_base_fg(api_params)
 
+    if table_path:
+        field_key = table_path + '.' + field
+    else:
+        split_name = field.split('.')
+
+        if len(split_name) == 1:
+            field_key = ".".join([base_fg, field])
+        else:
+            field_key = field
+
+    '''
     split_name = field_key.split('.')
 
     if split_name[0] != get_base_fg(api_params):
         split_name.insert(0, get_base_fg(api_params))
         field_key = '.'.join(split_name)
+    '''
 
-    field_group = get_field_group(field_key)
+    fg = get_field_group(field_key)
     field_name = field_key
 
-    if field_group == get_base_fg(api_params):
-        return field_name
-
-    if not is_webapp:
-        prefix = get_prefix(api_params, field_group)
+    if not is_webapp and fg != base_fg:
+        prefix = get_prefix(api_params, fg)
 
         if prefix:
-            return "__".join([prefix[field_group],  field_name])
+            return "__".join([prefix, field_name])
 
     # prefix is blank, like in the instance of api_params['FG_CONFIG']['base_fg']
     return field_name
