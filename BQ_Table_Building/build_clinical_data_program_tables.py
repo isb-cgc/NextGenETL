@@ -882,6 +882,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
             jsonl_fp = get_temp_filepath(program_name, bq_table, is_webapp)
+            print(jsonl_fp)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flat_case[bq_table]:
