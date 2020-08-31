@@ -347,6 +347,20 @@ def find_program_structure(cases, is_webapp=False):
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
+    print("\nrecord_counts pre\n")
+    print(record_counts)
+
+    if is_webapp:
+        if 'WEBAPP_EXCLUDED_FG' not in API_PARAMS:
+            has_fatal_error("WEBAPP_EXCLUDED_FG not found in params.", KeyError)
+
+        excluded_fgs = API_PARAMS['WEBAPP_EXCLUDED_FG']
+
+        record_counts = {fg for fg in record_counts if fg not in excluded_fgs}
+
+        print("\nrecord_counts post\n")
+        print(record_counts)
+
     return columns, record_counts
 
 
