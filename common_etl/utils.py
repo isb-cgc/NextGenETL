@@ -810,12 +810,10 @@ def get_prefix(api_params, fg):
     if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
         has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
     if fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error('Field group {} not found in not in FIELD_CONFIG'.format(fg),
-                        KeyError)
+        has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
     if 'prefix' not in api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error(
-            "prefix not found in api_params[\'FIELD_CONFIG\'][\'{}\']".format(fg),
-            KeyError)
+        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg),KeyError)
+
     prefix = api_params['FIELD_CONFIG'][fg]['prefix']
 
     return prefix
@@ -978,7 +976,7 @@ def get_bq_name(api_params, field, table_path=None, is_webapp=False):
     base_fg = get_base_fg(api_params)
 
     if table_path:
-        field_key = table_path + '.' + field
+        field_key = ".".join([table_path, field])
     else:
         split_name = field.split('.')
 
@@ -996,7 +994,7 @@ def get_bq_name(api_params, field, table_path=None, is_webapp=False):
     '''
 
     fg = get_field_group(field_key)
-    field_name = field_key
+    field_name = get_field_name(field_key)
 
     if not is_webapp and fg != base_fg:
         prefix = get_prefix(api_params, fg)

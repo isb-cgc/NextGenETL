@@ -861,14 +861,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        print("\nflat_case\n")
+        print("\nlat_case\n")
         print(flat_case)
-
-        print("\nrecord_counts\n")
-        print(record_counts)
-        exit()
-
-
 
         for bq_table in flat_case.keys():
             if bq_table not in tables:
