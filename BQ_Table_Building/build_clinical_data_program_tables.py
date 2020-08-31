@@ -746,21 +746,6 @@ def flatten_case(case, is_webapp):
     return flat_case
 
 
-def filter_flat_case(flat_case):
-    fgs = {k for k in flat_case.keys()}
-    pop_fields = get_excluded_fields(fgs, API_PARAMS, is_webapp=True)
-
-    print("fgs\n")
-
-    print(fgs)
-    print("pop_fields\n")
-    print(pop_fields)
-
-    for fg in fgs:
-        flat_fg = flat_case[fg]
-        flat_case[fg] = {f: flat_fg.pop(f, None) for f in pop_fields if f in pop_fields}
-
-
 def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     """
     Get index of record associated with record_id from flattened_case
@@ -916,12 +901,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        print("\nflat_case\n")
-        print(flat_case)
-        exit()
-
-        filter_flat_case(flat_case)
-
         for bq_table in flat_case.keys():
             if bq_table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
@@ -933,6 +912,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                 for row in flat_case[bq_table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
+    exit()
 
     for json_table in tables:
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
