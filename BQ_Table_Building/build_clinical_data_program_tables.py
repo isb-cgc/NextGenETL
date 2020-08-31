@@ -1045,13 +1045,16 @@ def create_tables(program, cases, is_webapp=False):
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
-    # add the parent id to field group dicts that will create separate tables
-    column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
-
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
     if is_webapp:
+        # add the parent id to field group dicts that will create separate tables
+        column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
+
         modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+
+    else:
+        column_orders = add_reference_columns(columns, record_counts, schema, program)
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
