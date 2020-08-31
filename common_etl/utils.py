@@ -408,7 +408,7 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
     return None
 
 
-def create_schema_dict(api_params, bq_params, is_webapp):
+def create_schema_dict(api_params, bq_params, is_webapp=False):
     """
     Creates schema dict using master table's bigquery.table.Table.schema attribute
     :param is_webapp:

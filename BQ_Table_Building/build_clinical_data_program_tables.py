@@ -39,6 +39,7 @@ def generate_long_name(program_name, table, has_rel=True):
     Generate string representing a unique name, constructed from elements of
     the table name, program name and GDC release number. Used for storage
     bucket file and BQ table naming.
+    :param has_rel:
     :param program_name: Program to which this table is associated.
     :param table: Table name.
     :return: String representing a unique string identifier.
@@ -81,6 +82,7 @@ def get_jsonl_filename(program_name, table, is_webapp=False):
 def get_temp_filepath(program_name, table, is_webapp=False):
     """
     Get filepath for the temp storage folder.
+    :param is_webapp:
     :param program_name: Program
     :param table: Program to which this table is associated.
     :return: String representing the temp file path.
@@ -212,6 +214,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     From dict containing table_name keys and sets of column names, remove
     excluded columns and merge into parent table if the field group can be
     flattened for this program.
+    :param is_webapp:
     :param field_groups: dict of tables and columns
     :param record_counts: set of table names
     :return: flattened table column dict.
@@ -1058,7 +1061,10 @@ def print_final_report(start, steps):
 
     print("Programs script executed in {} min, {:.0f} sec\n".format(minutes, seconds))
     print("Steps completed: ")
-
+    if 'create_biospecimen_stub_tables' in steps:
+        print('\t - created biospecimen stub tables for webapp use')
+    if 'create_webapp_tables' in steps:
+        print('\t - created tables for webapp use')
     if 'create_and_load_tables' in steps:
         print('\t - created tables and inserted data')
     if 'update_table_metadata' in steps:
@@ -1128,7 +1134,7 @@ def main(args):
                 column_orders = add_reference_columns(columns, record_counts,
                                                       is_webapp=is_webapp)
 
-                rename_fields_for_app(column_orders, API_PARAMS)
+                # rename_fields_for_app(column_orders, API_PARAMS)
 
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
