@@ -631,8 +631,8 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
-            flatten_case_entry(entry, fg, flat_case, case_id, pid,
-                               pid_field, is_webapp)
+            flat_case = flatten_case_entry(entry, fg, flat_case, case_id, pid,
+                                           pid_field, is_webapp)
         return
 
     rows = dict()
@@ -641,13 +641,13 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
     for field, field_val in record.items():
         if isinstance(field_val, list):
-            flatten_case_entry(record=field_val,
-                               fg=fg + '.' + field,
-                               flat_case=flat_case,
-                               case_id=case_id,
-                               pid=record[id_field],
-                               pid_field=id_field,
-                               is_webapp=is_webapp)
+            flat_case = flatten_case_entry(record=field_val,
+                                           fg=fg + '.' + field,
+                                           flat_case=flat_case,
+                                           case_id=case_id,
+                                           pid=record[id_field],
+                                           pid_field=id_field,
+                                           is_webapp=is_webapp)
         else:
             if id_field != pid_field:
                 parent_fg = get_field_group(fg)
@@ -673,6 +673,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
                 if not rows[f] or f in excluded}
 
     flat_case[fg].append(rows)
+    return flat_case
 
 
 def flatten_case(case, is_webapp):
@@ -694,7 +695,7 @@ def flatten_case(case, is_webapp):
 
     flat_case = dict()
 
-    flatten_case_entry(record=case,
+    flat_case = flatten_case_entry(record=case,
                        fg=API_PARAMS['BASE_FG'],
                        flat_case=flat_case,
                        case_id=case[case_id_key],
