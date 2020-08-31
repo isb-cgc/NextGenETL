@@ -400,12 +400,15 @@ def await_insert_job(bq_job):
         if bq_job.state == "DONE":
             break
 
-    if bq_job.error_result is None:
-        print(" done. {} rows inserted.".format(bq_job.output_rows))
-        return
+    if bq_job.error_result:
+        has_fatal_error('[ERROR] While running BQ job: {}\n{}'.
+                        format(bq_job.error_result, bq_job.errors))
 
-    has_fatal_error('[ERROR] While running BQ job: {}\n{}'.
-                    format(bq_job.error_result, bq_job.errors))
+    if bq_job.job_type == 'load':
+        print(" done. {} rows inserted.".format(bq_job.output_rows))
+    else:
+        print(" done.")
+
 
 
 def get_program_list(bq_params):
