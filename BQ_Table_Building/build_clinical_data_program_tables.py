@@ -633,46 +633,54 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
         for entry in record:
             flat_case = flatten_case_entry(entry, fg, flat_case, case_id, pid,
                                            pid_field, is_webapp)
-        return
+    else:
 
-    rows = dict()
+        rows = dict()
+        id_field = get_table_id_name(API_PARAMS, fg, is_webapp)
 
-    id_field = get_table_id_name(API_PARAMS, fg, is_webapp)
+        for field, field_val in record.items():
+            if isinstance(field_val, list):
+                flat_case = flatten_case_entry(record=field_val,
+                                               fg=fg + '.' + field,
+                                               flat_case=flat_case,
+                                               case_id=case_id,
+                                               pid=record[id_field],
+                                               pid_field=id_field,
+                                               is_webapp=is_webapp)
+            else:
+                if id_field != pid_field:
+                    parent_fg = get_field_group(fg)
 
-    for field, field_val in record.items():
-        if isinstance(field_val, list):
-            flat_case = flatten_case_entry(record=field_val,
-                                           fg=fg + '.' + field,
-                                           flat_case=flat_case,
-                                           case_id=case_id,
-                                           pid=record[id_field],
-                                           pid_field=id_field,
-                                           is_webapp=is_webapp)
-        else:
-            if id_field != pid_field:
-                parent_fg = get_field_group(fg)
+                    if is_webapp:
+                        pid_column = pid_field
+                    else:
+                        pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
 
-                pid_column = pid_field if is_webapp else get_bq_name(API_PARAMS,
-                                                                     pid_field, parent_fg)
-                rows[pid_column] = pid
+                    rows[pid_column] = pid
 
-            rows['case_id'] = case_id if id_field != 'case_id' else rows['case_id']
+                if id_field != 'case_id':
+                    rows['case_id'] = case_id
 
-            # Field converted bq column name
-            column = field if is_webapp else get_bq_name(API_PARAMS, field, fg)
+                # Field converted bq column name
+                if is_webapp:
+                    column = field
+                else:
+                    column = get_bq_name(API_PARAMS, field, fg)
 
-            rows[column] = field_val
+                rows[column] = field_val
 
-    if flat_case and fg not in flat_case:
-        flat_case[fg] = list()
+            if flat_case and fg not in flat_case:
+                flat_case[fg] = list()
 
-    if rows:
-        excluded = get_all_excluded_columns()
+            if rows:
+                excluded = get_all_excluded_columns()
 
-        return {f: rows.pop(f) for f in rows.copy().keys()
-                if not rows[f] or f in excluded}
+                for r_field in rows.copy():
+                    if r_field in excluded or not rows[r_field]:
+                        rows.pop(r_field)
 
-    flat_case[fg].append(rows)
+            flat_case[fg].append(rows)
+
     return flat_case
 
 
@@ -696,12 +704,12 @@ def flatten_case(case, is_webapp):
     flat_case = dict()
 
     flat_case = flatten_case_entry(record=case,
-                       fg=API_PARAMS['BASE_FG'],
-                       flat_case=flat_case,
-                       case_id=case[case_id_key],
-                       pid=case[case_id_key],
-                       pid_field=case_id_key,
-                       is_webapp=is_webapp)
+                                   fg=API_PARAMS['BASE_FG'],
+                                   flat_case=flat_case,
+                                   case_id=case[case_id_key],
+                                   pid=case[case_id_key],
+                                   pid_field=case_id_key,
+                                   is_webapp=is_webapp)
 
     print("flat_case in flatten_case")
     print(flat_case)
