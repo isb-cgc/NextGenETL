@@ -807,12 +807,12 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
                 flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
 
     for field_group, parent in flattened_fg_parents.items():
-        fg_id_name = get_table_id_name(API_PARAMS, parent)
+        fg_id_name = get_table_id_name(API_PARAMS, parent, is_webapp)
 
         if is_webapp:
             bq_parent_id_key = fg_id_name
         else:
-            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent, is_webapp)
+            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
