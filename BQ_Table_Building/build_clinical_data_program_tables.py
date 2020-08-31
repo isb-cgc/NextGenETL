@@ -867,6 +867,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         rename_case_fields(case, API_PARAMS)
 
+        print(case)
+
         flat_case = flatten_case(case, is_webapp)
         print("flat_case 1")
         print(flat_case)
@@ -879,7 +881,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
         print("flat_case 2")
         print(flat_case)
-
 
         filter_flat_case(flat_case)
 
