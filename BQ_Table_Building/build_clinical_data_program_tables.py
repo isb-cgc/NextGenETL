@@ -628,6 +628,9 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
     if fg not in API_PARAMS['TABLE_METADATA'].keys():
         return flat_case
 
+    print("fg")
+    print(fg)
+
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
@@ -872,7 +875,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     for case in cases:
         rename_case_fields(case, API_PARAMS)
 
-        print(case)
+        # print(case)
 
         flat_case = flatten_case(case, is_webapp)
         print("flat_case 1")
