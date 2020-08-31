@@ -880,9 +880,9 @@ def build_table_name(arr):
 
 
 def get_biospecimen_table_id(bq_params, program):
-    bio_table_name = build_table_name(get_gdc_rel(bq_params),
+    bio_table_name = build_table_name([get_gdc_rel(bq_params),
                                       str(program),
-                                      bq_params['BIOSPECIMEN_SUFFIX'])
+                                      bq_params['BIOSPECIMEN_SUFFIX']])
 
     bio_table_id = get_webapp_table_id(bq_params, bio_table_name)
 
