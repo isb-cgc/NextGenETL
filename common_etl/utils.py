@@ -712,16 +712,16 @@ def get_excluded_fields(fgs, api_params, is_webapp=False):
                 or (is_webapp and 'webapp_excluded_fields' not in fg_metadata)):
             has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
 
-        if fg_metadata['excluded_fields']:
-            for field in fg_metadata['excluded_fields']:
-                # add generic excluded fields
-                exclude_fields.add('.'.join([fg, field]))
-
         if is_webapp:
             if fg_metadata['webapp_excluded_fields']:
                 for w_field in fg_metadata['webapp_excluded_fields']:
                     # add webapp-specific excluded fields
                     exclude_fields.add('.'.join([fg, w_field]))
+        else:
+            if fg_metadata['excluded_fields']:
+                for field in fg_metadata['excluded_fields']:
+                    # add generic excluded fields
+                    exclude_fields.add('.'.join([fg, field]))
 
     return exclude_fields
 
@@ -737,6 +737,9 @@ def rename_fields_for_app(column_orders, api_params):
 
 
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
+    print(column_order_dict)
+    print(columns)
+
     excluded_fgs = set()
     renamed_fields = dict()
 
