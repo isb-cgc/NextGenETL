@@ -812,7 +812,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
         if is_webapp:
             bq_parent_id_key = fg_id_name
         else:
-            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
+            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent, is_webapp)
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
