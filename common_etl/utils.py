@@ -755,9 +755,6 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     excluded_fgs = set()
     renamed_fields = dict()
 
-    print("\ncolumns\n")
-    print(columns)
-
     for old_field_name, new_field_name in api_params['RENAME_FIELDS'].items():
         old_field = ".".join([api_params['BASE_FG'], old_field_name])
         new_field = ".".join([api_params['BASE_FG'], new_field_name])
@@ -767,18 +764,14 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
 
     exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
 
-    print("columns[fg]")
-
     for fg in fgs:
-        if fg in columns[fg]:
-            print(columns[fg])
         # rename case_id no matter which fg it's in
         for renamed_field in renamed_fields.keys():
             if renamed_field in column_order_dict[fg]:
                 new_field = renamed_fields[renamed_field]
                 column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
                 column_order_dict[fg].pop(renamed_field)
-            if renamed_field in columns[fg]:
+            if fg in columns and renamed_field in columns[fg]:
                 columns[fg].add(renamed_fields[renamed_field])
                 columns[fg].remove(renamed_field)
                 print("removed field: {}, added field: {}".format(

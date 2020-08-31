@@ -1136,6 +1136,8 @@ def main(args):
                 modify_fields_for_app(app_schema, app_column_orders, app_columns,
                                       API_PARAMS)
 
+                print(app_columns)
+
                 # reassign merged_column_orders to column_orders
                 app_merged_orders = merge_column_orders(app_schema,
                                                         app_columns,
