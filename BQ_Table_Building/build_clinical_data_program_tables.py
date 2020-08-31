@@ -181,7 +181,7 @@ def get_column_order(table):
 # Functions used to determine a program's table structure(s)
 #
 ##
-def get_all_excluded_columns(is_webapp=False):
+def get_all_excluded_columns(fg, is_webapp=False):
     """
     Get excluded fields for all field groups (from yaml config file)
     :return: list of excluded fields
@@ -191,21 +191,24 @@ def get_all_excluded_columns(is_webapp=False):
     if not API_PARAMS['TABLE_ORDER']:
         has_fatal_error("params['TABLE_ORDER'] not found")
 
-    for table in API_PARAMS['TABLE_ORDER']:
-        if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
-            has_fatal_error("{}'s excluded_fields not found in API_PARAMS".format(table))
+    if is_webapp:
+        if fg in API_PARAMS['TABLE_METADATA'] \
+                and 'webapp_excluded_fields' in API_PARAMS['TABLE_METADATA'][fg]:
 
-        if is_webapp:
-            excluded_fields = API_PARAMS['TABLE_METADATA'][table][
-                'webapp_excluded_fields']
-        else:
+            excluded_columns = API_PARAMS['TABLE_METADATA'][fg]['webapp_excluded_fields']
+            return excluded_columns
+    else:
+        for table in API_PARAMS['TABLE_ORDER']:
+            if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][table]:
+                has_fatal_error("{}'s excluded_fields not found.".format(table))
+
             excluded_fields = API_PARAMS['TABLE_METADATA'][table]['excluded_fields']
 
-        for field in excluded_fields:
-            excluded_columns.add(
-                get_bq_name(API_PARAMS, field, table, is_webapp=is_webapp))
+            for field in excluded_fields:
+                excluded_columns.add(
+                    get_bq_name(API_PARAMS, field, table))
 
-    return excluded_columns
+            return excluded_columns
 
 
 def flatten_tables(field_groups, record_counts, is_webapp=False):
@@ -695,7 +698,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
                 flat_case[fg] = list()
 
             if rows:
-                excluded = get_all_excluded_columns()
+                excluded = get_all_excluded_columns(fg, is_webapp)
 
                 for r_field in rows.copy():
                     if r_field in excluded or not rows[r_field]:
