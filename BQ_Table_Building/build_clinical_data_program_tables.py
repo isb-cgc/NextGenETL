@@ -935,6 +935,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print(jsonl_file_path)
 
     for case in cases:
+        print(case)
+        exit()
         rename_case_fields(case, API_PARAMS)
 
         flat_case = flatten_case(case, is_webapp)
@@ -1203,10 +1205,6 @@ def main(args):
                 # creates dictionary of lists of schemafield objects in json format
                 table_schemas = create_app_schema_lists(schema, record_counts,
                                                         merged_orders)
-
-                print("\ntable_schemas\n")
-                print(table_schemas)
-                exit()
 
                 create_and_load_tables(program,
                                        cases,
