@@ -1098,7 +1098,8 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     # programs = get_program_list(BQ_PARAMS)
-    programs = ['BEATAML1.0']
+    # programs = ['BEATAML1.0']
+    programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
