@@ -762,7 +762,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
 
         print("\nflattened_case[field_group]\n")
         print(flattened_case[field_group])
-        exit()
+        continue
 
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
@@ -770,7 +770,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
             flattened_case[parent][parent_idx].update(record)
 
         flattened_case.pop(field_group)
-
+    exit()
 
 def get_record_counts(flattened_case, record_counts, is_webapp=False):
     """
