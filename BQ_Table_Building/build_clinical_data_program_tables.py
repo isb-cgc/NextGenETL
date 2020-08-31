@@ -522,6 +522,13 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
             has_fatal_error("record counts and merged orders disagree on program's "
                             "table architecture")
         for field in merged_orders[table]:
+
+            print('merged_orders[table]\n')
+            print(merged_orders[table])
+
+            print('schema\n')
+            print(schema)
+
             schema_field_lists[table].append(schema[field])
 
     return schema_field_lists
