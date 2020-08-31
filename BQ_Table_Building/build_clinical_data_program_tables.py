@@ -736,6 +736,13 @@ def flatten_case(case, is_webapp):
 
     case_id_name = get_field_name(case_id_key)
 
+    print("case_id_name")
+    print(case_id_name)
+
+    print("case[case_id_name]")
+    print(case[case_id_name])
+    print()
+
     flat_case = dict()
 
     flat_case = flatten_case_entry(record=case,
