@@ -1168,6 +1168,12 @@ def main(args):
                 # derive the program's table structure by analyzing its case records
                 columns, record_counts = find_program_structure(cases, is_webapp)
 
+                print("\ncolumns\n")
+                print(columns)
+
+                print("\nrecord_counts\n")
+                print(record_counts)
+
                 # add the parent id to field group dicts that will create separate tables
                 column_orders = add_reference_columns(columns, record_counts,
                                                       is_webapp=is_webapp)
