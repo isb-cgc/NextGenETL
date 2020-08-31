@@ -340,7 +340,8 @@ def load_table_from_query(bq_params, table_id, query):
 
     try:
         query_job = client.query(query, job_config=job_config)
-        await_insert_job(bq_params, client, table_id, query_job)
+        print(' - Starting insert for {}... '.format(table_id), end="")
+        await_insert_job(query_job)
     except TypeError as err:
         has_fatal_error(err)
 
@@ -375,7 +376,8 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-        await_insert_job(bq_params, client, table_id, load_job)
+        print(' - Starting insert for {}... '.format(table_id), end="")
+        await_insert_job(load_job)
     except TypeError as err:
         has_fatal_error(err)
 
@@ -393,20 +395,17 @@ def await_job(bq_params, client, bq_job):
     return True
 
 
-def await_insert_job(bq_params, client, table_id, load_job):
-    print(' - Starting insert for {}... '.format(table_id), end="")
+def await_insert_job(bq_job):
+    while not bq_job.done(timeout=3):
+        if bq_job.state == "DONE":
+            break
 
-    location = bq_params['LOCATION']
-    load_job = client.get_job(load_job.job_id, location=location)
-    load_job.done(timeout=3)
+    if bq_job.error_result is None:
+        print(" done. {} rows inserted.".format(bq_job.output_rows))
+        return
 
-    if load_job.error_result is not None:
-        has_fatal_error('[ERROR] While running BQ job: {}\n{}'.format(
-            load_job.error_result, load_job.errors))
-
-    table = client.get_table(table_id)
-
-    print(" done. {} rows inserted.".format(table.num_rows))
+    has_fatal_error('[ERROR] While running BQ job: {}\n{}'.
+                    format(bq_job.error_result, bq_job.errors))
 
 
 def get_program_list(bq_params):
