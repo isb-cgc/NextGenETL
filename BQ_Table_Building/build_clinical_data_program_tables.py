@@ -69,6 +69,7 @@ def get_jsonl_filename(program_name, table, is_webapp=False):
     Gets unique (per release) jsonl filename, used for intermediately storing
     the table rows after they're flattened, but before BQ insertion. Allows for
     faster script thanks to minimal BigQuery transactions.
+    :param is_webapp:
     :param program_name: name of the program to with the data belongs
     :param table: future insertion table for flattened data
     :return: String .jsonl filename, of the form
@@ -1148,6 +1149,9 @@ def main(args):
                 # removes the prefix from schema field name attributes
                 # removes the excluded fields/field groups
                 modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+
+                print("\nschema\n")
+                print(schema)
 
                 # reassign merged_column_orders to column_orders
                 merged_orders = merge_column_orders(schema,
