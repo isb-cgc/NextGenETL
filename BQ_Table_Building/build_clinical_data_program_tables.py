@@ -637,11 +637,13 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
 
                     rows[pid_column] = pid
 
-
-
                 # todo don't hard code
                 if not is_webapp and id_field != 'case_id':
                     rows['case_id'] = case_id
+
+                # todo don't hard code
+                if is_webapp and id_field != 'case_gdc_id':
+                    rows['case_gdc_id'] = case_id
 
                 # Field converted bq column name
                 if is_webapp:
@@ -765,6 +767,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
 
         flattened_case.pop(field_group)
     exit()
+
 
 def get_record_counts(flattened_case, record_counts, is_webapp=False):
     """
