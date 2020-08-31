@@ -757,6 +757,10 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
         else:
             bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
 
+        print("\nflattened_case\n")
+        print(flattened_case)
+        exit()
+
         for record in flattened_case[field_group]:
             parent_id = record[bq_parent_id_key]
             parent_idx = get_record_idx(flattened_case, parent, parent_id, is_webapp)
