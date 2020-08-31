@@ -1077,8 +1077,10 @@ def create_tables(program, cases, is_webapp=False):
         # add the parent id to field group dicts that will create separate tables
         column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
 
+        '''
         print("columns\n")
         print(columns)
+        '''
 
         modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
 
@@ -1124,8 +1126,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_program_list(BQ_PARAMS)
-    programs = ['BEATAML1.0']
+    programs = get_program_list(BQ_PARAMS)
+    # programs = ['BEATAML1.0']
     # programs = ['HCMI']
 
     for program in programs:
