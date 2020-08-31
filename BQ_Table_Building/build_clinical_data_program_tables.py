@@ -487,10 +487,6 @@ def add_reference_columns(columns, record_counts, schema=None,
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
     merge_order_dicts = dict()
 
-    print("col 1")
-    print(columns)
-    print()
-
     for table, depths in get_sorted_fg_depths(record_counts, reverse=True):
         schema_key = get_table_id_key(API_PARAMS, table, is_webapp)
         replacement_key = replace_key(API_PARAMS, schema_key)
@@ -521,9 +517,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             merge_order_dicts[merge_dict_key] = dict()
 
         merge_order_dicts[merge_dict_key].update(column_orders[table])
-    print("col 2")
-    print(columns)
-    print()
 
     return merge_order_dicts
 
@@ -537,6 +530,10 @@ def remove_null_fields(table_columns, merged_orders):
 
 
 def create_app_schema_lists(schema, record_counts, merged_orders):
+    print("\nschema\n")
+    print(schema)
+    print("\nmerged_orders\n")
+    print(merged_orders)
     schema_field_lists = dict()
 
     for table in get_tables(record_counts, API_PARAMS):
@@ -962,22 +959,6 @@ def copy_tables_into_public_project():
                      get_gdc_rel(BQ_PARAMS) + '/')
 
     files = get_dir_files(metadata_path)
-
-    modify_friendly_name_custom(
-        'isb-cgc-bq.BEATAML1_0.clinical_gdc_current',
-        'BEATAML 1.0 CLINICAL DATA'
-    )
-    modify_friendly_name_custom(
-        'isb-cgc-bq.BEATAML1_0_versioned.clinical_gdc_r24',
-        'BEATAML 1.0 CLINICAL DATA REL24 VERSIONED'
-    )
-
-    modify_friendly_name_custom(
-        'isb-project-zero.GDC_Clinical_Data.r24_BEATAML1_0_clinical',
-        'BEATAML 1.0 CLINICAL DATA'
-    )
-
-    exit()
 
     for json_file in files:
         table_name = transform_json_name_to_table(json_file)
