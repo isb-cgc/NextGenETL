@@ -721,7 +721,7 @@ def get_schema_from_master_table(api_params, flat_schema, fg, fields=None,
             for required_column in get_required_columns(api_params, fg):
                 flat_schema[required_column]['mode'] = 'REQUIRED'
         else:
-            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp)
+            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp=is_webapp)
             flat_schema[schema_key] = field_dict
 
     return flat_schema
