@@ -834,7 +834,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
 
     tables = get_tables(record_counts, API_PARAMS)
 
-    print("\nInserting case records...")
+    print("\nInserting case records for {}:", program_name)
     for json_table in tables:
         jsonl_file_path = get_temp_filepath(program_name, json_table, is_webapp)
         # delete last jsonl scratch file so we don't append to it
@@ -898,8 +898,7 @@ def update_table_metadata():
 
 def update_schema():
     fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
-    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + \
-                  get_gdc_rel(BQ_PARAMS) + '.json'
+    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + get_gdc_rel(BQ_PARAMS) + '.json'
 
     with open(get_filepath(fields_path, fields_file)) as json_file_output:
         descriptions = json.load(json_file_output)
@@ -1087,19 +1086,18 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_program_list(BQ_PARAMS)
-    # programs = ['HCMI']
+    # programs = get_program_list(BQ_PARAMS)
+    programs = ['BEATAML1.0']
 
     for program in programs:
         prog_start = time.time()
+        print("\nExecuting script for program {}...".format(program))
 
         if 'create_biospecimen_stub_tables' in steps:
             print("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
-
-            print("Executing script for program {}...".format(program))
             cases = get_cases_by_program(BQ_PARAMS, program)
 
             if len(cases) == 0:

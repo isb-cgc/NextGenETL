@@ -508,7 +508,7 @@ def await_job(bq_params, client, bq_job):
 
 
 def await_insert_job(bq_params, client, table_id, load_job):
-    print('\tStarting insert for {}, job ID: {}'.format(table_id, load_job.job_id))
+    print(' - Starting insert for {}... '.format(table_id), end="")
 
     last_report_time = time.time()
 
@@ -535,7 +535,7 @@ def await_insert_job(bq_params, client, table_id, load_job):
 
     table = client.get_table(table_id)
 
-    print("{}: {} rows inserted.".format(table.table_id, table.num_rows))
+    print(" done. {} rows inserted.\n".format(table.table_id, table.num_rows))
 
 
 def get_program_list(bq_params):
@@ -788,8 +788,6 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
             if fg in columns and renamed_field in columns[fg]:
                 columns[fg].add(renamed_fields[renamed_field])
                 columns[fg].remove(renamed_field)
-                print("removed field: {}, added field: {}".format(
-                    renamed_field, renamed_fields[renamed_field]))
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
         for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
