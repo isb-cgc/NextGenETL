@@ -1015,11 +1015,8 @@ def make_biospecimen_stub_tables(program):
         AND proj = '{}'
     """).format(program)
 
-    table_name = build_table_name([get_gdc_rel(BQ_PARAMS),
-                                   str(program),
-                                   BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    table_id = get_biospecimen_table_id(BQ_PARAMS, program)
 
-    table_id = get_webapp_table_id(BQ_PARAMS, table_name)
     load_table_from_query(BQ_PARAMS, table_id, query)
 
 

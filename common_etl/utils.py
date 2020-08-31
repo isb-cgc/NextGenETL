@@ -51,12 +51,6 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-
-
-
-
-
-
 #########################################
 #
 #       DATA ANALYSIS FUNCTIONS
@@ -410,7 +404,6 @@ def await_insert_job(bq_job):
         print(" done.")
 
 
-
 def get_program_list(bq_params):
     programs_query = ("""
         SELECT DISTINCT(proj) 
@@ -429,8 +422,7 @@ def get_program_list(bq_params):
 def get_cases_by_program(bq_params, program):
     cases = []
 
-    sample_table_id = get_webapp_table_id(
-        bq_params, build_table_name([program, bq_params['BIOSPECIMEN_SUFFIX']]))
+    sample_table_id = get_biospecimen_table_id(bq_params, program)
 
     query = ("""
         SELECT * 
@@ -799,7 +791,7 @@ def get_prefix(api_params, fg):
     if fg not in api_params['FIELD_CONFIG']:
         has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
     if 'prefix' not in api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg),KeyError)
+        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg), KeyError)
 
     prefix = api_params['FIELD_CONFIG'][fg]['prefix']
 
@@ -885,6 +877,16 @@ def build_table_name(arr):
 #       FIELD, COLUMN, TABLE GETTERS
 #
 #########################################
+
+
+def get_biospecimen_table_id(bq_params, program):
+    bio_table_name = build_table_name(get_gdc_rel(bq_params),
+                                      str(program),
+                                      bq_params['BIOSPECIMEN_SUFFIX'])
+
+    bio_table_id = get_webapp_table_id(bq_params, bio_table_name)
+
+    return bio_table_id
 
 
 def get_field_key(field_group, field):
