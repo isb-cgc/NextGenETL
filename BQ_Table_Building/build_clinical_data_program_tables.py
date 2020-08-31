@@ -1180,15 +1180,6 @@ def main(args):
                 # derive the program's table structure by analyzing its case records
                 columns, record_counts = find_program_structure(cases, is_webapp)
 
-                print("\nschema\n")
-                print(schema)
-
-                print("\ncolumns\n")
-                print(columns)
-
-                print("\nrecord_counts\n")
-                print(record_counts)
-
                 # add the parent id to field group dicts that will create separate tables
                 column_orders = add_reference_columns(columns, record_counts,
                                                       is_webapp=is_webapp)
@@ -1199,15 +1190,6 @@ def main(args):
                 # removes the excluded fields/field groups
                 modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
 
-                print("\nschema\n")
-                print(schema)
-
-                print("\ncolumns\n")
-                print(columns)
-
-                print("\nrecord_counts\n")
-                print(record_counts)
-
                 # reassign merged_column_orders to column_orders
                 merged_orders = merge_column_orders(schema,
                                                     columns,
@@ -1215,15 +1197,12 @@ def main(args):
                                                     column_orders,
                                                     is_webapp)
 
-
+                # drop any null fields from the merged column order dicts
+                remove_null_fields(columns, merged_orders)
 
                 print("\nmerged_orders\n")
                 print(merged_orders)
                 exit()
-
-
-                # drop any null fields from the merged column order dicts
-                remove_null_fields(columns, merged_orders)
 
                 # creates dictionary of lists of schemafield objects in json format
                 table_schemas = create_app_schema_lists(schema, record_counts,
