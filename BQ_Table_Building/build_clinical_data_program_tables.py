@@ -659,7 +659,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
             if rows:
                 excluded = get_all_excluded_columns(fg, is_webapp)
 
-                print("\nexcluded\n")
+                print("\nexcluded for {}:\n".format(fg))
                 print(excluded)
 
                 for r_field in rows.copy():
