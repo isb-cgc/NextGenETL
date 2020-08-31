@@ -452,7 +452,7 @@ def add_reference_columns(columns, record_counts, schema=None, program=None, is_
 
         if is_webapp:
             base_fg = get_base_fg(API_PARAMS)
-            case_id_field = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
+            case_id_field = get_fg_id_key(API_PARAMS, base_fg, is_webapp)
 
             columns[fg].add(pid_field)
             column_orders[fg][pid_field] = curr_index
