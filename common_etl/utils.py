@@ -749,6 +749,9 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
 
     exclude_fields = get_excluded_fields(fgs, api_params, is_webapp=True)
 
+    print("\nexclude_fields\n")
+    print(exclude_fields)
+
     for fg in fgs:
         # rename case_id no matter which fg it's in
         for renamed_field in renamed_fields.keys():
