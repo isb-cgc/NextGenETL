@@ -466,7 +466,7 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         root_fg = get_field_group(fg)
 
-        fg_id_name = get_table_id_name(API_PARAMS, root_fg)
+        fg_id_name = get_table_id_name(API_PARAMS, root_fg, is_webapp)
 
         pid_field = '.'.join([root_fg, fg_id_name])
 

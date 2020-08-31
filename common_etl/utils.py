@@ -145,7 +145,7 @@ def get_table_id_name(api_params, table_key, is_webapp=False):
 
     table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
 
-    table_id_key = ".".join(table_key, table_id_name)
+    table_id_key = ".".join([table_key, table_id_name])
 
     if is_webapp and table_id_key in api_params['RENAME_FIELDS_FULL']:
         table_id_name = api_params['RENAME_FIELDS_FULL'][table_id_key].split(".")[-1]
