@@ -51,136 +51,19 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def load_config(yaml_file, yaml_dict_keys):
-    """
-    Opens yaml file and retrieves configuration parameters.
-    :param yaml_file: yaml config file name
-    :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
-    top-level dict keys.
-    :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
-    """
-    yaml_dict = None
-
-    config_stream = io.StringIO(yaml_file.read())
-
-    try:
-        yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
-    except yaml.YAMLError as ex:
-        has_fatal_error(ex, yaml.YAMLError)
-    if yaml_dict is None:
-        has_fatal_error("Bad YAML load, exiting.", ValueError)
-
-    # Dynamically generate a list of dictionaries for the return statement,
-    # since tuples are immutable
-    return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
-
-    return tuple(return_dicts)
 
 
-#####
+
+
+
+
+#########################################
 #
-# Functions for getting param values in more readable format
+#       DATA ANALYSIS FUNCTIONS
 #
-##
-def convert_dict_to_string(obj):
-    """
-    Converts dict/list of primitives or strings to a comma-separated string
-    :param obj: object to converts
-    :return: modified object
-    """
-    if isinstance(obj, list):
-        if not isinstance(obj[0], dict):
-            str_list = ', '.join(obj)
-            obj = str_list
-        else:
-            for idx, value in enumerate(obj.copy()):
-                obj[idx] = convert_dict_to_string(value)
-    elif isinstance(obj, dict):
-        for key in obj:
-            obj[key] = convert_dict_to_string(obj[key])
-    return obj
+#########################################
 
 
-def get_required_columns(api_params, table):
-    """
-    Get list of required columns.
-    :param api_params: api params from yaml config file
-    :param table: name of table for which to retrieve required columns.
-    :return: list of required columns (currently, only returns table's primary id)
-    """
-    if table not in api_params['TABLE_METADATA']:
-        return None
-    elif 'table_id_key' not in api_params['TABLE_METADATA'][table]:
-        return None
-
-    table_id_field = api_params['TABLE_METADATA'][table]['table_id_key']
-    table_id_name = get_full_field_name(table, table_id_field)
-    return [table_id_name]
-
-
-def get_master_table_name(bq_params):
-    """
-    # todo
-    :param bq_params:
-    :return:
-    """
-    return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
-
-
-def get_table_id_name(api_params, table_key, is_webapp=False):
-    """
-    Retrieves the id key used to uniquely identify a table record.
-    :param is_webapp:
-    :param api_params:
-    :param table_key: Table for which to determine the id key.
-    :return: String representing table key.
-    """
-    if table_key not in api_params['TABLE_METADATA']:
-        return None
-
-    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
-
-    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
-
-    table_id_key = ".".join([table_key, table_id_name])
-
-    if is_webapp and table_id_key in api_params['RENAME_FIELDS_FULL']:
-        table_id_name = api_params['RENAME_FIELDS_FULL'][table_id_key].split(".")[-1]
-
-    return table_id_name
-
-
-def get_table_id_key(api_params, table_key, is_webapp=False):
-    """
-    Retrieves the id key used to uniquely identify a table record.
-    :param is_webapp:
-    :param api_params:
-    :param table_key: Table for which to determine the id key.
-    :return: String representing table key.
-    """
-    if table_key not in api_params['TABLE_METADATA']:
-        return None
-
-    if 'table_id_key' not in api_params['TABLE_METADATA'][table_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(table_key))
-
-    table_id_name = api_params['TABLE_METADATA'][table_key]['table_id_key']
-
-    table_id_key = '.'.join([table_key, table_id_name])
-
-    if is_webapp and table_id_name in api_params['RENAME_FIELDS']:
-        new_name = api_params['RENAME_FIELDS'][table_id_name]
-        table_id_key = '.'.join([table_key, new_name])
-
-    return table_id_key
-
-
-#####
-#
-# Functions for analyzing data
-#
-##
 def check_value_type(value):
     """
     Checks value for type (possibilities are string, float and integers)
@@ -255,7 +138,7 @@ def infer_data_types(flattened_json):
     return data_types
 
 
-def collect_values(fields, field, parent, prefix):
+def collect_values(fields, field, parent, fg_prefix):
     """
     Recursively inserts sets of values for a given field into return dict (
     used to infer field data type)
@@ -263,14 +146,14 @@ def collect_values(fields, field, parent, prefix):
     field_values)
     :param field: field name
     :param parent: dict containing field and it's values
-    :param prefix: string representation of current location in field hierarchy
+    :param fg_prefix: string representation of current location in field hierarchy
     :return: field_dict containing field names and a set of its values.
     """
     # If the value of parent_dict[key] is a list at this level, and a dict at the next
     # (or a dict at this level, as seen in second conditional statement),
     # iterate over each list element's dictionary entries. (Sometimes lists are composed
     # of strings rather than dicts, and those are later converted to strings.)
-    field_name = prefix + field
+    field_name = fg_prefix + field
     new_prefix = field_name + '.'
 
     if isinstance(parent[field], list) \
@@ -296,11 +179,13 @@ def collect_values(fields, field, parent, prefix):
     return fields
 
 
-#####
+#########################################
 #
-# Functions for creating bq schema
+#       BQ SCHEMA CREATION FUNCTIONS
 #
-##
+#########################################
+
+
 def create_mapping_dict(endpoint):
     """
     Creates a dict containing field mappings for given endpoint.
@@ -422,15 +307,21 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
 
-    return get_schema_from_master_table(api_params, dict(), api_params['BASE_FG'],
-                                        table_obj.schema, is_webapp)
+    # todo remove 3rd arg
+    return get_schema_from_master_table(api_params,
+                                        dict(),
+                                        api_params['FG_CONFIG']['base_fg'],
+                                        table_obj.schema,
+                                        is_webapp)
 
 
-#####
+#########################################
 #
-# Functions for interfacing with Google Cloud services
+#       GOOGLE CLOUD HELPERS
 #
-##
+#########################################
+
+
 def get_query_results(query):
     """
     Returns result of BigQuery query.
@@ -577,34 +468,6 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
-def get_table_suffixes(api_params):
-    """
-    Get abbreviations for included field groups
-    :param api_params: api params from yaml config file
-    :return: dict of {table name: abbreviation}
-    """
-    suffixes = dict()
-
-    for table, metadata in api_params['TABLE_METADATA'].items():
-        suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
-
-    return suffixes
-
-
-def get_prefixes(api_params):
-    """
-    Get abbreviations for included field groups
-    :param api_params: api params from yaml config file
-    :return: dict of {table name: abbreviation}
-    """
-    prefixes = dict()
-
-    for table, table_metadata in api_params['TABLE_METADATA'].items():
-        prefixes[table] = table_metadata['prefix'] if table_metadata['prefix'] else ''
-
-    return prefixes
-
-
 def exists_bq_table(table_id):
     client = bigquery.Client()
 
@@ -671,7 +534,8 @@ def delete_bq_table(bq_params, table):
 def copy_bq_table(bq_params, src_table, dest_table, project=None):
     client = bigquery.Client()
 
-    bq_job = client.copy_table(src_table, dest_table, project=project)
+    # bq_job = client.copy_table(src_table, dest_table, project=project)
+    bq_job = client.copy_table(src_table, dest_table)
     await_job(bq_params, client, bq_job)
 
 
@@ -710,7 +574,7 @@ def get_schema_from_master_table(api_params, flat_schema, fg, fields=None,
     :return: flattened schema dict {full field name:
         {name: 'name', type: 'field_type', description: 'description'}}
     """
-    if fg not in api_params['TABLE_METADATA'].keys():
+    if fg not in api_params['FIELD_CONFIG'].keys():
         return flat_schema
 
     for field in fields:
@@ -731,32 +595,8 @@ def get_schema_from_master_table(api_params, flat_schema, fg, fields=None,
     return flat_schema
 
 
-def get_excluded_fields(fgs, api_params, is_webapp=False):
-    exclude_fields = set()
-
-    for fg in fgs:
-        fg_metadata = api_params['TABLE_METADATA'][fg]
-
-        if ('excluded_fields' not in fg_metadata
-                or (is_webapp and 'webapp_excluded_fields' not in fg_metadata)):
-            has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
-
-        if is_webapp:
-            if fg_metadata['webapp_excluded_fields']:
-                for w_field in fg_metadata['webapp_excluded_fields']:
-                    # add webapp-specific excluded fields
-                    exclude_fields.add('.'.join([fg, w_field]))
-        else:
-            if fg_metadata['excluded_fields']:
-                for field in fg_metadata['excluded_fields']:
-                    # add generic excluded fields
-                    exclude_fields.add('.'.join([fg, field]))
-
-    return exclude_fields
-
-
 def rename_fields_for_app(column_orders, api_params):
-    for old_name, new_name in api_params['RENAME_FIELDS_FULL'].items():
+    for old_name, new_name in api_params['RENAMED_FIELDS'].items():
         fg = get_field_group(old_name)
 
         if fg in column_orders and old_name in column_orders[fg]:
@@ -767,12 +607,7 @@ def rename_fields_for_app(column_orders, api_params):
 
 def modify_fields_for_app(schema, column_order_dict, columns, api_params):
     excluded_fgs = set()
-    renamed_fields = dict()
-
-    for old_field_name, new_field_name in api_params['RENAME_FIELDS'].items():
-        old_field = ".".join([api_params['BASE_FG'], old_field_name])
-        new_field = ".".join([api_params['BASE_FG'], new_field_name])
-        renamed_fields[old_field] = new_field
+    renamed_fields = dict(api_params['RENAMED_FIELDS'])
 
     fgs = column_order_dict.keys()
 
@@ -790,7 +625,7 @@ def modify_fields_for_app(schema, column_order_dict, columns, api_params):
                 columns[fg].remove(renamed_field)
 
     if 'WEBAPP_EXCLUDED_FG' in api_params:
-        for excluded_fg in api_params['WEBAPP_EXCLUDED_FG']:
+        for excluded_fg in api_params['FG_CONFIG']['app_excluded_fgs']:
             excluded_fgs.add(excluded_fg)
 
     # field is fully associated name
@@ -833,52 +668,231 @@ def to_bq_schema_obj(schema_field_dict):
     return bigquery.SchemaField.from_api_repr(schema_field_dict)
 
 
-def upload_to_bucket(bq_params, api_params, file_name):
+def upload_to_bucket(bq_params, file_name):
     """
     Uploads file to a google storage bucket (location specified in yaml config)
     :param bq_params: bq params from yaml config file
-    :param api_params: api params from yaml config file
     :param file_name: name of file to upload to bucket
     """
-    filepath = get_scratch_dir(api_params)
+    filepath = get_scratch_dir(bq_params)
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
-        blob = bucket.blob(bq_params['WORKING_BUCKET_DIR'] + '/' + file_name)
-        blob.upload_from_filename(filepath + '/' + file_name)
+        blob = bucket.blob("/".join([bq_params['WORKING_BUCKET_DIR'], file_name]))
+        blob.upload_from_filename("/".join([filepath, file_name]))
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+
+#########################################
+#
+#       YAML CONFIG GETTERS
+#
+#########################################
+
+
+def get_required_columns(api_params, table):
+    """
+    Get list of required columns.
+    :param api_params: api params from yaml config file
+    :param table: name of table for which to retrieve required columns.
+    :return: list of required columns (currently, only returns table's primary id)
+    """
+    if table not in api_params['FIELD_CONFIG']:
+        return None
+    elif 'id_key' not in api_params['FIELD_CONFIG'][table]:
+        return None
+
+    table_id_field = api_params['FIELD_CONFIG'][table]['id_key']
+    table_id_name = get_full_field_name(table, table_id_field)
+    return [table_id_name]
+
+
+def get_master_table_name(bq_params):
+    """
+    # todo
+    :param bq_params:
+    :return:
+    """
+    return "_".join([get_gdc_rel(bq_params), bq_params['MASTER_TABLE']])
+
+
+def get_renamed_fields(api_params):
+    if 'RENAMED_FIELDS' not in api_params:
+        has_fatal_error("RENAMED_FIELDS not found in API_PARAMS")
+    if not api_params['RENAMED_FIELDS']:
+        return None
+
+    return api_params['RENAMED_FIELDS']
+
+
+def get_new_field_name(api_params, field):
+    renamed_field_dict = get_renamed_fields(api_params)
+    if not renamed_field_dict or field not in renamed_field_dict:
+        return None
+
+    return renamed_field_dict[field]
+
+
+def get_fg_id_name(api_params, fg_key, is_webapp=False):
+    """
+    Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
+    :param api_params:
+    :param fg_key: Table for which to determine the id key.
+    :return: String representing table key.
+    """
+    if fg_key not in api_params['FIELD_CONFIG']:
+        return None
+
+    if 'id_key' not in api_params['FIELD_CONFIG'][fg_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(fg_key))
+
+    table_id_name = api_params['FIELD_CONFIG'][fg_key]['id_key']
+
+    if is_webapp:
+        table_id_key = ".".join([fg_key, table_id_name])
+        new_table_id_key = get_new_field_name(api_params, table_id_key)
+
+        if new_table_id_key:
+            table_id_name = get_field_name(new_table_id_key)
+
+    return table_id_name
+
+
+def get_fg_id_key(api_params, fg_key, is_webapp=False):
+    """
+    Retrieves the id key used to uniquely identify a table record.
+    :param is_webapp:
+    :param api_params:
+    :param fg_key: Table for which to determine the id key.
+    :return: String representing table key.
+    """
+    if fg_key not in api_params['FIELD_CONFIG']:
+        return None
+
+    if 'id_key' not in api_params['FIELD_CONFIG'][fg_key]:
+        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(fg_key))
+
+    fg_id_name = api_params['FIELD_CONFIG'][fg_key]['id_key']
+
+    fg_id_key = '.'.join([fg_key, fg_id_name])
+
+    if is_webapp:
+        new_id_key = get_new_field_name(api_params, fg_id_key)
+
+        if new_id_key:
+            fg_id_key = new_id_key
+
+    return fg_id_key
+
+
+def get_table_suffixes(api_params):
+    """
+    Get abbreviations for included field groups
+    :param api_params: api params from yaml config file
+    :return: dict of {table name: abbreviation}
+    """
+    suffixes = dict()
+
+    for table, metadata in api_params['FIELD_CONFIG'].items():
+        suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
+
+    return suffixes
+
+
+def get_prefix(api_params, fg):
+    """
+    Get abbreviations for included field groups
+    :param api_params: api params from yaml config file
+    :return: dict of {table name: abbreviation}
+    """
+    if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
+        has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
+    if fg not in api_params['FIELD_CONFIG']:
+        has_fatal_error('Field group {} not found in not in FIELD_CONFIG'.format(fg),
+                        KeyError)
+    if 'prefix' not in api_params['FIELD_CONFIG'][fg]:
+        has_fatal_error(
+            "prefix not found in api_params[\'FIELD_CONFIG\'][\'{}\']".format(fg),
+            KeyError)
+    prefix = api_params['FIELD_CONFIG'][fg]['prefix']
+
+    return prefix
+
+
+def get_excluded_fields(fgs, api_params, is_webapp=False):
+    exclude_fields = set()
+
+    for fg in fgs:
+        fg_metadata = api_params['FIELD_CONFIG'][fg]
+
+        if ('excluded_fields' not in fg_metadata
+                or (is_webapp and 'webapp_excluded_fields' not in fg_metadata)):
+            has_fatal_error("One of the excluded fg params missing from YAML.", KeyError)
+
+        if is_webapp:
+            if fg_metadata['webapp_excluded_fields']:
+                for w_field in fg_metadata['webapp_excluded_fields']:
+                    # add webapp-specific excluded fields
+                    exclude_fields.add('.'.join([fg, w_field]))
+        else:
+            if fg_metadata['excluded_fields']:
+                for field in fg_metadata['excluded_fields']:
+                    # add generic excluded fields
+                    exclude_fields.add('.'.join([fg, field]))
+
+    return exclude_fields
 
 
 def get_gdc_rel(bq_params):
     return bq_params['REL_PREFIX'] + bq_params['GDC_RELEASE']
 
 
+def get_working_table_id(bq_params, table_name=None):
+    if not table_name:
+        table_name = get_master_table_name(bq_params)
+
+    return ".".join([bq_params["DEV_PROJECT"], bq_params["DEV_DATASET"], table_name])
+
+
+def get_webapp_table_id(bq_params, table_name):
+    return ".".join([bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name])
+
+
+def get_base_fg(api_params):
+    if 'FG_CONFIG' not in api_params:
+        has_fatal_error("FG_CONFIG not set (in api_params) in YAML.", KeyError)
+    if 'base_fg' not in api_params['FG_CONFIG'] or not api_params['FG_CONFIG']['base_fg']:
+        has_fatal_error("base_fg not set (in api_params['FG_CONFIG']) in YAML.", KeyError)
+
+    return api_params['FG_CONFIG']['base_fg']
+
+
+def get_expand_groups(api_params):
+    """
+    Get expand field groups from yaml config
+    :return: list of expand field groups.
+    """
+    if 'EXPAND_FIELD_GROUPS' not in api_params:
+        has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
+
+    return ",".join(list(api_params['EXPAND_FIELD_GROUPS']))
+
+
+########
 def build_table_name(arr):
     table_name = "_".join(arr)
     return table_name.replace('.', '_')
 
 
-def get_working_table_id(bq_params, table_name=None):
-    if not table_name:
-        table_name = get_master_table_name(bq_params)
-
-    return ".".join([bq_params["WORKING_PROJECT"],
-                     bq_params["WORKING_DATASET"],
-                     table_name])
-
-
-def get_webapp_table_id(bq_params, table_name):
-    return ".".join([bq_params['WORKING_PROJECT'],
-                     bq_params['TARGET_DATASET'],
-                     table_name])
-
-
-#####
+#########################################
 #
-# Functions for getting field, field group, column, table names or depths
+#       FIELD, COLUMN, TABLE GETTERS
 #
-##
+#########################################
+
+
 def get_full_field_name(field_group, field):
     """
     get full field name for field
@@ -953,28 +967,28 @@ def get_bq_name(api_params, field_name, table_path=None, is_webapp=False):
     :return: bq column name for given field name
     """
     if table_path:
-        field_name = table_path + '.' + field_name
+        field_key = table_path + '.' + field_name
 
-    split_name = field_name.split('.')
-    if split_name[0] != api_params['BASE_FG']:
-        split_name.insert(0, api_params['BASE_FG'])
+    split_name = field_key.split('.')
 
-    field_group = '.'.join(split_name[:-1])
-    field = split_name[-1]
+    if split_name[0] != get_base_fg(api_params):
+        split_name.insert(0, get_base_fg(api_params))
+        field_key = '.'.join(split_name)
 
-    if field_group == api_params['BASE_FG']:
-        return field
+    field_group = get_field_group(field_key)
+    field_name = field_key
 
-    prefixes = get_prefixes(api_params)
+    if field_group == get_base_fg(api_params):
+        return field_name
 
-    if field_group not in prefixes:
-        return None
+    if not is_webapp:
+        prefix = get_prefix(api_params, field_group)
 
-    if prefixes[field_group] and not is_webapp:
-        return prefixes[field_group] + '__' + field
+        if prefix:
+            return "__".join([prefix[field_group],  field_name])
 
-    # prefix is blank, like in the instance of api_params['BASE_FG']
-    return field
+    # prefix is blank, like in the instance of api_params['FG_CONFIG']['base_fg']
+    return field_name
 
 
 def get_field_group(field_name):
@@ -1002,7 +1016,7 @@ def get_tables(record_counts, api_params):
         if record_counts[table] > 1:
             table_keys.add(table)
 
-    table_keys.add(api_params['BASE_FG'])
+    table_keys.add(api_params['FG_CONFIG']['base_fg'])
 
     return table_keys
 
@@ -1031,20 +1045,22 @@ def get_parent_table(tables, field_name):
 
 
 def is_valid_fg(api_params, fg_name):
-    return fg_name in api_params['TABLE_METADATA'].keys()
+    return fg_name in api_params['FIELD_CONFIG'].keys()
 
 
-#####
+#########################################
 #
-# Functions for filesystem operations
+#       FILESYSTEM HELPERS
 #
-##
-def get_scratch_dir(api_params):
+#########################################
+
+
+def get_scratch_dir(bq_params):
     """
     Construct filepath for VM output file
     :return: output filepath for VM
     """
-    return '/'.join([os.path.expanduser('~'), api_params['SCRATCH_DIR']])
+    return '/'.join([os.path.expanduser('~'), bq_params['SCRATCH_DIR']])
 
 
 def get_dir_files(dir_path):
@@ -1054,3 +1070,56 @@ def get_dir_files(dir_path):
 
 def get_filepath(dir_path, filename):
     return '/'.join([os.path.expanduser('~'), dir_path, filename])
+
+
+def load_config(yaml_file, yaml_dict_keys):
+    """
+    Opens yaml file and retrieves configuration parameters.
+    :param yaml_file: yaml config file name
+    :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
+    top-level dict keys.
+    :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
+    """
+    yaml_dict = None
+
+    config_stream = io.StringIO(yaml_file.read())
+
+    try:
+        yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
+    except yaml.YAMLError as ex:
+        has_fatal_error(ex, yaml.YAMLError)
+    if yaml_dict is None:
+        has_fatal_error("Bad YAML load, exiting.", ValueError)
+
+    # Dynamically generate a list of dictionaries for the return statement,
+    # since tuples are immutable
+    return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
+
+    return tuple(return_dicts)
+
+
+#########################################
+#
+#       MISC UTILITIES
+#
+#########################################
+
+
+def convert_dict_to_string(obj):
+    """
+    Converts dict/list of primitives or strings to a comma-separated string.
+    Used to write data to file
+    :param obj: object to converts
+    :return: modified object
+    """
+    if isinstance(obj, list):
+        if not isinstance(obj[0], dict):
+            str_list = ', '.join(obj)
+            obj = str_list
+        else:
+            for idx, value in enumerate(obj.copy()):
+                obj[idx] = convert_dict_to_string(value)
+    elif isinstance(obj, dict):
+        for key in obj:
+            obj[key] = convert_dict_to_string(obj[key])
+    return obj

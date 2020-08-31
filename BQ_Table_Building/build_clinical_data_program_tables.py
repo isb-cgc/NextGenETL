@@ -89,7 +89,7 @@ def get_temp_filepath(program_name, table, is_webapp=False):
     :return: String representing the temp file path.
     """
 
-    path = get_scratch_dir(API_PARAMS) + '/'
+    path = get_scratch_dir(BQ_PARAMS) + '/'
 
     return path + get_jsonl_filename(program_name, table, is_webapp)
 
@@ -111,7 +111,7 @@ def get_id_index(table_key, column_order_dict):
     :param column_order_dict: Dictionary containing column names : indexes
     :return: Int representing relative column position in schema.
     """
-    table_id_key = get_table_id_key(API_PARAMS, table_key)
+    table_id_key = get_fg_id_key(API_PARAMS, table_key)
     return column_order_dict[table_id_key]
 
 
@@ -131,22 +131,22 @@ def build_column_order_dict():
     :return: dict of str column names : int representing position.
     """
     column_order_dict = dict()
-    field_groups = API_PARAMS['TABLE_ORDER']
+    field_groups = API_PARAMS['FG_CONFIG']['order']
     id_index_gap = len(field_groups) - 1
 
     idx = 0
 
     for group in field_groups:
         try:
-            param_column_order = API_PARAMS['TABLE_METADATA'][group]['column_order']
-            id_column = API_PARAMS['TABLE_METADATA'][group]['table_id_key']
+            param_column_order = API_PARAMS['FIELD_CONFIG'][group]['column_order']
+            id_column = API_PARAMS['FIELD_CONFIG'][group]['id_key']
 
             for column in param_column_order:
                 column_order_dict[group + '.' + column] = idx
                 idx = idx + (id_index_gap * 2) if id_column == column else idx + 1
         except KeyError:
-            has_fatal_error("{} found in API_PARAMS['TABLE_ORDER'] but not in "
-                            "API_PARAMS['TABLE_METADATA']".format(group))
+            has_fatal_error("{} found in API_PARAMS['FG_CONFIG']['order'] but not in "
+                            "API_PARAMS['FIELD_CONFIG']".format(group))
 
     column_order_dict['cases.state'] = idx
     column_order_dict['cases.created_datetime'] = idx + 1
@@ -161,12 +161,12 @@ def get_column_order(table):
     :param table: table for which to retrieve column order
     :return: table's column order list
     """
-    if table not in API_PARAMS['TABLE_METADATA']:
-        has_fatal_error("'{}' not found in API_PARAMS['TABLE_METADATA']".format(table))
-    elif 'column_order' not in API_PARAMS['TABLE_METADATA'][table]:
+    if table not in API_PARAMS['FIELD_CONFIG']:
+        has_fatal_error("'{}' not found in API_PARAMS['FIELD_CONFIG']".format(table))
+    elif 'column_order' not in API_PARAMS['FIELD_CONFIG'][table]:
         has_fatal_error("no column order provided for {} in yaml config.".format(table))
 
-    ordered_table_fields = API_PARAMS['TABLE_METADATA'][table]['column_order']
+    ordered_table_fields = API_PARAMS['FIELD_CONFIG'][table]['column_order']
 
     master_index_dict = build_column_order_dict()
 
@@ -187,18 +187,18 @@ def get_all_excluded_columns(fg, is_webapp=False):
     """
     excluded_columns = set()
 
-    if not API_PARAMS['TABLE_ORDER']:
-        has_fatal_error("params['TABLE_ORDER'] not found")
+    if not API_PARAMS['FG_CONFIG']['order']:
+        has_fatal_error("api_params['FG_CONFIG']['order'] not found")
 
-    if (is_webapp and fg in API_PARAMS['TABLE_METADATA']
-            and 'webapp_excluded_fields' in API_PARAMS['TABLE_METADATA'][fg]):
+    if (is_webapp and fg in API_PARAMS['FIELD_CONFIG']
+            and 'webapp_excluded_fields' in API_PARAMS['FIELD_CONFIG'][fg]):
 
-        excluded_columns = API_PARAMS['TABLE_METADATA'][fg]['webapp_excluded_fields']
+        excluded_columns = API_PARAMS['FIELD_CONFIG'][fg]['webapp_excluded_fields']
     else:
-        if 'excluded_fields' not in API_PARAMS['TABLE_METADATA'][fg]:
+        if 'excluded_fields' not in API_PARAMS['FIELD_CONFIG'][fg]:
             has_fatal_error("{}'s excluded_fields not found.".format(fg))
 
-        for field in API_PARAMS['TABLE_METADATA'][fg]['excluded_fields']:
+        for field in API_PARAMS['FIELD_CONFIG'][fg]['excluded_fields']:
             excluded_columns.add(get_bq_name(API_PARAMS, field, fg))
 
     return excluded_columns
@@ -259,7 +259,7 @@ def examine_case(set_fields, record_cnts, fg, fg_name):
     :param fg_name: name of currently-traversed field group
     :return: dicts of non-null field lists and max record counts (keys = field groups)
     """
-    fgs = API_PARAMS['TABLE_METADATA'].keys()
+    fgs = API_PARAMS['FIELD_CONFIG'].keys()
     if fg_name in fgs:
         for field, record in fg.items():
 
@@ -307,7 +307,7 @@ def find_program_structure(cases, is_webapp=False):
             examine_case(fgs, record_counts, fg=case, fg_name=API_PARAMS['BASE_FG'])
 
     for fg in fgs:
-        if fg not in API_PARAMS['TABLE_METADATA']:
+        if fg not in API_PARAMS['FIELD_CONFIG']:
             print("{} not in metadata".format(fg))
             fgs.pop(fg)
             cases.pop(fg)
@@ -340,10 +340,10 @@ def get_count_column_index(table_name, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_table_id_name(API_PARAMS, table_name)
+    table_id_key = get_fg_id_name(API_PARAMS, table_name)
     id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
-    field_groups = API_PARAMS['TABLE_ORDER']
+    field_groups = API_PARAMS['FG_CONFIG']['order']
     id_index_gap = len(field_groups) - 1
 
     return id_column_index + id_index_gap
@@ -449,7 +449,7 @@ def add_reference_columns(columns, record_counts, schema=None,
 
         root_fg = get_field_group(fg)
 
-        fg_id_name = get_table_id_name(API_PARAMS, root_fg, is_webapp)
+        fg_id_name = get_fg_id_name(API_PARAMS, root_fg, is_webapp)
 
         pid_field = '.'.join([root_fg, fg_id_name])
 
@@ -479,7 +479,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        table_id_key = table + "." + get_table_id_name(API_PARAMS, table, is_webapp)
+        table_id_key = table + "." + get_fg_id_name(API_PARAMS, table, is_webapp)
 
         if table in columns:
             merge_dict_key = table
@@ -564,7 +564,7 @@ def remove_excluded_fields(case, fg, config_str):
     :param fg: name of destination table.
     :return: Trimmed down record dict.
     """
-    fg_metadata = API_PARAMS['TABLE_METADATA']
+    fg_metadata = API_PARAMS['FIELD_CONFIG']
 
     if fg not in fg_metadata or config_str not in fg_metadata[fg]:
         return None
@@ -604,7 +604,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    if fg not in API_PARAMS['TABLE_METADATA'].keys():
+    if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return flat_case
 
     if isinstance(record, list):
@@ -614,7 +614,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
                                            pid_field, is_webapp)
     else:
         rows = dict()
-        id_field = get_table_id_name(API_PARAMS, fg, is_webapp)
+        id_field = get_fg_id_name(API_PARAMS, fg, is_webapp)
 
         for field, field_val in record.items():
             if isinstance(field_val, list):
@@ -635,6 +635,8 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp
                         pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
 
                     rows[pid_column] = pid
+
+
 
                 # todo don't hard code
                 if not is_webapp and id_field != 'case_id':
@@ -671,19 +673,20 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    if (API_PARAMS['BASE_FG'] not in API_PARAMS['TABLE_METADATA'] or
-            'table_id_key' not in API_PARAMS['TABLE_METADATA'][API_PARAMS['BASE_FG']]):
+    if (API_PARAMS['BASE_FG'] not in API_PARAMS['FIELD_CONFIG'] or
+            'id_key' not in API_PARAMS['FIELD_CONFIG'][API_PARAMS['BASE_FG']]):
         has_fatal_error("")
 
     if is_webapp:
-        rename_fields = API_PARAMS['RENAME_FIELDS']
-
-        for old_name, new_name in rename_fields.items():
+        for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
+            old_name = get_field_name(old_key)
+            new_name = get_field_name(new_key)
             if old_name in case:
-                case[new_name] = case[old_name]
+                val = case[old_name]
+                case[new_name] = val
                 case.pop(old_name)
 
-    case_id_key = get_table_id_key(API_PARAMS, API_PARAMS['BASE_FG'], is_webapp)
+    case_id_key = get_fg_id_key(API_PARAMS, API_PARAMS['BASE_FG'], is_webapp)
 
     case_id_name = get_field_name(case_id_key)
 
@@ -707,7 +710,7 @@ def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
     :param record_id: id of record for which to retrieve position
     :return: position index of record in field group's record list
     """
-    fg_id_name = get_table_id_name(API_PARAMS, field_group, is_webapp)
+    fg_id_name = get_fg_id_name(API_PARAMS, field_group, is_webapp)
 
     if is_webapp:
         fg_id_key = fg_id_name
@@ -744,7 +747,7 @@ def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
                 flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
 
     for field_group, parent in flattened_fg_parents.items():
-        fg_id_name = get_table_id_name(API_PARAMS, parent, is_webapp)
+        fg_id_name = get_fg_id_name(API_PARAMS, parent, is_webapp)
 
         if is_webapp:
             bq_parent_id_key = fg_id_name
@@ -773,7 +776,7 @@ def get_record_counts(flattened_case, record_counts, is_webapp=False):
 
     for field_group in record_count_dict.copy().keys():
         parent_table = get_parent_table(tables, field_group)
-        fg_id_name = get_table_id_name(API_PARAMS, parent_table)
+        fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
 
         if is_webapp:
             bq_parent_id_key = fg_id_name
@@ -869,7 +872,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
         table_name = get_full_table_name(program_name, json_table)
 
-        upload_to_bucket(BQ_PARAMS, API_PARAMS, jsonl_file)
+        upload_to_bucket(BQ_PARAMS, jsonl_file)
         create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table],
                               table_name, is_webapp)
 
@@ -959,11 +962,16 @@ def copy_tables_into_public_project():
             print('No table found for file (skipping): ' + json_file)
             continue
 
+        '''
         copy_bq_table(BQ_PARAMS, source_table_id,
                       versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
 
         copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
                       BQ_PARAMS['PUBLIC_PROJECT'])
+        '''
+
+        copy_bq_table(BQ_PARAMS, source_table_id, versioned_table_id)
+        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id)
 
         modify_friendly_name(BQ_PARAMS, versioned_table_id)
 
@@ -1084,8 +1092,8 @@ def main(args):
             global API_PARAMS, BQ_PARAMS
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
 
-            if not API_PARAMS['TABLE_METADATA']:
-                has_fatal_error("params['TABLE_METADATA'] not found")
+            if not API_PARAMS['FIELD_CONFIG']:
+                has_fatal_error("params['FIELD_CONFIG'] not found")
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 

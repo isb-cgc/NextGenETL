@@ -27,7 +27,7 @@ import requests
 from common_etl.utils import (
     infer_data_types, load_config, generate_bq_schema, collect_values,
     create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error, get_scratch_dir, upload_to_bucket, get_gdc_rel)
+    has_fatal_error, get_scratch_dir, upload_to_bucket, get_gdc_rel, get_expand_groups)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -40,6 +40,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 #
 ##
+'''
 def get_expand_groups():
     """
     Get expand field groups from yaml config
@@ -49,6 +50,7 @@ def get_expand_groups():
         has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
 
     return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
+'''
 
 
 ####
@@ -68,7 +70,7 @@ def request_data_from_gdc_api(curr_index):
         request_params = {
             'from': curr_index,
             'size': API_PARAMS['BATCH_SIZE'],
-            'expand': get_expand_groups()
+            'expand': get_expand_groups(API_PARAMS)
         }
 
         # retrieve and parse a "page" (batch) of case objects
@@ -83,7 +85,7 @@ def request_data_from_gdc_api(curr_index):
         restart_idx = curr_index
         err_list.append('API request returned status code {}.'.format(res.status_code))
 
-        if API_PARAMS['IO_MODE'] == 'a':
+        if BQ_PARAMS['IO_MODE'] == 'a':
             err_list.append('Script is being run in "append" mode. To resume, set '
                             'START_INDEX = {} in yaml config.'.format(restart_idx))
     except requests.exceptions.MissingSchema as err:
@@ -103,7 +105,7 @@ def retrieve_and_save_case_records(data_fp):
     total_cases_count = 0
     is_last_page = False
 
-    with open(data_fp, API_PARAMS['IO_MODE']) as json_output_file:
+    with open(data_fp, BQ_PARAMS['IO_MODE']) as json_output_file:
         curr_index = API_PARAMS['START_INDEX']
         while not is_last_page:
             res = request_data_from_gdc_api(curr_index)
@@ -154,7 +156,7 @@ def retrieve_and_save_case_records(data_fp):
 
     # Insert the generated jsonl file into google storage bucket, for later
     # ingestion by BQ
-    upload_to_bucket(BQ_PARAMS, API_PARAMS, API_PARAMS['DATA_OUTPUT_FILE'])
+    upload_to_bucket(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'])
 
 
 ####
@@ -234,7 +236,7 @@ def create_bq_schema(data_fp):
 
     return generate_bq_schema(schema_dict,
                               record_type=endpoint_name,
-                              expand_fields_list=get_expand_groups())
+                              expand_fields_list=get_expand_groups(API_PARAMS))
 
 
 def main(args):
@@ -256,8 +258,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    scratch_path = get_scratch_dir(API_PARAMS)
-    output_fp = scratch_path + '/' + API_PARAMS['DATA_OUTPUT_FILE']
+    scratch_path = get_scratch_dir(BQ_PARAMS)
+    output_fp = "/".join([scratch_path, BQ_PARAMS['DATA_OUTPUT_FILE']])
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
@@ -276,11 +278,11 @@ def main(args):
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
-        table_name = get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE']
+        table_name = "_".join([get_gdc_rel(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
 
         # don't want the entire fp for 2nd param, just the file name
         create_and_load_table(bq_params=BQ_PARAMS,
-                              jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
+                              jsonl_rows_file=BQ_PARAMS['DATA_OUTPUT_FILE'],
                               schema=schema,
                               table_name=table_name)
 
