@@ -945,8 +945,10 @@ def get_excluded_for_grp(api_params, field_grp, is_webapp=False):
     """
     excluded_columns = set()
 
-    if 'FIELD_CONFIG' not in api_params or field_grp not in api_params['FIELD_CONFIG']:
-        has_fatal_error("FIELD_CONFIG or {} not set in YAML.".format(field_grp), KeyError)
+    if 'FIELD_CONFIG' not in api_params:
+        has_fatal_error("FIELD_CONFIG not set in YAML.".format(field_grp), KeyError)
+    if field_grp not in api_params['FIELD_CONFIG']:
+        has_fatal_error("{} not set in YAML.".format(field_grp), KeyError)
     if not api_params['FIELD_CONFIG'][field_grp]:
         has_fatal_error("api_params['FIELD_CONFIG']['{}'] not found".format(field_grp), KeyError)
 

@@ -637,7 +637,7 @@ def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_
                 flat_case[field_grp] = list()
 
             if row:
-                excluded = get_excluded_for_grp(field_grp, is_webapp)
+                excluded = get_excluded_for_grp(API_PARAMS, field_grp, is_webapp)
 
                 for row_field in row.copy().keys():
                     # if field is in the excluded list, or is Null, exclude from flat_case
