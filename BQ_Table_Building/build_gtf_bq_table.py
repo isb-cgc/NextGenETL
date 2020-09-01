@@ -6,11 +6,13 @@ from google.cloud import storage
 from google.cloud import bigquery
 from os.path import expanduser
 import pandas as pd 
-import gzip
+import numpy as np
 from alive_progress import alive_bar
 from textwrap import dedent
 import io
+import gzip
 import csv 
+import pyarrow
 from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, parse_genomic_features_file, merge_csv_files,\
                                upload_to_staging_env, check_table_existance
@@ -30,8 +32,8 @@ def add_labels_and_descriptions(project, full_table_id):
     table = client.get_table(full_table_id)
 
     print('Adding Labels, Description, and Friendly name to table')
-    table.description = 'Data was loaded from the GENCODE reference gene set, release 34, dated April 2020. These annotations are based on the hg38/GRCh38 reference genome. More details: see Harrow J, et al. (2012) GENCODE: The reference human genome annotation for The ENCODE Project http://www.ncbi.nlm.nih.gov/pubmed/22955987 and ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_34/gencode.v34.annotation.gtf.gz'
-    table.friendly_name = 'GENCODE V34'
+    table.description = 'Data was loaded from the GENCODE reference gene set, release 24, dated December 2015. These annotations are based on the hg38/GRCh38 reference genome. More details: see Harrow J, et al. (2012) GENCODE: The reference human genome annotation for The ENCODE Project http://www.ncbi.nlm.nih.gov/pubmed/22955987 and ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_34/gencode.v34.annotation.gtf.gz'
+    table.friendly_name = 'GENCODE V24'
     assert table.labels == {}
     labels = {"access": "open",
               "data_type":"genome_annotation",
@@ -90,6 +92,98 @@ def publish_table(schema, project, dataset_id, table_id, staging_full_table_id):
     print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
 
 
+# def pick_non_v_column(col_name, df):
+    
+#     for v_id in df[f'{col_name}']:
+#         split_id = v_id.split('.')
+#         return split_id[0]
+
+
+def split_version_ids(final_merged_csv):
+
+    df = pd.read_csv(final_merged_csv)
+    df = df.drop(['attribute'], axis=1)
+    
+    columns_to_split = ['gene_id',
+                        'transcript_id',
+                        'exon_id',
+                        'ccds_id',
+                        'protein_id',
+                        'hava_gene',
+                        'havana_transcript']
+
+    gene_id_v = []
+    transcript_id_v = []
+    exon_id_v = []
+    ccds_id_v = []
+    protein_id_v = []
+    havana_gene_v = []
+    havana_transcript_v = []
+
+    for v_id in df['gene_id']:
+        split_id = v_id.split('.')
+        gene_id_v.append(split_id[0])
+    
+    for v_id in df['transcript_id']:
+        if pd.isna(v_id):
+            transcript_id_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            transcript_id_v.append(split_id[0])        
+
+    for v_id in df['exon_id']:
+        if pd.isna(v_id):
+            exon_id_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            exon_id_v.append(split_id[0])
+    
+    for v_id in df['ccdsid']:
+        if pd.isna(v_id):
+            ccds_id_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            ccds_id_v.append(split_id[0])
+    
+    for v_id in df['protein_id']:
+        if pd.isna(v_id):
+            protein_id_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            protein_id_v.append(split_id[0])
+
+    for v_id in df['havana_gene']:
+        if pd.isna(v_id):
+            havana_gene_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            havana_gene_v.append(split_id[0])
+
+    for v_id in df['havana_transcript']:
+        if pd.isna(v_id):
+            havana_transcript_v.append(np.NaN)
+        else:
+            split_id = v_id.split('.')
+            havana_transcript_v.append(split_id[0])
+        
+    df2 = df.rename(columns={'gene_id': 'gene_id_v',
+                             'transcript_id': 'transcript_id_v',
+                             'exon_id': 'exon_id_v',
+                             'ccdsid': 'ccdsid_v',
+                             'protein_id': 'protein_id_v',
+                             'havana_gene': 'havana_gene_v',
+                             'havana_transcript': 'havana_transcript_v'})
+
+    df2['gene_id'] = gene_id_v
+    df2['transcript_id'] = transcript_id_v
+    df2['exon_id'] = exon_id_v
+    df2['ccdsid'] = ccds_id_v
+    df2['protein_id'] = protein_id_v
+    df2['havana_gene'] = havana_gene_v
+    df2['havana_transcript'] = havana_transcript_v
+    # print((df.head()))
+
+    return df2
 
 
 def create_new_columns(file_1, file_2, number_of_lines):
@@ -104,7 +198,7 @@ def create_new_columns(file_1, file_2, number_of_lines):
         @return None 
 
     '''
-    number_of_lines = number_of_lines - 1
+    number_of_lines = number_of_lines 
     
     with open(file_1) as in_file:
         reader = csv.reader(in_file)
@@ -190,11 +284,13 @@ def schema_with_description(path_to_json):
 
     return schema
 
-'''
-----------------------------------------------------------------------------------------------
-The configuration reader. Parses the YAML configuration into dictionaries
-'''
+
 def load_config(yaml_config):
+    '''
+    ----------------------------------------------------------------------------------------------
+    The configuration reader. Parses the YAML configuration into dictionaries
+    '''
+
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
     try:
@@ -215,9 +311,9 @@ def main(args):
     e.g. skip previously run steps.
     '''
 
-    if not confirm_google_vm():
-        print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
-        return
+    # if not confirm_google_vm():
+    #     print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
+    #     return
 
 
     if len(args) != 2:
@@ -236,11 +332,13 @@ def main(args):
         return
     
     # Put csv files in a select folder 
-    genomic_feature_file_csv = f"~/NextGenETL/files/{params['PARSED_GENOMIC_FORMAT_FILE']}"
-    attribute_column_split_csv = f"~/NextGenETL/files/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
-    final_merged_csv = f"~/NextGenETL/files/{params['FINAL_MERGED_CSV']}"
+    home = expanduser('~')
+    genomic_feature_file_csv = f"{home}/NextGenETL/intermediateFiles/{params['PARSED_GENOMIC_FORMAT_FILE']}"
+    attribute_column_split_csv = f"{home}/NextGenETL/intermediateFiles/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
+    final_merged_csv = f"{home}/NextGenETL/intermediateFiles/{params['FINAL_MERGED_CSV']}"
 
-    # Scratch table info for staging env
+
+    # Staging table info for staging env
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
     staging_table_id = params['STAGING_TABLE_ID']
@@ -255,7 +353,7 @@ def main(args):
     schema = schema_with_description(path_to_json_schema)
 
     if 'count_number_of_lines' in steps:
-        print("Counting the number of lines in the file")
+        print('Counting the number of lines in the file')
         number_of_lines = count_number_of_lines(params['FILE_PATH'])
 
     if 'parse_genomic_features_file' in steps:
@@ -277,10 +375,13 @@ def main(args):
                         attribute_column_split_csv,
                         final_merged_csv,
                         number_of_lines)
+    if 'split_version_ids' in steps:
+        print('Splitting version ids')
+        df = split_version_ids(final_merged_csv)
     
     if 'upload_to_staging_env' in steps:
         print('Uploading table to a staging environment')
-        upload_to_staging_env(final_merged_csv,
+        upload_to_staging_env(df,
                               staging_project,
                               staging_dataset_id,
                               staging_table_id)
