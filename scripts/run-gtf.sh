@@ -17,17 +17,20 @@
 export MY_VENV=~/virtualEnvETL
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
+# Directory created to store the intemediary files 
+mkdir -p ~/NextGenETL/intermediateFiles 
+
 mkdir -p ~/config
-gsutil cp gs://gencode_gtf_gff/gencode.v34.annotation.gtf.gz ~/oshazada98/NextGenETL/files
+# gsutil cp gs://gencode_gtf_gff/gencode.v34.annotation.gtf.gz ~/oshazada98/NextGenETL/files
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-gsutil cp gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenomicFeatureBQBuild.yaml .
+gsutil cp gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenomicFeatureBQBuild.yaml 
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_gtf_bq_table.py ~/GenomicFeatureBQBuild.yaml
+python3 ./BQ_Table_Building/build_gtf_bq_table.py /Users/oshahzada98/Desktop/NextGenETL/ConfigFiles/GenomicFeatureBQBuild.yaml
 deactivate
