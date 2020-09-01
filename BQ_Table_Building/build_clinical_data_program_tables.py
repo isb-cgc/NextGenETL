@@ -19,9 +19,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import math
-import json
 import copy
+import json
+import math
+
 from common_etl.utils import *
 from gdc_clinical_resources.generate_docs import generate_docs
 
@@ -35,23 +36,43 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 #
 ##
-def generate_long_name(program_name, table, has_rel=True):
+def get_jsonl_filename(program_name, table, is_webapp=False):
     """
-    Generate string representing a unique name, constructed from elements of
-    the table name, program name and GDC release number. Used for storage
-    bucket file and BQ table naming.
-    :param has_rel:
-    :param program_name: Program to which this table is associated.
-    :param table: Table name.
-    :return: String representing a unique string identifier.
+    Gets unique (per release) jsonl filename, used for intermediately storing
+    the table rows after they're flattened, but before BQ insertion. Allows for
+    faster script thanks to minimal BigQuery transactions.
+    :param program_name: name of the program to with the data belongs
+    :param table: future insertion table for flattened data
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return: String .jsonl filename, of the form
+        relXX_TABLE_NAME_FULL_PROGRAM_supplemental-table-name
+        (_supplemental-table-name optional)
     """
-    table_name = []
+    prefix = BQ_PARAMS['APP_JSONL_PREFIX'] if is_webapp else ''
+    file_str_list = [prefix, get_full_table_name(program_name, table), '.jsonl']
+    return file_str_list
 
-    if has_rel:
-        table_name.append(get_gdc_rel(BQ_PARAMS))
 
-    table_name += [program_name, BQ_PARAMS['MASTER_TABLE']]
+def get_scratch_fp(program_name, table, is_webapp=False):
+    """
+    Get filepath for the temp storage folder.
+    :param program_name: Program
+    :param table: Program to which this table is associated.
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return: String representing the temp file path.
+    """
+    path = get_scratch_dir(BQ_PARAMS) + '/'
+    return path + get_jsonl_filename(program_name, table, is_webapp)
 
+
+def get_full_table_name(program, table):
+    """
+    Get the full name used in table_id for a given table.
+    :param program: name of the program to with the data belongs
+    :param table: Name of desired table
+    :return: String representing table name used by BQ.
+    """
+    table_name = [program, BQ_PARAMS['MASTER_TABLE']]
     # if one-to-many table, append suffix
     suffix = get_table_suffixes(API_PARAMS)[table]
 
@@ -61,147 +82,38 @@ def generate_long_name(program_name, table, has_rel=True):
     return build_table_name(table_name)
 
 
-def get_jsonl_filename(program_name, table, is_webapp=False):
-    """
-    Gets unique (per release) jsonl filename, used for intermediately storing
-    the table rows after they're flattened, but before BQ insertion. Allows for
-    faster script thanks to minimal BigQuery transactions.
-    :param is_webapp:
-    :param program_name: name of the program to with the data belongs
-    :param table: future insertion table for flattened data
-    :return: String .jsonl filename, of the form
-        relXX_TABLE_NAME_FULL_PROGRAM_supplemental-table-name
-        (_supplemental-table-name optional)
-    """
-    file_name = 'webapp_' if is_webapp else ''
-
-    file_name += generate_long_name(program_name, table) + '.jsonl'
-
-    return file_name
-
-
-def get_temp_filepath(program_name, table, is_webapp=False):
-    """
-    Get filepath for the temp storage folder.
-    :param is_webapp:
-    :param program_name: Program
-    :param table: Program to which this table is associated.
-    :return: String representing the temp file path.
-    """
-
-    path = get_scratch_dir(BQ_PARAMS) + '/'
-
-    return path + get_jsonl_filename(program_name, table, is_webapp)
-
-
-def get_full_table_name(program_name, table):
-    """
-    Get the full name used in table_id for a given table.
-    :param program_name: name of the program to with the data belongs
-    :param table: Name of desired table
-    :return: String representing table name used by BQ.
-    """
-    return generate_long_name(program_name, table)
-
-
-def get_id_index(table_key, column_order_dict):
-    """
-    Get the relative order index of the table's id column.
-    :param table_key: Table for which to get index
-    :param column_order_dict: Dictionary containing column names : indexes
-    :return: Int representing relative column position in schema.
-    """
-    table_id_key = get_fg_id_key(API_PARAMS, table_key)
-    return column_order_dict[table_id_key]
-
-
-def get_count_column_name(table_key):
-    """
-    Returns name of count column for given one-to-many table.
-    :param table_key: one-to-many table
-    :return: count column name
-    """
-    return get_bq_name(API_PARAMS, 'count', table_key)
-
-
 def build_column_order_dict():
     """
     Using table order provided in YAML, with add't ordering for reference
     columns added during one-to-many table creation.
     :return: dict of str column names : int representing position.
     """
-    column_order_dict = dict()
-    field_groups = API_PARAMS['FG_CONFIG']['order']
-    id_index_gap = len(field_groups) - 1
+    column_orders = dict()
+    # list of fields in order, grouped by field_grp
+    field_grp_order_list = API_PARAMS['FG_CONFIG']['order']
+    # gap leaves room to add reference columns (foreign ids, one-to-many record counts)
+    id_index_gap = ((len(field_grp_order_list) - 1) * 2)
 
     idx = 0
 
-    for group in field_groups:
-        try:
-            param_column_order = API_PARAMS['FIELD_CONFIG'][group]['column_order']
-            id_column = API_PARAMS['FIELD_CONFIG'][group]['id_key']
+    # assign indexes to each field, in order of field_grp and field precedence
+    for field_grp in field_grp_order_list:
+        field_order_list = API_PARAMS['FIELD_CONFIG'][field_grp]['column_order']
+        field_grp_id_name = API_PARAMS['FIELD_CONFIG'][field_grp]['id_key']
 
-            for column in param_column_order:
-                column_order_dict[group + '.' + column] = idx
-                idx = idx + (id_index_gap * 2) if id_column == column else idx + 1
-        except KeyError:
-            has_fatal_error("{} found in API_PARAMS['FG_CONFIG']['order'] but not in "
-                            "API_PARAMS['FIELD_CONFIG']".format(group))
+        for field_name in field_order_list:
+            field_key = get_field_key(field_grp, field_name)
 
-    column_order_dict['cases.state'] = idx
-    column_order_dict['cases.created_datetime'] = idx + 1
-    column_order_dict['cases.updated_datetime'] = idx + 2
+            # assign index to field, then increment
+            column_orders[field_key] = idx
+            idx = idx + 1 if field_name != field_grp_id_name else id_index_gap
 
-    return column_order_dict
+    # is this still necessary? experiment
+    for end_field in get_fields_to_idx_last(API_PARAMS):
+        column_orders[end_field] = idx
+        idx += 1
 
-
-def get_column_order(table):
-    """
-    Returns table's column order list (from yaml config file)
-    :param table: table for which to retrieve column order
-    :return: table's column order list
-    """
-    if table not in API_PARAMS['FIELD_CONFIG']:
-        has_fatal_error("'{}' not found in API_PARAMS['FIELD_CONFIG']".format(table))
-    elif 'column_order' not in API_PARAMS['FIELD_CONFIG'][table]:
-        has_fatal_error("no column order provided for {} in yaml config.".format(table))
-
-    ordered_table_fields = API_PARAMS['FIELD_CONFIG'][table]['column_order']
-
-    master_index_dict = build_column_order_dict()
-
-    table_column_order = [table + '.' + field for field in ordered_table_fields]
-
-    return {col: master_index_dict[col] for col in table_column_order}
-
-
-####
-#
-# Functions used to determine a program's table structure(s)
-#
-##
-def get_all_excluded_columns(fg, is_webapp=False):
-    """
-    Get excluded fields for all field groups (from yaml config file)
-    :return: list of excluded fields
-    """
-    excluded_columns = set()
-
-    if not API_PARAMS['FG_CONFIG']['order']:
-        has_fatal_error("api_params['FG_CONFIG']['order'] not found")
-
-    if (is_webapp and fg in API_PARAMS['FIELD_CONFIG']
-            and 'webapp_excluded_fields' in API_PARAMS['FIELD_CONFIG'][fg]):
-
-        excluded_columns = API_PARAMS['FIELD_CONFIG'][fg]['webapp_excluded_fields']
-    else:
-        if 'excluded_fields' not in API_PARAMS['FIELD_CONFIG'][fg]:
-            has_fatal_error("{}'s excluded_fields not found.".format(fg))
-
-        for field in API_PARAMS['FIELD_CONFIG'][fg]['excluded_fields']:
-            excluded_columns.add(get_bq_name(API_PARAMS, field, fg))
-
-    return excluded_columns
+    return column_orders
 
 
 def flatten_tables(field_groups, record_counts, is_webapp=False):
@@ -209,128 +121,131 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     From dict containing table_name keys and sets of column names, remove
     excluded columns and merge into parent table if the field group can be
     flattened for this program.
-    :param is_webapp:
     :param field_groups: dict of tables and columns
     :param record_counts: set of table names
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened table column dict.
     """
-    one_many_tables = get_tables(record_counts, API_PARAMS)
+    tables = get_tables(API_PARAMS, record_counts)
     table_columns = dict()
 
-    fg_depths = {fg: get_field_depth(fg) for fg in field_groups}
+    field_grp_depths = {field_grp: get_field_depth(field_grp) for field_grp in
+                        field_groups}
 
-    for fg, depth in sorted(fg_depths.items(), key=lambda i: i[1]):
+    for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             print("\n[INFO] **** Caution, not confirmed to work with nested depth > 3\n")
 
-        excluded_fields = get_excluded_fields(field_groups, API_PARAMS, is_webapp)
+        excluded_fields = get_excluded_fields(API_PARAMS, field_groups, is_webapp)
 
-        if is_webapp:
-            if fg in excluded_fields:
-                continue
+        if is_webapp and field_grp in excluded_fields:
+            continue
 
-        field_groups[fg] = remove_excluded_fields(field_groups[fg],
-                                                  fg,
-                                                  excluded_fields,
-                                                  is_webapp)
+        field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp],
+                                                         field_grp, excluded_fields,
+                                                         is_webapp)
 
-        field_keys = {get_field_key(fg, field) for field in field_groups[fg]}
+        field_keys = {get_field_key(field_grp, field) for field in
+                      field_groups[field_grp]}
 
-        if fg in one_many_tables:
-            table_columns[fg] = field_keys
+        if field_grp in tables:
+            table_columns[field_grp] = field_keys
         else:
             # field group can be flattened
-            parent_table = get_parent_table(one_many_tables, fg)
+            parent_table = get_parent_field_grp(tables, field_grp)
             table_columns[parent_table] |= field_keys
 
     return table_columns
 
 
-def examine_case(set_fields, record_cnts, fg, fg_name):
+def examine_case(set_fields, record_counts, field_grp, field_grp_name):
     """
     Recursively examines case and updates dicts of non-null fields and max record counts.
     :param set_fields: current dict of non-null fields for each field group
-    :param fg: whole or partial case record json object
-    :param record_cnts: dict of max field group record counts observed in program so far
-    :param fg_name: name of currently-traversed field group
+    :param record_counts: dict of max field group record counts observed in program so far
+    :param field_grp: whole or partial case record json object
+    :param field_grp_name: name of currently-traversed field group
     :return: dicts of non-null field lists and max record counts (keys = field groups)
     """
-    fgs = API_PARAMS['FIELD_CONFIG'].keys()
-    if fg_name in fgs:
-        for field, record in fg.items():
+    field_grps = API_PARAMS['FIELD_CONFIG'].keys()
+
+    if field_grp_name in field_grps:
+        for field, record in field_grp.items():
 
             if isinstance(record, list):
-                child_fg = fg_name + '.' + field
+                child_field_grp = field_grp_name + '.' + field
 
-                if child_fg not in fgs:
+                if child_field_grp not in field_grps:
                     continue
-                elif child_fg not in record_cnts:
-                    set_fields[child_fg] = set()
-                    record_cnts[child_fg] = len(record)
+
+                if child_field_grp not in record_counts:
+                    set_fields[child_field_grp] = set()
+                    record_counts[child_field_grp] = len(record)
                 else:
-                    record_cnts[child_fg] = max(record_cnts[child_fg], len(record))
+                    record_counts[child_field_grp] = max(record_counts[child_field_grp],
+                                                         len(record))
 
                 for entry in record:
-                    examine_case(set_fields, record_cnts, entry, child_fg)
+                    examine_case(set_fields, record_counts, entry, child_field_grp)
             else:
-                if fg_name not in set_fields:
-                    set_fields[fg_name] = set()
-                    record_cnts[fg_name] = 1
+                if field_grp_name not in set_fields:
+                    set_fields[field_grp_name] = set()
+                    record_counts[field_grp_name] = 1
 
                 if isinstance(record, dict):
                     for child_field in record:
-                        set_fields[fg_name].add(child_field)
+                        set_fields[field_grp_name].add(child_field)
                 else:
                     if record:
-                        set_fields[fg_name].add(field)
-
-        return set_fields, record_cnts
+                        set_fields[field_grp_name].add(field)
 
 
 def find_program_structure(cases, is_webapp=False):
     """
     Determine table structure required for the given program.
-    :param is_webapp:
     :param cases: dict of program's case records
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
-    fgs = {}
+    field_grps = {}
     record_counts = {}
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
+            examine_case(field_grps, record_counts, case, get_base_grp(API_PARAMS))
 
-    for fg in fgs:
-        if fg not in API_PARAMS['FIELD_CONFIG']:
-            print("{} not in metadata".format(fg))
-            fgs.pop(fg)
-            cases.pop(fg)
+    for field_grp in field_grps:
+        if field_grp not in API_PARAMS['FIELD_CONFIG']:
+            print("{} not in metadata".format(field_grp))
+            field_grps.pop(field_grp)
+            cases.pop(field_grp)
 
-    columns = flatten_tables(fgs, record_counts, is_webapp)
+    columns = flatten_tables(field_grps, record_counts, is_webapp)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     if is_webapp:
-        excluded_fgs = get_app_excluded_fgs(API_PARAMS)
+        excluded_field_grps = get_app_excluded_field_grps(API_PARAMS)
 
-        for fg in record_counts.copy().keys():
-            if fg in excluded_fgs:
-                record_counts.pop(fg)
+        for field_grp in record_counts.copy().keys():
+            if field_grp in excluded_field_grps:
+                record_counts.pop(field_grp)
 
-        for fg in columns.copy().keys():
-            if fg in excluded_fgs:
-                columns.pop(fg)
+        for field_grp in columns.copy().keys():
+            if field_grp in excluded_field_grps:
+                columns.pop(field_grp)
 
     return columns, record_counts
 
 
-####
+##################################################################################
 #
 # Functions used for schema creation
 #
-##
+##################################################################################
+
+
 def get_count_column_index(table_name, column_order_dict):
     """
     Get index of child table record count reference column.
@@ -338,7 +253,7 @@ def get_count_column_index(table_name, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_fg_id_name(API_PARAMS, table_name)
+    table_id_key = get_grp_id_field(API_PARAMS, table_name)
     id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
     field_groups = API_PARAMS['FG_CONFIG']['order']
@@ -350,9 +265,9 @@ def get_count_column_index(table_name, column_order_dict):
 def generate_id_schema_entry(column, parent_table, program):
     """
     Create schema entry for inserted parent reference id.
-    :param program: program name
     :param column: parent id column
     :param parent_table: parent table name
+    :param program: program name
     :return: schema entry dict for new reference id field
     """
     field_name = get_field_name(column)
@@ -360,7 +275,7 @@ def generate_id_schema_entry(column, parent_table, program):
     if field_name == 'case_id':
         bq_col_name = 'case_id'
         # source_table = 'main'
-        source_table = get_full_table_name(program, get_base_fg(API_PARAMS))
+        source_table = get_full_table_name(program, get_base_grp(API_PARAMS))
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
         source_table = get_full_table_name(program, parent_table)
@@ -391,18 +306,38 @@ def generate_count_schema_entry(count_id_key, parent_table):
     }
 
 
-def add_ref_id_to_table(schema, columns, column_order, table, id_tuple):
+def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
+    """
+    Add reference id fields to the tables under construction.
+    :param schema: dict containing schema records
+    :param columns: dict containing table column keys
+    :param column_order: dict containing a list of fields (columns) and the order in
+    which they will be displayed in the db.
+    :param field_grp: a collection of GDC fields.
+    :param id_tuple: the field group id's index, key, and program name
+    """
     # add parent id to one-to-many table
-    id_index, id_col_name, program = id_tuple
-    parent_fg = get_field_group(table)
-    schema[id_col_name] = generate_id_schema_entry(id_col_name, parent_fg, program)
-    columns[table].add(id_col_name)
-    column_order[table][id_col_name] = id_index
+    field_grp_id_idx, field_grp_id_key, program = id_tuple
+    parent_field_grp = get_field_group(field_grp)
+
+    # add reference id field to schema
+    schema[field_grp_id_key] = generate_id_schema_entry(field_grp_id_key,
+                                                        parent_field_grp, program)
+    columns[field_grp].add(field_grp_id_key)
+    column_order[field_grp][field_grp_id_key] = field_grp_id_idx
 
 
-def add_count_col_to_parent_table(schema, columns, column_order, table):
+def add_record_count_refs(schema, columns, column_order, table):
+    """
+     Add reference columns containing record counts for associated BQ tables
+    :param schema: dict containing schema records
+    :param columns: dict containing table column keys
+    :param column_order: dict containing relative position of all fields in  the db
+    :param table: Name of a table located in BQ, associated with one or more GDC field
+    groups
+    """
     # add one-to-many record count column to parent table
-    parent_table = get_parent_table(columns.keys(), table)
+    parent_table = get_parent_field_grp(columns.keys(), table)
     count_field = get_count_field(table)
 
     schema[count_field] = generate_count_schema_entry(count_field, parent_table)
@@ -411,7 +346,8 @@ def add_count_col_to_parent_table(schema, columns, column_order, table):
     column_order[parent_table][count_field] = count_column_index
 
 
-def add_reference_columns(columns, record_counts, schema=None, program=None, is_webapp=False):
+def add_reference_columns(columns, record_counts, schema=None, program=None,
+                          is_webapp=False):
     """
     Add reference columns generated by separating and flattening data.
 
@@ -421,10 +357,10 @@ def add_reference_columns(columns, record_counts, schema=None, program=None, is_
     - case_id, used to reference main table records
     - pid, used to reference nearest un-flattened ancestor table
 
-    :param program:
-    :param record_counts:
     :param columns: dict containing table column keys
+    :param record_counts: field group count dict
     :param schema: dict containing schema records
+    :param program: the program from which the cases originate.
     :param is_webapp: if caller is part of webapp table build logic, True. Bypasses
     the insertion of irrelevant reference columns
     :return: table_columns, schema_dict, column_order_dict
@@ -435,63 +371,90 @@ def add_reference_columns(columns, record_counts, schema=None, program=None, is_
         has_fatal_error("invalid arguments for add_reference_columns. if not is_webapp, "
                         "schema and program are required.", ValueError)
 
-    for fg, depth in get_sorted_fg_depths(record_counts):
-        # get ordering for table by only including relevant column indexes
-        column_orders[fg] = get_column_order(fg)
+    # get relative index of every field, across tables/field groups, in non-nested dict
+    field_indexes = build_column_order_dict()
 
-        if depth == 1 or fg not in columns:
+    for field_grp, depth in get_sorted_field_grp_depths(record_counts):
+
+        # get ordered list for each field_grp
+        ordered_field_grp_field_keys = get_column_order_list(API_PARAMS, field_grp)
+
+        # for a given field_grp, assign each field a global index; insert into
+        # segregated column order dict (e.g. column_orders[field_grp][field] = idx)
+        column_orders[field_grp] = {f: field_indexes[f] for f in
+                                    ordered_field_grp_field_keys}
+
+        if depth == 1 or field_grp not in columns:
             continue
 
-        curr_index = get_id_index(fg, column_orders[fg]) + 1
+        # get id key for current field group, and its index position
+        table_id_key = get_field_grp_id_key(API_PARAMS, field_grp)
+        id_idx = column_orders[field_grp][table_id_key]
 
-        root_fg = get_field_group(fg)
-
-        fg_id_name = get_fg_id_name(API_PARAMS, root_fg, is_webapp)
-
-        pid_field = '.'.join([root_fg, fg_id_name])
+        # get parent id key, append to column order dict of child field group, increment
+        # index from field_grp_id_key's position, assign to parent_id_key (foreign
+        # reference key)
+        parent_id_key = get_field_grp_id_key(API_PARAMS, get_field_group(field_grp),
+                                             is_webapp)
 
         if is_webapp:
-            base_fg = get_base_fg(API_PARAMS)
-            case_id_field = get_fg_id_key(API_PARAMS, base_fg, is_webapp)
+            base_field_grp_id_key = get_field_grp_id_key(API_PARAMS,
+                                                         get_base_grp(API_PARAMS),
+                                                         is_webapp)
 
-            columns[fg].add(pid_field)
-            column_orders[fg][pid_field] = curr_index
-            curr_index += 1
+            # append parent_id_key to field_grp column list and column order dict
+            columns[field_grp].add(parent_id_key)
+            column_orders[field_grp][parent_id_key] = id_idx
+            idx = id_idx + 1
 
-            if pid_field != case_id_field:
-                columns[fg].add(case_id_field)
-                column_orders[fg][case_id_field] = curr_index + 1
-                curr_index += 1
+            # if parent_id_key is not the base_id_key, append it in both places as well
+            if parent_id_key != base_field_grp_id_key:
+                columns[field_grp].add(base_field_grp_id_key)
+                column_orders[field_grp][base_field_grp_id_key] = idx + 1
+                idx += 1
         else:
-            # for former doubly-nested tables, ancestor id precedes case_id in table
+            idx = id_idx
+            # if not webapp, there are additional reference columns to insert
+            # (count of foreign records associated with the current field_grp)
             if depth > 2:
-                add_ref_id_to_table(schema, columns, column_orders, fg,
-                                    (curr_index, pid_field, program))
-                curr_index += 1
+                insert_ref_id_keys(schema, columns, column_orders, field_grp,
+                                   (idx, parent_id_key, program))
+                idx += 1
 
-            case_id_name = get_case_id_field(fg)
+            base_field_grp_id_key = get_field_grp_id_key(API_PARAMS,
+                                                         get_base_grp(API_PARAMS))
 
-            add_ref_id_to_table(schema, columns, column_orders, fg,
-                                (curr_index, case_id_name, program))
+            insert_ref_id_keys(schema, columns, column_orders, field_grp,
+                               (idx, base_field_grp_id_key, program))
+            idx += 1
 
-            add_count_col_to_parent_table(schema, columns, column_orders, fg)
+            add_record_count_refs(schema, columns, column_orders, field_grp)
 
     return column_orders
 
 
 def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp=False):
+    """
+    Merge flattenable column order dicts
+    :param schema: dict containing schema records
+    :param columns: dict containing table column keys
+    :param record_counts: field group count dict
+    :param column_orders: dict of field groups : and fields with their respective indices
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return: merged column orders dict
+    """
     merged_column_orders = dict()
 
-    for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
+    for table, depth in get_sorted_field_grp_depths(record_counts, reverse=True):
 
-        table_id_key = table + "." + get_fg_id_name(API_PARAMS, table, is_webapp)
+        table_id_key = table + "." + get_grp_id_field(API_PARAMS, table, is_webapp)
 
         if table in columns:
             merge_dict_key = table
             schema[table_id_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
-            merge_dict_key = get_parent_table(columns.keys(), table)
+            merge_dict_key = get_parent_field_grp(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
             schema[table_id_key]['mode'] = 'NULLABLE'
@@ -504,18 +467,31 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     return merged_column_orders
 
 
-def remove_null_fields(table_columns, merged_orders):
-    for table, columns in table_columns.items():
-        null_fields_set = set(merged_orders[table].keys()) - columns
+def remove_null_fields(columns, merged_orders):
+    """
+    Remove fields composed of only null values for a program, thus making the tables less 
+    sparse.
+    :param columns: dict containing table column keys
+    :param merged_orders: merged dict of field groups: fields with index position data
+    """
+    for table, cols in columns.items():
+        null_fields_set = set(merged_orders[table].keys()) - cols
 
         for field in null_fields_set:
             merged_orders[table].pop(field)
 
 
 def create_app_schema_lists(schema, record_counts, merged_orders):
+    """
+    Create smaller schemas for each table, containing only columns contained there.
+    :param schema: dict containing schema records
+    :param record_counts: field group count dict
+    :param merged_orders: merged dict of field groups: fields with index position data
+    :return: schema_field_lists, one schema per field group turned into table
+    """
     schema_field_lists = dict()
 
-    for table in get_tables(record_counts, API_PARAMS):
+    for table in get_tables(API_PARAMS, record_counts):
         schema_field_lists[table] = list()
 
         if table not in merged_orders:
@@ -528,6 +504,13 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
 
 
 def create_schema_lists(schema, record_counts, merged_orders):
+    """
+    Create smaller schemas for each table, containing only columns contained there.
+    :param schema: dict containing schema records
+    :param record_counts: field group count dict
+    :param merged_orders: merged dict of field groups: fields with index position data
+    :return: schema_field_lists, one schema per field group turned into table
+    """
     # add bq abbreviations to schema field dicts
     for entry in schema:
         field = get_field_name(entry)
@@ -539,7 +522,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
     schema_field_lists = dict()
 
-    for table in get_tables(record_counts, API_PARAMS):
+    for table in get_tables(API_PARAMS, record_counts):
         # this is just alphabetizing the count columns
         counts_idx = get_count_column_index(table, merged_orders[table])
         count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
@@ -561,263 +544,310 @@ def create_schema_lists(schema, record_counts, merged_orders):
     return schema_field_lists
 
 
-def remove_excluded_fields(case, fg, excluded, is_webapp):
+def remove_excluded_fields(case, field_grp, excluded, is_webapp):
     """
     Remove columns with only None values, as well as those excluded.
-    :param is_webapp: todo
-    :param excluded: todo
-    :param case: fg record to parse.
-    :param fg: name of destination table.
+    :param case: field_grp record to parse.
+    :param field_grp: name of destination table.
+    :param excluded: set of fields to exclude from the final db tables
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: Trimmed down record dict.
     """
-    '''
-    fg_metadata = API_PARAMS['FIELD_CONFIG']
-
-    if fg not in fg_metadata or config_str not in fg_metadata[fg]:
-        return None
-
-    excluded = fg_metadata[fg][config_str]
-    '''
-
     if isinstance(case, dict):
-        excluded_fields = \
-            {get_bq_name(API_PARAMS, field, fg, is_webapp) for field in excluded}
+        excluded_fields = {get_bq_name(API_PARAMS, field, field_grp, is_webapp)
+                           for field in excluded}
 
         for field in case.copy().keys():
             if field in excluded_fields or not case[field]:
                 case.pop(field)
+
         return case
-    elif isinstance(case, set):
+
+    if isinstance(case, set):
         return {field for field in case if field not in excluded}
-    else:
-        return [field for field in case if field not in excluded]
+
+    return [field for field in case if field not in excluded]
 
 
-####
+##################################################################################
 #
 # Functions used for parsing and loading data into BQ tables
 #
-##
-def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_field, is_webapp):
+##################################################################################
+
+
+def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_webapp):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
-    :param is_webapp: todo
-    :param record: todo
-    :param fg: todo
+    :param record: the case data object to recurse and flatten
+    :param field_grp: name of the case's field group currently being processed.
     :param flat_case: partially-built flattened case dict
     :param case_id: case id
     :param pid: parent field group id
-    :param pid_field: parent field group id key
+    :param pid_name: parent field group id key
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    """
+    # entry represents a field group, recursively flatten each record
+    if field_grp not in API_PARAMS['FIELD_CONFIG'].keys():
+        return
+
+    if isinstance(record, list):
+        # flatten each record in field group list
+        for entry in record:
+            flatten_case_entry(entry, field_grp, flat_case, case_id, pid, pid_name,
+                               is_webapp)
+    else:
+        row = dict()
+
+        grp_id_name = get_grp_id_field(API_PARAMS, field_grp, is_webapp)
+
+        for field, columns in record.items():
+            # if list, possibly more than one entry, recurse over list
+            if isinstance(columns, list):
+                flatten_case_entry(columns, get_field_key(field_grp, field),
+                                   flat_case, case_id, record[grp_id_name],
+                                   grp_id_name, is_webapp)
+                continue
+
+            if grp_id_name != pid_name:
+                parent_field_grp = get_field_group(field_grp)
+
+                pid_key = get_bq_name(API_PARAMS, pid_name, parent_field_grp, is_webapp)
+
+                # add parent_id key and value to row
+                row[pid_key] = pid
+
+            base_grp_id_name = get_grp_id_field(API_PARAMS, get_base_grp(API_PARAMS),
+                                                is_webapp)
+
+            if grp_id_name != base_grp_id_name:
+                row[base_grp_id_name] = case_id
+
+            column = get_bq_name(API_PARAMS, field, field_grp, is_webapp)
+
+            row[column] = columns
+
+            if field_grp not in flat_case:
+                # if this is first row added for field_grp, create an empty list
+                # to hold row objects
+                flat_case[field_grp] = list()
+
+            if row:
+                excluded = get_excluded_for_grp(field_grp, is_webapp)
+
+                for row_field in row.copy().keys():
+                    # if field is in the excluded list, or is Null, exclude from flat_case
+                    if row_field in excluded or not row[row_field]:
+                        row.pop(row_field)
+
+        flat_case[field_grp].append(row)
+
+
+'''
+def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_webapp):
+    """
+    Recursively traverse the case json object, creating dict of format:
+     {field_group: [records]}
+    :param record: the case data object to recurse and flatten
+    :param field_grp: name of the case's field group currently being processed.
+    :param flat_case: partially-built flattened case dict
+    :param case_id: case id
+    :param pid: parent field group id
+    :param pid_name: parent field group id key
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened case dict, format: { 'field_group': [records] }
     """
     # entry represents a field group, recursively flatten each record
-    if fg not in API_PARAMS['FIELD_CONFIG'].keys():
+    if field_grp not in API_PARAMS['FIELD_CONFIG'].keys():
         return flat_case
 
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
-            flat_case = flatten_case_entry(entry, fg, flat_case, case_id, pid,
-                                           pid_field, is_webapp)
+            flat_case = flatten_case_entry(entry, field_grp, flat_case, case_id, pid,
+                                           pid_name,
+                                           is_webapp)
     else:
-        rows = dict()
-        id_field = get_fg_id_name(API_PARAMS, fg, is_webapp)
+        row = dict()
 
-        for field, field_val in record.items():
-            if isinstance(field_val, list):
-                flat_case = flatten_case_entry(record=field_val,
-                                               fg=fg + '.' + field,
-                                               flat_case=flat_case,
-                                               case_id=case_id,
-                                               pid=record[id_field],
-                                               pid_field=id_field,
-                                               is_webapp=is_webapp)
+        field_grp_id_name = get_field_grp_id_name(API_PARAMS, field_grp, is_webapp)
+
+        for field, columns in record.items():
+            # if list, possibly more than one entry, recurse over list
+            if isinstance(columns, list):
+                flat_case = flatten_case_entry(
+                    record=columns, field_grp=get_field_key(field_grp, field),
+                    flat_case=flat_case,
+                    case_id=case_id, pid=record[field_grp_id_name],
+                    pid_name=field_grp_id_name,
+                    is_webapp=is_webapp)
             else:
-                if id_field != pid_field:
-                    parent_fg = get_field_group(fg)
+                if field_grp_id_name != pid_name:
+                    parent_field_grp = get_field_group(field_grp)
+                    pid_key = get_bq_name(API_PARAMS, pid_name, parent_field_grp,
+                                          is_webapp)
 
-                    if is_webapp:
-                        pid_column = pid_field
-                    else:
-                        pid_column = get_bq_name(API_PARAMS, pid_field, parent_fg)
+                    # add parent_id key and value to row
+                    row[pid_key] = pid
 
-                    rows[pid_column] = pid
+                base_field_grp = get_base_field_grp(API_PARAMS)
+                base_field_grp_id_name = get_field_grp_id_name(API_PARAMS, 
+                base_field_grp, is_webapp)
 
-                # todo don't hard code
-                if not is_webapp and id_field != 'case_id':
-                    rows['case_id'] = case_id
+                if field_grp_id_name != base_field_grp_id_name:
+                    row[base_field_grp_id_name] = case_id
 
-                # todo don't hard code
-                if is_webapp and id_field != 'case_gdc_id':
-                    rows['case_gdc_id'] = case_id
+                column = get_bq_name(API_PARAMS, field, field_grp, is_webapp)
 
-                # Field converted bq column name
-                if is_webapp:
-                    column = field
-                else:
-                    column = get_bq_name(API_PARAMS, field, fg)
+                row[column] = columns
 
-                rows[column] = field_val
+            if field_grp not in flat_case:
+                # if this is first row added for field_grp, create an empty list
+                # to hold row objects
+                flat_case[field_grp] = list()
 
-            if fg not in flat_case:
-                flat_case[fg] = list()
+            if row:
+                excluded = get_excluded_fields_for_field_grp(field_grp, is_webapp)
 
-            if rows:
-                excluded = get_all_excluded_columns(fg, is_webapp)
+                for row_field in row.copy().keys():
+                    # if field is in the excluded list, or is Null, exclude from flat_case
+                    if row_field in excluded or not row[row_field]:
+                        row.pop(row_field)
 
-                for r_field in rows.copy():
-                    if r_field in excluded or not rows[r_field]:
-                        rows.pop(r_field)
-
-        flat_case[fg].append(rows)
+        flat_case[field_grp].append(row)
 
     return flat_case
+'''
 
 
 def flatten_case(case, is_webapp):
     """
     Converts nested case object into a flattened representation of its records.
-    :param is_webapp: todo
     :param case: dict containing case data
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened case dict
     """
-
-    base_fg = get_base_fg(API_PARAMS)
-
-    if (base_fg not in API_PARAMS['FIELD_CONFIG'] or
-            'id_key' not in API_PARAMS['FIELD_CONFIG'][base_fg]):
-        has_fatal_error("")
+    base_field_grp = get_base_grp(API_PARAMS)
+    get_field_grp_id_key(API_PARAMS, base_field_grp, is_webapp)
 
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
             old_name = get_field_name(old_key)
             new_name = get_field_name(new_key)
             if old_name in case:
-                val = case[old_name]
-                case[new_name] = val
+                case[new_name] = case[old_name]
                 case.pop(old_name)
 
-    case_id_key = get_fg_id_key(API_PARAMS, base_fg, is_webapp)
+    base_id_name = get_grp_id_field(API_PARAMS, base_field_grp, is_webapp)
 
-    case_id_name = get_field_name(case_id_key)
+    flat_case = dict()
 
-    flat_case = flatten_case_entry(record=case,
-                                   fg=base_fg,
-                                   flat_case=dict(),
-                                   case_id=case[case_id_name],
-                                   pid=case[case_id_name],
-                                   pid_field=case_id_name,
-                                   is_webapp=is_webapp)
-
+    flatten_case_entry(record=case, field_grp=base_field_grp, flat_case=flat_case,
+                       case_id=case[base_id_name], pid=case[base_id_name],
+                       pid_name=base_id_name, is_webapp=is_webapp)
     return flat_case
 
 
-def get_record_idx(flattened_case, field_group, record_id, is_webapp=False):
+def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
     """
     Get index of record associated with record_id from flattened_case
-    :param is_webapp:
-    :param flattened_case: dict containing {field group names: list of record dicts}
-    :param field_group: field group containing record_id
+    :param flat_case: dict containing {field group names: list of record dicts}
+    :param field_grp: field group containing record_id
     :param record_id: id of record for which to retrieve position
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: position index of record in field group's record list
     """
-    fg_id_name = get_fg_id_name(API_PARAMS, field_group, is_webapp)
-
-    if is_webapp:
-        fg_id_key = fg_id_name
-    else:
-        fg_id_key = get_bq_name(API_PARAMS, fg_id_name, field_group)
-
+    field_grp_id_name = get_grp_id_field(API_PARAMS, field_grp, is_webapp)
+    field_grp_id_key = get_bq_name(API_PARAMS, field_grp_id_name, field_grp, is_webapp)
     idx = 0
 
-    for record in flattened_case[field_group]:
-        if record[fg_id_key] == record_id:
+    # iterate until id found in record--if not found, fatal error
+    for record in flat_case[field_grp]:
+        if record[field_grp_id_key] == record_id:
             return idx
         idx += 1
 
     return has_fatal_error("id {} not found by get_record_idx.".format(record_id))
 
 
-def merge_single_entry_fgs(flattened_case, record_counts, is_webapp=False):
+def merge_single_entry_field_grps(flat_case, record_counts, is_webapp=False):
     """
     # Merge flatten-able field groups.
-    :param is_webapp:
-    :param flattened_case: flattened case dict
+    :param flat_case: flattened case dict
     :param record_counts: field group count dict
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
-    tables = get_tables(record_counts, API_PARAMS)
+    tables = get_tables(API_PARAMS, record_counts)
 
-    flattened_fg_parents = dict()
+    flattened_field_grp_parents = dict()
 
-    for field_group in record_counts:
-        if field_group == get_base_fg(API_PARAMS):
+    for field_grp in record_counts:
+        if field_grp == get_base_grp(API_PARAMS):
             continue
-        if record_counts[field_group] == 1:
-            if field_group in flattened_case:
+        if record_counts[field_grp] == 1:
+            if field_grp in flat_case:
                 # create list of flattened field group destination tables
-                flattened_fg_parents[field_group] = get_parent_table(tables, field_group)
+                flattened_field_grp_parents[field_grp] = get_parent_field_grp(tables,
+                                                                              field_grp)
 
-    for field_group, parent in flattened_fg_parents.items():
+    for field_grp, parent in flattened_field_grp_parents.items():
+        field_grp_id_name = get_grp_id_field(API_PARAMS, parent, is_webapp)
+        bq_parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent, is_webapp)
 
-        fg_id_name = get_fg_id_name(API_PARAMS, parent, is_webapp)
-
-        if is_webapp:
-            bq_parent_id_key = fg_id_name
-        else:
-            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent)
-
-        for record in flattened_case[field_group]:
+        for record in flat_case[field_grp]:
             parent_id = record[bq_parent_id_key]
-            parent_idx = get_record_idx(flattened_case, parent, parent_id, is_webapp)
-            flattened_case[parent][parent_idx].update(record)
+            parent_idx = get_record_idx(flat_case, parent, parent_id, is_webapp)
+            flat_case[parent][parent_idx].update(record)
+        flat_case.pop(field_grp)
 
-        flattened_case.pop(field_group)
 
-
-def get_record_counts(flattened_case, record_counts, is_webapp=False):
+def get_record_counts(flat_case, record_counts, is_webapp=False):
     """
     # Get record counts for field groups in case record
-    :param is_webapp:
-    :param flattened_case: flattened dict containing case record entries
+    :param flat_case: flattened dict containing case record entries
     :param record_counts: field group count dict
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
     # initialize dict with field groups that can't be flattened
-    # record_count_dict = {fg: 0 for fg in record_counts if record_counts[fg] > 1}
-    record_count_dict = {fg: dict() for fg in record_counts if record_counts[fg] > 1}
-    tables = get_tables(record_counts, API_PARAMS)
+    # record_count_dict = {field_grp: 0 for field_grp in record_counts if
+    # record_counts[field_grp] > 1}
+    record_count_dict = get_record_cnt_dict(record_counts)
 
-    for field_group in record_count_dict.copy().keys():
-        parent_table = get_parent_table(tables, field_group)
-        fg_id_name = get_fg_id_name(API_PARAMS, parent_table)
+    for field_grp, parent_ids in record_count_dict.copy().items():
+        parent_field_grp = get_parent_field_grp(get_tables(API_PARAMS,
+                                                           record_counts),
+                                                field_grp)
 
-        if is_webapp:
-            bq_parent_id_key = fg_id_name
-        else:
-            bq_parent_id_key = get_bq_name(API_PARAMS, fg_id_name, parent_table)
+        field_grp_id_name = get_grp_id_field(API_PARAMS, parent_field_grp, is_webapp)
+
+        parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent_field_grp,
+                                    is_webapp)
 
         # initialize record counts for parent id
-        if parent_table in flattened_case:
-            for parent_record in flattened_case[parent_table]:
-                parent_table_id = parent_record[bq_parent_id_key]
-                record_count_dict[field_group][parent_table_id] = 0
+        if parent_field_grp in flat_case:
+            for parent_record in flat_case[parent_field_grp]:
+                parent_id = parent_record[parent_id_key]
+                parent_ids[parent_id] = 0
 
         # count child records
-        if field_group in flattened_case:
-            for record in flattened_case[field_group]:
-                parent_id = record[bq_parent_id_key]
-                record_count_dict[field_group][parent_id] += 1
+        if field_grp in flat_case:
+            for record in flat_case[field_grp]:
+                parent_id = record[parent_id_key]
+                parent_ids[parent_id] += 1
 
     # insert record count into flattened dict entries
-    for field_group, parent_ids_dict in record_count_dict.items():
-        parent_table = get_parent_table(tables, field_group)
-        count_col_name = get_count_column_name(field_group)
+    for field_grp, parent_ids in record_count_dict.items():
+        parent_field_grp = get_parent_field_grp(get_tables(API_PARAMS,
+                                                           record_counts),
+                                                field_grp)
+        count_name = get_bq_name(API_PARAMS, 'count', field_grp)
 
-        for parent_id, count in parent_ids_dict.items():
-            parent_record_idx = get_record_idx(flattened_case, parent_table,
-                                               parent_id, is_webapp)
+        for parent_id, count in parent_ids.items():
+            p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id,
+                                       is_webapp)
 
-            flattened_case[parent_table][parent_record_idx][count_col_name] = count
+            flat_case[parent_field_grp][p_key_idx][count_name] = count
 
 
 def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
@@ -825,12 +855,13 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     If program field group has max record count of 1, flattens into parent table.
     Otherwise, counts record in one-to-many table and adds count field to parent record
     in flattened_case
-    :param is_webapp:
     :param flattened_case: flattened dict containing case record's values
-    :param record_counts: max counts for program's field group records
+    :param record_counts: field group count dictmax counts for program's field group
+    records
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: modified version of flattened_case
     """
-    merge_single_entry_fgs(flattened_case, record_counts, is_webapp)
+    merge_single_entry_field_grps(flattened_case, record_counts, is_webapp)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
     if not is_webapp:
@@ -841,14 +872,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
-    :param is_webapp:
-    :param record_counts:
     :param program_name: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
+    :param record_counts: field group count dict
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
-
-    tables = get_tables(record_counts, API_PARAMS)
+    tables = get_tables(API_PARAMS, record_counts)
 
     if is_webapp:
         print("\n{}: insert webapp tables".format(program_name))
@@ -856,7 +886,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         print("\n{}: insert records into BQ".format(program_name))
 
     for json_table in tables:
-        jsonl_file_path = get_temp_filepath(program_name, json_table, is_webapp)
+        jsonl_file_path = get_scratch_fp(program_name, json_table, is_webapp)
         # delete last jsonl scratch file so we don't append to it
         if os.path.exists(jsonl_file_path):
             os.remove(jsonl_file_path)
@@ -865,17 +895,17 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
-        for fg in {fg for fg in flat_case.keys()}:
-            if fg not in record_counts.keys():
-                flat_case.pop(fg)
+        for field_grp in flat_case:
+            if field_grp not in record_counts.keys():
+                flat_case.pop(field_grp)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
-        for bq_table in flat_case.keys():
+        for bq_table in flat_case:
             if bq_table not in tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_fp = get_temp_filepath(program_name, bq_table, is_webapp)
+            jsonl_fp = get_scratch_fp(program_name, bq_table, is_webapp)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flat_case[bq_table]:
@@ -891,19 +921,23 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                               table_name, is_webapp)
 
 
-####
+##################################################################################
 #
 # Modify existing tables
 #
-##
-def update_table_metadata():
-    metadata_path = "/".join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'],
-                              get_gdc_rel(BQ_PARAMS), ''])
+##################################################################################
 
+
+def update_table_metadata():
+    """
+    Use .json file in the BQEcosystem repo to update a bq table's metadata
+    (labels, description, friendly name)
+    """
+    metadata_path = get_metadata_path(BQ_PARAMS)
     files = get_dir_files(metadata_path)
 
     for json_file in files:
-        table_name = transform_json_name_to_table(json_file)
+        table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         if not exists_bq_table(table_id):
@@ -917,85 +951,74 @@ def update_table_metadata():
 
 
 def update_schema():
-    fields_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['FIELD_DESC_DIR'])
-    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + get_gdc_rel(BQ_PARAMS) + '.json'
+    """
+    Alter an existing table's schema (currently, only field descriptions are mutable
+    without a table rebuild, Google's restriction).
+    """
+    fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + get_gdc_rel(BQ_PARAMS)
+    fields_file += '.json'
 
     with open(get_filepath(fields_path, fields_file)) as json_file_output:
         descriptions = json.load(json_file_output)
 
-    metadata_path = (BQ_PARAMS['BQ_REPO'] + '/' + BQ_PARAMS['TABLE_METADATA_DIR'] + '/' +
-                     get_gdc_rel(BQ_PARAMS) + '/')
-
+    metadata_path = get_metadata_path(BQ_PARAMS)
     files = get_dir_files(metadata_path)
 
     for json_file in files:
-        table_name = transform_json_name_to_table(json_file)
+        table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         update_table_schema(table_id, descriptions)
 
 
-def transform_json_name_to_table(json_name):
-    # json file name 'isb-cgc-bq.HCMI.clinical_follow_ups_gdc_r24.json'
-    # def table name 'r24_HCMI_clinical_follow_ups'
-
-    json_name_split = json_name.split('.')
-    program_name = json_name_split[1]
-    split_table_name = json_name_split[2].split('_')
-    partial_table_name = '_'.join(split_table_name[0:-2])
-    return '_'.join([get_gdc_rel(BQ_PARAMS), program_name, partial_table_name])
-
-
 def copy_tables_into_public_project():
-    metadata_path = "/".join([BQ_PARAMS['BQ_REPO'],
-                              BQ_PARAMS['TABLE_METADATA_DIR'],
-                              get_gdc_rel(BQ_PARAMS),
-                              ''])
-
+    """
+    Move production-ready bq tables onto the public-facing production server.
+    """
+    metadata_path = get_metadata_path(BQ_PARAMS)
     files = get_dir_files(metadata_path)
 
     for json_file in files:
-        table_name = transform_json_name_to_table(json_file)
+        curr_dataset, versioned_dataset, src_table, curr_table, versioned_table = \
+            convert_json_to_prod_table_id(BQ_PARAMS, json_file)
 
-        split_table_id = json_file.split('.')[:-1]
+        src_table_id = ".".join([BQ_PARAMS['DEV_PROJECT'],
+                                 BQ_PARAMS['DEV_DATASET'],
+                                 src_table])
 
-        project = split_table_id[0]
+        curr_table_id = ".".join([BQ_PARAMS['PROD_PROJECT'],
+                                  curr_dataset,
+                                  curr_table])
 
-        dataset = split_table_id[1]
-        versioned_dataset = dataset + '_versioned'
+        versioned_table_id = ".".join([BQ_PARAMS['PROD_PROJECT'],
+                                       versioned_dataset,
+                                       versioned_table])
 
-        versioned_table = split_table_id[2]
-        current_table = '_'.join(versioned_table.split('_')[:-1])
-        current_table += '_current'
-
-        source_table_id = get_working_table_id(BQ_PARAMS, table_name)
-        curr_table_id = '.'.join([project, dataset, current_table])
-        versioned_table_id = '.'.join([project, versioned_dataset, versioned_table])
-
-        if not exists_bq_table(source_table_id):
+        if not exists_bq_table(src_table_id):
             print('No table found for file (skipping): ' + json_file)
             continue
 
-        '''
-        copy_bq_table(BQ_PARAMS, source_table_id,
-                      versioned_table_id, BQ_PARAMS['PUBLIC_PROJECT'])
-
-        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id,
-                      BQ_PARAMS['PUBLIC_PROJECT'])
-        '''
-
-        copy_bq_table(BQ_PARAMS, source_table_id, versioned_table_id)
-        copy_bq_table(BQ_PARAMS, source_table_id, curr_table_id)
+        copy_bq_table(BQ_PARAMS, src_table_id, versioned_table_id)
+        copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id)
 
         modify_friendly_name(BQ_PARAMS, versioned_table_id)
 
 
-####
+##################################################################################
 #
 # Web App specific functions
 #
-##
+##################################################################################
+
+
 def make_biospecimen_stub_tables(program):
+    """
+    Create one-to-many table referencing case_id (as case_gdc_id),
+    submitter_id (as case_barcode), (sample_ids as sample_gdc_ids),
+    and sample_submitter_id (as sample_barcode).
+    :param program: the program from which the cases originate.
+    """
     query = ("""
         SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
@@ -1020,11 +1043,13 @@ def make_biospecimen_stub_tables(program):
     load_table_from_query(BQ_PARAMS, table_id, query)
 
 
-####
+##################################################################################
 #
 # Script execution
 #
-##
+##################################################################################
+
+
 def print_final_report(start, steps):
     """
     Outputs a basic report of script's results, including total processing
@@ -1058,6 +1083,14 @@ def print_final_report(start, steps):
 
 
 def create_tables(program, cases, is_webapp=False):
+    """
+    Run the overall script which creates schemas, modifies data, prepares it for loading,
+    and creates the databases.
+    :param program: the source for the inserted cases data
+    :param cases: dict representations of clinical case data from GDC
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return:
+    """
     # generate table schemas
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
 
@@ -1070,7 +1103,7 @@ def create_tables(program, cases, is_webapp=False):
         # add the parent id to field group dicts that will create separate tables
         column_orders = add_reference_columns(columns, record_counts, is_webapp=is_webapp)
 
-        modify_fields_for_app(schema, column_orders, columns, API_PARAMS)
+        modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
     else:
         column_orders = add_reference_columns(columns, record_counts, schema, program)
 
@@ -1145,7 +1178,7 @@ def main(args):
 
     if 'cleanup_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
-            project = table_id.split('.')[0]
+            project = get_project_name(table_id)
 
             if project != BQ_PARAMS['DEV_PROJECT']:
                 has_fatal_error("Can only use cleanup_tables on DEV_PROJECT.")
