@@ -45,12 +45,15 @@ def get_jsonl_filename(program_name, table, is_webapp=False):
     :param table: future insertion table for flattened data
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: String .jsonl filename, of the form
-        relXX_TABLE_NAME_FULL_PROGRAM_supplemental-table-name
-        (_supplemental-table-name optional)
+        relXX_TABLE_NAME_FULL_PROGRAM_supplemental_table_name
+        (_supplemental_table_name optional)
     """
     prefix = BQ_PARAMS['APP_JSONL_PREFIX'] if is_webapp else ''
-    file_str_list = [prefix, get_full_table_name(program_name, table), '.jsonl']
-    return file_str_list
+    file_str_list = [prefix, get_full_table_name(program_name, table)]
+    file_name = '_'.join(file_str_list)
+    file_name += '.jsonl'
+
+    return file_name
 
 
 def get_scratch_fp(program_name, table, is_webapp=False):
