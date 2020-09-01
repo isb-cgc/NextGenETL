@@ -31,11 +31,13 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-####
+##################################################################################
 #
 # Getter functions, employed for readability/consistency
 #
-##
+##################################################################################
+
+
 def get_jsonl_filename(program_name, table, is_webapp=False):
     """
     Gets unique (per release) jsonl filename, used for intermediately storing
@@ -244,7 +246,7 @@ def find_program_structure(cases, is_webapp=False):
 
 ##################################################################################
 #
-# Functions used for schema creation
+#       Schema Creation
 #
 ##################################################################################
 
@@ -645,83 +647,6 @@ def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_
                         row.pop(row_field)
 
         flat_case[field_grp].append(row)
-
-
-'''
-def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_webapp):
-    """
-    Recursively traverse the case json object, creating dict of format:
-     {field_group: [records]}
-    :param record: the case data object to recurse and flatten
-    :param field_grp: name of the case's field group currently being processed.
-    :param flat_case: partially-built flattened case dict
-    :param case_id: case id
-    :param pid: parent field group id
-    :param pid_name: parent field group id key
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: flattened case dict, format: { 'field_group': [records] }
-    """
-    # entry represents a field group, recursively flatten each record
-    if field_grp not in API_PARAMS['FIELD_CONFIG'].keys():
-        return flat_case
-
-    if isinstance(record, list):
-        # flatten each record in field group list
-        for entry in record:
-            flat_case = flatten_case_entry(entry, field_grp, flat_case, case_id, pid,
-                                           pid_name,
-                                           is_webapp)
-    else:
-        row = dict()
-
-        field_grp_id_name = get_field_grp_id_name(API_PARAMS, field_grp, is_webapp)
-
-        for field, columns in record.items():
-            # if list, possibly more than one entry, recurse over list
-            if isinstance(columns, list):
-                flat_case = flatten_case_entry(
-                    record=columns, field_grp=get_field_key(field_grp, field),
-                    flat_case=flat_case,
-                    case_id=case_id, pid=record[field_grp_id_name],
-                    pid_name=field_grp_id_name,
-                    is_webapp=is_webapp)
-            else:
-                if field_grp_id_name != pid_name:
-                    parent_field_grp = get_field_group(field_grp)
-                    pid_key = get_bq_name(API_PARAMS, pid_name, parent_field_grp,
-                                          is_webapp)
-
-                    # add parent_id key and value to row
-                    row[pid_key] = pid
-
-                base_field_grp = get_base_field_grp(API_PARAMS)
-                base_field_grp_id_name = get_field_grp_id_name(API_PARAMS, 
-                base_field_grp, is_webapp)
-
-                if field_grp_id_name != base_field_grp_id_name:
-                    row[base_field_grp_id_name] = case_id
-
-                column = get_bq_name(API_PARAMS, field, field_grp, is_webapp)
-
-                row[column] = columns
-
-            if field_grp not in flat_case:
-                # if this is first row added for field_grp, create an empty list
-                # to hold row objects
-                flat_case[field_grp] = list()
-
-            if row:
-                excluded = get_excluded_fields_for_field_grp(field_grp, is_webapp)
-
-                for row_field in row.copy().keys():
-                    # if field is in the excluded list, or is Null, exclude from flat_case
-                    if row_field in excluded or not row[row_field]:
-                        row.pop(row_field)
-
-        flat_case[field_grp].append(row)
-
-    return flat_case
-'''
 
 
 def flatten_case(case, is_webapp):
@@ -1127,6 +1052,17 @@ def create_tables(program, cases, is_webapp=False):
 
 
 def main(args):
+    table_id_1 = "isb-cgc-bq.CGCI_versioned.clinical_follow_ups_molecular_tests_gdc_r24"
+    table_id_2 = "isb-cgc-bq.CGCI.clinical_follow_ups_molecular_tests_gdc_current"
+    friendly_name_1 = "CGCI CLINICAL DATA - FOLLOW UP MOLECULAR TESTS REL24 VERSIONED"
+    friendly_name_2 = "CGCI CLINICAL DATA - FOLLOW UP MOLECULAR TESTS"
+    modify_friendly_name_custom(table_id_1, friendly_name_1)
+    time.sleep(2)
+    modify_friendly_name_custom(table_id_2, friendly_name_2)
+    time.sleep(2)
+    exit()
+
+
     """
     Script execution function.
     :param args: command-line arguments
