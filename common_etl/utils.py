@@ -335,7 +335,7 @@ def load_table_from_query(bq_params, table_id, query):
     try:
         query_job = client.query(query, job_config=job_config)
         print(' - Starting insert for {}... '.format(table_id), end="")
-        await_insert_job(query_job)
+        await_insert_job(bq_params, client, table_id, query_job)
     except TypeError as err:
         has_fatal_error(err)
 
@@ -371,11 +371,12 @@ def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
         print(' - Starting insert for {}... '.format(table_id), end="")
-        await_insert_job(load_job)
+        await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
 
 
+'''
 def await_job(bq_params, client, bq_job):
     location = bq_params['LOCATION']
 
@@ -387,8 +388,29 @@ def await_job(bq_params, client, bq_job):
         has_fatal_error('[ERROR] While running BQ job: {}\n{}'.format(
             bq_job.error_result, bq_job.errors))
     return True
+'''
 
 
+def await_job(bq_params, client, bq_job):
+    location = bq_params['LOCATION']
+    job_state = "NOT_STARTED"
+
+    while job_state != 'DONE':
+        bq_job = client.get_job(bq_job.job_id, location=location)
+
+        job_state = bq_job.state
+
+        if job_state != 'DONE':
+            time.sleep(2)
+
+    bq_job = client.get_job(bq_job.job_id, location=location)
+
+    if bq_job.error_result is not None:
+        has_fatal_error('While running BQ job: {}\n{}'.format(bq_job.error_result,
+                                                              bq_job.errors))
+
+
+'''
 def await_insert_job(bq_job):
     while not bq_job.done(timeout=3):
         if bq_job.state == "DONE":
@@ -402,6 +424,38 @@ def await_insert_job(bq_job):
         print(" done. {} rows inserted.".format(bq_job.output_rows))
     else:
         print(" done.")
+'''
+
+
+def await_insert_job(bq_params, client, table_id, bq_job):
+    print(' - Starting insert for {}... '.format(table_id), end="")
+
+    last_report_time = time.time()
+
+    location = bq_params['LOCATION']
+    job_state = "NOT_STARTED"
+
+    while job_state != 'DONE':
+        bq_job = client.get_job(bq_job.job_id, location=location)
+
+        if time.time() - last_report_time > 15:
+            print('\t- job is currently in state {}'.format(bq_job.state))
+            last_report_time = time.time()
+
+        job_state = bq_job.state
+
+        if job_state != 'DONE':
+            time.sleep(2)
+
+    bq_job = client.get_job(bq_job.job_id, location=location)
+
+    if bq_job.error_result is not None:
+        has_fatal_error('While running BQ job: {}\n{}'
+                        .format(bq_job.error_result, bq_job.errors), ValueError)
+
+    table = client.get_table(table_id)
+
+    print(" done. {} rows inserted.".format(table.num_rows))
 
 
 def get_program_list(bq_params):
