@@ -64,7 +64,7 @@ def get_all_progs_query():
 
 
 def get_addt_study_metadata_query(study_id):
-    return """{study (study_id: \"{}\") { 
+    return """{study(study_id:\"{}\") { 
     study_id 
     disease_type
     primary_type
