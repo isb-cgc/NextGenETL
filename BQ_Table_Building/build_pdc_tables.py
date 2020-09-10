@@ -216,7 +216,7 @@ def main(args):
     """
 
     end = time.time() - start
-    print("Finished program execution in {} seconds.".format(end))
+    print("Finished program execution in {:0.0f}s!\n".format(end))
 
 
 if __name__ == '__main__':
