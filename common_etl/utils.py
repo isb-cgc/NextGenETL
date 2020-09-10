@@ -1400,11 +1400,11 @@ def load_config(yaml_file, yaml_dict_keys):
 def write_obj_list_to_jsonl(bq_params, fp, obj_list):
     cnt = 0
 
-    with open(fp, bq_params['IO_MODE']):
+    with open(fp, bq_params['IO_MODE']) as file_obj:
         for obj in obj_list:
             obj_str = convert_dict_to_string(obj)
             json.dump(obj=obj_str, fp=fp)
-            fp.write('\n')
+            file_obj.write('\n')
             cnt += 1
 
         print("Successfully output {} records to {}".format(cnt, fp))
