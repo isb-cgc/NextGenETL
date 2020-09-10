@@ -86,14 +86,15 @@ def get_graphql_api_response(api_params, query, variables=None):
     if not variables:
         response = requests.post(endpoint, json={'query': query})
     else:
-        response = requests.post(endpoint, json={'query': query, 'variables': variables})
+        response = requests.post(endpoint, json={'query': query,
+                                                 'variables': variables})
 
     if not response.ok:
+        status = response.raise_for_status()
+
         has_fatal_error("Invalid response from endpoint {}\n"
                         "For query: {}\n"
-                        "Status code: {}".format(endpoint,
-                                                 query,
-                                                 response.raise_for_status()))
+                        "Status code: {}".format(endpoint, query, status))
 
     return response.json()
 
@@ -117,8 +118,15 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
+                addt_study_metadata_query = get_additional_study_metadata_query(),
+
+                study_query_vars = {
+                    'study_id_var': study_dict['study_id']
+                }
+
                 study_res = get_graphql_api_response(API_PARAMS,
-                                                     json=study_metadata_json)
+                                                     addt_study_metadata_query,
+                                                     study_query_vars)
 
                 for field, val in study_res['data']['study'].items():
                     study_dict[field] = val
@@ -134,12 +142,7 @@ def create_studies_dict(json_res):
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
 
-                study_metadata_json = {
-                    'query': get_additional_study_metadata_query(),
-                    'variables': {
-                        'study_id_var': study_dict['study_id']
-                    }
-                }
+
 
                 studies.append(study_dict)
 
