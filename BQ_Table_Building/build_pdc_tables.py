@@ -53,7 +53,6 @@ def get_all_progs_query():
                 studies {
                     study_id
                     pdc_study_id
-                    study_name
                     submitter_id_name
                     study_submitter_id
                     analytical_fraction
@@ -62,6 +61,16 @@ def get_all_progs_query():
                 } 
             }
         }}"""
+
+
+def get_addt_study_metadata_query(study_id):
+    return """{study (study_id: \"{}\") { 
+    study_id 
+    disease_type
+    primary_type
+    cases_count
+    aliquots_count
+    }}""".format(study_id)
 
 
 def get_quant_log2_data(submitter_id):
@@ -112,6 +121,13 @@ def create_studies_dict(json_res):
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
+
+                study_res = get_json_from_graphql_api(
+                    API_PARAMS,
+                    get_addt_study_metadata_query(study_dict['study_id']))
+
+                for field, val in study_res['data']['study'].items():
+                    study_dict[field] = val
 
                 studies.append(study_dict)
 
