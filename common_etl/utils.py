@@ -725,7 +725,16 @@ def from_schema_file_to_obj(bq_params, filename):
     fp = get_filepath(bq_repo_dir, filename)
 
     with open(fp, 'r') as schema_file:
-        return json.load(schema_file)
+        schema = []
+
+        schema_file = json.load(schema_file)
+
+        schema_fields = schema_file['schema']['fields']
+
+        for field in schema_fields:
+            schema.append(to_bq_schema_obj(field))
+
+    return schema
 
 
 def to_bq_schema_obj(schema_field_dict):
