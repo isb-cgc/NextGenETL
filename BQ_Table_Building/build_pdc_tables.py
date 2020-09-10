@@ -63,26 +63,30 @@ def get_all_progs_query():
         }}"""
 
 
-def get_addt_study_metadata_query(study_id):
-    print(study_id)
-
-    return '''{ study (study_id: "58be6db8-f1f7-11e9-9a07-0a80fada099c") { 
-    study_id 
-    disease_type
-    primary_type
-    cases_count
-    aliquots_count
-    }}'''
+def get_additional_study_metadata_query():
+    return """{
+    study (study_id: $study_id_var){ 
+        study_id 
+        disease_type
+        primary_type
+        cases_count
+        aliquots_count
+        }
+    }"""
 
 
 def get_quant_log2_data(submitter_id):
     return ('{ quantDataMatrix(study_submitter_id: \"'
-                              + submitter_id + '\" data_type: \"log2_ratio\") }')
+            + submitter_id + '\" data_type: \"log2_ratio\") }')
 
 
-def get_json_from_graphql_api(api_params, query):
+def get_graphql_api_response(api_params, query, variables=None):
     endpoint = api_params['ENDPOINT']
-    response = requests.post(endpoint, json={'query': query})
+
+    if not variables:
+        response = requests.post(endpoint, json={'query': query})
+    else:
+        response = requests.post(endpoint, json={'query': query, 'variables': variables})
 
     if not response.ok:
         has_fatal_error("Invalid response from endpoint {}\n"
@@ -113,6 +117,12 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
+                study_res = get_graphql_api_response(API_PARAMS,
+                                                     json=study_metadata_json)
+
+                for field, val in study_res['data']['study'].items():
+                    study_dict[field] = val
+
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
                 study_dict['program_name'] = program_name
@@ -124,12 +134,12 @@ def create_studies_dict(json_res):
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
 
-                study_res = get_json_from_graphql_api(
-                    API_PARAMS,
-                    get_addt_study_metadata_query(study_dict['study_id']))
-
-                for field, val in study_res['data']['study'].items():
-                    study_dict[field] = val
+                study_metadata_json = {
+                    'query': get_additional_study_metadata_query(),
+                    'variables': {
+                        'study_id_var': study_dict['study_id']
+                    }
+                }
 
                 studies.append(study_dict)
 
@@ -158,7 +168,7 @@ def main(args):
     if 'build_studies_table' in steps:
         studies_start = time.time()
 
-        json_res = get_json_from_graphql_api(API_PARAMS, get_all_progs_query())
+        json_res = get_graphql_api_response(API_PARAMS, get_all_progs_query())
         studies = create_studies_dict(json_res)
         studies_fp = get_scratch_path(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 
