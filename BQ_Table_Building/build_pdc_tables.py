@@ -191,7 +191,7 @@ def main(args):
         studies_end = time.time() - studies_start
 
         print("done.\n"
-              "Completed 'build_studies_table' step in {} seconds".format(studies_end))
+              "Completed 'build_studies_table' step in {:0.0f}s!\n".format(studies_end))
 
     """   
     for study in studies:
