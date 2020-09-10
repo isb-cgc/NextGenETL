@@ -1421,7 +1421,7 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                 columns[field_grp].remove(renamed_field)
 
     print(columns)
-    print(group_order_dict)
+    print(column_order_dict)
     exit()
 
     # field is fully associated name
