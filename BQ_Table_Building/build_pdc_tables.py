@@ -90,7 +90,6 @@ def create_studies_dict(json_res):
         program_id = program['program_id']
         program_submitter_id = program['program_submitter_id']
         program_name = program['name']
-        program_sponsor = program['sponsor']
         program_start_date = program['start_date']
         program_end_date = program['end_date']
         program_manager = program['program_manager']
