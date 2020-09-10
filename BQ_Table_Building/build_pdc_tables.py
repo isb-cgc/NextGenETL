@@ -178,7 +178,7 @@ def main(args):
         table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        schema_filename = "{}_{}.json".format(
+        schema_filename = "{}.{}.{}_{}.json".format(
             BQ_PARAMS['DEV_PROJECT'],
             BQ_PARAMS['DEV_DATASET'],
             'studies',
