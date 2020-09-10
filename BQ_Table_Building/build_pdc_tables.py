@@ -145,8 +145,9 @@ def create_studies_dict(json_res):
                 study_metadata = get_graphql_api_response(API_PARAMS,
                                                           payload=study_payload)
 
-                for field, val in study_metadata['data']['study'].items():
-                    study_dict[field] = val
+                for entry in study_metadata['data']['study']:
+                    for field, val in entry.items():
+                        study_dict[field] = val
 
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
