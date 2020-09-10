@@ -1405,8 +1405,6 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                                                   is_webapp=True)
 
     # Note: column_order_dict: already eliminated follow_ups fgs
-    print(columns)
-    exit()
 
     for field_grp in column_order_dict.keys():
         # rename case_id no matter which field_grp it's in
@@ -1421,6 +1419,10 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
             if field_grp in columns and renamed_field in columns[field_grp]:
                 columns[field_grp].add(renamed_fields[renamed_field])
                 columns[field_grp].remove(renamed_field)
+
+    print(columns)
+    print(group_order_dict)
+    exit()
 
     # field is fully associated name
     for field in schema.copy().keys():
