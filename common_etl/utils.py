@@ -1392,6 +1392,10 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
     :param column_order_dict: dict of {field_groups: column_order set()}
     :param columns: dict containing table column keys
     """
+
+    print(column_order_dict)
+    exit()
+
     renamed_fields = dict(api_params['RENAMED_FIELDS'])
 
     excluded_field_grps = get_excluded_field_groups(api_params)

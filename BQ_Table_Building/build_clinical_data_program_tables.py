@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import copy
-import json
 import math
 
 from common_etl.utils import *
@@ -70,7 +69,7 @@ def get_scratch_fp(program_name, table, is_webapp=False):
     return get_scratch_dir(BQ_PARAMS, filename)
 
 
-def get_full_table_name(program, table):  # todo
+def get_full_table_name(program, table):
     """
     Get the full name used in table_id for a given table.
     :param program: name of the program to with the data belongs
@@ -78,8 +77,10 @@ def get_full_table_name(program, table):  # todo
     :return: String representing table name used by BQ.
     """
     table_name = [program, BQ_PARAMS['MASTER_TABLE']]
+
     # if one-to-many table, append suffix
-    suffix = get_table_suffixes(API_PARAMS)[table]
+    suffixes = get_table_suffixes(API_PARAMS)
+    suffix = suffixes[table]
 
     if suffix:
         table_name.append(suffix)
@@ -178,6 +179,7 @@ def examine_case(set_fields, record_counts, field_grp, field_grp_name):
         for field, record in field_grp.items():
 
             if isinstance(record, list):
+
                 child_field_grp = field_grp_name + '.' + field
 
                 if child_field_grp not in field_grps:
@@ -937,9 +939,9 @@ def make_biospecimen_stub_tables(program):
     :param program: the program from which the cases originate.
     """
     query = ("""
-        SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        SELECT project_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
-          (SELECT proj, case_gdc_id, case_barcode, 
+          (SELECT project_name, case_gdc_id, case_barcode, 
             SPLIT(sample_ids, ', ') as s_gdc_ids, 
             SPLIT(submitter_sample_ids, ', ') as s_barcodes
             FROM
@@ -947,13 +949,17 @@ def make_biospecimen_stub_tables(program):
                     submitter_id as case_barcode, 
                     sample_ids, submitter_sample_ids, 
                     SPLIT((SELECT project_id
-                           FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-                FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
+                           FROM UNNEST(project)), '-')[OFFSET(0)] AS project_name
+                FROM `{}.{}.{}_{}`)), 
         UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
         UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
         WHERE pos1 = pos2
-        AND proj = '{}'
-    """).format(program)
+        AND project_name = '{}'
+    """).format(BQ_PARAMS['DEV_PROJECT'],
+                BQ_PARAMS['DEV_DATASET'],
+                BQ_PARAMS['RELEASE'],
+                BQ_PARAMS['MASTER_TABLE'],
+                program)
 
     table_id = get_biospecimen_table_id(BQ_PARAMS, program)
 
