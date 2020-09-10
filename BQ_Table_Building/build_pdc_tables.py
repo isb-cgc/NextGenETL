@@ -51,10 +51,10 @@ def get_all_progs_query():
                 project_submitter_id
                 name
                 studies {
-                    study_id
                     pdc_study_id
-                    submitter_id_name
+                    study_id
                     study_submitter_id
+                    submitter_id_name
                     analytical_fraction
                     experiment_type
                     acquisition_type
@@ -63,8 +63,34 @@ def get_all_progs_query():
         }}"""
 
 
-def get_additional_study_metadata_query(study_id):
-    return '{ study(study_id: \"' + study_id + '\") }'
+def get_study_payload(study_id, pdc_study_id, study_submitter_id):
+    query_str = ('\"query study ($study_id: String, '
+                 '$pdc_study_id: String, '
+                 '$study_submitter_id: String) { '
+                 'study (study_id: $study_id, '
+                 'pdc_study_id: $pdc_study_id, '
+                 'study_submitter_id: $study_submitter_id) { '
+                 'pdc_study_id '
+                 'study_id '
+                 'study_submitter_id '
+                 'study_name '
+                 'study_shortname '
+                 'disease_type '
+                 'primary_site '
+                 'cases_count '
+                 'aliquots_count '
+                 '} '
+                 '}\"'
+                 )
+
+    study_vars = ("{{   \"study_id\": \"{}\", "
+                  "   \"pdc_study_id\": \"{}\", "
+                  "   \"study_submitter_id\": \"{}\"}}"
+                  ).format(study_id, pdc_study_id, study_submitter_id)
+
+    payload = '{{ \"query\": {}, \"variables\": {} }}'.format(query_str, study_vars)
+
+    return payload
 
 
 def get_quant_log2_data(submitter_id):
@@ -72,24 +98,23 @@ def get_quant_log2_data(submitter_id):
             + submitter_id + '\" data_type: \"log2_ratio\") }')
 
 
-def get_graphql_api_response(api_params, query, variables=None):
+def get_graphql_api_response(api_params, query=None, payload=None):
+    headers = {'Content-Type': 'application/json'}
+
     endpoint = api_params['ENDPOINT']
 
-    if not variables:
-        req_json = {'query': query}
-        response = requests.post(endpoint, json=req_json)
+    if query and not payload:
+        req_body = {'query': query}
+        response = requests.post(endpoint, headers=headers, json=req_body)
+    elif payload and not query:
+        response = requests.post(endpoint, headers=headers,  data=payload)
     else:
-        req_json = {'query': query, 'variables': variables}
-        response = requests.post(endpoint, json=req_json)
-
-    print('req_json: {}, res: '.format(req_json, response))
+        has_fatal_error("Must specify either query OR payload (not both) "
+                        "in get_graphql_api_response.", SyntaxError)
 
     if not response.ok:
-        status = response.raise_for_status()
-
-        has_fatal_error("Invalid response from endpoint {}\n"
-                        "For query: {}\n"
-                        "Status code: {}".format(endpoint, query, status))
+        has_fatal_error("Invalid response from endpoint {}\n Status code: {}"
+                        .format(endpoint, response.raise_for_status()))
 
     return response.json()
 
@@ -113,22 +138,14 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
-                query = get_additional_study_metadata_query(
-                    study_dict['study_id'])
+                study_payload = get_study_payload(study_dict['study_id'],
+                                                  study_dict['pdc_study_id'],
+                                                  study_dict['study_submitter_id'])
 
-                '''
-                study_query_vars = {
-                    'study_id_var': study_dict['study_id']
-                }
-                '''
+                study_metadata = get_graphql_api_response(API_PARAMS,
+                                                          payload=study_payload)
 
-                study_res = get_graphql_api_response(API_PARAMS,
-                                                     query)
-
-                print(study_res)
-                exit()
-
-                for field, val in study_res['data']['study'].items():
+                for field, val in study_metadata['data']['study'].items():
                     study_dict[field] = val
 
                 study_dict['program_id'] = program_id
@@ -141,8 +158,6 @@ def create_studies_dict(json_res):
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
-
-
 
                 studies.append(study_dict)
 
