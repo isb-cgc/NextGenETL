@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import io
+import json
 import os
 import sys
 import time
@@ -347,36 +348,26 @@ def load_table_from_query(bq_params, table_id, query):
         has_fatal_error(err)
 
 
-def create_and_load_table(bq_params, jsonl_rows_file, schema, table_name,
-                          is_webapp=False):
+def create_and_load_table(bq_params, jsonl_file, schema, table_id):
     """
     Creates BQ table and inserts case data from jsonl file.
     :param bq_params: bq params from yaml config file
-    :param jsonl_rows_file: file containing case records in jsonl format
+    :param jsonl_file: file containing case records in jsonl format
     :param schema: list of SchemaFields representing desired BQ table schema
-    :param table_name: name of table to create
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :param table_id: id of table to create
     """
 
     client = bigquery.Client()
-
     job_config = bigquery.LoadJobConfig()
     job_config.schema = schema
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    gs_uri = "/".join(['gs:/',
-                       bq_params['WORKING_BUCKET'],
-                       bq_params['WORKING_BUCKET_DIR'],
-                       jsonl_rows_file])
-
-    if is_webapp:
-        table_id = get_webapp_table_id(bq_params, table_name)
-    else:
-        table_id = get_working_table_id(bq_params, table_name)
+    gs_uri = get_working_gs_uri(bq_params, jsonl_file)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
+
         print(' - Inserting into {}... '.format(table_id), end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
@@ -729,6 +720,13 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                 base_grp_order.pop(field)
 
 
+def from_schema_file_to_obj(bq_params, filename):
+    fp = '/'.join([bq_params['BQ_REPO'], bq_params['SCHEMA_DIR'], filename])
+
+    with open(fp, 'r') as schema_file:
+        return json.load(schema_file)
+
+
 def to_bq_schema_obj(schema_field_dict):
     """
     Convert schema entry dict to SchemaField object.
@@ -739,18 +737,17 @@ def to_bq_schema_obj(schema_field_dict):
     return bigquery.SchemaField.from_api_repr(schema_field_dict)
 
 
-def upload_to_bucket(bq_params, file_name):
+def upload_to_bucket(bq_params, filename):
     """
     Uploads file to a google storage bucket (location specified in yaml config)
     :param bq_params: bq params from yaml config file
-    :param file_name: name of file to upload to bucket
+    :param filename: name of file to upload to bucket
     """
-    filepath = get_scratch_dir(bq_params)
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
-        blob = bucket.blob("/".join([bq_params['WORKING_BUCKET_DIR'], file_name]))
-        blob.upload_from_filename("/".join([filepath, file_name]))
+        blob = bucket.blob("/".join([bq_params['WORKING_BUCKET_DIR'], filename]))
+        blob.upload_from_filename(get_scratch_path(bq_params, filename))
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
@@ -786,7 +783,8 @@ def get_column_order_list(api_params, field_grp):
         has_fatal_error("'{}' not found in FIELD_CONFIG in yaml config".format(field_grp))
 
     if 'column_order' not in api_params['FIELD_CONFIG'][field_grp]:
-        has_fatal_error("No column order provided for {} in yaml config.".format(field_grp))
+        has_fatal_error(
+            "No column order provided for {} in yaml config.".format(field_grp))
 
     field_order_list = api_params['FIELD_CONFIG'][field_grp]['column_order']
 
@@ -861,7 +859,8 @@ def get_grp_id_field(api_params, field_grp_key, is_webapp=False):
         return None
 
     if 'id_key' not in api_params['FIELD_CONFIG'][field_grp_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(field_grp_key))
+        has_fatal_error(
+            "table_id_key not found in API_PARAMS for {}".format(field_grp_key))
 
     table_id_name = api_params['FIELD_CONFIG'][field_grp_key]['id_key']
 
@@ -887,7 +886,8 @@ def get_field_grp_id_key(api_params, field_grp_key, is_webapp=False):
         return None
 
     if 'id_key' not in api_params['FIELD_CONFIG'][field_grp_key]:
-        has_fatal_error("table_id_key not found in API_PARAMS for {}".format(field_grp_key))
+        has_fatal_error(
+            "table_id_key not found in API_PARAMS for {}".format(field_grp_key))
 
     field_grp_id_name = api_params['FIELD_CONFIG'][field_grp_key]['id_key']
 
@@ -928,7 +928,8 @@ def get_prefix(api_params, field_grp):
     if field_grp not in api_params['FIELD_CONFIG']:
         has_fatal_error('{} not found in not in FIELD_CONFIG'.format(field_grp), KeyError)
     if 'prefix' not in api_params['FIELD_CONFIG'][field_grp]:
-        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(field_grp), KeyError)
+        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(field_grp),
+                        KeyError)
 
     prefix = api_params['FIELD_CONFIG'][field_grp]['prefix']
 
@@ -950,7 +951,8 @@ def get_excluded_for_grp(api_params, field_grp, is_webapp=False):
     if field_grp not in api_params['FIELD_CONFIG']:
         has_fatal_error("{} not set in YAML.".format(field_grp), KeyError)
     if not api_params['FIELD_CONFIG'][field_grp]:
-        has_fatal_error("api_params['FIELD_CONFIG']['{}'] not found".format(field_grp), KeyError)
+        has_fatal_error("api_params['FIELD_CONFIG']['{}'] not found".format(field_grp),
+                        KeyError)
 
     excluded_key = 'webapp_excluded_fields' if is_webapp else 'excluded_fields'
 
@@ -979,14 +981,16 @@ def get_excluded_fields(api_params, field_grps, is_webapp=False):
 
     for field_grp in field_grps:
         if field_grp not in api_params['FIELD_CONFIG']:
-            has_fatal_error('{} not found in not in FIELD_CONFIG'.format(field_grp), KeyError)
+            has_fatal_error('{} not found in not in FIELD_CONFIG'.format(field_grp),
+                            KeyError)
         if not api_params['FIELD_CONFIG'][field_grp]:
             continue
 
         field_grp_params = api_params['FIELD_CONFIG'][field_grp]
 
         if excluded_key not in field_grp_params:
-            has_fatal_error("One of the excluded field_grp params missing from YAML.", KeyError)
+            has_fatal_error("One of the excluded field_grp params missing from YAML.",
+                            KeyError)
         if not field_grp_params[excluded_key]:
             continue
 
@@ -1170,7 +1174,8 @@ def get_bq_name(api_params, field, field_grp=None, is_webapp=False):
     base_field_grp = get_base_grp(api_params)
 
     # if field_grp provided as argument, create an appended key
-    # if field is name (not key, only one degree deep), create field_key using base field_grp
+    # if field is name (not key, only one degree deep), create field_key using base
+    # field_grp
     # else, field is already a key
     if field_grp:
         field_key = get_field_key(field_grp, field)
@@ -1285,6 +1290,15 @@ def get_scratch_dir(bq_params):
     return '/'.join([os.path.expanduser('~'), bq_params['SCRATCH_DIR']])
 
 
+def get_scratch_path(bq_params, filename):
+    """
+    Construct filepath for VM output file
+    :param bq_params: bq params from yaml config file
+    :return: output filepath for VM
+    """
+    return '/'.join([os.path.expanduser('~'), bq_params['SCRATCH_DIR'], filename])
+
+
 def get_dir_files(dir_path):
     """
     Get all the file names in a directory as a list of as strings
@@ -1381,6 +1395,27 @@ def load_config(yaml_file, yaml_dict_keys):
     return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
 
     return tuple(return_dicts)
+
+
+def write_obj_list_to_jsonl(bq_params, fp, obj_list):
+    cnt = 0
+
+    with open(fp, bq_params['IO_MODE']):
+        for obj in obj_list:
+            obj_str = convert_dict_to_string(obj)
+            json.dump(obj=obj_str, fp=fp)
+            fp.write('\n')
+            cnt += 1
+
+        print("Successfully output {} records to {}".format(cnt, fp))
+
+
+def get_working_gs_uri(bq_params, filename):
+    return "/".join(['gs:/',
+                     bq_params['WORKING_BUCKET'],
+                     bq_params['WORKING_BUCKET_DIR'],
+                     filename]
+                    )
 
 
 ##################################################################################

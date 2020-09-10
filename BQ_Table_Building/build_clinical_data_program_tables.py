@@ -66,8 +66,8 @@ def get_scratch_fp(program_name, table, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: String representing the temp file path.
     """
-    path = get_scratch_dir(BQ_PARAMS) + '/'
-    return path + get_jsonl_filename(program_name, table, is_webapp)
+    filename = get_jsonl_filename(program_name, table, is_webapp)
+    return get_scratch_path(BQ_PARAMS, filename)
 
 
 def get_full_table_name(program, table):
@@ -844,9 +844,13 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
         table_name = get_full_table_name(program_name, json_table)
 
+        if is_webapp:
+            table_id = get_webapp_table_id(BQ_PARAMS, table_name)
+        else:
+            table_id = get_working_table_id(BQ_PARAMS, table_name)
+
         upload_to_bucket(BQ_PARAMS, jsonl_file)
-        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table],
-                              table_name, is_webapp)
+        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
 
 
 ##################################################################################

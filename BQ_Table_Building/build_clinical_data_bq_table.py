@@ -24,10 +24,7 @@ import time
 import os
 import json
 import requests
-from common_etl.utils import (
-    infer_data_types, load_config, generate_bq_schema, collect_values,
-    create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error, get_scratch_dir, upload_to_bucket, get_gdc_rel, get_expand_groups)
+from common_etl.utils import *
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -258,8 +255,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    scratch_path = get_scratch_dir(BQ_PARAMS)
-    output_fp = "/".join([scratch_path, BQ_PARAMS['DATA_OUTPUT_FILE']])
+    output_fp = get_scratch_path(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'])
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
@@ -279,12 +275,10 @@ def main(args):
         print('Building BQ Table!')
 
         table_name = "_".join([get_gdc_rel(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(bq_params=BQ_PARAMS,
-                              jsonl_rows_file=BQ_PARAMS['DATA_OUTPUT_FILE'],
-                              schema=schema,
-                              table_name=table_name)
+        create_and_load_table(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'], schema, table_id)
 
     end = time.time() - start
     print("Script executed in {:.0f} seconds\n".format(end))

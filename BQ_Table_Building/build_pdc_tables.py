@@ -19,9 +19,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import time
 import requests
 import json
+from common_etl.utils import *
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def run_query(endpoint, query):
@@ -33,28 +38,29 @@ def run_query(endpoint, query):
                         .format(request.status_code, query))
 
 
-def main():
-
-    all_progs_query = """{allPrograms{
-        program_id
-        program_submitter_id
-        name
-        projects {
-            project_id
-            project_submitter_id
+def get_all_progs_query():
+    return """{allPrograms{
+            program_id
+            program_submitter_id
             name
-            studies {
-                study_id
-                submitter_id_name
-                study_submitter_id
-                analytical_fraction
-                experiment_type
-                acquisition_type
-            } 
-        }
-    }}"""
+            projects {
+                project_id
+                project_submitter_id
+                name
+                studies {
+                    study_id
+                    submitter_id_name
+                    study_submitter_id
+                    analytical_fraction
+                    experiment_type
+                    acquisition_type
+                } 
+            }
+        }}"""
 
-    study_id_query = """{study (study_id: "96296e87-89a4-11ea-b1fd-0aad30af8a83") { 
+
+def get_study_id_query():
+    return """{study (study_id: "96296e87-89a4-11ea-b1fd-0aad30af8a83") { 
         study_id 
         study_submitter_id 
         program_id 
@@ -75,7 +81,9 @@ def main():
         } 
     }}"""
 
-    get_all_studies_query = """{programsProjectsStudies {
+
+def get_all_studies_query():
+    return """{programsProjectsStudies {
         program_submitter_id
         name
         program_id
@@ -92,56 +100,115 @@ def main():
         }
     }}"""
 
-    endpoint = 'https://pdc.cancer.gov/graphql'
 
-    response = requests.post(endpoint, json={'query': all_progs_query})
+def get_quant_log2_data(submitter_id):
+    return ('{ quantDataMatrix(study_submitter_id: \"'
+                              + submitter_id + '\" data_type: \"log2_ratio\") }')
 
+
+def get_json_from_graphql_api(api_params, query):
+    endpoint = api_params['endpoint']
+    response = requests.post(endpoint, json={'query': query})
+
+    if not response.ok:
+        has_fatal_error("Invalid response from endpoint {}\n"
+                        "For query: {}\n"
+                        "Status code: {}".format(endpoint,
+                                                 query,
+                                                 response.raise_for_status()))
+
+    return response.json()
+
+
+def create_studies_dict(json_res):
     studies = []
 
-    if response.ok:
-        json_res = response.json()
-        for program in json_res['data']['allPrograms']:
-            for project in program['projects']:
-                for study in project['studies']:
-                    study_dict = study.copy()
-                    study_dict['program_id'] = program['program_id']
-                    study_dict['program_submitter_id'] = program['program_submitter_id']
-                    study_dict['program_name'] = program['name']
-                    study_dict['project_id'] = project['project_id']
-                    study_dict['project_submitter_id'] = project['project_submitter_id']
-                    study_dict['project_name'] = project['name']
-                    studies.append(study_dict)
-    else:
-        response.raise_for_status()
+    for program in json_res['data']['allPrograms']:
+        program_id = program['program_id']
+        program_submitter_id = program['program_submitter_id']
+        program_name = program['name']
 
-    study_sub_has_quant = []
-    study_sub_no_quant = []
+        for project in program['projects']:
+            project_id = project['project_id']
+            project_submitter_id = project['project_submitter_id']
+            project_name = project['name']
 
-    print(study_dict)
-    return
+            for study in project['studies']:
+                study_dict = study.copy()
 
+                study_dict['program_id'] = program_id
+                study_dict['program_submitter_id'] = program_submitter_id
+                study_dict['program_name'] = program_name
+
+                study_dict['project_id'] = project_id
+                study_dict['project_submitter_id'] = project_submitter_id
+                study_dict['project_name'] = project_name
+
+                studies.append(study_dict)
+
+    return studies
+
+
+def main(args):
+    start = time.time()
+
+    # Load YAML configuration
+    if len(args) != 2:
+        has_fatal_error("Usage: {} <configuration_yaml>".format(args[0]), ValueError)
+
+    with open(args[1], mode='r') as yaml_file:
+        steps = []
+
+        try:
+            global API_PARAMS, BQ_PARAMS
+            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
+        except ValueError as err:
+            has_fatal_error(str(err), ValueError)
+
+    if 'build_studies_table' in steps:
+        studies_start = time.time()
+
+        json_res = get_json_from_graphql_api(API_PARAMS, get_all_progs_query())
+        studies = create_studies_dict(json_res)
+        studies_fp = get_scratch_path(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+
+        write_obj_list_to_jsonl(BQ_PARAMS, studies_fp, studies)
+        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+
+        table_name = "_".join(['studies', BQ_PARAMS['RELEASE']])
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+        schema = from_schema_file_to_obj(BQ_PARAMS, BQ_PARAMS['STUDIES_SCHEMA'])
+
+        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
+
+        studies_end = time.time() - studies_start
+
+        print("done.\n"
+              "Completed 'build_studies_table' step in {} seconds".format(studies_end))
+
+    """   
     for study in studies:
         submitter_id = study['study_submitter_id']
 
-        quant_log2_ratio_query = ('{ quantDataMatrix(study_submitter_id: \"'
-                                  + submitter_id + '\" data_type: \"log2_ratio\") }')
-
-        quant_res = requests.post(endpoint, json={'query': quant_log2_ratio_query})
+        quant_res = requests.post(API_PARAMS['endpoint'],
+                                  json={'query': get_quant_log2_data(submitter_id)})
 
         if quant_res.ok:
             json_res = quant_res.json()
 
             if 'errors' in json_res:
-                print('no')
-                study_sub_no_quant.append(submitter_id)
+                study['has_quant_data'] = False
             else:
-                print('yes')
+                study['has_quant_data'] = True
                 study['quant_res'] = json_res
-                study_sub_has_quant.append(submitter_id)
 
-    print("study_sub_ids with quant results: {}".format(study_sub_has_quant))
-    print("study_sub_ids NO quant results: {}".format(study_sub_no_quant))
+    print(studies)
+    """
+
+    end = time.time() - start
+    print("Finished program execution in {} seconds.".format(end))
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
