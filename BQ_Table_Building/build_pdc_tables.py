@@ -99,7 +99,7 @@ def create_studies_dict(json_res):
         program_sponsor = program['sponsor']
         program_start_date = program['start_date']
         program_end_date = program['end_date']
-        program_manager = program['manager']
+        program_manager = program['program_manager']
 
         for project in program['projects']:
             project_id = project['project_id']
