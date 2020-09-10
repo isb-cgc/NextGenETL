@@ -727,7 +727,12 @@ def from_schema_file_to_obj(bq_params, filename):
     with open(fp, 'r') as schema_file:
         schema_file = json.load(schema_file)
 
-        return schema_file['schema']['fields']
+        schema = schema_file['schema']['fields']
+        description = schema_file['description']
+        friendly_name = schema_file['friendlyName']
+        labels = schema_file['labels']
+
+        return schema, description, friendly_name, labels
 
 
 '''

@@ -184,7 +184,10 @@ def main(args):
             'studies',
             str(BQ_PARAMS['RELEASE']))
 
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        schema, table_desc, table_friendly_name, table_labels = \
+            from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+        print('{}, {}, {}'.format(table_desc, table_friendly_name, table_labels))
 
         create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
 
