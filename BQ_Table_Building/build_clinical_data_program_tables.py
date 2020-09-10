@@ -950,13 +950,14 @@ def make_biospecimen_stub_tables(program):
                     sample_ids, submitter_sample_ids, 
                     SPLIT((SELECT project_id
                            FROM UNNEST(project)), '-')[OFFSET(0)] AS project_name
-                FROM `{}.{}.{}_{}`)), 
+                FROM `{}.{}.{}{}_{}`)), 
         UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
         UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
         WHERE pos1 = pos2
         AND project_name = '{}'
     """).format(BQ_PARAMS['DEV_PROJECT'],
                 BQ_PARAMS['DEV_DATASET'],
+                BQ_PARAMS['REL_PREFIX'],
                 BQ_PARAMS['RELEASE'],
                 BQ_PARAMS['MASTER_TABLE'],
                 program)
