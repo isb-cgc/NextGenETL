@@ -93,9 +93,44 @@ def get_study_payload(study_id, pdc_study_id, study_submitter_id):
     return payload
 
 
-def get_quant_log2_data(submitter_id):
-    return ('{ quantDataMatrix(study_submitter_id: \"'
-            + submitter_id + '\" data_type: \"log2_ratio\") }')
+def get_study_ids(bq_params):
+
+    if bq_params['RELEASE']:
+        table_name = 'studies'
+
+    study_id_query = ("""
+        SELECT pdc_study_id, analytical_fraction
+        FROM `{}.{}.{}_{}`
+        ORDER BY pdc_study_id, analytical_fraction
+    """.format()
+
+
+def get_file_metadata_by_study(pdc_study_id):
+    query_str = ('{{ filesPerStudy(pdc_study_id: \"{}\") {{ '
+                 'study_id '
+                 'pdc_study_id '
+                 'study_submitter_id'
+                 'study_name '
+                 'file_id '
+                 'file_name '
+                 'file_submitter_id '
+                 'file_type '
+                 'md5sum '
+                 'file_location '
+                 'file_size '
+                 'data_category '
+                 'file_format '
+                 '}} '
+                 '}}').format(pdc_study_id)
+
+    return query_str
+
+
+def get_quant_data_matrix_by_study_submitter_id(pdc_study_id, data_type):
+    # data_type = 'log2_ratio'
+    return ('{{ quantDataMatrix(pdc_study_id: \"{}\" data_type: \"{}\") {{'
+            '}} '
+            '}}').format(pdc_study_id, data_type)
 
 
 def get_graphql_api_response(api_params, query=None, payload=None):
@@ -107,7 +142,7 @@ def get_graphql_api_response(api_params, query=None, payload=None):
         req_body = {'query': query}
         response = requests.post(endpoint, headers=headers, json=req_body)
     elif payload and not query:
-        response = requests.post(endpoint, headers=headers,  data=payload)
+        response = requests.post(endpoint, headers=headers, data=payload)
     else:
         has_fatal_error("Must specify either query OR payload (not both) "
                         "in get_graphql_api_response.", SyntaxError)
@@ -151,8 +186,8 @@ def create_studies_dict(json_res):
 
                 print("Processing metadata for {}".format(study_dict['study_name']))
 
-                primary_site_list = study_dict.pop('primary_site').split(';')
-                disease_type_list = study_dict.pop('disease_type').split(';')
+                primary_site_list = study_dict.pop('primary_site').split(';').sort()
+                disease_type_list = study_dict.pop('disease_type').split(';').sort()
 
                 study_dict['primary_site'] = ', '.join(primary_site_list)
                 study_dict['disease_type'] = ', '.join(disease_type_list)
@@ -171,6 +206,10 @@ def create_studies_dict(json_res):
                 studies.append(study_dict)
 
     return studies
+
+
+def get_jsonl_file(bq_params, record_type):
+    return "{}_{}.jsonl".format(bq_params['DATA_SOURCE'], record_type)
 
 
 def main(args):
@@ -195,9 +234,9 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, get_all_progs_query())
         studies = create_studies_dict(json_res)
-        studies_fp = get_scratch_path(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+        studies_fp = get_scratch_dir(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 
-        write_obj_list_to_jsonl(BQ_PARAMS, studies_fp, studies)
+        write_obj_list_to_jsonl(studies_fp, studies)
         upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 
         table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
@@ -212,7 +251,35 @@ def main(args):
         schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
         create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
-        update_bq_table(table_id, table_metadata)
+        update_table_metadata(table_id, table_metadata)
+
+        studies_end = time.time() - studies_start
+        print("Completed in {:0.0f}s!\n".format(studies_end))
+
+    if 'build_files_table' in steps:
+        print("Building files table...")
+        files_start = time.time()
+
+        json_res = get_graphql_api_response(API_PARAMS, get_file_metadata_by_study())
+        studies = create_studies_dict(json_res)
+        studies_fp = get_scratch_dir(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+
+        write_obj_list_to_jsonl(studies_fp, studies)
+        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+
+        table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+        schema_filename = "{}.{}.{}_{}.json".format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_DATASET'],
+            'studies',
+            str(BQ_PARAMS['RELEASE']))
+
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
+        update_table_metadata(table_id, table_metadata)
 
         studies_end = time.time() - studies_start
         print("Completed in {:0.0f}s!\n".format(studies_end))

@@ -67,7 +67,7 @@ def request_data_from_gdc_api(curr_index):
         request_params = {
             'from': curr_index,
             'size': API_PARAMS['BATCH_SIZE'],
-            'expand': get_expand_groups(API_PARAMS)
+            'expand': get_field_groups(API_PARAMS)
         }
 
         # retrieve and parse a "page" (batch) of case objects
@@ -233,7 +233,7 @@ def create_bq_schema(data_fp):
 
     return generate_bq_schema(schema_dict,
                               record_type=endpoint_name,
-                              expand_fields_list=get_expand_groups(API_PARAMS))
+                              expand_fields_list=get_field_groups(API_PARAMS))
 
 
 def main(args):
@@ -255,7 +255,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error("{}".format(err), ValueError)
 
-    output_fp = get_scratch_path(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'])
+    output_fp = get_filepath(BQ_PARAMS['SCRATCH_DIR'], BQ_PARAMS['DATA_OUTPUT_FILE'])
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
@@ -274,7 +274,7 @@ def main(args):
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
-        table_name = "_".join([get_gdc_rel(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+        table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         # don't want the entire fp for 2nd param, just the file name
