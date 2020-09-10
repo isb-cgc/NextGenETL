@@ -1404,7 +1404,8 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                                                   column_order_dict.keys(),
                                                   is_webapp=True)
 
-    print(column_order_dict)
+    # Note: column_order_dict: already eliminated follow_ups fgs
+    print(columns)
     exit()
 
     for field_grp in column_order_dict.keys():
