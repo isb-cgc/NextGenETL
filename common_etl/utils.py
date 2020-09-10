@@ -721,7 +721,8 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
 
 
 def from_schema_file_to_obj(bq_params, filename):
-    fp = '/'.join([bq_params['BQ_REPO'], bq_params['SCHEMA_DIR'], filename])
+    bq_repo_dir = '/'.join([bq_params['BQ_REPO'], bq_params['SCHEMA_DIR']])
+    fp = get_filepath(bq_repo_dir, filename)
 
     with open(fp, 'r') as schema_file:
         return json.load(schema_file)
