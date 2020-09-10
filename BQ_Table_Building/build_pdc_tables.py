@@ -107,7 +107,7 @@ def get_quant_log2_data(submitter_id):
 
 
 def get_json_from_graphql_api(api_params, query):
-    endpoint = api_params['endpoint']
+    endpoint = api_params['ENDPOINT']
     response = requests.post(endpoint, json={'query': query})
 
     if not response.ok:
@@ -191,7 +191,7 @@ def main(args):
     for study in studies:
         submitter_id = study['study_submitter_id']
 
-        quant_res = requests.post(API_PARAMS['endpoint'],
+        quant_res = requests.post(API_PARAMS['ENDPOINT'],
                                   json={'query': get_quant_log2_data(submitter_id)})
 
         if quant_res.ok:
