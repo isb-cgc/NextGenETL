@@ -113,6 +113,9 @@ for COLNAME in ${KEEP_COLS}; do
     fi
 done
 
+# If you encounter an error here due to the GDC adding a new column you may
+# temporarily comment out "exit 1" to permit compare_to_last.sh to run
+# after fully investigating the changes caused by the addition
 if [ "${CUT_LIST}" != "${USE_EXPECTED}" ]; then
     echo "WARNING cut list has changed. Formerly ${USE_EXPECTED} and now ${CUT_LIST}"
     exit 1
