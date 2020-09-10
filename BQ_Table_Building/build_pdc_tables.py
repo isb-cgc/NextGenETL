@@ -43,62 +43,31 @@ def get_all_progs_query():
             program_id
             program_submitter_id
             name
+            sponsor
+            start_date
+            end_date
+            program_manager
             projects {
                 project_id
                 project_submitter_id
                 name
                 studies {
                     study_id
+                    pdc_study_id
+                    study_name
+                    study_shortname
                     submitter_id_name
                     study_submitter_id
+                    disease_type
+                    primary_site
                     analytical_fraction
                     experiment_type
                     acquisition_type
+                    cases_count
+                    aliquots_count
                 } 
             }
         }}"""
-
-
-def get_study_id_query():
-    return """{study (study_id: "96296e87-89a4-11ea-b1fd-0aad30af8a83") { 
-        study_id 
-        study_submitter_id 
-        program_id 
-        project_id 
-        study_name 
-        program_name 
-        project_name 
-        disease_type 
-        primary_site 
-        analytical_fraction 
-        experiment_type 
-        cases_count 
-        aliquots_count 
-        filesCount { 
-            data_category 
-            file_type 
-            files_count 
-        } 
-    }}"""
-
-
-def get_all_studies_query():
-    return """{programsProjectsStudies {
-        program_submitter_id
-        name
-        program_id
-        projects{
-            project_id
-            project_submitter_id
-            name
-            studies{
-                study_id
-                study_submitter_id
-                submitter_id_name
-                study_name
-            }
-        }
-    }}"""
 
 
 def get_quant_log2_data(submitter_id):
@@ -127,6 +96,10 @@ def create_studies_dict(json_res):
         program_id = program['program_id']
         program_submitter_id = program['program_submitter_id']
         program_name = program['name']
+        program_sponsor = program['sponsor']
+        program_start_date = program['start_date']
+        program_end_date = program['end_date']
+        program_manager = program['manager']
 
         for project in program['projects']:
             project_id = project['project_id']
@@ -139,12 +112,19 @@ def create_studies_dict(json_res):
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
                 study_dict['program_name'] = program_name
+                study_dict['program_sponsor'] = program_sponsor
+                study_dict['program_start_date'] = program_start_date
+                study_dict['program_end_date'] = program_end_date
+                study_dict['program_manager'] = program_manager
 
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
 
                 studies.append(study_dict)
+
+    print(studies)
+    exit()
 
     return studies
 
