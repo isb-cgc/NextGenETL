@@ -136,6 +136,8 @@ def create_studies_dict(json_res):
             project_name = project['name']
 
             for study in project['studies']:
+                print("Processing metadata for {}".format(study['study_name']))
+
                 study_dict = study.copy()
 
                 study_payload = get_study_payload(study_dict['study_id'],
@@ -149,6 +151,8 @@ def create_studies_dict(json_res):
                     for field, val in entry.items():
                         study_dict[field] = val
 
+                study_dict['primary_site'] = study_dict['primary_site'].split(';').sort()
+
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
                 study_dict['program_name'] = program_name
@@ -159,11 +163,7 @@ def create_studies_dict(json_res):
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
-
                 studies.append(study_dict)
-
-    print(json.dumps(studies, indent=4))
-    exit()
 
     return studies
 
@@ -185,6 +185,7 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     if 'build_studies_table' in steps:
+        print("Building studies table...")
         studies_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, get_all_progs_query())
@@ -203,36 +204,13 @@ def main(args):
             'studies',
             str(BQ_PARAMS['RELEASE']))
 
-        schema, table_desc, table_friendly_name, table_labels = \
-            from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-        print('{}, {}, {}'.format(table_desc, table_friendly_name, table_labels))
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
         create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
+        update_bq_table(table_id, table_metadata)
 
         studies_end = time.time() - studies_start
-
-        print("done.\n"
-              "Completed 'build_studies_table' step in {:0.0f}s!\n".format(studies_end))
-
-    """   
-    for study in studies:
-        submitter_id = study['study_submitter_id']
-
-        quant_res = requests.post(API_PARAMS['ENDPOINT'],
-                                  json={'query': get_quant_log2_data(submitter_id)})
-
-        if quant_res.ok:
-            json_res = quant_res.json()
-
-            if 'errors' in json_res:
-                study['has_quant_data'] = False
-            else:
-                study['has_quant_data'] = True
-                study['quant_res'] = json_res
-
-    print(studies)
-    """
+        print("Completed in {:0.0f}s!\n".format(studies_end))
 
     end = time.time() - start
     print("Finished program execution in {:0.0f}s!\n".format(end))
