@@ -1404,6 +1404,9 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                                                   column_order_dict.keys(),
                                                   is_webapp=True)
 
+    print(excluded_fields)
+    exit()
+
     for field_grp in column_order_dict.keys():
         # rename case_id no matter which field_grp it's in
         for renamed_field in renamed_fields.keys():
