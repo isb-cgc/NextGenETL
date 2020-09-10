@@ -19,9 +19,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import time
-import requests
-import json
+# import time
+# import requests
+# import json
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -93,6 +93,7 @@ def get_study_payload(study_id, pdc_study_id, study_submitter_id):
     return payload
 
 
+'''
 def get_study_ids(bq_params):
 
     if bq_params['RELEASE']:
@@ -103,6 +104,7 @@ def get_study_ids(bq_params):
         FROM `{}.{}.{}_{}`
         ORDER BY pdc_study_id, analytical_fraction
     """.format()
+'''
 
 
 def get_file_metadata_by_study(pdc_study_id):
@@ -144,6 +146,7 @@ def get_graphql_api_response(api_params, query=None, payload=None):
     elif payload and not query:
         response = requests.post(endpoint, headers=headers, data=payload)
     else:
+        response = None
         has_fatal_error("Must specify either query OR payload (not both) "
                         "in get_graphql_api_response.", SyntaxError)
 
@@ -257,6 +260,7 @@ def main(args):
         print("Completed in {:0.0f}s!\n".format(studies_end))
 
     if 'build_files_table' in steps:
+        '''
         print("Building files table...")
         files_start = time.time()
 
@@ -281,8 +285,9 @@ def main(args):
         create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
         update_table_metadata(table_id, table_metadata)
 
-        studies_end = time.time() - studies_start
+        files_end = time.time() - files_start
         print("Completed in {:0.0f}s!\n".format(studies_end))
+        '''
 
     end = time.time() - start
     print("Finished program execution in {:0.0f}s!\n".format(end))
