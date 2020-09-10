@@ -138,8 +138,7 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
-
-                 study_payload = get_study_payload(study_dict['study_id'],
+                study_payload = get_study_payload(study_dict['study_id'],
                                                   study_dict['pdc_study_id'],
                                                   study_dict['study_submitter_id'])
 
