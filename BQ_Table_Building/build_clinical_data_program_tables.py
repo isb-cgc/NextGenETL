@@ -1069,7 +1069,8 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    programs = get_program_list(BQ_PARAMS)
+    # programs = get_program_list(BQ_PARAMS)
+    programs = ['HCMI']
 
     for program in programs:
         prog_start = time.time()
