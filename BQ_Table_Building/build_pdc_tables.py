@@ -185,7 +185,9 @@ def main(args):
             #str(BQ_PARAMS['RELEASE']))
             '2020_09')
 
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        schema_meta_obj = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+        schema = schema_meta_obj['schema']
 
         create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
 
