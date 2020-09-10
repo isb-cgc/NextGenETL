@@ -956,7 +956,7 @@ def make_biospecimen_stub_tables(program):
         WHERE pos1 = pos2
         AND project_name = '{}'
     """).format(BQ_PARAMS['DEV_PROJECT'],
-                BQ_PARAMS['APP_DATASET'],
+                BQ_PARAMS['DEV_DATASET'],
                 BQ_PARAMS['RELEASE'],
                 BQ_PARAMS['MASTER_TABLE'],
                 program)
