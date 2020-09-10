@@ -182,8 +182,7 @@ def main(args):
             BQ_PARAMS['DEV_PROJECT'],
             BQ_PARAMS['DEV_DATASET'],
             'studies',
-            #str(BQ_PARAMS['RELEASE']))
-            '2020_09')
+            str(BQ_PARAMS['RELEASE']))
 
         schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
