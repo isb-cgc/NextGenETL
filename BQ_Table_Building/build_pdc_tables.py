@@ -161,7 +161,7 @@ def create_studies_dict(json_res):
 
                 studies.append(study_dict)
 
-    print(studies)
+    print(json.dumps(studies, indent=4))
     exit()
 
     return studies
