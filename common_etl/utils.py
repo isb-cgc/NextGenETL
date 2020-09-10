@@ -1420,8 +1420,7 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                 columns[field_grp].add(renamed_fields[renamed_field])
                 columns[field_grp].remove(renamed_field)
 
-    print(columns)
-    print(column_order_dict)
+    print(schema)
     exit()
 
     # field is fully associated name
