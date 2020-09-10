@@ -64,13 +64,15 @@ def get_all_progs_query():
 
 
 def get_addt_study_metadata_query(study_id):
-    return """{study(study_id: '58be6db8-f1f7-11e9-9a07-0a80fada099c') { 
+    print(study_id)
+
+    return '''{ study( study_id: '58be6db8-f1f7-11e9-9a07-0a80fada099c') { 
     study_id 
     disease_type
     primary_type
     cases_count
     aliquots_count
-    }}""".format(study_id)
+    }}'''
 
 
 def get_quant_log2_data(submitter_id):
