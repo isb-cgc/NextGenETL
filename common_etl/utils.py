@@ -1396,7 +1396,7 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
 
     excluded_field_grps = get_excluded_field_groups(api_params)
 
-    for excluded_fg in excluded_field_grps.keys():
+    for excluded_fg in set(excluded_field_grps):
         if excluded_fg in column_order_dict:
             column_order_dict.pop(excluded_fg)
 
