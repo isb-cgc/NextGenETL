@@ -178,7 +178,11 @@ def main(args):
         table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        schema_filename = "{}_{}.json".format('studies', str('2020_09'))
+        schema_filename = "{}_{}.json".format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_DATASET'],
+            'studies',
+            str(BQ_PARAMS['RELEASE']))
 
         schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
