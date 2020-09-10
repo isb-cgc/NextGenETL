@@ -63,16 +63,8 @@ def get_all_progs_query():
         }}"""
 
 
-def get_additional_study_metadata_query():
-    return """{
-    study (study_id: $study_id_var){ 
-        study_id 
-        disease_type
-        primary_type
-        cases_count
-        aliquots_count
-        }
-    }"""
+def get_additional_study_metadata_query(study_id):
+    return '{ study(study_id: \"' + study_id + '\") }'
 
 
 def get_quant_log2_data(submitter_id):
