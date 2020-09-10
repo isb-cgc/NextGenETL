@@ -1115,6 +1115,7 @@ def main(args):
 
     if 'validate_data' in steps:
         pass
+        # todo: integrate the queries in compare_clinical_gdc_api_releases.py
 
     print_final_report(start, steps)
 

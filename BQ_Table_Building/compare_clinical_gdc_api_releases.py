@@ -20,6 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+old_rel = 'r25'
+new_rel = 'r26'
+
 # comparing two releases, which field_paths only appear in one
 field_diff = """
     SELECT field_path, table_name FROM
@@ -27,68 +30,78 @@ field_diff = """
     WHERE field_path in
       (SELECT field_path FROM
        `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-       where (table_name='r24_clinical' or table_name='r25_clinical')
+       where (table_name='{}_clinical' or table_name='{}_clinical')
        GROUP BY field_path
        HAVING count(field_path) <= 1
        )
-"""
+""".format(old_rel, new_rel)
 
 # comparing two releases for contradictory data types
 data_type_diff = """
     SELECT field_path, data_type, count(field_path) as cnt FROM
     `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-    where (table_name='r24_clinical' or table_name='r25_clinical') 
+    where (table_name='{}_clinical' or table_name='{}_clinical') 
     AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
     GROUP BY field_path, data_type 
     HAVING cnt <= 1
-"""
+""".format(old_rel, new_rel)
 
 new_case_ids = """
     SELECT * FROM
-       `isb-project-zero`.GDC_Clinical_Data.r25_clinical
+       `isb-project-zero`.GDC_Clinical_Data.{}_clinical
        where case_id not in (
         SELECT case_id FROM
-        `isb-project-zero`.GDC_Clinical_Data.r24_clinical
+        `isb-project-zero`.GDC_Clinical_Data.{}_clinical
        )
-"""
+""".format(new_rel, old_rel)
 
 removed_case_ids = """
 SELECT * FROM
-   `isb-project-zero`.GDC_Clinical_Data.r24_clinical
+   `isb-project-zero`.GDC_Clinical_Data.{}_clinical
    where case_id not in (
     SELECT case_id FROM
-    `isb-project-zero`.GDC_Clinical_Data.r25_clinical
+    `isb-project-zero`.GDC_Clinical_Data.{}_clinical
    )
-"""
+""".format(old_rel, new_rel)
 
 repeated_fields = """
-SELECT field, count(field) as occur from
-( SELECT ARRAY_REVERSE(SPLIT(field_path, '.'))[OFFSET(0)] as field
-  FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-   WHERE (table_name='r25_clinical') 
-   AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
-   GROUP BY field_path
-   ORDER BY field
-   )
-   GROUP BY field
-   HAVING count(field) > 1
-   ORDER BY occur DESC
-"""
+    SELECT field, count(field) AS occur 
+    FROM (  SELECT ARRAY_REVERSE(SPLIT(field_path, '.'))[OFFSET(0)] as field
+            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE (table_name='{}_clinical') 
+                AND (data_type = 'INT64' 
+                OR data_type = 'FLOAT64' 
+                OR data_type = 'STRING' 
+                OR data_type = 'BOOL')
+       GROUP BY field_path
+       ORDER BY field
+       )
+    GROUP BY field
+    HAVING count(field) > 1
+    ORDER BY occur DESC
+""".format(new_rel, new_rel)
 
 
-# create master table of one-to-many sample mappings
-"""
-SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-FROM
-  (SELECT proj, case_gdc_id, case_barcode, SPLIT(sample_ids, ', ') as s_gdc_ids, SPLIT(submitter_sample_ids, ', ') as s_barcodes
-   FROM
-    (SELECT case_id as case_gdc_id, submitter_id as case_barcode, sample_ids, submitter_sample_ids, 
-      SPLIT(
-      (SELECT project_id
-       FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-     FROM `isb-project-zero.GDC_Clinical_Data.r25_clinical`)), 
-     UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-     UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-     WHERE pos1 = pos2
-ORDER BY proj, case_gdc_id
-"""
+# create biospecimen stub table
+biospecimen_stub = """
+    SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+    FROM (
+        SELECT proj, case_gdc_id, case_barcode, 
+            SPLIT(sample_ids, ', ') AS s_gdc_ids, 
+            SPLIT(submitter_sample_ids, ', ') AS s_barcodes
+        FROM (
+            SELECT case_id AS case_gdc_id, 
+                submitter_id AS case_barcode, sample_ids, submitter_sample_ids, 
+            SPLIT(
+            (SELECT project_id
+                FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+            )
+        ), 
+        UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+        UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+        WHERE pos1 = pos2
+        ORDER BY proj, case_gdc_id
+""".format(new_rel)
+
+
