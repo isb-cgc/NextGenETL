@@ -76,10 +76,13 @@ def get_graphql_api_response(api_params, query, variables=None):
     endpoint = api_params['ENDPOINT']
 
     if not variables:
-        response = requests.post(endpoint, json={'query': query})
+        req_json = {'query': query}
+        response = requests.post(endpoint, json=req_json)
     else:
-        response = requests.post(endpoint, json={'query': query,
-                                                 'variables': variables})
+        req_json = {'query': query, 'variables': variables}
+        response = requests.post(endpoint, json=req_json)
+
+    print('req_json: {}, res: '.format(req_json, response))
 
     if not response.ok:
         status = response.raise_for_status()
