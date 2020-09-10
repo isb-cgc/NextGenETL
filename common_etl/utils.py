@@ -921,8 +921,8 @@ def await_insert_job(bq_params, client, table_id, bq_job):
     while job_state != 'DONE':
         bq_job = client.get_job(bq_job.job_id, location=location)
 
-        if time.time() - last_report_time > 15:
-            print('\t- job is currently in state {}'.format(bq_job.state))
+        if time.time() - last_report_time > 30:
+            print('\tcurrent job state: {}...\t'.format(bq_job.state, end=''))
             last_report_time = time.time()
 
         job_state = bq_job.state
