@@ -1393,44 +1393,32 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
     :param columns: dict containing table column keys
     """
     renamed_fields = dict(api_params['RENAMED_FIELDS'])
+    fgs = column_order_dict.keys()
 
-    excluded_field_grps = get_excluded_field_groups(api_params)
+    excluded_fgs = get_excluded_field_groups(api_params)
+    excluded_fields = get_excluded_fields_all_fgs(api_params, fgs, is_webapp=True)
 
-    for excluded_fg in set(excluded_field_grps):
-        if excluded_fg in column_order_dict:
-            column_order_dict.pop(excluded_fg)
-
-    excluded_fields = get_excluded_fields_all_fgs(api_params,
-                                                  column_order_dict.keys(),
-                                                  is_webapp=True)
-
-    # Note: column_order_dict: already eliminated follow_ups fgs
-
-    for field_grp in column_order_dict.keys():
-        # rename case_id no matter which field_grp it's in
+    for fg in fgs:
+        # rename case_id no matter which fg it's in
         for renamed_field in renamed_fields.keys():
-            group_order_dict = column_order_dict[field_grp]
-
-            if renamed_field in group_order_dict:
+            if renamed_field in column_order_dict[fg]:
                 new_field = renamed_fields[renamed_field]
-                group_order_dict[new_field] = group_order_dict[renamed_field]
-                group_order_dict.pop(renamed_field)
-
-            if field_grp in columns and renamed_field in columns[field_grp]:
-                columns[field_grp].add(renamed_fields[renamed_field])
-                columns[field_grp].remove(renamed_field)
+                column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
+                column_order_dict[fg].pop(renamed_field)
+            if fg in columns and renamed_field in columns[fg]:
+                columns[fg].add(renamed_fields[renamed_field])
+                columns[fg].remove(renamed_field)
 
     # field is fully associated name
-    for field in schema.copy().keys():
-        base_field_grp = ".".join(field.split('.')[:-1])
-        base_grp_order = column_order_dict[base_field_grp]
+    for field in {k for k in schema.keys()}:
+        base_fg = ".".join(field.split('.')[:-1])
         field_name = field.split('.')[-1]
 
         # substitute base field name for prefixed
         schema[field]['name'] = field_name
 
         # exclude any field groups or fields explicitly excluded in yaml
-        if field in excluded_fields or base_field_grp in excluded_field_grps:
+        if field in excluded_fields or base_fg in excluded_fgs:
             schema.pop(field)
         # field exists in renamed_fields, change its name
         elif field in renamed_fields:
@@ -1441,11 +1429,11 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
             schema.pop(field)
 
             # change the field name in the column order dict
-            if base_field_grp in column_order_dict and field in base_grp_order:
-                base_grp_order[new_field] = base_grp_order[field]
-                base_grp_order.pop(field)
+            if base_fg in column_order_dict and field in column_order_dict[base_fg]:
+                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
+                column_order_dict[base_fg].pop(field)
 
-        if field in excluded_fields and base_field_grp in column_order_dict:
+        if field in excluded_fields and base_fg in column_order_dict:
             # remove excluded field from column order lists
-            if field in base_grp_order:
-                base_grp_order.pop(field)
+            if field in column_order_dict[base_fg]:
+                column_order_dict[base_fg].pop(field)
