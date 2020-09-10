@@ -110,7 +110,8 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
-                addt_study_metadata_query = get_additional_study_metadata_query(study_dict['study_id']),
+                query = get_additional_study_metadata_query(
+                    study_dict['study_id'])
 
                 '''
                 study_query_vars = {
@@ -119,7 +120,10 @@ def create_studies_dict(json_res):
                 '''
 
                 study_res = get_graphql_api_response(API_PARAMS,
-                                                     addt_study_metadata_query)
+                                                     query)
+
+                print(study_res)
+                exit()
 
                 for field, val in study_res['data']['study'].items():
                     study_dict[field] = val
