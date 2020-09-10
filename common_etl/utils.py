@@ -1420,9 +1420,6 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                 columns[field_grp].add(renamed_fields[renamed_field])
                 columns[field_grp].remove(renamed_field)
 
-    print(schema)
-    exit()
-
     # field is fully associated name
     for field in schema.copy().keys():
         base_field_grp = ".".join(field.split('.')[:-1])
