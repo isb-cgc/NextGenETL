@@ -136,9 +136,9 @@ def create_studies_dict(json_res):
             project_name = project['name']
 
             for study in project['studies']:
-                print("Processing metadata for {}".format(study['study_name']))
-
                 study_dict = study.copy()
+
+                print("Processing metadata for {}".format(study_dict['study_name']))
 
                 study_payload = get_study_payload(study_dict['study_id'],
                                                   study_dict['pdc_study_id'],
