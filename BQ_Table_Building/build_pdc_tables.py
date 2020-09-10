@@ -43,7 +43,6 @@ def get_all_progs_query():
             program_id
             program_submitter_id
             name
-            sponsor
             start_date
             end_date
             program_manager
@@ -55,16 +54,11 @@ def get_all_progs_query():
                     study_id
                     pdc_study_id
                     study_name
-                    study_shortname
                     submitter_id_name
                     study_submitter_id
-                    disease_type
-                    primary_site
                     analytical_fraction
                     experiment_type
                     acquisition_type
-                    cases_count
-                    aliquots_count
                 } 
             }
         }}"""
@@ -112,7 +106,6 @@ def create_studies_dict(json_res):
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
                 study_dict['program_name'] = program_name
-                study_dict['program_sponsor'] = program_sponsor
                 study_dict['program_start_date'] = program_start_date
                 study_dict['program_end_date'] = program_end_date
                 study_dict['program_manager'] = program_manager
