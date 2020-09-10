@@ -175,7 +175,7 @@ def main(args):
         write_obj_list_to_jsonl(BQ_PARAMS, studies_fp, studies)
         upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 
-        table_name = "_".join(['studies', BQ_PARAMS['RELEASE']])
+        table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         schema = from_schema_file_to_obj(BQ_PARAMS, BQ_PARAMS['STUDIES_SCHEMA'])
