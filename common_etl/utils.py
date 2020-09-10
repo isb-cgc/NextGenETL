@@ -128,7 +128,7 @@ def get_excluded_fields_all_fgs(api_params, fgs, is_webapp=False):
         elif not api_params['FIELD_CONFIG'][fg][excluded_list_key]:
             continue
 
-        for field in api_params['FIELD_CONFIG'][fg][[excluded_list_key]]:
+        for field in api_params['FIELD_CONFIG'][fg][excluded_list_key]:
             exclude_fields.add(build_field_key(fg, field))
 
     return exclude_fields
