@@ -569,7 +569,7 @@ def build_working_gs_uri(bq_params, filename):
                                   filename)
 
 
-def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
+def construct_table_name(bq_params, program='', suffix='', is_webapp=False):
     app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
 
     name_list = [app_prefix,
@@ -579,7 +579,12 @@ def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=Fals
                  suffix]
 
     file_name = [x for x in name_list if x]
-    file_name = '_'.join(file_name)
+    return '_'.join(file_name)
+
+
+def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
+    file_name = construct_table_name(bq_params, program, suffix, is_webapp)
+
     return file_name + '.jsonl'
 
 
@@ -1184,6 +1189,9 @@ def upload_to_bucket(bq_params, scratch_fp):
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     """
+
+    print("line 1193 utils.py, scratch_fp: {}".format(scratch_fp))
+
     try:
         storage_client = storage.Client(project="")
 

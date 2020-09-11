@@ -787,20 +787,23 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     """
     one_to_many_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
+    '''
     if is_webapp:
         print("\n{}: insert webapp tables".format(program_name))
     else:
         print("\n{}: insert records into BQ".format(program_name))
+    '''
 
-    for json_table in one_to_many_tables:
+    for one_many_table in one_to_many_tables:
         jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
                                                      BQ_PARAMS,
                                                      program_name,
-                                                     json_table,
+                                                     one_many_table,
                                                      is_webapp)
+
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
-        # delete last jsonl scratch file so we don't append to it
+        # If jsonl scratch file exists, delete so we don't append
         if os.path.exists(jsonl_fp):
             os.remove(jsonl_fp)
 
@@ -808,9 +811,9 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
-        for field_grp in flat_case.copy().keys():
-            if field_grp not in record_counts.keys():
-                flat_case.pop(field_grp)
+        for fg in flat_case.copy().keys():
+            if fg not in record_counts.keys():
+                flat_case.pop(fg)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
@@ -823,6 +826,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                                                          program_name,
                                                          bq_table,
                                                          is_webapp)
+
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
             with open(jsonl_fp, 'a') as jsonl_file:
@@ -830,21 +834,25 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
-    for json_table in one_to_many_tables:
-        jsonl_file = get_suffixed_jsonl_filename(API_PARAMS,
-                                                 BQ_PARAMS,
-                                                 program_name,
-                                                 json_table,
-                                                 is_webapp)
-        table_name = get_full_table_name(program_name, json_table)
+    for one_many_table in one_to_many_tables:
+        jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
+                                                     BQ_PARAMS,
+                                                     program_name,
+                                                     one_many_table,
+                                                     is_webapp)
+
+        jsonl_scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+
+        upload_to_bucket(BQ_PARAMS, jsonl_scratch_fp)
+
+        table_name = get_full_table_name(program_name, one_many_table)
 
         if is_webapp:
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        upload_to_bucket(BQ_PARAMS, jsonl_file)
-        create_and_load_table(BQ_PARAMS, jsonl_file, schemas[json_table], table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_filename, schemas[one_many_table], table_id)
 
 
 ##################################################################################

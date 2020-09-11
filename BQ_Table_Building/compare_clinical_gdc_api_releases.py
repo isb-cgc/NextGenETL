@@ -88,7 +88,7 @@ repeated_fields = """
 
 # create biospecimen stub table
 biospecimen_stub = """
-    SELECT proj, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+    SELECT project_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
     FROM (
         SELECT proj, case_gdc_id, case_barcode, 
             SPLIT(sample_ids, ', ') AS s_gdc_ids, 
@@ -98,7 +98,7 @@ biospecimen_stub = """
                 submitter_id AS case_barcode, sample_ids, submitter_sample_ids, 
             SPLIT(
             (SELECT project_id
-                FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+                FROM UNNEST(project)), '-')[OFFSET(0)] AS project_name
             FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
             )
         ), 
@@ -109,3 +109,13 @@ biospecimen_stub = """
 """.format(new_rel)
 
 
+"""
+select program, count(program) AS num_tables FROM (SELECT
+els[OFFSET(1)] AS program
+FROM (SELECT SPLIT(table_name, '_') AS els
+  FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+  WHERE table_name LIKE 'r25%' LIMIT 30))
+  group by program
+  order by num_tables desc
+  
+"""
