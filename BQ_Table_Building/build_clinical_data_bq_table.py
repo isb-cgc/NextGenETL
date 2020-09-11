@@ -251,12 +251,12 @@ def main(args):
         has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
 
     # Load the YAML config file
-    with open(args[1], mode='r') as yaml_file:
-        try:
-            global API_PARAMS, BQ_PARAMS
-            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-        except ValueError as err:
-            has_fatal_error("{}".format(err), ValueError)
+    try:
+        global API_PARAMS, BQ_PARAMS
+
+        API_PARAMS, BQ_PARAMS, steps = load_config(args[1], YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error("{}".format(err), ValueError)
 
     output_fp = get_filepath(BQ_PARAMS['SCRATCH_DIR'], BQ_PARAMS['DATA_OUTPUT_FILE'])
     schema = None
