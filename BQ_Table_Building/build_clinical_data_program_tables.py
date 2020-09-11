@@ -807,7 +807,7 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
-        for field_grp in flat_case:
+        for field_grp in flat_case.copy().keys():
             if field_grp not in record_counts.keys():
                 flat_case.pop(field_grp)
 
