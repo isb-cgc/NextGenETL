@@ -39,7 +39,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
                                install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table, \
-                               bq_harness_with_result, delete_table_bq_job
+                               bq_harness_with_result, delete_table_bq_job, update_status_tag
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -111,6 +111,45 @@ def create_view_sql(new_table):
     SELECT *
     FROM `{}`
     '''.format(new_table)
+
+'''
+----------------------------------------------------------------------------------------------
+Update view shcema
+'''
+
+def update_view_schema(source_client, view, new_table):
+    table_obj = source_client.get_table(new_table)
+    row_count = table_obj.rum_rows
+
+    #
+    # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+    #
+
+    targ_schema= []
+    for schema_field in table_obj.schema:
+        name = schema_field.name
+        field_type = schema_field.field_type
+        mode = schema_field.mode
+        description = schema_field.description
+        fields = tuple(schema_field.fields)
+        targ_schema.append(bigquery.SchemaFiled(name, field_type, mode, description, fields))
+
+    # Create a reference to the view we are updating
+    targ_table = bigquery.Table(view, schema=targ_schema)
+
+    # Update the table description from the new table
+    targ_table.description = table_obj.description
+
+    # Copy the labels from the original
+    targ_table.labels = table_obj.labels.copy()
+
+    # Update view tag to deprecated
+    view_project, view_dataset, view_table = view.split('.')
+    update_status_tag(view_dataset, view_table, 'deprecated')
+
+    
+
+    return
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -193,7 +232,15 @@ def main(args):
             return
 
     if 'update_view_schema' in steps:
-        print('')
+        print('update view schema')
+
+        succcess = update_view_schema(table_old, table_new)
+
+
+    if 'removed_temp_table' in steps:
+        print('removed temp table')
+
+
 
 
     print('job completed')
