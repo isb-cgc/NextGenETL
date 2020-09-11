@@ -120,6 +120,9 @@ def retrieve_and_save_case_records(data_fp):
             curr_page = res_json['pagination']['page']
             last_page = res_json['pagination']['pages']
 
+            print("batch_record_count: {}, total_cases_count: {}".format(
+                batch_record_count, total_cases_count))
+
             for case in cases_json:
                 if 'days_to_index' in case:
                     print("Found days_to_index!\n{}".format(case))
