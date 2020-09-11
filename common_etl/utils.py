@@ -1341,6 +1341,10 @@ def load_config(yaml_file, yaml_dict_keys):
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
+
+    print("yaml_file: {},\nyaml_dict_keys: {}\n".format(yaml_file, yaml_dict_keys))
+    exit()
+
     yaml_dict = None
 
     config_stream = io.StringIO(yaml_file.read())
