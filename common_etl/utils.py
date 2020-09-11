@@ -266,13 +266,11 @@ def get_one_to_many_tables(api_params, record_counts):
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
-    table_keys = set()
+    table_keys = {get_base_fg(api_params)}
 
     for table in record_counts:
         if record_counts[table] > 1:
             table_keys.add(table)
-
-    table_keys.add(api_params['FG_CONFIG']['base_fg'])
 
     return table_keys
 
@@ -571,10 +569,47 @@ def build_working_gs_uri(bq_params, filename):
                                   filename)
 
 
-def build_jsonl_output_filename(bq_params):
-    return '{}{}_{}'.format(bq_params['REL_PREFIX'],
-                            bq_params['RELEASE'],
-                            bq_params['DATA_OUTPUT_FILE'])
+'''
+def build_jsonl_output_filename(bq_params, is_webapp=False):
+    app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
+
+    return '{}{}{}_{}'.format(app_prefix,
+                              bq_params['REL_PREFIX'],
+                              bq_params['RELEASE'],
+                              bq_params['DATA_OUTPUT_FILE'])
+'''
+
+
+def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
+
+    app_prefix = (bq_params['APP_JSONL_PREFIX'] + '_') if is_webapp else ''
+
+    if program:
+        program = '_' + program + '_'
+
+    if suffix:
+        suffix = '_' + suffix
+
+    # {app_prefix}{rel_prefix}{release}_{program}_{master_table}_{suffix}
+    # app_r26_HCMI_clinical_diagnoses.jsonl
+    return '{}{}{}_{}{}.jsonl'.format(app_prefix,
+                                      bq_params['REL_PREFIX'],
+                                      bq_params['RELEASE'],
+                                      program,
+                                      bq_params['MASTER_TABLE'],
+                                      suffix)
+
+
+def get_suffixed_jsonl_filename(api_params, bq_params, program_name, table,
+                                is_webapp=False):
+
+    suffixes = get_table_suffixes(api_params)
+    suffix = suffixes[table]
+
+    return build_jsonl_output_filename(bq_params,
+                                       program_name,
+                                       suffix,
+                                       is_webapp=is_webapp)
 
 
 def get_filepath(dir_path, filename):

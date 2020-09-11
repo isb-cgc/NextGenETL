@@ -237,7 +237,7 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, get_all_programs_query())
         studies = create_studies_dict(json_res)
-        studies_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+        studies_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL']) #todo
 
         write_obj_list_to_jsonl(studies_fp, studies)
         upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])

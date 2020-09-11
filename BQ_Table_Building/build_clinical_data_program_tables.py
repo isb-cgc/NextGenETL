@@ -23,6 +23,7 @@ import copy
 import math
 
 from common_etl.utils import *
+
 # from temp.gdc_clinical_resources_OLD.generate_docs import generate_docs
 
 API_PARAMS = dict()
@@ -35,38 +36,6 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # Getter functions, employed for readability/consistency
 #
 ##################################################################################
-
-
-def get_jsonl_filename(program_name, table, is_webapp=False):
-    """
-    Gets unique (per release) jsonl filename, used for intermediately storing
-    the table rows after they're flattened, but before BQ insertion. Allows for
-    faster script thanks to minimal BigQuery transactions.
-    :param program_name: name of the program to with the data belongs
-    :param table: future insertion table for flattened data
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: String .jsonl filename, of the form
-        relXX_TABLE_NAME_FULL_PROGRAM_supplemental_table_name
-        (_supplemental_table_name optional)
-    """
-    prefix = BQ_PARAMS['APP_JSONL_PREFIX'] if is_webapp else ''
-    file_str_list = [prefix, get_full_table_name(program_name, table)]
-    file_name = '_'.join(file_str_list)
-    file_name += '.jsonl'
-
-    return file_name
-
-
-def get_scratch_fp(program_name, table, is_webapp=False):
-    """
-    Get filepath for the temp storage folder.
-    :param program_name: Program
-    :param table: Program to which this table is associated.
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: String representing the temp file path.
-    """
-    filename = get_jsonl_filename(program_name, table, is_webapp)
-    return get_scratch_fp(BQ_PARAMS, filename)
 
 
 def get_full_table_name(program, table):
@@ -807,18 +776,24 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     :param record_counts: field group count dict
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
-    tables = get_one_to_many_tables(API_PARAMS, record_counts)
+    one_to_many_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
     if is_webapp:
         print("\n{}: insert webapp tables".format(program_name))
     else:
         print("\n{}: insert records into BQ".format(program_name))
 
-    for json_table in tables:
-        jsonl_file_path = get_scratch_fp(program_name, json_table, is_webapp)
+    for json_table in one_to_many_tables:
+        jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
+                                                     BQ_PARAMS,
+                                                     program_name,
+                                                     json_table,
+                                                     is_webapp)
+        jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+
         # delete last jsonl scratch file so we don't append to it
-        if os.path.exists(jsonl_file_path):
-            os.remove(jsonl_file_path)
+        if os.path.exists(jsonl_fp):
+            os.remove(jsonl_fp)
 
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
@@ -831,18 +806,27 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
         for bq_table in flat_case:
-            if bq_table not in tables:
+            if bq_table not in one_to_many_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_fp = get_scratch_fp(program_name, bq_table, is_webapp)
+            jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
+                                                         BQ_PARAMS,
+                                                         program_name,
+                                                         bq_table,
+                                                         is_webapp)
+            jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
             with open(jsonl_fp, 'a') as jsonl_file:
                 for row in flat_case[bq_table]:
                     json.dump(obj=row, fp=jsonl_file)
                     jsonl_file.write('\n')
 
-    for json_table in tables:
-        jsonl_file = get_jsonl_filename(program_name, json_table, is_webapp)
+    for json_table in one_to_many_tables:
+        jsonl_file = get_suffixed_jsonl_filename(API_PARAMS,
+                                                 BQ_PARAMS,
+                                                 program_name,
+                                                 json_table,
+                                                 is_webapp)
         table_name = get_full_table_name(program_name, json_table)
 
         if is_webapp:
