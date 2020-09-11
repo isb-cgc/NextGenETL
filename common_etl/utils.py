@@ -573,8 +573,7 @@ def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=Fals
     app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
 
     name_list = [app_prefix,
-                 bq_params['REL_PREFIX'],
-                 bq_params['RELEASE'],
+                 bq_params['REL_PREFIX'] + bq_params['RELEASE'],
                  program,
                  bq_params['MASTER_TABLE'],
                  suffix]
