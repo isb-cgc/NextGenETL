@@ -258,6 +258,7 @@ def main(args):
     if 'upload_jsonl_to_cloud_storage' in steps:
         # Insert the generated jsonl file into google storage bucket, for later
         # ingestion by BQ
+        print('Uploading jsonl file to cloud storage!')
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     schema = None
@@ -277,7 +278,7 @@ def main(args):
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'], schema, table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
 
     end = time.time() - start
     print("Script executed in {:.0f} seconds\n".format(end))
