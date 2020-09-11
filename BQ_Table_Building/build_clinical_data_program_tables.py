@@ -422,7 +422,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     """
     merged_column_orders = dict()
 
-    print("columns: {}".format(columns))
+    # print("columns: {}".format(columns))
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
@@ -434,11 +434,14 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
         if table in columns:
             merge_dict_key = table
 
+            '''
+
             print(("\ntable_id_key: {}\n"
                    "table: {}\n"
                    "merge_dict_key: {}\n"
                    "column_orders[table]: {}\n"
                    ).format(table_id_key, table, merge_dict_key, column_orders[table]))
+            '''
 
             schema[table_id_key]['mode'] = 'REQUIRED'
         else:
@@ -453,7 +456,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         merged_column_orders[merge_dict_key].update(column_orders[table])
 
-    print("\nmerged_column_orders: \n{}".format(merged_column_orders))
+    # print("\nmerged_column_orders: \n{}".format(merged_column_orders))
     return merged_column_orders
 
 
@@ -480,11 +483,6 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
     :return: schema_field_lists, one schema per field group turned into table
     """
 
-    '''
-    print('Schema:')
-    print(schema)
-    '''
-
     schema_field_lists = dict()
 
     for table in get_one_to_many_tables(API_PARAMS, record_counts):
@@ -493,13 +491,6 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
         if table not in merged_orders:
             has_fatal_error("record counts and merged orders disagree on program's "
                             "table architecture")
-
-        '''
-        print("\nFor {}: ".format(table))
-        print(merged_orders[table])
-        print()
-        continue
-        '''
 
         for field in merged_orders[table]:
             schema_field_lists[table].append(schema[field])
@@ -805,13 +796,6 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
     one_to_many_tables = get_one_to_many_tables(API_PARAMS, record_counts)
-
-    '''
-    if is_webapp:
-        print("\n{}: insert webapp tables".format(program_name))
-    else:
-        print("\n{}: insert records into BQ".format(program_name))
-    '''
 
     for one_many_table in one_to_many_tables:
         jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,

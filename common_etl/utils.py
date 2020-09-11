@@ -592,6 +592,7 @@ def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=Fals
 def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp=False):
     suffixes = get_table_suffixes(api_params)
     suffix = suffixes[table]
+    program = program.replace('.', '_')
 
     return build_jsonl_output_filename(bq_params, program, suffix, is_webapp=is_webapp)
 
@@ -1191,7 +1192,7 @@ def upload_to_bucket(bq_params, scratch_fp):
     :param scratch_fp: name of file to upload to bucket
     """
 
-    print("\nline 1193 utils.py, scratch_fp: {}\n".format(scratch_fp))
+    # print("\nline 1193 utils.py, scratch_fp: {}\n".format(scratch_fp))
 
     try:
         storage_client = storage.Client(project="")
