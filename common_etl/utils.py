@@ -96,7 +96,7 @@ def get_excluded_field_groups(api_params):
     if 'FG_CONFIG' not in api_params or not api_params['FG_CONFIG']:
         has_fatal_error('FG_CONFIG not in api_params, or is empty', KeyError)
     if 'excluded_fgs' not in api_params['FG_CONFIG']:
-        has_fatal_error('excluded_field_grps not found in not in FG_CONFIG', KeyError)
+        has_fatal_error('excluded_fgs not found in not in FG_CONFIG', KeyError)
 
     return api_params['FG_CONFIG']['excluded_fgs']
 
@@ -351,7 +351,7 @@ def convert_json_to_table_id(bq_params, json_file):
 
 
 def get_biospecimen_table_id(bq_params, program):
-    """Builds and retrives a table ID for the biospecimen stub tables.
+    """Builds and retrieves a table ID for the biospecimen stub tables.
 
     :param bq_params: bq param object from yaml config
     :param program: the program from which the cases originate
@@ -1333,19 +1333,19 @@ def convert_dict_to_string(obj):
     return obj
 
 
-def load_config(yaml_file, yaml_dict_keys):
+def load_config(yaml_file_arg, yaml_dict_keys):
     """Opens yaml file and retrieves configuration parameters.
 
-    :param yaml_file: yaml config file name
+    :param yaml_file_arg: yaml config file name
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-    with open(yaml_file, mode='r') as yaml_file:
+    with open(yaml_file_arg, mode='r') as yaml_file_arg:
 
         yaml_dict = None
 
-        config_stream = io.StringIO(yaml_file.read())
+        config_stream = io.StringIO(yaml_file_arg.read())
 
         try:
             yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)

@@ -38,7 +38,7 @@ def run_query(endpoint, query):
                         .format(request.status_code, query))
 
 
-def get_all_progs_query():
+def get_all_programs_query():
     return """{allPrograms{
             program_id
             program_submitter_id
@@ -235,7 +235,7 @@ def main(args):
         print("Building studies table...")
         studies_start = time.time()
 
-        json_res = get_graphql_api_response(API_PARAMS, get_all_progs_query())
+        json_res = get_graphql_api_response(API_PARAMS, get_all_programs_query())
         studies = create_studies_dict(json_res)
         studies_fp = get_scratch_dir(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 

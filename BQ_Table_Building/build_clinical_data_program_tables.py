@@ -173,16 +173,16 @@ def examine_case(set_fields, record_counts, field_grp, field_grp_name):
     :param field_grp_name: name of currently-traversed field group
     :return: dicts of non-null field lists and max record counts (keys = field groups)
     """
-    field_grps = API_PARAMS['FIELD_CONFIG'].keys()
+    fgs = API_PARAMS['FIELD_CONFIG'].keys()
 
-    if field_grp_name in field_grps:
+    if field_grp_name in fgs:
         for field, record in field_grp.items():
 
             if isinstance(record, list):
 
                 child_field_grp = field_grp_name + '.' + field
 
-                if child_field_grp not in field_grps:
+                if child_field_grp not in fgs:
                     continue
 
                 if child_field_grp not in record_counts:
@@ -215,20 +215,20 @@ def find_program_structure(cases, is_webapp=False):
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
-    field_grps = {}
+    fgs = {}
     record_counts = {}
 
     for case in cases:
         if case:
-            examine_case(field_grps, record_counts, case, get_base_fg(API_PARAMS))
+            examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
 
-    for field_grp in field_grps:
+    for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
             print("{} not in metadata".format(field_grp))
-            field_grps.pop(field_grp)
+            fgs.pop(field_grp)
             cases.pop(field_grp)
 
-    columns = flatten_tables(field_grps, record_counts, is_webapp)
+    columns = flatten_tables(fgs, record_counts, is_webapp)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -705,7 +705,7 @@ def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
     return has_fatal_error("id {} not found by get_record_idx.".format(record_id))
 
 
-def merge_single_entry_field_grps(flat_case, record_counts, is_webapp=False):
+def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
     """
     # Merge flatten-able field groups.
     :param flat_case: flattened case dict
@@ -788,12 +788,12 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
     Otherwise, counts record in one-to-many table and adds count field to parent record
     in flattened_case
     :param flattened_case: flattened dict containing case record's values
-    :param record_counts: field group count dictmax counts for program's field group
+    :param record_counts: field group count dict max counts for program's field group
     records
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: modified version of flattened_case
     """
-    merge_single_entry_field_grps(flattened_case, record_counts, is_webapp)
+    merge_single_entry_fgs(flattened_case, record_counts, is_webapp)
     # initialize counts for parent_ids for every possible child table (some child tables
     # won't actually have records, and this initialization adds 0 counts in that case)
     if not is_webapp:
@@ -1065,6 +1065,7 @@ def main(args):
     with open(args[1], mode='r') as yaml_file:
         try:
             global API_PARAMS, BQ_PARAMS
+
             API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
 
             if not API_PARAMS['FIELD_CONFIG']:
@@ -1072,8 +1073,7 @@ def main(args):
         except ValueError as err:
             has_fatal_error(str(err), ValueError)
 
-    # programs = get_program_list(BQ_PARAMS)
-    programs = ['HCMI']
+    programs = get_program_list(BQ_PARAMS)
 
     for program in programs:
         prog_start = time.time()
