@@ -569,47 +569,26 @@ def build_working_gs_uri(bq_params, filename):
                                   filename)
 
 
-'''
-def build_jsonl_output_filename(bq_params, is_webapp=False):
+def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
     app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
 
-    return '{}{}{}_{}'.format(app_prefix,
-                              bq_params['REL_PREFIX'],
-                              bq_params['RELEASE'],
-                              bq_params['DATA_OUTPUT_FILE'])
-'''
+    name_list = [app_prefix,
+                 bq_params['REL_PREFIX'],
+                 bq_params['RELEASE'],
+                 program,
+                 bq_params['MASTER_TABLE'],
+                 suffix]
+
+    file_name = [x for x in name_list if x]
+    file_name = '_'.join(file_name)
+    return file_name + '.jsonl'
 
 
-def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
-
-    app_prefix = (bq_params['APP_JSONL_PREFIX'] + '_') if is_webapp else ''
-
-    if program:
-        program = '_' + program + '_'
-
-    if suffix:
-        suffix = '_' + suffix
-
-    # {app_prefix}{rel_prefix}{release}_{program}_{master_table}_{suffix}
-    # app_r26_HCMI_clinical_diagnoses.jsonl
-    return '{}{}{}_{}{}.jsonl'.format(app_prefix,
-                                      bq_params['REL_PREFIX'],
-                                      bq_params['RELEASE'],
-                                      program,
-                                      bq_params['MASTER_TABLE'],
-                                      suffix)
-
-
-def get_suffixed_jsonl_filename(api_params, bq_params, program_name, table,
-                                is_webapp=False):
-
+def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp=False):
     suffixes = get_table_suffixes(api_params)
     suffix = suffixes[table]
 
-    return build_jsonl_output_filename(bq_params,
-                                       program_name,
-                                       suffix,
-                                       is_webapp=is_webapp)
+    return build_jsonl_output_filename(bq_params, program, suffix, is_webapp=is_webapp)
 
 
 def get_filepath(dir_path, filename):
