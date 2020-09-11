@@ -465,6 +465,9 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
     :param merged_orders: merged dict of field groups: fields with index position data
     :return: schema_field_lists, one schema per field group turned into table
     """
+    print('Schema:')
+    print(schema)
+
     schema_field_lists = dict()
 
     for table in get_one_to_many_tables(API_PARAMS, record_counts):
@@ -474,13 +477,10 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
             has_fatal_error("record counts and merged orders disagree on program's "
                             "table architecture")
 
-
         print("\nFor {}: ".format(table))
         print(merged_orders[table])
-        print(schema_field_lists[table])
         print()
         continue
-
 
         for field in merged_orders[table]:
             schema_field_lists[table].append(schema[field])
