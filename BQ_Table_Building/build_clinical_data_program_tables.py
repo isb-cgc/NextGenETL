@@ -496,9 +496,6 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
     :param merged_orders: merged dict of field groups: fields with index position data
     :return: schema_field_lists, one schema per field group turned into table
     """
-    print(schema)
-    exit()
-
     schema_field_lists = dict()
 
     for table in get_one_to_many_tables(API_PARAMS, record_counts):
