@@ -1348,8 +1348,9 @@ def load_config(yaml_file, yaml_dict_keys):
 
     try:
         yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
-        print("yaml_dict".format(yaml_dict))
     except yaml.YAMLError as ex:
+        print(str(ex))
+        print(str(yaml.YAMLError))
         has_fatal_error(ex, str(yaml.YAMLError))
     if yaml_dict is None:
         has_fatal_error("Bad YAML load, exiting.", ValueError)
