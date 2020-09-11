@@ -422,6 +422,8 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     """
     merged_column_orders = dict()
 
+    print("columns: {}".format(columns))
+
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
         table_id_key = get_field_group_id_key(API_PARAMS, table, is_webapp)
@@ -431,6 +433,13 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         if table in columns:
             merge_dict_key = table
+
+            print(("\ntable_id_key: {}\n"
+                   "table: {}\n"
+                   "merge_dict_key: {}\n"
+                   "column_orders[table]: {}\n"
+                   ).format(table_id_key, table, merge_dict_key, column_orders[table]))
+
             schema[table_id_key]['mode'] = 'REQUIRED'
         else:
             # not a standalone table, merge
@@ -439,11 +448,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             # not exist in some cases
             schema[table_id_key]['mode'] = 'NULLABLE'
 
-        print(("\ntable_id_key: {}\n"
-               "table: {}\n"
-               "merge_dict_key: {}\n"
-               "column_orders[table]: {}\n"
-               ).format(table_id_key, table, merge_dict_key, column_orders[table]))
 
         if merge_dict_key not in merged_column_orders:
             merged_column_orders[merge_dict_key] = dict()
