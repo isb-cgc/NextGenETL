@@ -449,7 +449,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
         new_fg_id_key = get_renamed_field_key(api_params, fg_id_key)
 
         if new_fg_id_key:
-            return get_field_name(new_fg_id_key)
+            return new_fg_id_key
 
     return fg_id_key
 
