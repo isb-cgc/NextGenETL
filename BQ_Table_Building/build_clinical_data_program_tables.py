@@ -1070,6 +1070,9 @@ def main(args):
 
     programs = get_program_list(BQ_PARAMS)
 
+    print(programs)
+    exit()
+
     for program in programs:
         prog_start = time.time()
         print("\nCurrently processing {}...\n".format(program))

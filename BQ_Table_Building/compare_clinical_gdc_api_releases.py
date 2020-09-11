@@ -36,6 +36,7 @@ field_diff = """
        )
 """.format(old_rel, new_rel)
 
+
 # comparing two releases for contradictory data types
 data_type_diff = """
     SELECT field_path, data_type, count(field_path) as cnt FROM
@@ -46,6 +47,7 @@ data_type_diff = """
     HAVING cnt <= 1
 """.format(old_rel, new_rel)
 
+
 new_case_ids = """
     SELECT * FROM
        `isb-project-zero`.GDC_Clinical_Data.{}_clinical
@@ -55,6 +57,7 @@ new_case_ids = """
        )
 """.format(new_rel, old_rel)
 
+
 removed_case_ids = """
 SELECT * FROM
    `isb-project-zero`.GDC_Clinical_Data.{}_clinical
@@ -63,6 +66,7 @@ SELECT * FROM
     `isb-project-zero`.GDC_Clinical_Data.{}_clinical
    )
 """.format(old_rel, new_rel)
+
 
 repeated_fields = """
     SELECT field, count(field) AS occur 
