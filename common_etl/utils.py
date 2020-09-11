@@ -1190,7 +1190,7 @@ def upload_to_bucket(bq_params, scratch_fp):
     :param scratch_fp: name of file to upload to bucket
     """
 
-    print("line 1193 utils.py, scratch_fp: {}".format(scratch_fp))
+    print("\nline 1193 utils.py, scratch_fp: {}\n".format(scratch_fp))
 
     try:
         storage_client = storage.Client(project="")
