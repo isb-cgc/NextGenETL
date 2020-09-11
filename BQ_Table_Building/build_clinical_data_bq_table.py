@@ -94,10 +94,14 @@ def retrieve_and_save_case_records(data_fp):
     :param data_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
-    total_cases_count = 0
+    cases_count = 0
     is_last_page = False
 
     with open(data_fp, BQ_PARAMS['IO_MODE']) as json_output_file:
+        print("Outputting json objects to {} in {} mode".format(data_fp,
+                                                                BQ_PARAMS['IO_MODE']))
+        have_printed_totals = False
+
         curr_index = API_PARAMS['START_INDEX']
         while not is_last_page:
             res = request_data_from_gdc_api(curr_index)
@@ -111,32 +115,31 @@ def retrieve_and_save_case_records(data_fp):
                                 KeyError)
 
             batch_record_count = res_json['pagination']['count']
-            total_cases_count = res_json['pagination']['total']
+            cases_count = res_json['pagination']['total']
             curr_page = res_json['pagination']['page']
             last_page = res_json['pagination']['pages']
 
-            print("batch_record_count: {}, total_cases_count: {}".format(
-                batch_record_count, total_cases_count))
+            if not have_printed_totals:
+                have_printed_totals = True
+                print("Total cases for r{}: {}".format(BQ_PARAMS['RELEASE'], cases_count))
+                print("Batch size: {}".format(batch_record_count))
 
             for case in cases_json:
-                if 'days_to_index' in case:
-                    print("Found days_to_index!\n{}".format(case))
                 case_copy = case.copy()
                 for field in API_PARAMS['EXCLUDE_FIELDS']:
                     if field in case_copy:
                         case.pop(field)
 
                 no_list_value_case = convert_dict_to_string(case)
-                # writing in jsonlines format, as required by BQ
                 json.dump(obj=no_list_value_case, fp=json_output_file)
                 json_output_file.write('\n')
 
-            if curr_page == last_page or (API_PARAMS['MAX_PAGES'] and
-                                          curr_page == API_PARAMS['MAX_PAGES']):
+            if curr_page == last_page:
+                is_last_page = True
+            elif API_PARAMS['MAX_PAGES'] and curr_page == API_PARAMS['MAX_PAGES']:
                 is_last_page = True
 
-            print("Inserted page {} of {} ({} records) into jsonlines file"
-                  .format(curr_page, last_page, batch_record_count))
+            print("Inserted page {} of {} into jsonl file".format(curr_page, last_page))
             curr_index += batch_record_count
 
     # calculate processing time and file size
@@ -147,7 +150,7 @@ def retrieve_and_save_case_records(data_fp):
           "\n\t{} of {} cases retrieved"
           "\n\t{:.2f} mb jsonl file size"
           "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
-          format(curr_index, total_cases_count, file_size, total_time))
+          format(curr_index, cases_count, file_size, total_time))
 
     # Insert the generated jsonl file into google storage bucket, for later
     # ingestion by BQ

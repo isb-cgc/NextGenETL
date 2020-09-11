@@ -23,7 +23,7 @@ import copy
 import math
 
 from common_etl.utils import *
-from gdc_clinical_resources.generate_docs import generate_docs
+from temp.gdc_clinical_resources_OLD.generate_docs import generate_docs
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
