@@ -1333,7 +1333,7 @@ def convert_dict_to_string(obj):
     return obj
 
 
-def load_config(yaml_file_arg, yaml_dict_keys):
+def load_config(args, yaml_dict_keys):
     """Opens yaml file and retrieves configuration parameters.
 
     :param yaml_file_arg: yaml config file name
@@ -1341,6 +1341,12 @@ def load_config(yaml_file_arg, yaml_dict_keys):
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
+
+    if len(args) != 2:
+        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
+
+    yaml_file_arg = args[1]
+
     with open(yaml_file_arg, mode='r') as yaml_file_arg:
 
         yaml_dict = None

@@ -242,18 +242,18 @@ def main(args):
     start = time.time()
     steps = []
 
-    if len(args) != 2:
-        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
-
-    # Load the YAML config file
     try:
         global API_PARAMS, BQ_PARAMS
-
-        API_PARAMS, BQ_PARAMS, steps = load_config(args[1], YAML_HEADERS)
+        # Load the YAML config file
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error("{}".format(err), ValueError)
 
-    output_fp = get_filepath(BQ_PARAMS['SCRATCH_DIR'], BQ_PARAMS['DATA_OUTPUT_FILE'])
+    jsonl_output_file = '{}{}_{}'.format(BQ_PARAMS['REL_PREFIX'],
+                                         BQ_PARAMS['RELEASE'],
+                                         BQ_PARAMS['DATA_OUTPUT_FILE'])
+
+    output_fp = get_filepath(BQ_PARAMS['SCRATCH_DIR'], jsonl_output_file)
     schema = None
 
     if 'retrieve_and_output_cases' in steps:

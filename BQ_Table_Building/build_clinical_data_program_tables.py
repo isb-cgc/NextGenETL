@@ -1058,20 +1058,15 @@ def main(args):
     start = time.time()
     steps = []
 
-    # Load YAML configuration
-    if len(args) != 2:
-        has_fatal_error("Usage: {} <configuration_yaml>".format(args[0]), ValueError)
+    try:
+        global API_PARAMS, BQ_PARAMS
 
-    with open(args[1], mode='r') as yaml_file:
-        try:
-            global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(str(err), ValueError)
 
-            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-
-            if not API_PARAMS['FIELD_CONFIG']:
-                has_fatal_error("params['FIELD_CONFIG'] not found")
-        except ValueError as err:
-            has_fatal_error(str(err), ValueError)
+    if not API_PARAMS['FIELD_CONFIG']:
+        has_fatal_error("params['FIELD_CONFIG'] not found")
 
     programs = get_program_list(BQ_PARAMS)
 
