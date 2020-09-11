@@ -370,7 +370,8 @@ def add_reference_columns(columns, record_counts, schema=None, program=None,
         # get parent id key, append to column order dict of child field group, increment
         # index from field_grp_id_key's position, assign to parent_id_key (foreign
         # reference key)
-        parent_id_key = get_field_group_id_key(API_PARAMS, get_field_group(field_grp),
+        parent_id_key = get_field_group_id_key(API_PARAMS,
+                                               get_field_group(field_grp),
                                                is_webapp)
 
         if is_webapp:
@@ -423,7 +424,10 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        table_id_key = table + "." + get_field_group_id_name(API_PARAMS, table, is_webapp)
+        table_id_key = get_field_group_id_key(API_PARAMS, table, is_webapp)
+
+        # table_id_key = table + "." + get_field_group_id_name(API_PARAMS, table,
+        # is_webapp)
 
         if table in columns:
             merge_dict_key = table
@@ -435,11 +439,18 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             # not exist in some cases
             schema[table_id_key]['mode'] = 'NULLABLE'
 
+        print(("\ntable_id_key: {}\n"
+               "table: {}\n"
+               "merge_dict_key: {}\n"
+               "column_orders[table]: {}\n"
+               ).format(table_id_key, table, merge_dict_key, column_orders[table]))
+
         if merge_dict_key not in merged_column_orders:
             merged_column_orders[merge_dict_key] = dict()
 
         merged_column_orders[merge_dict_key].update(column_orders[table])
 
+    print("\nmerged_column_orders: \n{}".format(merged_column_orders))
     return merged_column_orders
 
 
@@ -853,7 +864,8 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_filename, schemas[one_many_table], table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_filename, schemas[one_many_table],
+                              table_id)
 
 
 ##################################################################################
