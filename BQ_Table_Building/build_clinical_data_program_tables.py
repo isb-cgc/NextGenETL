@@ -66,7 +66,7 @@ def get_scratch_fp(program_name, table, is_webapp=False):
     :return: String representing the temp file path.
     """
     filename = get_jsonl_filename(program_name, table, is_webapp)
-    return get_scratch_dir(BQ_PARAMS, filename)
+    return get_scratch_fp(BQ_PARAMS, filename)
 
 
 def get_full_table_name(program, table):

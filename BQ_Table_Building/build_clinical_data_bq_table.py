@@ -87,19 +87,19 @@ def request_data_from_gdc_api(curr_index):
     return None
 
 
-def retrieve_and_save_case_records(data_fp):
+def retrieve_and_save_case_records(scratch_fp):
     """
     Retrieves case records from API and outputs them to a JSONL file, which is later
     used to populate the clinical data BQ table.
-    :param data_fp: absolute path to data output file
+    :param scratch_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
     cases_count = 0
     is_last_page = False
+    io_mode = BQ_PARAMS['IO_MODE']
 
-    with open(data_fp, BQ_PARAMS['IO_MODE']) as json_output_file:
-        print("Outputting json objects to {} in {} mode".format(data_fp,
-                                                                BQ_PARAMS['IO_MODE']))
+    with open(scratch_fp, io_mode) as jsonl_file:
+        print("Outputting json objects to {} in {} mode".format(scratch_fp, io_mode))
         have_printed_totals = False
 
         curr_index = API_PARAMS['START_INDEX']
@@ -131,8 +131,8 @@ def retrieve_and_save_case_records(data_fp):
                         case.pop(field)
 
                 no_list_value_case = convert_dict_to_string(case)
-                json.dump(obj=no_list_value_case, fp=json_output_file)
-                json_output_file.write('\n')
+                json.dump(obj=no_list_value_case, fp=jsonl_file)
+                jsonl_file.write('\n')
 
             if curr_page == last_page:
                 is_last_page = True
@@ -144,7 +144,7 @@ def retrieve_and_save_case_records(data_fp):
 
     # calculate processing time and file size
     total_time = time.time() - start_time
-    file_size = os.stat(data_fp).st_size / 1048576.0
+    file_size = os.stat(scratch_fp).st_size / 1048576.0
 
     print("\nClinical data retrieval complete!"
           "\n\t{} of {} cases retrieved"
@@ -154,7 +154,7 @@ def retrieve_and_save_case_records(data_fp):
 
     # Insert the generated jsonl file into google storage bucket, for later
     # ingestion by BQ
-    upload_to_bucket(BQ_PARAMS, BQ_PARAMS['DATA_OUTPUT_FILE'])
+    upload_to_bucket(BQ_PARAMS, scratch_fp)
 
 
 ####
@@ -252,22 +252,21 @@ def main(args):
     except ValueError as err:
         has_fatal_error("{}".format(err), ValueError)
 
-    jsonl_output_file = '{}{}_{}'.format(BQ_PARAMS['REL_PREFIX'],
-                                         BQ_PARAMS['RELEASE'],
-                                         BQ_PARAMS['DATA_OUTPUT_FILE'])
+    jsonl_output_file = build_jsonl_output_filename(BQ_PARAMS)
 
-    output_fp = get_filepath(BQ_PARAMS['SCRATCH_DIR'], jsonl_output_file)
+    scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
+
     schema = None
 
     if 'retrieve_and_output_cases' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
-        retrieve_and_save_case_records(output_fp)
+        retrieve_and_save_case_records(scratch_fp)
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
         print('Creating BQ schema object!')
-        schema = create_bq_schema(output_fp)
+        schema = create_bq_schema(scratch_fp)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table

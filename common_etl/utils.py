@@ -571,6 +571,12 @@ def build_working_gs_uri(bq_params, filename):
                                   filename)
 
 
+def build_jsonl_output_filename(bq_params):
+    return '{}{}_{}'.format(bq_params['REL_PREFIX'],
+                            bq_params['RELEASE'],
+                            bq_params['DATA_OUTPUT_FILE'])
+
+
 def get_filepath(dir_path, filename):
     """Get file path for location on VM.
 
@@ -581,7 +587,7 @@ def get_filepath(dir_path, filename):
     return '/'.join([os.path.expanduser('~'), dir_path, filename])
 
 
-def get_scratch_dir(bq_params, filename):
+def get_scratch_fp(bq_params, filename):
     """Construct filepath for VM output file.
 
     :param filename: name of the file
@@ -1149,17 +1155,22 @@ def update_schema(table_id, new_descriptions):
 ##################################################################################
 
 
-def upload_to_bucket(bq_params, filename):
+def upload_to_bucket(bq_params, scratch_fp):
     """Uploads file to a google storage bucket (location specified in yaml config).
 
     :param bq_params: bq param object from yaml config
-    :param filename: name of file to upload to bucket
+    :param scratch_fp: name of file to upload to bucket
     """
     try:
         storage_client = storage.Client()
+
+        jsonl_output_file = scratch_fp.split('/')[-1]
+        blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], jsonl_output_file)
+
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
-        blob = bucket.blob(get_filepath(bq_params['WORKING_BUCKET_DIR'], filename))
-        blob.upload_from_filename(get_filepath(bq_params['SCRATCH_DIR'], filename))
+        blob = bucket.blob(blob_name)
+
+        blob.upload_from_filename(scratch_fp)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
