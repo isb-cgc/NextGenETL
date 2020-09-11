@@ -26,7 +26,6 @@ BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-
 ####
 #
 # Getter functions, employed for readability/consistency
@@ -88,9 +87,9 @@ def request_data_from_gdc_api(curr_index):
 
 
 def retrieve_and_save_case_records(scratch_fp):
-    """
-    Retrieves case records from API and outputs them to a JSONL file, which is later
-    used to populate the clinical data BQ table.
+    """Retrieves case records from API and outputs them to a JSONL file, which is later
+        used to populate the clinical data BQ table.
+
     :param scratch_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
@@ -116,8 +115,6 @@ def retrieve_and_save_case_records(scratch_fp):
 
             batch_record_count = res_json['pagination']['count']
             cases_count = res_json['pagination']['total']
-            curr_page = res_json['pagination']['page']
-            last_page = res_json['pagination']['pages']
 
             if not have_printed_totals:
                 have_printed_totals = True
@@ -126,6 +123,7 @@ def retrieve_and_save_case_records(scratch_fp):
 
             for case in cases_json:
                 case_copy = case.copy()
+
                 for field in API_PARAMS['EXCLUDE_FIELDS']:
                     if field in case_copy:
                         case.pop(field)
@@ -133,6 +131,9 @@ def retrieve_and_save_case_records(scratch_fp):
                 no_list_value_case = convert_dict_to_string(case)
                 json.dump(obj=no_list_value_case, fp=jsonl_file)
                 jsonl_file.write('\n')
+
+            curr_page = res_json['pagination']['page']
+            last_page = res_json['pagination']['pages']
 
             if curr_page == last_page:
                 is_last_page = True
@@ -151,11 +152,6 @@ def retrieve_and_save_case_records(scratch_fp):
           "\n\t{:.2f} mb jsonl file size"
           "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
           format(curr_index, cases_count, file_size, total_time))
-
-    # Insert the generated jsonl file into google storage bucket, for later
-    # ingestion by BQ
-    upload_to_bucket(BQ_PARAMS, scratch_fp)
-
 
 ####
 #
@@ -238,8 +234,8 @@ def create_bq_schema(data_fp):
 
 
 def main(args):
-    """
-    Script execution function.
+    """Script execution function.
+
     :param args: command-line arguments
     """
     start = time.time()
@@ -247,21 +243,24 @@ def main(args):
 
     try:
         global API_PARAMS, BQ_PARAMS
-        # Load the YAML config file
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error("{}".format(err), ValueError)
 
     jsonl_output_file = build_jsonl_output_filename(BQ_PARAMS)
-
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
-    schema = None
-
-    if 'retrieve_and_output_cases' in steps:
+    if 'retrieve_cases_and_write_to_jsonl' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
         retrieve_and_save_case_records(scratch_fp)
+
+    if 'upload_jsonl_to_cloud_storage' in steps:
+        # Insert the generated jsonl file into google storage bucket, for later
+        # ingestion by BQ
+        upload_to_bucket(BQ_PARAMS, scratch_fp)
+
+    schema = None
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects

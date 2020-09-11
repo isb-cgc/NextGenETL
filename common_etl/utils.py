@@ -1154,6 +1154,16 @@ def update_schema(table_id, new_descriptions):
 #
 ##################################################################################
 
+def upload_file_to_bucket(project, bucket, blob_dir, fp):
+    try:
+        client = storage.Client(project=project)
+        bucket = client.get_bucket(bucket)
+        blob = bucket.blob(blob_dir)
+
+        blob.upload_from_file(fp)
+    except exceptions.GoogleCloudError as err:
+        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
 
 def upload_to_bucket(bq_params, scratch_fp):
     """Uploads file to a google storage bucket (location specified in yaml config).
@@ -1162,11 +1172,10 @@ def upload_to_bucket(bq_params, scratch_fp):
     :param scratch_fp: name of file to upload to bucket
     """
     try:
-        storage_client = storage.Client()
+        storage_client = storage.Client(project="")
 
         jsonl_output_file = scratch_fp.split('/')[-1]
         blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], jsonl_output_file)
-
         bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
         blob = bucket.blob(blob_name)
 
