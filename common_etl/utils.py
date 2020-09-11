@@ -1346,10 +1346,9 @@ def load_config(yaml_file, yaml_dict_keys):
 
     config_stream = io.StringIO(yaml_file.read())
 
-    print("config_stream: {}".format(config_stream))
-
     try:
         yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
+        print("yaml_dict".format(yaml_dict))
     except yaml.YAMLError as ex:
         has_fatal_error(ex, yaml.YAMLError)
     if yaml_dict is None:
