@@ -661,8 +661,6 @@ def flatten_case(case, is_webapp):
                        is_webapp=is_webapp)
 
     print("\nend case:\n{}\n".format(case))
-    exit()
-
 
     return flat_case
 
