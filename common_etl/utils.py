@@ -835,22 +835,21 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
 
-    print("schema_list {}".format(schema_list))
-
     if fg not in api_params['FIELD_CONFIG']:
         return
 
-    for i, field in enumerate(schema_list):
-
-        # creates SchemaField dict obj. keys: name, description, type, mode
-        schema_field = field.to_api_repr()
+    for i, schema_field in enumerate(schema_list):
 
         field_key = get_field_key(fg, schema_field['name'])
 
         # if has 'fields', then the current obj contains nested objs
         if 'fields' in schema_field:
             # if nested, recurse down to the next level
-            parse_bq_schema_obj(api_params, schema, field_key, field.fields, is_webapp)
+            parse_bq_schema_obj(api_params,
+                                schema,
+                                field_key,
+                                schema_field.fields,
+                                is_webapp)
 
             required_field_list = get_required_fields(api_params, fg)
 
