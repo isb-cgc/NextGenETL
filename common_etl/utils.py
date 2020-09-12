@@ -761,12 +761,15 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     """
     client = bigquery.Client()
     bq_table = client.get_table(get_working_table_id(bq_params))
+    schema = dict()
 
-    return parse_bq_schema_obj(api_params=api_params,
-                               schema=dict(),
-                               fg=get_base_fg(api_params),
-                               schema_list=bq_table.schema,
-                               is_webapp=is_webapp)
+    parse_bq_schema_obj(api_params=api_params,
+                        schema=schema,
+                        fg=get_base_fg(api_params),
+                        schema_list=bq_table.schema,
+                        is_webapp=is_webapp)
+
+    return schema
 
 
 def get_cases_by_program(bq_params, program):
