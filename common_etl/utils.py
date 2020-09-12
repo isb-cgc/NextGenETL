@@ -761,7 +761,7 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     """
     client = bigquery.Client()
     bq_table = client.get_table(get_working_table_id(bq_params))
-    bq_json_schema = client.schema_to_json(bq_table.schema)
+    bq_json_schema = dict(bq_table.schema)
     schema = dict()
 
     parse_bq_schema_obj(api_params=api_params,
