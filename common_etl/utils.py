@@ -1448,8 +1448,12 @@ def has_fatal_error(err, exception=None):
 
 
 def output_to_console(output_str, print_vars=None, end='\n'):
-    output_str = str(output_str)
-    print(output_str.format(*print_vars), end=end)
+    # output_str = str(output_str)
+
+    if print_vars:
+        print(output_str.format(*print_vars), end=end)
+    else:
+        print(output_str, end=end)
 
 
 def modify_fields_for_app(api_params, schema, column_order_dict, columns):
