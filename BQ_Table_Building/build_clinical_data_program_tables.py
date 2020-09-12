@@ -671,7 +671,8 @@ def flatten_case(case, is_webapp):
                     if base_id_name in flat_case[fg_key][i]:
                         flat_case[fg_key][i].pop(base_id_name)
     else:
-        print(flat_case)
+        if 'cases.diagnoses.annotations' in flat_case:
+            print(flat_case)
 
     return flat_case
 
