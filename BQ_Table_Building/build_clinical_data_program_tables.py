@@ -1020,6 +1020,7 @@ def create_tables(program, cases, is_webapp=False):
     """
     # generate table schemas
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
+    webapp_schema = copy.deepcopy(schema)
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
@@ -1028,27 +1029,35 @@ def create_tables(program, cases, is_webapp=False):
     # removes the excluded fields/field groups
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
-        column_orders = add_ref_columns(columns, record_counts, schema, program,
+        column_orders = add_ref_columns(columns, record_counts, webapp_schema, program,
                                         is_webapp)
 
-        modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
+        modify_fields_for_app(API_PARAMS, webapp_schema, column_orders, columns)
+
+        # reassign merged_column_orders to column_orders
+        merged_orders = merge_column_orders(webapp_schema, columns, record_counts,
+                                            column_orders,
+                                            is_webapp)
+
     else:
         column_orders = add_ref_columns(columns, record_counts, schema, program)
 
-    # reassign merged_column_orders to column_orders
-    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
-                                        is_webapp)
+        # reassign merged_column_orders to column_orders
+        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
+                                            is_webapp)
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
-        table_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
+        webapp_schemas = create_app_schema_lists(webapp_schema, record_counts,
+                                                 merged_orders)
+        create_and_load_tables(program, cases, webapp_schemas, record_counts, is_webapp)
+
     else:
         table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-
-    create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
+        create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
 
 
 def main(args):
