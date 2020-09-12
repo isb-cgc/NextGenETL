@@ -746,9 +746,11 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     client = bigquery.Client()
     table_obj = client.get_table(table_id)
 
-    return get_schema_from_master_table(api_params, dict(),
-                                        get_base_fg(api_params), table_obj.schema,
-                                        is_webapp)
+    return api_dump_to_schema(api_params=api_params,
+                              schema=dict(),
+                              fg=get_base_fg(api_params),
+                              fields=table_obj.schema,
+                              is_webapp=is_webapp)
 
 
 def get_cases_by_program(bq_params, program):
@@ -798,7 +800,7 @@ def get_last_fields_in_table(api_params):
     return api_params['FG_CONFIG']['last_keys_in_table']
 
 
-def get_schema_from_master_table(api_params, schema, fg, fields=None, is_webapp=False):
+def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
     """Recursively build schema using master table's
     bigquery.table.Table.schema attribute.
 
@@ -818,11 +820,11 @@ def get_schema_from_master_table(api_params, schema, fg, fields=None, is_webapp=
         schema_key = build_field_key(fg, field_dict['name'])
 
         if 'fields' in field_dict:
-            schema = get_schema_from_master_table(api_params,
-                                                  schema,
-                                                  schema_key,
-                                                  field.fields,
-                                                  is_webapp)
+            schema = api_dump_to_schema(api_params,
+                                        schema,
+                                        schema_key,
+                                        field.fields,
+                                        is_webapp)
 
             for required_column in get_required_fields(api_params, fg):
                 schema[required_column]['mode'] = 'REQUIRED'
@@ -830,6 +832,7 @@ def get_schema_from_master_table(api_params, schema, fg, fields=None, is_webapp=
             field_dict['name'] = get_bq_name(api_params,
                                              schema_key,
                                              is_webapp=is_webapp)
+            print('\nhere\n\n{}'.format(field_dict))
 
             schema[schema_key] = field_dict
 
