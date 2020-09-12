@@ -77,7 +77,7 @@ def build_column_order_dict():
         field_grp_id_name = API_PARAMS['FIELD_CONFIG'][field_grp]['id_key']
 
         for field_name in field_order_list:
-            field_key = build_field_key(field_grp, field_name)
+            field_key = get_full_id_key(field_grp, field_name)
 
             # assign index to field, then increment
             column_orders[field_key] = idx
@@ -121,7 +121,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
                                                          field_grp, excluded_fields,
                                                          is_webapp)
 
-        field_keys = {build_field_key(field_grp, field) for field in
+        field_keys = {get_full_id_key(field_grp, field) for field in
                       field_groups[field_grp]}
 
         if field_grp in tables:
@@ -590,7 +590,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
         # if list, possibly more than one entry, recurse over list
         if isinstance(columns, list):
             flatten_case_entry(record=columns,
-                               fg=build_field_key(fg, field),
+                               fg=get_full_id_key(fg, field),
                                flat_case=flat_case,
                                case_id=case_id,
                                pid=record[fg_id_name],

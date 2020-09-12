@@ -62,7 +62,7 @@ def get_required_fields(api_params, fg):
 
     table_id_field = api_params['FIELD_CONFIG'][fg]['id_key']
 
-    return [build_field_key(fg, table_id_field)]
+    return [get_full_id_key(fg, table_id_field)]
 
 
 def get_column_order_one_fg(api_params, fg):
@@ -81,7 +81,7 @@ def get_column_order_one_fg(api_params, fg):
         has_fatal_error("No order for field group {} in yaml.".format(fg, KeyError))
 
     # return full field key, in order, for given field_grp
-    return [build_field_key(fg, field) for field in fg_params['column_order']]
+    return [get_full_id_key(fg, field) for field in fg_params['column_order']]
 
 
 def get_excluded_field_groups(api_params):
@@ -129,7 +129,7 @@ def get_excluded_fields_all_fgs(api_params, fgs, is_webapp=False):
             continue
 
         for field in api_params['FIELD_CONFIG'][fg][excluded_list_key]:
-            exclude_fields.add(build_field_key(fg, field))
+            exclude_fields.add(get_full_id_key(fg, field))
 
     return exclude_fields
 
@@ -445,7 +445,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = api_params['FIELD_CONFIG'][field_group]['id_key']
-    fg_id_key = build_field_key(field_group, fg_id_name)
+    fg_id_key = get_full_id_key(field_group, fg_id_name)
 
     if is_webapp:
         new_fg_id_key = get_renamed_field_key(api_params, fg_id_key)
@@ -483,7 +483,7 @@ def get_field_name(field_col_key):
     return field_col_key.split(split_char)[-1]
 
 
-def build_field_key(field_group, field):
+def get_full_id_key(field_group, field):
     """Get full field key ("{field_group}.{field_name}"}.
 
     :param field_group: field group to which the field belongs
@@ -493,37 +493,53 @@ def build_field_key(field_group, field):
     return '{}.{}'.format(field_group, field)
 
 
-def get_bq_name(api_params, field, fg=None, is_webapp=False):
+def get_bq_name(api_params, field, arg_fg=None, is_webapp=False):
     """Get column name (in bq format) from full field name.
 
     :param api_params: api params from yaml config file
     :param field: if not table_path, full field name; else short field name
-    :param fg: field group containing field
+    :param arg_fg: field group containing field
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: bq column name for given field name
     """
     base_fg = get_base_fg(api_params)
 
-    # if fg provided as argument, create an appended key
-    # if field is name (not key, only one degree deep), create field_key using base fg
-    # else, field is already a key
-    if fg:
-        field_key = build_field_key(fg, field)
-    elif len(field.split('.')) == 1:  # not a full field key, just the name
-        field_key = build_field_key(base_fg, field)
+    if arg_fg:
+        # field group is specified as a function argument
+        fg = arg_fg
+        field_key = get_full_id_key(fg, field)
+    elif len(field.split('.')) == 1:
+        # no fg delimiter found in field string: cannot be a complete field key
+        fg = base_fg
+        field_key = get_full_id_key(fg, field)
     else:
+        # no fg argument, but field contains separator chars; extract the fg and name
+        fg = get_field_group(field)
         field_key = field
 
-    fg = get_field_group(field_key)
+    # derive the key's short field name
     field_name = get_field_name(field_key)
+
+    # get id_key and prefix associated with this fg
+    this_fg_id = get_fg_id_name(api_params, fg)
     prefix = get_fg_prefix(api_params, fg)
 
-    # if there's no prefix supplied for the field group, the field is member of the
-    # base fg, or the function is being called by wep app portion of the script:
-    # leave field name alone. Else, append prefix specified in yaml's FIELD_CONFIG
-    if is_webapp or fg == base_fg or not prefix:
+    # create map of {fg_names : id_keys}
+    fg_to_id_key_map = get_fgs_and_id_keys(api_params)
+
+    # if fg has no prefix, or
+    #    field is child of base_fg, or
+    #    function called for webapp table building: do not add prefix
+    if fg == base_fg or is_webapp or not prefix:
         return field_name
 
+    # if field is an id_key, but is not mapped to this fg: do not add prefix
+    if field_name in fg_to_id_key_map.values() and field_name != this_fg_id:
+        return field_name
+
+    # if the function reaches this line, return a prefixed field:
+    #  - the table is user-facing, and
+    #  - this field isn't a foreign id key
     return "__".join([prefix, field_name])
 
 
@@ -743,16 +759,16 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     :return: flattened schema dict in format:
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
     """
-    table_id = get_working_table_id(bq_params)
-
     client = bigquery.Client()
+
+    table_id = get_working_table_id(bq_params)
     table_obj = client.get_table(table_id)
 
-    return api_dump_to_schema(api_params=api_params,
-                              schema=dict(),
-                              fg=get_base_fg(api_params),
-                              fields=table_obj.schema,
-                              is_webapp=is_webapp)
+    return make_schema_dict(api_params=api_params,
+                            schema=dict(),
+                            fg=get_base_fg(api_params),
+                            fields=table_obj.schema,
+                            is_webapp=is_webapp)
 
 
 def get_cases_by_program(bq_params, program):
@@ -802,7 +818,7 @@ def get_last_fields_in_table(api_params):
     return api_params['FG_CONFIG']['last_keys_in_table']
 
 
-def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
+def make_schema_dict(api_params, schema, fg, fields=None, is_webapp=False):
     """Recursively build schema using master table's
     bigquery.table.Table.schema attribute.
 
@@ -819,31 +835,22 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
 
     for field in fields:
         field_dict = field.to_api_repr()
-        schema_key = build_field_key(fg, field_dict['name'])
+        field_key = get_full_id_key(fg, field_dict['name'])
 
         if 'fields' in field_dict:
-            schema = api_dump_to_schema(api_params, schema, schema_key, field.fields,
-                                        is_webapp)
+            schema = make_schema_dict(api_params, schema,
+                                      field_key, field.fields, is_webapp)
 
             for required_column in get_required_fields(api_params, fg):
                 schema[required_column]['mode'] = 'REQUIRED'
-
         else:
-            id_key_dict = get_fgs_and_id_keys(api_params)
+            field_dict['name'] = get_bq_name(api_params, field_key, is_webapp=is_webapp)
 
-            print(id_key_dict)
-            exit()
-
-            # add the prefix to the field name (desirable to avoid field name collisions.
-            # however, we don't want to do this for foreign keys of a parent table.
-
-            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp=is_webapp)
-
-            schema[schema_key] = field_dict
-    return schema
+    schema[field_key] = field_dict
 
 
 def get_fgs_and_id_keys(api_params):
+    # returned dict structure:  {'fg': 'id_key', ...}
     id_key_dict = dict()
 
     fg_config_entries = api_params['FIELD_CONFIG']
