@@ -664,12 +664,7 @@ def flatten_case(case, is_webapp):
         if base_id_key in renamed_fields:
             base_id_name = get_field_name(base_id_key)
 
-            double_nested_fgs = {k for k in flat_case.keys() if len(k.split('.')) > 2}
-
-            records = {record for k in double_nested_fgs
-                              for record in flat_case[k]}
-
-            print(records)
+            records = set(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
 
             if base_id_name in records:
                 flat_case.pop(base_id_name)
