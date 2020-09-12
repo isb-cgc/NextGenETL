@@ -665,9 +665,10 @@ def flatten_case(case, is_webapp):
     if ('diagnoses' in case and 'annotations' in case['diagnoses']
             and case['diagnoses']['annotations']):
         print("\nend case(1st level):\n{}\n".format(case))
-    if 'annotations' in case and case['annotations']:
+    elif 'annotations' in case and case['annotations']:
         print("\nend case (2nd level):\n{}\n".format(case))
 
+    print(flat_case)
 
     return flat_case
 
