@@ -1038,7 +1038,8 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    programs = get_program_list(BQ_PARAMS)
+    # programs = get_program_list(BQ_PARAMS)
+    programs = ['BEATAML1.0']
 
     for program in programs:
         prog_start = time.time()

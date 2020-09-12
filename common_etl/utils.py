@@ -868,6 +868,12 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
 
     gs_uri = build_working_gs_uri(bq_params, jsonl_file)
 
+    print("""\n
+        schema: {}\n\n
+        table_id: {}\n
+        gs_uri: {}\n    
+    """.format(schema, table_id, gs_uri))
+
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
@@ -1206,8 +1212,6 @@ def upload_to_bucket(bq_params, scratch_fp):
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     """
-
-    # print("\nline 1193 utils.py, scratch_fp: {}\n".format(scratch_fp))
 
     try:
         storage_client = storage.Client(project="")
