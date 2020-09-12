@@ -184,8 +184,10 @@ def get_fg_prefix(api_params, fg):
     """
     if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
         has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
+
     elif fg not in api_params['FIELD_CONFIG']:
         has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
+
     elif 'prefix' not in api_params['FIELD_CONFIG'][fg]:
         has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg), KeyError)
 
@@ -831,20 +833,32 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
             for required_column in get_required_fields(api_params, fg):
                 schema[required_column]['mode'] = 'REQUIRED'
         else:
+
+            # add the prefix to the field name (desirable to avoid field name collisions.
+            # however, we don't want to do this for foreign keys of a parent table.
+
             field_dict['name'] = get_bq_name(api_params,
                                              schema_key,
                                              is_webapp=is_webapp)
+            schema[schema_key] = field_dict
 
             field_set.add(field_dict['name'])
 
-            schema[schema_key] = field_dict
-
 
     for name in field_set:
-        print("{}\n".format(name))
+        print("{}".format(name))
 
     return schema
 
+
+def get_fgs_and_id_keys(api_params):
+    fg_config_entries = api_params['FIELD_CONFIG']
+
+    print(fg_config_entries)
+    exit()
+
+    for fg in fg_configs:
+        api_params['FIELD_CONFIG'][fg]['id_key']
 
 def copy_bq_table(bq_params, src_table, dest_table):
     """Copy an existing BQ table into a new location.
