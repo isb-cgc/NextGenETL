@@ -45,7 +45,8 @@ def get_full_table_name(program, table):
     :param table: Name of desired table
     :return: String representing table name used by BQ.
     """
-    table_name = [program, BQ_PARAMS['MASTER_TABLE']]
+    gdc_rel = get_rel_prefix(BQ_PARAMS)
+    table_name = [gdc_rel, program, BQ_PARAMS['MASTER_TABLE']]
 
     # if one-to-many table, append suffix
     suffixes = get_table_suffixes(API_PARAMS)
