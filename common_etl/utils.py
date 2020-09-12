@@ -1477,7 +1477,7 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def console_out(output_str, *print_vars, end='\n'):
+def console_out(output_str, print_vars, end='\n'):
     if print_vars:
         print(str(output_str).format(*print_vars), end=end)
     else:
