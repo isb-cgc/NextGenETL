@@ -781,7 +781,8 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
     ancillary_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
     for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table,
+                                      is_webapp)
 
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
@@ -803,14 +804,16 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             if bq_table not in ancillary_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table, is_webapp)
+            jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table,
+                                          is_webapp)
 
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
     for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table,
+                                      is_webapp)
 
         upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
 
@@ -859,16 +862,17 @@ def update_schema():
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
     """
-    fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_' + get_rel_prefix(BQ_PARAMS)
-    fields_file += '.json'
 
-    with open(get_filepath(fields_path, fields_file)) as json_file_output:
-        descriptions = json.load(json_file_output)
+    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_'
+    fields_file += get_rel_prefix(BQ_PARAMS) + '.json'
 
-    files = get_dir_files(BQ_PARAMS)
+    field_desc_fp = get_schema_metadata_fp(
+        BQ_PARAMS, BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
 
-    for json_file in files:
+    with open(field_desc_fp) as field_output:
+        descriptions = json.load(field_output)
+
+    for json_file in get_dir_files(BQ_PARAMS):
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 

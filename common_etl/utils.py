@@ -297,14 +297,14 @@ def convert_json_to_table_name(bq_params, json_file):
     data and metadata; json file naming matches table ID of corresponding BQ table
     :return: BQ table name for which the json acts as a configuration file
     """
-    rel = get_rel_prefix(bq_params)
     # handles naming for *webapp* tables
-    split_json_name = json_file.split('.')
-    program_name = split_json_name[1]
-    split_table_name = split_json_name[2].split('_')
-    partial_table_name = '_'.join(split_table_name[:-2])
+    split_name = json_file.split('.')
+    program_name = split_name[1]
+    split_table = split_name[2].split('_')
+    table_name = '_'.join(split_table[:-2])
+    rel = get_rel_prefix(bq_params)
 
-    return '_'.join([rel, program_name, partial_table_name])
+    return '_'.join([rel, program_name, table_name])
 
 
 def build_table_id(project, dataset, table):
@@ -666,9 +666,7 @@ def get_dir_files(bq_params):
     :param bq_params: bq param object from yaml config
     :return: list of filenames
     """
-
     fp = get_schema_metadata_fp(bq_params, bq_params['TABLE_METADATA_DIR'], '')
-
     return [f for f in os.listdir(fp) if os.path.isfile(os.path.join(fp, f))]
 
 
