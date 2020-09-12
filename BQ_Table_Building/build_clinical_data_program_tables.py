@@ -1075,6 +1075,7 @@ def main(args):
     programs = ['BEATAML1.0']
 
     for program in programs:
+        program = program.replace('.', '_')
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...\n", (program,))
 
