@@ -633,10 +633,6 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    if ('diagnoses' in case and 'annotations' in case['diagnoses']
-            and case['diagnoses']['annotations']):
-        print("\nstart case: \n{}\n".format(case))
-
     base_fg = get_base_fg(API_PARAMS)
     get_field_group_id_key(API_PARAMS, base_fg, is_webapp)
 
@@ -647,8 +643,6 @@ def flatten_case(case, is_webapp):
             if old_name in case:
                 case[new_name] = case[old_name]
                 case.pop(old_name)
-
-    # print("\nmid case: \n{}\n".format(case))
 
     base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
@@ -662,13 +656,8 @@ def flatten_case(case, is_webapp):
                        pid_name=base_id_name,
                        is_webapp=is_webapp)
 
-    if ('diagnoses' in case and 'annotations' in case['diagnoses']
-            and case['diagnoses']['annotations']):
-        print("\nend case(1st level):\n{}\n".format(case))
-    elif 'annotations' in case and case['annotations']:
-        print("\nend case (2nd level):\n{}\n".format(case))
-
-    print(flat_case)
+    if 'cases.diagnoses.annotations' in flat_case:
+        print(flat_case)
 
     return flat_case
 
