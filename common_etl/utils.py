@@ -817,45 +817,39 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
     if fg not in api_params['FIELD_CONFIG'].keys():
         return schema
 
-    field_set = set()
-
     for field in fields:
         field_dict = field.to_api_repr()
         schema_key = build_field_key(fg, field_dict['name'])
 
         if 'fields' in field_dict:
-            schema = api_dump_to_schema(api_params,
-                                        schema,
-                                        schema_key,
-                                        field.fields,
+            schema = api_dump_to_schema(api_params, schema, schema_key, field.fields,
                                         is_webapp)
 
             for required_column in get_required_fields(api_params, fg):
                 schema[required_column]['mode'] = 'REQUIRED'
+
         else:
+
+            id_key_dict = get_fgs_and_id_keys(api_params)
+            print(id_key_dict)
+            exit()
 
             # add the prefix to the field name (desirable to avoid field name collisions.
             # however, we don't want to do this for foreign keys of a parent table.
 
-            field_dict['name'] = get_bq_name(api_params,
-                                             schema_key,
-                                             is_webapp=is_webapp)
+            field_dict['name'] = get_bq_name(api_params, schema_key, is_webapp=is_webapp)
+
             schema[schema_key] = field_dict
-
-            field_set.add(field_dict['name'])
-
-
-    for name in field_set:
-        print("{}".format(name))
-
     return schema
 
 
 def get_fgs_and_id_keys(api_params):
     fg_config_entries = api_params['FIELD_CONFIG']
 
-    print(fg_config_entries)
-    exit()
+    id_key_dict = fg_config_entries  # todo change
+
+    return id_key_dict
+
 
     for fg in fg_configs:
         api_params['FIELD_CONFIG'][fg]['id_key']
