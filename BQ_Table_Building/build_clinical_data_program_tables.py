@@ -653,7 +653,7 @@ def flatten_case(case, is_webapp):
     flat_case = dict()
 
     flatten_case_entry(record=case,
-                       field_grp=base_fg,
+                       fg=base_fg,
                        flat_case=flat_case,
                        case_id=case[base_id_name],
                        pid=case[base_id_name],
