@@ -77,7 +77,7 @@ def build_column_order_dict():
         field_grp_id_name = API_PARAMS['FIELD_CONFIG'][field_grp]['id_key']
 
         for field_name in field_order_list:
-            field_key = get_full_id_key(field_grp, field_name)
+            field_key = get_field_key(field_grp, field_name)
 
             # assign index to field, then increment
             column_orders[field_key] = idx
@@ -121,7 +121,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
                                                          field_grp, excluded_fields,
                                                          is_webapp)
 
-        field_keys = {get_full_id_key(field_grp, field) for field in
+        field_keys = {get_field_key(field_grp, field) for field in
                       field_groups[field_grp]}
 
         if field_grp in tables:
@@ -536,7 +536,7 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
     :return: Trimmed down record dict.
     """
     if isinstance(case, dict):
-        excluded_fields = {get_bq_name(API_PARAMS, field, field_grp, is_webapp)
+        excluded_fields = {get_bq_name(API_PARAMS, field, is_webapp, field_grp)
                            for field in excluded}
 
         for field in case.copy().keys():
@@ -590,7 +590,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
         # if list, possibly more than one entry, recurse over list
         if isinstance(columns, list):
             flatten_case_entry(record=columns,
-                               fg=get_full_id_key(fg, field),
+                               fg=get_field_key(fg, field),
                                flat_case=flat_case,
                                case_id=case_id,
                                pid=record[fg_id_name],
@@ -601,7 +601,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
         if fg_id_name != pid_name:
             parent_fg = get_field_group(fg)
 
-            pid_key = get_bq_name(API_PARAMS, pid_name, parent_fg, is_webapp)
+            pid_key = get_bq_name(API_PARAMS, pid_name, is_webapp, parent_fg)
 
             # add parent_id key and value to row
             row[pid_key] = pid
@@ -609,7 +609,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
         if fg_id_name != base_pid_name:
             row[base_pid_name] = case_id
 
-        column = get_bq_name(API_PARAMS, field, fg, is_webapp)
+        column = get_bq_name(API_PARAMS, field, is_webapp, fg)
 
         row[column] = columns
 
@@ -687,7 +687,7 @@ def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
     :return: position index of record in field group's record list
     """
     field_grp_id_name = get_fg_id_name(API_PARAMS, field_grp, is_webapp)
-    field_grp_id_key = get_bq_name(API_PARAMS, field_grp_id_name, field_grp, is_webapp)
+    field_grp_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp, field_grp)
     idx = 0
 
     # iterate until id found in record--if not found, fatal error
@@ -720,7 +720,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
 
     for field_grp, parent in flattened_field_grp_parents.items():
         field_grp_id_name = get_fg_id_name(API_PARAMS, parent, is_webapp)
-        bq_parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent, is_webapp)
+        bq_parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp, parent)
 
         for record in flat_case[field_grp]:
             parent_id = record[bq_parent_id_key]
@@ -748,8 +748,8 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         field_grp_id_name = get_fg_id_name(API_PARAMS, parent_field_grp,
                                            is_webapp)
 
-        parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent_field_grp,
-                                    is_webapp)
+        parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp,
+                                    parent_field_grp)
 
         # initialize record counts for parent id
         if parent_field_grp in flat_case:
