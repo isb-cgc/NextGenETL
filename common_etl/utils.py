@@ -688,7 +688,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
             file_obj.write('\n')
             cnt += 1
         if mode == 'w':
-            print("Successfully output {} records to {}".format(cnt, jsonl_fp))
+            output_to_console("Successfully output {0} records to {1}", (cnt, jsonl_fp))
 
 
 ##################################################################################
@@ -848,8 +848,8 @@ def copy_bq_table(bq_params, src_table, dest_table):
     bq_job = client.copy_table(src_table, dest_table)
 
     if await_job(bq_params, client, bq_job):
-        print("Successfully copied table:")
-        print("src:  {}\n dest: {}\n".format(src_table, dest_table))
+        output_to_console("Successfully copied table:")
+        output_to_console("src:  {0}\n dest: {1}\n", (src_table, dest_table))
 
 
 def create_and_load_table(bq_params, jsonl_file, schema, table_id):
@@ -868,18 +868,10 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
 
     gs_uri = build_working_gs_uri(bq_params, jsonl_file)
 
-    '''
-    print("""\n
-        schema: {}\n\n
-        table_id: {}\n
-        gs_uri: {}\n    
-    """.format(schema, table_id, gs_uri))
-    '''
-
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        print(' - Inserting into {}... '.format(table_id), end="")
+        output_to_console(' - Inserting into {0}... ', (table_id), end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -893,7 +885,7 @@ def delete_bq_table(table_id):
     client = bigquery.Client()
     client.delete_table(table_id, not_found_ok=True)
 
-    print("deleted table: {}".format(table_id))
+    output_to_console("deleted table: {0}", (table_id))
 
 
 def exists_bq_table(table_id):
@@ -924,7 +916,7 @@ def load_table_from_query(bq_params, table_id, query):
 
     try:
         query_job = client.query(query, job_config=job_config)
-        print(' - Inserting into {}... '.format(table_id), end="")
+        output_to_console(' - Inserting into {0}... ', (table_id), end="")
         await_insert_job(bq_params, client, table_id, query_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -971,7 +963,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            print('\tcurrent job state: {}...\t'.format(bq_job.state, end=''))
+            output_to_console('\tcurrent job state: {0}...\t', (bq_job.state), end='')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -987,7 +979,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    print(" done. {} rows inserted.".format(table.num_rows))
+    output_to_console(" done. {0} rows inserted.", (table.num_rows))
 
 
 def await_job(bq_params, client, bq_job):
@@ -1181,7 +1173,7 @@ def update_schema(table_id, new_descriptions):
             name = field['name']
             field['description'] = new_descriptions[name]
         elif field['description'] == '':
-            print("Still no description for field: " + field['name'])
+            output_to_console("Still no description for field: {0}", (field['name']))
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)
@@ -1420,8 +1412,6 @@ def load_config(args, yaml_dict_keys):
         try:
             yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
         except yaml.YAMLError as ex:
-            # print(str(ex))
-            # print(str(yaml.YAMLError))
             has_fatal_error(ex, str(yaml.YAMLError))
         if yaml_dict is None:
             has_fatal_error("Bad YAML load, exiting.", ValueError)
@@ -1449,12 +1439,16 @@ def has_fatal_error(err, exception=None):
     else:
         err_str = err_str_prefix + err
 
-    print(err_str)
+    output_to_console(err_str)
 
     if exception:
         raise exception
 
     sys.exit(1)
+
+
+def output_to_console(output_str, print_vars=None, end='\n'):
+    print(output_str.format(*print_vars), end=end)
 
 
 def modify_fields_for_app(api_params, schema, column_order_dict, columns):

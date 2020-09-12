@@ -187,7 +187,7 @@ def create_studies_dict(json_res):
                     for field, val in entry.items():
                         study_dict[field] = val
 
-                print("Processing metadata for {}".format(study_dict['study_name']))
+                output_to_console("Processing metadata for {0}", (study_dict['study_name']))
 
                 primary_site_list = study_dict.pop('primary_site').split(';').sort()
                 disease_type_list = study_dict.pop('disease_type').split(';').sort()
@@ -232,7 +232,7 @@ def main(args):
             has_fatal_error(str(err), ValueError)
 
     if 'build_studies_table' in steps:
-        print("Building studies table...")
+        output_to_console("Building studies table...")
         studies_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, get_all_programs_query())
@@ -257,11 +257,11 @@ def main(args):
         update_table_metadata(table_id, table_metadata)
 
         studies_end = time.time() - studies_start
-        print("Completed in {:0.0f}s!\n".format(studies_end))
+        output_to_console("Completed in {0:0.0f}s!\n", (studies_end))
 
     if 'build_files_table' in steps:
         '''
-        print("Building files table...")
+        output_to_console("Building files table...")
         files_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, get_file_metadata_by_study())
@@ -286,11 +286,11 @@ def main(args):
         update_table_metadata(table_id, table_metadata)
 
         files_end = time.time() - files_start
-        print("Completed in {:0.0f}s!\n".format(studies_end))
+        output_to_console("Completed in {0:0.0f}s!\n", (studies_end))
         '''
 
     end = time.time() - start
-    print("Finished program execution in {:0.0f}s!\n".format(end))
+    output_to_console("Finished program execution in {0:0.0f}s!\n", (end))
 
 
 if __name__ == '__main__':
