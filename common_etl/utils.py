@@ -687,8 +687,8 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
             json.dump(obj=json_str, fp=file_obj)
             file_obj.write('\n')
             cnt += 1
-
-        print("Successfully output {} records to {}".format(cnt, jsonl_fp))
+        if mode == 'w':
+            print("Successfully output {} records to {}".format(cnt, jsonl_fp))
 
 
 ##################################################################################
