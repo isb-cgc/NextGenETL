@@ -344,6 +344,12 @@ def add_reference_columns(columns, record_counts, schema=None, program=None, is_
     :return: table_columns, schema_dict, column_order_dict
     """
 
+    print("""\n
+        schema: {}\n\n
+        program: {}\n\n
+        is_webapp: {}\n\n 
+        """.format(schema, program, is_webapp))
+
     column_orders = dict()
 
     if not is_webapp and (not program or not schema):
