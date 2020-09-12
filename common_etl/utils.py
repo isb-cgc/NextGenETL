@@ -848,7 +848,7 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
             parse_bq_schema_obj(api_params,
                                 schema,
                                 field_key,
-                                schema_field.fields,
+                                schema_field['fields'],
                                 is_webapp)
 
             required_field_list = get_required_fields(api_params, fg)
