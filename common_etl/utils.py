@@ -454,7 +454,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
     return fg_id_key
 
 
-def get_field_group_id_name(api_params, field_group, is_webapp=False):
+def get_fg_id_name(api_params, field_group, is_webapp=False):
     """Retrieves the id key used to uniquely identify a table record.
 
     :param api_params: api param object from yaml config

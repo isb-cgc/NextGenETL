@@ -229,7 +229,7 @@ def get_count_column_index(table_name, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_field_group_id_name(API_PARAMS, table_name)
+    table_id_key = get_fg_id_name(API_PARAMS, table_name)
     id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
     field_groups = API_PARAMS['FG_CONFIG']['order']
@@ -554,12 +554,12 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
 ##################################################################################
 
 
-def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_webapp):
+def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp):
     """
     Recursively traverse the case json object, creating dict of format:
      {field_group: [records]}
     :param record: the case data object to recurse and flatten
-    :param field_grp: name of the case's field group currently being processed.
+    :param fg: name of the case's field group currently being processed.
     :param flat_case: partially-built flattened case dict
     :param case_id: case id
     :param pid: parent field group id
@@ -567,60 +567,62 @@ def flatten_case_entry(record, field_grp, flat_case, case_id, pid, pid_name, is_
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
     # entry represents a field group, recursively flatten each record
-    if field_grp not in API_PARAMS['FIELD_CONFIG'].keys():
+    if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return
+
+    base_pid_name = get_fg_id_name(API_PARAMS, get_base_fg(API_PARAMS), is_webapp)
 
     if isinstance(record, list):
         # flatten each record in field group list
         for entry in record:
-            flatten_case_entry(entry, field_grp, flat_case, case_id, pid, pid_name,
-                               is_webapp)
-    else:
-        row = dict()
+            flatten_case_entry(entry, fg, flat_case, case_id, pid, pid_name, is_webapp)
+        return
 
-        grp_id_name = get_field_group_id_name(API_PARAMS, field_grp, is_webapp)
+    row = dict()
 
-        for field, columns in record.items():
-            # if list, possibly more than one entry, recurse over list
-            if isinstance(columns, list):
-                flatten_case_entry(columns, build_field_key(field_grp, field),
-                                   flat_case, case_id, record[grp_id_name],
-                                   grp_id_name, is_webapp)
-                continue
+    fg_id_name = get_fg_id_name(API_PARAMS, fg, is_webapp)
 
-            if grp_id_name != pid_name:
-                parent_field_grp = get_field_group(field_grp)
+    for field, columns in record.items():
+        # if list, possibly more than one entry, recurse over list
+        if isinstance(columns, list):
+            flatten_case_entry(record=columns,
+                               fg=build_field_key(fg, field),
+                               flat_case=flat_case,
+                               case_id=case_id,
+                               pid=record[fg_id_name],
+                               pid_name=fg_id_name,
+                               is_webapp=is_webapp)
+            continue
 
-                pid_key = get_bq_name(API_PARAMS, pid_name, parent_field_grp, is_webapp)
+        if fg_id_name != pid_name:
+            parent_fg = get_field_group(fg)
 
-                # add parent_id key and value to row
-                row[pid_key] = pid
+            pid_key = get_bq_name(API_PARAMS, pid_name, parent_fg, is_webapp)
 
-            base_grp_id_name = get_field_group_id_name(API_PARAMS,
-                                                       get_base_fg(API_PARAMS),
-                                                       is_webapp)
+            # add parent_id key and value to row
+            row[pid_key] = pid
 
-            if grp_id_name != base_grp_id_name:
-                row[base_grp_id_name] = case_id
+        if fg_id_name != base_pid_name:
+            row[base_pid_name] = case_id
 
-            column = get_bq_name(API_PARAMS, field, field_grp, is_webapp)
+        column = get_bq_name(API_PARAMS, field, fg, is_webapp)
 
-            row[column] = columns
+        row[column] = columns
 
-            if field_grp not in flat_case:
-                # if this is first row added for field_grp, create an empty list
-                # to hold row objects
-                flat_case[field_grp] = list()
+        if fg not in flat_case:
+            # if this is first row added for fg, create an empty list
+            # to hold row objects
+            flat_case[fg] = list()
 
-            if row:
-                excluded = get_excluded_fields_one_fg(API_PARAMS, field_grp, is_webapp)
+        if row:
+            excluded = get_excluded_fields_one_fg(API_PARAMS, fg, is_webapp)
 
-                for row_field in row.copy().keys():
-                    # if field is in the excluded list, or is Null, exclude from flat_case
-                    if row_field in excluded or not row[row_field]:
-                        row.pop(row_field)
+            for row_field in row.copy().keys():
+                # if field is in the excluded list, or is Null, exclude from flat_case
+                if row_field in excluded or not row[row_field]:
+                    row.pop(row_field)
 
-        flat_case[field_grp].append(row)
+    flat_case[fg].append(row)
 
 
 def flatten_case(case, is_webapp):
@@ -631,7 +633,7 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    print("\ncase: {}\n".format(case))
+    print("\nstart case: \n{}\n".format(case))
 
     base_fg = get_base_fg(API_PARAMS)
     get_field_group_id_key(API_PARAMS, base_fg, is_webapp)
@@ -644,10 +646,10 @@ def flatten_case(case, is_webapp):
                 case[new_name] = case[old_name]
                 case.pop(old_name)
 
-    print("\ncase: {}\n".format(case))
+    print("\nmid case: \n{}\n".format(case))
     exit()
 
-    base_id_name = get_field_group_id_name(API_PARAMS, base_fg, is_webapp)
+    base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
     flat_case = dict()
 
@@ -658,6 +660,11 @@ def flatten_case(case, is_webapp):
                        pid=case[base_id_name],
                        pid_name=base_id_name,
                        is_webapp=is_webapp)
+
+    print("\nend case:\n{}\n".format(case))
+    exit()
+
+
     return flat_case
 
 
@@ -670,7 +677,7 @@ def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: position index of record in field group's record list
     """
-    field_grp_id_name = get_field_group_id_name(API_PARAMS, field_grp, is_webapp)
+    field_grp_id_name = get_fg_id_name(API_PARAMS, field_grp, is_webapp)
     field_grp_id_key = get_bq_name(API_PARAMS, field_grp_id_name, field_grp, is_webapp)
     idx = 0
 
@@ -703,7 +710,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
                 flattened_field_grp_parents[field_grp] = get_parent_fg(tables, field_grp)
 
     for field_grp, parent in flattened_field_grp_parents.items():
-        field_grp_id_name = get_field_group_id_name(API_PARAMS, parent, is_webapp)
+        field_grp_id_name = get_fg_id_name(API_PARAMS, parent, is_webapp)
         bq_parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent, is_webapp)
 
         for record in flat_case[field_grp]:
@@ -729,8 +736,8 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         tables = get_one_to_many_tables(API_PARAMS, record_counts)
         parent_field_grp = get_parent_fg(tables, field_grp)
 
-        field_grp_id_name = get_field_group_id_name(API_PARAMS, parent_field_grp,
-                                                    is_webapp)
+        field_grp_id_name = get_fg_id_name(API_PARAMS, parent_field_grp,
+                                           is_webapp)
 
         parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, parent_field_grp,
                                     is_webapp)
