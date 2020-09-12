@@ -514,6 +514,8 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
         schema_field_lists[table] = list()
 
+        print(schema)
+
         # sort merged table columns by index
         for column in [col for col, idx in sorted(merged_orders[table].items(),
                                                   key=lambda i: i[1])]:
