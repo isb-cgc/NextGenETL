@@ -450,7 +450,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
 def remove_null_fields(columns, merged_orders):
     """
-    Remove fields composed of only null values for a program, thus making the tables less 
+    Remove fields composed of only null values for a program, thus making the tables less
     sparse.
     :param columns: dict containing table column keys
     :param merged_orders: merged dict of field groups: fields with index position data
@@ -514,18 +514,13 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
         schema_field_lists[table] = list()
 
-        print(schema)
-
         # sort merged table columns by index
         for column in [col for col, idx in sorted(merged_orders[table].items(),
                                                   key=lambda i: i[1])]:
-            print(column)
-            continue
             if column not in schema:
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
-    exit()
     return schema_field_lists
 
 

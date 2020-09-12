@@ -78,7 +78,7 @@ def get_column_order_one_fg(api_params, fg):
     fg_params = api_params['FIELD_CONFIG'][fg]
 
     if not fg_params or 'column_order' not in fg_params:
-        has_fatal_error("No order for field group {} in yaml.".format(fg, KeyError))
+        has_fatal_error("No order for field group {} in yaml.".format(fg), KeyError)
 
     # return full field key, in order, for given field_grp
     return [get_field_key(fg, field) for field in fg_params['column_order']]
@@ -143,7 +143,7 @@ def get_excluded_fields_one_fg(api_params, fg, is_webapp=False):
     :return: list of excluded fields associated with field group 'fg' in yaml config
     """
     if 'FIELD_CONFIG' not in api_params:
-        has_fatal_error("FIELD_CONFIG not set in YAML.".format(fg), KeyError)
+        has_fatal_error("FIELD_CONFIG not set in YAML.", KeyError)
     elif fg not in api_params['FIELD_CONFIG']:
         has_fatal_error("{} not set in YAML.".format(fg), KeyError)
     elif not api_params['FIELD_CONFIG'][fg]:
@@ -417,8 +417,7 @@ def get_parent_fg(tables, field_name):
 
     if parent_table:
         return parent_table
-    else:
-        return has_fatal_error("No parent fg found for {}".format(field_name))
+    return has_fatal_error("No parent fg found for {}".format(field_name))
 
 
 def get_field_group(field_name):
@@ -441,7 +440,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
     """
     if field_group not in api_params['FIELD_CONFIG']:
         return None
-    elif 'id_key' not in api_params['FIELD_CONFIG'][field_group]:
+    if 'id_key' not in api_params['FIELD_CONFIG'][field_group]:
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = api_params['FIELD_CONFIG'][field_group]['id_key']
@@ -589,6 +588,14 @@ def build_working_gs_uri(bq_params, filename):
 
 
 def construct_table_name(bq_params, program='', suffix='', is_webapp=False):
+    """
+    todo
+    :param bq_params:
+    :param program:
+    :param suffix:
+    :param is_webapp:
+    :return:
+    """
     app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
 
     name_list = [app_prefix,
@@ -602,12 +609,29 @@ def construct_table_name(bq_params, program='', suffix='', is_webapp=False):
 
 
 def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
+    """
+    todo
+    :param bq_params:
+    :param program:
+    :param suffix:
+    :param is_webapp:
+    :return:
+    """
     file_name = construct_table_name(bq_params, program, suffix, is_webapp)
 
     return file_name + '.jsonl'
 
 
 def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp=False):
+    """
+    todo
+    :param api_params:
+    :param bq_params:
+    :param program:
+    :param table:
+    :param is_webapp:
+    :return:
+    """
     suffixes = get_table_suffixes(api_params)
     suffix = suffixes[table]
     program = program.replace('.', '_')
@@ -616,6 +640,15 @@ def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp
 
 
 def build_jsonl_name(api_params, bq_params, program, table, is_webapp=False):
+    """
+    todo
+    :param api_params:
+    :param bq_params:
+    :param program:
+    :param table:
+    :param is_webapp:
+    :return:
+    """
     app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
     gdc_rel = bq_params['REL_PREFIX'] + bq_params['RELEASE']
     program = program.replace('.', '_')
@@ -1235,6 +1268,14 @@ def update_schema(table_id, new_descriptions):
 ##################################################################################
 
 def upload_file_to_bucket(project, bucket, blob_dir, fp):
+    """
+    todo
+    :param project:
+    :param bucket:
+    :param blob_dir:
+    :param fp:
+    :return:
+    """
     try:
         client = storage.Client(project=project)
         bucket = client.get_bucket(bucket)
@@ -1468,8 +1509,8 @@ def load_config(args, yaml_dict_keys):
 
 
 def has_fatal_error(err, exception=None):
-    """Error handling function. Prints error message contained in str or list<str>;
-    optionally throw Exception as well.
+    """Error handling function--outputs error str or list<str>;
+    optionally throws Exception as well.
 
     :param err: error message str or list<str>
     :param exception: Exception type for error (defaults to None)
@@ -1492,6 +1533,13 @@ def has_fatal_error(err, exception=None):
 
 
 def console_out(output_str, print_vars=None, end='\n'):
+    """
+    todo
+    :param output_str:
+    :param print_vars:
+    :param end:
+    :return:
+    """
     if print_vars:
         print(str(output_str).format(*print_vars), end=end)
     else:
