@@ -657,13 +657,9 @@ def flatten_case(case, is_webapp):
 
     flat_case = dict()
 
-    flatten_case_entry(record=case,
-                       fg=base_fg,
-                       flat_case=flat_case,
-                       case_id=case[base_id_name],
-                       pid=case[base_id_name],
-                       pid_name=base_id_name,
-                       is_webapp=is_webapp)
+    flatten_case_entry(record=case, fg=base_fg, flat_case=flat_case, 
+                       case_id=case[base_id_name], pid=case[base_id_name], 
+                       pid_name=base_id_name, is_webapp=is_webapp)
 
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
@@ -673,12 +669,13 @@ def flatten_case(case, is_webapp):
         if base_id_key in renamed_fields:
             base_id_name = get_field_name(base_id_key)
 
-            long_fg_keys = set(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
+            fg_keys = list(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
 
-            for fg_key in long_fg_keys:
-                for i in range(len(flat_case[fg_key])):
-                    if base_id_name in flat_case[fg_key][i]:
-                        flat_case[fg_key][i].pop(base_id_name)
+            for i, fg_key in enumerate(fg_keys):
+                for j, fg_entry in enumerate(flat_case[fg_key]):
+                    if base_id_name in fg_entry:
+                        flat_case[fg_key][j].pop(base_id_name)
+
     return flat_case
 
 
