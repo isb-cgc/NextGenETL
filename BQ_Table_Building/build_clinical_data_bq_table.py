@@ -83,8 +83,8 @@ def retrieve_and_save_case_records(scratch_fp):
     io_mode = BQ_PARAMS['IO_MODE']
 
     with open(scratch_fp, io_mode) as jsonl_file:
-        output_to_console("Outputting json objects to {0} in {1} mode",
-                          (scratch_fp, io_mode))
+        console_out("Outputting json objects to {0} in {1} mode",
+                    (scratch_fp, io_mode))
         have_printed_totals = False
 
         curr_index = API_PARAMS['START_INDEX']
@@ -104,9 +104,9 @@ def retrieve_and_save_case_records(scratch_fp):
 
             if not have_printed_totals:
                 have_printed_totals = True
-                output_to_console("Total cases for r{0}: {1}",
-                                  (BQ_PARAMS['RELEASE'], cases_count))
-                output_to_console("Batch size: {0}", (batch_record_count))
+                console_out("Total cases for r{0}: {1}",
+                            (BQ_PARAMS['RELEASE'], cases_count))
+                console_out("Batch size: {0}", (batch_record_count))
 
             for case in cases_json:
                 case_copy = case.copy()
@@ -127,19 +127,19 @@ def retrieve_and_save_case_records(scratch_fp):
             elif API_PARAMS['MAX_PAGES'] and curr_page == API_PARAMS['MAX_PAGES']:
                 is_last_page = True
 
-            output_to_console("Inserted page {0} of {1} into jsonl file",
-                              (curr_page, last_page))
+            console_out("Inserted page {0} of {1} into jsonl file",
+                        (curr_page, last_page))
             curr_index += batch_record_count
 
     # calculate processing time and file size
     total_time = time.time() - start_time
     file_size = os.stat(scratch_fp).st_size / 1048576.0
 
-    output_to_console("\nClinical data retrieval complete!"
+    console_out("\nClinical data retrieval complete!"
                       "\n\t{0} of {1} cases retrieved"
                       "\n\t{2:.2f} mb jsonl file size"
                       "\n\t{3:.1f} sec to retrieve from GDC API output to jsonl file\n",
-                      (curr_index, cases_count, file_size, total_time))
+                (curr_index, cases_count, file_size, total_time))
 
 
 ##################################################################################
@@ -180,7 +180,7 @@ def create_field_records_dict(field_mappings, field_data_types):
             # this could happen in the case where a field was added to the
             # cases endpoint with only null values,
             # and no entry for the field exists in mapping
-            output_to_console(
+            console_out(
                 "[INFO] Not adding field {0} because no type found", (field))
             continue
 
@@ -243,34 +243,34 @@ def main(args):
 
     if 'retrieve_cases_and_write_to_jsonl' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
-        output_to_console('Starting GDC API calls!')
+        console_out('Starting GDC API calls!')
         retrieve_and_save_case_records(scratch_fp)
 
     if 'upload_jsonl_to_cloud_storage' in steps:
         # Insert the generated jsonl file into google storage bucket, for later
         # ingestion by BQ
-        output_to_console('Uploading jsonl file to cloud storage!')
+        console_out('Uploading jsonl file to cloud storage!')
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     schema = None
 
     if 'create_bq_schema_obj' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
-        output_to_console('Creating BQ schema object!')
+        console_out('Creating BQ schema object!')
         schema = create_bq_schema(scratch_fp)
 
     if 'build_bq_table' in steps:
         # Creates and populates BQ table
         if not schema:
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
-        output_to_console('Building BQ Table!')
+        console_out('Building BQ Table!')
 
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
         create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
 
     end = time.time() - start
-    output_to_console("Script executed in {0:.0f} seconds\n", (end))
+    console_out("Script executed in {0:.0f} seconds\n", (end))
 
 
 if __name__ == '__main__':

@@ -109,7 +109,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
-            output_to_console("\n[INFO] Caution, not confirmed "
+            console_out("\n[INFO] Caution, not confirmed "
                               "to work with nested depth > 3\n")
 
         excluded_fields = get_excluded_fields_all_fgs(API_PARAMS, field_groups, is_webapp)
@@ -194,7 +194,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
-            output_to_console("{0} not in metadata", (field_grp))
+            console_out("{0} not in metadata", (field_grp))
             fgs.pop(field_grp)
             cases.pop(field_grp)
 
@@ -294,7 +294,7 @@ def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
     :param id_tuple: the field group id's index, key, and program name
     """
     # add parent id to one-to-many table
-    output_to_console(id_tuple)
+    console_out(id_tuple)
 
     field_grp_id_idx, field_grp_id_key, program = id_tuple
     parent_field_grp = get_field_group(field_grp)
@@ -344,6 +344,11 @@ def add_reference_columns(columns, record_counts, schema=None, program=None,
     the insertion of irrelevant reference columns
     :return: table_columns, schema_dict, column_order_dict
     """
+
+    # todo
+    console_out(schema)
+    exit()
+
     column_orders = dict()
 
     if not is_webapp and (not program or not schema):
@@ -518,7 +523,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
         for column in [col for col, idx in sorted(merged_orders[table].items(),
                                                   key=lambda i: i[1])]:
             if column not in schema:
-                output_to_console("{0} not found in src table, excluding schema field.", (column))
+                console_out("{0} not found in src table, excluding schema field.", (column))
                 continue
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
 
@@ -869,7 +874,7 @@ def update_table_metadata():
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         if not exists_bq_table(table_id):
-            output_to_console('No table found for file (skipping): {0}', (json_file))
+            console_out('No table found for file (skipping): {0}', (json_file))
             continue
 
         metadata_fp = get_schema_metadata_fp(BQ_PARAMS,
@@ -915,7 +920,7 @@ def copy_tables_into_public_project():
                                                                               json_file)
 
         if not exists_bq_table(src_table_id):
-            output_to_console('No table found for file (skipping): {0}', (json_file))
+            console_out('No table found for file (skipping): {0}', (json_file))
             continue
 
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
@@ -984,26 +989,27 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    output_to_console("Script executed in {0} min, {1:.0f} sec\n", (minutes, seconds))
+    console_out("Script executed in {0} min, {1:.0f} sec\n", (minutes, seconds))
 
-    output_to_console("Steps completed: ")
+    console_out("Steps completed: ")
+
     if 'create_biospecimen_stub_tables' in steps:
-        output_to_console('\t - created biospecimen stub tables for webapp use')
+        console_out('\t - created biospecimen stub tables for webapp use')
     if 'create_webapp_tables' in steps:
-        output_to_console('\t - created tables for webapp use')
+        console_out('\t - created tables for webapp use')
     if 'create_and_load_tables' in steps:
-        output_to_console('\t - created tables and inserted data')
+        console_out('\t - created tables and inserted data')
     if 'update_table_metadata' in steps:
-        output_to_console('\t - added/updated table metadata')
+        console_out('\t - added/updated table metadata')
     if 'update_schema' in steps:
-        output_to_console('\t - updated table field descriptions')
+        console_out('\t - updated table field descriptions')
     if 'copy_tables_into_production' in steps:
-        output_to_console('\t - copied tables into production (public-facing bq tables)')
+        console_out('\t - copied tables into production (public-facing bq tables)')
     if 'validate_data' in steps:
-        output_to_console('\t - validated data (tests not considered exhaustive)')
+        console_out('\t - validated data (tests not considered exhaustive)')
     if 'generate_documentation' in steps:
-        output_to_console('\t - generated documentation')
-    output_to_console('\n\n')
+        console_out('\t - generated documentation')
+    console_out('\n\n')
 
 
 def create_tables(program, cases, is_webapp=False):
@@ -1071,18 +1077,18 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        output_to_console("\nCurrently processing {0}...\n", (program))
+        console_out("\nCurrently processing {0}...\n", (program))
 
         if 'create_biospecimen_stub_tables' in steps:
-            output_to_console("Creating biospecimen stub tables!")
+            console_out("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
             cases = get_cases_by_program(BQ_PARAMS, program)
 
             if len(cases) == 0:
-                output_to_console("No case records found for program {0}, skipping.",
-                                  (program))
+                console_out("No case records found for program {0}, skipping.",
+                            (program))
                 continue
 
             if 'create_webapp_tables' in steps:
@@ -1091,8 +1097,8 @@ def main(args):
             if 'create_and_load_tables' in steps:
                 create_tables(program, cases)
 
-            output_to_console("{0} processed in {1:0.0f}s!\n",
-                              (program, time.time() - prog_start))
+            console_out("{0} processed in {1:0.0f}s!\n",
+                        (program, time.time() - prog_start))
 
     if 'update_table_metadata' in steps:
         update_table_metadata()

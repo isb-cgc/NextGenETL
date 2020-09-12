@@ -688,7 +688,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
             file_obj.write('\n')
             cnt += 1
         if mode == 'w':
-            output_to_console("Successfully output {0} records to {1}", (cnt, jsonl_fp))
+            console_out("Successfully output {0} records to {1}", (cnt, jsonl_fp))
 
 
 ##################################################################################
@@ -848,8 +848,8 @@ def copy_bq_table(bq_params, src_table, dest_table):
     bq_job = client.copy_table(src_table, dest_table)
 
     if await_job(bq_params, client, bq_job):
-        output_to_console("Successfully copied table:")
-        output_to_console("src:  {0}\n dest: {1}\n", (src_table, dest_table))
+        console_out("Successfully copied table:")
+        console_out("src:  {0}\n dest: {1}\n", (src_table, dest_table))
 
 
 def create_and_load_table(bq_params, jsonl_file, schema, table_id):
@@ -871,7 +871,7 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        output_to_console(' - Inserting into {0}... ', (table_id), end="")
+        console_out(' - Inserting into {0}... ', (table_id), end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -885,7 +885,7 @@ def delete_bq_table(table_id):
     client = bigquery.Client()
     client.delete_table(table_id, not_found_ok=True)
 
-    output_to_console("deleted table: {0}", (table_id))
+    console_out("deleted table: {0}", (table_id))
 
 
 def exists_bq_table(table_id):
@@ -916,7 +916,7 @@ def load_table_from_query(bq_params, table_id, query):
 
     try:
         query_job = client.query(query, job_config=job_config)
-        output_to_console(' - Inserting into {0}... ', (table_id), end="")
+        console_out(' - Inserting into {0}... ', (table_id), end="")
         await_insert_job(bq_params, client, table_id, query_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -963,7 +963,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            output_to_console('\tcurrent job state: {0}...\t', (bq_job.state), end='')
+            console_out('\tcurrent job state: {0}...\t', (bq_job.state), end='')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -979,7 +979,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    output_to_console(" done. {0} rows inserted.", (table.num_rows))
+    console_out(" done. {0} rows inserted.", (table.num_rows))
 
 
 def await_job(bq_params, client, bq_job):
@@ -1173,7 +1173,7 @@ def update_schema(table_id, new_descriptions):
             name = field['name']
             field['description'] = new_descriptions[name]
         elif field['description'] == '':
-            output_to_console("Still no description for field: {0}", (field['name']))
+            console_out("Still no description for field: {0}", (field['name']))
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)
@@ -1439,7 +1439,7 @@ def has_fatal_error(err, exception=None):
     else:
         err_str = err_str_prefix + err
 
-    output_to_console(err_str)
+    console_out(err_str)
 
     if exception:
         raise exception
@@ -1447,7 +1447,7 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def output_to_console(output_str, *print_vars, end='\n'):
+def console_out(output_str, *print_vars, end='\n'):
     if print_vars:
         print(str(output_str).format(*print_vars), end=end)
     else:
