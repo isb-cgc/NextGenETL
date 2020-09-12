@@ -517,11 +517,13 @@ def create_schema_lists(schema, record_counts, merged_orders):
         # sort merged table columns by index
         for column in [col for col, idx in sorted(merged_orders[table].items(),
                                                   key=lambda i: i[1])]:
+            print(column)
+            continue
             if column not in schema:
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
-
+    exit()
     return schema_field_lists
 
 
