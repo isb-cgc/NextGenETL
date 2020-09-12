@@ -252,7 +252,6 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        # source_table = 'main'
         source_table = get_full_table_name(program, get_base_fg(API_PARAMS))
     else:
         bq_col_name = get_bq_name(API_PARAMS, column)
@@ -1017,6 +1016,8 @@ def create_tables(program, cases, is_webapp=False):
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
     webapp_schema = copy.deepcopy(schema)
 
+    print(schema)
+
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
@@ -1031,8 +1032,7 @@ def create_tables(program, cases, is_webapp=False):
 
         # reassign merged_column_orders to column_orders
         merged_orders = merge_column_orders(webapp_schema, columns, record_counts,
-                                            column_orders,
-                                            is_webapp)
+                                            column_orders, is_webapp)
 
     else:
         column_orders = add_ref_columns(columns, record_counts, schema, program)
