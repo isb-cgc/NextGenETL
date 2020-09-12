@@ -828,6 +828,10 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
     :param schema_list: schema field entries for field_group
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
+
+    print("schema_list {}".format(schema_list))
+
+
     if fg not in api_params['FIELD_CONFIG']:
         return
 
