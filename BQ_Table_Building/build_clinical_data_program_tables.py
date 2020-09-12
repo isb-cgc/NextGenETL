@@ -664,14 +664,15 @@ def flatten_case(case, is_webapp):
         if base_id_key in renamed_fields:
             base_id_name = get_field_name(base_id_key)
 
-            records = set(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
+            long_fg_keys = set(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
 
-            for record in records:
-                if base_id_name in flat_case[record]:
-                    flat_case[record].pop(base_id_name)
-                    print('yes')
-                else:
-                    print(flat_case[record])
+            for fg_key in long_fg_keys:
+                for i in range(len(flat_case[fg_key])):
+                    if base_id_name in flat_case[fg_key][i]:
+                        flat_case[fg_key][i].pop(base_id_name)
+                        print('yes')
+                    else:
+                        print(flat_case[fg_key][i])
     return flat_case
 
 
