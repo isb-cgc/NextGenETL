@@ -656,8 +656,25 @@ def flatten_case(case, is_webapp):
                        pid_name=base_id_name,
                        is_webapp=is_webapp)
 
-    if 'cases.diagnoses.annotations' in flat_case:
-        print(flat_case)
+    if is_webapp:
+        renamed_fields = API_PARAMS['RENAMED_FIELDS']
+
+        base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
+
+        if base_id_key in renamed_fields:
+            base_id_name = get_field_name(base_id_key)
+
+            double_nested_fgs = {k for k in flat_case.keys() if len(k.split('.')) > 2}
+
+            records = {record for k in double_nested_fgs
+                              for record in flat_case[k]}
+
+            print(records)
+
+            if base_id_name in records:
+                flat_case.pop(base_id_name)
+
+            print(flat_case)
 
     return flat_case
 
