@@ -829,8 +829,8 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
                 schema[required_column]['mode'] = 'REQUIRED'
 
         else:
-
             id_key_dict = get_fgs_and_id_keys(api_params)
+
             print(id_key_dict)
             exit()
 
@@ -844,15 +844,15 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
 
 
 def get_fgs_and_id_keys(api_params):
+    id_key_dict = dict()
+
     fg_config_entries = api_params['FIELD_CONFIG']
 
-    id_key_dict = fg_config_entries  # todo change
+    for fg in fg_config_entries:
+        id_key_dict[fg] = fg_config_entries[fg]['id_key']
 
     return id_key_dict
 
-
-    for fg in fg_configs:
-        api_params['FIELD_CONFIG'][fg]['id_key']
 
 def copy_bq_table(bq_params, src_table, dest_table):
     """Copy an existing BQ table into a new location.
