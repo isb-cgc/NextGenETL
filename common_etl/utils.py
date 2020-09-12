@@ -1447,11 +1447,11 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def output_to_console(output_str, print_vars=None, end='\n'):
+def output_to_console(output_str, *print_vars, end='\n'):
     # output_str = str(output_str)
 
     if print_vars:
-        print(str(output_str).format(*print_vars), end=end)
+        print(str(output_str).format(print_vars), end=end)
     else:
         print(output_str, end=end)
 
