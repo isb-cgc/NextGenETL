@@ -492,6 +492,9 @@ def create_schema_lists(schema, record_counts, merged_orders):
     :return: schema_field_lists, one schema per field group turned into table
     """
     # add bq abbreviations to schema field dicts
+
+    print(schema)
+
     for entry in schema:
         field = get_field_name(entry)
 
