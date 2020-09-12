@@ -930,7 +930,7 @@ def delete_bq_table(table_id):
     client = bigquery.Client()
     client.delete_table(table_id, not_found_ok=True)
 
-    console_out("deleted table: {0}", (table_id))
+    console_out("deleted table: {0}", (table_id,))
 
 
 def exists_bq_table(table_id):
@@ -961,7 +961,7 @@ def load_table_from_query(bq_params, table_id, query):
 
     try:
         query_job = client.query(query, job_config=job_config)
-        console_out(' - Inserting into {0}... ', (table_id), end="")
+        console_out(' - Inserting into {0}... ', (table_id,), end="")
         await_insert_job(bq_params, client, table_id, query_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -1008,7 +1008,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            console_out('\tcurrent job state: {0}...\t', (bq_job.state), end='')
+            console_out('\tcurrent job state: {0}...\t', (bq_job.state,), end='')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -1024,7 +1024,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    console_out(" done. {0} rows inserted.", (table.num_rows))
+    console_out(" done. {0} rows inserted.", (table.num_rows,))
 
 
 def await_job(bq_params, client, bq_job):
@@ -1437,12 +1437,11 @@ def convert_dict_to_string(obj):
 def load_config(args, yaml_dict_keys):
     """Opens yaml file and retrieves configuration parameters.
 
-    :param yaml_file_arg: yaml config file name
+    :param args: args param from python bash cli
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-
     if len(args) != 2:
         has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
 
@@ -1492,7 +1491,7 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def console_out(output_str, print_vars, end='\n'):
+def console_out(output_str, print_vars=None, end='\n'):
     if print_vars:
         print(str(output_str).format(*print_vars), end=end)
     else:

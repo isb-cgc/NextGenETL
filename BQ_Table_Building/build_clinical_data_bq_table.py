@@ -106,7 +106,7 @@ def retrieve_and_save_case_records(scratch_fp):
                 have_printed_totals = True
                 console_out("Total cases for r{0}: {1}",
                             (BQ_PARAMS['RELEASE'], cases_count))
-                console_out("Batch size: {0}", (batch_record_count))
+                console_out("Batch size: {0}", (batch_record_count,))
 
             for case in cases_json:
                 case_copy = case.copy()
@@ -181,7 +181,7 @@ def create_field_records_dict(field_mappings, field_data_types):
             # cases endpoint with only null values,
             # and no entry for the field exists in mapping
             console_out(
-                "[INFO] Not adding field {0} because no type found", (field))
+                "[INFO] Not adding field {0} because no type found", (field,))
             continue
 
         # this is the format for bq schema json object entries
@@ -270,7 +270,7 @@ def main(args):
         create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
 
     end = time.time() - start
-    console_out("Script executed in {0:.0f} seconds\n", (end))
+    console_out("Script executed in {0:.0f} seconds\n", (end,))
 
 
 if __name__ == '__main__':

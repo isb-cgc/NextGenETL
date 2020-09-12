@@ -237,7 +237,7 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, get_all_programs_query())
         studies = create_studies_dict(json_res)
-        studies_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL']) #todo
+        studies_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])  # todo
 
         write_list_to_jsonl(studies_fp, studies)
         upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
@@ -257,7 +257,7 @@ def main(args):
         update_table_metadata(table_id, table_metadata)
 
         studies_end = time.time() - studies_start
-        console_out("Completed in {0:0.0f}s!\n", (studies_end))
+        console_out("Completed in {0:0.0f}s!\n", (studies_end,))
 
     if 'build_files_table' in steps:
         '''
@@ -290,7 +290,7 @@ def main(args):
         '''
 
     end = time.time() - start
-    console_out("Finished program execution in {0:0.0f}s!\n", (end))
+    console_out("Finished program execution in {0:0.0f}s!\n", (end,))
 
 
 if __name__ == '__main__':

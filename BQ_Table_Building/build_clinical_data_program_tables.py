@@ -110,7 +110,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             console_out("\n[INFO] Caution, not confirmed "
-                              "to work with nested depth > 3\n")
+                        "to work with nested depth > 3\n")
 
         excluded_fields = get_excluded_fields_all_fgs(API_PARAMS, field_groups, is_webapp)
 
@@ -194,7 +194,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
-            console_out("{0} not in metadata", (field_grp))
+            console_out("{0} not in metadata", (field_grp,))
             fgs.pop(field_grp)
             cases.pop(field_grp)
 
@@ -517,7 +517,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
         for column in [col for col, idx in sorted(merged_orders[table].items(),
                                                   key=lambda i: i[1])]:
             if column not in schema:
-                console_out("{0} not found in src table, excluding schema field.", (column))
+                console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
 
@@ -578,53 +578,54 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
         # flatten each record in field group list
         for entry in record:
             flatten_case_entry(entry, fg, flat_case, case_id, pid, pid_name, is_webapp)
+            flatten_case_entry(entry, fg, flat_case, case_id, pid, pid_name, is_webapp)
         return
+    else:
+        row = dict()
 
-    row = dict()
+        fg_id_name = get_fg_id_name(API_PARAMS, fg, is_webapp)
 
-    fg_id_name = get_fg_id_name(API_PARAMS, fg, is_webapp)
+        for field, columns in record.items():
+            # if list, possibly more than one entry, recurse over list
+            if isinstance(columns, list):
+                flatten_case_entry(record=columns,
+                                   fg=get_field_key(fg, field),
+                                   flat_case=flat_case,
+                                   case_id=case_id,
+                                   pid=record[fg_id_name],
+                                   pid_name=fg_id_name,
+                                   is_webapp=is_webapp)
+                continue
 
-    for field, columns in record.items():
-        # if list, possibly more than one entry, recurse over list
-        if isinstance(columns, list):
-            flatten_case_entry(record=columns,
-                               fg=get_field_key(fg, field),
-                               flat_case=flat_case,
-                               case_id=case_id,
-                               pid=record[fg_id_name],
-                               pid_name=fg_id_name,
-                               is_webapp=is_webapp)
-            continue
+            elif fg_id_name != pid_name:
+                parent_fg = get_field_group(fg)
 
-        if fg_id_name != pid_name:
-            parent_fg = get_field_group(fg)
+                pid_key = get_bq_name(API_PARAMS, pid_name, is_webapp, parent_fg)
 
-            pid_key = get_bq_name(API_PARAMS, pid_name, is_webapp, parent_fg)
+                # add parent_id key and value to row
+                row[pid_key] = pid
 
-            # add parent_id key and value to row
-            row[pid_key] = pid
+            elif fg_id_name != base_pid_name:
+                row[base_pid_name] = case_id
 
-        if fg_id_name != base_pid_name:
-            row[base_pid_name] = case_id
+            column = get_bq_name(API_PARAMS, field, is_webapp, fg)
 
-        column = get_bq_name(API_PARAMS, field, is_webapp, fg)
+            row[column] = columns
 
-        row[column] = columns
+            if fg not in flat_case:
+                # if this is first row added for fg, create an empty list
+                # to hold row objects
+                flat_case[fg] = list()
 
-        if fg not in flat_case:
-            # if this is first row added for fg, create an empty list
-            # to hold row objects
-            flat_case[fg] = list()
+            if row:
+                excluded = get_excluded_fields_one_fg(API_PARAMS, fg, is_webapp)
 
-        if row:
-            excluded = get_excluded_fields_one_fg(API_PARAMS, fg, is_webapp)
+                for row_field in row.copy().keys():
+                    # if field is in the excluded list, or is Null, exclude from flat_case
+                    if row_field in excluded or not row[row_field]:
+                        row.pop(row_field)
 
-            for row_field in row.copy().keys():
-                # if field is in the excluded list, or is Null, exclude from flat_case
-                if row_field in excluded or not row[row_field]:
-                    row.pop(row_field)
-
-    flat_case[fg].append(row)
+        flat_case[fg].append(row)
 
 
 def flatten_case(case, is_webapp):
@@ -650,8 +651,8 @@ def flatten_case(case, is_webapp):
 
     flat_case = dict()
 
-    flatten_case_entry(record=case, fg=base_fg, flat_case=flat_case, 
-                       case_id=case[base_id_name], pid=case[base_id_name], 
+    flatten_case_entry(record=case, fg=base_fg, flat_case=flat_case,
+                       case_id=case[base_id_name], pid=case[base_id_name],
                        pid_name=base_id_name, is_webapp=is_webapp)
 
     if is_webapp:
@@ -865,7 +866,7 @@ def update_table_metadata():
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         if not exists_bq_table(table_id):
-            console_out('No table found for file (skipping): {0}', (json_file))
+            console_out('No table found for file (skipping): {0}', (json_file,))
             continue
 
         metadata_fp = get_schema_metadata_fp(BQ_PARAMS,
@@ -911,7 +912,7 @@ def copy_tables_into_public_project():
                                                                               json_file)
 
         if not exists_bq_table(src_table_id):
-            console_out('No table found for file (skipping): {0}', (json_file))
+            console_out('No table found for file (skipping): {0}', (json_file,))
             continue
 
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
@@ -1022,14 +1023,16 @@ def create_tables(program, cases, is_webapp=False):
     # removes the excluded fields/field groups
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
-        column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
+        column_orders = add_ref_columns(columns, record_counts, schema, program,
+                                        is_webapp)
 
         modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
     else:
         column_orders = add_ref_columns(columns, record_counts, schema, program)
 
     # reassign merged_column_orders to column_orders
-    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
+    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
+                                        is_webapp)
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
