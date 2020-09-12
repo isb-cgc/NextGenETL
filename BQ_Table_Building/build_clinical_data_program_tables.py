@@ -666,17 +666,12 @@ def flatten_case(case, is_webapp):
 
             records = set(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
 
-            if records:
-                if base_id_name in records:
-                    flat_case[base_id_key].pop(base_id_name)
-
+            for record in records:
+                if base_id_name in flat_case[record]:
+                    flat_case[record].pop(base_id_name)
                     print('yes')
                 else:
-                    print(flat_case.keys())
-
-
-            # print(flat_case)
-
+                    print(flat_case[record])
     return flat_case
 
 
