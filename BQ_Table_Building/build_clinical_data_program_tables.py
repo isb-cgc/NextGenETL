@@ -343,13 +343,6 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
     the insertion of irrelevant reference columns
     :return: table_columns, schema_dict, column_order_dict
     """
-
-    print("""\n
-        schema: {}\n\n
-        program: {}\n\n
-        is_webapp: {}\n\n 
-        """.format(schema, program, is_webapp))
-
     column_orders = dict()
 
     if not is_webapp and (not program or not schema):
@@ -1021,6 +1014,8 @@ def create_tables(program, cases, is_webapp=False):
     """
     # generate table schemas
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
+
+    print(schema)
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
