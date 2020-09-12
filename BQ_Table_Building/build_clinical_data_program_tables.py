@@ -647,7 +647,6 @@ def flatten_case(case, is_webapp):
                 case.pop(old_name)
 
     print("\nmid case: \n{}\n".format(case))
-    exit()
 
     base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
