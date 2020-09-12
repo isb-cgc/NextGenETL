@@ -109,7 +109,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
-            output_to_console("\n[INFO] **** Caution, not confirmed to work with nested depth > 3\n")
+            output_to_console("\n[INFO] Caution, not confirmed "
+                              "to work with nested depth > 3\n")
 
         excluded_fields = get_excluded_fields_all_fgs(API_PARAMS, field_groups, is_webapp)
 
@@ -983,8 +984,8 @@ def print_final_report(start, steps):
     minutes = math.floor(seconds / 60)
     seconds -= minutes * 60
 
-    output_to_console("Programs script executed in {0} min, {1:.0f} sec\n",
-                      (minutes, seconds))
+    output_to_console("Script executed in {0} min, {1:.0f} sec\n", (minutes, seconds))
+
     output_to_console("Steps completed: ")
     if 'create_biospecimen_stub_tables' in steps:
         output_to_console('\t - created biospecimen stub tables for webapp use')
@@ -1070,7 +1071,7 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        output_to_console("\nCurrently processing {0}...\n", program)
+        output_to_console("\nCurrently processing {0}...\n", (program))
 
         if 'create_biospecimen_stub_tables' in steps:
             output_to_console("Creating biospecimen stub tables!")
