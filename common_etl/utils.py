@@ -1448,6 +1448,7 @@ def has_fatal_error(err, exception=None):
 
 
 def output_to_console(output_str, print_vars=None, end='\n'):
+    output_str = str(output_str)
     print(output_str.format(*print_vars), end=end)
 
 
