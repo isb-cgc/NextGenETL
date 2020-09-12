@@ -1075,7 +1075,6 @@ def main(args):
     programs = ['BEATAML1.0']
 
     for program in programs:
-        program = program.replace('.', '_')
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...\n", (program,))
 
@@ -1089,6 +1088,9 @@ def main(args):
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
                 continue
+
+            # rename so that '1.0' doesn't break bq table name
+            program = program.replace('.', '_')
 
             if 'create_webapp_tables' in steps:
                 webapp_cases = copy.deepcopy(cases)
