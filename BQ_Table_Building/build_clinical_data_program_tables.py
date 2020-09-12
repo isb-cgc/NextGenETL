@@ -630,6 +630,9 @@ def flatten_case(case, is_webapp):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened case dict
     """
+
+    print("\ncase: {}\n".format(case))
+
     base_fg = get_base_fg(API_PARAMS)
     get_field_group_id_key(API_PARAMS, base_fg, is_webapp)
 
@@ -641,13 +644,20 @@ def flatten_case(case, is_webapp):
                 case[new_name] = case[old_name]
                 case.pop(old_name)
 
+    print("\ncase: {}\n".format(case))
+    exit()
+
     base_id_name = get_field_group_id_name(API_PARAMS, base_fg, is_webapp)
 
     flat_case = dict()
 
-    flatten_case_entry(record=case, field_grp=base_fg, flat_case=flat_case,
-                       case_id=case[base_id_name], pid=case[base_id_name],
-                       pid_name=base_id_name, is_webapp=is_webapp)
+    flatten_case_entry(record=case,
+                       field_grp=base_fg,
+                       flat_case=flat_case,
+                       case_id=case[base_id_name],
+                       pid=case[base_id_name],
+                       pid_name=base_id_name,
+                       is_webapp=is_webapp)
     return flat_case
 
 
