@@ -670,7 +670,7 @@ def flatten_case(case, is_webapp):
                 for i in range(len(flat_case[fg_key])):
                     if base_id_name in flat_case[fg_key][i]:
                         flat_case[fg_key][i].pop(base_id_name)
-
+    else:
         print(flat_case)
 
     return flat_case
