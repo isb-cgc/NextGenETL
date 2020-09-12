@@ -832,7 +832,7 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
             field_dict['name'] = get_bq_name(api_params,
                                              schema_key,
                                              is_webapp=is_webapp)
-            print('\nhere\n\n{}'.format(field_dict))
+            print('\ngenerated name: {}'.format(field_dict['name']))
 
             schema[schema_key] = field_dict
 
