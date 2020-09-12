@@ -815,6 +815,8 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
     if fg not in api_params['FIELD_CONFIG'].keys():
         return schema
 
+    field_set = set()
+
     for field in fields:
         field_dict = field.to_api_repr()
         schema_key = build_field_key(fg, field_dict['name'])
@@ -832,9 +834,14 @@ def api_dump_to_schema(api_params, schema, fg, fields=None, is_webapp=False):
             field_dict['name'] = get_bq_name(api_params,
                                              schema_key,
                                              is_webapp=is_webapp)
-            print('\ngenerated name: {}'.format(field_dict['name']))
+
+            field_set.add(field_dict['name'])
 
             schema[schema_key] = field_dict
+
+
+    for name in field_set:
+        print("{}\n".format(name))
 
     return schema
 
