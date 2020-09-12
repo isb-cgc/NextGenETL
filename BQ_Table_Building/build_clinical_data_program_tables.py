@@ -293,6 +293,8 @@ def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
     :param id_tuple: the field group id's index, key, and program name
     """
     # add parent id to one-to-many table
+    print(id_tuple)
+
     field_grp_id_idx, field_grp_id_key, program = id_tuple
     parent_field_grp = get_field_group(field_grp)
 
@@ -492,9 +494,6 @@ def create_schema_lists(schema, record_counts, merged_orders):
     :return: schema_field_lists, one schema per field group turned into table
     """
     # add bq abbreviations to schema field dicts
-
-    print(schema)
-
     for entry in schema:
         field = get_field_name(entry)
 
