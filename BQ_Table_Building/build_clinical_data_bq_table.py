@@ -26,32 +26,17 @@ BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-####
-#
-# Getter functions, employed for readability/consistency
-#
-##
-'''
-def get_expand_groups():
-    """
-    Get expand field groups from yaml config
-    :return: list of expand field groups.
-    """
-    if 'EXPAND_FIELD_GROUPS' not in API_PARAMS:
-        has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
 
-    return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
-'''
+##################################################################################
+#
+#   API calls and data normalization (for BQ table insert)
+#
+##################################################################################
 
 
-####
-#
-# Functions which retrieve and save GDC data in preparation for inserting into BQ tables
-#
-##
 def request_data_from_gdc_api(curr_index):
-    """
-    Make a POST API request and return response (if valid).
+    """ Make a POST API request and return response (if valid).
+
     :param curr_index: current API poll start position
     :return: response object
     """
@@ -153,20 +138,22 @@ def retrieve_and_save_case_records(scratch_fp):
           "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
           format(curr_index, cases_count, file_size, total_time))
 
-####
+
+##################################################################################
 #
-# Functions which create table schemas and insert cases into bq
+#   BQ table creation and data insertion
 #
-##
+##################################################################################
+
+
 def create_field_records_dict(field_mappings, field_data_types):
-    """
-    Generate flat dict containing schema object with fields 'name', 'type', 'description'
+    """ Generate schema dict composed of schema field dicts.
+
     :param field_mappings: dict of {fields: schema entry dicts}
     :param field_data_types: dict of {fields: data types}
     :return: SchemaField object dict
     """
     # this could use BQ Python API built-in method
-
     schema_dict = {}
 
     for field in field_data_types:
@@ -205,9 +192,10 @@ def create_field_records_dict(field_mappings, field_data_types):
 
 
 def create_bq_schema(data_fp):
-    """
-    Generates two dicts (one using data type inference, one using _mapping API endpoint.)
-    Compares values and builds a SchemaField object, used to initialize the bq table.
+    """Generates two dicts (one using data type inference, one using _mapping API
+    endpoint.) Compares values and builds a SchemaField object, used to
+    initialize the bq table.
+
     :param data_fp: path to API data output file (jsonl format)
     """
     # generate dict containing field mapping results

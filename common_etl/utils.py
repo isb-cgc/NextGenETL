@@ -597,6 +597,20 @@ def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp
     return build_jsonl_output_filename(bq_params, program, suffix, is_webapp=is_webapp)
 
 
+def build_jsonl_name(api_params, bq_params, program, table, is_webapp=False):
+    app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
+    gdc_rel = bq_params['REL_PREFIX'] + bq_params['RELEASE']
+    program = program.replace('.', '_')
+    base_name = bq_params['MASTER_TABLE']
+    suffix = get_table_suffixes(api_params)[table]
+
+    name_list = [app_prefix, gdc_rel, program, base_name, suffix]
+    filtered_name_list = [x for x in name_list if x]
+    file_name = '_'.join(filtered_name_list)
+
+    return file_name + '.jsonl'
+
+
 def get_filepath(dir_path, filename):
     """Get file path for location on VM.
 
@@ -658,22 +672,25 @@ def get_dir_files(bq_params):
     return [f for f in os.listdir(fp) if os.path.isfile(os.path.join(fp, f))]
 
 
-def write_obj_list_to_jsonl(fp, obj_list):
+def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
     """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
 
-    :param fp: filepath of jsonl file to write
-    :param obj_list: list<dict> object
-    """
-    cnt = 0
+    :param jsonl_fp: filepath of jsonl file to write
+    :param json_obj: list<dict> object
+    :param mode: 'a' if appending to a file that's being built iteratively
+                 'w' if file data is written in a single call to the function
+                     (in which case any existing data is overwritten)"""
 
-    with open(fp, 'w') as file_obj:
-        for obj in obj_list:
-            obj_str = convert_dict_to_string(obj)
-            json.dump(obj=obj_str, fp=file_obj)
+    with open(jsonl_fp, mode) as file_obj:
+        cnt = 0
+
+        for line in json_obj:
+            json_str = convert_dict_to_string(line)
+            json.dump(obj=json_str, fp=file_obj)
             file_obj.write('\n')
             cnt += 1
 
-        print("Successfully output {} records to {}".format(cnt, fp))
+        print("Successfully output {} records to {}".format(cnt, jsonl_fp))
 
 
 ##################################################################################

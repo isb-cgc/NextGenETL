@@ -239,7 +239,7 @@ def main(args):
         studies = create_studies_dict(json_res)
         studies_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL']) #todo
 
-        write_obj_list_to_jsonl(studies_fp, studies)
+        write_list_to_jsonl(studies_fp, studies)
         upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
 
         table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])

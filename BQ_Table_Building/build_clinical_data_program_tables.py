@@ -422,26 +422,12 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     """
     merged_column_orders = dict()
 
-    # print("columns: {}".format(columns))
-
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
         table_id_key = get_field_group_id_key(API_PARAMS, table, is_webapp)
 
-        # table_id_key = table + "." + get_field_group_id_name(API_PARAMS, table,
-        # is_webapp)
-
         if table in columns:
             merge_dict_key = table
-
-            '''
-
-            print(("\ntable_id_key: {}\n"
-                   "table: {}\n"
-                   "merge_dict_key: {}\n"
-                   "column_orders[table]: {}\n"
-                   ).format(table_id_key, table, merge_dict_key, column_orders[table]))
-            '''
 
             schema[table_id_key]['mode'] = 'REQUIRED'
         else:
@@ -456,7 +442,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         merged_column_orders[merge_dict_key].update(column_orders[table])
 
-    # print("\nmerged_column_orders: \n{}".format(merged_column_orders))
     return merged_column_orders
 
 
@@ -509,9 +494,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
     # add bq abbreviations to schema field dicts
     for entry in schema:
         field = get_field_name(entry)
-        # if is_renamed(API_PARAMS, field):
-        #    field = get_new_name(API_PARAMS, field)
-        #    schema[entry]['name'] = get_bq_name(API_PARAMS, field)
+
         if field != 'case_id':
             schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
 
@@ -785,26 +768,22 @@ def merge_or_count_records(flattened_case, record_counts, is_webapp=False):
         get_record_counts(flattened_case, record_counts, is_webapp)
 
 
-def create_and_load_tables(program_name, cases, schemas, record_counts, is_webapp=False):
+def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=False):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
-    :param program_name: program for which to create tables
+    :param program: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
     :param record_counts: field group count dict
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
-    one_to_many_tables = get_one_to_many_tables(API_PARAMS, record_counts)
+    ancillary_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
-    for one_many_table in one_to_many_tables:
-        jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
-                                                     BQ_PARAMS,
-                                                     program_name,
-                                                     one_many_table,
-                                                     is_webapp)
+    for ancillary_table in ancillary_tables:
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
 
-        jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+        jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
         # If jsonl scratch file exists, delete so we don't append
         if os.path.exists(jsonl_fp):
@@ -814,49 +793,35 @@ def create_and_load_tables(program_name, cases, schemas, record_counts, is_webap
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
-        for fg in flat_case.copy().keys():
-            if fg not in record_counts.keys():
+        for fg in flat_case.copy():
+            if fg not in record_counts:
                 flat_case.pop(fg)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
         for bq_table in flat_case:
-            if bq_table not in one_to_many_tables:
+            if bq_table not in ancillary_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
-                                                         BQ_PARAMS,
-                                                         program_name,
-                                                         bq_table,
-                                                         is_webapp)
+            jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table, is_webapp)
 
-            jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+            jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
-            with open(jsonl_fp, 'a') as jsonl_file:
-                for row in flat_case[bq_table]:
-                    json.dump(obj=row, fp=jsonl_file)
-                    jsonl_file.write('\n')
+            write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
-    for one_many_table in one_to_many_tables:
-        jsonl_filename = get_suffixed_jsonl_filename(API_PARAMS,
-                                                     BQ_PARAMS,
-                                                     program_name,
-                                                     one_many_table,
-                                                     is_webapp)
+    for ancillary_table in ancillary_tables:
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
 
-        jsonl_scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
 
-        upload_to_bucket(BQ_PARAMS, jsonl_scratch_fp)
-
-        table_name = get_full_table_name(program_name, one_many_table)
+        table_name = get_full_table_name(program, ancillary_table)
 
         if is_webapp:
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_filename, schemas[one_many_table],
-                              table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_name, schemas[ancillary_table], table_id)
 
 
 ##################################################################################
@@ -1053,8 +1018,8 @@ def create_tables(program, cases, is_webapp=False):
 
 
 def main(args):
-    """
-    Script execution function.
+    """Script execution function.
+
     :param args: command-line arguments
     """
     start = time.time()
@@ -1066,7 +1031,6 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
-
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
