@@ -686,9 +686,14 @@ def main(args):
 
 
     #
-    # removed compare and remove old current table
+    # compare and remove old current table
     #
 
+    # compare the two tables
+
+    # move old table to a temporary location
+
+    # remove old table
 
 
     #
@@ -722,7 +727,7 @@ def main(args):
 
 
     #
-    # Update previous versioned table with correct tag
+    # Update previous versioned table with archived tag
     #
 
     if 'update_status_tag' in steps:
