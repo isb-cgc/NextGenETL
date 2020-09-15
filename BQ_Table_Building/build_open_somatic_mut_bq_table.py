@@ -718,33 +718,45 @@ def main(args):
     #
 
     # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              publication_table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                               publication_table.format(params['PREVIOUS_RELEASE']))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                       publication_table.format(params['PREVIOUS_RELEASE']))
 
-    old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                          publication_table.format('current'))
-    previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                           publication_table.format(params['PREVIOUS_RELEASE']))
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-    print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
 
-    compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        num_rows = compare.total_rows
 
-    num_rows = compare.total_rows
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
 
-    if num_rows == 0:
-        print('the tables are the same')
-    else:
-        print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+        if not compare:
+            print('compare_tables failed')
+            return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            table_moved = True #temp line
+            #table_moved = publish_table(old_current_table, table_temp)
 
-    if not compare:
-        print('compare_tables failed')
-        return
-    # move old table to a temporary location
-    elif compare:
-
-
-
-    # remove old table
-
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                #delete_table = delete_table_bq_job(params['PUBLICATION_PROJECT'],
+                #                                   publication_table.format(params['PREVIOUS_RELEASE']))
+                delete_table = True # temp line
+                if not delete_table:
+                    print('delete table failed')
+                    return
 
     #
     # publish table:
