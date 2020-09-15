@@ -744,8 +744,7 @@ def main(args):
         # move old table to a temporary location
         elif compare and num_rows == 0:
             print('Move old table to temp location')
-            table_moved = True #temp line
-            #table_moved = publish_table(old_current_table, table_temp)
+            table_moved = publish_table(old_current_table, table_temp)
 
             if not table_moved:
                 print('Old Table was not moved and will not be deleted')
