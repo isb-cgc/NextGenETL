@@ -751,9 +751,7 @@ def main(args):
             # remove old table
             elif table_moved:
                 print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(params['PUBLICATION_PROJECT'],
-                                                   ".".join([params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                                             publication_table.format('current')]))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'))
                 if not delete_table:
                     print('delete table failed')
                     return
