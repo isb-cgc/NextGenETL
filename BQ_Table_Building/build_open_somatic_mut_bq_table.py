@@ -721,7 +721,8 @@ def main(args):
     if 'compare_remove_old_current' in steps:
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
                                               publication_table.format('current'))
-        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join(params['PUBLICATION_DATASET'], 'versioned'),
                                                publication_table.format(params['PREVIOUS_RELEASE']))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                        publication_table.format(params['PREVIOUS_RELEASE']))
