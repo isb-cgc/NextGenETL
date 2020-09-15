@@ -725,7 +725,7 @@ def main(args):
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                publication_table.format(params['PREVIOUS_RELEASE']))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                       publication_table.format(params['PREVIOUS_RELEASE']))
+                                       "_".join([params['PROGRAM'],publication_table.format(params['PREVIOUS_RELEASE'])]))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
@@ -751,9 +751,8 @@ def main(args):
             # remove old table
             elif table_moved:
                 print('Deleting old table: {}'.format(old_current_table))
-                #delete_table = delete_table_bq_job(params['PUBLICATION_PROJECT'],
-                #                                   publication_table.format(params['PREVIOUS_RELEASE']))
-                delete_table = True # temp line
+                delete_table = delete_table_bq_job(params['PUBLICATION_PROJECT'],
+                                                   publication_table.format(params['PREVIOUS_RELEASE']))
                 if not delete_table:
                     print('delete table failed')
                     return
