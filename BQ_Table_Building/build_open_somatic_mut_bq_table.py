@@ -725,7 +725,7 @@ def main(args):
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                publication_table.format(params['PREVIOUS_RELEASE']))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                       "_".join([params['PROGRAM'],publication_table.format(params['PREVIOUS_RELEASE'])]))
+                                       "_".join([params['PROGRAM'],publication_table.format(params['PREVIOUS_RELEASE']),'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
