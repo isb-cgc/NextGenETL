@@ -93,7 +93,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         write_list_to_jsonl(jsonl_fp, aliquot_json_list, mode)
         lines_written += len(aliquot_json_list)
 
-    ("{} lines written for {}.".format(lines_written, study_submitter_id))
+    print("{} lines written for {}.".format(lines_written, study_submitter_id))
 
     return lines_written
 
