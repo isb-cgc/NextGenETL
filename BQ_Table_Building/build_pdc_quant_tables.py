@@ -106,6 +106,12 @@ def get_study_ids():
     """
 
 
+def get_quant_files():
+    storage_client = storage.Client()
+    blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'],
+                                      prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
+
+
 def main(args):
     start = time.time()
 
@@ -146,9 +152,12 @@ def main(args):
 
         console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
 
-    has_quant_data_list = list()
+    if 'build_master_quant_table' in steps:
+        get_quant_files()
 
-    quit()
+
+
+    has_quant_data_list = list()
 
     '''
     for study_id_dict in study_ids_list:
