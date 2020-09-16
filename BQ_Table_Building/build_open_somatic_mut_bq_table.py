@@ -59,10 +59,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None, None, None
+        return None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
-            yaml_dict['steps'], yaml_dict['extra_fields'], yaml_dict['key_fields'], yaml_dict['callers'],
+            yaml_dict['steps'],  yaml_dict['callers'],
             yaml_dict['schema_tags'])
 
 '''
@@ -444,7 +444,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, extra_cols, key_fields, callers, schema_tags = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, callers, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -480,7 +480,7 @@ def main(args):
     if 'build_manifest_from_filters' in steps:
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                               params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
                                                params['BQ_AS_BATCH'])
@@ -504,11 +504,11 @@ def main(args):
 
     if 'build_pull_list' in steps:
         full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                          params['TARGET_DATASET'],
+                                          params['SCRATCH_DATASET'],
                                           params['BQ_MANIFEST_TABLE'])
 
         build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
-                                params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                 params['BQ_PULL_LIST_TABLE'],
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
@@ -622,7 +622,7 @@ def main(args):
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], concat_table, params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], concat_table, params['BQ_AS_BATCH'])
 
     #
     # Need to merge in aliquot and sample barcodes from other tables:
@@ -630,24 +630,24 @@ def main(args):
 
     if 'collect_barcodes' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['TARGET_DATASET'],
+                                       params['SCRATCH_DATASET'],
                                        concat_table)
         if params['PROGRAM'] == 'TCGA':
             success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
-                                         params['TARGET_DATASET'],
+                                         params['SCRATCH_DATASET'],
                                          '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
                 print("attach_aliquot_ids job failed")
                 return
 
             step_1_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                             params['TARGET_DATASET'],
+                                             params['SCRATCH_DATASET'],
                                              '_'.join([barcode_table, 'pre']))
         else:
             step_1_table = skel_table
 
         success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
-                                  params['TARGET_DATASET'], barcode_table, params['BQ_AS_BATCH'],
+                                  params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'])
         if not success:
             print("attach_barcodes job failed")
@@ -659,13 +659,13 @@ def main(args):
 
     if 'create_final_table' in steps:
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['TARGET_DATASET'],
+                                       params['SCRATCH_DATASET'],
                                        concat_table)
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                           params['TARGET_DATASET'],
+                                           params['SCRATCH_DATASET'],
                                            barcode_table)
         success = final_merge(skel_table, barcodes_table,
-                              params['TARGET_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
+                              params['SCRATCH_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
             print("Join job failed")
@@ -676,7 +676,7 @@ def main(args):
     #
 
     if 'update_final_schema' in steps:
-        success = update_schema(params['TARGET_DATASET'], draft_table.format(release), hold_schema_dict)
+        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict)
         if not success:
             print("Schema update failed")
             return
@@ -689,7 +689,7 @@ def main(args):
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
                                           draft_table.format(release))
-        success = install_labels_and_desc(params['TARGET_DATASET'],
+        success = install_labels_and_desc(params['SCRATCH_DATASET'],
                                           draft_table.format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
@@ -700,9 +700,9 @@ def main(args):
     #
 
     if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                          draft_table.format(release))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                          draft_table.format('current'))
 
         success = publish_table(source_table, current_dest)
@@ -724,7 +724,7 @@ def main(args):
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                publication_table.format(params['PREVIOUS_RELEASE']))
-        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                        "_".join([params['PROGRAM'],publication_table.format(params['PREVIOUS_RELEASE']),'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
@@ -767,14 +767,14 @@ def main(args):
         for table in tables:
             if table == 'versioned':
                 print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                  draft_table.format(release))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                      publication_table.format(release))
             elif table == 'current':
                 print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                  draft_table.format('current'))
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      params['PUBLICATION_DATASET'],
@@ -809,7 +809,7 @@ def main(args):
                            'BQ_MANIFEST_TABLE', 'BQ_PULL_LIST_TABLE']
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
-            delete_table_bq_job(params['TARGET_DATASET'], table)
+            delete_table_bq_job(params['SCRATCH_DATASET'], table)
     #
     # Done!
     #
