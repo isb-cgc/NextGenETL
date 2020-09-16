@@ -61,9 +61,11 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
         aliquot_submitter_id = split_el[1]
 
         log2_ratio_list.append(
-            {"study_id": study_id, "study_submitter_id": study_submitter_id,
+            {"study_id": study_id,
+             "study_submitter_id": study_submitter_id,
              "aliquot_run_metadata_id": aliquot_run_metadata_id,
-             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": []
+             "aliquot_submitter_id": aliquot_submitter_id,
+             "log2_ratios": []
              })
 
     # iterate over each gene row and add to the correct aliquot_run obj
@@ -120,9 +122,11 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    if 'build_quant_jsonl' in steps:
+    jsonl_output_file = 'quant_2020_09.jsonl'
+    quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
-        file_obj = open(get_scratch_fp(BQ_PARAMS, 'quant_2020_09.jsonl'), 'w')
+    if 'build_quant_jsonl' in steps:
+        file_obj = open(quant_jsonl_fp, 'w')
 
         study_ids_list = list()
 
@@ -144,8 +148,23 @@ def main(args):
         print("Quant jsonl total lines written: {}".format(lines_written))
         file_obj.close()
 
+    if 'upload_to_bucket' in steps:
+        upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
+
     if 'build_master_quant_table' in steps:
-        pass
+        build_start = time.time()
+
+        table_id = 'isb-project-zero.PDC.quant_data_2020_09'
+        schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
+
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
+        update_table_metadata(table_id, table_metadata)
+
+        build_end = time.time() - build_start
+
+        console_out("Completed in {0:0.0f}s!\n", (build_end,))
 
     end = time.time() - start
     console_out("Finished program execution in {0:0.0f}s!\n", (end,))
