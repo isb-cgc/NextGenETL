@@ -166,6 +166,8 @@ def main(args):
             study_submitter_id = study_id_dict['study_submitter_id']
             filename = get_quant_tsv_filename(study_submitter_id)
 
+            filename = filename.replace('quant_', '') # todo remove
+
             if filename not in blob_files:
                 print('{} not in gcp storage'.format(filename))
                 continue
