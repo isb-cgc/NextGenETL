@@ -45,7 +45,7 @@ def get_quant_table_name(study_submitter_id):
     return BQ_PARAMS['RELEASE'] + '_' + filename
 
 
-def get_and_write_quant_data(study_id_dict, data_type, file_obj):
+def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
 
@@ -103,7 +103,7 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
 
             aliquot_json_list.append(aliquot)
 
-        append_list_to_jsonl(file_obj, aliquot_json_list)
+        write_list_to_jsonl(jsonl_fp, aliquot_json_list)
         lines_written += len(aliquot_json_list)
 
     console_out("{0} lines written for {1}!", (lines_written, study_submitter_id))
@@ -135,13 +135,17 @@ def main(args):
 
     if 'build_quant_jsonl' in steps:
         for study_id_dict in study_ids_list:
-            get_and_write_quant_data(study_id_dict, 'log2_ratio')
+            filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+            quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+            get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_jsonl_fp)
 
     if 'upload_to_bucket' in steps:
         for study_id_dict in study_ids_list:
             filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
-            console_out("Uploading {0}!", (filename,))
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+            console_out("Uploading {0}!", (filename,))
 
             upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
 
