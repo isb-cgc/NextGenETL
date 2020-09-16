@@ -79,8 +79,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
     # iterate over each gene row and add to the correct aliquot_run obj
     for row in res_json['data']['quantDataMatrix']:
-        print(row)
-        exit()
         gene = row.pop(0)
 
         for i, log2_ratio in enumerate(row):
