@@ -82,12 +82,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         gene = row.pop(0)
 
         for i, log2_ratio in enumerate(row):
-            log2_ratio_el = {
-                'gene': gene,
-                'log2_ratio': log2_ratio
-                }
-
-            log2_ratio_list[i]['log2_ratios'].append(log2_ratio_el)
+                log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
     lines_written = 0
 
