@@ -46,7 +46,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
     if not res_json['data']['quantDataMatrix']:
         lines_written = 0
-        "{} lines written for {}.".format(lines_written, study_submitter_id)
+        print("{} lines written for {}.".format(lines_written, study_submitter_id))
         return lines_written
 
     log2_ratio_list = list()
