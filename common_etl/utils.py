@@ -987,6 +987,32 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
         has_fatal_error(err)
 
 
+def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id):
+    """Creates BQ table and inserts case data from jsonl file.
+
+    :param bq_params: bq param obj from yaml config
+    :param tsv_file: file containing case records in tsv format
+    :param schema: list of SchemaFields representing desired BQ table schema
+    :param table_id: id of table to create
+    """
+    client = bigquery.Client()
+    job_config = bigquery.LoadJobConfig()
+    job_config.schema = schema
+    job_config.source_format = bigquery.SourceFormat.CSV
+    job_config.field_delimiter = '\t'
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    gs_uri = build_working_gs_uri(bq_params, tsv_file)
+
+    try:
+        load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
+
+        console_out(' - Inserting into {0}... ', (table_id,), end="")
+        await_insert_job(bq_params, client, table_id, load_job)
+    except TypeError as err:
+        has_fatal_error(err)
+
+
 def delete_bq_table(table_id):
     """Permanently delete BQ table located by table_id.
 

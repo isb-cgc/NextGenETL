@@ -111,8 +111,13 @@ def get_quant_files():
     blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'],
                                       prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
 
+    files = set()
+
     for blob in blobs:
-        print(blob.name)
+        filename = blob.name.split('/')[-1]
+        files.add(filename)
+
+    return files
 
 
 def main(args):
@@ -156,9 +161,25 @@ def main(args):
         console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
 
     if 'build_master_quant_table' in steps:
-        get_quant_files()
+        blob_files = get_quant_files()
 
-    has_quant_data_list = list()
+        for study_id_dict in study_ids_list:
+            study_submitter_id = study_id_dict['study_submitter_id']
+            filename = get_quant_tsv_filename(study_submitter_id)
+
+            if filename not in blob_files:
+                continue
+
+            table_name = get_quant_table_name(study_submitter_id)
+            table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+            schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
+            console_out("Building {0}!", (schema_filename,))
+
+            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+            create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
+            update_table_metadata(table_id, table_metadata)
 
     '''
     for study_id_dict in study_ids_list:
