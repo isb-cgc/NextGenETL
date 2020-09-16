@@ -161,6 +161,8 @@ def main(args):
         console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
 
     if 'build_master_quant_table' in steps:
+        build_start = time.time()
+
         blob_files = get_quant_files()
 
         for study_id_dict in study_ids_list:
@@ -178,8 +180,12 @@ def main(args):
 
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
-            create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
-            update_table_metadata(table_id, table_metadata)
+            create_and_load_tsv_table(BQ_PARAMS, filename, schema, table_id)
+            # update_table_metadata(table_id, table_metadata)
+
+            build_end = time.time() - build_start
+
+            console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
 
     '''
     for study_id_dict in study_ids_list:
