@@ -55,7 +55,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
                                                                       data_type))
 
     if not res_json['data']['quantDataMatrix']:
-        print("{} lines written for {}.".format(lines_written, study_submitter_id))
         return lines_written
 
     log2_ratio_list = list()
@@ -143,11 +142,12 @@ def main(args):
                                                      'log2_ratio',
                                                      quant_jsonl_fp)
 
-            console_out("\n{0} lines written for {1}!", (lines_written,
-                                                         study_submitter_id))
+            console_out("\n{0} lines written for {1}", (lines_written,
+                                                        study_submitter_id))
 
             if lines_written > 0:
                 upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
+                console_out("{} uploaded to Google cloud storage!")
                 os.remove(quant_jsonl_fp)
 
         jsonl_end = time.time() - jsonl_start
