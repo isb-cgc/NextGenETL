@@ -111,6 +111,9 @@ def get_quant_files():
     blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'],
                                       prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
 
+    for blob in blobs:
+        print(blob.name)
+
 
 def main(args):
     start = time.time()
@@ -129,7 +132,7 @@ def main(args):
     for study in study_ids:
         study_ids_list.append(dict(study.items()))
 
-    if 'build_quant_jsonl' in steps:
+    if 'build_quant_tsv' in steps:
         jsonl_start = time.time()
 
         for study_id_dict in study_ids_list:
@@ -154,8 +157,6 @@ def main(args):
 
     if 'build_master_quant_table' in steps:
         get_quant_files()
-
-
 
     has_quant_data_list = list()
 
