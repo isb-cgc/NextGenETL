@@ -41,6 +41,8 @@ def get_quant_tsv_filename(study_submitter_id):
 
 
 def get_quant_table_name(study_submitter_id):
+    study_submitter_id = study_submitter_id.replace('- ', '')
+    study_submitter_id = study_submitter_id.replace('-', '_')
     filename = '_'.join(study_submitter_id.split(' '))
     return BQ_PARAMS['RELEASE'] + '_' + filename
 
