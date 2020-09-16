@@ -82,9 +82,12 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         gene = row.pop(0)
 
         for i, log2_ratio in enumerate(row):
-                log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
+            log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
     lines_written = 0
+
+    print(log2_ratio_list)
+    exit()
 
     # flatten json to write to jsonl for bq
     for aliquot in log2_ratio_list:
@@ -134,7 +137,6 @@ def main(args):
         for study_id_dict in study_ids_list:
             filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
-
             get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_jsonl_fp)
 
         jsonl_end = time.time() - jsonl_start
