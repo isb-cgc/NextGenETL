@@ -476,7 +476,7 @@ def main(args):
     barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
     draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-    full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], params['BQ_MANIFEST_TABLE'])
+    manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest'])
 
     if 'build_manifest_from_filters' in steps:
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
@@ -505,7 +505,8 @@ def main(args):
 
     if 'build_pull_list' in steps:
 
-        build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+        build_pull_list_with_bq("{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], manifest_table),
+                                params['INDEXD_BQ_TABLE'],
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                 params['BQ_PULL_LIST_TABLE'],
                                 params['WORKING_BUCKET'],
@@ -807,7 +808,7 @@ def main(args):
                        barcode_table,
                        draft_table.format('current'),
                        draft_table.format(release),
-                       full_manifest]
+                       manifest_table]
         for table in dump_tables:
             delete_table_bq_job(params['SCRATCH_DATASET'], table)
     #
