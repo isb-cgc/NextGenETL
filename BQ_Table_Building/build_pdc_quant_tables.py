@@ -43,6 +43,9 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
     res_json = get_graphql_api_response(API_PARAMS,
                                         query=query_quant_data_matrix(study_submitter_id,
                                                                       data_type))
+
+    print(res_json)
+
     log2_ratio_list = list()
 
     id_row = res_json['data']['quantDataMatrix'].pop(0)
@@ -59,8 +62,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
              "aliquot_run_metadata_id": aliquot_run_metadata_id,
              "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": {}
              })
-
-    print(res_json)
 
     # iterate over each gene row and add to the correct aliquot_run obj
     for row in res_json['data']['quantDataMatrix']:
