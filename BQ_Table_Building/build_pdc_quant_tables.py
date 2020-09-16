@@ -27,8 +27,6 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-
-
 def get_jsonl_file(bq_params, record_type):
     return "{}_{}.jsonl".format(bq_params['DATA_SOURCE'], record_type)
 
@@ -39,17 +37,16 @@ def query_quant_data_matrix(study_submitter_id, data_type):
 
 
 def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
-    print(study_id_dict)
-    exit()
+    study_submitter_id = study_id_dict['study_submitter_id']
+    study_id = study_id_dict['study_id']
 
-    res_json = get_graphql_api_response(
-        api_params['ENDPOINT'],
+    res_json = get_graphql_api_response(api_params['ENDPOINT'],
         query=query_quant_data_matrix(study_submitter_id, data_type))
 
     log2_ratio_list = list()
 
     id_row = res_json['data']['quantDataMatrix'].pop(0)
-    id_row.pop(0) # remove gene column header string
+    id_row.pop(0)  # remove gene column header string
 
     # process first row, which gives us the aliquot ids and idx positions
     for i, el in enumerate(id_row):
@@ -58,13 +55,10 @@ def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
         aliquot_submitter_id = split_el[1]
 
         log2_ratio_list.append(
-            {
-                "study_id": study_id,
-                "study_submitter_id": study_submitter_id,
+            {"study_id": study_id, "study_submitter_id": study_submitter_id,
                 "aliquot_run_metadata_id": aliquot_run_metadata_id,
-                "aliquot_submitter_id": aliquot_submitter_id,
-                "log2_ratios": {}
-            })
+                "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": {}
+                })
 
     # iterate over each gene row and add to the correct aliquot_run obj
     for row in res_json['data']['quantDataMatrix']:
@@ -73,6 +67,7 @@ def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
         for i, log2_ratio in enumerate(row):
             log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
+    lines_written = 0
     is_first_write = True
 
     # flatten json to write to jsonl for bq
@@ -85,12 +80,16 @@ def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
             aliquot['gene'] = gene
             aliquot['log2_ratio'] = log2_ratio
 
-            # todo write to jsonl instead
             aliquot_json_list.append(aliquot)
 
         mode = 'w' if is_first_write else 'a'
 
         write_list_to_jsonl(jsonl_fp, aliquot_json_list, mode)
+        lines_written += len(aliquot_json_list)
+
+    ("{} lines written for {}.".format(lines_written, study_submitter_id))
+
+    return lines_written
 
 
 def get_study_ids():
@@ -117,11 +116,15 @@ def main(args):
         for study in study_ids:
             study_ids_list.append(dict(study.items()))
 
+        lines_written = 0
+
         for study_id_dict in study_ids_list:
-            get_and_write_quant_data(API_PARAMS,
-                                     study_id_dict,
-                                     'log2_ratio',
-                                     'quant_2020_09.jsonl')
+            lines_written += get_and_write_quant_data(API_PARAMS,
+                                                      study_id_dict,
+                                                      'log2_ratio',
+                                                      'quant_2020_09.jsonl')
+
+        print("Quant jsonl total lines written: {}".format(lines_written))
 
     if 'build_master_quant_table' in steps:
         pass
