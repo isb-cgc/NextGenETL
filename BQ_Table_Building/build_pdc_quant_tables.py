@@ -156,6 +156,8 @@ def main(args):
 
     has_quant_data_list = list()
 
+    quit()
+
     for study_id_dict in study_ids_list:
         filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
         quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
