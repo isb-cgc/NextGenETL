@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import os
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -129,26 +129,47 @@ def main(args):
         study_ids_list.append(dict(study.items()))
 
     if 'build_quant_jsonl' in steps:
+        jsonl_start = time.time()
+
         for study_id_dict in study_ids_list:
             filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
 
             get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_jsonl_fp)
 
+        jsonl_end = time.time() - jsonl_start
+
+        console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
+
+    has_quant_data_list = list()
+
+    for study_id_dict in study_ids_list:
+        filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+        quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+        if os.path.exists(quant_jsonl_fp):
+            has_quant_data_list.append(study_id_dict['study_submitter_id'])
+
     if 'upload_to_bucket' in steps:
-        for study_id_dict in study_ids_list:
-            filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+        upload_start = time.time()
+
+        for study_submitter_id in has_quant_data_list:
+            filename = get_quant_jsonl_filename(study_submitter_id)
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
 
             console_out("Uploading {0}!", (filename,))
 
             upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
 
+        upload_end = time.time() - upload_start
+
+        console_out("Quant table jsonl upload completed in {0:0.0f}s!\n", (upload_end,))
+
     if 'build_master_quant_table' in steps:
         build_start = time.time()
 
-        for study_id_dict in study_ids_list:
-            table_name = get_quant_table_name(study_id_dict['study_submitter_id'])
+        for study_submitter_id in has_quant_data_list:
+            table_name = get_quant_table_name(study_submitter_id)
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
             # todo make for each table
@@ -160,9 +181,9 @@ def main(args):
             create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
             update_table_metadata(table_id, table_metadata)
 
-            build_end = time.time() - build_start
+        build_end = time.time() - build_start
 
-        console_out("Completed in {0:0.0f}s!\n", (build_end,))
+        console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
 
     end = time.time() - start
     console_out("Finished program execution in {0:0.0f}s!\n", (end,))
