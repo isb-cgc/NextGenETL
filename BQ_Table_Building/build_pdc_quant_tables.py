@@ -86,7 +86,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
     lines_written = 0
 
-    print(log2_ratio_list)
+    print(log2_ratio_list[0])
     exit()
 
     # flatten json to write to jsonl for bq
