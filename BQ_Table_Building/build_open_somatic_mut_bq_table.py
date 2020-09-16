@@ -480,7 +480,8 @@ def main(args):
 
     if 'build_manifest_from_filters' in steps:
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
+        manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
+                                               bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
@@ -506,9 +507,9 @@ def main(args):
     if 'build_pull_list' in steps:
 
         build_pull_list_with_bq("{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], manifest_table),
-                                params['INDEXD_BQ_TABLE'],
+                                params['INDEXD_BQ_TABLE'].format(params['RELEASE']),
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                params['BQ_PULL_LIST_TABLE'],
+                                "_".join([params['PROGRAM'], params['DATA_TYPE'], 'Pull', 'List']),
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
                                 local_pull_list, params['BQ_AS_BATCH'])
@@ -606,7 +607,8 @@ def main(args):
         build_combined_schema(None, schema_dict_loc,
                               typing_tups, hold_schema_list, hold_schema_dict)
 
-    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+    bucket_target_blob = '{}/{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'], params['PROGRAM'],
+                                                  params['DATA_TYPE'], params['RELEASE'])
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
@@ -632,7 +634,7 @@ def main(args):
                                        params['SCRATCH_DATASET'],
                                        concat_table)
         if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'],
+            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
                                          params['SCRATCH_DATASET'],
                                          '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
@@ -645,7 +647,7 @@ def main(args):
         else:
             step_1_table = skel_table
 
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'],
+        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE'].strip('r')),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'])
         if not success:
