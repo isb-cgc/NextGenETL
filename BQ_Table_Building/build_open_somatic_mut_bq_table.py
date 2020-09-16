@@ -483,7 +483,7 @@ def main(args):
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
                                                bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                               params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
+                                               manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
                                                params['BQ_AS_BATCH'])
         if not manifest_success:
