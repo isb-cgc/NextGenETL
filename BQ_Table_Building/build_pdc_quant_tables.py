@@ -76,6 +76,13 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
+        fh.write("{}\t{}\t{}\t{}\t{}\t\n".format(
+            'study_id',
+            'aliquot_run_metadata_id',
+            'aliquot_submitter_id',
+            'gene',
+            'log2_ratio'
+            ))
         for row in res_json['data']['quantDataMatrix']:
             gene = row.pop(0)
 
