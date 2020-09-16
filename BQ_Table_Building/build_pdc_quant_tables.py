@@ -88,9 +88,8 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
             aliquot_json_list.append(aliquot)
 
-        mode = 'w' if is_first_write else 'a'
+        append_list_to_jsonl(file_handler, aliquot_json_list)
 
-        write_list_to_jsonl(jsonl_fp, aliquot_json_list, mode)
         lines_written += len(aliquot_json_list)
 
     print("{} lines written for {}.".format(lines_written, study_submitter_id))
@@ -115,6 +114,9 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     if 'build_quant_jsonl' in steps:
+
+        file_obj = open(get_scratch_fp(BQ_PARAMS, 'quant_2020_09.jsonl'), 'w')
+
         study_ids_list = list()
 
         study_ids = get_query_results(get_study_ids())
@@ -125,10 +127,16 @@ def main(args):
         lines_written = 0
 
         for study_id_dict in study_ids_list:
-            lines_written += get_and_write_quant_data(study_id_dict, 'log2_ratio',
-                                                      'quant_2020_09.jsonl')
+            try:
+                lines_written += get_and_write_quant_data(study_id_dict,
+                                                          'log2_ratio',
+                                                          file_obj)
+            except IOError:
+                file_obj.close()
+                has_fatal_error("Error writing to quant jsonl file.", IOError)
 
         print("Quant jsonl total lines written: {}".format(lines_written))
+        file_obj.close()
 
     if 'build_master_quant_table' in steps:
         pass

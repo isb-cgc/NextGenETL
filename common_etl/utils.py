@@ -742,6 +742,13 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
             # console_out("Successfully output {0} records to {1}", (cnt, jsonl_fp))
 
 
+def append_list_to_jsonl(file_handler, json_list):
+    for line in json_list:
+        json_str = convert_dict_to_string(line)
+        json.dump(obj=json_str, fp=file_handler)
+        file_handler.write('\n')
+
+
 ##################################################################################
 #
 #       REST API HELPERS (GDC, PDC, ETC)
