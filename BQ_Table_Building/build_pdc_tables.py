@@ -29,15 +29,6 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def run_query(endpoint, query):
-    request = requests.post(endpoint + query)
-    if request.status_code == 200:
-        return request.json()
-    else:
-        raise Exception("Query failed to run by returning code of {}. {}"
-                        .format(request.status_code, query))
-
-
 def get_all_programs_query():
     return """{allPrograms{
             program_id
@@ -135,6 +126,7 @@ def get_quant_data_matrix_by_study_submitter_id(pdc_study_id, data_type):
             '}}').format(pdc_study_id, data_type)
 
 
+'''
 def get_graphql_api_response(api_params, query=None, payload=None):
     headers = {'Content-Type': 'application/json'}
 
@@ -155,6 +147,7 @@ def get_graphql_api_response(api_params, query=None, payload=None):
                         .format(endpoint, response.raise_for_status()))
 
     return response.json()
+'''
 
 
 def create_studies_dict(json_res):
@@ -211,6 +204,11 @@ def create_studies_dict(json_res):
     return studies
 
 
+def create_files_dict(json_res):
+    print("Not implemented (create_files_dict)")
+    return None
+
+
 def get_jsonl_file(bq_params, record_type):
     return "{}_{}.jsonl".format(bq_params['DATA_SOURCE'], record_type)
 
@@ -260,18 +258,21 @@ def main(args):
         console_out("Completed in {0:0.0f}s!\n", (studies_end,))
 
     if 'build_files_table' in steps:
-        '''
-        output_to_console("Building files table...")
+
+        console_out("Building files table...")
         files_start = time.time()
 
+        # get pdc_study_ids
+        # for each, get files
+
         json_res = get_graphql_api_response(API_PARAMS, get_file_metadata_by_study())
-        studies = create_studies_dict(json_res)
-        studies_fp = get_scratch_dir(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+        files = create_files_dict(json_res)
+        files_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['FILES_JSONL'])
 
-        write_obj_list_to_jsonl(studies_fp, studies)
-        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+        write_list_to_jsonl(files_fp, files)
+        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['FILES_JSONL'])
 
-        table_name = "_".join(['studies', str(BQ_PARAMS['RELEASE'])])
+        table_name = "_".join(['files', str(BQ_PARAMS['RELEASE'])])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         schema_filename = "{}.{}.{}_{}.json".format(
@@ -286,8 +287,7 @@ def main(args):
         update_table_metadata(table_id, table_metadata)
 
         files_end = time.time() - files_start
-        output_to_console("Completed in {0:0.0f}s!\n", (studies_end))
-        '''
+        console_out("Completed in {0:0.0f}s!\n", (studies_end,))
 
     end = time.time() - start
     console_out("Finished program execution in {0:0.0f}s!\n", (end,))

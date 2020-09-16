@@ -738,8 +738,8 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
             json.dump(obj=json_str, fp=file_obj)
             file_obj.write('\n')
             cnt += 1
-        if mode == 'w':
-            console_out("Successfully output {0} records to {1}", (cnt, jsonl_fp))
+        # if mode == 'w':
+            # console_out("Successfully output {0} records to {1}", (cnt, jsonl_fp))
 
 
 ##################################################################################
@@ -835,6 +835,28 @@ def get_cases_by_program(bq_params, program):
         cases.append(dict(case_row.items()))
 
     return cases
+
+
+def get_graphql_api_response(api_params, query=None, payload=None):
+    headers = {'Content-Type': 'application/json'}
+
+    endpoint = api_params['ENDPOINT']
+
+    if query and not payload:
+        req_body = {'query': query}
+        response = requests.post(endpoint, headers=headers, json=req_body)
+    elif payload and not query:
+        response = requests.post(endpoint, headers=headers, data=payload)
+    else:
+        response = None
+        has_fatal_error("Must specify either query OR payload (not both) "
+                        "in get_graphql_api_response.", SyntaxError)
+
+    if not response.ok:
+        has_fatal_error("Invalid response from endpoint {}\n Status code: {}"
+                        .format(endpoint, response.raise_for_status()))
+
+    return response.json()
 
 
 ##################################################################################
