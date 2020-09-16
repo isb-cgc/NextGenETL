@@ -48,13 +48,13 @@ def get_quant_table_name(study_submitter_id):
 def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
+    lines_written = 0
 
     res_json = get_graphql_api_response(API_PARAMS,
                                         query=query_quant_data_matrix(study_submitter_id,
                                                                       data_type))
 
     if not res_json['data']['quantDataMatrix']:
-        lines_written = 0
         print("{} lines written for {}.".format(lines_written, study_submitter_id))
         return lines_written
 
@@ -83,7 +83,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
             log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
     file_obj = open(jsonl_fp, 'w')
-    cnt = 0
 
     for aliquot in log2_ratio_list:
         # flatten json to write to jsonl for bq
@@ -102,13 +101,11 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
                  })
 
         append_list_to_jsonl(file_obj, aliquot_json_list)
-        console_out("*", end='')
-
-        cnt += len(aliquot_json_list)
+        lines_written += len(aliquot_json_list)
 
     file_obj.close()
 
-    console_out("\n{0} lines written for {1}!", (cnt, study_submitter_id))
+    console_out("\n{0} lines written for {1}!", (lines_written, study_submitter_id))
 
 
 def get_study_ids():
@@ -142,6 +139,8 @@ def main(args):
             filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
             get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_jsonl_fp)
+            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
+            os.remove(quant_jsonl_fp)
 
         jsonl_end = time.time() - jsonl_start
 
@@ -158,6 +157,7 @@ def main(args):
         if os.path.exists(quant_jsonl_fp):
             has_quant_data_list.append(study_id_dict['study_submitter_id'])
 
+    '''
     if 'upload_to_bucket' in steps:
         upload_start = time.time()
 
@@ -170,6 +170,7 @@ def main(args):
         upload_end = time.time() - upload_start
 
         console_out("Quant table jsonl upload completed in {0:0.0f}s!\n", (upload_end,))
+    '''
 
     if 'build_master_quant_table' in steps:
         build_start = time.time()
