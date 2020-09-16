@@ -1001,6 +1001,7 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id):
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+    job_config.skip_leading_rows = 1
 
     gs_uri = build_working_gs_uri(bq_params, tsv_file)
 

@@ -27,10 +27,6 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def get_jsonl_file(bq_params, record_type):
-    return "{}_{}.jsonl".format(bq_params['DATA_SOURCE'], record_type)
-
-
 def query_quant_data_matrix(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(
         study_submitter_id, data_type)
@@ -44,7 +40,7 @@ def get_quant_table_name(study_submitter_id):
     study_submitter_id = study_submitter_id.replace('- ', '')
     study_submitter_id = study_submitter_id.replace('-', '_')
     filename = '_'.join(study_submitter_id.split(' '))
-    return BQ_PARAMS['RELEASE'] + '_' + filename
+    return 'quant_' + BQ_PARAMS['RELEASE'] + '_' + filename
 
 
 def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
@@ -112,7 +108,6 @@ def get_quant_files():
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'],
                                       prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
-
     files = set()
 
     for blob in blobs:
@@ -163,11 +158,11 @@ def main(args):
         console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
 
     if 'build_master_quant_table' in steps:
-        build_start = time.time()
-
         blob_files = get_quant_files()
 
         for study_id_dict in study_ids_list:
+            build_start = time.time()
+
             study_submitter_id = study_id_dict['study_submitter_id']
             filename = get_quant_tsv_filename(study_submitter_id)
 
@@ -176,64 +171,14 @@ def main(args):
 
             table_name = get_quant_table_name(study_submitter_id)
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-
             schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
-            console_out("Building {0}!", (schema_filename,))
-
+            console_out("Building {0}!", (table_id,))
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
             create_and_load_tsv_table(BQ_PARAMS, filename, schema, table_id)
-            # update_table_metadata(table_id, table_metadata)
-
             build_end = time.time() - build_start
 
             console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
 
-    '''
-    for study_id_dict in study_ids_list:
-        filename = get_quant_tsv_filename(study_id_dict['study_submitter_id'])
-        quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
-        if 'upload_to_bucket' in steps:
-            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
-
-        if os.path.exists(quant_jsonl_fp):
-            has_quant_data_list.append(study_id_dict['study_submitter_id'])
-
-    
-    if 'upload_to_bucket' in steps:
-        upload_start = time.time()
-
-        for study_submitter_id in has_quant_data_list:
-            filename = get_quant_jsonl_filename(study_submitter_id)
-            quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
-
-            console_out("Uploading {0}!", (filename,))
-
-        upload_end = time.time() - upload_start
-
-        console_out("Quant table jsonl upload completed in {0:0.0f}s!\n", (upload_end,))
-
-
-    if 'build_master_quant_table' in steps:
-        build_start = time.time()
-
-        for study_submitter_id in has_quant_data_list:
-            table_name = get_quant_table_name(study_submitter_id)
-            table_id = get_working_table_id(BQ_PARAMS, table_name)
-
-            # todo make for each table
-            schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
-            console_out("Building {0}!", (schema_filename,))
-
-            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-            create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
-            update_table_metadata(table_id, table_metadata)
-
-        build_end = time.time() - build_start
-
-        console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
-    '''
     end = time.time() - start
     console_out("Finished program execution in {0:0.0f}s!\n", (end,))
 
