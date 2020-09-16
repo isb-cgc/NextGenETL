@@ -63,7 +63,7 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
         log2_ratio_list.append(
             {"study_id": study_id, "study_submitter_id": study_submitter_id,
              "aliquot_run_metadata_id": aliquot_run_metadata_id,
-             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": {}
+             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": []
              })
 
     # iterate over each gene row and add to the correct aliquot_run obj
@@ -71,10 +71,18 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
         gene = row.pop(0)
 
         for i, log2_ratio in enumerate(row):
-            log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
+            log2_ratio_el = {
+                'gene': gene,
+                'log2_ratio': log2_ratio
+                }
+
+            log2_ratio_list[i]['log2_ratios'].append(log2_ratio_el)
 
     lines_written = 0
 
+    append_list_to_jsonl(file_obj, log2_ratio_list)
+
+    '''
     # flatten json to write to jsonl for bq
     for aliquot in log2_ratio_list:
         aliquot_json_list = list()
@@ -89,6 +97,7 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
 
         append_list_to_jsonl(file_obj, aliquot_json_list)
         lines_written += len(aliquot_json_list)
+    '''
 
     print("{} lines written for {}.".format(lines_written, study_submitter_id))
 
@@ -126,8 +135,7 @@ def main(args):
 
         for study_id_dict in study_ids_list:
             try:
-                lines_written += get_and_write_quant_data(study_id_dict,
-                                                          'log2_ratio',
+                lines_written += get_and_write_quant_data(study_id_dict, 'log2_ratio',
                                                           file_obj)
             except IOError:
                 file_obj.close()
