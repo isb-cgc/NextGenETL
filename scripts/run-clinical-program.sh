@@ -7,7 +7,6 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 mkdir -p ~/config
 pushd ~/config > /dev/null
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ClinicalProgramBQBuild.yaml .
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/column_order.txt .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
@@ -15,8 +14,8 @@ source bin/activate
 popd > /dev/null
 
 mkdir -p ~/scratch
+mkdir -p ~/scratch_webapp
 
 cd ..
-python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalBQBuild.yaml ~/config/column_order.txt
-gsutil cp ./docs/documentation.txt gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/documentation.txt
+python3 ./BQ_Table_Building/build_clinical_data_program_tables.py ~/config/ClinicalProgramBQBuild.yaml
 deactivate
