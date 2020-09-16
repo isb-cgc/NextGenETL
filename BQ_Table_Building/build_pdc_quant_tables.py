@@ -74,7 +74,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
              "study_submitter_id": study_submitter_id,
              "aliquot_run_metadata_id": aliquot_run_metadata_id,
              "aliquot_submitter_id": aliquot_submitter_id,
-             "log2_ratios": []
+             "log2_ratios": dict()
              })
 
     # iterate over each gene row and add to the correct aliquot_run obj
