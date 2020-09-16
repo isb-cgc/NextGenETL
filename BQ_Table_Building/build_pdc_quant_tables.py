@@ -36,13 +36,13 @@ def query_quant_data_matrix(study_submitter_id, data_type):
         study_submitter_id, data_type)
 
 
-def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
+def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
 
-    res_json = get_graphql_api_response(api_params['ENDPOINT'],
-        query=query_quant_data_matrix(study_submitter_id, data_type))
-
+    res_json = get_graphql_api_response(API_PARAMS,
+                                        query=query_quant_data_matrix(study_submitter_id,
+                                                                      data_type))
     log2_ratio_list = list()
 
     id_row = res_json['data']['quantDataMatrix'].pop(0)
@@ -56,9 +56,9 @@ def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
 
         log2_ratio_list.append(
             {"study_id": study_id, "study_submitter_id": study_submitter_id,
-                "aliquot_run_metadata_id": aliquot_run_metadata_id,
-                "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": {}
-                })
+             "aliquot_run_metadata_id": aliquot_run_metadata_id,
+             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": {}
+             })
 
     # iterate over each gene row and add to the correct aliquot_run obj
     for row in res_json['data']['quantDataMatrix']:
@@ -119,9 +119,7 @@ def main(args):
         lines_written = 0
 
         for study_id_dict in study_ids_list:
-            lines_written += get_and_write_quant_data(API_PARAMS,
-                                                      study_id_dict,
-                                                      'log2_ratio',
+            lines_written += get_and_write_quant_data(study_id_dict, 'log2_ratio',
                                                       'quant_2020_09.jsonl')
 
         print("Quant jsonl total lines written: {}".format(lines_written))
