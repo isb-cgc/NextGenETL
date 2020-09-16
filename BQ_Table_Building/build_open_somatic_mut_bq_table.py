@@ -509,7 +509,7 @@ def main(args):
         build_pull_list_with_bq("{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], manifest_table),
                                 params['INDEXD_BQ_TABLE'].format(params['RELEASE']),
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                "_".join([params['PROGRAM'], params['DATA_TYPE'], 'Pull', 'List']),
+                                "_".join([params['PROGRAM'], params['DATA_TYPE'], 'pull', 'list']),
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
                                 local_pull_list, params['BQ_AS_BATCH'])
