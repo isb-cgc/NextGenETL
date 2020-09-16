@@ -105,7 +105,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
     file_obj.close()
 
-    console_out("\n{0} lines written for {1}!", (lines_written, study_submitter_id))
+    return lines_written
 
 
 def get_study_ids():
@@ -136,11 +136,19 @@ def main(args):
         jsonl_start = time.time()
 
         for study_id_dict in study_ids_list:
-            filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+            study_submitter_id = study_id_dict['study_submitter_id']
+            filename = get_quant_jsonl_filename(study_submitter_id)
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
-            get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_jsonl_fp)
-            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
-            os.remove(quant_jsonl_fp)
+            lines_written = get_and_write_quant_data(study_id_dict,
+                                                     'log2_ratio',
+                                                     quant_jsonl_fp)
+
+            console_out("\n{0} lines written for {1}!", (lines_written,
+                                                         study_submitter_id))
+
+            if lines_written > 0:
+                upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
+                os.remove(quant_jsonl_fp)
 
         jsonl_end = time.time() - jsonl_start
 
