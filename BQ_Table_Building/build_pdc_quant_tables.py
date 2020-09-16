@@ -82,7 +82,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         for i, log2_ratio in enumerate(row):
             log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
-    file_obj = open(jsonl_fp)
+    file_obj = open(jsonl_fp, 'w')
     cnt = 0
 
     for aliquot in log2_ratio_list:
