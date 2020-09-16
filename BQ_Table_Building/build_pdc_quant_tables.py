@@ -74,7 +74,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
-        fh.write("{}\t{}\t{}\t{}\t{}\t\n".format(
+        fh.write("{}\t{}\t{}\t{}\t{}\n".format(
             'study_id',
             'aliquot_run_metadata_id',
             'aliquot_submitter_id',
@@ -85,7 +85,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
             gene = row.pop(0)
 
             for i, log2_ratio in enumerate(row):
-                fh.write("{}\t{}\t{}\t{}\t{}\t\n".format(
+                fh.write("{}\t{}\t{}\t{}\t{}\n".format(
                     aliquot_metadata[i]['study_id'],
                     aliquot_metadata[i]['aliquot_run_metadata_id'],
                     aliquot_metadata[i]['aliquot_submitter_id'],
@@ -166,7 +166,7 @@ def main(args):
             study_submitter_id = study_id_dict['study_submitter_id']
             filename = get_quant_tsv_filename(study_submitter_id)
 
-            filename = filename.replace('quant_', '') # todo remove
+            # filename = filename.replace('quant_', '') # todo remove
 
             if filename not in blob_files:
                 print('{} not in gcp storage'.format(filename))
