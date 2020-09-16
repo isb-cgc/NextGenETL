@@ -229,22 +229,22 @@ def final_join_sql(maf_table, barcodes_table, program):
         return '''
              SELECT a.project_short_name,
                     a.case_barcode,
+                    b.*,
                     a.sample_barcode_tumor,
                     a.sample_barcode_normal,
                     a.aliquot_barcode_tumor, 
                     a.aliquot_barcode_normal,
-                    b.*
              FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
         '''.format(barcodes_table, maf_table)
     else:
         return '''
              SELECT a.project_short_name,
                     a.case_barcode,
+                    b.*,
                     a.sample_barcode_tumor,
                     a.sample_barcode_normal,
                     a.aliquot_barcode_tumor, 
                     a.aliquot_barcode_normal,
-                    b.*
              FROM `{0}` as a JOIN `{1}` as b 
              ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position
         '''.format(barcodes_table, maf_table)
