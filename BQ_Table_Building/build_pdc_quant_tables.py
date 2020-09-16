@@ -102,7 +102,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
                  })
 
         append_list_to_jsonl(file_obj, aliquot_json_list)
-        console_out("\nwrote {0} lines", (len(aliquot_json_list),))
+        console_out("*", end='')
 
         cnt += len(aliquot_json_list)
 
