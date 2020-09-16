@@ -78,9 +78,9 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
 
             log2_ratio_list[i]['log2_ratios'].append(log2_ratio_el)
 
-    lines_written = 0
+    append_list_to_jsonl(file_obj, log2_ratio_list)
 
-    lines_written += append_list_to_jsonl(file_obj, log2_ratio_list)
+    lines_written = len(log2_ratio_list)
 
     '''
     # flatten json to write to jsonl for bq
