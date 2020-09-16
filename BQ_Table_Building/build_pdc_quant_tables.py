@@ -133,6 +133,7 @@ def main(args):
                 upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
                 console_out("{0} uploaded to Google cloud storage!",
                             (filename,))  # os.remove(quant_tsv_fp)
+                os.remove(quant_tsv_fp)
 
         jsonl_end = time.time() - jsonl_start
 
