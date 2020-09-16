@@ -70,11 +70,9 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         aliquot_submitter_id = split_el[1]
 
         log2_ratio_list.append(
-            {"study_id": study_id,
-             "study_submitter_id": study_submitter_id,
+            {"study_id": study_id, "study_submitter_id": study_submitter_id,
              "aliquot_run_metadata_id": aliquot_run_metadata_id,
-             "aliquot_submitter_id": aliquot_submitter_id,
-             "log2_ratios": dict()
+             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": dict()
              })
 
     # iterate over each gene row and add to the correct aliquot_run obj
@@ -84,30 +82,33 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
         for i, log2_ratio in enumerate(row):
             log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
-    lines_written = 0
-
-    # flatten json to write to jsonl for bq
-    aliquot_json_list = list()
+    file_obj = open(jsonl_fp)
+    cnt = 0
 
     for aliquot in log2_ratio_list:
+        # flatten json to write to jsonl for bq
+        aliquot_json_list = list()
+
         log2_ratios = aliquot.pop('log2_ratios')
 
-        print("*", end='')
-
         for gene, log2_ratio in log2_ratios.items():
-            aliquot_json_list.append({
-                'study_id': aliquot['study_id'],
-                'study_submitter_id': aliquot['study_submitter_id'],
-                'aliquot_submitter_id': aliquot['aliquot_submitter_id'],
-                'aliquot_run_metadata_id': aliquot['aliquot_run_metadata_id'],
-                'gene': gene,
-                'log2_ratio': log2_ratio
-                })
+            aliquot_json_list.append(
+                {'study_id': aliquot['study_id'],
+                 'study_submitter_id': aliquot['study_submitter_id'],
+                 'aliquot_submitter_id': aliquot['aliquot_submitter_id'],
+                 'aliquot_run_metadata_id': aliquot['aliquot_run_metadata_id'],
+                 'gene': gene,
+                 'log2_ratio': log2_ratio
+                 })
 
-    write_list_to_jsonl(jsonl_fp, aliquot_json_list)
-    lines_written += len(aliquot_json_list)
+        append_list_to_jsonl(file_obj, aliquot_json_list)
+        console_out("\nwrote {0} lines", (len(aliquot_json_list),))
 
-    console_out("\n{0} lines written for {1}!", (lines_written, study_submitter_id))
+        cnt += len(aliquot_json_list)
+
+    file_obj.close()
+
+    console_out("\n{0} lines written for {1}!", (cnt, study_submitter_id))
 
 
 def get_study_ids():
@@ -151,6 +152,8 @@ def main(args):
     for study_id_dict in study_ids_list:
         filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
         quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
+        if 'upload_to_bucket' in steps:
+            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
 
         if os.path.exists(quant_jsonl_fp):
             has_quant_data_list.append(study_id_dict['study_submitter_id'])
@@ -163,8 +166,6 @@ def main(args):
             quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
 
             console_out("Uploading {0}!", (filename,))
-
-            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
 
         upload_end = time.time() - upload_start
 
