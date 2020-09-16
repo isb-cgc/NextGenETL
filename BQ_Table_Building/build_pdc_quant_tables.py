@@ -36,7 +36,7 @@ def query_quant_data_matrix(study_submitter_id, data_type):
         study_submitter_id, data_type)
 
 
-def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
+def get_and_write_quant_data(study_id_dict, data_type, file_obj):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
 
@@ -74,7 +74,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
             log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
 
     lines_written = 0
-    is_first_write = True
 
     # flatten json to write to jsonl for bq
     for aliquot in log2_ratio_list:
@@ -88,8 +87,7 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
 
             aliquot_json_list.append(aliquot)
 
-        append_list_to_jsonl(file_handler, aliquot_json_list)
-
+        append_list_to_jsonl(file_obj, aliquot_json_list)
         lines_written += len(aliquot_json_list)
 
     print("{} lines written for {}.".format(lines_written, study_submitter_id))
