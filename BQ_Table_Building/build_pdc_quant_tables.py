@@ -167,6 +167,7 @@ def main(args):
             filename = get_quant_tsv_filename(study_submitter_id)
 
             if filename not in blob_files:
+                print('{} not in gcp storage'.format(filename))
                 continue
 
             table_name = get_quant_table_name(study_submitter_id)
