@@ -92,6 +92,8 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
     for aliquot in log2_ratio_list:
         log2_ratios = aliquot.pop('log2_ratios')
 
+        print("*", end='')
+
         for gene, log2_ratio in log2_ratios.items():
             aliquot_json_list.append({
                 'study_id': aliquot['study_id'],
@@ -101,8 +103,6 @@ def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
                 'gene': gene,
                 'log2_ratio': log2_ratio
                 })
-
-        print("*", end='')
 
     write_list_to_jsonl(jsonl_fp, aliquot_json_list)
     lines_written += len(aliquot_json_list)
