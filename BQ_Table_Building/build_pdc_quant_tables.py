@@ -36,8 +36,8 @@ def query_quant_data_matrix(study_submitter_id, data_type):
         study_submitter_id, data_type)
 
 
-def get_quant_jsonl_filename(study_submitter_id):
-    return get_quant_table_name(study_submitter_id) + '.jsonl'
+def get_quant_tsv_filename(study_submitter_id):
+    return get_quant_table_name(study_submitter_id) + '.tsv'
 
 
 def get_quant_table_name(study_submitter_id):
@@ -45,64 +45,49 @@ def get_quant_table_name(study_submitter_id):
     return BQ_PARAMS['RELEASE'] + '_' + filename
 
 
-def get_and_write_quant_data(study_id_dict, data_type, jsonl_fp):
+def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
     lines_written = 0
 
     res_json = get_graphql_api_response(API_PARAMS,
-                                        query=query_quant_data_matrix(study_submitter_id,
-                                                                      data_type))
+                                        query=query_quant_data_matrix(
+                                            study_submitter_id,
+                                            data_type))
 
     if not res_json['data']['quantDataMatrix']:
         return lines_written
 
-    log2_ratio_list = list()
+    aliquot_metadata = list()
 
     id_row = res_json['data']['quantDataMatrix'].pop(0)
     id_row.pop(0)  # remove gene column header string
 
     # process first row, which gives us the aliquot ids and idx positions
-    for i, el in enumerate(id_row):
+    for el in id_row:
         split_el = el.split(':')
         aliquot_run_metadata_id = split_el[0]
         aliquot_submitter_id = split_el[1]
 
-        log2_ratio_list.append(
-            {"study_id": study_id, "study_submitter_id": study_submitter_id,
-             "aliquot_run_metadata_id": aliquot_run_metadata_id,
-             "aliquot_submitter_id": aliquot_submitter_id, "log2_ratios": dict()
-             })
+        aliquot_metadata.append({
+            "study_id": study_id,
+            "aliquot_run_metadata_id": aliquot_run_metadata_id,
+            "aliquot_submitter_id": aliquot_submitter_id})
 
     # iterate over each gene row and add to the correct aliquot_run obj
-    for row in res_json['data']['quantDataMatrix']:
-        gene = row.pop(0)
+    with open(tsv_fp, 'w') as fh:
+        for row in res_json['data']['quantDataMatrix']:
+            gene = row.pop(0)
 
-        for i, log2_ratio in enumerate(row):
-            log2_ratio_list[i]['log2_ratios'][gene] = log2_ratio
+            for i, log2_ratio in enumerate(row):
+                fh.write("{}\t{}\t{}\t{}\t{}\t\n".format(
+                    aliquot_metadata[i]['study_id'],
+                    aliquot_metadata[i]['aliquot_run_metadata_id'],
+                    aliquot_metadata[i]['aliquot_submitter_id'],
+                    gene,
+                    log2_ratio))
 
-    file_obj = open(jsonl_fp, 'w')
-
-    for aliquot in log2_ratio_list:
-        # flatten json to write to jsonl for bq
-        aliquot_json_list = list()
-
-        log2_ratios = aliquot.pop('log2_ratios')
-
-        for gene, log2_ratio in log2_ratios.items():
-            aliquot_json_list.append(
-                {'study_id': aliquot['study_id'],
-                 'study_submitter_id': aliquot['study_submitter_id'],
-                 'aliquot_submitter_id': aliquot['aliquot_submitter_id'],
-                 'aliquot_run_metadata_id': aliquot['aliquot_run_metadata_id'],
-                 'gene': gene,
-                 'log2_ratio': log2_ratio
-                 })
-
-        append_list_to_jsonl(file_obj, aliquot_json_list)
-        lines_written += len(aliquot_json_list)
-
-    file_obj.close()
+                lines_written += 1
 
     return lines_written
 
@@ -123,7 +108,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    jsonl_output_file = 'quant_2020_09.jsonl'
+    # jsonl_output_file = 'quant_2020_09.jsonl'
 
     study_ids_list = list()
     study_ids = get_query_results(get_study_ids())
@@ -136,19 +121,18 @@ def main(args):
 
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_quant_jsonl_filename(study_submitter_id)
-            quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
-            lines_written = get_and_write_quant_data(study_id_dict,
-                                                     'log2_ratio',
-                                                     quant_jsonl_fp)
+            filename = get_quant_tsv_filename(study_submitter_id)
+            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
+            lines_written = get_and_write_quant_data(study_id_dict, 'log2_ratio',
+                                                     quant_tsv_fp)
 
-            console_out("\n{0} lines written for {1}", (lines_written,
-                                                        study_submitter_id))
+            console_out("\n{0} lines written for {1}",
+                        (lines_written, study_submitter_id))
 
             if lines_written > 0:
-                upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
-                console_out("{} uploaded to Google cloud storage!")
-                os.remove(quant_jsonl_fp)
+                upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
+                console_out("{0} uploaded to Google cloud storage!",
+                            (filename,))  # os.remove(quant_tsv_fp)
 
         jsonl_end = time.time() - jsonl_start
 
@@ -158,8 +142,9 @@ def main(args):
 
     quit()
 
+    '''
     for study_id_dict in study_ids_list:
-        filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+        filename = get_quant_tsv_filename(study_id_dict['study_submitter_id'])
         quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
         if 'upload_to_bucket' in steps:
             upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
@@ -167,7 +152,7 @@ def main(args):
         if os.path.exists(quant_jsonl_fp):
             has_quant_data_list.append(study_id_dict['study_submitter_id'])
 
-    '''
+    
     if 'upload_to_bucket' in steps:
         upload_start = time.time()
 
@@ -180,7 +165,7 @@ def main(args):
         upload_end = time.time() - upload_start
 
         console_out("Quant table jsonl upload completed in {0:0.0f}s!\n", (upload_end,))
-    '''
+
 
     if 'build_master_quant_table' in steps:
         build_start = time.time()
@@ -201,7 +186,7 @@ def main(args):
         build_end = time.time() - build_start
 
         console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
-
+    '''
     end = time.time() - start
     console_out("Finished program execution in {0:0.0f}s!\n", (end,))
 
