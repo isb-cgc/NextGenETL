@@ -36,6 +36,15 @@ def query_quant_data_matrix(study_submitter_id, data_type):
         study_submitter_id, data_type)
 
 
+def get_quant_jsonl_filename(study_submitter_id):
+    return get_quant_table_name(study_submitter_id) + '.jsonl'
+
+
+def get_quant_table_name(study_submitter_id):
+    filename = '_'.join(study_submitter_id.split(' '))
+    return BQ_PARAMS['RELEASE'] + '_' + filename
+
+
 def get_and_write_quant_data(study_id_dict, data_type, file_obj):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
@@ -80,11 +89,8 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
 
             log2_ratio_list[i]['log2_ratios'].append(log2_ratio_el)
 
-    append_list_to_jsonl(file_obj, log2_ratio_list)
+    lines_written = 0
 
-    lines_written = len(log2_ratio_list)
-
-    '''
     # flatten json to write to jsonl for bq
     for aliquot in log2_ratio_list:
         aliquot_json_list = list()
@@ -99,11 +105,8 @@ def get_and_write_quant_data(study_id_dict, data_type, file_obj):
 
         append_list_to_jsonl(file_obj, aliquot_json_list)
         lines_written += len(aliquot_json_list)
-    '''
 
-    print("{} lines written for {}.".format(lines_written, study_submitter_id))
-
-    return lines_written
+    console_out("{0} lines written for {1}!", (lines_written, study_submitter_id))
 
 
 def get_study_ids():
@@ -123,46 +126,42 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     jsonl_output_file = 'quant_2020_09.jsonl'
-    quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
+
+    study_ids_list = list()
+    study_ids = get_query_results(get_study_ids())
+
+    for study in study_ids:
+        study_ids_list.append(dict(study.items()))
 
     if 'build_quant_jsonl' in steps:
-        file_obj = open(quant_jsonl_fp, 'w')
-
-        study_ids_list = list()
-
-        study_ids = get_query_results(get_study_ids())
-
-        for study in study_ids:
-            study_ids_list.append(dict(study.items()))
-
-        lines_written = 0
-
         for study_id_dict in study_ids_list:
-            try:
-                lines_written += get_and_write_quant_data(study_id_dict, 'log2_ratio',
-                                                          file_obj)
-            except IOError:
-                file_obj.close()
-                has_fatal_error("Error writing to quant jsonl file.", IOError)
-
-        print("Quant jsonl total lines written: {}".format(lines_written))
-        file_obj.close()
+            get_and_write_quant_data(study_id_dict, 'log2_ratio')
 
     if 'upload_to_bucket' in steps:
-        upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
+        for study_id_dict in study_ids_list:
+            filename = get_quant_jsonl_filename(study_id_dict['study_submitter_id'])
+            console_out("Uploading {0}!", (filename,))
+            quant_jsonl_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+            upload_to_bucket(BQ_PARAMS, quant_jsonl_fp)
 
     if 'build_master_quant_table' in steps:
         build_start = time.time()
 
-        table_id = 'isb-project-zero.PDC.quant_data_2020_09'
-        schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
+        for study_id_dict in study_ids_list:
+            table_name = get_quant_table_name(study_id_dict['study_submitter_id'])
+            table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+            # todo make for each table
+            schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
+            console_out("Building {0}!", (schema_filename,))
 
-        create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
-        update_table_metadata(table_id, table_metadata)
+            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
-        build_end = time.time() - build_start
+            create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
+            update_table_metadata(table_id, table_metadata)
+
+            build_end = time.time() - build_start
 
         console_out("Completed in {0:0.0f}s!\n", (build_end,))
 
