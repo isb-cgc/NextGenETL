@@ -38,7 +38,10 @@ def query_quant_data_matrix(study_submitter_id, data_type):
         study_submitter_id, data_type)
 
 
-def get_and_write_quant_data(api_params, study_id, study_submitter_id, data_type, jsonl_fp):
+def get_and_write_quant_data(api_params, study_id_dict, data_type, jsonl_fp):
+    print(study_id_dict)
+    exit()
+
     res_json = get_graphql_api_response(
         api_params['ENDPOINT'],
         query=query_quant_data_matrix(study_submitter_id, data_type))
