@@ -731,6 +731,23 @@ def main(args):
             print("update_table_description failed")
             return
 
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                         params['FINAL_TARGET_TABLE'])
+        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                             params['PUBLICATION_TABLE'])
+
+        success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
+            return
+
     if 'dump_working_tables' in steps:
         table_cleaner(params, file_sets, False)
 
@@ -772,23 +789,6 @@ def main(args):
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                             archive_manifest_file,
                              manifest_file.format(count_name))
-
-    #
-    # publish table:
-    #
-
-    if 'publish' in steps:
-
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'])
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             params['PUBLICATION_TABLE'])
-
-        success = publish_table(source_table, publication_dest)
-
-        if not success:
-            print("publish table failed")
-            return
 
     print('job completed')
 
