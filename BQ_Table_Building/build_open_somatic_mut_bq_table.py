@@ -673,7 +673,7 @@ def main(args):
             return
 
     #
-    # The derived table we generate has no field descriptions. Add them from the scraped page:
+    # The derived table we generate has no field descriptions. Add them from the github json files:
     #
 
     if 'update_final_schema' in steps:

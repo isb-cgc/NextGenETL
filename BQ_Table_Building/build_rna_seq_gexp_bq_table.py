@@ -37,7 +37,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
-                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table, \
+                               install_labels_and_desc, update_schema, generate_table_detail_files, publish_table, \
                                customize_labels_and_desc
 
 '''
@@ -740,29 +740,20 @@ def main(args):
             return
 
     #
-    # Update the per-field descriptions:
+    # The derived table we generate has no field descriptions. Add them from the github json files:
     #
 
-    if 'update_field_descriptions' in steps:
-        print('update_field_descriptions')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        schema_dict = {}
-        with open(schema_dict_loc, mode='r') as schema_hold_dict:
-            full_schema_list = json_loads(schema_hold_dict.read())
-        for entry in full_schema_list:
-            schema_dict[entry['name']] = {'description': entry['description']}
-
-        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
+    if 'update_final_schema' in steps:
+        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict)
         if not success:
-            print("update_field_descriptions failed")
+            print("Schema update failed")
             return
 
     #
     # Add description and labels to the target table:
     #
 
-    if 'update_table_description' in steps:
+    if 'add_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
