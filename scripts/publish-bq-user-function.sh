@@ -30,6 +30,7 @@ popd > /dev/null
 #PROJECT_ID=...
 #DATASET_ID_CURR=functions
 #DATASET_ID_VERS=functions_versioned
+#EXPECTED_VERSION=1.1
 
 source ~/config/PublishBQUserFunction.sh .
 
@@ -44,6 +45,12 @@ cd Community-Notebooks/BQUserFunctions
 cp ${FUNCTION_FILE} ~/scratch
 cd ~/scratch
 VERSION=`grep "VERSION:" ${FUNCTION_FILE} | sed -e 's/.*VERSION: *\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/'`
+
+if [ ${EXPECTED_VERSION} != ${VERSION} ]; then
+    echo "Version mismatch: ${VERSION} vs ${EXPECTED_VERSION}"
+    exit 1
+fi
+
 U_VERSION=`echo ${VERSION} | sed -e 's/\./_/'`
 
 MATCH_TAG=__PROJECTID__\.__DATASET__\.${FUNCTION_NAME}__VERSIONTAG__
