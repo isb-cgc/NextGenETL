@@ -98,10 +98,14 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
 
 def get_study_ids():
+    table_id = '{}.{}.studies_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                 BQ_PARAMS['DEV_META_DATASET'],
+                                 BQ_PARAMS['RELEASE'])
+
     return """
     SELECT study_id, study_submitter_id
-    FROM  `isb-project-zero.PDC_metadata.studies_2020_09`
-    """
+    FROM  `{}`
+    """.format(table_id)
 
 
 def get_quant_files():
@@ -115,6 +119,27 @@ def get_quant_files():
         files.add(filename)
 
     return files
+
+
+def make_gene_set_query(proteome_study):
+    table_name = "quant_{}_{}".format('quant_', BQ_PARAMS['RELEASE'], proteome_study)
+    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                 BQ_PARAMS['DEV_DATASET'],
+                                 table_name)
+
+    return """
+        SELECT gene
+        FROM `{}`
+    """.format(table_id)
+
+
+def build_gene_set(proteome_study, gene_set):
+    results = get_query_results(make_gene_set_query(proteome_study))
+
+    for gene in results:
+        gene_set.add(gene)
+
+    return gene_set
 
 
 def main(args):
@@ -182,8 +207,20 @@ def main(args):
 
             console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
 
+    if 'build_gene_table' in steps:
+        proteome_studies = API_PARAMS['PROTEOME_STUDIES']
+        gene_set = set()
+
+        for proteome_study in proteome_studies:
+            build_gene_set(proteome_study, gene_set)
+
+        print(gene_set)
+
     end = time.time() - start
-    console_out("Finished program execution in {0:0.0f}s!\n", (end,))
+    if end < 100:
+        console_out("Finished program execution in {0:0.0f}s!\n", (end,))
+    else:
+        console_out("Finished program execution in {0:0.0f}s!\n", (end,))
 
 
 if __name__ == '__main__':
