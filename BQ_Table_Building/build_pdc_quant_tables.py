@@ -169,7 +169,7 @@ def make_cases_samples_aliquots_query(offset, limit):
     total casesSamplesAliquots {{
     case_id case_submitter_id external_case_id  
     samples {{
-    sample_id sample_submitter_id sample_type_id gdc_sample_id gdc_project_id  
+    sample_id sample_submitter_id
     aliquots {{ aliquot_id aliquot_submitter_id
     aliquot_run_metadata {{ aliquot_run_metadata_id}}
     }}
@@ -267,14 +267,41 @@ def main(args):
     if 'get_cases_samples_aliquots':
         json_res = get_graphql_api_response(API_PARAMS,
                                             query=make_cases_samples_aliquots_query(
-                                                0, API_PARAMS['CSA_LIMIT']))
+                                                0,
+                                                API_PARAMS['CSA_LIMIT']))
 
         pages = json_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
 
         for i in range(pages):
             offset = 100 * i
-            print(offset)
+            json_res = get_graphql_api_response(
+                API_PARAMS,
+                query=make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
 
+            for cases_samples_aliquots in json_res['casesSamplesAliqouts']:
+                case_submitter_id = cases_samples_aliquots['case_submitter_id']
+                case_id = cases_samples_aliquots['case_id']
+                external_case_id = cases_samples_aliquots['external_case_id']
+
+                for sample in cases_samples_aliquots['samples']:
+                    sample_submitter_id = sample['sample_submitter_id']
+                    sample_id = sample['sample_id']
+
+                    for aliquots in sample['aliquots']:
+                        aliquot_submitter_id = aliquots['aliquot_submitter_id']
+                        aliquot_id = aliquots['aliquot_id']
+
+                        for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
+                            aliquot_run_metadata_id = aliquot_run_metadata[
+                                'aliquot_run_metadata_id']
+
+                            row = """{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n""".format(
+                                case_id, case_submitter_id, external_case_id, sample_id,
+                                sample_submitter_id, aliquot_id, aliquot_submitter_id,
+                                aliquot_run_metadata_id)
+
+                            print(row)
+            exit()
 
     end = time.time() - start
     if end < 100:
