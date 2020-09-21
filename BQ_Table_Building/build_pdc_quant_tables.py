@@ -276,9 +276,6 @@ def main(args):
             print(offset)
 
 
-
-        print(json_res)
-
     end = time.time() - start
     if end < 100:
         console_out("Finished program execution in {0:0.0f}s!\n", (end,))
