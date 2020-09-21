@@ -265,7 +265,10 @@ def main(args):
             quit()
 
     if 'get_cases_samples_aliquots':
-        print(make_cases_samples_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
+        json_res = get_graphql_api_response(API_PARAMS,
+                                            query=make_cases_samples_aliquots_query(
+                                                0, API_PARAMS['CSA_LIMIT']))
+        print(json_res)
 
     end = time.time() - start
     if end < 100:
