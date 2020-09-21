@@ -60,5 +60,18 @@ REPLACE_TAG_VERS=${PROJECT_ID}.${DATASET_ID_VERS}.${FUNCTION_NAME}_v${U_VERSION}
 cat ${FUNCTION_FILE} | sed -e 's/'${MATCH_TAG}'/'${REPLACE_TAG_CURR}'/' > current_${FUNCTION_FILE}
 cat ${FUNCTION_FILE} | sed -e 's/'${MATCH_TAG}'/'${REPLACE_TAG_VERS}'/' > vers_${FUNCTION_FILE}
 
+#
+# If a function depends on another function, the *explicit* version should be embedded in the SQL. We
+# will replace that with _current_ only for the current installation:
+#
+
+if [ ! -z "${DEPEND_FUNCTION_VER}" ]; then
+    MATCH_TAG_DEPEND=__PROJECTID__\.__DATASET__\.${DEPEND_FUNCTION_NAME}_${DEPEND_FUNCTION_VER}
+    REPLACE_TAG_DEPEND_CURR=${PROJECT_ID}.${DATASET_ID_CURR}.${DEPEND_FUNCTION_NAME}_current
+    mv current_${FUNCTION_FILE} pre_current_${FUNCTION_FILE}
+    cat pre_current_${FUNCTION_FILE} | sed -e 's/'${MATCH_TAG_DEPEND}'/'${REPLACE_TAG_DEPEND_CURR}'/' > current_${FUNCTION_FILE}
+    rm current_${FUNCTION_FILE}
+fi
+
 bq query --nouse_legacy_sql < current_${FUNCTION_FILE}
 bq query --nouse_legacy_sql < vers_${FUNCTION_FILE}
