@@ -212,7 +212,9 @@ def main(args):
         gene_set = set()
 
         for proteome_study in proteome_studies:
+            console_out("Add gene set for {0}", (proteome_study,))
             build_gene_set(proteome_study, gene_set)
+            console_out("New gene set size: {}", (len(gene_set)))
 
         print(gene_set)
 
