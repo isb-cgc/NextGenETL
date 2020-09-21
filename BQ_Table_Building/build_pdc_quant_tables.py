@@ -181,7 +181,7 @@ def make_cases_samples_aliquots_query(offset, limit):
     '''.format(offset, limit)
 
 
-def get_cases_samples_aliquots(csa_tsv):
+def build_cases_samples_aliquots_tsv(csa_tsv):
     pages_res = get_graphql_api_response(API_PARAMS, make_cases_samples_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
 
     pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
@@ -228,12 +228,70 @@ def get_cases_samples_aliquots(csa_tsv):
 
                             row = """{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n""".format(
                                 case_id,
-                                case_submitter_id, external_case_id, sample_id,
-                                sample_submitter_id, aliquot_id, aliquot_submitter_id,
+                                case_submitter_id,
+                                external_case_id,
+                                sample_id,
+                                sample_submitter_id,
+                                aliquot_id,
+                                aliquot_submitter_id,
                                 aliquot_run_metadata_id)
 
                             csa_fh.write(row)
+
             console_out("written to tsv file.")
+
+
+def make_biospecimen_per_study_query(study_id):
+    return '''
+    {{ biospecimenPerStudy( study_id: \"{}\") {{
+        aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id 
+        aliquot_status case_status sample_status project_name sample_type disease_type primary_site pool taxon
+    }}}}'''.format(study_id)
+
+
+def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
+    with open(biospecimen_tsv, 'w') as bio_fh:
+        bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+            'aliquot_id',
+            'sample_id',
+            'case_id',
+            'aliquot_submitter_id',
+            'sample_submitter_id',
+            'case_submitter_id',
+            'aliquot_status',
+            'case_status',
+            'sample_status',
+            'project_name',
+            'sample_type',
+            'disease_type',
+            'primary_site',
+            'pool',
+            'taxon'
+        ))
+
+        for study in study_ids_list:
+            json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
+
+            biospecimen_data = json_res['data']['biospecimenPerStudy']
+
+            for biospecimen in biospecimen_data:
+                bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                    biospecimen['aliquot_id'],
+                    biospecimen['sample_id'],
+                    biospecimen['case_id'],
+                    biospecimen['aliquot_submitter_id'],
+                    biospecimen['sample_submitter_id'],
+                    biospecimen['case_submitter_id'],
+                    biospecimen['aliquot_status'],
+                    biospecimen['case_status'],
+                    biospecimen['sample_status'],
+                    biospecimen['project_name'],
+                    biospecimen['sample_type'],
+                    biospecimen['disease_type'],
+                    biospecimen['primary_site'],
+                    biospecimen['pool'],
+                    biospecimen['taxon']
+                ))
 
 
 def main(args):
@@ -323,10 +381,11 @@ def main(args):
             json_res = get_graphql_api_response(API_PARAMS,
                                                 make_gene_query(gene_name))
 
+    csa_tsv_name = 'cases_samples_aliquots_{}.tsv'.format(BQ_PARAMS['RELEASE'])
 
     if 'build_cases_samples_aliquots_tsv' in steps:
-        csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')  # todo add release to tsv name
-        get_cases_samples_aliquots(csa_tsv)
+        csa_tsv = get_scratch_fp(BQ_PARAMS, csa_tsv_name)
+        build_cases_samples_aliquots_tsv(csa_tsv)
         upload_to_bucket(BQ_PARAMS, csa_tsv)
 
     if 'build_cases_samples_aliquots_table' in steps:
@@ -346,7 +405,36 @@ def main(args):
         )
 
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        create_and_load_tsv_table(BQ_PARAMS, 'cases_samples_aliquots.tsv', schema, table_id)  # todo add release to tsv
+        create_and_load_tsv_table(BQ_PARAMS, csa_tsv_name, schema, table_id)
+        build_end = time.time() - build_start
+
+        console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
+
+    biospecimen_tsv_name = 'biospecimen_{}.tsv'.format(BQ_PARAMS['RELEASE'])
+
+    if 'build_biospecimen_tsv' in steps:
+        biospecimen_tsv = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_name)
+        build_biospecimen_tsv(study_ids_list, biospecimen_tsv)
+        upload_to_bucket(BQ_PARAMS, biospecimen_tsv)
+
+    if 'build_biospecimen_tables':
+        build_start = time.time()
+
+        table_name = 'biospecimen_' + BQ_PARAMS['RELEASE']
+        table_id = "{}.{}.{}".format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_META_DATASET'],
+            table_name
+        )
+
+        schema_filename = '{}.{}.biospecimen_{}.json'.format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_META_DATASET'],
+            BQ_PARAMS['RELEASE']
+        )
+
+        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        create_and_load_tsv_table(BQ_PARAMS, csa_tsv_name, schema, table_id)
         build_end = time.time() - build_start
 
         console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
