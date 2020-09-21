@@ -323,9 +323,9 @@ def main(args):
             json_res = get_graphql_api_response(API_PARAMS,
                                                 make_gene_query(gene_name))
 
-    csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')
 
     if 'build_cases_samples_aliquots_tsv' in steps:
+        csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')  # todo add release to tsv name
         get_cases_samples_aliquots(csa_tsv)
         upload_to_bucket(BQ_PARAMS, csa_tsv)
 
@@ -346,7 +346,7 @@ def main(args):
         )
 
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        create_and_load_tsv_table(BQ_PARAMS, csa_tsv, schema, table_id)
+        create_and_load_tsv_table(BQ_PARAMS, 'cases_samples_aliquots.tsv', schema, table_id)  # todo add release to tsv
         build_end = time.time() - build_start
 
         console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
