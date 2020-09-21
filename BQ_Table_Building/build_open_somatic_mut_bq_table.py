@@ -97,6 +97,48 @@ def check_caller_list(all_files, expected_callers):
 
     return callers == expected_set
 
+
+'''
+----------------------------------------------------------------------------------------------
+First BQ Processing: Add Aliquot IDs
+The GDC files only provide tumor and normal BAM file IDS. We need aliquots, samples, and
+associated barcodes. We get this by first attaching the aliquot IDs using the file table
+that provides aliquot UUIDs for BAM files.
+'''
+
+
+def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
+    sql = attach_aliquot_ids_sql(maf_table, file_table)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for above
+'''
+
+
+def attach_aliquot_ids_sql(maf_table, file_table):
+    return '''
+        WITH
+        a1 AS (SELECT DISTINCT tumor_bam_uuid, normal_bam_uuid FROM `{0}`),        
+        a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id_tumor,
+                      a1.tumor_bam_uuid,
+                      a1.normal_bam_uuid
+               FROM a1 JOIN `{1}` AS b ON a1.tumor_bam_uuid = b.file_gdc_id
+               WHERE b.associated_entities__entity_type = 'aliquot')
+        SELECT 
+               c.project_short_name,
+               c.case_gdc_id,
+               c.associated_entities__entity_gdc_id AS aliquot_gdc_id_normal,
+               a2.aliquot_gdc_id_tumor,
+               a2.tumor_bam_uuid,
+               a2.normal_bam_uuid
+        FROM a2 JOIN `{1}` AS c ON a2.normal_bam_uuid = c.file_gdc_id
+        WHERE c.associated_entities__entity_type = 'aliquot'
+        '''.format(maf_table, file_table)
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Second BQ Processing: Add Barcodes
