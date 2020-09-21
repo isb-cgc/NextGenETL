@@ -187,21 +187,21 @@ def get_cases_samples_aliquots(csa_tsv):
     pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
 
     with open(csa_tsv, 'w') as csa_fh:
-        csa_fh.write("""
-        case_id\t
-        case_submitter_id\t
-        external_case_id\t
-        sample_id\t
-        sample_submitter_id\t
-        aliquot_id\t
-        aliquot_submitter_id\t
-        aliquot_run_metadata_id\n
-        """)
+        csa_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+            'case_id',
+            'case_submitter_id',
+            'external_case_id',
+            'sample_id',
+            'sample_submitter_id',
+            'aliquot_id',
+            'aliquot_submitter_id',
+            'aliquot_run_metadata_id')
+        )
 
     with open(csa_tsv, 'a') as csa_fh:
         for i in range(pages):
             offset = 100 * i
-            console_out("Getting CasesSamplesAliquots results from offset {0}", (offset,))
+            console_out("Getting CasesSamplesAliquots results from offset {0}... ", (offset,), end='')
 
             json_res = get_graphql_api_response(API_PARAMS,
                                                 make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
@@ -233,6 +233,7 @@ def get_cases_samples_aliquots(csa_tsv):
                                 aliquot_run_metadata_id)
 
                             csa_fh.write(row)
+            console_out("written to tsv file.")
 
 
 def main(args):
@@ -292,13 +293,19 @@ def main(args):
 
             table_name = get_quant_table_name(study_submitter_id)
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-            schema_filename = 'isb-project-zero.PDC.quant_data_2020_09.json'
+
+            schema_filename = '{}.{}.quant_data_{}.json'.format(
+                BQ_PARAMS['DEV_PROJECT'],
+                BQ_PARAMS['DEV_DATASET'],
+                BQ_PARAMS['RELEASE']
+            )
+
             console_out("Building {0}!", (table_id,))
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
             create_and_load_tsv_table(BQ_PARAMS, filename, schema, table_id)
             build_end = time.time() - build_start
 
-            console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
+            console_out("Quant table built in {0:0.0f}s!\n", (build_end,))
 
     if 'build_gene_table' in steps:
         # PDC API returning an error
@@ -316,10 +323,33 @@ def main(args):
             json_res = get_graphql_api_response(API_PARAMS,
                                                 make_gene_query(gene_name))
 
-    if 'get_cases_samples_aliquots':
-        csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')
+    csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')
+
+    if 'build_cases_samples_aliquots_tsv' in steps:
         get_cases_samples_aliquots(csa_tsv)
         upload_to_bucket(BQ_PARAMS, csa_tsv)
+
+    if 'build_cases_samples_aliquots_table' in steps:
+        build_start = time.time()
+
+        table_name = 'case_aliquot_run_metadata_mapping_' + BQ_PARAMS['RELEASE']
+        table_id = "{}.{}.{}".format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_META_DATASET'],
+            table_name
+        )
+
+        schema_filename = '{}.{}.case_aliquot_run_metadata_mapping_{}.json'.format(
+            BQ_PARAMS['DEV_PROJECT'],
+            BQ_PARAMS['DEV_DATASET'],
+            BQ_PARAMS['RELEASE']
+        )
+
+        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        create_and_load_tsv_table(BQ_PARAMS, csa_tsv, schema, table_id)
+        build_end = time.time() - build_start
+
+        console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
 
     end = time.time() - start
     if end < 100:
