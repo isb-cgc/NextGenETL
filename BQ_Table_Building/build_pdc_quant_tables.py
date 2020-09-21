@@ -278,6 +278,8 @@ def main(args):
                 API_PARAMS,
                 query=make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
 
+            print(json_res.keys())
+
             for cases_samples_aliquots in \
                     json_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliqouts']:
                 case_submitter_id = cases_samples_aliquots['case_submitter_id']
