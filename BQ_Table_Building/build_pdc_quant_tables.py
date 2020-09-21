@@ -341,7 +341,7 @@ def main(args):
 
         schema_filename = '{}.{}.case_aliquot_run_metadata_mapping_{}.json'.format(
             BQ_PARAMS['DEV_PROJECT'],
-            BQ_PARAMS['DEV_DATASET'],
+            BQ_PARAMS['DEV_META_DATASET'],
             BQ_PARAMS['RELEASE']
         )
 
