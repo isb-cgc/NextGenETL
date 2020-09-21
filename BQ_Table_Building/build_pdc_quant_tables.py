@@ -122,7 +122,7 @@ def get_quant_files():
 
 
 def make_gene_set_query(proteome_study):
-    table_name = "quant_{}_{}".format('quant_', BQ_PARAMS['RELEASE'], proteome_study)
+    table_name = "quant_{}_{}".format(BQ_PARAMS['RELEASE'], proteome_study)
     table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
                                  BQ_PARAMS['DEV_DATASET'],
                                  table_name)
