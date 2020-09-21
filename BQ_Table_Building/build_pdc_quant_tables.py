@@ -268,6 +268,15 @@ def main(args):
         json_res = get_graphql_api_response(API_PARAMS,
                                             query=make_cases_samples_aliquots_query(
                                                 0, API_PARAMS['CSA_LIMIT']))
+
+        pages = json_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
+
+        for i in range(pages):
+            offset = 100 * i
+            print(offset)
+
+
+
         print(json_res)
 
     end = time.time() - start
