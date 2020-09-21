@@ -413,11 +413,13 @@ def main(args):
     biospecimen_tsv_name = 'biospecimen_{}.tsv'.format(BQ_PARAMS['RELEASE'])
 
     if 'build_biospecimen_tsv' in steps:
+        console_out("Building biospecimen tsv")
         biospecimen_tsv = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_name)
         build_biospecimen_tsv(study_ids_list, biospecimen_tsv)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv)
 
-    if 'build_biospecimen_tables':
+    if 'build_biospecimen_tables' in steps:
+        console_out("Building biospecimen table")
         build_start = time.time()
 
         table_name = 'biospecimen_' + BQ_PARAMS['RELEASE']
@@ -434,7 +436,7 @@ def main(args):
         )
 
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        create_and_load_tsv_table(BQ_PARAMS, csa_tsv_name, schema, table_id)
+        create_and_load_tsv_table(BQ_PARAMS, biospecimen_tsv_name, schema, table_id)
         build_end = time.time() - build_start
 
         console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
