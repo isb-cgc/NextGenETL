@@ -181,6 +181,60 @@ def make_cases_samples_aliquots_query(offset, limit):
     '''.format(offset, limit)
 
 
+def get_cases_samples_aliquots(csa_tsv):
+    pages_res = get_graphql_api_response(API_PARAMS, make_cases_samples_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
+
+    pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
+
+    with open(csa_tsv, 'w') as csa_fh:
+        csa_fh.write("""
+        case_id\t
+        case_submitter_id\t
+        external_case_id\t
+        sample_id\t
+        sample_submitter_id\t
+        aliquot_id\t
+        aliquot_submitter_id\t
+        aliquot_run_metadata_id\n
+        """)
+
+    with open(csa_tsv, 'a') as csa_fh:
+        for i in range(pages):
+            offset = 100 * i
+            console_out("Getting CasesSamplesAliquots results from offset {0}", (offset,))
+
+            json_res = get_graphql_api_response(API_PARAMS,
+                                                make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
+
+            paged_csas = json_res['data']['paginatedCasesSamplesAliquots']
+            cases_samples_aliquots = paged_csas['casesSamplesAliquots']
+
+            for case in cases_samples_aliquots:
+                case_submitter_id = case['case_submitter_id']
+                case_id = case['case_id']
+                external_case_id = case['external_case_id']
+
+                for sample in case['samples']:
+                    sample_submitter_id = sample['sample_submitter_id']
+                    sample_id = sample['sample_id']
+
+                    for aliquots in sample['aliquots']:
+                        aliquot_submitter_id = aliquots['aliquot_submitter_id']
+                        aliquot_id = aliquots['aliquot_id']
+
+                        for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
+                            aliquot_run_metadata_id = aliquot_run_metadata[
+                                'aliquot_run_metadata_id']
+
+                            row = """{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n""".format(
+                                case_id,
+                                case_submitter_id, external_case_id, sample_id,
+                                sample_submitter_id, aliquot_id, aliquot_submitter_id,
+                                aliquot_run_metadata_id)
+
+                            csa_fh.write(row)
+
+
 def main(args):
     start = time.time()
 
@@ -260,53 +314,12 @@ def main(args):
 
         for gene_name in gene_set:
             json_res = get_graphql_api_response(API_PARAMS,
-                                                query=make_gene_query(gene_name))
-            print(json_res)
-            quit()
+                                                make_gene_query(gene_name))
 
     if 'get_cases_samples_aliquots':
-        pages_res = get_graphql_api_response(API_PARAMS,
-                                            query=make_cases_samples_aliquots_query(
-                                                0,
-                                                API_PARAMS['CSA_LIMIT']))
-
-        pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
-
-        for i in range(pages):
-            offset = 100 * i
-            console_out("Getting CasesSamplesAliquots results from offset {0}", (offset,))
-
-            json_res = get_graphql_api_response(
-                API_PARAMS,
-                query=make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
-
-            p_cases_samples_aliquots = json_res['data']['paginatedCasesSamplesAliquots']
-            cases_samples_aliquots = p_cases_samples_aliquots['casesSamplesAliquots']
-
-            for case in cases_samples_aliquots:
-                case_submitter_id = case['case_submitter_id']
-                case_id = case['case_id']
-                external_case_id = case['external_case_id']
-
-                for sample in case['samples']:
-                    sample_submitter_id = sample['sample_submitter_id']
-                    sample_id = sample['sample_id']
-
-                    for aliquots in sample['aliquots']:
-                        aliquot_submitter_id = aliquots['aliquot_submitter_id']
-                        aliquot_id = aliquots['aliquot_id']
-
-                        for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
-                            aliquot_run_metadata_id = aliquot_run_metadata[
-                                'aliquot_run_metadata_id']
-
-                            row = """{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n""".format(
-                                case_id, case_submitter_id, external_case_id, sample_id,
-                                sample_submitter_id, aliquot_id, aliquot_submitter_id,
-                                aliquot_run_metadata_id)
-
-                            print(row)
-            exit()
+        csa_tsv = get_scratch_fp(BQ_PARAMS, 'cases_samples_aliquots.tsv')
+        get_cases_samples_aliquots(csa_tsv)
+        upload_to_bucket(BQ_PARAMS, csa_tsv)
 
     end = time.time() - start
     if end < 100:
