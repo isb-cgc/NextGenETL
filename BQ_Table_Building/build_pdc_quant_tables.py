@@ -67,20 +67,24 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
         aliquot_metadata.append(
             {"study_id": study_id, "aliquot_run_metadata_id": aliquot_run_metadata_id,
-                "aliquot_submitter_id": aliquot_submitter_id
-            })
+             "aliquot_submitter_id": aliquot_submitter_id
+             })
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
         fh.write("{}\t{}\t{}\t{}\t{}\n".format('study_id', 'aliquot_run_metadata_id',
-            'aliquot_submitter_id', 'gene', 'log2_ratio'))
+                                               'aliquot_submitter_id', 'gene',
+                                               'log2_ratio'))
         for row in res_json['data']['quantDataMatrix']:
             gene = row.pop(0)
 
             for i, log2_ratio in enumerate(row):
                 fh.write("{}\t{}\t{}\t{}\t{}\n".format(aliquot_metadata[i]['study_id'],
-                    aliquot_metadata[i]['aliquot_run_metadata_id'],
-                    aliquot_metadata[i]['aliquot_submitter_id'], gene, log2_ratio))
+                                                       aliquot_metadata[i][
+                                                           'aliquot_run_metadata_id'],
+                                                       aliquot_metadata[i][
+                                                           'aliquot_submitter_id'], gene,
+                                                       log2_ratio))
 
                 lines_written += 1
 
@@ -131,6 +135,25 @@ def build_gene_set(proteome_study, gene_set):
     return gene_set
 
 
+"""
+https://pdc.cancer.gov/graphql?query={ paginatedCasesSamplesAliquots(offset:0 limit: 5) 
+{ total casesSamplesAliquots { case_id case_submitter_id external_case_id 
+tissue_source_site_code days_to_lost_to_followup disease_type index_date 
+lost_to_followup primary_site samples { sample_id sample_submitter_id sample_type 
+sample_type_id gdc_sample_id gdc_project_id biospecimen_anatomic_site composition 
+current_weight days_to_collection days_to_sample_procurement 
+diagnosis_pathologically_confirmed freezing_method initial_weight 
+intermediate_dimension is_ffpe longest_dimension method_of_sample_procurement 
+oct_embedded pathology_report_uuid preservation_method sample_type_id 
+shortest_dimension time_between_clamping_and_freezing 
+time_between_excision_and_freezing tissue_type tumor_code tumor_code_id 
+tumor_descriptor aliquots { aliquot_id aliquot_submitter_id aliquot_quantity 
+aliquot_volume amount analyte_type aliquot_run_metadata { aliquot_run_metadata_id } } } 
+} pagination { count sort from page total pages size } } }
+
+"""
+
+
 def make_gene_query(gene_name):
     return '''{{ geneSpectralCount(gene_name: \"{}\") {{
         gene_id NCBI_gene_id authority description organism 
@@ -138,6 +161,24 @@ def make_gene_query(gene_name):
     }}
     }}
     '''.format(gene_name)
+
+
+def make_cases_samples_aliquots_query(offset, limit):
+    return '''
+    {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+    total casesSamplesAliquots {{
+    case_id case_submitter_id external_case_id  
+    samples {{
+    sample_id sample_submitter_id sample_type_id gdc_sample_id gdc_project_id  
+    aliquots {{ aliquot_id aliquot_submitter_id
+    aliquot_run_metadata {{ aliquot_run_metadata_id}}
+    }}
+    }}
+    }}
+    pagination {{ count sort from page total pages size }}
+    }}
+    }}
+    '''.format(offset, limit)
 
 
 def main(args):
@@ -206,6 +247,9 @@ def main(args):
             console_out("Quant table build completed in {0:0.0f}s!\n", (build_end,))
 
     if 'build_gene_table' in steps:
+        # PDC API returning an error
+        # String cannot represent value:
+        # <Buffer f9 03 7c ab b8 14 11 e8 90 7f 0a 27 05 22 9b 82>
         proteome_studies = API_PARAMS['PROTEOME_STUDIES']
         gene_set = set()
 
@@ -219,6 +263,9 @@ def main(args):
                                                 query=make_gene_query(gene_name))
             print(json_res)
             quit()
+
+    if 'get_cases_samples_aliquots':
+        print(make_cases_samples_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
 
     end = time.time() - start
     if end < 100:
