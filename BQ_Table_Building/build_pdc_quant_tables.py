@@ -27,7 +27,7 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def query_quant_data_matrix(study_submitter_id, data_type):
+def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(
         study_submitter_id, data_type)
 
@@ -48,10 +48,8 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     study_id = study_id_dict['study_id']
     lines_written = 0
 
-    res_json = get_graphql_api_response(API_PARAMS,
-                                        query=query_quant_data_matrix(
-                                            study_submitter_id,
-                                            data_type))
+    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(
+        study_submitter_id, data_type))
 
     if not res_json['data']['quantDataMatrix']:
         return lines_written
@@ -67,30 +65,22 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
         aliquot_run_metadata_id = split_el[0]
         aliquot_submitter_id = split_el[1]
 
-        aliquot_metadata.append({
-            "study_id": study_id,
-            "aliquot_run_metadata_id": aliquot_run_metadata_id,
-            "aliquot_submitter_id": aliquot_submitter_id})
+        aliquot_metadata.append(
+            {"study_id": study_id, "aliquot_run_metadata_id": aliquot_run_metadata_id,
+                "aliquot_submitter_id": aliquot_submitter_id
+            })
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
-        fh.write("{}\t{}\t{}\t{}\t{}\n".format(
-            'study_id',
-            'aliquot_run_metadata_id',
-            'aliquot_submitter_id',
-            'gene',
-            'log2_ratio'
-            ))
+        fh.write("{}\t{}\t{}\t{}\t{}\n".format('study_id', 'aliquot_run_metadata_id',
+            'aliquot_submitter_id', 'gene', 'log2_ratio'))
         for row in res_json['data']['quantDataMatrix']:
             gene = row.pop(0)
 
             for i, log2_ratio in enumerate(row):
-                fh.write("{}\t{}\t{}\t{}\t{}\n".format(
-                    aliquot_metadata[i]['study_id'],
+                fh.write("{}\t{}\t{}\t{}\t{}\n".format(aliquot_metadata[i]['study_id'],
                     aliquot_metadata[i]['aliquot_run_metadata_id'],
-                    aliquot_metadata[i]['aliquot_submitter_id'],
-                    gene,
-                    log2_ratio))
+                    aliquot_metadata[i]['aliquot_submitter_id'], gene, log2_ratio))
 
                 lines_written += 1
 
@@ -99,8 +89,8 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
 def get_study_ids():
     table_id = '{}.{}.studies_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                 BQ_PARAMS['DEV_META_DATASET'],
-                                 BQ_PARAMS['RELEASE'])
+                                         BQ_PARAMS['DEV_META_DATASET'],
+                                         BQ_PARAMS['RELEASE'])
 
     return """
     SELECT study_id, study_submitter_id
@@ -123,8 +113,7 @@ def get_quant_files():
 
 def make_gene_set_query(proteome_study):
     table_name = "quant_{}_{}".format(BQ_PARAMS['RELEASE'], proteome_study)
-    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                 BQ_PARAMS['DEV_DATASET'],
+    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'],
                                  table_name)
 
     return """
@@ -140,6 +129,15 @@ def build_gene_set(proteome_study, gene_set):
         gene_set.add(row['gene'])
 
     return gene_set
+
+
+def make_gene_query(gene_name):
+    return '''{{ geneSpectralCount(gene_name: \"{}\") {{
+        gene_id NCBI_gene_id authority description organism 
+        chromosome locus proteins assays
+    }}
+    }}
+    '''.format(gene_name)
 
 
 def main(args):
@@ -216,7 +214,11 @@ def main(args):
             build_gene_set(proteome_study, gene_set)
             console_out("New gene set size: {}", (len(gene_set),))
 
-        print(gene_set)
+        for gene_name in gene_set:
+            json_res = get_graphql_api_response(API_PARAMS,
+                                                query=make_gene_query(gene_name))
+            print(json_res)
+            quit()
 
     end = time.time() - start
     if end < 100:
