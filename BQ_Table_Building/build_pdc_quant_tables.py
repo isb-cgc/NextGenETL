@@ -136,10 +136,8 @@ def make_gene_set_query(proteome_study):
 def build_gene_set(proteome_study, gene_set):
     results = get_query_results(make_gene_set_query(proteome_study))
 
-    print(results)
-
-    for gene in results:
-        gene_set.add(gene)
+    for row in results:
+        gene_set.add(row['gene'])
 
     return gene_set
 
