@@ -265,28 +265,30 @@ def main(args):
             quit()
 
     if 'get_cases_samples_aliquots':
-        json_res = get_graphql_api_response(API_PARAMS,
+        pages_res = get_graphql_api_response(API_PARAMS,
                                             query=make_cases_samples_aliquots_query(
                                                 0,
                                                 API_PARAMS['CSA_LIMIT']))
 
-        pages = json_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
+        pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
 
         for i in range(pages):
             offset = 100 * i
+            console_out("Getting CasesSamplesAliquots results from offset {0}", (offset,))
+
             json_res = get_graphql_api_response(
                 API_PARAMS,
                 query=make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
 
-            print(json_res.keys())
+            p_cases_samples_aliquots = json_res['data']['paginatedCasesSamplesAliquots']
+            cases_samples_aliquots = p_cases_samples_aliquots['casesSamplesAliquots']
 
-            for cases_samples_aliquots in \
-                    json_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliqouts']:
-                case_submitter_id = cases_samples_aliquots['case_submitter_id']
-                case_id = cases_samples_aliquots['case_id']
-                external_case_id = cases_samples_aliquots['external_case_id']
+            for case in cases_samples_aliquots:
+                case_submitter_id = case['case_submitter_id']
+                case_id = case['case_id']
+                external_case_id = case['external_case_id']
 
-                for sample in cases_samples_aliquots['samples']:
+                for sample in case['samples']:
                     sample_submitter_id = sample['sample_submitter_id']
                     sample_id = sample['sample_id']
 
