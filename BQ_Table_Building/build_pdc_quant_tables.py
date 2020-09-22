@@ -126,7 +126,7 @@ def get_quant_files():
     return files
 
 
-def make_gene_set_query(proteome_study):
+def make_gene_name_set_query(proteome_study):
     table_name = "quant_{}_{}".format(BQ_PARAMS['RELEASE'], proteome_study)
     table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'],
                                  table_name)
@@ -137,8 +137,8 @@ def make_gene_set_query(proteome_study):
     """.format(table_id)
 
 
-def build_gene_set(proteome_study, gene_set):
-    results = get_query_results(make_gene_set_query(proteome_study))
+def build_gene_name_set(proteome_study, gene_set):
+    results = get_query_results(make_gene_name_set_query(proteome_study))
 
     for row in results:
         gene_set.add(row['gene'])
@@ -167,7 +167,7 @@ aliquot_volume amount analyte_type aliquot_run_metadata { aliquot_run_metadata_i
 
 def make_gene_query(gene_name):
     return '''{{ geneSpectralCount(gene_name: \"{}\") {{
-        gene_id NCBI_gene_id authority description organism 
+        gene_name NCBI_gene_id authority description organism 
         chromosome locus proteins assays
     }}
     }}
@@ -385,7 +385,7 @@ def main(args):
 
         for proteome_study in proteome_studies:
             console_out("Add gene set for {0}", (proteome_study,))
-            build_gene_set(proteome_study, gene_set)
+            build_gene_name_set(proteome_study, gene_set)
             console_out("New gene set size: {}", (len(gene_set),))
 
         for gene_name in gene_set:
