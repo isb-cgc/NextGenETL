@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import os
+
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -377,20 +377,20 @@ def main(args):
             console_out("Quant table built in {0:0.0f}s!\n", (build_end,))
 
     if 'build_gene_table' in steps:
-        # PDC API returning an error
-        # String cannot represent value:
-        # <Buffer f9 03 7c ab b8 14 11 e8 90 7f 0a 27 05 22 9b 82>
         proteome_studies = API_PARAMS['PROTEOME_STUDIES']
         gene_set = set()
 
         for proteome_study in proteome_studies:
-            console_out("Add gene set for {0}", (proteome_study,))
+            console_out("Add gene names from {0}... ", (proteome_study,), end="")
             build_gene_name_set(proteome_study, gene_set)
-            console_out("New gene set size: {}", (len(gene_set),))
+            console_out("new set size: {0}", (len(gene_set),))
 
         for gene_name in gene_set:
+            console_out("Get api response for {0} gene", (gene_name,))
             json_res = get_graphql_api_response(API_PARAMS,
                                                 make_gene_query(gene_name))
+            print(json_res)
+            time.sleep(2)
 
     csa_tsv_name = 'cases_samples_aliquots_{}.tsv'.format(BQ_PARAMS['RELEASE'])
 
