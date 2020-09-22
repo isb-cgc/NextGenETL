@@ -29,7 +29,9 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(
-        study_submitter_id, data_type)
+        study_submitter_id,
+        data_type
+    )
 
 
 def get_quant_tsv_filename(study_submitter_id):
@@ -66,25 +68,34 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
         aliquot_submitter_id = split_el[1]
 
         aliquot_metadata.append(
-            {"study_id": study_id, "aliquot_run_metadata_id": aliquot_run_metadata_id,
-             "aliquot_submitter_id": aliquot_submitter_id
-             })
+            {
+                "study_id": study_id,
+                "aliquot_run_metadata_id": aliquot_run_metadata_id,
+                "aliquot_submitter_id": aliquot_submitter_id
+            }
+        )
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
-        fh.write("{}\t{}\t{}\t{}\t{}\n".format('study_id', 'aliquot_run_metadata_id',
-                                               'aliquot_submitter_id', 'gene',
-                                               'log2_ratio'))
+        fh.write("{}\t{}\t{}\t{}\t{}\n".format(
+            'aliquot_run_metadata_id',
+            'aliquot_submitter_id',
+            'study_id',
+            'gene',
+            'log2_ratio')
+        )
+
         for row in res_json['data']['quantDataMatrix']:
             gene = row.pop(0)
 
             for i, log2_ratio in enumerate(row):
-                fh.write("{}\t{}\t{}\t{}\t{}\n".format(aliquot_metadata[i]['study_id'],
-                                                       aliquot_metadata[i][
-                                                           'aliquot_run_metadata_id'],
-                                                       aliquot_metadata[i][
-                                                           'aliquot_submitter_id'], gene,
-                                                       log2_ratio))
+                fh.write("{}\t{}\t{}\t{}\t{}\n".format(
+                    aliquot_metadata[i]['aliquot_run_metadata_id'],
+                    aliquot_metadata[i]['aliquot_submitter_id'],
+                    aliquot_metadata[i]['study_id'],
+                    gene,
+                    log2_ratio)
+                )
 
                 lines_written += 1
 
