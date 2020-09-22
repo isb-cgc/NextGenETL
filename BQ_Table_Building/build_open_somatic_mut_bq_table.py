@@ -157,7 +157,7 @@ SQL for above
 '''
 
 
-def attach_barcodes_sql(maf_table, aliquot_table, program):
+def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
     if program == 'TCGA':
         return '''
             WITH
@@ -192,18 +192,29 @@ def attach_barcodes_sql(maf_table, aliquot_table, program):
                           a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
                           a.Start_Position
                 FROM
-                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id)
-              SELECT a1.project_short_name,
-                     c.case_barcode,
-                     a1.sample_barcode_tumor,
-                     c.sample_barcode AS sample_barcode_normal,
-                     a1.aliquot_barcode_tumor,
-                     c.aliquot_barcode AS aliquot_barcode_normal,
-                     a1.aliquot_gdc_id_tumor,
-                     a1.Start_Position
-              FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-              WHERE c.case_gdc_id = a1.case_gdc_id
-        '''.format(maf_table, aliquot_table)
+                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
+            a2 AS (SELECT a1.project_short_name,
+                          c.case_barcode,
+                          a1.sample_barcode_tumor,
+                          c.sample_barcode AS sample_barcode_normal,
+                          a1.aliquot_barcode_tumor,
+                          c.aliquot_barcode AS aliquot_barcode_normal,
+                          a1.aliquot_gdc_id_tumor,
+                          a1.Start_Position
+                FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
+                WHERE c.case_gdc_id = a1.case_gdc_id)
+            SELECT a2.project_short_name,
+                   a2.case_barcode,
+                   d.primary_site,
+                   a2.sample_barcode_tumor,
+                   a2.sample_barcode_normal,
+                   a2.aliquot_barcode_tumor,
+                   a2.aliquot_barcode_normal,
+                   a2.aliquot_gdc_id_tumor,
+                   a2.Start_Position
+            FROM a2 JOIN `{2}` AS d ON a2.case_barcode = d.case_barcode
+              
+        '''.format(maf_table, aliquot_table, case_table)
 
 
 '''
@@ -229,6 +240,7 @@ def final_join_sql(maf_table, barcodes_table, program):
         return '''
              SELECT a.project_short_name,
                     a.case_barcode,
+                    a.primary_site,
                     b.*,
                     a.sample_barcode_tumor,
                     a.sample_barcode_normal,
@@ -633,6 +645,16 @@ def main(args):
         skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['SCRATCH_DATASET'],
                                        concat_table)
+
+        if params['RELEASE'] < 25:
+            case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                       params['SCRATCH_DATASET'],
+                                       params['CASE_TABLE'].format('25'))
+        else:
+            case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                       params['SCRATCH_DATASET'],
+                                       params['CASE_TABLE'].format(params['RELEASE'].strip('r')))
+
         if params['PROGRAM'] == 'TCGA':
             success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
                                          params['SCRATCH_DATASET'],
