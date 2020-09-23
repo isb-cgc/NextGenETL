@@ -192,19 +192,18 @@ def build_gene_tsv(gene_name_set, gene_tsv):
 
             print(json_res)
 
-            gene_data = json_res['data']['geneSpectralCount']
+            gene = json_res['data']['geneSpectralCount']
 
-            for gene in gene_data:
-                gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-                    gene['gene_name'],
-                    gene['authority'],
-                    gene['description'],
-                    gene['organism'],
-                    gene['chromosome'],
-                    gene['locus'],
-                    gene['proteins'],
-                    gene['assays']
-                ))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                gene['gene_name'],
+                gene['authority'],
+                gene['description'],
+                gene['organism'],
+                gene['chromosome'],
+                gene['locus'],
+                gene['proteins'],
+                gene['assays']
+            ))
 
 
 def make_cases_aliquots_query(offset, limit):
