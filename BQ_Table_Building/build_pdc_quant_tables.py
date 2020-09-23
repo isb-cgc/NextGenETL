@@ -175,6 +175,16 @@ def make_gene_query(gene_name):
 
 
 def build_gene_tsv(gene_name_set, gene_tsv):
+    """
+    No geneSpectralCount data found for ZBTB39
+    No geneSpectralCount data found for ZNF69
+    No geneSpectralCount data found for ASB16
+    No geneSpectralCount data found for LGR6
+    No geneSpectralCount data found for PRDM5
+    No geneSpectralCount data found for SSX3
+    No geneSpectralCount data found for SLC2A7
+    No geneSpectralCount data found for LOC101060405
+    """
     with open(gene_tsv, 'w') as gene_fh:
         gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
             'gene_name',
@@ -189,6 +199,7 @@ def build_gene_tsv(gene_name_set, gene_tsv):
 
         for gene_name in gene_name_set:
             json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
+            time.sleep(1)
 
             gene = json_res['data']['geneSpectralCount']
 
