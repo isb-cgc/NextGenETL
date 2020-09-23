@@ -146,7 +146,7 @@ With the aliquot UUIDs known, we can now use the aliquot table to glue in sample
 '''
 
 
-def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program):
+def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program, case_table):
     sql = attach_barcodes_sql(temp_table, aliquot_table, program)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
@@ -671,7 +671,7 @@ def main(args):
 
         success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE'].strip('r')),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
-                                  params['PROGRAM'])
+                                  params['PROGRAM'], case_table)
         if not success:
             print("attach_barcodes job failed")
             return
