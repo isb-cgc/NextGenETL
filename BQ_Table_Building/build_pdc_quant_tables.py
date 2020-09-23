@@ -471,6 +471,27 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
+
+        with open(gene_tsv_path, 'r') as tsv_file:
+            gene_reader = csv.reader(tsv_file, delimiter='\t')
+
+            passed_first_row = False
+            num_columns = None
+
+            for row in gene_reader:
+                if not passed_first_row:
+                    num_columns = len(row)
+                    passed_first_row = True
+                    print(row)
+                    continue
+
+                if len(row) != num_columns:
+                    print(row)
+
+        exit()
+
+
         build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_cases_samples_aliquots_tsv' in steps:
