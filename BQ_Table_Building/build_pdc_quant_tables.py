@@ -195,6 +195,8 @@ def build_gene_tsv(gene_name_set, gene_tsv):
             if not gene:
                 console_out("No geneSpectralCount data found for {0}", (gene_name,))
                 continue
+            else:
+                console_out("Adding {0}", (gene_name,))
 
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 gene['gene_name'],
