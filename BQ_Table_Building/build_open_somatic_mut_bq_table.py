@@ -647,13 +647,9 @@ def main(args):
                                        concat_table)
 
         if int(params['RELEASE'].strip('r')) < 25:
-            case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['SCRATCH_DATASET'],
-                                       params['CASE_TABLE'].format('r25'))
+            case_table = params['CASE_TABLE'].format('r25')
         else:
-            case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['SCRATCH_DATASET'],
-                                       params['CASE_TABLE'].format(params['RELEASE']))
+            case_table = params['CASE_TABLE'].format(params['RELEASE'])
 
         if params['PROGRAM'] == 'TCGA':
             success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
