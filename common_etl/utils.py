@@ -872,6 +872,8 @@ def get_graphql_api_response(api_params, query=None, payload=None):
         has_fatal_error("Errors returned by {}\nError json:\n{}"
                         .format(endpoint, json_res['errors']))
 
+    return json_res
+
 
 ##################################################################################
 #
