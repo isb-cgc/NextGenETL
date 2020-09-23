@@ -240,7 +240,6 @@ def final_join_sql(maf_table, barcodes_table, program):
         return '''
              SELECT a.project_short_name,
                     a.case_barcode,
-                    a.primary_site,
                     b.*,
                     a.sample_barcode_tumor,
                     a.sample_barcode_normal,
@@ -252,6 +251,7 @@ def final_join_sql(maf_table, barcodes_table, program):
         return '''
              SELECT a.project_short_name,
                     a.case_barcode,
+                    a.primary_site,
                     b.*,
                     a.sample_barcode_tumor,
                     a.sample_barcode_normal,
