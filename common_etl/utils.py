@@ -863,10 +863,14 @@ def get_graphql_api_response(api_params, query=None, payload=None):
                         "in get_graphql_api_response.", SyntaxError)
 
     if not response.ok:
-        has_fatal_error("Invalid response from endpoint {}\n Status code: {}"
+        has_fatal_error("Invalid response from {}\n Status code: {}"
                         .format(endpoint, response.raise_for_status()))
 
-    return response.json()
+    json_res = response.json()
+
+    if 'errors' in json_res:
+        has_fatal_error("Errors returned by {}\nError json:\n{}"
+                        .format(endpoint, json_res['errors']))
 
 
 ##################################################################################
@@ -1512,6 +1516,15 @@ def get_max_record_counts(fg_max_counts):
 #       MISC UTILITIES
 #
 ##################################################################################
+
+
+def format_seconds(seconds):
+    if seconds > 3600:
+        return time.strftime("%h hours, %m minutes, %s seconds", time.gmtime(seconds))
+    if seconds > 60:
+        return time.strftime("%m minutes, %s seconds", time.gmtime(seconds))
+
+    return time.strftime("{} seconds".format(seconds))
 
 
 def convert_dict_to_string(obj):

@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import re
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -28,21 +28,20 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
-    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(
-        study_submitter_id,
-        data_type
-    )
+    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
 
 
-def get_quant_tsv_filename(study_submitter_id):
-    return get_quant_table_name(study_submitter_id) + '.tsv'
+def get_table_name(prefix, suffix=None):
+    if not suffix:
+        table_name = "{}_{}".format(prefix, BQ_PARAMS['RELEASE'])
+    else:
+        table_name = "{}_{}_{}".format(prefix, BQ_PARAMS['RELEASE'], suffix)
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
-def get_quant_table_name(study_submitter_id):
-    study_submitter_id = study_submitter_id.replace('- ', '')
-    study_submitter_id = study_submitter_id.replace('-', '_')
-    filename = '_'.join(study_submitter_id.split(' '))
-    return 'quant_' + BQ_PARAMS['RELEASE'] + '_' + filename
+def get_table_id(project, dataset, table_name):
+    return "{}.{}.{}".format(project, dataset, table_name)
 
 
 def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
@@ -50,8 +49,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     study_id = study_id_dict['study_id']
     lines_written = 0
 
-    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(
-        study_submitter_id, data_type))
+    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type))
 
     if not res_json['data']['quantDataMatrix']:
         return lines_written
@@ -103,9 +101,9 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
 
 def get_study_ids():
-    table_id = '{}.{}.studies_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                         BQ_PARAMS['DEV_META_DATASET'],
-                                         BQ_PARAMS['RELEASE'])
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                            BQ_PARAMS['DEV_META_DATASET'],
+                            get_table_name(BQ_PARAMS['STUDIES_TABLE']))
 
     return """
     SELECT study_id, study_submitter_id
@@ -127,9 +125,8 @@ def get_quant_files():
 
 
 def make_gene_name_set_query(proteome_study):
-    table_name = "quant_{}_{}".format(BQ_PARAMS['RELEASE'], proteome_study)
-    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'],
-                                 table_name)
+    table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], BQ_PARAMS['RELEASE'], proteome_study)
+    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
     return """
         SELECT DISTINCT(gene)
@@ -137,7 +134,7 @@ def make_gene_name_set_query(proteome_study):
     """.format(table_id)
 
 
-def build_gene_name_set(proteome_study, gene_set):
+def add_gene_names_per_study(proteome_study, gene_set):
     results = get_query_results(make_gene_name_set_query(proteome_study))
 
     for row in results:
@@ -146,35 +143,69 @@ def build_gene_name_set(proteome_study, gene_set):
     return gene_set
 
 
-"""
-https://pdc.cancer.gov/graphql?query={ paginatedCasesSamplesAliquots(offset:0 limit: 5) 
-{ total casesSamplesAliquots { case_id case_submitter_id external_case_id 
-tissue_source_site_code days_to_lost_to_followup disease_type index_date 
-lost_to_followup primary_site samples { sample_id sample_submitter_id sample_type 
-sample_type_id gdc_sample_id gdc_project_id biospecimen_anatomic_site composition 
-current_weight days_to_collection days_to_sample_procurement 
-diagnosis_pathologically_confirmed freezing_method initial_weight 
-intermediate_dimension is_ffpe longest_dimension method_of_sample_procurement 
-oct_embedded pathology_report_uuid preservation_method sample_type_id 
-shortest_dimension time_between_clamping_and_freezing 
-time_between_excision_and_freezing tissue_type tumor_code tumor_code_id 
-tumor_descriptor aliquots { aliquot_id aliquot_submitter_id aliquot_quantity 
-aliquot_volume amount analyte_type aliquot_run_metadata { aliquot_run_metadata_id } } } 
-} pagination { count sort from page total pages size } } }
+def build_proteome_gene_name_set():
+    console_out("Building proteome gene name tsv!")
 
-"""
+    proteome_studies = API_PARAMS['PROTEOME_STUDIES']
+    gene_name_set = set()
+
+    for proteome_study in proteome_studies:
+        console_out("Add gene names from {0}... ", (proteome_study,), end="")
+        add_gene_names_per_study(proteome_study, gene_name_set)
+        console_out("new set size: {0}", (len(gene_name_set),))
+
+    return gene_name_set
 
 
 def make_gene_query(gene_name):
-    return '''{{ geneSpectralCount(gene_name: \"{}\") {{
-        gene_name NCBI_gene_id authority description organism 
-        chromosome locus proteins assays
-    }}
+    return '''
+    {{ 
+        geneSpectralCount(gene_name: \"{}\") {{
+            gene_name 
+            authority 
+            description 
+            organism 
+            chromosome 
+            locus 
+            proteins 
+            assays
+        }}
     }}
     '''.format(gene_name)
 
 
-def make_cases_samples_aliquots_query(offset, limit):
+def build_gene_tsv(gene_name_set, gene_tsv):
+    with open(gene_tsv, 'w') as gene_fh:
+        gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+            'gene_name',
+            'authority',
+            'description',
+            'organism',
+            'chromosome',
+            'locus',
+            'proteins',
+            'assays',
+        ))
+
+        for gene_name in gene_name_set:
+            json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(gene_name))
+
+            gene_data = json_res['data']['geneSpectralCount']
+
+            for gene in gene_data:
+                gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                    gene['gene_name'],
+                    gene['authority'],
+                    gene['description'],
+                    gene['organism'],
+                    gene['chromosome'],
+                    gene['locus'],
+                    gene['proteins'],
+                    gene['assays']
+                ))
+
+
+def make_cases_aliquots_query(offset, limit):
     return '''
     {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
     total casesSamplesAliquots {{
@@ -193,7 +224,8 @@ def make_cases_samples_aliquots_query(offset, limit):
 
 
 def build_cases_samples_aliquots_tsv(csa_tsv):
-    pages_res = get_graphql_api_response(API_PARAMS, make_cases_samples_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
+    console_out("Building cases_samples_aliquots tsv!")
+    pages_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
 
     pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
 
@@ -214,13 +246,9 @@ def build_cases_samples_aliquots_tsv(csa_tsv):
             offset = 100 * i
             console_out("Getting CasesSamplesAliquots results from offset {0}... ", (offset,), end='')
 
-            json_res = get_graphql_api_response(API_PARAMS,
-                                                make_cases_samples_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
+            json_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
 
-            paged_csas = json_res['data']['paginatedCasesSamplesAliquots']
-            cases_samples_aliquots = paged_csas['casesSamplesAliquots']
-
-            for case in cases_samples_aliquots:
+            for case in json_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
                 case_submitter_id = case['case_submitter_id']
                 case_id = case['case_id']
                 external_case_id = case['external_case_id']
@@ -257,10 +285,13 @@ def make_biospecimen_per_study_query(study_id):
     {{ biospecimenPerStudy( study_id: \"{}\") {{
         aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id 
         aliquot_status case_status sample_status project_name sample_type disease_type primary_site pool taxon
-    }}}}'''.format(study_id)
+    }}
+    }}'''.format(study_id)
 
 
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
+    console_out("Building biospecimen tsv!")
+
     with open(biospecimen_tsv, 'w') as bio_fh:
         bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
             'aliquot_id',
@@ -283,9 +314,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
         for study in study_ids_list:
             json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
 
-            biospecimen_data = json_res['data']['biospecimenPerStudy']
-
-            for biospecimen in biospecimen_data:
+            for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                     biospecimen['aliquot_id'],
                     biospecimen['sample_id'],
@@ -305,16 +334,34 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
+def build_table(project, dataset, table_prefix, table_suffix=None):
+    build_start = time.time()
+
+    table_name = get_table_name(table_prefix, table_suffix)
+    table_id = get_table_id(project, dataset, table_name)
+    console_out("Building {0}... ", (table_id,))
+
+    schema_filename = '{}.json'.format(table_id)
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    tsv_name = '{}.tsv'.format(table_name)
+    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
+
+    build_end = time.time() - build_start
+    console_out("Table built in {0}!\n", format_seconds((build_end,)))
+
+
 def main(args):
     start = time.time()
+    csa_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['CASE_ALIQUOT_TABLE'], BQ_PARAMS['RELEASE'])
+    biospecimen_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['BIOSPECIMEN_TABLE'], BQ_PARAMS['RELEASE'])
+    gene_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['GENE_TABLE'], BQ_PARAMS['RELEASE'])
 
     try:
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
-
-    # jsonl_output_file = 'quant_2020_09.jsonl'
 
     study_ids_list = list()
     study_ids = get_query_results(get_study_ids())
@@ -327,136 +374,67 @@ def main(args):
 
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_quant_tsv_filename(study_submitter_id)
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
             quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
-            lines_written = get_and_write_quant_data(study_id_dict, 'log2_ratio',
-                                                     quant_tsv_fp)
+            lines_written = get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_tsv_fp)
 
-            console_out("\n{0} lines written for {1}",
-                        (lines_written, study_submitter_id))
+            console_out("{0} lines written for {1}", (lines_written, study_submitter_id))
 
             if lines_written > 0:
                 upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
-                console_out("{0} uploaded to Google cloud storage!",
-                            (filename,))  # os.remove(quant_tsv_fp)
+                console_out("{0} uploaded to Google Cloud bucket!", (filename,))  # os.remove(quant_tsv_fp)
                 os.remove(quant_tsv_fp)
 
         jsonl_end = time.time() - jsonl_start
-
-        console_out("Quant table jsonl files created in {0:0.0f}s!\n", (jsonl_end,))
+        console_out("Quant table jsonl files created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'build_master_quant_table' in steps:
         blob_files = get_quant_files()
 
         for study_id_dict in study_ids_list:
-            build_start = time.time()
-
             study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_quant_tsv_filename(study_submitter_id)
-
-            # filename = filename.replace('quant_', '') # todo remove
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
 
             if filename not in blob_files:
-                print('{} not in gcp storage'.format(filename))
-                continue
+                console_out('{0} not found in gs://{1}/{2}', (filename,
+                                                              BQ_PARAMS['WORKING_BUCKET'],
+                                                              BQ_PARAMS['WORKING_BUCKET_DIR']))
+            else:
+                build_table(BQ_PARAMS['DEV_PROJECT'],
+                            BQ_PARAMS['DEV_DATASET'],
+                            BQ_PARAMS['QUANT_DATA_TABLE'],
+                            study_submitter_id)
 
-            table_name = get_quant_table_name(study_submitter_id)
-            table_id = get_working_table_id(BQ_PARAMS, table_name)
+    if 'build_gene_tsv' in steps:
+        gene_name_set = build_proteome_gene_name_set()
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_name)
 
-            schema_filename = '{}.{}.quant_data_{}.json'.format(
-                BQ_PARAMS['DEV_PROJECT'],
-                BQ_PARAMS['DEV_DATASET'],
-                BQ_PARAMS['RELEASE']
-            )
-
-            console_out("Building {0}!", (table_id,))
-            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-            create_and_load_tsv_table(BQ_PARAMS, filename, schema, table_id)
-            build_end = time.time() - build_start
-
-            console_out("Quant table built in {0:0.0f}s!\n", (build_end,))
+        build_gene_tsv(gene_name_set, gene_tsv_path)
+        upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
-        proteome_studies = API_PARAMS['PROTEOME_STUDIES']
-        gene_set = set()
-
-        for proteome_study in proteome_studies:
-            console_out("Add gene names from {0}... ", (proteome_study,), end="")
-            build_gene_name_set(proteome_study, gene_set)
-            console_out("new set size: {0}", (len(gene_set),))
-
-        for gene_name in gene_set:
-            console_out("Get api response for {0} gene", (gene_name,))
-            json_res = get_graphql_api_response(API_PARAMS,
-                                                make_gene_query(gene_name))
-            print(json_res)
-            time.sleep(2)
-
-    csa_tsv_name = 'cases_samples_aliquots_{}.tsv'.format(BQ_PARAMS['RELEASE'])
+        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_cases_samples_aliquots_tsv' in steps:
-        csa_tsv = get_scratch_fp(BQ_PARAMS, csa_tsv_name)
-        build_cases_samples_aliquots_tsv(csa_tsv)
-        upload_to_bucket(BQ_PARAMS, csa_tsv)
+        csa_tsv_path = get_scratch_fp(BQ_PARAMS, csa_tsv_name)
+
+        build_cases_samples_aliquots_tsv(csa_tsv_path)
+        upload_to_bucket(BQ_PARAMS, csa_tsv_path)
 
     if 'build_cases_samples_aliquots_table' in steps:
-        build_start = time.time()
-
-        table_name = 'case_aliquot_run_metadata_mapping_' + BQ_PARAMS['RELEASE']
-        table_id = "{}.{}.{}".format(
-            BQ_PARAMS['DEV_PROJECT'],
-            BQ_PARAMS['DEV_META_DATASET'],
-            table_name
-        )
-
-        schema_filename = '{}.{}.case_aliquot_run_metadata_mapping_{}.json'.format(
-            BQ_PARAMS['DEV_PROJECT'],
-            BQ_PARAMS['DEV_META_DATASET'],
-            BQ_PARAMS['RELEASE']
-        )
-
-        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        create_and_load_tsv_table(BQ_PARAMS, csa_tsv_name, schema, table_id)
-        build_end = time.time() - build_start
-
-        console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
-
-    biospecimen_tsv_name = 'biospecimen_{}.tsv'.format(BQ_PARAMS['RELEASE'])
+        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
-        console_out("Building biospecimen tsv")
-        biospecimen_tsv = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_name)
-        build_biospecimen_tsv(study_ids_list, biospecimen_tsv)
-        upload_to_bucket(BQ_PARAMS, biospecimen_tsv)
+        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_name)
 
-    if 'build_biospecimen_tables' in steps:
-        console_out("Building biospecimen table")
-        build_start = time.time()
+        build_biospecimen_tsv(study_ids_list, biospecimen_tsv_path)
+        upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
-        table_name = 'biospecimen_' + BQ_PARAMS['RELEASE']
-        table_id = "{}.{}.{}".format(
-            BQ_PARAMS['DEV_PROJECT'],
-            BQ_PARAMS['DEV_META_DATASET'],
-            table_name
-        )
-
-        schema_filename = '{}.{}.biospecimen_{}.json'.format(
-            BQ_PARAMS['DEV_PROJECT'],
-            BQ_PARAMS['DEV_META_DATASET'],
-            BQ_PARAMS['RELEASE']
-        )
-
-        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        create_and_load_tsv_table(BQ_PARAMS, biospecimen_tsv_name, schema, table_id)
-        build_end = time.time() - build_start
-
-        console_out("case_aliquot_run_metadata_mapping table built in {0:0.0f}s!\n", (build_end,))
+    if 'build_biospecimen_table' in steps:
+        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['BIOSPECIMEN_TABLE'])
 
     end = time.time() - start
-    if end < 100:
-        console_out("Finished program execution in {0:0.0f}s!\n", (end,))
-    else:
-        console_out("Finished program execution in {0:0.0f}s!\n", (end,))
+    console_out("Finished program execution in {0}!\n", format_seconds((end,)))
 
 
 if __name__ == '__main__':
