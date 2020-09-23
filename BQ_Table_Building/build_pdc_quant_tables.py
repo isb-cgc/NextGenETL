@@ -176,21 +176,8 @@ def make_gene_query(gene_name):
 
 
 def build_gene_tsv(gene_name_set, gene_tsv, append=False):
-    """
-    No geneSpectralCount data found for:
-    ASB16
-    LGR6
-    LOC101060405
-    PHOX2A
-    PRDM5
-    SLC2A7
-    SSX3
-    ZBTB39
-    ZNF254
-    ZNF69
-    """
-
     if append:
+        console_out("Resuming geneSpectralCount API calls. ", end='')
         with open(gene_tsv, 'r') as tsv_file:
             saved_genes = set()
             gene_reader = csv.reader(tsv_file, delimiter='\t')
@@ -205,6 +192,14 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                 saved_genes.add(row[0])
 
         gene_name_set = gene_name_set - saved_genes
+
+        remaining_genes = len(gene_name_set)
+
+        if remaining_genes == 0:
+            console_out("{} gene API calls remaining--skipping step.", (remaining_genes,))
+            return
+        else:
+            console_out("{} gene API calls remaining.", (remaining_genes,))
 
     file_mode = 'a' if append else 'w'
 
@@ -224,6 +219,7 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
         count = 0
 
         no_spectral_count_set = set()
+        empty_spectral_count_set = set()
 
         for gene_name in gene_name_set:
             count += 1
@@ -235,6 +231,10 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
             if not gene:
                 console_out("No geneSpectralCount data found for {0}", (gene_name,))
                 no_spectral_count_set.add(gene_name)
+                continue
+            elif not gene['gene_name']:
+                console_out("Empty geneSpectralCount data found for {0}", (gene_name,))
+                empty_spectral_count_set.add(gene_name)
                 continue
             else:
                 if count % 50 == 0:
@@ -252,6 +252,7 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
             ))
 
         print(no_spectral_count_set)
+        print(empty_spectral_count_set)
 
 
 def make_cases_aliquots_query(offset, limit):
@@ -455,7 +456,8 @@ def main(args):
         gene_name_set = build_proteome_gene_name_set()
 
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
-        build_gene_tsv(gene_name_set, gene_tsv_path, append=True)  # todo add to yaml
+
+        build_gene_tsv(gene_name_set, gene_tsv_path, append=BQ_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
