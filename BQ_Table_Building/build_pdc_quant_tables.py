@@ -353,9 +353,6 @@ def build_table(project, dataset, table_prefix, table_suffix=None):
 
 def main(args):
     start = time.time()
-    csa_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['CASE_ALIQUOT_TABLE'], BQ_PARAMS['RELEASE'])
-    biospecimen_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['BIOSPECIMEN_TABLE'], BQ_PARAMS['RELEASE'])
-    gene_tsv_name = '{}_{}.tsv'.format(BQ_PARAMS['GENE_TABLE'], BQ_PARAMS['RELEASE'])
 
     try:
         global API_PARAMS, BQ_PARAMS
@@ -407,8 +404,8 @@ def main(args):
 
     if 'build_gene_tsv' in steps:
         gene_name_set = build_proteome_gene_name_set()
-        gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_name)
 
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
         build_gene_tsv(gene_name_set, gene_tsv_path)
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
@@ -416,8 +413,7 @@ def main(args):
         build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_cases_samples_aliquots_tsv' in steps:
-        csa_tsv_path = get_scratch_fp(BQ_PARAMS, csa_tsv_name)
-
+        csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
         build_cases_samples_aliquots_tsv(csa_tsv_path)
         upload_to_bucket(BQ_PARAMS, csa_tsv_path)
 
@@ -425,8 +421,7 @@ def main(args):
         build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
-        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_name)
-
+        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']) + '.tsv')
         build_biospecimen_tsv(study_ids_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
