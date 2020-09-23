@@ -488,6 +488,8 @@ def main(args):
 
                 if len(row) != num_columns:
                     print(row)
+                else:
+                    print("ok")
 
         exit()
 
