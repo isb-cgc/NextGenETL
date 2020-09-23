@@ -158,6 +158,14 @@ def build_proteome_gene_name_set():
     return gene_name_set
 
 
+def update_ron_gene_table():
+    '''
+    SELECT gene_name
+    FROM `isb-project-zero.PDC_metadata.ron_spreadsheet_genes_2020_01`
+    WHERE gene_name like '%|%'
+    '''
+
+
 def make_gene_query(gene_name):
     return '''
     {{ 
@@ -240,6 +248,8 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                 if count % 50 == 0:
                     console_out("Added {0} genes", (count,))
 
+            assays = str.replace(gene['assays'], r'\r', '')
+
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 gene['gene_name'],
                 gene['authority'],
@@ -248,7 +258,7 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                 gene['chromosome'],
                 gene['locus'],
                 gene['proteins'],
-                gene['assays']
+                assays
             ))
 
         print(no_spectral_count_set)
