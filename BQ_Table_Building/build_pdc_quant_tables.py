@@ -248,7 +248,8 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                 if count % 50 == 0:
                     console_out("Added {0} genes", (count,))
 
-            assays = str.replace(gene['assays'], r'\r', '')
+            if assays:
+                assays = str.replace(gene['assays'], r'\r', '')
 
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 gene['gene_name'],
@@ -488,8 +489,6 @@ def main(args):
 
                 if len(row) != num_columns:
                     print(row)
-                else:
-                    print("ok")
 
         exit()
 
