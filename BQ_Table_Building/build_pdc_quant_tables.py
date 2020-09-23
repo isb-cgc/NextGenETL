@@ -194,6 +194,10 @@ def build_gene_tsv(gene_name_set, gene_tsv):
 
             gene = json_res['data']['geneSpectralCount']
 
+            if not gene:
+                console_out("No geneSpectralCount data found for {0}", (gene_name,))
+                continue
+
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 gene['gene_name'],
                 gene['authority'],
