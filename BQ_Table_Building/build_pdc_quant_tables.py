@@ -457,7 +457,7 @@ def main(args):
 
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
-        build_gene_tsv(gene_name_set, gene_tsv_path, append=BQ_PARAMS['RESUME_GENE_TSV'])
+        build_gene_tsv(gene_name_set, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
