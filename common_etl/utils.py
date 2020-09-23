@@ -862,9 +862,18 @@ def get_graphql_api_response(api_params, query=None, payload=None):
         has_fatal_error("Must specify either query OR payload (not both) "
                         "in get_graphql_api_response.", SyntaxError)
 
+    if response.status_code == 500:
+        if query and not payload:
+            req_body = {'query': query}
+            response = requests.post(endpoint, headers=headers, json=req_body)
+        elif payload and not query:
+            response = requests.post(endpoint, headers=headers, data=payload)
+        console_out("Status code--500, retrying")
+        time.sleep(5)
+
     if not response.ok:
-        has_fatal_error("Invalid response from {}\n Status code: {}"
-                        .format(endpoint, response.raise_for_status()))
+        has_fatal_error("Invalid response from \n, Status code: {} \nError: {}"
+                        .format(endpoint, response.status_code, response.raise_for_status()))
 
     json_res = response.json()
 
