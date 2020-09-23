@@ -649,7 +649,7 @@ def main(args):
         if int(params['RELEASE'].strip('r')) < 25:
             case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['SCRATCH_DATASET'],
-                                       params['CASE_TABLE'].format('25'))
+                                       params['CASE_TABLE'].format('r25'))
         else:
             case_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                        params['SCRATCH_DATASET'],
