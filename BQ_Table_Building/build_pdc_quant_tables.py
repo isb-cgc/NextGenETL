@@ -188,7 +188,7 @@ def build_gene_tsv(gene_name_set, gene_tsv):
         ))
 
         for gene_name in gene_name_set:
-            json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(gene_name))
+            json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
 
             print(json_res)
 
