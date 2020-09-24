@@ -36,6 +36,8 @@ import re
 from json import loads as json_loads
 from os.path import expanduser
 from createSchemaP3 import build_schema
+from datetime import date
+import gzip
 
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
                                upload_to_bucket, csv_to_bq, delete_table_bq_job, \
@@ -844,6 +846,31 @@ def main(args):
 
     print('job completed')
 
+    if 'archive' in steps:
+
+        print('archive files from VM')
+        archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
+        if params['ARCHIVE_YAML']:
+            yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
+            archive_yaml = "{}/{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                            params['ARCHIVE_CONFIG'],
+                                            archive_file_prefix,
+                                            yaml_file.group(1))
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                         archive_yaml,
+                         args[1])
+            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  params['LOCAL_PULL_LIST'])
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_pull_file,
+                             params['LOCAL_PULL_LIST'])
+            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                                  archive_file_prefix,
+                                                  params['MANIFEST_FILE'])
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                            archive_manifest_file,
+                             params['MANIFEST_FILE'])
 
 if __name__ == "__main__":
     main(sys.argv)
