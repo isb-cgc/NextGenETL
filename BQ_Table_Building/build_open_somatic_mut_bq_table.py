@@ -653,8 +653,8 @@ def main(args):
                                        params['SCRATCH_DATASET'],
                                        concat_table)
 
-        if int(params['RELEASE'].strip('r')) < 25:
-            case_table = params['CASE_TABLE'].format('r25')
+        if params['RELEASE'] < 25:
+            case_table = params['CASE_TABLE'].format('25')
         else:
             case_table = params['CASE_TABLE'].format(params['RELEASE'])
 
