@@ -476,7 +476,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     # Which table are we building?
-    release = params['RELEASE']
+    release = "".join("r", params['RELEASE'])
     use_schema = params['VER_SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
@@ -490,9 +490,16 @@ def main(args):
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest'])
 
+    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+        print("The input release is before new metadata process, "
+              "please specify which release of the metadata to use.")
+
+    metadata_rel = params['METADATA_REL'] if 'METADATA_REL' in params else params['RELEASE']
+
     if 'build_manifest_from_filters' in steps:
+
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
+        manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel),
                                                bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                manifest_table, params['WORKING_BUCKET'],
@@ -519,7 +526,7 @@ def main(args):
     if 'build_pull_list' in steps:
 
         build_pull_list_with_bq("{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], manifest_table),
-                                params['INDEXD_BQ_TABLE'].format(params['RELEASE']),
+                                params['INDEXD_BQ_TABLE'].format(metadata_rel),
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                 "_".join([params['PROGRAM'], params['DATA_TYPE'], 'pull', 'list']),
                                 params['WORKING_BUCKET'],
@@ -652,7 +659,7 @@ def main(args):
             case_table = params['CASE_TABLE'].format(params['RELEASE'])
 
         if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE'].strip('r')),
+            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE']),
                                          params['SCRATCH_DATASET'],
                                          '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
