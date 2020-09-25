@@ -186,23 +186,33 @@ Get the barcodes for the aliquot and case IDs
 Except statement removes one duplicated column 
 GDC creates a randomized analyte + portion id for TARGET
 '''
-def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
+def attach_barcodes_sql(step2_table, aliquot_table, case_table):
     return '''
-        SELECT a.project_short_name,
-               b.case_barcode,
-               b.sample_barcode,
-               b.aliquot_barcode,
-               a.case_gdc_id,
-               b.sample_gdc_id,
-               a.aliquot_gdc_id,
-               a.file_gdc_id,
-               a.platform,
-               a.file_name
-        FROM `{0}` AS a 
-        JOIN (SELECT DISTINCT * FROM 
-            (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
-        ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
-        '''.format(step2_table, aliquot_table)
+        WITH a1 AS (SELECT a.project_short_name,
+                           b.case_barcode,
+                           b.sample_barcode,
+                           b.aliquot_barcode,
+                           a.case_gdc_id,
+                           b.sample_gdc_id,
+                           a.aliquot_gdc_id,
+                           a.file_gdc_id,
+                           a.platform,
+                           a.file_name
+                    FROM `{0}` AS a 
+                    JOIN (SELECT DISTINCT * FROM 
+                    (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
+            ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id)
+        SELECT a1.project_short_name,
+               a1.case_barcode,
+               c.primary_site,
+               a1.case_gdc_id,
+               a1.sample_barcode,
+               a1.aliquot_barcode,
+               a1.file_gdc_id,
+               a1.platform,
+               a1.file_name
+        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = d.case_barcode
+        '''.format(step2_table, aliquot_table, case_table)
 '''
 ----------------------------------------------------------------------------------------------
 Merge Counts and Metadata
@@ -224,6 +234,7 @@ def glue_counts_and_metadata_sql(step3_table, count_table, sql_dict):
     return '''
         SELECT a.project_short_name,
                a.case_barcode,
+               a.primary_site,
                a.sample_barcode,
                a.aliquot_barcode,
                REGEXP_EXTRACT(b.Ensembl_gene_id_v, r"^[^.]+") as Ensembl_gene_id,
@@ -266,6 +277,7 @@ def join_three_sql(table1, table2, sql_dict):
             ab AS (SELECT
                       a.project_short_name,
                       a.case_barcode,
+                      a.primary_site,
                       a.sample_barcode,
                       a.aliquot_barcode,
                       a.Ensembl_gene_id,
@@ -283,6 +295,7 @@ def join_three_sql(table1, table2, sql_dict):
         SELECT
           c.project_short_name,
           c.case_barcode,
+          c.primary_site,
           c.sample_barcode,
           c.aliquot_barcode,
           c.Ensembl_gene_id,
@@ -369,6 +382,7 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
         SELECT 
           a.project_short_name,
           a.case_barcode,
+          a.primary_site,
           a.sample_barcode,
           a.aliquot_barcode,
           b.gene_name,
@@ -431,7 +445,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     # Which table are we building?
-    release = "".join("r", params['RELEASE'])
+    release = "".join(["r", params['RELEASE']])
     use_schema = params['VER_SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
@@ -552,7 +566,7 @@ def main(args):
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)

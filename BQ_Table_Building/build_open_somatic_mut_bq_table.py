@@ -215,7 +215,6 @@ def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
                    a2.aliquot_gdc_id_tumor,
                    a2.Start_Position
             FROM a2 JOIN `{2}` AS d ON a2.case_barcode = d.case_barcode
-              
         '''.format(maf_table, aliquot_table, case_table)
 
 
@@ -478,7 +477,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     # Which table are we building?
-    release = "".join("r", params['RELEASE'])
+    release = "".join(["r", params['RELEASE']])
     use_schema = params['VER_SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
