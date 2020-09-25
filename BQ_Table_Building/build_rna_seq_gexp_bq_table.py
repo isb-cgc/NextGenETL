@@ -131,13 +131,7 @@ def concat_all_files(all_files, one_big_tsv, header):
 ----------------------------------------------------------------------------------------------
 Delete All Intermediate Tables and (Optionally) the Final Result:
 '''
-def table_cleaner(dump_tables, file_sets, delete_result):
-    for file_set in file_sets:
-        count_name, _ = next(iter(file_set.items()))
-        dump_tables.append(upload_table.format(count_name))
-        dump_tables.append(counts_w_metadata_table.format(count_name))
-        dump_tables.append(manifest_table.format(count_name))
-        dump_tables.append(pull_list_table.format(count_name))
+def table_cleaner(dump_tables, delete_result):
     if delete_result:
         delete_table_bq_job(params['SCRATCH_DATASET'], draft_table.format(release))
 
@@ -448,11 +442,11 @@ def main(args):
     upload_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], '{}'])
     manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest', '{}'])
     pull_list_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'pull', 'list', '{}'])
-    files_to_case_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case', '{}'])
-    files_to_case_w_plat_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case_with_plat', '{}'])
-    barcodes_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'barcodes', '{}'])
+    files_to_case_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case'])
+    files_to_case_w_plat_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case_with_plat'])
+    barcodes_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'barcodes'])
     counts_w_metadata_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'counts_and_meta', '{}'])
-    merged_counts_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'merged_counts', '{}'])
+    merged_counts_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'merged_counts'])
     draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
 
@@ -804,8 +798,16 @@ def main(args):
             return
 
     if 'dump_working_tables' in steps:
-        dump_tables = []
-        table_cleaner(dump_tables, file_sets, False)
+        dump_tables = [files_to_case_table, files_to_case_w_plat_table, barcodes_table, counts_w_metadata_table,
+                       merge_counts_and_metadata, merged_counts_table, draft_table]
+        for file_set in file_sets:
+            count_name, _ = next(iter(file_set.items()))
+            dump_tables.append(upload_table.format(count_name))
+            dump_tables.append(counts_w_metadata_table.format(count_name))
+            dump_tables.append(manifest_table.format(count_name))
+            dump_tables.append(pull_list_table.format(count_name))
+
+        table_cleaner(dump_tables, False)
 
     #
     # archive files on VM:
