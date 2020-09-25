@@ -53,9 +53,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['file_sets'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['file_sets'], yaml_dict['schema_tags'], \
+           yaml_dict['steps']
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -420,7 +421,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, file_sets, steps = load_config(yaml_file.read())
+        params, file_sets, schema_tags, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
@@ -455,6 +456,12 @@ def main(args):
     draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
 
+    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+        print("The input release is before new metadata process, "
+              "please specify which release of the metadata to use.")
+
+    metadata_rel = params['METADATA_REL'] if 'METADATA_REL' in params else params['RELEASE']
+
 
     if 'clear_target_directory' in steps:
         for file_set in file_sets:
@@ -468,7 +475,7 @@ def main(args):
             table_for_count = manifest_table.format(count_name)
             tsv_for_count = params['BUCKET_MANIFEST_TSV'].format(count_name)
             max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-            manifest_success = get_the_bq_manifest(params['FILE_TABLE'], count_dict['filters'], max_files,
+            manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel), count_dict['filters'], max_files,
                                                    params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                    table_for_count, params['WORKING_BUCKET'],
                                                    tsv_for_count, mani_for_count,
@@ -494,7 +501,7 @@ def main(args):
             full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                               params['SCRATCH_DATASET'],
                                               table_for_count)
-            build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+            build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(metadata_rel),
                                     params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                     pull_table_for_count,
                                     params['WORKING_BUCKET'],
@@ -654,9 +661,9 @@ def main(args):
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['SCRATCH_DATASET'],
                                         files_to_case_table)
-        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'], 
-                                                          params['SCRATCH_DATASET'],
-                                                          files_to_case_w_plat_table, True, {}, params['BQ_AS_BATCH'])
+        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'],
+                                             params['SCRATCH_DATASET'],
+                                             files_to_case_w_plat_table, True, {}, params['BQ_AS_BATCH'])
 
         if not success:
             print("extract_platform failed")
@@ -666,9 +673,9 @@ def main(args):
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['SCRATCH_DATASET'],
                                         files_to_case_w_plat_table)
-        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'], 
-                                               params['SCRATCH_DATASET'],
-                                               barcodes_table, True, {}, params['BQ_AS_BATCH'])
+        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel),
+                                  params['SCRATCH_DATASET'],
+                                  barcodes_table, True, {}, params['BQ_AS_BATCH'])
 
         if not success:
             print("attach_barcodes_to_ids failed")
