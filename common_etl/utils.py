@@ -1540,11 +1540,11 @@ def get_max_record_counts(fg_max_counts):
 
 def format_seconds(seconds):
     if seconds > 3600:
-        return time.strftime("%h hours, %m minutes, %s seconds", time.gmtime(seconds))
+        return time.strftime("%-H hours, %-M minutes, %-S seconds", time.gmtime(seconds))
     if seconds > 60:
-        return time.strftime("%m minutes, %s seconds", time.gmtime(seconds))
+        return time.strftime("%-M minutes, %-S seconds", time.gmtime(seconds))
 
-    return time.strftime("%s seconds", time.gmtime(seconds))
+    return time.strftime("%-S seconds", time.gmtime(seconds))
 
 
 def convert_dict_to_string(obj):
