@@ -565,7 +565,7 @@ def main(args):
         console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
 
     study_ids_list = list()
     study_ids = get_query_results(get_study_ids())
