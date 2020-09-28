@@ -562,6 +562,9 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
+
+        print(jsonl_end)
+
         formatted_time = format_seconds(jsonl_end)
 
         console_out("Studies table jsonl file created in {0}!\n", (formatted_time,))
