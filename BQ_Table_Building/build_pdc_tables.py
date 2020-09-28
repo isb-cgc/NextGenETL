@@ -180,6 +180,9 @@ def create_studies_dict(json_res):
                     for field, val in entry.items():
                         study_dict[field] = val
 
+                print(study_dict)
+                exit()
+
                 console_out("Processing metadata for {0}", (study_dict['study_name']))
 
                 primary_site_list = study_dict.pop('primary_site').split(';').sort()
