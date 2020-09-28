@@ -521,7 +521,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
 
     build_end = time.time() - build_start
-    console_out("Table built in {0}!\n", format_seconds((build_end,)))
+    console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
 def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
@@ -538,7 +538,7 @@ def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
     create_and_load_table(BQ_PARAMS, jsonl_name, schema, table_id)
 
     build_end = time.time() - build_start
-    console_out("Table built in {0}!\n", format_seconds((build_end,)))
+    console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
 def main(args):
@@ -563,11 +563,7 @@ def main(args):
 
         jsonl_end = time.time() - jsonl_start
 
-        print(jsonl_end)
-
-        formatted_time = format_seconds(jsonl_end)
-
-        console_out("Studies table jsonl file created in {0}!\n", (formatted_time,))
+        console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
