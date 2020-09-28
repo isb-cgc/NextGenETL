@@ -102,7 +102,7 @@ def get_file_metadata_by_study(pdc_study_id):
     query_str = ('{{ filesPerStudy(pdc_study_id: \"{}\") {{ '
                  'study_id '
                  'pdc_study_id '
-                 'study_submitter_id'
+                 'study_submitter_id '
                  'study_name '
                  'file_id '
                  'file_name '
