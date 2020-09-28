@@ -28,6 +28,122 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+def make_all_programs_query():
+    return """{allPrograms{
+            program_id
+            program_submitter_id
+            name
+            start_date
+            end_date
+            program_manager
+            projects {
+                project_id
+                project_submitter_id
+                name
+                studies {
+                    pdc_study_id
+                    study_id
+                    study_submitter_id
+                    submitter_id_name
+                    analytical_fraction
+                    experiment_type
+                    acquisition_type
+                } 
+            }
+        }}"""
+
+
+def get_study_payload(study_id, pdc_study_id, study_submitter_id):
+    query_str = ('\"query study ($study_id: String, '
+                 '$pdc_study_id: String, '
+                 '$study_submitter_id: String) { '
+                 'study (study_id: $study_id, '
+                 'pdc_study_id: $pdc_study_id, '
+                 'study_submitter_id: $study_submitter_id) { '
+                 'pdc_study_id '
+                 'study_id '
+                 'study_submitter_id '
+                 'study_name '
+                 'study_shortname '
+                 'disease_type '
+                 'primary_site '
+                 'cases_count '
+                 'aliquots_count '
+                 '} '
+                 '}\"'
+                 )
+
+    study_vars = ("{{   \"study_id\": \"{}\", "
+                  "   \"pdc_study_id\": \"{}\", "
+                  "   \"study_submitter_id\": \"{}\"}}"
+                  ).format(study_id, pdc_study_id, study_submitter_id)
+
+    payload = '{{ \"query\": {}, \"variables\": {} }}'.format(query_str, study_vars)
+
+    return payload
+
+
+def create_studies_dict(json_res):
+    studies = []
+
+    for program in json_res['data']['allPrograms']:
+        program_id = program['program_id']
+        program_submitter_id = program['program_submitter_id']
+        program_name = program['name']
+        program_start_date = program['start_date']
+        program_end_date = program['end_date']
+        program_manager = program['program_manager']
+
+        for project in program['projects']:
+            project_id = project['project_id']
+            project_submitter_id = project['project_submitter_id']
+            project_name = project['name']
+
+            for study in project['studies']:
+                study_dict = study.copy()
+
+                study_payload = get_study_payload(study_dict['study_id'],
+                                                  study_dict['pdc_study_id'],
+                                                  study_dict['study_submitter_id'])
+
+                study_metadata = get_graphql_api_response(API_PARAMS,
+                                                          payload=study_payload)
+
+                for entry in study_metadata['data']['study']:
+                    for field, val in entry.items():
+                        study_dict[field] = val
+
+                console_out("Processing metadata for {0}", (study_dict['study_name'],))
+
+                primary_site_list = study_dict.pop('primary_site').split(';').sort()
+                disease_type_list = study_dict.pop('disease_type').split(';').sort()
+
+                if isinstance(primary_site_list, list):
+                    study_dict['primary_site'] = ', '.join(primary_site_list)
+                else:
+                    study_dict['primary_site'] = None
+
+                if isinstance(primary_site_list, list):
+                    study_dict['disease_type'] = ', '.join(disease_type_list)
+                else:
+                    study_dict['disease_type'] = None
+
+                study_dict['program_id'] = program_id
+                study_dict['program_submitter_id'] = program_submitter_id
+                study_dict['program_name'] = program_name
+                study_dict['program_start_date'] = program_start_date
+                study_dict['program_end_date'] = program_end_date
+                study_dict['program_manager'] = program_manager
+
+                study_dict['project_id'] = project_id
+                study_dict['project_submitter_id'] = project_submitter_id
+                study_dict['project_name'] = project_name
+
+                studies.append(study_dict)
+
+    return studies
+
+
 def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
 
@@ -391,7 +507,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
-def build_table(project, dataset, table_prefix, table_suffix=None):
+def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
     table_name = get_table_name(table_prefix, table_suffix)
@@ -408,6 +524,23 @@ def build_table(project, dataset, table_prefix, table_suffix=None):
     console_out("Table built in {0}!\n", format_seconds((build_end,)))
 
 
+def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
+    build_start = time.time()
+
+    table_name = get_table_name(table_prefix, table_suffix)
+    table_id = get_table_id(project, dataset, table_name)
+    console_out("Building {0}... ", (table_id,))
+
+    schema_filename = '{}.json'.format(table_id)
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    jsonl_name = '{}.jsonl'.format(table_name)
+    create_and_load_table(BQ_PARAMS, jsonl_name, schema, table_id)
+
+    build_end = time.time() - build_start
+    console_out("Table built in {0}!\n", format_seconds((build_end,)))
+
+
 def main(args):
     start = time.time()
 
@@ -417,6 +550,23 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
+    if 'build_studies_jsonl' in steps:
+        jsonl_start = time.time()
+
+        json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
+        studies = create_studies_dict(json_res)
+        filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
+        studies_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+        write_list_to_jsonl(studies_fp, studies)
+        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+
+        jsonl_end = time.time() - jsonl_start
+        console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+    if 'build_studies_table' in steps:
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
+
     study_ids_list = list()
     study_ids = get_query_results(get_study_ids())
 
@@ -424,7 +574,7 @@ def main(args):
         study_ids_list.append(dict(study.items()))
 
     if 'build_quant_tsv' in steps:
-        jsonl_start = time.time()
+        tsv_start = time.time()
 
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
@@ -439,8 +589,8 @@ def main(args):
                 console_out("{0} uploaded to Google Cloud bucket!", (filename,))  # os.remove(quant_tsv_fp)
                 os.remove(quant_tsv_fp)
 
-        jsonl_end = time.time() - jsonl_start
-        console_out("Quant table jsonl files created in {0}!\n", (format_seconds(jsonl_end),))
+        tsv_end = time.time() - tsv_start
+        console_out("Quant table tsv files created in {0}!\n", (format_seconds(tsv_end),))
 
     if 'build_master_quant_table' in steps:
         blob_files = get_quant_files()
@@ -454,10 +604,10 @@ def main(args):
                                                               BQ_PARAMS['WORKING_BUCKET'],
                                                               BQ_PARAMS['WORKING_BUCKET_DIR']))
             else:
-                build_table(BQ_PARAMS['DEV_PROJECT'],
-                            BQ_PARAMS['DEV_DATASET'],
-                            BQ_PARAMS['QUANT_DATA_TABLE'],
-                            study_submitter_id)
+                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_DATASET'],
+                                     BQ_PARAMS['QUANT_DATA_TABLE'],
+                                     study_submitter_id)
 
     if 'build_gene_tsv' in steps:
         gene_name_set = build_proteome_gene_name_set()
@@ -488,7 +638,7 @@ def main(args):
 
         exit()
 
-        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
@@ -496,7 +646,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, csa_tsv_path)
 
     if 'build_cases_samples_aliquots_table' in steps:
-        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
         biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']) + '.tsv')
@@ -504,7 +654,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
     if 'build_biospecimen_table' in steps:
-        build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['BIOSPECIMEN_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['BIOSPECIMEN_TABLE'])
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", format_seconds((end,)))

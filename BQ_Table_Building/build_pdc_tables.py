@@ -22,6 +22,8 @@ SOFTWARE.
 # import time
 # import requests
 # import json
+import re
+
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -214,6 +216,15 @@ def create_studies_dict(json_res):
 def create_files_dict(json_res):
     print("Not implemented (create_files_dict)")
     return None
+
+
+def get_table_name(prefix, suffix=None):
+    if not suffix:
+        table_name = "{}_{}".format(prefix, BQ_PARAMS['RELEASE'])
+    else:
+        table_name = "{}_{}_{}".format(prefix, BQ_PARAMS['RELEASE'], suffix)
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
 def get_jsonl_file(bq_params, record_type):
