@@ -188,9 +188,12 @@ def create_studies_dict(json_res):
                 if isinstance(primary_site_list, list):
                     study_dict['primary_site'] = ', '.join(primary_site_list)
                 else:
-                    print("primary_site_list: {}".format(primary_site_list))
+                    study_dict['primary_site'] = None
 
-                study_dict['disease_type'] = ', '.join(disease_type_list)
+                if isinstance(primary_site_list, list):
+                    study_dict['disease_type'] = ', '.join(disease_type_list)
+                else:
+                    study_dict['disease_type'] = None
 
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
