@@ -322,6 +322,8 @@ Pull in Platform Info From Master File: Turns out the analysis files with counts
 an associated platform. That info is (usually) attached to the original file the counts
 were derived from. Pull that data out so we can use it.
 '''
+
+
 def extract_platform_for_files(step2_table, file_table, target_dataset, output_table,
                                do_replace, sql_dict, do_batch):
 
@@ -332,6 +334,7 @@ def extract_platform_for_files(step2_table, file_table, target_dataset, output_t
 ----------------------------------------------------------------------------------------------
 SQL code for above
 '''
+
 def extract_platform_for_files_sql(step2_table, file_table, sql_dict):
     return '''
         WITH
@@ -355,6 +358,7 @@ def extract_platform_for_files_sql(step2_table, file_table, sql_dict):
 ----------------------------------------------------------------------------------------------
 Merge Gene Names Into Final Table
 '''
+
 def glue_in_gene_names(three_counts_table, gene_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
 
     sql = glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict)
@@ -365,6 +369,7 @@ def glue_in_gene_names(three_counts_table, gene_table, target_dataset, output_ta
 ----------------------------------------------------------------------------------------------
 SQL code for above
 '''
+
 def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
     table_1_vals = sql_dict['table_0']
     table_2_vals = sql_dict['table_1']
