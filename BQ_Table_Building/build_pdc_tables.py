@@ -562,7 +562,8 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
-        console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+        formatted_time = format_seconds(jsonl_end)
+        console_out("Studies table jsonl file created in {0}!\n", (formatted_time,))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
