@@ -185,7 +185,11 @@ def create_studies_dict(json_res):
                 primary_site_list = study_dict.pop('primary_site').split(';').sort()
                 disease_type_list = study_dict.pop('disease_type').split(';').sort()
 
-                study_dict['primary_site'] = ', '.join(primary_site_list)
+                if isinstance(primary_site_list, list):
+                    study_dict['primary_site'] = ', '.join(primary_site_list)
+                else:
+                    print("primary_site_list: {}".format(primary_site_list))
+
                 study_dict['disease_type'] = ', '.join(disease_type_list)
 
                 study_dict['program_id'] = program_id
