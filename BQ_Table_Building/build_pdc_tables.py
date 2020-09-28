@@ -168,7 +168,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
     res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type))
 
-    if not res_json['data']['quantDataMatrix']:
+    if not res_json or not res_json['data']['quantDataMatrix']:
         return lines_written
 
     aliquot_metadata = list()

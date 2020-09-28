@@ -847,7 +847,7 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
-def get_graphql_api_response(api_params, query=None, payload=None):
+def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error=True):
     headers = {'Content-Type': 'application/json'}
 
     endpoint = api_params['ENDPOINT']
@@ -883,8 +883,10 @@ def get_graphql_api_response(api_params, query=None, payload=None):
     json_res = response.json()
 
     if 'errors' in json_res:
-        has_fatal_error("Errors returned by {}\nError json:\n{}"
-                        .format(endpoint, json_res['errors']))
+        if fail_on_error:
+            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
+        else:
+            return None
 
     return json_res
 
