@@ -563,6 +563,7 @@ def main(args):
 
         jsonl_end = time.time() - jsonl_start
         formatted_time = format_seconds(jsonl_end)
+
         console_out("Studies table jsonl file created in {0}!\n", (formatted_time,))
 
     if 'build_studies_table' in steps:
