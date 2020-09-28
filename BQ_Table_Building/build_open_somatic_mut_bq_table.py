@@ -477,7 +477,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     # Which table are we building?
-    release = "".join(["r", params['RELEASE']])
+    release = "".join(["r", str(params['RELEASE'])])
     use_schema = params['VER_SCHEMA_FILE_NAME']
     if 'current' in steps:
         print('This workflow will update the schema for the "current" table')
