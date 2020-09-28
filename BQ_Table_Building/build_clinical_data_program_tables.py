@@ -31,11 +31,7 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-##################################################################################
-#
-# Getter functions, employed for readability/consistency
-#
-##################################################################################
+#   Getter functions, employed for readability/consistency
 
 
 def get_full_table_name(program, table):
@@ -217,11 +213,7 @@ def find_program_structure(cases, is_webapp=False):
     return columns, record_counts
 
 
-##################################################################################
-#
-#       Schema Creation
-#
-##################################################################################
+#   Schema creation
 
 
 def get_count_column_index(table_name, column_order_dict):
@@ -548,11 +540,7 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
     return [field for field in case if field not in excluded]
 
 
-##################################################################################
-#
-# Functions used for parsing and loading data into BQ tables
-#
-##################################################################################
+#   Functions used for parsing and loading data into BQ tables
 
 
 def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp):
@@ -802,8 +790,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
     ancillary_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
     for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table,
-                                      is_webapp)
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
 
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
@@ -825,16 +812,13 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             if bq_table not in ancillary_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
-            jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table,
-                                          is_webapp)
-
+            jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table, is_webapp)
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
     for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table,
-                                      is_webapp)
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
 
         upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
 
@@ -848,11 +832,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[ancillary_table], table_id)
 
 
-##################################################################################
-#
-# Modify existing tables
-#
-##################################################################################
+#   Modify existing tables
 
 
 def update_table_metadata():
@@ -919,11 +899,7 @@ def copy_tables_into_public_project():
         update_friendly_name(BQ_PARAMS, vers_table_id)
 
 
-##################################################################################
-#
-# Web App specific functions
-#
-##################################################################################
+#    Webapp specific functions
 
 
 def make_biospecimen_stub_tables(program):
@@ -962,11 +938,7 @@ def make_biospecimen_stub_tables(program):
     load_table_from_query(BQ_PARAMS, table_id, query)
 
 
-##################################################################################
-#
-# Script execution
-#
-##################################################################################
+#    Script execution
 
 
 def output_report(start, steps):

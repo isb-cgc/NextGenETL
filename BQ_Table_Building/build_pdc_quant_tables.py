@@ -213,16 +213,14 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
 
     with open(gene_tsv, file_mode) as gene_fh:
         if not append:
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-                'gene_name',
-                'authority',
-                'description',
-                'organism',
-                'chromosome',
-                'locus',
-                'proteins',
-                'assays',
-            ))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format('gene_name',
+                                                                    'authority',
+                                                                    'description',
+                                                                    'organism',
+                                                                    'chromosome',
+                                                                    'locus',
+                                                                    'proteins',
+                                                                    'assays'))
 
         count = 0
 
@@ -248,19 +246,17 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                 if count % 50 == 0:
                     console_out("Added {0} genes", (count,))
 
-            if gene['assays']:
-                assays = str.replace(gene['assays'], r'\r', '')
+            for key in gene.keys():
+                gene[key].strip()
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-                gene['gene_name'],
-                gene['authority'],
-                gene['description'],
-                gene['organism'],
-                gene['chromosome'],
-                gene['locus'],
-                gene['proteins'],
-                assays
-            ))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_name'],
+                                                                    gene['authority'],
+                                                                    gene['description'],
+                                                                    gene['organism'],
+                                                                    gene['chromosome'],
+                                                                    gene['locus'],
+                                                                    gene['proteins'],
+                                                                    gene['assays']))
 
         print(no_spectral_count_set)
         print(empty_spectral_count_set)
@@ -491,7 +487,6 @@ def main(args):
                     print(row)
 
         exit()
-
 
         build_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
