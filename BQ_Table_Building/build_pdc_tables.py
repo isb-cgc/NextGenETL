@@ -166,7 +166,9 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     study_id = study_id_dict['study_id']
     lines_written = 0
 
-    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type))
+    res_json = get_graphql_api_response(API_PARAMS,
+                                        query=make_quant_data_matrix_query(study_submitter_id, data_type),
+                                        fail_on_error=False)
 
     if not res_json or not res_json['data']['quantDataMatrix']:
         return lines_written
