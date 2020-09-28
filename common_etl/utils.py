@@ -1540,7 +1540,7 @@ def format_seconds(seconds):
     if seconds > 60:
         return time.strftime("%m minutes, %s seconds", time.gmtime(seconds))
 
-    return time.strftime("{} seconds".format(seconds))
+    return time.strftime("%s seconds", time.gmtime(seconds))
 
 
 def convert_dict_to_string(obj):

@@ -658,7 +658,7 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['BIOSPECIMEN_TABLE'])
 
     end = time.time() - start
-    console_out("Finished program execution in {0}!\n", format_seconds((end,)))
+    console_out("Finished program execution in {0}!\n", (format_seconds(end),))
 
 
 if __name__ == '__main__':
