@@ -559,7 +559,7 @@ def main(args):
         studies_fp = get_scratch_fp(BQ_PARAMS, filename)
 
         write_list_to_jsonl(studies_fp, studies)
-        upload_to_bucket(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'])
+        upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
         console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
