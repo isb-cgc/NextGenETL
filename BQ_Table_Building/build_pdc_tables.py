@@ -618,7 +618,7 @@ def main(args):
             study_submitter_id = study_id_dict['study_submitter_id']
             table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
             table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
-            schema_filename = table_name + '.json'
+            schema_filename = table_id + '.json'
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
             if not table_metadata:
