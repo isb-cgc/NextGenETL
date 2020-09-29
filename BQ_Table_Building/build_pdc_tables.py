@@ -552,6 +552,37 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
+    delete_table_list = [
+        "isb-project-zero.PDC.quant_2020_09_CPTAC_GBM_Discovery_Study_Proteome",
+        "isb-project-zero.PDC.quant_2020_09_CPTAC_HNSCC_Discovery_Study_Phosphoproteome",
+        "isb-project-zero.PDC.quant_2020_09_CPTAC_HNSCC_Discovery_Study_Proteome",
+        "isb-project-zero.PDC.quant_2020_09_CPTAC_LUAD_Discovery_Study_Acetylome",
+        "isb-project-zero.PDC.quant_2020_09_CPTAC_UCEC_Discovery_Study_Acetylome",
+        "isb-project-zero.PDC.quant_2020_09_HBV_Related_Hepatocellular_Carcinoma_Phosphoproteome",
+        "isb-project-zero.PDC.quant_2020_09_HBV_Related_Hepatocellular_Carcinoma_Proteome",
+        "isb-project-zero.PDC.quant_2020_09_Pediatric_Brain_Cancer_Pilot_Study_Phosphoproteome",
+        "isb-project-zero.PDC.quant_2020_09_Pediatric_Brain_Cancer_Pilot_Study_Proteome",
+        "isb-project-zero.PDC.quant_2020_09_Proteogenomics_of_Gastric_Cancer_Phosphoproteome",
+        "isb-project-zero.PDC.quant_2020_09_Proteogenomics_of_Gastric_Cancer_Proteome",
+        "isb-project-zero.PDC.quant_2020_09_S037_2",
+        "isb-project-zero.PDC.quant_2020_09_S037_3",
+        "isb-project-zero.PDC.quant_2020_09_S038_1",
+        "isb-project-zero.PDC.quant_2020_09_S038_2",
+        "isb-project-zero.PDC.quant_2020_09_S038_3",
+        "isb-project-zero.PDC.quant_2020_09_S039_1",
+        "isb-project-zero.PDC.quant_2020_09_S039_2",
+        "isb-project-zero.PDC.quant_2020_09_S043_1",
+        "isb-project-zero.PDC.quant_2020_09_S043_2",
+        "isb-project-zero.PDC.quant_2020_09_S044_1",
+        "isb-project-zero.PDC.quant_2020_09_S044_2",
+        "isb-project-zero.PDC.quant_2020_09_S046_1",
+        "isb-project-zero.PDC.quant_2020_09_S046_2"]
+
+    for table_id in delete_table_list:
+        delete_bq_table(table_id)
+
+    exit()
+
     if 'build_studies_jsonl' in steps:
         jsonl_start = time.time()
 
