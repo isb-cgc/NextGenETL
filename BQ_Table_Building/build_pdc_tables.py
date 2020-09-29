@@ -856,6 +856,8 @@ def main(args):
             id_row = dict()
 
             for item_tuples in list(row.items()):
+                print(item_tuples)
+                continue
                 for k, v in item_tuples:
                     id_row[k] = v
 
