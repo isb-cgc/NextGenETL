@@ -1041,7 +1041,8 @@ def main(args):
         table_name = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         jsonl_file = table_name + '.jsonl'
-        schema = table_id + '.json'
+        schema_file = table_id + '.json'
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_file)
 
         create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
