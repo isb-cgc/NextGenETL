@@ -44,10 +44,6 @@ def make_all_programs_query():
                 studies {
                     pdc_study_id
                     study_id
-                    study_submitter_id
-                    submitter_id_name
-                    analytical_fraction
-                    experiment_type
                     acquisition_type
                 } 
             }
@@ -57,8 +53,6 @@ def make_all_programs_query():
 def make_study_query(study_id):
     return """{{ study 
     (study_id: \"{}\") {{ 
-        study_id 
-        pdc_study_id 
         study_submitter_id 
         study_name 
         disease_type 
