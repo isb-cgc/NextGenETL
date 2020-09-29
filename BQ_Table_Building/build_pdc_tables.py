@@ -865,22 +865,22 @@ def main(args):
         aliquot_id = row['aliquot_id']
         aliquot_run_metadata_id = row['aliquot_run_metadata_id']
 
-            if case_id not in case_id_keys_obj:
-                case_id_keys_obj[case_id] = dict()
-            if study_id not in case_id_keys_obj[case_id]:
-                case_id_keys_obj[case_id][study_id] = dict()
-            if sample_id not in case_id_keys_obj[case_id][study_id]:
-                case_id_keys_obj[case_id][study_id][sample_id] = dict()
-            if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
-                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
-            if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
-                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
-            else:
-                print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
-                    case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
+        if case_id not in case_id_keys_obj:
+            case_id_keys_obj[case_id] = dict()
+        if study_id not in case_id_keys_obj[case_id]:
+            case_id_keys_obj[case_id][study_id] = dict()
+        if sample_id not in case_id_keys_obj[case_id][study_id]:
+            case_id_keys_obj[case_id][study_id][sample_id] = dict()
+        if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
+            case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
+        if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+            case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
+        else:
+            print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
+                case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
-            if i % 1000 == 0:
-                print("{} cases processed of {} total.".format(i, total_rows))
+        if i % 1000 == 0:
+            print("{} cases processed of {} total.".format(i, total_rows))
 
         case_list = []
 
