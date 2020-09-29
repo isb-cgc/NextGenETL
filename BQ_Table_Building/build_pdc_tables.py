@@ -488,6 +488,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
             'aliquot_id',
             'sample_id',
             'case_id',
+            'study_id',
             'aliquot_submitter_id',
             'sample_submitter_id',
             'case_submitter_id',
@@ -508,13 +509,16 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
             aliquots_cnt = study['aliquots_count']
             res_size = len(json_res['data']['biospecimenPerStudy'])
 
-            print("aliquots_count: {}, api result size: {}".format(aliquots_cnt, res_size))
+            console_out("study_id: {}, aliquots_count: {}, api result size: {}", (study['study_id'],
+                                                                                  aliquots_cnt,
+                                                                                  res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
-                bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                     biospecimen['aliquot_id'],
                     biospecimen['sample_id'],
                     biospecimen['case_id'],
+                    study['study_id'],
                     biospecimen['aliquot_submitter_id'],
                     biospecimen['sample_submitter_id'],
                     biospecimen['case_submitter_id'],
