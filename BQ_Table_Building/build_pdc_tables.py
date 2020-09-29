@@ -36,10 +36,10 @@ def map_biospecimen_query(column_id_1, column_id_2):
 
     return """
             WITH map_ids AS (
-              SELECT {0}}, 
-                ARRAY_AGG(distinct {1}}) as {1}s}
-              FROM `{2}`
-              GROUP BY {0})
+                SELECT {0}, ARRAY_AGG(distinct {1}) AS {1}s
+                FROM `{2}`
+                GROUP BY {0}
+            )
             SELECT {0}, {1}s
             FROM map_ids
     """.format(column_id_1, column_id_2, table_id)
