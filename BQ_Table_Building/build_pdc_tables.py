@@ -590,7 +590,9 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
 def build_biospec_query(table_id):
     return """
         SELECT case_id, study_id, sample_id, aliquot_id
-        FROM `{}`
+        FROM `{}` AS a
+        LEFT JOIN `{}` AS b
+        ON a.
         GROUP BY case_id, study_id, sample_id, aliquot_id
     """.format(table_id)
 
@@ -603,6 +605,16 @@ def build_biospec_count_query(table_id):
         count(distinct aliquot_id) as aliquot_id_count
         FROM `{}`
     """.format(table_id)
+
+
+def build_aliquot_run_metadata_query(table_id, case_id, sample_id, aliquot_id):
+    return """
+        SELECT aliquot_run_metadata_id
+        FROM `{}` 
+        WHERE case_id = '{}'
+        AND sample_id = '{}'
+        AND aliquot_id = '{}'    
+    """.format(table_id, case_id, sample_id, aliquot_id)
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
@@ -858,8 +870,22 @@ def main(args):
                     aliquot_list = []
 
                     for aliquot_id in id_as_key_cases_dict[case_id][study_id][sample_id]:
+                        # isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09
+                        table_name = get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+                        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+                        aliquot_run_query = build_aliquot_run_metadata_query(table_id, case_id, sample_id, aliquot_id)
+
+                        aliquot_run_res = get_query_results(aliquot_run_query)
+                        aliquot_run_list = []
+
+                        for row in aliquot_run_res:
+                            aliquot_run_list.append({
+                                'aliquot_run_metadata_id': row['aliquot_run_metadata_id']
+                            })
+
                         aliquot_list.append({
-                            'aliquot_id': aliquot_id
+                            'aliquot_id': aliquot_id,
+                            'aliquot_run_metadata': aliquot_run_list
                         })
 
                     sample_list.append({
@@ -878,33 +904,26 @@ def main(args):
             })
 
         case_study_sample_aliquot_obj = {
-            'total_distinct_rows': total_rows,
-            'total_cases': case_id_count,
-            'total_studies': study_id_count,
-            'total_samples': sample_id_count,
-            'total_aliquots': aliquot_id_count,
-            'cases': case_list
+            'totals': {
+                'total_distinct_rows': total_rows,
+                'total_cases': case_id_count,
+                'total_studies': study_id_count,
+                'total_samples': sample_id_count,
+                'total_aliquots': aliquot_id_count
+            },
+            'data': {
+                'cases': case_list
+            }
         }
 
+        print(case_study_sample_aliquot_obj['totals'])
         print()
+        print(case_study_sample_aliquot_obj['data']['cases'][0])
 
-        for key in case_study_sample_aliquot_obj.keys():
-            if isinstance(case_study_sample_aliquot_obj[key], list):
-                continue  # todo
-                '''
-                print("\t{}: [".format(key))
-
-                for i, entry in enumerate(case_study_sample_aliquot_obj[key]):
-                    if i < 2:
-                        print(entry)
-
-                print("]")
-                '''
-            else:
-                print("{}: {}".format(key, case_study_sample_aliquot_obj[key]))
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
+
 
 if __name__ == '__main__':
     main(sys.argv)
