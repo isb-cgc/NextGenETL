@@ -850,6 +850,8 @@ def main(args):
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
+        i = 0
+
         for row in biospec_res:
             id_row = dict()
 
@@ -879,6 +881,8 @@ def main(args):
 
             if i % 100 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
+
+            i += 1
 
         case_list = []
 
