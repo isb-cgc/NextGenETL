@@ -505,7 +505,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
         for study in study_ids_list:
             json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
 
-            aliquots_cnt = study_ids_list['aliquots_count']
+            aliquots_cnt = study['aliquots_count']
             res_size = len(json_res['data']['biospecimenPerStudy'])
 
             print("aliquots_count: {}, api result size: {}".format(aliquots_cnt, res_size))
