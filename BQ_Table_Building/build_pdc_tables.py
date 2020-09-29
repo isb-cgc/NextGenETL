@@ -922,11 +922,12 @@ def main(args):
             study_list = []
 
             for study_id in case_id_keys_obj[case_id]:
-                print(study_id)
-                continue
                 sample_list = []
 
                 for sample_id in case_id_keys_obj[case_id][study_id]:
+                    print(sample_id)
+                    continue
+
                     aliquot_list = []
 
                     for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
