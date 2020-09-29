@@ -71,6 +71,7 @@ def make_study_query(study_id):
     """.format(study_id)
 
 
+"""
 def get_study_payload(study_id, pdc_study_id, study_submitter_id):
     query_str = ('\"query study ($study_id: String, '
                  '$pdc_study_id: String, '
@@ -99,6 +100,7 @@ def get_study_payload(study_id, pdc_study_id, study_submitter_id):
     payload = '{{ \"query\": {}, \"variables\": {} }}'.format(query_str, study_vars)
 
     return payload
+"""
 
 
 def create_studies_dict(json_res):
