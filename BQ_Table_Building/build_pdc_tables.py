@@ -939,8 +939,8 @@ def main(args):
                 'studies': study_list
             })
 
-        print("{ 'cases': '", end='')
-        print(case_list[80:100])
+        print("{ 'cases': ", end='')
+        print(case_list[95:100])
         print("}")
         exit()
 
