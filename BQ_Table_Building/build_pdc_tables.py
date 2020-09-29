@@ -886,9 +886,10 @@ def main(args):
             'cases': case_list
         }
 
-        print("{")
         for key in case_study_sample_aliquot_obj.keys():
             if isinstance(case_study_sample_aliquot_obj[key], list):
+                continue  # todo
+                '''
                 print("\t{}: [".format(key))
 
                 for i, entry in enumerate(case_study_sample_aliquot_obj[key]):
@@ -896,10 +897,9 @@ def main(args):
                         print(entry)
 
                 print("]")
+                '''
             else:
                 print("{}: {}".format(key, case_study_sample_aliquot_obj[key]))
-        print("}")
-
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
