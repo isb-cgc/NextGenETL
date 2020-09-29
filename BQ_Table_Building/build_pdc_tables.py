@@ -608,6 +608,7 @@ def build_biospec_sample_query(table_id, case_id, study_id):
         FROM `{}`
         WHERE case_id = '{}'
         AND study_id = '{}'
+        GROUP BY sample_id
     """.format(table_id, case_id, study_id)
 
 
