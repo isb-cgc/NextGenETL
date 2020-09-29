@@ -587,13 +587,31 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
-def build_biospecimen_case_query(table_id):
+def build_biospec_case_query(table_id):
     return """
         SELECT DISTINCT case_id
         FROM `{}`
     """.format(table_id)
 
 
+def build_biospec_study_query(table_id, case_id):
+    return """
+        SELECT DISTINCT study_id
+        FROM `{}`
+        WHERE case_id = '{}'
+    """.format(table_id, case_id)
+
+
+def build_biospec_sample_query(table_id, case_id, study_id):
+    return """
+        SELECT DISTINCT sample_id, ARRAY_AGG(DISTINCT aliquot_id)
+        FROM `{}`
+        WHERE case_id = '{}'
+        AND study_id = '{}'
+    """.format(table_id, case_id, study_id)
+
+
+'''
 def build_biospecimen_study_sample_query(table_id, case_id):
     return """
         SELECT study_id, ARRAY_AGG(distinct sample_id) as sample_ids
@@ -617,7 +635,7 @@ def build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id):
         AND study_id = '{2}'
         AND sample_id = '{3}'
     """.format(table_id, case_id, study_id, sample_id)
-
+'''
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
@@ -826,7 +844,7 @@ def main(args):
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         cases_dict = dict()
 
-        case_res = get_query_results(build_biospecimen_case_query(table_id))
+        case_res = get_query_results(build_biospec_case_query(table_id))
 
         for case in case_res:
             case_id = case['case_id']
@@ -834,28 +852,24 @@ def main(args):
             if case_id not in cases_dict:
                 cases_dict[case_id] = dict()
 
-            study_sample_res = get_query_results(build_biospecimen_study_sample_query(table_id, case_id))
+            study_res = get_query_results(build_biospec_study_query(table_id, case_id))
 
-            for study_sample in study_sample_res:
-                study_id = study_sample['study_id']
+            for study in study_res:
+                study_id = study['study_id']
 
                 if study_id not in cases_dict[case_id]:
                     cases_dict[case_id][study_id] = dict()
 
-                sample_ids = study_sample['sample_ids']
+                sample_aliquot_res = get_query_results(build_biospec_sample_query(table_id, case_id, study_id))
 
-                for sample_id in sample_ids:
-                    aliquot_res = get_query_results(
-                        build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id))
+                for sample_aliquot in sample_aliquot_res:
+                    sample_id = sample_aliquot['sample_id']
+                    aliquot_ids = set(sample_aliquot['aliquot_ids'])
 
-                    for aliquot in aliquot_res:
-                        aliquot_ids = aliquot['aliquot_ids']
-                        aliquot_set = set(aliquot_ids)
-
-                        if sample_id not in cases_dict[case_id][study_id]:
-                            cases_dict[case_id][study_id][sample_id] = aliquot_set
-                        else:
-                            cases_dict[case_id][study_id][sample_id].add(aliquot_set)
+                    if sample_id not in cases_dict[case_id][study_id]:
+                        cases_dict[case_id][study_id][sample_id] = aliquot_ids
+                    else:
+                        cases_dict[case_id][study_id][sample_id].add(aliquot_ids)
 
             if len(cases_dict) % 25 == 0:
                 print("{} cases processed of {} total.".format(len(cases_dict), len(case_res)))
