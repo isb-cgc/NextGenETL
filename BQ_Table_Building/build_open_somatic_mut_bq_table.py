@@ -699,6 +699,23 @@ def main(args):
             return
 
     #
+    # Create second table
+    #
+
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format('current'))
+
+        success = publish_table(source_table, current_dest)
+
+        if not success:
+            print("create current table failed")
+            print("remember to rerun schema steps for current table")
+            return
+
+    #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
 
@@ -721,24 +738,6 @@ def main(args):
         if not success:
             print("update_table_description failed")
             return
-
-    #
-    # Create second table
-    #
-
-    if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format(release))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format('current'))
-
-        success = publish_table(source_table, current_dest)
-
-        if not success:
-            print("create current table failed")
-            print("remember to rerun schema steps for current table")
-            return
-
 
     #
     # compare and remove old current table
