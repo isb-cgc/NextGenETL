@@ -29,20 +29,20 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def make_sample_aliqout_table_with_query():
-    return """
-    CREATE TABLE isb-project-zero.PDC_metadata.sample_aliquot_map 
-        AS (
-            WITH sample_ali_ids AS (
-              SELECT sample_id, 
-                ARRAY_AGG(distinct aliquot_id) as aliquot_ids
-              FROM `isb-project-zero.PDC_metadata.biospecimen_2020_09`
-              GROUP BY sample_id)
-            SELECT sample_id, aliquot_ids
-            FROM sample_ali_ids
-            ORDER BY array_length(aliquot_ids) DESC)
-    """
+def map_biospecimen_query(column_id_1, column_id_2):
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                            BQ_PARAMS['DEV_META_DATASET'],
+                            get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']))
 
+    return """
+            WITH map_ids AS (
+              SELECT {0}}, 
+                ARRAY_AGG(distinct {1}}) as {1}s}
+              FROM `{2}`
+              GROUP BY {0})
+            SELECT {0}, {1}s
+            FROM map_ids)
+    """.format(column_id_1, column_id_2, table_id)
 
 
 def make_all_programs_query():
@@ -756,6 +756,27 @@ def main(args):
         load_table_from_query(BQ_PARAMS,
                               final_table_id,
                               make_unique_biospecimen_query(dup_table_id))
+
+        aliquot_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                              BQ_PARAMS['DEV_META_DATASET'],
+                                              get_table_name('map_aliquot_study'))
+        load_table_from_query(BQ_PARAMS,
+                              aliquot_study_table_id,
+                              map_biospecimen_query('aliquot_id', 'study_id'))
+
+        sample_study_table_name_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                                  BQ_PARAMS['DEV_META_DATASET'],
+                                                  get_table_name('map_sample_study'))
+        load_table_from_query(BQ_PARAMS,
+                              sample_study_table_name_id,
+                              map_biospecimen_query('sample_id', 'study_id'))
+
+        sample_aliquot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                               BQ_PARAMS['DEV_META_DATASET'],
+                                               get_table_name('map_sample_aliquot'))
+        load_table_from_query(BQ_PARAMS,
+                              sample_aliquot_table_id,
+                              map_biospecimen_query('sample_id', 'aliquot_id'))
 
         if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
             delete_bq_table(dup_table_id)
