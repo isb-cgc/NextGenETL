@@ -1030,22 +1030,12 @@ def main(args):
             }
         }
 
-        print(str(len(case_list)))
-        exit()
-
-        counts = case_study_sample_aliquot_obj['total_distinct']
-
         jsonl_file = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE']) + '.jsonl'
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_file)
-
-        cases_list = case_study_sample_aliquot_obj['data']['cases']
-
-        print("is list: {}, len: ".format(isinstance(cases_list, list), len(cases_list)))
-
         write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data']['cases'])
         upload_to_bucket(BQ_PARAMS, jsonl_fp)
 
-        print_nested_biospecimen_statistics(counts)
+        print_nested_biospecimen_statistics(case_study_sample_aliquot_obj['total_distinct'])
 
     if 'build_nested_biospecimen_table' in steps:
         table_name = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
