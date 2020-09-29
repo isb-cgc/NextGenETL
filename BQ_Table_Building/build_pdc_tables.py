@@ -850,20 +850,18 @@ def main(args):
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
-        print(total_rows)
-        exit()
+        for row in biospec_res:
+            id_row = dict()
 
-        for i, row in enumerate(biospec_res):
-            biospec_ids = {}
+            for item_tuples in list(row.items()):
+                for k, v in item_tuples:
+                    id_row[k] = v
 
-            for k, v in list(row.items()):
-                biospec_ids[k] = v
-
-            case_id = biospec_ids['case_id']
-            study_id = biospec_ids['study_id']
-            sample_id = biospec_ids['sample_id']
-            aliquot_id = biospec_ids['aliquot_id']
-            aliquot_run_metadata_id = biospec_ids['aliquot_run_metadata_id']
+            case_id = id_row['case_id']
+            study_id = id_row['study_id']
+            sample_id = id_row['sample_id']
+            aliquot_id = id_row['aliquot_id']
+            aliquot_run_metadata_id = id_row['aliquot_run_metadata_id']
 
             if case_id not in case_id_keys_obj:
                 case_id_keys_obj[case_id] = dict()
