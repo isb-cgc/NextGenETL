@@ -866,7 +866,7 @@ def main(args):
             else:
                 print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id, aliquot_id))
 
-            if i % 50 == 0:
+            if i % 200 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
 
         """
@@ -908,19 +908,20 @@ def main(args):
                 for sample_id in id_as_key_cases_dict[case_id][study_id]:
                     sample_dict = {
                         'sample_id': sample_id,
-                        'aliquots': id_as_key_cases_dict[case_id][study_id]
+                        'aliquots': set(id_as_key_cases_dict[case_id][study_id][sample_id])
                     }
 
                     study_dict['samples'].append(sample_dict)
                     case_dict['studies'].append(study_dict)
                     cases_list.append(case_dict)
 
+        print(cases_list[0])
+        print(cases_list[1])
+
         case_study_sample_aliquot_obj = {
             'total': total_rows,
             'cases': cases_list
         }
-
-        print(case_study_sample_aliquot_obj)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
