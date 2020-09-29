@@ -821,7 +821,8 @@ def main(args):
         print('Update previous table')
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                    publication_table.format(params['PREVIOUS_RELEASE']), 'archived')
+                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    'archived')
 
         if not success:
             print("update status tag table failed")
