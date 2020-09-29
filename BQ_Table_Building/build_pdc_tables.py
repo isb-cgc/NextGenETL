@@ -587,6 +587,15 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
+def build_biospec_query(table_id):
+    return """
+        SELECT case_id, study_id, sample_id, aliquot_id
+        FROM `{}`
+        GROUP BY case_id, study_id, sample_id, aliquot_id
+    """.format(table_id)
+
+
+'''
 def build_biospec_case_study_query(table_id):
     return """
         SELECT case_id, ARRAY_AGG(DISTINCT study_id) as study_ids
@@ -605,7 +614,6 @@ def build_biospec_sample_aliquot_query(table_id, case_id, study_id):
     """.format(table_id, case_id, study_id)
 
 
-'''
 def build_biospecimen_study_sample_query(table_id, case_id):
     return """
         SELECT study_id, ARRAY_AGG(distinct sample_id) as sample_ids
@@ -838,6 +846,30 @@ def main(args):
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         cases_dict = dict()
 
+        biospec_res = get_query_results(build_biospec_query(table_id))
+        total_rows = biospec_res.total_rows
+
+        for i, row in enumerate(biospec_res):
+            case_id = row['case_id']
+            study_id = row['study_id']
+            sample_id = row['sample_id']
+            aliquot_id = row['aliquot_id']
+
+            if case_id not in cases_dict:
+                cases_dict[case_id] = dict()
+            if study_id not in cases_dict[case_id]:
+                cases_dict[case_id][study_id] = dict()
+            if sample_id not in cases_dict[case_id][study_id]:
+                cases_dict[case_id][study_id][sample_id] = set()
+            if aliquot_id not in cases_dict[case_id][study_id][sample_id]:
+                cases_dict[case_id][study_id][sample_id].add(aliquot_id)
+            else:
+                print("duplicate entry! cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id, aliquot_id))
+
+            if i % 50 == 0:
+                print("{} cases processed of {} total.".format(i, total_rows))
+
+        """
         case_res = get_query_results(build_biospec_case_study_query(table_id))
 
         for case_study in case_res:
@@ -857,6 +889,7 @@ def main(args):
 
             if len(cases_dict) % 25 == 0:
                 print("{} cases processed of {} total.".format(len(cases_dict), case_res.total_rows))
+        """
 
         print()
         print(cases_dict)
