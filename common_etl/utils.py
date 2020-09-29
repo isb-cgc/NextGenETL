@@ -1534,8 +1534,6 @@ def convert_dict_to_string(obj):
     :return: modified object
     """
     if isinstance(obj, list):
-        if len(obj) == 0:
-
         if not isinstance(obj[0], dict):
             str_list = ', '.join(obj)
             obj = str_list
