@@ -791,7 +791,7 @@ def main(args):
 
     if 'get_biospecimen_dict' in steps:
         table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_PROJECT'], table_name)
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
 
         query = """
             SELECT case_id, 
