@@ -595,49 +595,14 @@ def build_biospec_query(table_id):
     """.format(table_id)
 
 
-'''
-def build_biospec_case_study_query(table_id):
+def build_biospec_count_query(table_id):
     return """
-        SELECT case_id, ARRAY_AGG(DISTINCT study_id) as study_ids
+        SELECT count(distinct case_id) as case_id_count,
+        count(distinct study_id) as study_id_count,
+        count(distinct sample_id) as sample_id_count,
+        count(distinct aliquot_id) as aliquot_id_count
         FROM `{}`
-        GROUP BY case_id
     """.format(table_id)
-
-
-def build_biospec_sample_aliquot_query(table_id, case_id, study_id):
-    return """
-        SELECT sample_id, ARRAY_AGG(DISTINCT aliquot_id) as aliquot_ids
-        FROM `{}`
-        WHERE case_id = '{}'
-        AND study_id = '{}'
-        GROUP BY sample_id
-    """.format(table_id, case_id, study_id)
-
-
-def build_biospecimen_study_sample_query(table_id, case_id):
-    return """
-        SELECT study_id, ARRAY_AGG(distinct sample_id) as sample_ids
-        FROM `{0}` 
-        WHERE case_id = '{1}'
-        AND study_id IN (
-            SELECT study_id
-            FROM `{0}` 
-            WHERE case_id = '{1}'
-            GROUP BY study_id
-          )
-        GROUP BY case_id, study_id
-    """.format(table_id, case_id)
-
-
-def build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id):
-    return """
-        SELECT ARRAY_AGG(DISTINCT aliquot_id) AS aliquot_ids
-        FROM `{0}`
-        WHERE case_id = '{1}'
-        AND study_id = '{2}'
-        AND sample_id = '{3}'
-    """.format(table_id, case_id, study_id, sample_id)
-'''
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
@@ -847,6 +812,15 @@ def main(args):
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         id_as_key_cases_dict = dict()
 
+        biospec_count_res = get_query_results(build_biospec_count_query(table_id))
+
+        for counts in biospec_count_res:
+            case_id_count = counts['case_id_count']
+            study_id_count = counts['study_id_count']
+            sample_id_count = counts['sample_id_count']
+            aliquot_id_count = counts['aliquot_id_count']
+            break
+
         biospec_res = get_query_results(build_biospec_query(table_id))
         total_rows = biospec_res.total_rows
 
@@ -871,28 +845,6 @@ def main(args):
             if i % 200 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
 
-        """
-        case_res = get_query_results(build_biospec_case_study_query(table_id))
-
-        for case_study in case_res:
-            case_id = case_study['case_id']
-            study_ids = case_study['study_ids']
-            id_as_key_cases_dict[case_id] = dict()
-
-            for study_id in study_ids:
-                id_as_key_cases_dict[case_id][study_id] = dict()
-
-                sample_aliquot_res = get_query_results(build_biospec_sample_aliquot_query(table_id, case_id, study_id))
-
-                for sample_aliquot in sample_aliquot_res:
-                    sample_id = sample_aliquot['sample_id']
-                    aliquot_ids = set(sample_aliquot['aliquot_ids'])
-                    id_as_key_cases_dict[case_id][study_id][sample_id] = aliquot_ids
-
-            if len(id_as_key_cases_dict) % 25 == 0:
-                print("{} cases processed of {} total.".format(len(id_as_key_cases_dict), case_res.total_rows))
-        """
-
         case_list = []
 
         for case_id in id_as_key_cases_dict:
@@ -906,42 +858,38 @@ def main(args):
                     aliquot_list = []
 
                     for aliquot_id in id_as_key_cases_dict[case_id][study_id][sample_id]:
-                        aliquot_list.append(
-                            {
-                                'aliquot_id': aliquot_id
-                            }
-                        )
+                        aliquot_list.append({
+                            'aliquot_id': aliquot_id
+                        })
 
-                    sample_list.append(
-                        {
-                            'sample_id': sample_id,
-                            'aliquots': aliquot_list
-                        }
-                    )
+                    sample_list.append({
+                        'sample_id': sample_id,
+                        'aliquots': aliquot_list
+                    })
 
-                study_list.append(
-                    {
-                        'study_id': study_id,
-                        'samples': sample_list
-                    }
-                )
+                study_list.append({
+                    'study_id': study_id,
+                    'samples': sample_list
+                })
 
-            case_list.append(
-                {
-                    'case_id': case_id,
-                    'studies': study_list
-                }
-            )
+            case_list.append({
+                'case_id': case_id,
+                'studies': study_list
+            })
 
         case_study_sample_aliquot_obj = {
-            'total': total_rows,
+            'total_distinct_rows': total_rows,
+            'total_cases': case_id_count,
+            'total_studies': study_id_count,
+            'total_samples': sample_id_count,
+            'total_aliquots': aliquot_id_count,
             'cases': case_list
         }
 
         print("{")
         for key in case_study_sample_aliquot_obj.keys():
             if isinstance(case_study_sample_aliquot_obj[key], list):
-                print("{}: [".format(key))
+                print("\t{}: [".format(key))
 
                 for i, entry in enumerate(case_study_sample_aliquot_obj[key]):
                     if i < 2:
