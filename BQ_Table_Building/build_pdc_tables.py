@@ -29,6 +29,22 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+def make_sample_aliqout_table_with_query():
+    return """
+    CREATE TABLE isb-project-zero.PDC_metadata.sample_aliquot_map 
+        AS (
+            WITH sample_ali_ids AS (
+              SELECT sample_id, 
+                ARRAY_AGG(distinct aliquot_id) as aliquot_ids
+              FROM `isb-project-zero.PDC_metadata.biospecimen_2020_09`
+              GROUP BY sample_id)
+            SELECT sample_id, aliquot_ids
+            FROM sample_ali_ids
+            ORDER BY array_length(aliquot_ids) DESC)
+    """
+
+
+
 def make_all_programs_query():
     return """{allPrograms{
             program_id
@@ -216,7 +232,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     return lines_written
 
 
-def has_table_id(project, dataset, table_name):
+def has_table(project, dataset, table_name):
     query = """
     SELECT COUNT(1) AS has_table
     FROM `{}.{}.__TABLES_SUMMARY__`
@@ -233,9 +249,9 @@ def has_table_id(project, dataset, table_name):
 
 
 def has_quant_table(study_submitter_id):
-    return has_table_id(BQ_PARAMS['DEV_PROJECT'],
-                        BQ_PARAMS['DEV_DATASET'],
-                        get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
+    return has_table(BQ_PARAMS['DEV_PROJECT'],
+                     BQ_PARAMS['DEV_DATASET'],
+                     get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
 
 
 def get_study_ids():
@@ -499,6 +515,13 @@ def make_biospecimen_per_study_query(study_id):
     }}'''.format(study_id)
 
 
+def make_unique_biospecimen_query(dup_table_id):
+    return """
+            SELECT DISTINCT * 
+            FROM `{}`
+            )""".format(dup_table_id)
+
+
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
     console_out("Building biospecimen tsv!")
 
@@ -532,9 +555,9 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
 
             has_quant_tbl = has_quant_table(study['study_submitter_id'])
 
-            console_out("pdc_study_id: {}, study_submitter_id: {}, has_quant_table: {}, "
+            console_out("study_id: {}, study_submitter_id: {}, has_quant_table: {}, "
                         "aliquots_count: {}, api result size: {}",
-                        (study['pdc_study_id'], study['study_submitter_id'], has_quant_tbl, aliquots_cnt, res_size))
+                        (study['study_id'], study['study_submitter_id'], has_quant_tbl, aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
@@ -719,7 +742,22 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
     if 'build_biospecimen_table' in steps:
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['BIOSPECIMEN_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                             BQ_PARAMS['DEV_META_DATASET'],
+                             BQ_PARAMS['BIOSPECIMEN_TABLE'],
+                             'duplicates')
+
+        dup_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
+        dup_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], dup_table_name)
+        final_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
+        final_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name)
+
+        load_table_from_query(BQ_PARAMS,
+                              final_table_id,
+                              make_unique_biospecimen_query(dup_table_id))
+
+        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
+            delete_bq_table(dup_table_id)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
