@@ -851,13 +851,12 @@ def main(args):
         total_rows = biospec_res.total_rows
 
         for row in biospec_res:
-            row_obj = list(row.items())
-            key_tuple = row_obj[0]
-            val_tuple = row_obj[1]
+            res_items = row
             break
 
-        print(key_tuple)
-        print(val_tuple)
+        for key, val in list(res_items.items()):
+            print("{}: {}".format(key, val))
+
         exit()
 
         case_id = row['case_id']
