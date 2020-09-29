@@ -842,10 +842,10 @@ def main(args):
                         build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id)
                     )
 
-                    print(aliquot_res)
-                    continue
-
                     for aliquot in aliquot_res:
+                        print(aliquot)
+                        continue
+
                         aliquot_id = aliquot['aliquot_id']
 
 
