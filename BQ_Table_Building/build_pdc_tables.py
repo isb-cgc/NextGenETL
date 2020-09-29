@@ -828,7 +828,7 @@ def main(args):
                               sample_aliquot_table_id,
                               map_biospecimen_query('sample_id', 'aliquot_id'))
 
-    if 'build_biospecimen_dict' in steps:
+    if 'build_nested_biospecimen_dict_and_jsonl' in steps:
         bio_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], bio_table_name)
         case_id_keys_obj = dict()
@@ -853,7 +853,7 @@ def main(args):
         i = 0
 
         for row in biospec_res:
-            if i % 200 == 0:
+            if i % 500 == 0:
                 print("{} of {} rows processed".format(i, total_rows))
             i += 1
 
@@ -889,7 +889,8 @@ def main(args):
             elif not aliquot_id:
                 continue
 
-            if aliquot_run_metadata_id and aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+            if aliquot_run_metadata_id and aliquot_run_metadata_id not in \
+                    case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
                 case_id_keys_obj[case_id][study_id][sample_id][aliquot_id].append(aliquot_run_metadata_id)
             elif not aliquot_run_metadata_id:
                 continue
@@ -952,9 +953,35 @@ def main(args):
             }
         }
 
-        print(case_study_sample_aliquot_obj['total_distinct'])
-        print()
-        print(case_study_sample_aliquot_obj['data']['cases'][0])
+        counts = case_study_sample_aliquot_obj['total_distinct']
+
+        print("Biospecimen JSON created. Statistics for total distinct:\n"
+              "\tcombined rows: {}\n"
+              "\tbiospecimen cases: {}\n"
+              "\tbiospecimen studies: {}\n"
+              "\tbiospecimen samples: {}\n"
+              "\tbiospecimen aliquots: {}\n"
+              "\tpaginatedCasesSamplesAliquots - "
+              "aliquot_run_metadata rows: {}\n".format(counts['total_rows'],
+                                                       counts['biospec_cases'],
+                                                       counts['biospec_studies'],
+                                                       counts['biospec_samples'],
+                                                       counts['biospec_aliquots'],
+                                                       counts['paginated_csa_aliquot_run_metadata_rows']))
+
+        jsonl_file = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE']) + '.jsonl'
+        jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_file)
+
+        write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data']['cases'])
+        upload_to_bucket(BQ_PARAMS, jsonl_fp)
+
+    if 'build_nested_biospecimen_table' in steps:
+        table_name = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        jsonl_file = table_name + '.jsonl'
+        schema = table_id + '.json'
+
+        create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
