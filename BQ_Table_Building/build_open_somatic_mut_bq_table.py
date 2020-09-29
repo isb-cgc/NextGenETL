@@ -750,9 +750,13 @@ def main(args):
                                               publication_table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                               publication_table.format(params['PREVIOUS_RELEASE']))
+                                               publication_table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                       "_".join([params['PROGRAM'],publication_table.format(params['PREVIOUS_RELEASE']),'backup']))
+                                       "_".join([params['PROGRAM'],
+                                                 publication_table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
