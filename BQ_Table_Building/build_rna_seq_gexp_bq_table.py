@@ -34,7 +34,7 @@ from createSchemaP3 import build_schema
 from datetime import date
 import re
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
-                               csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
+                               csv_to_bq, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
                                install_labels_and_desc, update_schema, generate_table_detail_files, publish_table, \
@@ -650,9 +650,9 @@ def main(args):
             hold_schema_list_for_count = hold_schema_list.format(count_name)
             with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
                 typed_schema = json_loads(schema_hold_dict.read())
-            csv_to_bq_write_depo(typed_schema, bucket_src_url,
+            csv_to_bq(typed_schema, bucket_src_url,
                                  params['SCRATCH_DATASET'],
-                                 upload_table.format(count_name), params['BQ_AS_BATCH'], None)
+                                 upload_table.format(count_name), params['BQ_AS_BATCH'])
 
     if 'attach_ids_to_files' in steps:
         count = 0
