@@ -152,7 +152,7 @@ def get_table_name(prefix, suffix=None):
     if not suffix:
         table_name = "{}_{}".format(prefix, BQ_PARAMS['RELEASE'])
     else:
-        table_name = "{}_{}_{}".format(prefix, BQ_PARAMS['RELEASE'], suffix)
+        table_name = "{}_{}_{}".format(prefix, suffix, BQ_PARAMS['RELEASE'])
 
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
