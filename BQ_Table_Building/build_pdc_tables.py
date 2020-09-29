@@ -829,14 +829,15 @@ def main(args):
 
         for case in case_res:
 
-            print(case)
-            continue
-
             case_id = case['case_id']
 
             study_sample_res = build_biospecimen_study_sample_query(table_id, case_id)
 
             for study_sample in study_sample_res:
+                print(study_sample)
+
+                continue
+
                 study_id = study_sample['study_id']
                 sample_id = study_sample['sample_id']
 
