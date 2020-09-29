@@ -21,6 +21,7 @@ SOFTWARE.
 """
 import re
 import csv
+import os
 from common_etl.utils import *
 
 API_PARAMS = dict()

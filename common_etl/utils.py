@@ -1165,6 +1165,9 @@ def from_schema_file_to_obj(bq_params, filename):
     """
     fp = get_schema_metadata_fp(bq_params, bq_params['SCHEMA_DIR'], filename)
 
+    if not os.path.exists(fp):
+        return None, None
+
     with open(fp, 'r') as schema_file:
         try:
             schema_file = json.load(schema_file)
