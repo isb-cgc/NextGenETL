@@ -553,12 +553,20 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     delete_table_list = [
-        "isb-project-zero.GDC_Clinical_Data.TARGET_clinical",
-        "isb-project-zero.GDC_Clinical_Data.TCGA_clinical_diagnoses_treatments",
-        "isb-project-zero.GDC_Clinical_Data.TCGA_clinical",
-        "isb-project-zero.GDC_Clinical_Data.VAREPOP_clinical_diagnoses_treatments",
-        "isb-project-zero.GDC_Clinical_Data.VAREPOP_clinical_family_histories",
-        "isb-project-zero.GDC_Clinical_Data.WCDT_clinical"
+        "isb-project-zero.GDC_Clinical_Data.GENIE_clinical",
+        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical",
+        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_diagnoses",
+        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_diagnoses_treatments",
+        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_follow_ups",
+        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_follow_ups_molecular_tests",
+        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical",
+        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_diagnoses_treatments",
+        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_family_histories",
+        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_follow_ups",
+        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_follow_ups_molecular_tests",
+        "isb-project-zero.GDC_Clinical_Data.NCICCR_clinical",
+        "isb-project-zero.GDC_Clinical_Data.OHSU_clinical",
+        "isb-project-zero.GDC_Clinical_Data.ORGANOID_clinical"
     ]
 
     for table_id in delete_table_list:
