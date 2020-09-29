@@ -850,37 +850,34 @@ def main(args):
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
-        for row in biospec_res:
-            res_items = row
-            break
+        for i, row in enumerate(biospec_res):
+            biospec_ids = {}
 
-        for key, val in list(res_items.items()):
-            print("{}: {}".format(key, val))
+            for k, v in list(row.items()):
+                biospec_ids[k] = v
 
-        exit()
+            case_id = biospec_ids['case_id']
+            study_id = biospec_ids['study_id']
+            sample_id = biospec_ids['sample_id']
+            aliquot_id = biospec_ids['aliquot_id']
+            aliquot_run_metadata_id = biospec_ids['aliquot_run_metadata_id']
 
-        case_id = row['case_id']
-        study_id = row['study_id']
-        sample_id = row['sample_id']
-        aliquot_id = row['aliquot_id']
-        aliquot_run_metadata_id = row['aliquot_run_metadata_id']
+            if case_id not in case_id_keys_obj:
+                case_id_keys_obj[case_id] = dict()
+            if study_id not in case_id_keys_obj[case_id]:
+                case_id_keys_obj[case_id][study_id] = dict()
+            if sample_id not in case_id_keys_obj[case_id][study_id]:
+                case_id_keys_obj[case_id][study_id][sample_id] = dict()
+            if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
+                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
+            if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
+            else:
+                print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
+                    case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
-        if case_id not in case_id_keys_obj:
-            case_id_keys_obj[case_id] = dict()
-        if study_id not in case_id_keys_obj[case_id]:
-            case_id_keys_obj[case_id][study_id] = dict()
-        if sample_id not in case_id_keys_obj[case_id][study_id]:
-            case_id_keys_obj[case_id][study_id][sample_id] = dict()
-        if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
-            case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
-        if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
-            case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
-        else:
-            print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
-                case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
-
-        if i % 1000 == 0:
-            print("{} cases processed of {} total.".format(i, total_rows))
+            if i % 1000 == 0:
+                print("{} cases processed of {} total.".format(i, total_rows))
 
         case_list = []
 
