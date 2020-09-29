@@ -495,7 +495,7 @@ def main(args):
         print("The input release is before new metadata process, "
               "please specify which release of the metadata to use.")
 
-    metadata_rel = params['METADATA_REL'] if 'METADATA_REL' in params else params['RELEASE']
+    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else params['RELEASE']
 
     if 'build_manifest_from_filters' in steps:
 
