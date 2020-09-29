@@ -855,13 +855,14 @@ def main(args):
 
         biospec_count_res = get_query_results(build_biospec_count_query(bio_table_id, csa_table_id))
 
-        for counts in biospec_count_res:
-            case_id_count = counts['bio_case_count']
-            study_id_count = counts['bio_study_count']
-            sample_id_count = counts['bio_sample_count']
-            aliquot_id_count = counts['bio_aliquot_count']
-            aliquot_run_id_count = counts['csa_aliquot_run_count']
-            break
+        counts = dict()
+
+        for row in biospec_count_res:
+            for counts_tuple in list(row.items()):
+                key = counts_tuple[0]
+                val = counts_tuple[1]
+
+                counts[key] = val
 
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
@@ -914,58 +915,85 @@ def main(args):
                 print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
                     case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
-        case_list = []
-
         print("\nBuilding JSON object!\n")
 
+        """
+        case_list = []
+
         for case_id in case_id_keys_obj:
-            study_list = []
+            if case_id:
+                study_list = []
+                
+                for study_id in case_id_keys_obj[case_id]:                    
+                    if study_id:
+                        sample_list = []
 
-            for study_id in case_id_keys_obj[case_id]:
-                sample_list = []
-
-                for sample_id in case_id_keys_obj[case_id][study_id]:
-                    aliquot_list = []
-
-                    for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
-                        print(aliquot_id)
-                        continue
-
-                        aliquot_run_list = []
-
-                        for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
-                            aliquot_run_list.append({
-                                'aliquot_run_metadata_id': aliquot_run_metadata_id
-                            })
-
-                        aliquot_list.append({
-                            'aliquot_id': aliquot_id,
-                            'aliquot_run_metadata': aliquot_run_list
+                        for sample_id in case_id_keys_obj[case_id][study_id]:
+                            aliquot_list = []
+        
+                            if sample_id:
+                                for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
+                                    aliquot_run_list = []
+                                    
+                                    if aliquot_id: 
+                                        for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+                                            if aliquot_run_metadata_id:
+                                                aliquot_run_list.append({
+                                                    'aliquot_run_metadata_id': aliquot_run_metadata_id
+                                                })
+                                aliquot_list.append({
+                                    'aliquot_id': aliquot_id,
+                                    'aliquot_run_metadata': aliquot_run_list
+                                })
+                        sample_list.append({
+                            'sample_id': sample_id,
+                            'aliquots': aliquot_list
                         })
-
-                    sample_list.append({
-                        'sample_id': sample_id,
-                        'aliquots': aliquot_list
+                            
+                    study_list.append({
+                        'study_id': study_id,
+                        'samples': sample_list
                     })
-
-                study_list.append({
-                    'study_id': study_id,
-                    'samples': sample_list
-                })
-
+                    
             case_list.append({
                 'case_id': case_id,
                 'studies': study_list
             })
+            
+        """
+
+        case_list = []
+
+        for case_id in case_id_keys_obj:
+            if not case_id:
+                print("Not case_id: {}".format(case_id))
+            else:
+                study_list = list()
+
+                for study_id in case_id_keys_obj[case_id]:
+                    if not study_id:
+                        print("Not study_id: {}".format(study_id))
+                    else:
+                        study_list.append({
+                            'study_id': study_id
+                        })
+
+                case_list.append({
+                    'case_id': case_id,
+                    'studies': study_list
+                })
+
+        print(case_list)
+        exit()
 
         case_study_sample_aliquot_obj = {
             'total_distinct': {
-                'combined_rows': total_rows,
-                'biospec_cases': case_id_count,
-                'biospec_studies': study_id_count,
-                'biospec_samples': sample_id_count,
-                'biospec_aliquots': aliquot_id_count,
-                'aliquot_run_metadata': aliquot_run_id_count
+                'combined_rows': counts['total_rows'],
+                'biospec_cases': counts['case_id_count'],
+                'biospec_studies': counts['study_id_count'],
+                'biospec_samples': counts['sample_id_count'],
+                'biospec_aliquots': counts['aliquot_id_count'],
+                'aliquot_run_metadata': counts['aliquot_run_id_count']
             },
             'data': {
                 'cases': case_list
