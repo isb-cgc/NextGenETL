@@ -660,6 +660,22 @@ def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
+def print_nested_biospecimen_statistics(counts):
+    print_str = """
+Biospecimen JSON created. Statistics for total distinct:
+    combined rows: {}
+    biospecimen cases: {}
+    biospecimen studies: {}
+    biospecimen aliquots: {}
+    paginatedCasesSamplesAliquots - aliquot_run_metadata rows: {}""".format(counts['combined_rows'],
+                                                                            counts['biospec_cases'],
+                                                                            counts['biospec_studies'],
+                                                                            counts['biospec_samples'],
+                                                                            counts['biospec_aliquots'],
+                                                                            counts['aliquot_run_metadata'])
+    print(print_str)
+
+
 def main(args):
     start = time.time()
 
@@ -902,6 +918,9 @@ def main(args):
 
         print("\nBuilding JSON object!\n")
 
+        print(len(case_id_keys_obj))
+        exit()
+
         for case_id in case_id_keys_obj:
             study_list = []
 
@@ -946,7 +965,7 @@ def main(args):
                 'biospec_studies': study_id_count,
                 'biospec_samples': sample_id_count,
                 'biospec_aliquots': aliquot_id_count,
-                'paginated_csa_aliquot_run_metadata_rows': aliquot_run_id_count
+                'aliquot_run_metadata': aliquot_run_id_count
             },
             'data': {
                 'cases': case_list
@@ -954,20 +973,6 @@ def main(args):
         }
 
         counts = case_study_sample_aliquot_obj['total_distinct']
-
-        print("Biospecimen JSON created. Statistics for total distinct:\n"
-              "\tcombined rows: {}\n"
-              "\tbiospecimen cases: {}\n"
-              "\tbiospecimen studies: {}\n"
-              "\tbiospecimen samples: {}\n"
-              "\tbiospecimen aliquots: {}\n"
-              "\tpaginatedCasesSamplesAliquots - "
-              "aliquot_run_metadata rows: {}\n".format(counts['combined_rows'],
-                                                       counts['biospec_cases'],
-                                                       counts['biospec_studies'],
-                                                       counts['biospec_samples'],
-                                                       counts['biospec_aliquots'],
-                                                       counts['paginated_csa_aliquot_run_metadata_rows']))
 
         jsonl_file = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE']) + '.jsonl'
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_file)
@@ -978,6 +983,8 @@ def main(args):
 
         write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data']['cases'])
         upload_to_bucket(BQ_PARAMS, jsonl_fp)
+
+        print_nested_biospecimen_statistics(counts)
 
     if 'build_nested_biospecimen_table' in steps:
         table_name = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
