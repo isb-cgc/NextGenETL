@@ -599,7 +599,7 @@ def build_biospec_count_query(biospec_table_id, csa_table_id):
     return """
         WITH aliquot_run_count AS (
             SELECT count(distinct aliquot_run_metadata_id) as aliquot_run_metadata_id_count
-            FROM '{}'
+            FROM `{}`
         )
         SELECT count(distinct case_id) as case_id_count,
         count(distinct study_id) as study_id_count,
