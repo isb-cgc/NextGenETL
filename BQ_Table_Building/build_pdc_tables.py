@@ -530,11 +530,11 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
             aliquots_cnt = study['aliquots_count']
             res_size = len(json_res['data']['biospecimenPerStudy'])
 
-            has_quant_table = has_quant_table(study['study_submitter_id'])
+            has_quant_tbl = has_quant_table(study['study_submitter_id'])
 
             console_out("pdc_study_id: {}, study_submitter_id: {}, has_quant_table: {}, "
                         "aliquots_count: {}, api result size: {}",
-                        (study['pdc_study_id'], study['study_submitter_id'], has_quant_table, aliquots_cnt, res_size))
+                        (study['pdc_study_id'], study['study_submitter_id'], has_quant_tbl, aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
