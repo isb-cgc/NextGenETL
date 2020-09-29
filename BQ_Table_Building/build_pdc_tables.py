@@ -824,32 +824,36 @@ def main(args):
     if 'build_biospecimen_dict' in steps:
         table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        cases_dict = dict()
 
         case_res = get_query_results(build_biospecimen_case_query(table_id))
 
         for case in case_res:
-
             case_id = case['case_id']
+            study_dict = dict()
 
             study_sample_res = get_query_results(build_biospecimen_study_sample_query(table_id, case_id))
 
             for study_sample in study_sample_res:
                 study_id = study_sample['study_id']
                 sample_ids = study_sample['sample_ids']
+                sample_dict = dict()
 
                 for sample_id in sample_ids:
                     aliquot_res = get_query_results(
-                        build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id)
-                    )
+                        build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id))
 
                     for aliquot in aliquot_res:
-                        print(aliquot)
-                        continue
+                        aliquot_ids = aliquot['aliquot_ids']
+                        aliquot_set = set(aliquot_ids)
 
-                        aliquot_id = aliquot['aliquot_id']
+                        sample_dict[sample_id].append(aliquot_set)
 
+                    study_dict[study_id].append(sample_dict)
 
+                cases_dict[case_id].append(study_dict)
 
+        print(cases_dict)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
