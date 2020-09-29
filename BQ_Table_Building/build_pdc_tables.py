@@ -925,12 +925,12 @@ def main(args):
                 sample_list = []
 
                 for sample_id in case_id_keys_obj[case_id][study_id]:
-                    print(sample_id)
-                    continue
-
                     aliquot_list = []
 
                     for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
+                        print(aliquot_id)
+                        continue
+
                         aliquot_run_list = []
 
                         for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
