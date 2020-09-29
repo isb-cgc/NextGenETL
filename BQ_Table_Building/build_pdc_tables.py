@@ -836,11 +836,11 @@ def main(args):
         biospec_count_res = get_query_results(build_biospec_count_query(bio_table_id, csa_table_id))
 
         for counts in biospec_count_res:
-            case_id_count = counts['case_id_count']
-            study_id_count = counts['study_id_count']
-            sample_id_count = counts['sample_id_count']
-            aliquot_id_count = counts['aliquot_id_count']
-            aliquot_run_id_count = counts['aliquot_run_count']
+            case_id_count = counts['bio_case_count']
+            study_id_count = counts['bio_study_count']
+            sample_id_count = counts['bio_sample_count']
+            aliquot_id_count = counts['bio_aliquot_count']
+            aliquot_run_id_count = counts['csa_aliquot_run_count']
             break
 
         biospec_res = get_query_results(build_biospec_query(bio_table_id))
