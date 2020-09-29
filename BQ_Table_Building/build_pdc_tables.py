@@ -939,9 +939,7 @@ def main(args):
                 'studies': study_list
             })
 
-        for i, case in enumerate(case_list):
-            if i < 100:
-                print(case)
+        print(case_list[0:100])
 
         case_study_sample_aliquot_obj = {
             'total_distinct': {
