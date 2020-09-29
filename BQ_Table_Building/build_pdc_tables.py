@@ -853,8 +853,8 @@ def main(args):
         i = 0
 
         for row in biospec_res:
-            if i % 100 == 0:
-                print("{} cases processed of {} total.".format(i, total_rows))
+            if i % 200 == 0:
+                print("{} of {} rows processed".format(i, total_rows))
             i += 1
 
             id_row = dict()
@@ -899,6 +899,8 @@ def main(args):
 
         case_list = []
 
+        print("\nBuilding JSON object!\n")
+
         for case_id in case_id_keys_obj:
             study_list = []
 
@@ -939,11 +941,11 @@ def main(args):
         case_study_sample_aliquot_obj = {
             'total_distinct': {
                 'combined_rows': total_rows,
-                'biospec_case_ids': case_id_count,
-                'biospec_study_ids': study_id_count,
-                'biospec_sample_ids': sample_id_count,
-                'biospec_aliquot_ids': aliquot_id_count,
-                'paginated_csa_aliquot_run_metadata_ids': aliquot_run_id_count
+                'biospec_cases': case_id_count,
+                'biospec_studies': study_id_count,
+                'biospec_samples': sample_id_count,
+                'biospec_aliquots': aliquot_id_count,
+                'paginated_csa_aliquot_run_metadata_rows': aliquot_run_id_count
             },
             'data': {
                 'cases': case_list
