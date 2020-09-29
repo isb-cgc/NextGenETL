@@ -921,7 +921,7 @@ def main(args):
             }
         }
 
-        print(case_study_sample_aliquot_obj['totals'])
+        print(case_study_sample_aliquot_obj['total_api'])
         print()
         print(case_study_sample_aliquot_obj['data']['cases'][0])
 
