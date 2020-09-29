@@ -587,6 +587,38 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
+def build_biospecimen_case_query(table_id):
+    return """
+        SELECT DISTINCT case_id
+        FROM `{}`
+    """.format(table_id)
+
+
+def build_biospecimen_study_sample_query(table_id, case_id):
+    return """
+        SELECT study_id, ARRAY_AGG(distinct sample_id) as sample_ids
+        FROM `{0}` 
+        WHERE case_id = '{1}'
+        AND study_id IN (
+            SELECT study_id
+            FROM `{0}` 
+            WHERE case_id = '{1}'
+            GROUP BY study_id
+          )
+        GROUP BY case_id, study_id
+    """.format(table_id, case_id)
+
+
+def build_biospecimen_aliquots_query(table_id, case_id, study_id, sample_id):
+    return """
+        SELECT ARRAY_AGG(DISTINCT aliquot_id) AS aliquot_ids
+        FROM `{0}`
+        WHERE case_id = '{1}'
+        AND study_id = '{2}'
+        AND sample_id = '{3}'
+    """.format(table_id, case_id, study_id, sample_id)
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -789,28 +821,32 @@ def main(args):
                               sample_aliquot_table_id,
                               map_biospecimen_query('sample_id', 'aliquot_id'))
 
-    if 'get_biospecimen_dict' in steps:
+    if 'build_biospecimen_dict' in steps:
         table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
 
-        query = """
-            SELECT case_id, 
-                STRUCT(
-                    ARRAY_AGG(DISTINCT sample_id) AS sample_ids, 
-                    ARRAY_AGG(DISTINCT aliquot_id) AS aliquot_ids
-                ) AS sa
-            FROM `{}`
-            GROUP BY case_id
-            ORDER BY ARRAY_LENGTH(sa.aliquot_ids) DESC, 
-                     ARRAY_LENGTH(sa.sample_ids) DESC
-        """.format(table_id)
+        case_res = get_query_results(build_biospecimen_case_query(table_id))
 
-        res = get_query_results(query)
+        for case in case_res:
 
-        for row in res:
-            print(row['case_id'])
-            print(row['sa']['sample_ids'])
-            print(row['sa']['aliquot_ids'])
+            print(case)
+            continue
+
+            case_id = case['case_id']
+
+            study_sample_res = build_biospecimen_study_sample_query(table_id, case_id)
+
+            for study_sample in study_sample_res:
+                study_id = study_sample['study_id']
+                sample_id = study_sample['sample_id']
+
+                aliquot_res = build_biospecimen_aliquots_query(table_id, case_id, study_id, sample_id)
+
+                for aliquot in aliquot_res:
+                    aliquot_id = aliquot['aliquot_id']
+
+
+
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
