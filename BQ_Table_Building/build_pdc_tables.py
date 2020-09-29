@@ -844,7 +844,7 @@ def main(args):
     if 'build_biospecimen_dict' in steps:
         table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
-        cases_dict = dict()
+        id_as_key_cases_dict = dict()
 
         biospec_res = get_query_results(build_biospec_query(table_id))
         total_rows = biospec_res.total_rows
@@ -855,16 +855,16 @@ def main(args):
             sample_id = row['sample_id']
             aliquot_id = row['aliquot_id']
 
-            if case_id not in cases_dict:
-                cases_dict[case_id] = dict()
-            if study_id not in cases_dict[case_id]:
-                cases_dict[case_id][study_id] = dict()
-            if sample_id not in cases_dict[case_id][study_id]:
-                cases_dict[case_id][study_id][sample_id] = set()
-            if aliquot_id not in cases_dict[case_id][study_id][sample_id]:
-                cases_dict[case_id][study_id][sample_id].add(aliquot_id)
+            if case_id not in id_as_key_cases_dict:
+                id_as_key_cases_dict[case_id] = dict()
+            if study_id not in id_as_key_cases_dict[case_id]:
+                id_as_key_cases_dict[case_id][study_id] = dict()
+            if sample_id not in id_as_key_cases_dict[case_id][study_id]:
+                id_as_key_cases_dict[case_id][study_id][sample_id] = set()
+            if aliquot_id not in id_as_key_cases_dict[case_id][study_id][sample_id]:
+                id_as_key_cases_dict[case_id][study_id][sample_id].add(aliquot_id)
             else:
-                print("duplicate entry! cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id, aliquot_id))
+                print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id, aliquot_id))
 
             if i % 50 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
@@ -875,40 +875,40 @@ def main(args):
         for case_study in case_res:
             case_id = case_study['case_id']
             study_ids = case_study['study_ids']
-            cases_dict[case_id] = dict()
+            id_as_key_cases_dict[case_id] = dict()
 
             for study_id in study_ids:
-                cases_dict[case_id][study_id] = dict()
+                id_as_key_cases_dict[case_id][study_id] = dict()
 
                 sample_aliquot_res = get_query_results(build_biospec_sample_aliquot_query(table_id, case_id, study_id))
 
                 for sample_aliquot in sample_aliquot_res:
                     sample_id = sample_aliquot['sample_id']
                     aliquot_ids = set(sample_aliquot['aliquot_ids'])
-                    cases_dict[case_id][study_id][sample_id] = aliquot_ids
+                    id_as_key_cases_dict[case_id][study_id][sample_id] = aliquot_ids
 
-            if len(cases_dict) % 25 == 0:
-                print("{} cases processed of {} total.".format(len(cases_dict), case_res.total_rows))
+            if len(id_as_key_cases_dict) % 25 == 0:
+                print("{} cases processed of {} total.".format(len(id_as_key_cases_dict), case_res.total_rows))
         """
 
         cases_list = []
 
-        for case_id in cases_dict:
+        for case_id in id_as_key_cases_dict:
             case_dict = {
                 'case_id': case_id,
                 'studies': []
             }
 
-            for study_id in cases_dict[case_id]:
+            for study_id in id_as_key_cases_dict[case_id]:
                 study_dict = {
                     'study_id': study_id,
                     'samples': []
                 }
 
-                for sample_id in cases_dict[case_id][study_id]:
+                for sample_id in id_as_key_cases_dict[case_id][study_id]:
                     sample_dict = {
                         'sample_id': sample_id,
-                        'aliquots': case_dict[case_id][study_id]
+                        'aliquots': id_as_key_cases_dict[case_id][study_id]
                     }
 
                     study_dict['samples'].append(sample_dict)
