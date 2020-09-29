@@ -855,11 +855,10 @@ def main(args):
         for row in biospec_res:
             id_row = dict()
 
-            for item_tuples in list(row.items()):
-                print(item_tuples)
-                continue
-                for k, v in item_tuples:
-                    id_row[k] = v
+            for id_tuple in list(row.items()):
+                key = id_tuple[0]
+                val = id_tuple[1]
+                id_row[key] = val
 
             case_id = id_row['case_id']
             study_id = id_row['study_id']
