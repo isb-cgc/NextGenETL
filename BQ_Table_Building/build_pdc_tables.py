@@ -850,13 +850,16 @@ def main(args):
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
-        row_obj = None
+        key_tuple, val_tuple = None
 
         for row in biospec_res:
-            row_obj = row.items()
+            row_obj = list(row.items())
+            key_tuple = row_obj[0]
+            val_tuple = row_obj[1]
             break
 
-        print(row_obj)
+        print(key_tuple)
+        print(val_tuple)
         exit()
 
         case_id = row['case_id']
