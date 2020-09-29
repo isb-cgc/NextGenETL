@@ -83,7 +83,6 @@ def get_study_payload(study_id, pdc_study_id, study_submitter_id):
                  'study_id '
                  'study_submitter_id '
                  'study_name '
-                 'study_shortname '
                  'disease_type '
                  'primary_site '
                  'cases_count '
@@ -135,12 +134,13 @@ def create_studies_dict(json_res):
                 study_dict['program_start_date'] = program_start_date
                 study_dict['program_end_date'] = program_end_date
                 study_dict['program_manager'] = program_manager
-
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
 
-                print(study_dict)
+                for k,v in study_dict.items():
+                    if not v:
+                        study_dict[k] = None
 
                 studies.append(study_dict)
 
