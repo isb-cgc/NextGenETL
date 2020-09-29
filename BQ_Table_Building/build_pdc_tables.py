@@ -19,6 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import math
 import re
 import csv
 from common_etl.utils import *
@@ -380,6 +381,24 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
         print(empty_spectral_count_set)
 
 
+def make_total_cases_aliquots_query():
+    return '''
+    {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+    total casesSamplesAliquots {{
+    case_id case_submitter_id external_case_id  
+    samples {{
+    sample_id sample_submitter_id
+    aliquots {{ aliquot_id aliquot_submitter_id
+    aliquot_run_metadata {{ aliquot_run_metadata_id}}
+    }}
+    }}
+    }}
+    pagination {{ count sort from page total pages size }}
+    }}
+    }}
+    '''.format(0, 1)
+
+
 def make_cases_aliquots_query(offset, limit):
     return '''
     {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
@@ -400,9 +419,6 @@ def make_cases_aliquots_query(offset, limit):
 
 def build_cases_samples_aliquots_tsv(csa_tsv):
     console_out("Building cases_samples_aliquots tsv!")
-    pages_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(0, API_PARAMS['CSA_LIMIT']))
-
-    pages = pages_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
 
     with open(csa_tsv, 'w') as csa_fh:
         csa_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
@@ -415,6 +431,10 @@ def build_cases_samples_aliquots_tsv(csa_tsv):
             'aliquot_submitter_id',
             'aliquot_run_metadata_id')
         )
+
+    pages_res = get_graphql_api_response(API_PARAMS, make_total_cases_aliquots_query())
+    total_rows = pages_res['data']['paginatedCasesSamplesAliquots']['total']
+    pages = math.ceil(total_rows / API_PARAMS['CSA_LIMIT'])
 
     with open(csa_tsv, 'a') as csa_fh:
         for i in range(pages):
