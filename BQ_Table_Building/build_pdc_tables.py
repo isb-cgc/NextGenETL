@@ -919,12 +919,11 @@ def main(args):
         print("\nBuilding JSON object!\n")
 
         for case_id in case_id_keys_obj:
-            print(case_id)
-            continue
-
             study_list = []
 
             for study_id in case_id_keys_obj[case_id]:
+                print(study_id)
+                continue
                 sample_list = []
 
                 for sample_id in case_id_keys_obj[case_id][study_id]:
