@@ -609,7 +609,7 @@ def build_biospecimen_study_sample_query(table_id, case_id):
     """.format(table_id, case_id)
 
 
-def build_biospecimen_aliquots_query(table_id, case_id, study_id, sample_id):
+def build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id):
     return """
         SELECT ARRAY_AGG(DISTINCT aliquot_id) AS aliquot_ids
         FROM `{0}`
@@ -831,7 +831,7 @@ def main(args):
 
             case_id = case['case_id']
 
-            study_sample_res = build_biospecimen_study_sample_query(table_id, case_id)
+            study_sample_res = get_query_results(build_biospecimen_study_sample_query(table_id, case_id))
 
             for study_sample in study_sample_res:
                 print(study_sample)
@@ -841,7 +841,7 @@ def main(args):
                 study_id = study_sample['study_id']
                 sample_id = study_sample['sample_id']
 
-                aliquot_res = build_biospecimen_aliquots_query(table_id, case_id, study_id, sample_id)
+                aliquot_res = get_query_results(build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id))
 
                 for aliquot in aliquot_res:
                     aliquot_id = aliquot['aliquot_id']
