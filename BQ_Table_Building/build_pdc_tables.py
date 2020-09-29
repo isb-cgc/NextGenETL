@@ -418,7 +418,7 @@ def build_cases_samples_aliquots_tsv(csa_tsv):
 
     with open(csa_tsv, 'a') as csa_fh:
         for i in range(pages):
-            offset = 100 * i
+            offset = API_PARAMS['CSA_LIMIT'] * i
             console_out("Getting CasesSamplesAliquots results from offset {0}... ", (offset,), end='')
 
             json_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
