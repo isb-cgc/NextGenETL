@@ -519,7 +519,7 @@ def make_unique_biospecimen_query(dup_table_id):
     return """
             SELECT DISTINCT * 
             FROM `{}`
-            )""".format(dup_table_id)
+            """.format(dup_table_id)
 
 
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
