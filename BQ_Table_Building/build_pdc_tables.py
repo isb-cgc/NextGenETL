@@ -604,7 +604,7 @@ def build_biospec_study_query(table_id, case_id):
 
 def build_biospec_sample_query(table_id, case_id, study_id):
     return """
-        SELECT DISTINCT sample_id, ARRAY_AGG(DISTINCT aliquot_id)
+        SELECT sample_id, ARRAY_AGG(DISTINCT aliquot_id)
         FROM `{}`
         WHERE case_id = '{}'
         AND study_id = '{}'
