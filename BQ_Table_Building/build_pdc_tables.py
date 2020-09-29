@@ -1016,9 +1016,6 @@ def main(args):
                     'studies': study_list
                 })
 
-        print(case_list)
-        exit()
-
         case_study_sample_aliquot_obj = {
             'total_distinct': {
                 'combined_rows': counts['total_rows'],
@@ -1032,6 +1029,9 @@ def main(args):
                 'cases': case_list
             }
         }
+
+        print(str(len(case_list)))
+        exit()
 
         counts = case_study_sample_aliquot_obj['total_distinct']
 
