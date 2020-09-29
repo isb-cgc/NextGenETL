@@ -891,8 +891,36 @@ def main(args):
                 print("{} cases processed of {} total.".format(len(cases_dict), case_res.total_rows))
         """
 
-        print()
-        print(cases_dict)
+        cases_list = []
+
+        for case_id in cases_dict:
+            case_dict = {
+                'case_id': case_id,
+                'studies': []
+            }
+
+            for study_id in case_dict[case_id]:
+                study_dict = {
+                    'study_id': study_id,
+                    'samples': []
+                }
+
+                for sample_id in case_dict[case_id][study_id]:
+                    sample_dict = {
+                        'sample_id': sample_id,
+                        'aliquots': case_dict[case_id][study_id]
+                    }
+
+                    study_dict['samples'].append(sample_dict)
+                    case_dict['studies'].append(study_dict)
+                    cases_list.append(case_dict)
+
+        case_study_sample_aliq_obj = {
+            'total': total_rows,
+            'cases': cases_list
+        }
+
+        print(case_study_sample_aliq_obj)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
