@@ -715,11 +715,11 @@ def get_dir_files(bq_params):
     return [f for f in os.listdir(fp) if os.path.isfile(os.path.join(fp, f))]
 
 
-def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
+def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
     """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
 
     :param jsonl_fp: filepath of jsonl file to write
-    :param json_obj: list<dict> object
+    :param json_obj_list: list<dict> object
     :param mode: 'a' if appending to a file that's being built iteratively
                  'w' if file data is written in a single call to the function
                      (in which case any existing data is overwritten)"""
@@ -727,13 +727,12 @@ def write_list_to_jsonl(jsonl_fp, json_obj, mode='w'):
     with open(jsonl_fp, mode) as file_obj:
         cnt = 0
 
-        for line in json_obj:
-            json_str = convert_dict_to_string(line)
+        for line in json_obj_list:
+            json_str = json.dumps(line)
+            # json_str = convert_dict_to_string(line)
             json.dump(obj=json_str, fp=file_obj)
             file_obj.write('\n')
             cnt += 1
-        # if mode == 'w':
-            # console_out("Successfully output {0} records to {1}", (cnt, jsonl_fp))
 
 
 def append_list_to_jsonl(file_obj, json_list):
@@ -1535,6 +1534,8 @@ def convert_dict_to_string(obj):
     :return: modified object
     """
     if isinstance(obj, list):
+        if len(obj) == 0:
+
         if not isinstance(obj[0], dict):
             str_list = ', '.join(obj)
             obj = str_list
