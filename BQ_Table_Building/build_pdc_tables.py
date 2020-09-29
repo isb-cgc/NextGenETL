@@ -604,9 +604,9 @@ def main(args):
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
 
             if filename not in blob_files:
-                console_out('{0} not found in gs://{1}/{2}', (filename,
-                                                              BQ_PARAMS['WORKING_BUCKET'],
-                                                              BQ_PARAMS['WORKING_BUCKET_DIR']))
+                console_out('skipping quant table build for {} (gs://{}/{}/{} not found).',
+                            (study_submitter_id, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename)
+                            )
             else:
                 build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                                      BQ_PARAMS['DEV_DATASET'],
