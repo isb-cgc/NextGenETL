@@ -553,16 +553,12 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     delete_table_list = [
-        "isb-project-zero.GDC_Clinical_Data.BEATAML1_0_clinical",
-        "isb-project-zero.GDC_Clinical_Data.CGCI_clinical",
-        "isb-project-zero.GDC_Clinical_Data.CGCI_clinical_diagnoses",
-        "isb-project-zero.GDC_Clinical_Data.CGCI_clinical_diagnoses_treatments",
-        "isb-project-zero.GDC_Clinical_Data.CGCI_clinical_follow_ups",
-        "isb-project-zero.GDC_Clinical_Data.CGCI_clinical_follow_ups_molecular_tests",
-        "isb-project-zero.GDC_Clinical_Data.CMI_clinical",
-        "isb-project-zero.GDC_Clinical_Data.CPTAC_clinical",
-        "isb-project-zero.GDC_Clinical_Data.CTSP_clinical",
-        "isb-project-zero.GDC_Clinical_Data.FM_clinical"
+        "isb-project-zero.GDC_Clinical_Data.TARGET_clinical",
+        "isb-project-zero.GDC_Clinical_Data.TCGA_clinical_diagnoses_treatments",
+        "isb-project-zero.GDC_Clinical_Data.TCGA_clinical",
+        "isb-project-zero.GDC_Clinical_Data.VAREPOP_clinical_diagnoses_treatments",
+        "isb-project-zero.GDC_Clinical_Data.VAREPOP_clinical_family_histories",
+        "isb-project-zero.GDC_Clinical_Data.WCDT_clinical"
     ]
 
     for table_id in delete_table_list:
