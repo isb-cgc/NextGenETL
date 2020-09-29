@@ -132,7 +132,7 @@ def create_studies_dict(json_res):
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
 
-                for k,v in study_dict.items():
+                for k, v in study_dict.items():
                     if not v:
                         study_dict[k] = None
 
@@ -374,7 +374,6 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                                                                     gene['assays']))
 
 
-
 def make_total_cases_aliquots_query():
     return '''
     {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
@@ -509,9 +508,8 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
             aliquots_cnt = study['aliquots_count']
             res_size = len(json_res['data']['biospecimenPerStudy'])
 
-            console_out("study_id: {}, aliquots_count: {}, api result size: {}", (study['study_id'],
-                                                                                  aliquots_cnt,
-                                                                                  res_size))
+            console_out("study_id: {}, pdc_study_id: {}, aliquots_count: {}, api result size: {}",
+                        (study['study_id'], study['pdc_study_id'], aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
