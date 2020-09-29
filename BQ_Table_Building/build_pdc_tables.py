@@ -737,7 +737,8 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
-        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']) + '.tsv')
+        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS,
+                                              get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates') + '.tsv')
         build_biospecimen_tsv(study_ids_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
