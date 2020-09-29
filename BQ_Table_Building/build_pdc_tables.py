@@ -842,7 +842,7 @@ def main(args):
                 print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id,
                                                                                       aliquot_id))
 
-            if i % 200 == 0:
+            if i % 1000 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
 
         case_list = []
@@ -885,6 +885,8 @@ def main(args):
             'total_aliquots': aliquot_id_count,
             'cases': case_list
         }
+
+        print()
 
         for key in case_study_sample_aliquot_obj.keys():
             if isinstance(case_study_sample_aliquot_obj[key], list):
