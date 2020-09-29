@@ -918,10 +918,10 @@ def main(args):
 
         print("\nBuilding JSON object!\n")
 
-        print(len(case_id_keys_obj))
-        exit()
-
         for case_id in case_id_keys_obj:
+            print(case_id)
+            continue
+
             study_list = []
 
             for study_id in case_id_keys_obj[case_id]:
