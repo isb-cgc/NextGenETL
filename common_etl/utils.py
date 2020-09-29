@@ -853,11 +853,9 @@ def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error
     endpoint = api_params['ENDPOINT']
 
     if query and not payload:
-        print(query)
         req_body = {'query': query}
         response = requests.post(endpoint, headers=headers, json=req_body)
     elif payload and not query:
-        print(payload)
         response = requests.post(endpoint, headers=headers, data=payload)
     else:
         response = None
