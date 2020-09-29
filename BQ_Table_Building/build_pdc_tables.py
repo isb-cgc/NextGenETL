@@ -128,7 +128,7 @@ def create_studies_dict(json_res):
 
                 print(study_metadata)
 
-                for entry in study_metadata['data']['study']:
+                for entry in study_metadata['data']['study'][0]:
                     for field, val in entry.items():
                         study_dict[field] = val
 
