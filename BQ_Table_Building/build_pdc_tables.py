@@ -130,10 +130,12 @@ def create_studies_dict(json_res):
                     for field, val in entry.items():
                         study_dict[field] = val
 
-                console_out("Processing metadata for {0}", (study_dict['study_name'],))
+                console_out("Processing study metadata for {0}", (study_dict['study_name'],))
 
                 primary_site_list = study_dict.pop('primary_site').split(';').sort()
                 disease_type_list = study_dict.pop('disease_type').split(';').sort()
+
+                print(primary_site_list)
 
                 if isinstance(primary_site_list, list):
                     study_dict['primary_site'] = ', '.join(primary_site_list)
@@ -393,8 +395,6 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
                                                                     gene['proteins'],
                                                                     gene['assays']))
 
-        print(no_spectral_count_set)
-        print(empty_spectral_count_set)
 
 
 def make_total_cases_aliquots_query():
@@ -406,7 +406,7 @@ def make_total_cases_aliquots_query():
     sample_id sample_submitter_id
     aliquots {{ aliquot_id aliquot_submitter_id
     aliquot_run_metadata {{ aliquot_run_metadata_id}}
-    }}
+    }} 
     }}
     }}
     pagination {{ count sort from page total pages size }}
@@ -600,8 +600,6 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
         studies = create_studies_dict(json_res)
-
-        print(studies)  # todo remove
 
         filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
         studies_fp = get_scratch_fp(BQ_PARAMS, filename)
