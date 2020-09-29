@@ -940,6 +940,7 @@ def main(args):
             })
 
         print(case_list[0:100])
+        exit()
 
         case_study_sample_aliquot_obj = {
             'total_distinct': {
