@@ -939,8 +939,6 @@ def main(args):
                 'studies': study_list
             })
 
-        print(case_list[95:100])
-
         case_study_sample_aliquot_obj = {
             'total_distinct': {
                 'combined_rows': total_rows,
@@ -974,7 +972,11 @@ def main(args):
         jsonl_file = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE']) + '.jsonl'
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_file)
 
-        write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data'])
+        cases_list = case_study_sample_aliquot_obj['data']['cases']
+
+        print("is list: {}, len: ".format(isinstance(cases_list, list), len(cases_list)))
+
+        write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data']['cases'])
         upload_to_bucket(BQ_PARAMS, jsonl_fp)
 
     if 'build_nested_biospecimen_table' in steps:
