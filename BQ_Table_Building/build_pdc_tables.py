@@ -789,6 +789,27 @@ def main(args):
                               sample_aliquot_table_id,
                               map_biospecimen_query('sample_id', 'aliquot_id'))
 
+    if 'get_biospecimen_dict' in steps:
+        table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_PROJECT'], table_name)
+
+        query = """
+            SELECT case_id, 
+                STRUCT(
+                    ARRAY_AGG(DISTINCT sample_id) AS sample_ids, 
+                    ARRAY_AGG(DISTINCT aliquot_id) AS aliquot_ids
+                ) AS sa
+            FROM `{}`
+            GROUP BY case_id
+            ORDER BY ARRAY_LENGTH(sa.aliquot_ids) DESC, 
+                     ARRAY_LENGTH(sa.sample_ids) DESC
+        """.format(table_id)
+
+        res = get_query_results(query)
+
+        for row in res:
+            print(row)
+
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
 
