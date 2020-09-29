@@ -857,7 +857,7 @@ def main(args):
                         else:
                             cases_dict[case_id][study_id][sample_id].add(aliquot_set)
 
-            if len(cases_dict) % 100 == 0:
+            if len(cases_dict) % 25 == 0:
                 print("{} cases processed of {} total.".format(len(cases_dict), len(case_res)))
 
         print()
