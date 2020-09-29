@@ -552,28 +552,6 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    delete_table_list = [
-        "isb-project-zero.GDC_Clinical_Data.GENIE_clinical",
-        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical",
-        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_diagnoses",
-        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_diagnoses_treatments",
-        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_follow_ups",
-        "isb-project-zero.GDC_Clinical_Data.HCMI_clinical_follow_ups_molecular_tests",
-        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical",
-        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_diagnoses_treatments",
-        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_family_histories",
-        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_follow_ups",
-        "isb-project-zero.GDC_Clinical_Data.MMRF_clinical_follow_ups_molecular_tests",
-        "isb-project-zero.GDC_Clinical_Data.NCICCR_clinical",
-        "isb-project-zero.GDC_Clinical_Data.OHSU_clinical",
-        "isb-project-zero.GDC_Clinical_Data.ORGANOID_clinical"
-    ]
-
-    for table_id in delete_table_list:
-        delete_bq_table(table_id)
-
-    exit()
-
     if 'build_studies_jsonl' in steps:
         jsonl_start = time.time()
 
@@ -675,8 +653,6 @@ def main(args):
 
                 if len(row) != num_columns:
                     print(row)
-
-        exit()
 
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
