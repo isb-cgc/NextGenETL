@@ -597,16 +597,14 @@ def build_biospec_query(table_id):
 
 def build_biospec_count_query(biospec_table_id, csa_table_id):
     return """
-        WITH csa AS (
-            SELECT count(distinct aliquot_run_metadata_id) as aliquot_run_metadata_id_count
-            FROM `{}`
-        )
+        SELECT count(distinct aliquot_run_metadata_id) as aliquot_run_metadata_id_count
+        FROM `{}`
+            UNION
         SELECT count(distinct bio.case_id) as case_id_count,
-        count(distinct bio.study_id) as study_id_count,
-        count(distinct bio.sample_id) as sample_id_count,
-        count(distinct bio.aliquot_id) as aliquot_id_count,
-        csa.aliquot_run_metadata_id_count
-        FROM `{}` as bio
+            count(distinct bio.study_id) as study_id_count,
+            count(distinct bio.sample_id) as sample_id_count,
+            count(distinct bio.aliquot_id) as aliquot_id_count
+        FROM `{}`
     """.format(csa_table_id, biospec_table_id)
 
 
