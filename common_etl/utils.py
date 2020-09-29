@@ -1164,7 +1164,6 @@ def from_schema_file_to_obj(bq_params, filename):
     :return: schema list, table metadata dict
     """
     fp = get_schema_metadata_fp(bq_params, bq_params['SCHEMA_DIR'], filename)
-    print(fp)
 
     if not os.path.exists(fp):
         return None, None

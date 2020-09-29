@@ -624,6 +624,7 @@ def main(args):
             if not table_metadata:
                 console_out("No schema for {}, skipping", (study_submitter_id,))
             else:
+                console_out("Updating table metadata for {}", (study_submitter_id,))
                 update_table_metadata(table_id, table_metadata)
 
     if 'build_gene_tsv' in steps:
