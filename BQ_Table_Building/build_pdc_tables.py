@@ -41,7 +41,7 @@ def map_biospecimen_query(column_id_1, column_id_2):
               FROM `{2}`
               GROUP BY {0})
             SELECT {0}, {1}s
-            FROM map_ids)
+            FROM map_ids
     """.format(column_id_1, column_id_2, table_id)
 
 
@@ -757,6 +757,10 @@ def main(args):
                               final_table_id,
                               make_unique_biospecimen_query(dup_table_id))
 
+        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
+            delete_bq_table(dup_table_id)
+
+    if 'build_aliquot_sample_study_maps' in steps:
         aliquot_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
                                               BQ_PARAMS['DEV_META_DATASET'],
                                               get_table_name('map_aliquot_study'))
@@ -777,9 +781,6 @@ def main(args):
         load_table_from_query(BQ_PARAMS,
                               sample_aliquot_table_id,
                               map_biospecimen_query('sample_id', 'aliquot_id'))
-
-        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
-            delete_bq_table(dup_table_id)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
