@@ -639,6 +639,7 @@ def build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id):
     """.format(table_id, case_id, study_id, sample_id)
 '''
 
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -864,7 +865,8 @@ def main(args):
             if aliquot_id not in id_as_key_cases_dict[case_id][study_id][sample_id]:
                 id_as_key_cases_dict[case_id][study_id][sample_id].add(aliquot_id)
             else:
-                print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id, aliquot_id))
+                print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id,
+                                                                                      aliquot_id))
 
             if i % 200 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
@@ -891,41 +893,68 @@ def main(args):
                 print("{} cases processed of {} total.".format(len(id_as_key_cases_dict), case_res.total_rows))
         """
 
-        cases_list = []
+        case_list = []
 
         for case_id in id_as_key_cases_dict:
-            case_dict = {
-                'case_id': case_id,
-                'studies': []
-            }
+            study_list = []
 
             for study_id in id_as_key_cases_dict[case_id]:
-                study_dict = {
-                    'study_id': study_id,
-                    'samples': []
-                }
+
+                sample_list = []
 
                 for sample_id in id_as_key_cases_dict[case_id][study_id]:
-                    sample_dict = {
-                        'sample_id': sample_id,
-                        'aliquots': set(id_as_key_cases_dict[case_id][study_id][sample_id])
+                    aliquot_list = []
+
+                    for aliquot_id in id_as_key_cases_dict[case_id][study_id][sample_id]:
+                        aliquot_list.append(
+                            {
+                                'aliquot_id': aliquot_id
+                            }
+                        )
+
+                    sample_list.append(
+                        {
+                            'sample_id': sample_id,
+                            'aliquots': aliquot_list
+                        }
+                    )
+
+                study_list.append(
+                    {
+                        'study_id': study_id,
+                        'samples': sample_list
                     }
+                )
 
-                    study_dict['samples'].append(sample_dict)
-                    case_dict['studies'].append(study_dict)
-                    cases_list.append(case_dict)
-
-        print(cases_list[0])
-        print(cases_list[1])
+            case_list.append(
+                {
+                    'case_id': case_id,
+                    'studies': study_list
+                }
+            )
 
         case_study_sample_aliquot_obj = {
             'total': total_rows,
-            'cases': cases_list
+            'cases': case_list
         }
+
+        print("{")
+        for key in case_study_sample_aliquot_obj.keys():
+            if isinstance(case_study_sample_aliquot_obj[key], list):
+                print("{}: [".format(key))
+
+                for i, entry in enumerate(case_study_sample_aliquot_obj[key]):
+                    if i < 2:
+                        print(entry)
+
+                print("]")
+            else:
+                print("{}: {}".format(key, case_study_sample_aliquot_obj[key]))
+        print("}")
+
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
-
 
 if __name__ == '__main__':
     main(sys.argv)
