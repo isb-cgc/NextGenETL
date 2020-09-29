@@ -54,6 +54,23 @@ def make_all_programs_query():
         }}"""
 
 
+def make_study_query(study_id):
+    return """{{ study 
+    (study_id: \"{}\") {{ 
+        study_id 
+        pdc_study_id 
+        study_submitter_id 
+        study_name 
+        disease_type 
+        primary_site 
+        analytical_fraction 
+        experiment_type 
+        cases_count 
+        aliquots_count 
+    }} }}
+    """.format(study_id)
+
+
 def get_study_payload(study_id, pdc_study_id, study_submitter_id):
     query_str = ('\"query study ($study_id: String, '
                  '$pdc_study_id: String, '
@@ -103,16 +120,22 @@ def create_studies_dict(json_res):
             for study in project['studies']:
                 study_dict = study.copy()
 
+                study_query = make_study_query(study_dict['study_id'])
+
+                """
                 study_payload = get_study_payload(study_dict['study_id'],
                                                   study_dict['pdc_study_id'],
                                                   study_dict['study_submitter_id'])
+                """
 
-                study_metadata = get_graphql_api_response(API_PARAMS,
-                                                          payload=study_payload)
+                study_metadata = get_graphql_api_response(API_PARAMS, query=study_query)
 
                 for entry in study_metadata['data']['study']:
                     for field, val in entry.items():
                         study_dict[field] = val
+
+                print(study_dict)
+                continue
 
                 console_out("Processing metadata for {0}", (study_dict['study_name'],))
 
@@ -124,7 +147,7 @@ def create_studies_dict(json_res):
                 else:
                     study_dict['primary_site'] = None
 
-                if isinstance(primary_site_list, list):
+                if isinstance(disease_type_list, list):
                     study_dict['disease_type'] = ', '.join(disease_type_list)
                 else:
                     study_dict['disease_type'] = None
@@ -226,7 +249,7 @@ def get_study_ids():
                             get_table_name(BQ_PARAMS['STUDIES_TABLE']))
 
     return """
-    SELECT study_id, study_submitter_id
+    SELECT study_id, study_submitter_id, pdc_study_id, aliquots_count, cases_count
     FROM  `{}`
     """.format(table_id)
 
@@ -487,6 +510,8 @@ def make_biospecimen_per_study_query(study_id):
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
     console_out("Building biospecimen tsv!")
 
+    print("{} studies total".format(len(study_ids_list)))
+
     with open(biospecimen_tsv, 'w') as bio_fh:
         bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
             'aliquot_id',
@@ -508,6 +533,11 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
 
         for study in study_ids_list:
             json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
+
+            aliquots_cnt = study_ids_list['aliquots_count']
+            res_size = len(json_res['data']['biospecimenPerStudy'])
+
+            print("aliquots_count: {}, api result size: {}".format(aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
@@ -577,6 +607,9 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
         studies = create_studies_dict(json_res)
+
+        exit()
+
         filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
         studies_fp = get_scratch_fp(BQ_PARAMS, filename)
 
