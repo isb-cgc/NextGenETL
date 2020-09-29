@@ -629,7 +629,7 @@ def main(args):
     bucket_target_blob_sets = {}
     for file_set in file_sets:
         count_name, _ = next(iter(file_set.items()))
-        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-{}'.format(params['WORKING_BUCKET_DIR'], params['DATE'],
+        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-r{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'],
                                                                       params['PROGRAM'],params['DATA_TYPE'],
                                                                       params['RELEASE'], count_name)
 
