@@ -850,6 +850,9 @@ def main(args):
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
+        print(total_rows)
+        exit()
+
         for i, row in enumerate(biospec_res):
             biospec_ids = {}
 
@@ -876,7 +879,7 @@ def main(args):
                 print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
                     case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
-            if i % 1000 == 0:
+            if i % 100 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
 
         case_list = []
