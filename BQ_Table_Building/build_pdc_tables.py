@@ -974,8 +974,41 @@ def main(args):
                     if not study_id:
                         print("Not study_id: {}".format(study_id))
                     else:
+                        sample_list = list()
+
+                        for sample_id in case_id_keys_obj[case_id][study_id]:
+                            if not sample_id:
+                                print("Not sample_id: {}".format(sample_id))
+                            else:
+                                aliquot_list = list()
+
+                                for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
+                                    if not aliquot_id:
+                                        print("Not aliquot_id: {}".format(aliquot_id))
+                                    else:
+                                        aliquot_run_metadata_list = list()
+
+                                        for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+                                            if not aliquot_run_metadata_id:
+                                                print("Not aliquot_run_metadata_id: {}".format(aliquot_run_metadata_id))
+                                            else:
+                                                aliquot_run_metadata_list.append({
+                                                    "aliquot_run_metadata_id": aliquot_run_metadata_id
+                                                })
+
+                                        aliquot_list.append({
+                                            "aliquot_id": aliquot_id,
+                                            "aliquot_run_metadata": aliquot_run_metadata_list
+                                        })
+
+                                sample_list.append({
+                                    "sample_id": sample_id,
+                                    "aliquots": aliquot_list
+                                })
+
                         study_list.append({
-                            'study_id': study_id
+                            "study_id": study_id,
+                            "samples": sample_list
                         })
 
                 case_list.append({
