@@ -834,17 +834,19 @@ def main(args):
             study_sample_res = get_query_results(build_biospecimen_study_sample_query(table_id, case_id))
 
             for study_sample in study_sample_res:
-                print(study_sample)
-
-                continue
-
                 study_id = study_sample['study_id']
-                sample_id = study_sample['sample_id']
+                sample_ids = study_sample['sample_ids']
 
-                aliquot_res = get_query_results(build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id))
+                for sample_id in sample_ids:
+                    aliquot_res = get_query_results(
+                        build_biospecimen_aliquot_query(table_id, case_id, study_id, sample_id)
+                    )
 
-                for aliquot in aliquot_res:
-                    aliquot_id = aliquot['aliquot_id']
+                    print(aliquot_res)
+                    continue
+
+                    for aliquot in aliquot_res:
+                        aliquot_id = aliquot['aliquot_id']
 
 
 
