@@ -124,20 +124,11 @@ def create_studies_dict(json_res):
 
                 study_query = make_study_query(study_dict['study_id'])
 
-                """
-                study_payload = get_study_payload(study_dict['study_id'],
-                                                  study_dict['pdc_study_id'],
-                                                  study_dict['study_submitter_id'])
-                """
-
                 study_metadata = get_graphql_api_response(API_PARAMS, query=study_query)
 
                 for entry in study_metadata['data']['study']:
                     for field, val in entry.items():
                         study_dict[field] = val
-
-                print(study_dict)
-                continue
 
                 console_out("Processing metadata for {0}", (study_dict['study_name'],))
 
@@ -609,6 +600,8 @@ def main(args):
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
         studies = create_studies_dict(json_res)
+
+        print(studies)  # todo remove
 
         filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
         studies_fp = get_scratch_fp(BQ_PARAMS, filename)
