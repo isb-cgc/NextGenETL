@@ -830,14 +830,19 @@ def main(args):
 
         for case in case_res:
             case_id = case['case_id']
-            study_dict = dict()
+
+            if case_id not in cases_dict:
+                cases_dict[case_id] = dict()
 
             study_sample_res = get_query_results(build_biospecimen_study_sample_query(table_id, case_id))
 
             for study_sample in study_sample_res:
                 study_id = study_sample['study_id']
+
+                if study_id not in cases_dict[case_id]:
+                    cases_dict[case_id][study_id] = dict()
+
                 sample_ids = study_sample['sample_ids']
-                sample_dict = dict()
 
                 for sample_id in sample_ids:
                     aliquot_res = get_query_results(
@@ -847,11 +852,10 @@ def main(args):
                         aliquot_ids = aliquot['aliquot_ids']
                         aliquot_set = set(aliquot_ids)
 
-                        sample_dict[sample_id].append(aliquot_set)
-
-                    study_dict[study_id].append(sample_dict)
-
-                cases_dict[case_id].append(study_dict)
+                        if sample_id not in cases_dict[case_id][study_id]:
+                            cases_dict[case_id][study_id][sample_id] = aliquot_set
+                        else:
+                            cases_dict[case_id][study_id][sample_id].add(aliquot_set)
 
         print(cases_dict)
 
