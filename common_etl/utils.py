@@ -31,11 +31,7 @@ from google.api_core.exceptions import NotFound
 from google.cloud import bigquery, storage, exceptions
 
 
-##################################################################################
-#
 #       GETTERS - YAML CONFIG
-#
-##################################################################################
 
 
 def get_field_groups(api_params):
@@ -217,14 +213,13 @@ def build_master_table_name_from_params(bq_params):
     return "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
 
 
-##################################################################################
-#
+
 #       GETTERS - MISC
 #
-##################################################################################
 
 
 #   Project and Program Getters
+
 
 def get_program_list(bq_params):
     """Get list of the programs which have contributed data to GDC's research program.
@@ -260,6 +255,7 @@ def get_project_name(table_id):
 
 
 #   Table Getters
+
 
 def get_one_to_many_tables(api_params, record_counts):
     """Get one-to-many tables for program.
@@ -388,6 +384,7 @@ def get_webapp_table_id(bq_params, table_name):
 
 
 #   Field and Field Group Getters
+
 
 def get_base_fg(api_params):
     """Get the first-level field group, of which all other field groups are descendents.
@@ -575,6 +572,7 @@ def get_renamed_field_keys(api_params):
 
 #   I/O Getters
 
+
 def build_working_gs_uri(bq_params, filename):
     """Builds an uri reference for file uploaded to Google storage bucket.
 
@@ -695,11 +693,7 @@ def get_schema_metadata_fp(bq_params, repo_dir, filename):
     return get_filepath(dir_path, filename)
 
 
-##################################################################################
-#
 #       FILESYSTEM HELPERS
-#
-##################################################################################
 
 
 def get_dir(fp):
@@ -752,11 +746,7 @@ def append_list_to_jsonl(file_obj, json_list):
         print(str(err), IOError)
 
 
-##################################################################################
-#
 #       REST API HELPERS (GDC, PDC, ETC)
-#
-##################################################################################
 
 
 def create_mapping_dict(endpoint):
@@ -891,11 +881,8 @@ def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error
     return json_res
 
 
-##################################################################################
-#
 #       BIGQUERY API HELPERS
-#
-##################################################################################
+
 
 def get_last_fields_in_table(api_params):
     """ Get list of fields to always include at the end of merged tables,
@@ -1179,15 +1166,18 @@ def from_schema_file_to_obj(bq_params, filename):
     fp = get_schema_metadata_fp(bq_params, bq_params['SCHEMA_DIR'], filename)
 
     with open(fp, 'r') as schema_file:
-        schema_file = json.load(schema_file)
+        try:
+            schema_file = json.load(schema_file)
 
-        schema = schema_file['schema']['fields']
+            schema = schema_file['schema']['fields']
 
-        table_metadata = {
-            'description': schema_file['description'],
-            'friendlyName': schema_file['friendlyName'],
-            'labels': schema_file['labels']
-        }
+            table_metadata = {
+                'description': schema_file['description'],
+                'friendlyName': schema_file['friendlyName'],
+                'labels': schema_file['labels']
+            }
+        except FileNotFoundError:
+            return None, None
 
         return schema, table_metadata
 
@@ -1342,11 +1332,8 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-##################################################################################
-#
 #       (NON-BQ) GOOGLE CLOUD API HELPERS
-#
-##################################################################################
+
 
 def upload_file_to_bucket(project, bucket, blob_dir, fp):
     """
@@ -1387,11 +1374,7 @@ def upload_to_bucket(bq_params, scratch_fp):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-##################################################################################
-#
 #       ANALYZE DATA
-#
-##################################################################################
 
 
 def check_value_type(value):
@@ -1529,11 +1512,7 @@ def get_max_record_counts(fg_max_counts):
     return {fg: dict() for fg in fg_max_counts if fg_max_counts[fg] > 1}
 
 
-##################################################################################
-#
 #       MISC UTILITIES
-#
-##################################################################################
 
 
 def format_seconds(seconds):
