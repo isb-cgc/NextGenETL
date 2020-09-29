@@ -962,7 +962,7 @@ def main(args):
               "\tbiospecimen samples: {}\n"
               "\tbiospecimen aliquots: {}\n"
               "\tpaginatedCasesSamplesAliquots - "
-              "aliquot_run_metadata rows: {}\n".format(counts['total_rows'],
+              "aliquot_run_metadata rows: {}\n".format(counts['combined_rows'],
                                                        counts['biospec_cases'],
                                                        counts['biospec_studies'],
                                                        counts['biospec_samples'],
