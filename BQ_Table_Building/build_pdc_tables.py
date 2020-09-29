@@ -939,10 +939,7 @@ def main(args):
                 'studies': study_list
             })
 
-        print("{ 'cases': ", end='')
         print(case_list[95:100])
-        print("}")
-        exit()
 
         case_study_sample_aliquot_obj = {
             'total_distinct': {
