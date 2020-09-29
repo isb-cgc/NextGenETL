@@ -610,8 +610,6 @@ def main(args):
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
         studies = create_studies_dict(json_res)
 
-        exit()
-
         filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
         studies_fp = get_scratch_fp(BQ_PARAMS, filename)
 
