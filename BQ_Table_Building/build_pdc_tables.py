@@ -590,24 +590,27 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
 def build_biospec_query(table_id):
     return """
         SELECT case_id, study_id, sample_id, aliquot_id
-        FROM `{}` AS a
-        LEFT JOIN `{}` AS b
-        ON a.
+        FROM `{}`
         GROUP BY case_id, study_id, sample_id, aliquot_id
     """.format(table_id)
 
 
-def build_biospec_count_query(table_id):
+def build_biospec_count_query(biospec_table_id, csa_table_id):
     return """
+        WITH aliquot_run_count AS (
+            SELECT count(distinct aliquot_run_metadata_id) as aliquot_run_metadata_id_count
+            FROM '{}'
+        )
         SELECT count(distinct case_id) as case_id_count,
         count(distinct study_id) as study_id_count,
         count(distinct sample_id) as sample_id_count,
-        count(distinct aliquot_id) as aliquot_id_count
+        count(distinct aliquot_id) as aliquot_id_count,
+        aliquot_run_count
         FROM `{}`
-    """.format(table_id)
+    """.format(csa_table_id, biospec_table_id)
 
 
-def build_aliquot_run_metadata_query(table_id, case_id, sample_id, aliquot_id):
+def build_aliquot_run_query(table_id, case_id, sample_id, aliquot_id):
     return """
         SELECT aliquot_run_metadata_id
         FROM `{}` 
@@ -725,16 +728,16 @@ def main(args):
     if 'update_quant_tables_metadata' in steps:
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
-            table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
-            schema_filename = table_id + '.json'
+            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+            bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
+            schema_filename = bio_table_id + '.json'
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
             if not table_metadata:
                 console_out("No schema for {}, skipping", (study_submitter_id,))
             else:
                 console_out("Updating table metadata for {}", (study_submitter_id,))
-                update_table_metadata(table_id, table_metadata)
+                update_table_metadata(bio_table_id, table_metadata)
 
     if 'build_gene_tsv' in steps:
         gene_name_set = build_proteome_gene_name_set()
@@ -820,20 +823,25 @@ def main(args):
                               map_biospecimen_query('sample_id', 'aliquot_id'))
 
     if 'build_biospecimen_dict' in steps:
-        table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        bio_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
+        bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], bio_table_name)
         id_as_key_cases_dict = dict()
 
-        biospec_count_res = get_query_results(build_biospec_count_query(table_id))
+        # isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09
+        csa_table_name = get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        csa_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], csa_table_name)
+
+        biospec_count_res = get_query_results(build_biospec_count_query(bio_table_id, csa_table_id))
 
         for counts in biospec_count_res:
             case_id_count = counts['case_id_count']
             study_id_count = counts['study_id_count']
             sample_id_count = counts['sample_id_count']
             aliquot_id_count = counts['aliquot_id_count']
+            aliquot_run_id_count = counts['aliquot_run_count']
             break
 
-        biospec_res = get_query_results(build_biospec_query(table_id))
+        biospec_res = get_query_results(build_biospec_query(bio_table_id))
         total_rows = biospec_res.total_rows
 
         for i, row in enumerate(biospec_res):
@@ -863,20 +871,16 @@ def main(args):
             study_list = []
 
             for study_id in id_as_key_cases_dict[case_id]:
-
                 sample_list = []
 
                 for sample_id in id_as_key_cases_dict[case_id][study_id]:
                     aliquot_list = []
 
                     for aliquot_id in id_as_key_cases_dict[case_id][study_id][sample_id]:
-                        # isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09
-                        table_name = get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE'])
-                        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
-                        aliquot_run_query = build_aliquot_run_metadata_query(table_id, case_id, sample_id, aliquot_id)
-
-                        aliquot_run_res = get_query_results(aliquot_run_query)
                         aliquot_run_list = []
+
+                        aliquot_run_res = get_query_results(
+                            build_aliquot_run_query(csa_table_id, case_id, sample_id, aliquot_id))
 
                         for row in aliquot_run_res:
                             aliquot_run_list.append({
@@ -904,12 +908,13 @@ def main(args):
             })
 
         case_study_sample_aliquot_obj = {
-            'totals': {
-                'total_distinct_rows': total_rows,
-                'total_cases': case_id_count,
-                'total_studies': study_id_count,
-                'total_samples': sample_id_count,
-                'total_aliquots': aliquot_id_count
+            'total_api': {
+                'biospec_distinct_rows': total_rows,
+                'biospec_case_ids': case_id_count,
+                'biospec_study_ids': study_id_count,
+                'biospec_sample_ids': sample_id_count,
+                'biospec_aliquot_ids': aliquot_id_count,
+                'paginated_csa_aliquot_run_metadata_ids': aliquot_run_id_count
             },
             'data': {
                 'cases': case_list
@@ -919,7 +924,6 @@ def main(args):
         print(case_study_sample_aliquot_obj['totals'])
         print()
         print(case_study_sample_aliquot_obj['data']['cases'][0])
-
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
