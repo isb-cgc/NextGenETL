@@ -483,25 +483,32 @@ def build_cases_samples_aliquots_tsv(csa_tsv):
                     sample_submitter_id = sample['sample_submitter_id']
                     sample_id = sample['sample_id']
 
-                    for aliquots in sample['aliquots']:
-                        aliquot_submitter_id = aliquots['aliquot_submitter_id']
-                        aliquot_id = aliquots['aliquot_id']
+                    sample_row = "{}\t{}\t{}\t{}\t{}\t".format(case_id,
+                                                               case_submitter_id,
+                                                               external_case_id,
+                                                               sample_id,
+                                                               sample_submitter_id)
 
-                        for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
-                            aliquot_run_metadata_id = aliquot_run_metadata[
-                                'aliquot_run_metadata_id']
+                    if len(sample['aliquots']) == 0:
+                        # no aliquot_id associated with sample_id
+                        aliquot_row = "{}\t{}\t{}\n".format("\\N", '\\N', '\\N')
+                        run_row = sample_row + aliquot_row
+                        csa_fh.write(run_row)
+                    else:
+                        for aliquots in sample['aliquots']:
+                            aliq_row = "{}\t{}\t".format(aliquots['aliquot_id'], aliquots['aliquot_submitter_id'])
+                            aliquot_row = sample_row + aliq_row
 
-                            row = """{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n""".format(
-                                case_id,
-                                case_submitter_id,
-                                external_case_id,
-                                sample_id,
-                                sample_submitter_id,
-                                aliquot_id,
-                                aliquot_submitter_id,
-                                aliquot_run_metadata_id)
-
-                            csa_fh.write(row)
+                            if len(aliquots['aliquot_run_metadata']) == 0:
+                                # no aliquot_run_metadata_id associated with aliquot_id
+                                run_meta_id_str = "{}\n".format("\\N")
+                                run_row = aliquot_row + run_meta_id_str
+                                csa_fh.write(run_row)
+                            else:
+                                for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
+                                    run_meta_id_str = "{}\n".format(aliquot_run_metadata['aliquot_run_metadata_id'])
+                                    run_row = aliquot_row + run_meta_id_str
+                                    csa_fh.write(run_row)
 
             console_out("written to tsv file.")
 
