@@ -128,9 +128,8 @@ def create_studies_dict(json_res):
 
                 print(study_metadata)
 
-                for entry in study_metadata['data']['study'][0]:
-                    for field, val in entry.items():
-                        study_dict[field] = val
+                for k, v in study_metadata['data']['study'][0].items():
+                    study_dict[k] = v
 
                 console_out("Processing study metadata for {0}", (study_dict['study_name'],))
 
