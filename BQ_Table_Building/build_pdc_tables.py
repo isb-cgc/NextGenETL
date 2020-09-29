@@ -940,7 +940,7 @@ def main(args):
             })
 
         print("{ 'cases': '", end='')
-        print(case_list[0:100])
+        print(case_list[80:100])
         print("}")
         exit()
 
@@ -977,7 +977,7 @@ def main(args):
         jsonl_file = get_table_name(BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE']) + '.jsonl'
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_file)
 
-        write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data']['cases'])
+        write_list_to_jsonl(jsonl_fp, case_study_sample_aliquot_obj['data'])
         upload_to_bucket(BQ_PARAMS, jsonl_fp)
 
     if 'build_nested_biospecimen_table' in steps:
