@@ -126,10 +126,10 @@ def create_studies_dict(json_res):
 
                 study_metadata = get_graphql_api_response(API_PARAMS, query=study_query)
 
-                print(study_metadata)
-
                 for k, v in study_metadata['data']['study'][0].items():
                     study_dict[k] = v
+
+                print(study_dict)
 
                 console_out("Processing study metadata for {0}", (study_dict['study_name'],))
 
