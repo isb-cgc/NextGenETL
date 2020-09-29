@@ -853,6 +853,10 @@ def main(args):
         i = 0
 
         for row in biospec_res:
+            if i % 100 == 0:
+                print("{} cases processed of {} total.".format(i, total_rows))
+            i += 1
+
             id_row = dict()
 
             for id_tuple in list(row.items()):
@@ -866,24 +870,32 @@ def main(args):
             aliquot_id = id_row['aliquot_id']
             aliquot_run_metadata_id = id_row['aliquot_run_metadata_id']
 
-            if case_id not in case_id_keys_obj:
+            if case_id and case_id not in case_id_keys_obj:
                 case_id_keys_obj[case_id] = dict()
-            if study_id not in case_id_keys_obj[case_id]:
+            elif not case_id:
+                continue
+
+            if study_id and study_id not in case_id_keys_obj[case_id]:
                 case_id_keys_obj[case_id][study_id] = dict()
-            if sample_id not in case_id_keys_obj[case_id][study_id]:
+            elif not study_id:
+                continue
+
+            if sample_id and sample_id not in case_id_keys_obj[case_id][study_id]:
                 case_id_keys_obj[case_id][study_id][sample_id] = dict()
-            if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
+            elif not sample_id:
+                continue
+            if aliquot_id and aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
                 case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
-            if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
-                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
+            elif not aliquot_id:
+                continue
+
+            if aliquot_run_metadata_id and aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id].append(aliquot_run_metadata_id)
+            elif not aliquot_run_metadata_id:
+                continue
             else:
                 print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
                     case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
-
-            if i % 100 == 0:
-                print("{} cases processed of {} total.".format(i, total_rows))
-
-            i += 1
 
         case_list = []
 
