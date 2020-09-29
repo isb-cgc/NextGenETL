@@ -587,12 +587,16 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                 ))
 
 
-def build_biospec_query(table_id):
+def build_biospec_query(bio_table_id, csa_table_id):
     return """
-        SELECT case_id, study_id, sample_id, aliquot_id
-        FROM `{}`
-        GROUP BY case_id, study_id, sample_id, aliquot_id
-    """.format(table_id)
+    SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+        FROM `{}` AS a
+        LEFT JOIN `{}` AS b
+        ON a.aliquot_id = b.aliquot_id
+        AND a.sample_id = b.sample_id
+        AND a.case_id = b.case_id
+        GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+    """.format(bio_table_id, csa_table_id)
 
 
 def build_biospec_count_query(biospec_table_id, csa_table_id):
@@ -827,7 +831,7 @@ def main(args):
     if 'build_biospecimen_dict' in steps:
         bio_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], bio_table_name)
-        id_as_key_cases_dict = dict()
+        case_id_keys_obj = dict()
 
         # isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09
         csa_table_name = get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE'])
@@ -843,50 +847,58 @@ def main(args):
             aliquot_run_id_count = counts['csa_aliquot_run_count']
             break
 
-        biospec_res = get_query_results(build_biospec_query(bio_table_id))
+        biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
         total_rows = biospec_res.total_rows
 
-        for i, row in enumerate(biospec_res):
-            case_id = row['case_id']
-            study_id = row['study_id']
-            sample_id = row['sample_id']
-            aliquot_id = row['aliquot_id']
+        row_obj = None
 
-            if case_id not in id_as_key_cases_dict:
-                id_as_key_cases_dict[case_id] = dict()
-            if study_id not in id_as_key_cases_dict[case_id]:
-                id_as_key_cases_dict[case_id][study_id] = dict()
-            if sample_id not in id_as_key_cases_dict[case_id][study_id]:
-                id_as_key_cases_dict[case_id][study_id][sample_id] = set()
-            if aliquot_id not in id_as_key_cases_dict[case_id][study_id][sample_id]:
-                id_as_key_cases_dict[case_id][study_id][sample_id].add(aliquot_id)
+        for row in biospec_res:
+            row_obj = row.items()
+            break
+
+        print(row_obj)
+        exit()
+
+        case_id = row['case_id']
+        study_id = row['study_id']
+        sample_id = row['sample_id']
+        aliquot_id = row['aliquot_id']
+        aliquot_run_metadata_id = row['aliquot_run_metadata_id']
+
+            if case_id not in case_id_keys_obj:
+                case_id_keys_obj[case_id] = dict()
+            if study_id not in case_id_keys_obj[case_id]:
+                case_id_keys_obj[case_id][study_id] = dict()
+            if sample_id not in case_id_keys_obj[case_id][study_id]:
+                case_id_keys_obj[case_id][study_id][sample_id] = dict()
+            if aliquot_id not in case_id_keys_obj[case_id][study_id][sample_id]:
+                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = list()
+            if aliquot_run_metadata_id not in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
+                case_id_keys_obj[case_id][study_id][sample_id][aliquot_id] = aliquot_run_metadata_id
             else:
-                print("duplicate entry! id_as_key_cases_dict[{}][{}][{}] = {}".format(case_id, study_id, sample_id,
-                                                                                      aliquot_id))
+                print("duplicate entry! case_id_keys_obj[{}][{}][{}][{}] = {}".format(
+                    case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
             if i % 1000 == 0:
                 print("{} cases processed of {} total.".format(i, total_rows))
 
         case_list = []
 
-        for case_id in id_as_key_cases_dict:
+        for case_id in case_id_keys_obj:
             study_list = []
 
-            for study_id in id_as_key_cases_dict[case_id]:
+            for study_id in case_id_keys_obj[case_id]:
                 sample_list = []
 
-                for sample_id in id_as_key_cases_dict[case_id][study_id]:
+                for sample_id in case_id_keys_obj[case_id][study_id]:
                     aliquot_list = []
 
-                    for aliquot_id in id_as_key_cases_dict[case_id][study_id][sample_id]:
+                    for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
                         aliquot_run_list = []
 
-                        aliquot_run_res = get_query_results(
-                            build_aliquot_run_query(csa_table_id, case_id, sample_id, aliquot_id))
-
-                        for row in aliquot_run_res:
+                        for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
                             aliquot_run_list.append({
-                                'aliquot_run_metadata_id': row['aliquot_run_metadata_id']
+                                'aliquot_run_metadata_id': aliquot_run_metadata_id
                             })
 
                         aliquot_list.append({
@@ -910,8 +922,8 @@ def main(args):
             })
 
         case_study_sample_aliquot_obj = {
-            'total_api': {
-                'biospec_distinct_rows': total_rows,
+            'total_distinct': {
+                'combined_rows': total_rows,
                 'biospec_case_ids': case_id_count,
                 'biospec_study_ids': study_id_count,
                 'biospec_sample_ids': sample_id_count,
@@ -923,7 +935,7 @@ def main(args):
             }
         }
 
-        print(case_study_sample_aliquot_obj['total_api'])
+        print(case_study_sample_aliquot_obj['total_distinct'])
         print()
         print(case_study_sample_aliquot_obj['data']['cases'][0])
 
