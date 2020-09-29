@@ -808,7 +808,9 @@ def main(args):
         res = get_query_results(query)
 
         for row in res:
-            print(row)
+            print(row['case_id'])
+            print(row['sa']['sample_ids'])
+            print(row['sa']['aliquot_ids'])
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
