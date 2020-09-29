@@ -865,13 +865,13 @@ def main(args):
                 counts[key] = val
 
         biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
-        total_rows = biospec_res.total_rows
+        counts['total_rows'] = biospec_res.total_rows
 
         i = 0
 
         for row in biospec_res:
             if i % 500 == 0:
-                print("{} of {} rows processed".format(i, total_rows))
+                print("{} of {} rows processed".format(i, counts['total_rows']))
             i += 1
 
             id_row = dict()
