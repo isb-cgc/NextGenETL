@@ -216,6 +216,24 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     return lines_written
 
 
+def has_table_id(project, dataset, table_name):
+    query = """
+    SELECT COUNT(1) AS has_table
+    FROM `{}.{}.__TABLES_SUMMARY__`
+    WHERE table_id = '{}'
+    """.format(project, dataset, table_name)
+
+    res = get_query_results(query)
+
+    return bool(res[0]['has_table'])
+
+
+def has_quant_data(study_submitter_id):
+    return has_table_id(BQ_PARAMS['DEV_PROJECT'],
+                        BQ_PARAMS['DEV_DATASET'],
+                        get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
+
+
 def get_study_ids():
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
                             BQ_PARAMS['DEV_META_DATASET'],
@@ -508,8 +526,11 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
             aliquots_cnt = study['aliquots_count']
             res_size = len(json_res['data']['biospecimenPerStudy'])
 
-            console_out("study_id: {}, pdc_study_id: {}, aliquots_count: {}, api result size: {}",
-                        (study['study_id'], study['pdc_study_id'], aliquots_cnt, res_size))
+            has_quant_table = has_quant_data(study['study_submitter_id'])
+
+            console_out("pdc_study_id: {}, study_submitter_id: {}, has_quant_table: {}, "
+                        "aliquots_count: {}, api result size: {}",
+                        (study['pdc_study_id'], study['study_submitter_id'], has_quant_table, aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
                 bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
