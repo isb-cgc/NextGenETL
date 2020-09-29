@@ -132,6 +132,8 @@ def create_studies_dict(json_res):
 
                 console_out("Processing study metadata for {0}", (study_dict['study_name'],))
 
+                print(study_dict['primary_site'])
+
                 primary_site_list = study_dict.pop('primary_site').split(';').sort()
                 disease_type_list = study_dict.pop('disease_type').split(';').sort()
 
