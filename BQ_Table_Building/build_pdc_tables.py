@@ -576,7 +576,7 @@ def main(args):
     for study in study_ids:
         study_ids_list.append(dict(study.items()))
 
-    if 'build_quant_tsv' in steps:
+    if 'build_quant_tsvs' in steps:
         tsv_start = time.time()
 
         for study_id_dict in study_ids_list:
@@ -595,7 +595,8 @@ def main(args):
         tsv_end = time.time() - tsv_start
         console_out("Quant table tsv files created in {0}!\n", (format_seconds(tsv_end),))
 
-    if 'build_master_quant_table' in steps:
+    if 'build_quant_tables' in steps:
+        console_out("Building quant tables...")
         blob_files = get_quant_files()
 
         for study_id_dict in study_ids_list:
