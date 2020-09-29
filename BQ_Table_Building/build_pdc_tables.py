@@ -857,6 +857,9 @@ def main(args):
                         else:
                             cases_dict[case_id][study_id][sample_id].add(aliquot_set)
 
+            print(cases_dict[case_id])
+
+        print()
         print(cases_dict)
 
     end = time.time() - start
