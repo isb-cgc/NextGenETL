@@ -484,7 +484,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
     print("{} studies total".format(len(study_ids_list)))
 
     with open(biospecimen_tsv, 'w') as bio_fh:
-        bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+        bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
             'aliquot_id',
             'sample_id',
             'case_id',
