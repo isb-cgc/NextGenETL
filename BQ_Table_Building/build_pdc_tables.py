@@ -129,25 +129,6 @@ def create_studies_dict(json_res):
                 for k, v in study_metadata['data']['study'][0].items():
                     study_dict[k] = v
 
-                print(study_dict)
-
-                console_out("Processing study metadata for {0}", (study_dict['study_name'],))
-
-                primary_site_list = study_dict['primary_site'].split(';').sort()
-                disease_type_list = study_dict['disease_type'].split(';').sort()
-
-                print(primary_site_list)
-
-                if isinstance(primary_site_list, list):
-                    study_dict['primary_site'] = ', '.join(primary_site_list)
-                else:
-                    study_dict['primary_site'] = None
-
-                if isinstance(disease_type_list, list):
-                    study_dict['disease_type'] = ', '.join(disease_type_list)
-                else:
-                    study_dict['disease_type'] = None
-
                 study_dict['program_id'] = program_id
                 study_dict['program_submitter_id'] = program_submitter_id
                 study_dict['program_name'] = program_name
@@ -158,6 +139,8 @@ def create_studies_dict(json_res):
                 study_dict['project_id'] = project_id
                 study_dict['project_submitter_id'] = project_submitter_id
                 study_dict['project_name'] = project_name
+
+                print(study_dict)
 
                 studies.append(study_dict)
 
