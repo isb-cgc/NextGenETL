@@ -1019,11 +1019,11 @@ def main(args):
         case_study_sample_aliquot_obj = {
             'total_distinct': {
                 'combined_rows': counts['total_rows'],
-                'biospec_cases': counts['case_id_count'],
-                'biospec_studies': counts['study_id_count'],
-                'biospec_samples': counts['sample_id_count'],
-                'biospec_aliquots': counts['aliquot_id_count'],
-                'aliquot_run_metadata': counts['aliquot_run_id_count']
+                'biospec_cases': counts['bio_case_count'],
+                'biospec_studies': counts['bio_study_count'],
+                'biospec_samples': counts['bio_sample_count'],
+                'biospec_aliquots': counts['bio_aliquot_count'],
+                'aliquot_run_metadata': counts['csa_aliquot_run_count']
             },
             'data': {
                 'cases': case_list
