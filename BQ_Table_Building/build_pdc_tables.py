@@ -899,13 +899,13 @@ def main(args):
                 'studies': []
             }
 
-            for study_id in case_dict[case_id]:
+            for study_id in cases_dict[case_id]:
                 study_dict = {
                     'study_id': study_id,
                     'samples': []
                 }
 
-                for sample_id in case_dict[case_id][study_id]:
+                for sample_id in cases_dict[case_id][study_id]:
                     sample_dict = {
                         'sample_id': sample_id,
                         'aliquots': case_dict[case_id][study_id]
@@ -915,12 +915,12 @@ def main(args):
                     case_dict['studies'].append(study_dict)
                     cases_list.append(case_dict)
 
-        case_study_sample_aliq_obj = {
+        case_study_sample_aliquot_obj = {
             'total': total_rows,
             'cases': cases_list
         }
 
-        print(case_study_sample_aliq_obj)
+        print(case_study_sample_aliquot_obj)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
