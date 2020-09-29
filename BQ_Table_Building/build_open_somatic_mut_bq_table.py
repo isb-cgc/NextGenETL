@@ -673,7 +673,7 @@ def main(args):
         else:
             step_1_table = skel_table
 
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE'].strip('r')),
+        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE']),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'], case_table)
         if not success:
