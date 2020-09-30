@@ -830,13 +830,25 @@ def main(args):
     #
 
     if 'publish' in steps:
+        print('publish tables')
+        tables = ['versioned', 'current']
 
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format(release))
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             publication_table.format(release))
-
-        success = publish_table(source_table, publication_dest)
+        for table in tables:
+            if table == 'versioned':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format(release))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                                     publication_table.format(release))
+            elif table == 'current':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format('current'))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     params['PUBLICATION_DATASET'],
+                                                     publication_table.format('current'))
+            success = publish_table(source_table, publication_dest)
 
         if not success:
             print("publish table failed")
