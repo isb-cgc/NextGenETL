@@ -656,10 +656,9 @@ def make_file_metadata_query(file_id):
     {{ fileMetadata(file_id: \"{}\") {{
         file_id 
         file_name 
-        file_size 
-        md5sum 
         file_location 
-        file_submitter_id 
+        md5sum 
+        file_size 
         fraction_number 
         experiment_type 
         data_category 
@@ -673,7 +672,8 @@ def make_file_metadata_query(file_id):
         aliquots {{ 
             aliquot_id 
             aliquot_submitter_id 
-            status aliquot_is_ref 
+            status 
+            aliquot_is_ref 
             sample_id 
             sample_submitter_id 
             case_id 
