@@ -892,15 +892,15 @@ def build_case_per_file_jsonl(file_id_list):
         file_id = file['file_id']
         cases_res = get_graphql_api_response(API_PARAMS, build_case_per_file_query(file_id))
 
-        if 'casePerFile' in cases_res['data'] and cases_res['data']['casePerFile']['case_id']:
-            has_case_cnt += 1
-
+        if 'casePerFile' in cases_res['data'] and cases_res['data']['casePerFile']:
             for case_file_row in cases_res['data']['casePerFile']:
-                print(case_file_row)
-                case_file_list.append(case_file_row)
-        else:
-            null_case_cnt += 1
-        print("({}, {})".format(has_case_cnt, null_case_cnt))
+                if case_file_row['case_id']:
+                    case_file_list.append(case_file_row)
+                    has_case_cnt += 1
+                else:
+                    null_case_cnt += 1
+
+                print("({}, {})".format(has_case_cnt, null_case_cnt))
 
     if has_case_cnt == 0:
         if len(case_file_list) > 0:
