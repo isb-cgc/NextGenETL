@@ -1076,9 +1076,9 @@ def main(args):
                         for row in file_res['data']['fileMetadata']:
                             file_obj.update(row)
 
-                file_list.append(file_obj)
+                print(file_obj)
 
-        print(file_list)
+                file_list.append(file_obj)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
