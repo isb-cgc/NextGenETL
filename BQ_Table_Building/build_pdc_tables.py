@@ -1075,10 +1075,14 @@ def main(args):
                     if 'data' in file_res:
                         for row in file_res['data']['fileMetadata']:
                             file_obj.update(row)
+                    else:
+                        print("No data returned by file metadata query for {}".format(file_id))
 
                 print(file_obj)
 
                 file_list.append(file_obj)
+            else:
+                print("No data returned by per-study file query for {}".format(study_id))
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
