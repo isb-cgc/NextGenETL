@@ -794,22 +794,23 @@ def build_per_study_file_jsonl(study_ids_list):
     console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
-def make_file_id_query(table_id):
+def make_file_id_query(table_id, batch=True):
     # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
     # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
 
-    if API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
+    if batch and API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
         start_idx = API_PARAMS['METADATA_OFFSET']
         end_idx = start_idx + API_PARAMS['METADATA_BATCH_SIZE']
         where_clause = "WHERE row_number BETWEEN {} AND {}".format(start_idx, end_idx)
-    elif API_PARAMS['METADATA_BATCH']:
+    elif batch and API_PARAMS['METADATA_BATCH']:
         start_idx = API_PARAMS['METADATA_OFFSET']
         where_clause = "WHERE row_number >= {}".format(start_idx)
     else:
         where_clause = ''
 
     return """
-        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) AS row_number, file_id 
+        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) 
+            AS row_number, file_id 
         FROM `{}`
         {}
         ORDER BY file_id ASC
@@ -835,7 +836,7 @@ def make_file_metadata_query(file_id):
 def get_file_ids():
     table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
-    return get_query_results(make_file_id_query(table_id))
+    return get_query_results(make_file_id_query(table_id, batch=False))  # todo fix back
 
 
 def build_file_metadata_jsonl(file_ids):
