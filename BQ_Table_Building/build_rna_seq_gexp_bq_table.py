@@ -808,7 +808,7 @@ def main(args):
     #
 
     if 'update_final_schema' in steps:
-        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict)
+        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict.format('counts'))
         if not success:
             print("Schema update failed")
             return
