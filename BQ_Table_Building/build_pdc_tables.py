@@ -1081,7 +1081,8 @@ def main(args):
                         print("No data returned by file metadata query for {}".format(file_id))
                     """
 
-                    print(i)
+                    if i % 100 == 0:
+                        print("{} files retrieved for {}".format(i, study['study_submitter_id']))
 
                 file_list.append(file_obj)
 
