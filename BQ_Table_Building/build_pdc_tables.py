@@ -1095,6 +1095,7 @@ def main(args):
         console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'build_per_study_file_table' in steps:
+        print("Build per-study file table")
         '''
         table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
@@ -1110,7 +1111,7 @@ def main(args):
 
         file_metadata_list = []
         table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         file_ids = get_query_results(make_file_id_query(table_id))
         num_files = len(file_ids)
         cnt = 0
@@ -1138,6 +1139,8 @@ def main(args):
         console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'file_metadata_table' in steps:
+        print("Build file metadata table")
+
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_METADATA'])
         '''
         table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
