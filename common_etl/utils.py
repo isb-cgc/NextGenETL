@@ -859,6 +859,7 @@ def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error
 
     tries = 0
     while not response.ok:
+        console_out("API response code {}, retrying.", (response.status_code,))
         if tries > 3:
             exit()
         tries += 1
@@ -869,7 +870,7 @@ def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error
             elif payload and not query:
                 response = requests.post(endpoint, headers=headers, data=payload)
             console_out("Status code {}, retrying", (response.status_code,))
-            time.sleep(5)
+        time.sleep(5)
 
     if not response.ok:
         has_fatal_error("Invalid response from \n, Status code: {} \nError: {}"

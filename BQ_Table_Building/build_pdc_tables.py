@@ -751,7 +751,6 @@ def make_files_per_study_query(study_id):
     {{ filesPerStudy (study_id: \"{}\") {{
             study_id 
             pdc_study_id 
-            study_submitter_id 
             study_name file_id 
             file_name 
             file_submitter_id 
@@ -785,8 +784,7 @@ def build_per_study_file_jsonl(study_ids_list):
         else:
             print("No data returned by per-study file query for {}".format(study_id))
 
-    per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS,
-                                               get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
+    per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
 
     write_list_to_jsonl(per_study_file_jsonl_path, file_list)
     upload_to_bucket(BQ_PARAMS, per_study_file_jsonl_path)
@@ -799,12 +797,23 @@ def build_per_study_file_jsonl(study_ids_list):
 def make_file_id_query(table_id):
     # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
     # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
+
+    if API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
+        start_idx = API_PARAMS['METADATA_OFFSET']
+        end_idx = start_idx + API_PARAMS['METADATA_BATCH_SIZE']
+        where_clause = "WHERE row_number BETWEEN {} AND {}".format(start_idx, end_idx)
+    elif API_PARAMS['METADATA_BATCH']:
+        start_idx = API_PARAMS['METADATA_OFFSET']
+        where_clause = "WHERE row_number >= {}".format(start_idx)
+    else:
+        where_clause = ''
+
     return """
-        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) AS row_number, 
-            file_id 
+        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) AS row_number, file_id 
         FROM `{}`
+        {}
         ORDER BY file_id ASC
-    """.format(table_id)
+    """.format(table_id, where_clause)
 
 
 def make_file_metadata_query(file_id):
@@ -818,27 +827,21 @@ def make_file_metadata_query(file_id):
         instrument 
         study_run_metadata_submitter_id 
         study_run_metadata_id 
-        aliquots {{ 
-            aliquot_id 
-            aliquot_submitter_id 
-            sample_id 
-            sample_submitter_id 
-            case_id 
-            case_submitter_id 
-            }} 
         }} 
     }}    
     """.format(file_id)
 
 
-def build_file_metadata_jsonl():
-    jsonl_start = time.time()
-
-    # get file_ids
+def get_file_ids():
     table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
-    file_ids = get_query_results(make_file_id_query(table_id))
+    return get_query_results(make_file_id_query(table_id))
+
+
+def build_file_metadata_jsonl(file_ids):
     num_files = file_ids.total_rows
+
+    jsonl_start = time.time()
 
     file_metadata_list = []
     cnt = 0
@@ -864,6 +867,54 @@ def build_file_metadata_jsonl():
 
     jsonl_end = time.time() - jsonl_start
     console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+
+def build_case_per_file_query(file_id):
+    """    
+    {{ casePerFile(file_id:\"{}\") {{ 
+        file_id 
+        case_id 
+        case_submitter_id 
+        }}
+    }}
+    """.format(file_id)
+
+
+def build_case_per_file_jsonl(file_id_list):
+    jsonl_start = time.time()
+    case_file_list = []
+    has_case_cnt = 0
+    null_case_cnt = 0
+
+    print("(had case count, no case count)")
+    for file in file_id_list:
+        file_id = file['file_id']
+        cases_res = get_graphql_api_response(API_PARAMS, build_case_per_file_query(file_id))
+
+        if 'casePerFile' in cases_res['data'] and cases_res['data']['casePerFile']['case_id']:
+            has_case_cnt += 1
+
+            for case_file_row in cases_res['data']['casePerFile']:
+                print(case_file_row)
+                case_file_list.append(case_file_row)
+        else:
+            null_case_cnt += 1
+        print("({}, {})".format(has_case_cnt, null_case_cnt))
+
+    if has_case_cnt == 0:
+        if len(case_file_list) > 0:
+            print("Error, different counts in build_case_per_file_jsonl.")
+        print("No case_id returned in casePerFile! {} file_ids tried".format(str(len(file_id_list))))
+        return
+
+    case_per_file_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
+    write_list_to_jsonl(case_per_file_jsonl_fp, case_file_list)
+    upload_to_bucket(BQ_PARAMS, case_per_file_jsonl_fp)
+
+    jsonl_end = time.time() - jsonl_start
+    list_size = str(len(case_file_list))
+
+    console_out("casePerFile jsonl created in {0}, {} rows added!\n", (format_seconds(jsonl_end), list_size))
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
@@ -1051,35 +1102,23 @@ def main(args):
         dup_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], dup_table_name)
         final_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
         final_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name)
-
-        load_table_from_query(BQ_PARAMS,
-                              final_table_id,
-                              make_unique_biospecimen_query(dup_table_id))
+        load_table_from_query(BQ_PARAMS, final_table_id, make_unique_biospecimen_query(dup_table_id))
 
         if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
             delete_bq_table(dup_table_id)
 
     if 'build_aliquot_sample_study_maps' in steps:
-        aliquot_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              BQ_PARAMS['DEV_META_DATASET'],
-                                              get_table_name('map_aliquot_study'))
-        load_table_from_query(BQ_PARAMS,
-                              aliquot_study_table_id,
-                              map_biospecimen_query('aliquot_id', 'study_id'))
+        aliq_study_table = get_table_name('map_aliquot_study')
+        aliq_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], aliq_study_table)
+        load_table_from_query(BQ_PARAMS, aliq_study_table_id, map_biospecimen_query('aliquot_id', 'study_id'))
 
-        sample_study_table_name_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                  BQ_PARAMS['DEV_META_DATASET'],
-                                                  get_table_name('map_sample_study'))
-        load_table_from_query(BQ_PARAMS,
-                              sample_study_table_name_id,
-                              map_biospecimen_query('sample_id', 'study_id'))
+        samp_study_table = get_table_name('map_sample_study')
+        sample_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], samp_study_table)
+        load_table_from_query(BQ_PARAMS, sample_study_table_id, map_biospecimen_query('sample_id', 'study_id'))
 
-        sample_aliquot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                               BQ_PARAMS['DEV_META_DATASET'],
-                                               get_table_name('map_sample_aliquot'))
-        load_table_from_query(BQ_PARAMS,
-                              sample_aliquot_table_id,
-                              map_biospecimen_query('sample_id', 'aliquot_id'))
+        sample_aliq_table = get_table_name('map_sample_aliquot')
+        sample_aliq_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], sample_aliq_table)
+        load_table_from_query(BQ_PARAMS, sample_aliq_table_id, map_biospecimen_query('sample_id', 'aliquot_id'))
 
     if 'build_nested_biospecimen_dict_and_jsonl' in steps:
         build_nested_biospecimen_jsonl()
@@ -1095,12 +1134,17 @@ def main(args):
         print("Build per-study file table")
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
 
-    if 'file_metadata_jsonl' in steps:
-        build_file_metadata_jsonl()
+    if 'build_file_metadata_jsonl' in steps:
+        file_ids = get_file_ids()
+        build_file_metadata_jsonl(file_ids)
 
-    if 'file_metadata_table' in steps:
+    if 'build_file_metadata_table' in steps:
         print("Build file metadata table")
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_METADATA'])
+
+    if 'build_case_per_file_jsonl' in steps:
+        file_ids = get_file_ids()
+        build_case_per_file_jsonl(file_ids)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
