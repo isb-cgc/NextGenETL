@@ -37,7 +37,9 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
-                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table
+                               install_labels_and_desc, update_schema, generate_table_detail_files, publish_table, \
+                               customize_labels_and_desc, update_status_tag, compare_two_tables
+
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -51,9 +53,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['file_sets'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['file_sets'], yaml_dict['schema_tags'], \
+           yaml_dict['steps']
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -128,21 +131,12 @@ def concat_all_files(all_files, one_big_tsv, header):
 ----------------------------------------------------------------------------------------------
 Delete All Intermediate Tables and (Optionally) the Final Result:
 '''
-def table_cleaner(params, file_sets, delete_result):
-    dump_table_tags = ['STEP_2_TABLE', 'STEP_2A_TABLE', 'STEP_3_TABLE',
-                       'THREE_COUNTS_TABLE']
-    dump_tables = [params[x] for x in dump_table_tags]
-    for file_set in file_sets:
-        count_name, _ = next(iter(file_set.items()))
-        dump_tables.append(params['TARGET_TABLE'].format(count_name))
-        dump_tables.append(params['COUNTS_WITH_METADATA_TABLE'].format(count_name))
-        dump_tables.append(params['BQ_MANIFEST_TABLE'].format(count_name))
-        dump_tables.append(params['BQ_PULL_LIST_TABLE'].format(count_name))
+def table_cleaner(dump_tables, delete_result):
     if delete_result:
-        delete_table_bq_job(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'])
+        delete_table_bq_job(params['SCRATCH_DATASET'], draft_table.format(release))
 
     for table in dump_tables:
-        delete_table_bq_job(params['TARGET_DATASET'], table)
+        delete_table_bq_job(params['SCRATCH_DATASET'], table)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -180,9 +174,9 @@ def attach_aliquot_and_case_ids_sql(gexp_table, file_table, sql_dict):
 Associate Barcodes for Aliquot And Case IDs
 BQ ETL step 3: attach aliquot and case barcodes for IDS
 '''
-def attach_barcodes(step2_table, aliquot_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
+def attach_barcodes(step2_table, aliquot_table, case_table, target_dataset, output_table, do_replace, do_batch):
 
-    sql = attach_barcodes_sql(step2_table, aliquot_table, sql_dict)
+    sql = attach_barcodes_sql(step2_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, do_replace)
 
 '''
@@ -192,23 +186,35 @@ Get the barcodes for the aliquot and case IDs
 Except statement removes one duplicated column 
 GDC creates a randomized analyte + portion id for TARGET
 '''
-def attach_barcodes_sql(step2_table, aliquot_table, sql_dict):
+def attach_barcodes_sql(step2_table, aliquot_table, case_table):
     return '''
-        SELECT a.project_short_name,
-               b.case_barcode,
-               b.sample_barcode,
-               b.aliquot_barcode,
-               a.case_gdc_id,
-               b.sample_gdc_id,
-               a.aliquot_gdc_id,
-               a.file_gdc_id,
-               a.platform,
-               a.file_name
-        FROM `{0}` AS a 
-        JOIN (SELECT DISTINCT * FROM 
-            (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
-        ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id
-        '''.format(step2_table, aliquot_table)
+        WITH a1 AS (SELECT a.project_short_name,
+                           b.case_barcode,
+                           b.sample_barcode,
+                           b.aliquot_barcode,
+                           a.case_gdc_id,
+                           b.sample_gdc_id,
+                           a.aliquot_gdc_id,
+                           a.file_gdc_id,
+                           a.platform,
+                           a.file_name
+                    FROM `{0}` AS a 
+                    JOIN (SELECT DISTINCT * FROM 
+                    (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{1}`)
+            ) AS b ON a.aliquot_gdc_id = b.aliquot_gdc_id)
+        SELECT a1.project_short_name,
+               a1.case_barcode,
+               c.primary_site,
+               a1.case_gdc_id,
+               a1.sample_barcode,
+               a1.aliquot_barcode,
+               a1.sample_gdc_id,
+               a1.aliquot_gdc_id,
+               a1.file_gdc_id,
+               a1.platform,
+               a1.file_name
+        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = c.case_barcode
+        '''.format(step2_table, aliquot_table, case_table)
 '''
 ----------------------------------------------------------------------------------------------
 Merge Counts and Metadata
@@ -230,6 +236,7 @@ def glue_counts_and_metadata_sql(step3_table, count_table, sql_dict):
     return '''
         SELECT a.project_short_name,
                a.case_barcode,
+               a.primary_site,
                a.sample_barcode,
                a.aliquot_barcode,
                REGEXP_EXTRACT(b.Ensembl_gene_id_v, r"^[^.]+") as Ensembl_gene_id,
@@ -272,6 +279,7 @@ def join_three_sql(table1, table2, sql_dict):
             ab AS (SELECT
                       a.project_short_name,
                       a.case_barcode,
+                      a.primary_site,
                       a.sample_barcode,
                       a.aliquot_barcode,
                       a.Ensembl_gene_id,
@@ -289,6 +297,7 @@ def join_three_sql(table1, table2, sql_dict):
         SELECT
           c.project_short_name,
           c.case_barcode,
+          c.primary_site,
           c.sample_barcode,
           c.aliquot_barcode,
           c.Ensembl_gene_id,
@@ -315,6 +324,8 @@ Pull in Platform Info From Master File: Turns out the analysis files with counts
 an associated platform. That info is (usually) attached to the original file the counts
 were derived from. Pull that data out so we can use it.
 '''
+
+
 def extract_platform_for_files(step2_table, file_table, target_dataset, output_table,
                                do_replace, sql_dict, do_batch):
 
@@ -325,6 +336,7 @@ def extract_platform_for_files(step2_table, file_table, target_dataset, output_t
 ----------------------------------------------------------------------------------------------
 SQL code for above
 '''
+
 def extract_platform_for_files_sql(step2_table, file_table, sql_dict):
     return '''
         WITH
@@ -348,6 +360,7 @@ def extract_platform_for_files_sql(step2_table, file_table, sql_dict):
 ----------------------------------------------------------------------------------------------
 Merge Gene Names Into Final Table
 '''
+
 def glue_in_gene_names(three_counts_table, gene_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
 
     sql = glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict)
@@ -358,6 +371,7 @@ def glue_in_gene_names(three_counts_table, gene_table, target_dataset, output_ta
 ----------------------------------------------------------------------------------------------
 SQL code for above
 '''
+
 def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
     table_1_vals = sql_dict['table_0']
     table_2_vals = sql_dict['table_1']
@@ -375,6 +389,7 @@ def glue_in_gene_names_sql(three_counts_table, gene_table, sql_dict):
         SELECT 
           a.project_short_name,
           a.case_barcode,
+          a.primary_site,
           a.sample_barcode,
           a.aliquot_barcode,
           b.gene_name,
@@ -421,7 +436,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, file_sets, steps = load_config(yaml_file.read())
+        params, file_sets, schema_tags, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
@@ -436,6 +451,33 @@ def main(args):
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
+    # Which table are we building?
+    release = "".join(["r", str(params['RELEASE'])])
+    use_schema = params['VER_SCHEMA_FILE_NAME']
+    if 'current' in steps:
+        print('This workflow will update the schema for the "current" table')
+        release = 'current'
+        use_schema = params['SCHEMA_FILE_NAME']
+
+    # Create table names
+    upload_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], '{}'])
+    manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest', '{}'])
+    pull_list_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'pull', 'list', '{}'])
+    files_to_case_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case'])
+    files_to_case_w_plat_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'files_to_case_with_plat'])
+    barcodes_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'barcodes'])
+    counts_w_metadata_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'counts_and_meta', '{}'])
+    merged_counts_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'merged_counts'])
+    draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+
+    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+        print("The input release is before new metadata process, "
+              "please specify which release of the metadata to use.")
+
+    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else params['RELEASE']
+
+
     if 'clear_target_directory' in steps:
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
@@ -445,11 +487,11 @@ def main(args):
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
             mani_for_count = manifest_file.format(count_name)
-            table_for_count = params['BQ_MANIFEST_TABLE'].format(count_name)
+            table_for_count = manifest_table.format(count_name)
             tsv_for_count = params['BUCKET_MANIFEST_TSV'].format(count_name)
             max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-            manifest_success = get_the_bq_manifest(params['FILE_TABLE'], count_dict['filters'], max_files,
-                                                   params['WORKING_PROJECT'], params['TARGET_DATASET'],
+            manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel), count_dict['filters'], max_files,
+                                                   params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                    table_for_count, params['WORKING_BUCKET'],
                                                    tsv_for_count, mani_for_count,
                                                    params['BQ_AS_BATCH'])
@@ -467,15 +509,15 @@ def main(args):
     if 'build_pull_list' in steps:
         for file_set in file_sets:
             count_name, count_dict = next(iter(file_set.items()))
-            table_for_count = params['BQ_MANIFEST_TABLE'].format(count_name)
+            table_for_count = manifest_table.format(count_name)
             local_pull_for_count = local_pull_list.format(count_name)
-            pull_table_for_count = params['BQ_PULL_LIST_TABLE'].format(count_name)
+            pull_table_for_count = pull_list_table.format(count_name)
             bucket_pull_list_for_count = params['BUCKET_PULL_LIST'].format(count_name)
             full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                              params['TARGET_DATASET'],
+                                              params['SCRATCH_DATASET'],
                                               table_for_count)
-            build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
-                                    params['WORKING_PROJECT'], params['TARGET_DATASET'],
+            build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(metadata_rel),
+                                    params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                     pull_table_for_count,
                                     params['WORKING_BUCKET'],
                                     bucket_pull_list_for_count,
@@ -531,20 +573,57 @@ def main(args):
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
         # Write out the details
         success = generate_table_detail_files(schema_file, full_file_prefix)
         if not success:
             print("process_git_schemas failed")
             return
 
+    # Customize generic schema to this data program:
+
+    if 'replace_schema_tags' in steps:
+        print('replace_schema_tags')
+        pn = params['PROGRAM']
+        dataset_tuple = (pn, pn.replace(".", "_"))
+        tag_map_list = []
+        for tag_pair in schema_tags:
+            for tag in tag_pair:
+                val = tag_pair[tag]
+                use_pair = {}
+                tag_map_list.append(use_pair)
+                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                    chunks = val.split('-', 1)
+                    if chunks[1] == 'programs':
+                        if val.find('~lcbqs-') == 0:
+                            rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                        else:
+                            rep_val = dataset_tuple[0]
+                    elif chunks[1] == 'builds':
+                        rep_val = params['BUILD']
+                    else:
+                        raise Exception()
+                    if val.find('~lc-') == 0:
+                        rep_val = rep_val.lower()
+                    use_pair[tag] = rep_val
+                else:
+                    use_pair[tag] = val
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
+
+        # Write out the details
+        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+
+        if not success:
+            print("replace_schema_tags failed")
+            return False
+
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         for file_set in file_sets:
             count_name, _ = next(iter(file_set.items()))
             typing_tups = build_schema(one_big_tsv.format(count_name), params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             build_combined_schema(None, schema_dict_loc,
                                   typing_tups, hold_schema_list.format(count_name), hold_schema_dict.format(count_name))
@@ -552,8 +631,9 @@ def main(args):
     bucket_target_blob_sets = {}
     for file_set in file_sets:
         count_name, _ = next(iter(file_set.items()))
-        bucket_target_blob_sets[count_name] = '{}/{}'.format(params['WORKING_BUCKET_DIR'], 
-                                                             params['BUCKET_TSV'].format(count_name))
+        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'],
+                                                                          params['PROGRAM'], params['DATA_TYPE'],
+                                                                          count_name)
 
     if 'upload_to_bucket' in steps:
         for file_set in file_sets:
@@ -573,8 +653,8 @@ def main(args):
             with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
                 typed_schema = json_loads(schema_hold_dict.read())
             csv_to_bq_write_depo(typed_schema, bucket_src_url,
-                                 params['TARGET_DATASET'],
-                                 params['TARGET_TABLE'].format(count_name), params['BQ_AS_BATCH'], None)
+                                 params['SCRATCH_DATASET'],
+                                 upload_table.format(count_name), params['BQ_AS_BATCH'], None)
 
     if 'attach_ids_to_files' in steps:
         count = 0
@@ -582,11 +662,11 @@ def main(args):
             count_name, _ = next(iter(file_set.items()))
             write_depo = "WRITE_TRUNCATE" if (count == 0) else "WRITE_APPEND"
             gexp_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                           params['TARGET_DATASET'], 
-                                           params['TARGET_TABLE'].format(count_name))                 
+                                           params['SCRATCH_DATASET'],
+                                           upload_table.format(count_name))
             success = build_aliquot_and_case(gexp_table, params['FILEDATA_TABLE'], 
-                                             params['TARGET_DATASET'], 
-                                             params['STEP_2_TABLE'], write_depo, {}, params['BQ_AS_BATCH'])
+                                             params['SCRATCH_DATASET'],
+                                             files_to_case_table, write_depo, {}, params['BQ_AS_BATCH'])
             count += 1
 
         if not success:
@@ -595,11 +675,11 @@ def main(args):
               
     if 'extract_platform' in steps:
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                        params['TARGET_DATASET'], 
-                                        params['STEP_2_TABLE'])                 
-        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'], 
-                                                          params['TARGET_DATASET'], 
-                                                          params['STEP_2A_TABLE'], True, {}, params['BQ_AS_BATCH'])
+                                        params['SCRATCH_DATASET'],
+                                        files_to_case_table)
+        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'],
+                                             params['SCRATCH_DATASET'],
+                                             files_to_case_w_plat_table, True, {}, params['BQ_AS_BATCH'])
 
         if not success:
             print("extract_platform failed")
@@ -607,11 +687,17 @@ def main(args):
             
     if 'attach_barcodes_to_ids' in steps:
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                        params['TARGET_DATASET'], 
-                                        params['STEP_2A_TABLE'])                 
-        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'], 
-                                               params['TARGET_DATASET'], 
-                                               params['STEP_3_TABLE'], True, {}, params['BQ_AS_BATCH'])
+                                        params['SCRATCH_DATASET'],
+                                        files_to_case_w_plat_table)
+
+        if params['RELEASE'] < 25:
+            case_table = params['CASE_TABLE'].format('25')
+        else:
+            case_table = params['CASE_TABLE'].format(params['RELEASE'])
+
+        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel), case_table,
+                                  params['SCRATCH_DATASET'],
+                                  barcodes_table, True, params['BQ_AS_BATCH'])
 
         if not success:
             print("attach_barcodes_to_ids failed")
@@ -630,15 +716,15 @@ def main(args):
             sql_dict['file_column'] = 'file_gdc_id_{}'.format(count_name)
             
             step3_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                            params['TARGET_DATASET'], 
-                                            params['STEP_3_TABLE'])
+                                            params['SCRATCH_DATASET'],
+                                            barcodes_table)
             counts_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                             params['TARGET_DATASET'], 
-                                             params['TARGET_TABLE'].format(count_name))  
+                                             params['SCRATCH_DATASET'],
+                                             upload_table.format(count_name))
             
             success = merge_counts_and_metadata(step3_table, counts_table, 
-                                                params['TARGET_DATASET'],
-                                                params['COUNTS_WITH_METADATA_TABLE'].format(count_name),
+                                                params['SCRATCH_DATASET'],
+                                                counts_w_metadata_table.format(count_name),
                                                 True, sql_dict, params['BQ_AS_BATCH'])
 
             if not success:
@@ -660,11 +746,11 @@ def main(args):
             dict_for_set['count_column'] = header.split(',')[1].strip()
             dict_for_set['file_column'] = 'file_gdc_id_{}'.format(count_name)
             dict_for_set['table'] = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                                      params['TARGET_DATASET'], 
-                                                      params['COUNTS_WITH_METADATA_TABLE'].format(count_name))  
+                                                      params['SCRATCH_DATASET'],
+                                                      counts_w_metadata_table.format(count_name))
 
-        success = all_counts_to_one_table(params['TARGET_DATASET'], 
-                                          params['THREE_COUNTS_TABLE'],
+        success = all_counts_to_one_table(params['SCRATCH_DATASET'],
+                                          merged_counts_table,
                                           True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
@@ -688,51 +774,159 @@ def main(args):
             dict_for_set['file_column'] = 'file_gdc_id_{}'.format(count_name) 
 
         three_counts_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                               params['TARGET_DATASET'], 
-                                               params['THREE_COUNTS_TABLE'])                 
+                                               params['SCRATCH_DATASET'],
+                                               merged_counts_table)
 
         success = glue_in_gene_names(three_counts_table, params['GENE_NAMES_TABLE'], 
-                                     params['TARGET_DATASET'], 
-                                     params['FINAL_TARGET_TABLE'],
+                                     params['SCRATCH_DATASET'],
+                                     draft_table.format(release),
                                      True, sql_dict, params['BQ_AS_BATCH'])
 
         if not success:
             print("glue_gene_names failed")
             return
 
-    #
-    # Update the per-field descriptions:
-    #
+        #
+        # Create second table
+        #
 
-    if 'update_field_descriptions' in steps:
-        print('update_field_descriptions')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        schema_dict = {}
-        with open(schema_dict_loc, mode='r') as schema_hold_dict:
-            full_schema_list = json_loads(schema_hold_dict.read())
-        for entry in full_schema_list:
-            schema_dict[entry['name']] = {'description': entry['description']}
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format('current'))
 
-        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
+        success = publish_table(source_table, current_dest)
+
         if not success:
-            print("update_field_descriptions failed")
+            print("create current table failed")
+            print("remember to rerun schema steps for current table")
+            return
+
+    #
+    # The derived table we generate has no field descriptions. Add them from the github json files:
+    #
+
+    if 'update_final_schema' in steps:
+        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict.format('counts'))
+        if not success:
+            print("Schema update failed")
             return
 
     #
     # Add description and labels to the target table:
     #
 
-    if 'update_table_description' in steps:
+    if 'add_table_description' in steps:
         print('update_table_description')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
+        success = install_labels_and_desc(params['SCRATCH_DATASET'], draft_table.format(release), full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
 
+    #
+    # compare and remove old current table
+    #
+
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              publication_table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               publication_table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                       "_".join([params['PROGRAM'],
+                                                 publication_table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
+
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+
+        num_rows = compare.total_rows
+
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+        if not compare:
+            print('compare_tables failed')
+            return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'))
+                if not delete_table:
+                    print('delete table failed')
+                    return
+
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+        print('publish tables')
+        tables = ['versioned', 'current']
+
+        for table in tables:
+            if table == 'versioned':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format(release))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                                     publication_table.format(release))
+            elif table == 'current':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format('current'))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     params['PUBLICATION_DATASET'],
+                                                     publication_table.format('current'))
+            success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
+            return
+
+    #
+    # Update previous versioned table with archived tag
+    #
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+
+        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    'archived')
+
+        if not success:
+            print("update status tag table failed")
+            return
+
     if 'dump_working_tables' in steps:
-        table_cleaner(params, file_sets, False)
+        dump_tables = [files_to_case_table, files_to_case_w_plat_table, barcodes_table, counts_w_metadata_table,
+                       merge_counts_and_metadata, merged_counts_table, draft_table]
+        for file_set in file_sets:
+            count_name, _ = next(iter(file_set.items()))
+            dump_tables.append(upload_table.format(count_name))
+            dump_tables.append(counts_w_metadata_table.format(count_name))
+            dump_tables.append(manifest_table.format(count_name))
+            dump_tables.append(pull_list_table.format(count_name))
+
+        table_cleaner(dump_tables, False)
 
     #
     # archive files on VM:
@@ -741,8 +935,9 @@ def main(args):
     bucket_archive_blob_sets = {}
     for file_set in file_sets:
         count_name, _ = next(iter(file_set.items()))
-        bucket_target_blob_sets[count_name] = '{}/{}'.format(params['ARCHIVE_BUCKET_DIR'],
-                                                             params['BUCKET_TSV'].format(count_name))
+        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-{}'.format(params['ARCHIVE_BUCKET_DIR'], params['DATE'],
+                                                                      params['PROGRAM'], params['DATA_TYPE'],
+                                                                      params['RELEASE'], count_name)
 
     if 'archive' in steps:
 
@@ -772,23 +967,6 @@ def main(args):
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                             archive_manifest_file,
                              manifest_file.format(count_name))
-
-    #
-    # publish table:
-    #
-
-    if 'publish' in steps:
-
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'])
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             params['PUBLICATION_TABLE'])
-
-        success = publish_table(source_table, publication_dest)
-
-        if not success:
-            print("publish table failed")
-            return
 
     print('job completed')
 
