@@ -644,6 +644,44 @@ def make_files_per_study_query(study_id):
     }}""".format(study_id)
 
 
+def make_file_metadata_query(file_id):
+    return """
+    {{ fileMetadata(file_id: \"{}\") {{
+        file_id 
+        file_name 
+        file_size 
+        md5sum 
+        file_location 
+        file_submitter_id 
+        fraction_number 
+        experiment_type 
+        data_category 
+        file_type 
+        file_format 
+        plex_or_dataset_name 
+        analyte 
+        instrument 
+        study_run_metadata_submitter_id 
+        study_run_metadata_id 
+        aliquots {{ 
+            aliquot_id 
+            aliquot_submitter_id 
+            status aliquot_is_ref 
+            sample_id 
+            sample_submitter_id 
+            case_id 
+            case_submitter_id 
+            aliquot_quantity 
+            aliquot_volume 
+            amount 
+            analyte_type 
+            concentration
+            }} 
+        }} 
+    }}    
+    """.format(file_id)
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -1019,13 +1057,28 @@ def main(args):
         create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
     if 'build_file_metadata_tsv' in steps:
+        file_list = []
+
         for study in study_ids_list:
             study_id = study['study_id']
             files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id))
 
-        if 'data' in files_res:
-            for file_row in files_res['data']['filesPerStudy']:
-                print(file_row)
+            if 'data' in files_res:
+                file_obj = dict()
+
+                for file_row in files_res['data']['filesPerStudy']:
+                    file_obj.update(file_row)
+                    file_id = file_obj['file_id']
+
+                    file_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
+
+                    if 'data' in file_res:
+                        for row in file_res['data']['fileMetadata']:
+                            file_obj.update(row)
+
+                file_list.append(file_obj)
+
+        print(file_list)
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
