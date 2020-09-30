@@ -1114,9 +1114,6 @@ def main(args):
             file_id = row['file_id']
             file_meta_query = make_file_metadata_query(file_id)
 
-            print(file_meta_query)
-            exit()
-
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
             if 'data' in file_metadata_res:
