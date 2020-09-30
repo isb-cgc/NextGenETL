@@ -917,14 +917,14 @@ def build_case_per_file_jsonl(file_id_list):
 
 def make_cases_query():
     return """ 
-    {{ allCases {{
+    { allCases {
         case_id
         case_submitter_id
         project_submitter_id
         disease_type
         primary_site
-        }}
-    }}"""
+        }
+    }"""
 
 
 def build_cases_jsonl():
