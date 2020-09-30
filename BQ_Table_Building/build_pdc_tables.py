@@ -1096,24 +1096,18 @@ def main(args):
 
     if 'build_per_study_file_table' in steps:
         print("Build per-study file table")
-        '''
-        table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
-        jsonl_file = table_name + '.jsonl'
-        schema_file = table_id + '.json'
-        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_file)
-        create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
-        '''
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
 
     if 'file_metadata_jsonl' in steps:
         jsonl_start = time.time()
 
-        file_metadata_list = []
+        # get file_ids
         table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         file_ids = get_query_results(make_file_id_query(table_id))
-        num_files = len(file_ids)
+        num_files = file_ids.total_rows
+
+        file_metadata_list = []
         cnt = 0
 
         for file_id in file_ids:
@@ -1122,13 +1116,12 @@ def main(args):
             if 'data' in file_metadata_res:
                 for metadata_row in files_res['data']['fileMetadata']:
                     file_metadata_list.append(metadata_row)
+                    cnt += 1
+
+                    if cnt % 100 == 0:
+                        print("{} of {} files retrieved".format(cnt, num_files))
             else:
                 print("No data returned by file metadata query for {}".format(file_id))
-
-            if cnt % 100 == 0:
-                print("{} of {} files retrieved".format(cnt, num_files))
-
-            cnt += 1
 
         file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILE_METADATA']) + '.jsonl')
 
