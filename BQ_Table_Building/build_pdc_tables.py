@@ -1019,8 +1019,7 @@ def main(args):
         create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
     if 'build_file_metadata_tsv' in steps:
-        for study in study_list:
-            study_id = study['study_id']
+        for study_id in study_ids:
             files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id))
 
         if 'data' in files_res:
