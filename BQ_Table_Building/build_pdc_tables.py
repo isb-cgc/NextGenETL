@@ -655,15 +655,8 @@ def make_file_metadata_query(file_id):
     return """
     {{ fileMetadata(file_id: \"{}\") {{
         file_id 
-        file_name 
-        file_location 
-        md5sum 
-        file_size 
         fraction_number 
         experiment_type 
-        data_category 
-        file_type 
-        file_format 
         plex_or_dataset_name 
         analyte 
         instrument 
@@ -672,17 +665,10 @@ def make_file_metadata_query(file_id):
         aliquots {{ 
             aliquot_id 
             aliquot_submitter_id 
-            status 
-            aliquot_is_ref 
             sample_id 
             sample_submitter_id 
             case_id 
             case_submitter_id 
-            aliquot_quantity 
-            aliquot_volume 
-            amount 
-            analyte_type 
-            concentration
             }} 
         }} 
     }}    
@@ -1112,8 +1098,6 @@ def main(args):
 
         for row in file_ids:
             file_id = row['file_id']
-            file_meta_query = make_file_metadata_query(file_id)
-
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
             if 'data' in file_metadata_res:
