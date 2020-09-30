@@ -44,7 +44,7 @@ from common_etl.support import create_clean_target, pull_from_buckets, build_fil
                                build_pull_list_with_bq, update_schema, \
                                build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
                                generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
-                               publish_table, update_status_tag, bq_harness_with_result
+                               publish_table, update_status_tag, compare_two_tables
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -403,35 +403,6 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
-
-'''
-----------------------------------------------------------------------------------------------
-Is the table that is replacing the view exactly the same?
-'''
-
-def compare_two_tables(old_table, new_table, do_batch):
-    sql = compare_two_tables_sql(old_table, new_table)
-    return bq_harness_with_result(sql, do_batch)
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for the compare_two_tables function
-'''
-
-def compare_two_tables_sql(old_table, new_table):
-    return '''
-        (
-            SELECT * FROM `{0}`
-            EXCEPT DISTINCT
-            SELECT * from `{1}`
-        )
-        UNION ALL
-        (
-            SELECT * FROM `{1}`
-            EXCEPT DISTINCT
-            SELECT * from `{0}`
-        )
-    '''.format(old_table, new_table)
 
 '''
 ----------------------------------------------------------------------------------------------

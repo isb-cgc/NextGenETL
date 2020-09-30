@@ -1490,3 +1490,32 @@ def publish_table(source_table, target_table):
         return False
 
     return True
+
+'''
+----------------------------------------------------------------------------------------------
+Is the table that is replacing the view exactly the same?
+'''
+
+def compare_two_tables(old_table, new_table, do_batch):
+    sql = compare_two_tables_sql(old_table, new_table)
+    return bq_harness_with_result(sql, do_batch)
+
+'''
+----------------------------------------------------------------------------------------------
+SQL for the compare_two_tables function
+'''
+
+def compare_two_tables_sql(old_table, new_table):
+    return '''
+        (
+            SELECT * FROM `{0}`
+            EXCEPT DISTINCT
+            SELECT * from `{1}`
+        )
+        UNION ALL
+        (
+            SELECT * FROM `{1}`
+            EXCEPT DISTINCT
+            SELECT * from `{0}`
+        )
+    '''.format(old_table, new_table)

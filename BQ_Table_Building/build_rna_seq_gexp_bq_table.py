@@ -38,7 +38,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
                                install_labels_and_desc, update_schema, generate_table_detail_files, publish_table, \
-                               customize_labels_and_desc
+                               customize_labels_and_desc, update_status_tag, compare_two_tables
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -826,6 +826,53 @@ def main(args):
             return
 
     #
+    # compare and remove old current table
+    #
+
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              publication_table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               publication_table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                       "_".join([params['PROGRAM'],
+                                                 publication_table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
+
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+
+        num_rows = compare.total_rows
+
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+        if not compare:
+            print('compare_tables failed')
+            return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'))
+                if not delete_table:
+                    print('delete table failed')
+                    return
+
+    #
     # publish table:
     #
 
@@ -852,6 +899,21 @@ def main(args):
 
         if not success:
             print("publish table failed")
+            return
+
+    #
+    # Update previous versioned table with archived tag
+    #
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+
+        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    'archived')
+
+        if not success:
+            print("update status tag table failed")
             return
 
     if 'dump_working_tables' in steps:
