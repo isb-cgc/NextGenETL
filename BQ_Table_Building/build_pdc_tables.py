@@ -1066,9 +1066,10 @@ def main(args):
             if 'data' in files_res:
                 file_obj = dict()
 
-                """
                 for file_row in files_res['data']['filesPerStudy']:
                     file_obj.update(file_row)
+
+                    """
                     file_id = file_obj['file_id']
 
                     file_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
@@ -1078,7 +1079,7 @@ def main(args):
                             file_obj.update(row)
                     else:
                         print("No data returned by file metadata query for {}".format(file_id))
-                """
+                    """
 
                 print(file_obj)
 
