@@ -1117,7 +1117,7 @@ def main(args):
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
             if 'data' in file_metadata_res:
-                for metadata_row in files_res['data']['fileMetadata']:
+                for metadata_row in file_metadata_res['data']['fileMetadata']:
                     file_metadata_list.append(metadata_row)
                     cnt += 1
 
