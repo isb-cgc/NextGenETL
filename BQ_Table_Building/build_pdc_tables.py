@@ -644,6 +644,13 @@ def make_files_per_study_query(study_id):
     }}""".format(study_id)
 
 
+def make_file_id_query(table_id):
+    return """
+        SELECT file_id 
+        FROM `{}`
+    """.format(table_id)
+
+
 def make_file_metadata_query(file_id):
     return """
     {{ fileMetadata(file_id: \"{}\") {{
@@ -1056,7 +1063,8 @@ def main(args):
 
         create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
-    if 'build_file_metadata_tsv' in steps:
+    if 'build_per_study_file_jsonl' in steps:
+        jsonl_start = time.time()
         file_list = []
 
         for study in study_ids_list:
@@ -1065,36 +1073,80 @@ def main(args):
 
             if 'data' in files_res:
                 file_obj = dict()
-
                 study_file_count = 0
 
                 for file_row in files_res['data']['filesPerStudy']:
                     file_obj.update(file_row)
-
-                    """
-                    file_id = file_obj['file_id']
-
-                    file_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
-
-                    if 'data' in file_res:
-                        for row in file_res['data']['fileMetadata']:
-                            file_obj.update(row)
-                    else:
-                        print("No data returned by file metadata query for {}".format(file_id))
-                    """
-
                     study_file_count += 1
 
-                print("{} files retrieved for {}".format(study_file_count,
-                                                         study['study_submitter_id']))
-
+                print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
                 file_list.append(file_obj)
             else:
                 print("No data returned by per-study file query for {}".format(study_id))
 
-        print(file_list)
+        per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS,
+                                                   get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
 
+        write_list_to_jsonl(per_study_file_jsonl_path, file_list)
+        upload_to_bucket(BQ_PARAMS, per_study_file_jsonl_path)
 
+        jsonl_end = time.time() - jsonl_start
+
+        console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+    if 'build_per_study_file_table' in steps:
+        '''
+        table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        jsonl_file = table_name + '.jsonl'
+        schema_file = table_id + '.json'
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_file)
+        create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
+        '''
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
+
+    if 'file_metadata_jsonl' in steps:
+        jsonl_start = time.time()
+
+        file_metadata_list = []
+        table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+        file_ids = get_query_results(make_file_id_query(table_id))
+        num_files = len(file_ids)
+        cnt = 0
+
+        for file_id in file_ids:
+            file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
+
+            if 'data' in file_metadata_res:
+                for metadata_row in files_res['data']['fileMetadata']:
+                    file_metadata_list.append(metadata_row)
+            else:
+                print("No data returned by file metadata query for {}".format(file_id))
+
+            if cnt % 100 == 0:
+                print("{} of {} files retrieved".format(cnt, num_files))
+
+            cnt += 1
+
+        file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILE_METADATA']) + '.jsonl')
+
+        write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
+        upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
+
+        jsonl_end = time.time() - jsonl_start
+        console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+    if 'file_metadata_table' in steps:
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_METADATA'])
+        '''
+        table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        jsonl_file = table_name + '.jsonl'
+        schema_file = table_id + '.json'
+        schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_file)
+        create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
+        '''
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
