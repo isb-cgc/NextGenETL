@@ -34,7 +34,7 @@ from createSchemaP3 import build_schema
 from datetime import date
 import re
 from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
-                               csv_to_bq, delete_table_bq_job, confirm_google_vm, \
+                               csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                build_combined_schema, generic_bq_harness_write_depo, \
                                install_labels_and_desc, update_schema, generate_table_detail_files, publish_table, \
@@ -174,9 +174,9 @@ def attach_aliquot_and_case_ids_sql(gexp_table, file_table, sql_dict):
 Associate Barcodes for Aliquot And Case IDs
 BQ ETL step 3: attach aliquot and case barcodes for IDS
 '''
-def attach_barcodes(step2_table, aliquot_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
+def attach_barcodes(step2_table, aliquot_table, case_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
 
-    sql = attach_barcodes_sql(step2_table, aliquot_table, sql_dict)
+    sql = attach_barcodes_sql(step2_table, aliquot_table, sql_dict, case_table)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, do_replace)
 
 '''
@@ -629,9 +629,9 @@ def main(args):
     bucket_target_blob_sets = {}
     for file_set in file_sets:
         count_name, _ = next(iter(file_set.items()))
-        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-r{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'],
-                                                                      params['PROGRAM'],params['DATA_TYPE'],
-                                                                      params['RELEASE'], count_name)
+        bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'],
+                                                                          params['PROGRAM'], params['DATA_TYPE'],
+                                                                          count_name)
 
     if 'upload_to_bucket' in steps:
         for file_set in file_sets:
@@ -650,9 +650,9 @@ def main(args):
             hold_schema_list_for_count = hold_schema_list.format(count_name)
             with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
                 typed_schema = json_loads(schema_hold_dict.read())
-            csv_to_bq(typed_schema, bucket_src_url,
+            csv_to_bq_write_depo(typed_schema, bucket_src_url,
                                  params['SCRATCH_DATASET'],
-                                 upload_table.format(count_name), params['BQ_AS_BATCH'])
+                                 upload_table.format(count_name), params['BQ_AS_BATCH'], None)
 
     if 'attach_ids_to_files' in steps:
         count = 0
@@ -687,7 +687,13 @@ def main(args):
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['SCRATCH_DATASET'],
                                         files_to_case_w_plat_table)
-        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel),
+
+        if params['RELEASE'] < 25:
+            case_table = params['CASE_TABLE'].format('25')
+        else:
+            case_table = params['CASE_TABLE'].format(params['RELEASE'])
+
+        success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel), case_table,
                                   params['SCRATCH_DATASET'],
                                   barcodes_table, True, {}, params['BQ_AS_BATCH'])
 

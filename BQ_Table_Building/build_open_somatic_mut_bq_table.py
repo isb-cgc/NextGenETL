@@ -628,7 +628,7 @@ def main(args):
                               typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob = '{}/{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'], params['PROGRAM'],
-                                                  params['DATA_TYPE'], params['RELEASE'])
+                                                  params['DATA_TYPE'])
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
