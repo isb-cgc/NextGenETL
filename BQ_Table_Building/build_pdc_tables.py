@@ -1078,9 +1078,9 @@ def main(args):
                 for file_row in files_res['data']['filesPerStudy']:
                     file_obj.update(file_row)
                     study_file_count += 1
+                    file_list.append(file_obj)
 
                 print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
-                file_list.append(file_obj)
             else:
                 print("No data returned by per-study file query for {}".format(study_id))
 

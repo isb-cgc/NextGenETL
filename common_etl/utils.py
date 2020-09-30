@@ -743,6 +743,14 @@ def append_list_to_jsonl(file_obj, json_list):
         print(str(err), IOError)
 
 
+def delete_file(fp):
+    if os.path.exists(fp):
+        os.remove(fp)
+        print("{} deleted successfully!".format(fp))
+    else:
+        print("{} not found!".format(fp))
+
+
 #       REST API HELPERS (GDC, PDC, ETC)
 
 
