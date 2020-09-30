@@ -728,8 +728,6 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
         cnt = 0
 
         for line in json_obj_list:
-            # json_str = json.dumps(line)
-            # json_str = convert_dict_to_string(line)
             json.dump(obj=line, fp=file_obj)
             file_obj.write('\n')
             cnt += 1

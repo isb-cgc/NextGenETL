@@ -626,6 +626,24 @@ def build_aliquot_run_query(table_id, case_id, sample_id, aliquot_id):
     """.format(table_id, case_id, sample_id, aliquot_id)
 
 
+def make_files_per_study_query(study_id):
+    return """
+    {{ filesPerStudy (study_id: \"{}\") {{
+            study_id 
+            pdc_study_id 
+            study_submitter_id 
+            study_name file_id 
+            file_name 
+            file_submitter_id 
+            file_type md5sum 
+            file_location 
+            file_size 
+            data_category 
+            file_format
+        }} 
+    }}""".format(study_id)
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -916,52 +934,6 @@ def main(args):
                     case_id, study_id, sample_id, aliquot_id, aliquot_run_metadata_id))
 
         print("\nBuilding JSON object!\n")
-
-        """
-        case_list = []
-
-        for case_id in case_id_keys_obj:
-            if case_id:
-                study_list = []
-                
-                for study_id in case_id_keys_obj[case_id]:                    
-                    if study_id:
-                        sample_list = []
-
-                        for sample_id in case_id_keys_obj[case_id][study_id]:
-                            aliquot_list = []
-        
-                            if sample_id:
-                                for aliquot_id in case_id_keys_obj[case_id][study_id][sample_id]:
-                                    aliquot_run_list = []
-                                    
-                                    if aliquot_id: 
-                                        for aliquot_run_metadata_id in case_id_keys_obj[case_id][study_id][sample_id][aliquot_id]:
-                                            if aliquot_run_metadata_id:
-                                                aliquot_run_list.append({
-                                                    'aliquot_run_metadata_id': aliquot_run_metadata_id
-                                                })
-                                aliquot_list.append({
-                                    'aliquot_id': aliquot_id,
-                                    'aliquot_run_metadata': aliquot_run_list
-                                })
-                        sample_list.append({
-                            'sample_id': sample_id,
-                            'aliquots': aliquot_list
-                        })
-                            
-                    study_list.append({
-                        'study_id': study_id,
-                        'samples': sample_list
-                    })
-                    
-            case_list.append({
-                'case_id': case_id,
-                'studies': study_list
-            })
-            
-        """
-
         case_list = []
 
         for case_id in case_id_keys_obj:
@@ -1046,13 +1018,18 @@ def main(args):
 
         create_and_load_table(BQ_PARAMS, jsonl_file, schema, table_id)
 
+    if 'build_file_metadata_tsv' in steps:
+        for study in study_list:
+            study_id = study['study_id']
+            files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id))
+
+        if 'data' in files_res:
+            for file_row in files_res['data']['filesPerStudy']:
+                print(file_row)
+
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
 
 
 if __name__ == '__main__':
     main(sys.argv)
-
-"""
-isb-project-zero.PDC_metadata.map_case_study_sample_aliquot_run_metadata_2020_09.json
-"""
