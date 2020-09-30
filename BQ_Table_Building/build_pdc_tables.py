@@ -653,11 +653,11 @@ def make_file_id_query(table_id):
 
 def make_file_metadata_query(file_id):
     return """
-    {{ fileMetadata(file_id: \"{}\") {{
-        file_name 
-        }} 
-    }}    
-    """.format(file_id)
+    { fileMetadata(file_id: "ffe2c46a-3b62-402d-85e4-29f4f37ca302") {
+            file_name 
+        } 
+    }   
+    """
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
