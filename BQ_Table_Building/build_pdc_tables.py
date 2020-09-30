@@ -654,8 +654,20 @@ def make_file_id_query(table_id):
 def make_file_metadata_query(file_id):
     return """
     {{ fileMetadata(file_id: \"{}\") {{
-        file_id 
         file_name 
+        file_location 
+        md5sum 
+        file_size 
+        fraction_number 
+        experiment_type 
+        data_category 
+        file_type 
+        file_format 
+        plex_or_dataset_name 
+        analyte 
+        instrument 
+        study_run_metadata_submitter_id 
+        study_run_metadata_id 
         aliquots {{ 
             aliquot_id 
             aliquot_submitter_id 
