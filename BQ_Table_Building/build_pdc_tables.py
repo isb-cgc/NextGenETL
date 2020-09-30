@@ -1105,7 +1105,7 @@ def main(args):
                     file_metadata_list.append(metadata_row)
                     cnt += 1
 
-                    if cnt % 100 == 0:
+                    if cnt % 25 == 0:
                         print("{} of {} files retrieved".format(cnt, num_files))
             else:
                 print("No data returned by file metadata query for {}".format(file_id))
