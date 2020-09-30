@@ -174,9 +174,9 @@ def attach_aliquot_and_case_ids_sql(gexp_table, file_table, sql_dict):
 Associate Barcodes for Aliquot And Case IDs
 BQ ETL step 3: attach aliquot and case barcodes for IDS
 '''
-def attach_barcodes(step2_table, aliquot_table, case_table, target_dataset, output_table, do_replace, sql_dict, do_batch):
+def attach_barcodes(step2_table, aliquot_table, case_table, target_dataset, output_table, do_replace, do_batch):
 
-    sql = attach_barcodes_sql(step2_table, aliquot_table, sql_dict, case_table)
+    sql = attach_barcodes_sql(step2_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, do_replace)
 
 '''
@@ -695,7 +695,7 @@ def main(args):
 
         success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel), case_table,
                                   params['SCRATCH_DATASET'],
-                                  barcodes_table, True, {}, params['BQ_AS_BATCH'])
+                                  barcodes_table, True, params['BQ_AS_BATCH'])
 
         if not success:
             print("attach_barcodes_to_ids failed")
