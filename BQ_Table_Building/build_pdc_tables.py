@@ -871,7 +871,7 @@ def build_file_metadata_jsonl(file_ids):
 
 
 def build_case_per_file_query(file_id):
-    """    
+    return """    
     {{ casePerFile(file_id:\"{}\") {{ 
         file_id 
         case_id 
@@ -1126,7 +1126,7 @@ def main(args):
 
     if 'build_nested_biospecimen_table' in steps:
         build_table_from_jsonl(
-            BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
+            BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
 
     if 'build_per_study_file_jsonl' in steps:
         build_per_study_file_jsonl(study_ids_list)
