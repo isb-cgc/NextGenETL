@@ -653,11 +653,40 @@ def make_file_id_query(table_id):
 
 def make_file_metadata_query(file_id):
     return """
-    { fileMetadata(file_id: "ffe2c46a-3b62-402d-85e4-29f4f37ca302") {
-            file_name 
-        } 
-    }   
-    """
+    {{ fileMetadata(file_id: \"{}\") {{
+        file_id 
+        file_name 
+        file_location 
+        md5sum 
+        file_size 
+        fraction_number 
+        experiment_type 
+        data_category 
+        file_type 
+        file_format 
+        plex_or_dataset_name 
+        analyte 
+        instrument 
+        study_run_metadata_submitter_id 
+        study_run_metadata_id 
+        aliquots {{ 
+            aliquot_id 
+            aliquot_submitter_id 
+            status 
+            aliquot_is_ref 
+            sample_id 
+            sample_submitter_id 
+            case_id 
+            case_submitter_id 
+            aliquot_quantity 
+            aliquot_volume 
+            amount 
+            analyte_type 
+            concentration
+            }} 
+        }} 
+    }}    
+    """.format(file_id)
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
@@ -1082,6 +1111,11 @@ def main(args):
         cnt = 0
 
         for file_id in file_ids:
+            file_meta_query = make_file_metadata_query(file_id)
+
+            print(file_meta_query)
+            exit()
+
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
             if 'data' in file_metadata_res:
