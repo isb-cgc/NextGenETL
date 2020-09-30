@@ -211,7 +211,7 @@ def attach_barcodes_sql(step2_table, aliquot_table, case_table):
                a1.file_gdc_id,
                a1.platform,
                a1.file_name
-        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = d.case_barcode
+        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = c.case_barcode
         '''.format(step2_table, aliquot_table, case_table)
 '''
 ----------------------------------------------------------------------------------------------
