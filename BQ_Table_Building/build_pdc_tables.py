@@ -1066,7 +1066,9 @@ def main(args):
             if 'data' in files_res:
                 file_obj = dict()
 
-                for i, file_row in enumerate(files_res['data']['filesPerStudy']):
+                study_file_count = 0
+
+                for file_row in files_res['data']['filesPerStudy']:
                     file_obj.update(file_row)
 
                     """
@@ -1081,15 +1083,18 @@ def main(args):
                         print("No data returned by file metadata query for {}".format(file_id))
                     """
 
-                    if i % 100 == 0:
-                        print("{} files retrieved for {}".format(i, study['study_submitter_id']))
+                    study_file_count += 1
+
+                print("{} files retrieved for {}".format(study_file_count,
+                                                         study['study_submitter_id']))
 
                 file_list.append(file_obj)
-
             else:
                 print("No data returned by per-study file query for {}".format(study_id))
 
         print(file_list)
+
+
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
