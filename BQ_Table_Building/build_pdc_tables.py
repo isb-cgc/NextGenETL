@@ -1110,7 +1110,8 @@ def main(args):
         file_metadata_list = []
         cnt = 0
 
-        for file_id in file_ids:
+        for row in file_ids:
+            file_id = row['file_id']
             file_meta_query = make_file_metadata_query(file_id)
 
             print(file_meta_query)
