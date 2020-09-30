@@ -209,7 +209,7 @@ def attach_barcodes_sql(step2_table, aliquot_table, case_table):
                a1.sample_barcode,
                a1.aliquot_barcode,
                a1.sample_gdc_id,
-               a1.aliquot_barcode,
+               a1.aliquot_gdc_id,
                a1.file_gdc_id,
                a1.platform,
                a1.file_name
