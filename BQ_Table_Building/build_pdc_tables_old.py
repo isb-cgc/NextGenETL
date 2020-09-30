@@ -175,8 +175,7 @@ def create_studies_dict(json_res):
                                                   study_dict['pdc_study_id'],
                                                   study_dict['study_submitter_id'])
 
-                study_metadata = get_graphql_api_response(API_PARAMS,
-                                                          payload=study_payload)
+                study_metadata = get_graphql_api_response(API_PARAMS)
 
                 for entry in study_metadata['data']['study']:
                     for field, val in entry.items():

@@ -213,7 +213,6 @@ def build_master_table_name_from_params(bq_params):
     return "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
 
 
-
 #       GETTERS - MISC
 #
 
@@ -842,48 +841,37 @@ def get_cases_by_program(bq_params, program):
     return cases
 
 
-def get_graphql_api_response(api_params, query=None, payload=None, fail_on_error=True):
-    headers = {'Content-Type': 'application/json'}
+def get_graphql_api_response(api_params, query, fail_on_error=True):
+    max_retries = 3
 
+    headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
 
-    if query and not payload:
-        req_body = {'query': query}
-        response = requests.post(endpoint, headers=headers, json=req_body)
-    elif payload and not query:
-        response = requests.post(endpoint, headers=headers, data=payload)
-    else:
-        response = None
-        has_fatal_error("Must specify either query OR payload (not both) "
-                        "in get_graphql_api_response.", SyntaxError)
+    if not query:
+        has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
 
-    tries = 0
+    req_body = {'query': query}
+    response = requests.post(endpoint, headers=headers, json=req_body)
+    tries = 1
+
     while not response.ok:
-        console_out("API response code {}, retrying.", (response.status_code,))
-        if tries > 3:
-            exit()
-        tries += 1
-        if response.status_code == 500:
-            if query and not payload:
-                req_body = {'query': query}
-                response = requests.post(endpoint, headers=headers, json=req_body)
-            elif payload and not query:
-                response = requests.post(endpoint, headers=headers, data=payload)
-            console_out("Status code {}, retrying", (response.status_code,))
-        time.sleep(5)
+        console_out("API response status code {}: {};\nRetry {} of {}...",
+                    (response.status_code, response.reason, tries, max_retries))
 
-    if not response.ok:
-        has_fatal_error("Invalid response from \n, Status code: {} \nError: {}"
-                        .format(endpoint, response.status_code, response.raise_for_status()))
+        if tries > max_retries:
+            # give up!
+            response.raise_for_status()
+
+        tries += 1
+        time.sleep(5)
+        response = requests.post(endpoint, headers=headers, json=req_body)
 
     json_res = response.json()
 
     if 'errors' in json_res:
         if fail_on_error:
             has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
-        else:
-            return None
-
+        return None
     return json_res
 
 

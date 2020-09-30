@@ -179,8 +179,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
     study_id = study_id_dict['study_id']
     lines_written = 0
 
-    res_json = get_graphql_api_response(API_PARAMS,
-                                        query=make_quant_data_matrix_query(study_submitter_id, data_type),
+    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type),
                                         fail_on_error=False)
 
     if not res_json or not res_json['data']['quantDataMatrix']:
@@ -841,9 +840,7 @@ def get_file_ids():
 
 def build_file_metadata_jsonl(file_ids):
     num_files = file_ids.total_rows
-
     jsonl_start = time.time()
-
     file_metadata_list = []
     cnt = 0
 
@@ -861,7 +858,7 @@ def build_file_metadata_jsonl(file_ids):
         else:
             print("No data returned by file metadata query for {}".format(file_id))
 
-    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILE_METADATA']) + '.jsonl')
+    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILES_TABLE']) + '.jsonl')
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
     upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
@@ -870,7 +867,7 @@ def build_file_metadata_jsonl(file_ids):
     console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
-def build_case_per_file_query(file_id):
+def make_case_per_file_query(file_id):
     return """    
     {{ casePerFile(file_id:\"{}\") {{ 
         file_id 
@@ -890,7 +887,7 @@ def build_case_per_file_jsonl(file_id_list):
     print("(had case count, no case count)")
     for file in file_id_list:
         file_id = file['file_id']
-        cases_res = get_graphql_api_response(API_PARAMS, build_case_per_file_query(file_id))
+        cases_res = get_graphql_api_response(API_PARAMS, make_case_per_file_query(file_id))
 
         if 'casePerFile' in cases_res['data'] and cases_res['data']['casePerFile']:
             for case_file_row in cases_res['data']['casePerFile']:
@@ -918,6 +915,41 @@ def build_case_per_file_jsonl(file_id_list):
     console_out("casePerFile jsonl created in {0}, {} rows added!\n", (format_seconds(jsonl_end), list_size))
 
 
+def make_cases_query():
+    return """ 
+    {{ allCases {{
+        case_id
+        case_submitter_id
+        project_submitter_id
+        disease_type
+        primary_site
+        }}
+    }}"""
+
+
+def build_cases_jsonl():
+    jsonl_start = time.time()
+
+    cases_list = []
+    cases_res = get_graphql_api_response(API_PARAMS, make_cases_query())
+
+    for case_row in cases_res['data']['allCases']:
+        cases_list.append({
+            "case_id": case_row['case_id'],
+            "case_submitter_id": case_row['case_submitter_id'],
+            "project_submitter_id": case_row['project_submitter_id'],
+            "disease_type": case_row['disease_type'],
+            "primary_site": case_row['primary_site']
+        })
+
+    cases_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASES_TABLE']) + '.jsonl')
+    write_list_to_jsonl(cases_jsonl_fp, cases_list)
+    upload_to_bucket(BQ_PARAMS, cases_jsonl_fp)
+
+    jsonl_end = time.time() - jsonl_start
+    console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -936,6 +968,8 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
 
 
 def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
+    print("Building {} table!".format(table_prefix))
+
     build_start = time.time()
 
     table_name = get_table_name(table_prefix, table_suffix)
@@ -1051,14 +1085,17 @@ def main(args):
                 update_table_metadata(bio_table_id, table_metadata)
 
     if 'build_gene_tsv' in steps:
-        gene_name_set = build_proteome_gene_name_set()
+        # *** NOTE: Currently Broken in PDC API
 
+        gene_name_set = build_proteome_gene_name_set()
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
         build_gene_tsv(gene_name_set, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
+        # *** NOTE: Currently Broken in PDC API
+
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
         with open(gene_tsv_path, 'r') as tsv_file:
@@ -1088,12 +1125,16 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
+        # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
+
         biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS,
                                               get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates') + '.tsv')
         build_biospecimen_tsv(study_ids_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
     if 'build_biospecimen_table' in steps:
+        # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
+
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['BIOSPECIMEN_TABLE'],
@@ -1132,7 +1173,6 @@ def main(args):
         build_per_study_file_jsonl(study_ids_list)
 
     if 'build_per_study_file_table' in steps:
-        print("Build per-study file table")
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
 
     if 'build_file_metadata_jsonl' in steps:
@@ -1140,12 +1180,22 @@ def main(args):
         build_file_metadata_jsonl(file_ids)
 
     if 'build_file_metadata_table' in steps:
-        print("Build file metadata table")
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_METADATA'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILES_TABLE'])
 
     if 'build_case_per_file_jsonl' in steps:
+        # *** NOTE: Currently Broken in PDC API
         file_ids = get_file_ids()
         build_case_per_file_jsonl(file_ids)
+
+    if 'build_case_per_file_table' in steps:
+        # *** NOTE: Currently Broken in PDC API
+        pass
+
+    if 'build_cases_jsonl' in steps:
+        build_cases_jsonl()
+
+    if 'build_cases_table' in steps:
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     end = time.time() - start
     console_out("Finished program execution in {0}!\n", (format_seconds(end),))
