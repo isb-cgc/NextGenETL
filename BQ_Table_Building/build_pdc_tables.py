@@ -1049,7 +1049,7 @@ def get_cases_data():
     """.format(table_id)
 
 
-def build_case_metadata_jsonl(cases):
+def build_case_metadata_jsonl(cases_list):
     """
     cases[0] = {
     'primary_site': 'Liver',
@@ -1060,9 +1060,12 @@ def build_case_metadata_jsonl(cases):
     }
     """
     jsonl_start = time.time()
-    cases_list = []
+    case_metadata_list = []
 
-    for case in cases:
+    print(cases_list)
+    exit()
+
+    for case in cases_list:
         print(case)
         exit()
 
@@ -1074,10 +1077,10 @@ def build_case_metadata_jsonl(cases):
             print(case_row)
             case_dict.update(case_row)
 
-        cases_list.append(case_dict)
+        case_metadata_list.append(case_dict)
 
-        if len(cases_list) >= 5:
-            print(cases_list)
+        if len(case_metadata_list) >= 5:
+            print(case_metadata_list)
             exit()
 
     case_meta_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_METADATA_TABLE']) + '.jsonl')
