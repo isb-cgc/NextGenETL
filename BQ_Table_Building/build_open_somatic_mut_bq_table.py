@@ -428,7 +428,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, callers, schema_tags = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, callers, update_schema_tables, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
