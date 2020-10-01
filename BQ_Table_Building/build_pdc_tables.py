@@ -1064,7 +1064,9 @@ def build_case_metadata_jsonl(cases_list):
         if ('data' not in case_meta_res or
                 'case' not in case_meta_res['data'] or
                 len(case_meta_res['data']['case']) == 0):
-            print("Result has an issue: {}".format(case_meta_query))
+
+            print("Result has an issue: {}".format(case_meta_res))
+
             # case_dict.update(case)
             continue
 
