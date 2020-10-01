@@ -842,7 +842,7 @@ def get_cases_by_program(bq_params, program):
 
 
 def get_graphql_api_response(api_params, query, fail_on_error=True):
-    max_retries = 3
+    max_retries = 4
 
     headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
@@ -851,27 +851,29 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
         has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
 
     req_body = {'query': query}
-    response = requests.post(endpoint, headers=headers, json=req_body)
-    tries = 1
+    api_res = requests.post(endpoint, headers=headers, json=req_body)
+    tries = 0
 
-    while not response.ok:
+    while not api_res.ok and tries < max_retries:
+        time.sleep(3)
+        api_res = requests.post(endpoint, headers=headers, json=req_body)
+
         console_out("API response status code {}: {};\nRetry {} of {}...",
-                    (response.status_code, response.reason, tries, max_retries))
-
-        if tries > max_retries:
-            # give up!
-            response.raise_for_status()
+                    (api_res.status_code, api_res.reason, tries, max_retries))
 
         tries += 1
-        time.sleep(5)
-        response = requests.post(endpoint, headers=headers, json=req_body)
 
-    json_res = response.json()
+    if tries > max_retries:
+        # give up!
+        api_res.raise_for_status()
 
-    if 'errors' in json_res:
+    json_res = api_res.json()
+
+    if 'errors' in json_res and json_res['errors']:
         if fail_on_error:
             has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
         return None
+
     return json_res
 
 
