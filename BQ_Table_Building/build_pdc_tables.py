@@ -1063,6 +1063,9 @@ def build_case_metadata_jsonl(cases):
     cases_list = []
 
     for case in cases:
+        print(case)
+        exit()
+
         case_dict = dict()
         case_dict.update(case)
         case_meta_res = get_graphql_api_response(API_PARAMS, make_case_query(case['case_submitter_id']))
@@ -1345,9 +1348,6 @@ def main(args):
                 case_dict[key] = case_row[key]
 
             cases_list.append(case_dict)
-
-        print(cases_list)
-        exit()
 
         build_case_metadata_jsonl(cases_list)
 
