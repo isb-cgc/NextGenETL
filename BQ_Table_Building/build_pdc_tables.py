@@ -1050,6 +1050,15 @@ def get_cases_data():
 
 
 def build_case_metadata_jsonl(cases):
+    """
+    cases[0] = {
+    'primary_site': 'Liver',
+    'case_submitter_id': '698',
+    'project_submitter_id': 'Integrated ...',
+    'case_id': '7a59e584-1168-11ea-9bfa-0a42f3c845fe',
+    'disease_type': 'Hepatocellular Carcinoma '
+    }
+    """
     jsonl_start = time.time()
     cases_list = []
 
@@ -1059,6 +1068,7 @@ def build_case_metadata_jsonl(cases):
         case_meta_res = get_graphql_api_response(API_PARAMS, make_case_query(case['case_submitter_id']))
 
         for case_row in case_meta_res['data']['case']:
+            print(case_row)
             case_dict.update(case_row)
 
         cases_list.append(case_dict)
@@ -1334,10 +1344,7 @@ def main(args):
             for key in keys:
                 case_dict[key] = case_row[key]
 
-            print(case_dict)
             cases_list.append(case_dict)
-
-        exit()
 
         build_case_metadata_jsonl(cases_list)
 
