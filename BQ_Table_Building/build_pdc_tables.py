@@ -1050,6 +1050,7 @@ def get_cases_data():
 
 
 def build_case_metadata_jsonl(cases_list):
+    print("building case metadata jsonl")
     jsonl_start = time.time()
     case_metadata_list = []
 
