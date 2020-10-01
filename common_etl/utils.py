@@ -855,11 +855,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     tries = 0
 
     while not api_res.ok and tries < max_retries:
-        time.sleep(3)
-        api_res = requests.post(endpoint, headers=headers, json=req_body)
-
         console_out("API response status code {}: {};\nRetry {} of {}...",
                     (api_res.status_code, api_res.reason, tries, max_retries))
+        time.sleep(3)
+
+        api_res = requests.post(endpoint, headers=headers, json=req_body)
 
         tries += 1
 

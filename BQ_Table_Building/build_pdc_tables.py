@@ -1061,6 +1061,8 @@ def build_case_metadata_jsonl(cases_list):
         case_meta_query = make_case_query(case['case_submitter_id'])
         case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
 
+        print(case_meta_res)
+
         if 'data' in case_meta_res and 'case' in case_meta_res['data']:
             if len(case_meta_res['data']['case']) > 1:
                 print("what?!?!?!?")
@@ -1077,7 +1079,7 @@ def build_case_metadata_jsonl(cases_list):
                     case_dict.update(case_metadata)
                     meta_cnt += 1
             else:
-                print("len: {}".format(len(case_meta_res['data']['case'])))
+                print(case_meta_res)
         else:
             print("no result for {}".format(case['case_submitter_id']))
             case_dict.update(case)
