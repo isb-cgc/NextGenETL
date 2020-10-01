@@ -1064,17 +1064,15 @@ def build_case_metadata_jsonl(cases_list):
 
     for case in cases_list:
         case_dict = dict()
-        case_dict.update(case)
 
         case_meta_res = get_graphql_api_response(API_PARAMS, make_case_query(case['case_submitter_id']))
 
-        if 'data' not in case_meta_res:
-            continue
+        if 'data' in case_meta_res and 'case' in case_meta_res['data']:
+            for case_row in case_meta_res['data']['case']:
+                if case_row:
+                    case_dict.update(case_row)
 
-        for case_row in case_meta_res['data']['case']:
-            print(case_row)
-            case_dict.update(case_row)
-
+        case_dict.update(case)
         case_metadata_list.append(case_dict)
 
         if len(case_metadata_list) >= 5:
