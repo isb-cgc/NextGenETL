@@ -1068,8 +1068,8 @@ def build_case_metadata_jsonl(cases_list):
 
         case_meta_res = get_graphql_api_response(API_PARAMS, make_case_query(case['case_submitter_id']))
 
-        print(case_meta_res)
-        exit()
+        if 'data' not in case_meta_res:
+            continue
 
         for case_row in case_meta_res['data']['case']:
             print(case_row)
