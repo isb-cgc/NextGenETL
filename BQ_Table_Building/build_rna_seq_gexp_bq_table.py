@@ -572,6 +572,7 @@ def main(args):
         else:
             use_schema = params['VER_SCHEMA_FILE_NAME']
             schema_release = release
+
         if 'process_git_schemas' in steps:
             print('process_git_schema')
             # Where do we dump the schema git repository?
@@ -811,7 +812,8 @@ def main(args):
     for table in update_schema_tables:
         schema_release = 'current' if table == 'current' else release
         if 'update_final_schema' in steps:
-            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release), hold_schema_dict.format('counts'))
+            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release),
+                                    hold_schema_dict.format('counts'))
             if not success:
                 print("Schema update failed")
                 return
@@ -823,7 +825,8 @@ def main(args):
         if 'add_table_description' in steps:
             print('update_table_description')
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-            success = install_labels_and_desc(params['SCRATCH_DATASET'], draft_table.format(schema_release), full_file_prefix)
+            success = install_labels_and_desc(params['SCRATCH_DATASET'], draft_table.format(schema_release),
+                                              full_file_prefix)
             if not success:
                 print("update_table_description failed")
                 return
