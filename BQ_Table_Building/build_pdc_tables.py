@@ -1346,6 +1346,9 @@ def main(args):
 
             cases_list.append(case_dict)
 
+        print(cases_list)
+        exit()
+
         build_case_metadata_jsonl(cases_list)
 
     if 'build_case_metadata_table' in steps:
