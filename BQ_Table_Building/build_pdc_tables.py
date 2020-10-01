@@ -1334,6 +1334,7 @@ def main(args):
             for key in keys:
                 case_dict[key] = case_row[key]
 
+            print(case_dict)
             cases_list.append(case_dict)
 
         exit()
