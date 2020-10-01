@@ -1073,6 +1073,8 @@ def build_case_metadata_jsonl(cases_list):
                 if case_row:
                     cnt += 1
                     case_dict.update(case_row)
+        else:
+            print("no result for {}".format(case['case_submitter_id']))
 
         case_dict.update(case)
         case_metadata_list.append(case_dict)
