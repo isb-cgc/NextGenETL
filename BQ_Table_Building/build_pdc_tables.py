@@ -1064,7 +1064,7 @@ def build_case_metadata_jsonl(cases_list):
 
     for case in cases_list:
         case_dict = dict()
-        cnt = 0
+        meta_cnt = 0
 
         case_meta_query = make_case_query(case['case_submitter_id'])
         case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
@@ -1072,7 +1072,7 @@ def build_case_metadata_jsonl(cases_list):
         if 'data' in case_meta_res and 'case' in case_meta_res['data']:
             for case_row in case_meta_res['data']['case']:
                 if case_row:
-                    cnt += 1
+                    meta_cnt += 1
                     case_dict.update(case_row)
         else:
             print("no result for {}".format(case['case_submitter_id']))
@@ -1080,9 +1080,9 @@ def build_case_metadata_jsonl(cases_list):
         case_dict.update(case)
         case_metadata_list.append(case_dict)
 
-        if cnt >= 5:
+        if meta_cnt >= 5:
+            print("woot!!")
             print(case_metadata_list)
-            exit()
 
     case_meta_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_METADATA_TABLE']) + '.jsonl')
     write_list_to_jsonl(case_meta_jsonl_fp, cases_list)
