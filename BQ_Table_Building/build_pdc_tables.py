@@ -1061,38 +1061,39 @@ def build_case_metadata_jsonl(cases_list):
         case_meta_query = make_case_query(case['case_submitter_id'])
         case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
 
-        if ('data' not in case_meta_res or
-                'case' not in case_meta_res['data'] or
-                len(case_meta_res['data']['case']) == 0):
-
+        if 'data' not in case_meta_res or 'case' not in case_meta_res['data']:
             print("Result has an issue: {}".format(case_meta_res))
-
             # case_dict.update(case)
             continue
 
-        if len(case_meta_res['data']['case']) == 1:
-            case_metadata = case_meta_res['data']['case'][0]
+        num_case_meta_res = len(case_meta_res['data']['case'])
 
-            if (case_metadata['project_submitter_id'] != case['project_submitter_id'] or
-                    case_metadata['case_submitter_id'] != case['case_submitter_id'] or
-                    case_metadata['case_id'] != case['case_id'] or
-                    case_metadata['primary_site'] != case['primary_site'] or
-                    case_metadata['disease_type'] != case['disease_type']):
-                print("weird, non-matching column data!")
-                continue
-
-            case_dict.update(case_metadata)
-            meta_cnt += 1
-        else:
-            print("WHAAAATTTT?!")
+        if num_case_meta_res == 0:
+            # print("empty")
             # print(case_meta_res)
             continue
+        elif num_case_meta_res > 1:
+            print("num results: {}".format(num_case_meta_res))
+            # print(case_meta_res)
+            continue
+
+        case_metadata = case_meta_res['data']['case'][0]
+
+        if (case_metadata['project_submitter_id'] != case['project_submitter_id'] or
+                case_metadata['case_submitter_id'] != case['case_submitter_id'] or
+                case_metadata['case_id'] != case['case_id'] or
+                case_metadata['primary_site'] != case['primary_site'] or
+                case_metadata['disease_type'] != case['disease_type']):
+            print("weird, non-matching column data!")
+            continue
+
+        case_dict.update(case_metadata)
+        meta_cnt += 1
 
         case_metadata_list.append(case_dict)
 
         if meta_cnt >= 5:
             print("woot!!")
-            print(case_metadata_list)
             exit()
 
     case_meta_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_METADATA_TABLE']) + '.jsonl')
