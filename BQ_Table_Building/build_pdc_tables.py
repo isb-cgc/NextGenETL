@@ -1057,23 +1057,28 @@ def build_case_metadata_jsonl(cases_list):
         case_dict = dict()
         meta_cnt = 0
 
-        print('1')
         case_meta_query = make_case_query(case['case_submitter_id'])
-        print('2')
         case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
-        print('3')
 
         if 'data' in case_meta_res and 'case' in case_meta_res['data']:
-            print(case_meta_res['data']['case'])
+            if len(case_meta_res['data']['case']) > 1:
+                print("what?!?!?!?")
+            elif len(case_meta_res['data']['case']) == 1:
+                case_metadata = case_meta_res['data']['case'][0]
 
-            for case_row in case_meta_res['data']['case']:
-                if case_row:
+                if (case_metadata['project_submitter_id'] != case['project_submitter_id'] or
+                        case_metadata['case_submitter_id'] != case['case_submitter_id'] or
+                        case_metadata['case_id'] != case['case_id'] or
+                        case_metadata['primary_site'] != case['primary_site'] or
+                        case_metadata['disease_type'] != case['disease_type']):
+                    print("weird!!!!!")
+                else:
+                    case_dict.update(case_metadata)
                     meta_cnt += 1
-                    case_dict.update(case_row)
         else:
             print("no result for {}".format(case['case_submitter_id']))
+            case_dict.update(case)
 
-        case_dict.update(case)
         case_metadata_list.append(case_dict)
 
         if meta_cnt >= 5:
@@ -1333,7 +1338,8 @@ def main(args):
         build_cases_jsonl()
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_METADATA_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
+                               BQ_PARAMS['CASE_METADATA_TABLE'])
 
     if 'build_case_metadata_jsonl' in steps:
         cases_list = list()
