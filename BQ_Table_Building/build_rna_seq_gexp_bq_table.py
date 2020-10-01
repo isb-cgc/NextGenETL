@@ -667,7 +667,7 @@ def main(args):
             gexp_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                            params['SCRATCH_DATASET'],
                                            upload_table.format(count_name))
-            success = build_aliquot_and_case(gexp_table, params['FILEDATA_TABLE'].format(params['RELEASE']),
+            success = build_aliquot_and_case(gexp_table, params['FILEDATA_TABLE'].format(release),
                                              params['SCRATCH_DATASET'],
                                              files_to_case_table, write_depo, {}, params['BQ_AS_BATCH'])
             count += 1
