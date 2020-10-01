@@ -1327,16 +1327,14 @@ def main(args):
         cases_rows = get_query_results(get_cases_data())
 
         for case_row in cases_rows:
-            print(case_row)
+            keys = case_row.keys()
 
-            for case_keys in case_row.keys():
-                print(case_keys)
-                case_dict = dict()
+            case_dict = dict()
 
-                for key in case_keys:
-                    case_dict[key] = case_row[key]
+            for key in keys:
+                case_dict[key] = case_row[key]
 
-                cases_list.append(case_dict)
+            cases_list.append(case_dict)
 
         exit()
 
