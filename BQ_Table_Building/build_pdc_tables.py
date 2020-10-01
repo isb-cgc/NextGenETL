@@ -1327,13 +1327,18 @@ def main(args):
         cases_rows = get_query_results(get_cases_data())
 
         for case_row in cases_rows:
+            print(case_row)
+
             for case_keys in case_row.keys():
+                print(case_keys)
                 case_dict = dict()
 
                 for key in case_keys:
                     case_dict[key] = case_row[key]
 
                 cases_list.append(case_dict)
+
+        exit()
 
         build_case_metadata_jsonl(cases_list)
 
