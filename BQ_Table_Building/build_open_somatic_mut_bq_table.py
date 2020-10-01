@@ -466,7 +466,7 @@ def main(args):
         print("The input release is before new metadata process, "
               "please specify which release of the metadata to use.")
 
-    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else params['RELEASE']
+    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else release
 
     if 'build_manifest_from_filters' in steps:
 
@@ -636,10 +636,10 @@ def main(args):
         if params['RELEASE'] < 25:
             case_table = params['CASE_TABLE'].format('25')
         else:
-            case_table = params['CASE_TABLE'].format(params['RELEASE'])
+            case_table = params['CASE_TABLE'].format(release)
 
         if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE']),
+            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
                                          params['SCRATCH_DATASET'],
                                          '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
@@ -652,7 +652,7 @@ def main(args):
         else:
             step_1_table = skel_table
 
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE']),
+        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(release),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'], case_table)
         if not success:

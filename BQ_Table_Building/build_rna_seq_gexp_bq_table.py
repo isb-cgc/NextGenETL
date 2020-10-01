@@ -680,7 +680,7 @@ def main(args):
         step2_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['SCRATCH_DATASET'],
                                         files_to_case_table)
-        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'].format(params['RELEASE']),
+        success = extract_platform_for_files(step2_table, params['FILEDATA_TABLE'].format(release),
                                              params['SCRATCH_DATASET'],
                                              files_to_case_w_plat_table, True, {}, params['BQ_AS_BATCH'])
 
@@ -694,9 +694,9 @@ def main(args):
                                         files_to_case_w_plat_table)
 
         if params['RELEASE'] < 25:
-            case_table = params['CASE_TABLE'].format('25')
+            case_table = params['CASE_TABLE'].format("r25")
         else:
-            case_table = params['CASE_TABLE'].format(params['RELEASE'])
+            case_table = params['CASE_TABLE'].format(release)
 
         success = attach_barcodes(step2_table, params['ALIQUOT_TABLE'].format(metadata_rel), case_table,
                                   params['SCRATCH_DATASET'],
@@ -943,7 +943,7 @@ def main(args):
         count_name, _ = next(iter(file_set.items()))
         bucket_target_blob_sets[count_name] = '{}/{}-{}-{}-{}'.format(params['ARCHIVE_BUCKET_DIR'], params['DATE'],
                                                                       params['PROGRAM'], params['DATA_TYPE'],
-                                                                      params['RELEASE'], count_name)
+                                                                      release, count_name)
 
     if 'archive' in steps:
 
