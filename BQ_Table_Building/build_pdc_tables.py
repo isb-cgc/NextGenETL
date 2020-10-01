@@ -1067,9 +1067,6 @@ def build_case_metadata_jsonl(cases_list):
         cnt = 0
 
         case_meta_query = make_case_query(case['case_submitter_id'])
-
-        print(case_meta_query)
-
         case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
 
         if 'data' in case_meta_res and 'case' in case_meta_res['data']:
