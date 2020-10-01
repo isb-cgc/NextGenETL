@@ -950,6 +950,131 @@ def build_cases_jsonl():
     console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
+def make_case_query(case_submitter_id):
+    return """
+    {{ case (case_submitter_id: \"{}\") {{
+        case_id
+        case_submitter_id
+        project_submitter_id
+        external_case_id
+        tissue_source_site_code
+        days_to_lost_to_followup
+        disease_type
+        lost_to_followup
+        primary_site
+        demographics {{
+            demographic_id
+            ethnicity
+            gender
+            demographic_submitter_id
+            race
+            cause_of_death
+            days_to_birth
+            days_to_death
+            vital_status
+            year_of_birth
+            year_of_death
+        }}
+        diagnoses {{ 
+            diagnosis_id 
+            tissue_or_organ_of_origin
+            age_at_diagnosis
+            primary_diagnosis
+            tumor_grade
+            tumor_stage
+            diagnosis_submitter_id
+            classification_of_tumor
+            days_to_last_follow_up
+            days_to_last_known_disease_status
+            days_to_recurrence
+            last_known_disease_status
+            morphology
+            progression_or_recurrence
+            site_of_resection_or_biopsy
+            prior_malignancy
+            ajcc_clinical_m
+            ajcc_clinical_n
+            ajcc_clinical_stage
+            ajcc_clinical_t
+            ajcc_pathologic_m
+            ajcc_pathologic_n
+            ajcc_pathologic_stage
+            ajcc_pathologic_t
+            ann_arbor_b_symptoms
+            ann_arbor_clinical_stage
+            ann_arbor_extranodal_involvement
+            ann_arbor_pathologic_stage
+            best_overall_response
+            burkitt_lymphoma_clinical_variant
+            circumferential_resection_margin
+            colon_polyps_history
+            days_to_best_overall_response
+            days_to_diagnosis
+            days_to_hiv_diagnosis
+            days_to_new_event
+            figo_stage
+            hiv_positive
+            hpv_positive_type
+            hpv_status
+            iss_stage
+            laterality
+            ldh_level_at_diagnosis
+            ldh_normal_range_upper
+            lymph_nodes_positive
+            lymphatic_invasion_present
+            method_of_diagnosis
+            new_event_anatomic_site
+            new_event_type
+            overall_survival
+            perineural_invasion_present
+            prior_treatment
+            progression_free_survival
+            progression_free_survival_event
+            residual_disease
+            vascular_invasion_present
+            year_of_diagnosis
+            }} 
+        }} 
+    }}
+    """.format(case_submitter_id)
+
+
+def get_cases_data():
+    cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], cases_table)
+
+    return """
+        SELECT * 
+        FROM `{}`
+    """.format(table_id)
+
+
+def build_case_metadata_jsonl(cases):
+    jsonl_start = time.time()
+    cases_list = []
+
+    for case in cases:
+        case_dict = dict()
+        case_dict.update(case)
+        case_meta_res = get_graphql_api_response(API_PARAMS, make_case_query(case['case_submitter_id']))
+
+        for case_row in case_meta_res['data']['case']:
+            case_dict.update(case_row)
+
+        cases_list.append(case_dict)
+
+        if len(cases_list) >= 5:
+            print(cases_list)
+            exit()
+
+    case_meta_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_METADATA_TABLE']) + '.jsonl')
+    write_list_to_jsonl(case_meta_jsonl_fp, cases_list)
+    upload_to_bucket(BQ_PARAMS, case_meta_jsonl_fp)
+
+    jsonl_end = time.time() - jsonl_start
+    console_out("Case metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -1195,10 +1320,29 @@ def main(args):
         build_cases_jsonl()
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_METADATA_TABLE'])
+
+    if 'build_case_metadata_jsonl' in steps:
+        cases_list = list()
+        cases_rows = get_query_results(get_cases_data())
+
+        for case_row in cases_rows:
+            for case_keys in case_row.keys():
+                case_dict = dict()
+
+                for key in case_keys:
+                    case_dict[key] = case_row[key]
+
+                cases_list.append(case_dict)
+
+        build_case_metadata_jsonl(cases_list)
+
+    if 'build_case_metadata_table' in steps:
+        pass
+        # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     end = time.time() - start
-    console_out("Finished program execution in {0}!\n", (format_seconds(end),))
+    console_out("Finished program execution in {}!\n", (format_seconds(end),))
 
 
 if __name__ == '__main__':
