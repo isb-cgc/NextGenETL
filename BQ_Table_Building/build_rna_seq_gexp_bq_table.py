@@ -803,7 +803,6 @@ def main(args):
 
         if not success:
             print("create current table failed")
-            print("remember to rerun schema steps for current table")
             return
 
     #
