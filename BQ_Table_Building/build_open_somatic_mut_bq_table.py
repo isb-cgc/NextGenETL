@@ -61,10 +61,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None
+        return None, None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
-            yaml_dict['steps'],  yaml_dict['callers'],
+            yaml_dict['steps'],  yaml_dict['callers'], yaml_dict['update_schema_tables'],
             yaml_dict['schema_tags'])
 
 '''
@@ -428,7 +428,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, callers, schema_tags = load_config(yaml_file.read())
+        params, filters, bq_filters, steps, callers, update_schema_tables, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -466,7 +466,7 @@ def main(args):
         print("The input release is before new metadata process, "
               "please specify which release of the metadata to use.")
 
-    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else params['RELEASE']
+    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else release
 
     if 'build_manifest_from_filters' in steps:
 
@@ -542,61 +542,69 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
-        # Write out the details
-        success = generate_table_detail_files(schema_file, full_file_prefix)
-        if not success:
-            print("process_git_schemas failed")
-            return
+    for table in update_schema_tables:
+        if table == 'current':
+            use_schema = params['SCHEMA_FILE_NAME']
+            schema_release = 'current'
+        else:
+            use_schema = params['VER_SCHEMA_FILE_NAME']
+            schema_release = release
 
-    # Customize generic schema to this data program:
+        if 'process_git_schemas' in steps:
+            print('process_git_schema')
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
 
-    if 'replace_schema_tags' in steps:
-        print('replace_schema_tags')
-        pn = params['PROGRAM']
-        dataset_tuple = (pn, pn.replace(".", "_"))
-        tag_map_list = []
-        for tag_pair in schema_tags:
-            for tag in tag_pair:
-                val = tag_pair[tag]
-                use_pair = {}
-                tag_map_list.append(use_pair)
-                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                    chunks = val.split('-', 1)
-                    if chunks[1] == 'programs':
-                        if val.find('~lcbqs-') == 0:
-                            rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+        # Customize generic schema to this data program:
+
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
+            pn = params['PROGRAM']
+            dataset_tuple = (pn, pn.replace(".", "_"))
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = tag_pair[tag]
+                    use_pair = {}
+                    tag_map_list.append(use_pair)
+                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                        chunks = val.split('-', 1)
+                        if chunks[1] == 'programs':
+                            if val.find('~lcbqs-') == 0:
+                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                            else:
+                                rep_val = dataset_tuple[0]
+                        elif chunks[1] == 'builds':
+                            rep_val = params['BUILD']
                         else:
-                            rep_val = dataset_tuple[0]
-                    elif chunks[1] == 'builds':
-                        rep_val = params['BUILD']
+                            raise Exception()
+                        if val.find('~lc-') == 0:
+                            rep_val = rep_val.lower()
+                        use_pair[tag] = rep_val
                     else:
-                        raise Exception()
-                    if val.find('~lc-') == 0:
-                        rep_val = rep_val.lower()
-                    use_pair[tag] = rep_val
-                else:
-                    use_pair[tag] = val
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
+                        use_pair[tag] = val
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
 
-        # Write out the details
-        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
 
-        if not success:
-            print("replace_schema_tags failed")
-            return False
+            if not success:
+                print("replace_schema_tags failed")
+                return False
 
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(release))
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list, hold_schema_dict)
+        if 'analyze_the_schema' in steps:
+            print('analyze_the_schema')
+            typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob = '{}/{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'], params['PROGRAM'],
                                                   params['DATA_TYPE'])
@@ -628,10 +636,10 @@ def main(args):
         if params['RELEASE'] < 25:
             case_table = params['CASE_TABLE'].format('25')
         else:
-            case_table = params['CASE_TABLE'].format(params['RELEASE'])
+            case_table = params['CASE_TABLE'].format(release)
 
         if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(params['RELEASE']),
+            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
                                          params['SCRATCH_DATASET'],
                                          '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
             if not success:
@@ -644,7 +652,7 @@ def main(args):
         else:
             step_1_table = skel_table
 
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(params['RELEASE']),
+        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(release),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
                                   params['PROGRAM'], case_table)
         if not success:
@@ -683,32 +691,32 @@ def main(args):
 
         if not success:
             print("create current table failed")
-            print("remember to rerun schema steps for current table")
             return
 
     #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
+    for table in update_schema_tables:
+        schema_release = 'current' if table == 'current' else release
+        if 'update_final_schema' in steps:
+            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release), hold_schema_dict)
+            if not success:
+                print("Schema update failed")
+                return
 
-    if 'update_final_schema' in steps:
-        success = update_schema(params['SCRATCH_DATASET'], draft_table.format(release), hold_schema_dict)
-        if not success:
-            print("Schema update failed")
-            return
+        #
+        # Add the table description:
+        #
 
-    #
-    # Add the table description:
-    #
-
-    if 'add_table_description' in steps:
-        print('update_table_description')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                          draft_table.format(release))
-        success = install_labels_and_desc(params['SCRATCH_DATASET'],
-                                          draft_table.format(release), full_file_prefix)
-        if not success:
-            print("update_table_description failed")
-            return
+        if 'add_table_description' in steps:
+            print('update_table_description')
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
+                                              draft_table.format(schema_release))
+            success = install_labels_and_desc(params['SCRATCH_DATASET'],
+                                              draft_table.format(schema_release), full_file_prefix)
+            if not success:
+                print("update_table_description failed")
+                return
 
     #
     # compare and remove old current table
@@ -827,24 +835,24 @@ def main(args):
         if params['ARCHIVE_YAML']:
             yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
             archive_yaml = "{}/{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                            params['ARCHIVE_CONFIG'],
-                                            archive_file_prefix,
-                                            yaml_file.group(1))
+                                                params['ARCHIVE_CONFIG'],
+                                                archive_file_prefix,
+                                                yaml_file.group(1))
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                          archive_yaml,
                          args[1])
-            archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix,
-                                                  params['LOCAL_PULL_LIST'])
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                             archive_pull_file,
-                             params['LOCAL_PULL_LIST'])
-            archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+        archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
+                                              archive_file_prefix,
+                                              params['LOCAL_PULL_LIST'])
+        upload_to_bucket(params['ARCHIVE_BUCKET'],
+                         archive_pull_file,
+                         params['LOCAL_PULL_LIST'])
+        archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
                                                   archive_file_prefix,
                                                   params['MANIFEST_FILE'])
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                            archive_manifest_file,
-                             params['MANIFEST_FILE'])
+        upload_to_bucket(params['ARCHIVE_BUCKET'],
+                         archive_manifest_file,
+                         params['MANIFEST_FILE'])
 
 if __name__ == "__main__":
     main(sys.argv)
