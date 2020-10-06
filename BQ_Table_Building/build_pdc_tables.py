@@ -389,6 +389,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
             gene = json_res['data']['geneSpectralCount']
 
+            print(gene)
+
             if not gene:
                 console_out("No geneSpectralCount data found for {0}", (gene_name,))
                 no_spectral_count_set.add(gene_name)
