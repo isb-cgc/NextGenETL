@@ -296,7 +296,7 @@ def add_gene_names_per_study(proteome_study, gene_set):
     return gene_set
 
 
-def build_proteome_gene_name_set():
+def build_proteome_gene_name_list():
     console_out("Building proteome gene name tsv!")
 
     proteome_studies = API_PARAMS['PROTEOME_STUDIES']
@@ -307,7 +307,10 @@ def build_proteome_gene_name_set():
         add_gene_names_per_study(proteome_study, gene_name_set)
         console_out("new set size: {0}", (len(gene_name_set),))
 
-    return gene_name_set
+    gene_name_list = list(gene_name_set)
+    gene_name_list.sort()
+
+    return gene_name_list
 
 
 def update_ron_gene_table():
@@ -335,7 +338,7 @@ def make_gene_query(gene_name):
     '''.format(gene_name)
 
 
-def build_gene_tsv(gene_name_set, gene_tsv, append=False):
+def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     if append:
         console_out("Resuming geneSpectralCount API calls. ", end='')
         with open(gene_tsv, 'r') as tsv_file:
@@ -351,9 +354,9 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
 
                 saved_genes.add(row[0])
 
-        gene_name_set = gene_name_set - saved_genes
+        gene_name_list = gene_name_list - saved_genes
 
-        remaining_genes = len(gene_name_set)
+        remaining_genes = len(gene_name_list)
 
         if remaining_genes == 0:
             console_out("{} gene API calls remaining--skipping step.", (remaining_genes,))
@@ -379,7 +382,7 @@ def build_gene_tsv(gene_name_set, gene_tsv, append=False):
         no_spectral_count_set = set()
         empty_spectral_count_set = set()
 
-        for gene_name in gene_name_set:
+        for gene_name in gene_name_list:
             count += 1
             json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
             # time.sleep(1)  # need a delay to avoid making too many api requests and getting 500 server error
@@ -1067,29 +1070,30 @@ def build_case_metadata_jsonl(cases_list):
             continue
 
         num_case_meta_res = len(case_meta_res['data']['case'])
+        res = case_meta_res['data']['case']
 
         if num_case_meta_res == 0:
-            # print("empty")
-            # print(case_meta_res)
+            # print(res)
             continue
         elif num_case_meta_res > 1:
-            print("num results: {}".format(num_case_meta_res))
-            # print(case_meta_res)
+            print("results > 2:\n{}".format(res))
+            # print(res)
             continue
 
-        case_metadata = case_meta_res['data']['case'][0]
+        case_metadata = res[0]
 
         if (case_metadata['project_submitter_id'] != case['project_submitter_id'] or
                 case_metadata['case_submitter_id'] != case['case_submitter_id'] or
                 case_metadata['case_id'] != case['case_id'] or
                 case_metadata['primary_site'] != case['primary_site'] or
                 case_metadata['disease_type'] != case['disease_type']):
+
             print("weird, non-matching column data!")
             continue
 
         case_dict.update(case_metadata)
-        meta_cnt += 1
 
+        meta_cnt += 1
         case_metadata_list.append(case_dict)
 
         if meta_cnt >= 5:
@@ -1241,10 +1245,10 @@ def main(args):
     if 'build_gene_tsv' in steps:
         # *** NOTE: Currently Broken in PDC API
 
-        gene_name_set = build_proteome_gene_name_set()
+        gene_name_list = build_proteome_gene_name_list()
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
-        build_gene_tsv(gene_name_set, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
+        build_gene_tsv(gene_name_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
