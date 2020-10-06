@@ -22,6 +22,7 @@ SOFTWARE.
 import math
 import re
 import csv
+import os
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -341,22 +342,26 @@ def make_gene_query(gene_name):
 
 
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
+    gene_name_set = set(gene_name_list)
+
     if append:
         console_out("Resuming geneSpectralCount API calls. ", end='')
-        with open(gene_tsv, 'r') as tsv_file:
-            saved_genes = set()
-            gene_reader = csv.reader(tsv_file, delimiter='\t')
 
-            passed_first_row = False
+        if os.path.exists(gene_tsv):
+            with open(gene_tsv, 'r') as tsv_file:
+                saved_genes = set()
+                gene_reader = csv.reader(tsv_file, delimiter='\t')
 
-            for row in gene_reader:
-                if not passed_first_row:
-                    passed_first_row = True
-                    continue
+                passed_first_row = False
 
-                saved_genes.add(row[0])
+                for row in gene_reader:
+                    if not passed_first_row:
+                        passed_first_row = True
+                        continue
 
-        gene_name_set = set(gene_name_list) - saved_genes
+                    saved_genes.add(row[0])
+
+            gene_name_set = gene_name_set - saved_genes
 
         remaining_genes = len(gene_name_set)
 
