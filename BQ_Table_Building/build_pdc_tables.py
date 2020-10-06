@@ -354,7 +354,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
                 saved_genes.add(row[0])
 
-        gene_name_list = gene_name_list - saved_genes
+        gene_name_set = set(gene_name_list) - saved_genes
 
         remaining_genes = len(gene_name_list)
 
