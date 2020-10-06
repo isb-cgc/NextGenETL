@@ -417,16 +417,17 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             for key in gene.keys():
                 gene[key].strip()
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(str.strip(gene['gene_id']),
-                                                                    str.strip(gene['gene_name']),
-                                                                    str.strip(gene['NCBI_gene_id']),
-                                                                    str.strip(gene['authority']),
-                                                                    str.strip(gene['description']),
-                                                                    str.strip(gene['organism']),
-                                                                    str.strip(gene['chromosome']),
-                                                                    str.strip(gene['locus']),
-                                                                    str.strip(gene['proteins']),
-                                                                    str.strip(gene['assays'])))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(str.strip(str(gene['gene_id'])),
+                                                                    str.strip(str(gene['gene_name'])),
+                                                                    str.strip(str(gene['NCBI_gene_id'])),
+                                                                    str.strip(str(gene['authority'])),
+                                                                    str.strip(str(gene['description'])),
+                                                                    str.strip(str(gene['organism'])),
+                                                                    str.strip(str(gene['chromosome'])),
+                                                                    str.strip(str(gene['locus'])),
+                                                                    str.strip(str(gene['proteins'])),
+                                                                    str.strip(str(gene['assays']))
+                                                                    ))
 
 
 def make_total_cases_aliquots_query():
