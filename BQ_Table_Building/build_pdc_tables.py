@@ -361,7 +361,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                         passed_first_row = True
                         continue
 
-                    saved_genes.add(row[0])
+                    saved_genes.add(row[1])
 
             gene_name_set = gene_name_set - saved_genes
 
