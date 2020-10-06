@@ -325,7 +325,9 @@ def make_gene_query(gene_name):
     return '''
     {{ 
         geneSpectralCount(gene_name: \"{}\") {{
-            gene_name 
+            gene_id
+            gene_name
+            NCBI_gene_id 
             authority 
             description 
             organism 
@@ -368,14 +370,16 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
     with open(gene_tsv, file_mode) as gene_fh:
         if not append:
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format('gene_name',
-                                                                    'authority',
-                                                                    'description',
-                                                                    'organism',
-                                                                    'chromosome',
-                                                                    'locus',
-                                                                    'proteins',
-                                                                    'assays'))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format('gene_id',
+                                                                            'gene_name',
+                                                                            'NCBI_gene_id',
+                                                                            'authority',
+                                                                            'description',
+                                                                            'organism',
+                                                                            'chromosome',
+                                                                            'locus',
+                                                                            'proteins',
+                                                                            'assays'))
 
         count = 0
 
@@ -406,14 +410,16 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             for key in gene.keys():
                 gene[key].strip()
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_name'],
-                                                                    gene['authority'],
-                                                                    gene['description'],
-                                                                    gene['organism'],
-                                                                    gene['chromosome'],
-                                                                    gene['locus'],
-                                                                    gene['proteins'],
-                                                                    gene['assays']))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(str.strip(gene['gene_id']),
+                                                                    str.strip(gene['gene_name']),
+                                                                    str.strip(gene['NCBI_gene_id']),
+                                                                    str.strip(gene['authority']),
+                                                                    str.strip(gene['description']),
+                                                                    str.strip(gene['organism']),
+                                                                    str.strip(gene['chromosome']),
+                                                                    str.strip(gene['locus']),
+                                                                    str.strip(gene['proteins']),
+                                                                    str.strip(gene['assays'])))
 
 
 def make_total_cases_aliquots_query():
@@ -1089,7 +1095,6 @@ def build_case_metadata_jsonl(cases_list):
                 case_metadata['case_id'] != case['case_id'] or
                 case_metadata['primary_site'] != case['primary_site'] or
                 case_metadata['disease_type'] != case['disease_type']):
-
             print("weird, non-matching column data!")
             continue
 
