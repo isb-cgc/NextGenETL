@@ -415,19 +415,18 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                     console_out("Added {0} genes", (count,))
 
             for key in gene.keys():
-                gene[key].strip()
+                gene[key] = str(gene[key]).strip()
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(str.strip(str(gene['gene_id'])),
-                                                                    str.strip(str(gene['gene_name'])),
-                                                                    str.strip(str(gene['NCBI_gene_id'])),
-                                                                    str.strip(str(gene['authority'])),
-                                                                    str.strip(str(gene['description'])),
-                                                                    str.strip(str(gene['organism'])),
-                                                                    str.strip(str(gene['chromosome'])),
-                                                                    str.strip(str(gene['locus'])),
-                                                                    str.strip(str(gene['proteins'])),
-                                                                    str.strip(str(gene['assays']))
-                                                                    ))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
+                                                                    gene['gene_name'],
+                                                                    gene['NCBI_gene_id'],
+                                                                    gene['authority'],
+                                                                    gene['description'],
+                                                                    gene['organism'],
+                                                                    gene['chromosome'],
+                                                                    gene['locus'],
+                                                                    gene['proteins'],
+                                                                    gene['assays']))
 
 
 def make_total_cases_aliquots_query():
