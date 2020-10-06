@@ -344,10 +344,12 @@ def make_gene_query(gene_name):
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     gene_name_set = set(gene_name_list)
 
+    gene_tsv_exists = os.path.exists(gene_tsv)
+
     if append:
         console_out("Resuming geneSpectralCount API calls. ", end='')
 
-        if os.path.exists(gene_tsv):
+        if gene_tsv_exists:
             with open(gene_tsv, 'r') as tsv_file:
                 saved_genes = set()
                 gene_reader = csv.reader(tsv_file, delimiter='\t')
@@ -374,7 +376,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     file_mode = 'a' if append else 'w'
 
     with open(gene_tsv, file_mode) as gene_fh:
-        if not append:
+        if not append or not gene_tsv_exists:
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format('gene_id',
                                                                             'gene_name',
                                                                             'NCBI_gene_id',
