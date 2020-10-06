@@ -356,7 +356,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
         gene_name_set = set(gene_name_list) - saved_genes
 
-        remaining_genes = len(gene_name_list)
+        remaining_genes = len(gene_name_set)
 
         if remaining_genes == 0:
             console_out("{} gene API calls remaining--skipping step.", (remaining_genes,))
@@ -382,7 +382,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
         no_spectral_count_set = set()
         empty_spectral_count_set = set()
 
-        for gene_name in gene_name_list:
+        for gene_name in gene_name_set:
             count += 1
             json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
             # time.sleep(1)  # need a delay to avoid making too many api requests and getting 500 server error
