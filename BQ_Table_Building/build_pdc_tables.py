@@ -391,7 +391,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
             time.sleep(0.5)  # need a delay to avoid making too many api requests and getting 500 server error
 
-            gene = json_res['data']['geneSpectralCount'][0]
+            gene = json_res['data']['geneSpectralCount']
 
             print(gene)
 
