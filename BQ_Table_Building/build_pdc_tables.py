@@ -278,7 +278,7 @@ def get_quant_files():
 
 
 def make_gene_name_set_query(proteome_study):
-    table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], BQ_PARAMS['RELEASE'], proteome_study)
+    table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], proteome_study, BQ_PARAMS['RELEASE'])
     table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
     return """
