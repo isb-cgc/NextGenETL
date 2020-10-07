@@ -417,6 +417,9 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             for key in gene.keys():
                 gene[key] = str(gene[key]).strip()
 
+                if not gene[key]:
+                    gene[key] = 'N/A'
+
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
                                                                     gene['gene_name'],
                                                                     gene['NCBI_gene_id'],
@@ -427,6 +430,9 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                                                     gene['locus'],
                                                                     gene['proteins'],
                                                                     gene['assays']))
+
+            if count == 100:
+                return
 
 
 def make_total_cases_aliquots_query():
