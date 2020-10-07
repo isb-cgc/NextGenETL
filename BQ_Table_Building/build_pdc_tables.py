@@ -400,8 +400,6 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
             gene = json_res['data']['geneSpectralCount'][0]
 
-            print(gene)
-
             if not gene:
                 console_out("No geneSpectralCount data found for {0}", (gene_name,))
                 no_spectral_count_set.add(gene_name)
@@ -417,8 +415,10 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             for key in gene.keys():
                 gene[key] = str(gene[key]).strip()
 
-                if not gene[key]:
+                if not gene[key] or gene[key] == '':
                     gene[key] = 'N/A'
+
+            print(gene)
 
             gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
                                                                     gene['gene_name'],
