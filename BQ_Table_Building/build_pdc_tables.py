@@ -420,16 +420,16 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
             print(gene)
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
-                                                                    gene['gene_name'],
-                                                                    gene['NCBI_gene_id'],
-                                                                    gene['authority'],
-                                                                    gene['description'],
-                                                                    gene['organism'],
-                                                                    gene['chromosome'],
-                                                                    gene['locus'],
-                                                                    gene['proteins'],
-                                                                    gene['assays']))
+            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
+                                                                            gene['gene_name'],
+                                                                            gene['NCBI_gene_id'],
+                                                                            gene['authority'],
+                                                                            gene['description'],
+                                                                            gene['organism'],
+                                                                            gene['chromosome'],
+                                                                            gene['locus'],
+                                                                            gene['proteins'],
+                                                                            gene['assays']))
 
             if count == 100:
                 return
