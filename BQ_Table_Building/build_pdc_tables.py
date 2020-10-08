@@ -1426,7 +1426,7 @@ def main(args):
         res = get_query_results(query)
 
         for row in res:
-            print(row)
+            print(row.get('proteins'))
             exit()
 
     if 'build_cases_samples_aliquots_tsv' in steps:
