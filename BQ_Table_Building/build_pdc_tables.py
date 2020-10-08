@@ -1168,7 +1168,7 @@ def build_uniprot_tsv(dest_scratch_fp):
     console_out("done!")
 
 
-def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
+def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, null_marker=""):
     build_start = time.time()
 
     table_name = get_table_name(table_prefix, table_suffix)
@@ -1179,7 +1179,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     tsv_name = '{}.tsv'.format(table_name)
-    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
+    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker)
 
     build_end = time.time() - build_start
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
@@ -1330,7 +1330,10 @@ def main(args):
                 if len(row) != num_columns:
                     print(row)
 
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                             BQ_PARAMS['DEV_META_DATASET'],
+                             BQ_PARAMS['GENE_TABLE'],
+                             null_marker='N/A')
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
@@ -1448,7 +1451,7 @@ def main(args):
         schema_filename = '{}.json'.format(table_id)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         tsv_name = '{}.tsv'.format(table_name)
-        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
+        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker='')
 
         console_out("Uniprot table built!")
         pass
