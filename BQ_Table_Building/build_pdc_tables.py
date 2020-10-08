@@ -1150,7 +1150,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
     ref_keys = API_PARAMS['UNIPROT_MAPPING_KEYS']
 
-    with open(dest_scratch_fp, 'wb') as dest_tsv_file:
+    with open(dest_scratch_fp, 'w') as dest_tsv_file:
         unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
 
         ref_keys = pop_unwanted(ref_keys, unwanted_indices)
