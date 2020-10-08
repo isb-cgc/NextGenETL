@@ -1425,9 +1425,20 @@ def main(args):
 
         res = get_query_results(query)
 
+        max_uniprot_ids = 0
+
         for row in res:
-            print(row.get('proteins'))
-            exit()
+            curr_uniprot_ids = 0
+
+            protein_list = row.get('proteins').split(';')
+
+            for protein in protein_list:
+                if is_uniprot_accession_id(protein):
+                    curr_uniprot_ids += 1
+
+            max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
+
+        print(max_uniprot_ids)
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
