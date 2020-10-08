@@ -314,14 +314,6 @@ def build_proteome_gene_name_list():
     return gene_name_list
 
 
-def update_ron_gene_table():
-    '''
-    SELECT gene_name
-    FROM `isb-project-zero.PDC_metadata.ron_spreadsheet_genes_2020_01`
-    WHERE gene_name like '%|%'
-    '''
-
-
 def make_gene_query(gene_name):
     return '''
     {{ 
@@ -1158,7 +1150,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
     ref_keys = API_PARAMS['UNIPROT_MAPPING_KEYS']
 
-    with open(dest_scratch_fp, 'w') as dest_tsv_file:
+    with open(dest_scratch_fp, 'wb') as dest_tsv_file:
         unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
 
         ref_keys = pop_unwanted(ref_keys, unwanted_indices)
@@ -1443,9 +1435,24 @@ def main(args):
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_uniprot_tsv' in steps:
-        uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, 'uniprot.tsv')
+        uniprot_dest_file = API_PARAMS['UNIPROT_MAPPING_TABLE'] + '.tsv'
+        uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
         build_uniprot_tsv(uniprot_dest_fp)
         upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
+
+        build_start = time.time()
+
+        table_name = API_PARAMS['UNIPROT_MAPPING_TABLE']
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        console_out("Building {0}... ", (table_id,))
+
+        schema_filename = '{}.json'.format(table_id)
+        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        tsv_name = '{}.tsv'.format(table_name)
+        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
+
+        build_end = time.time() - build_start
+        console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
     if 'build_uniprot_table' in steps:
         pass
