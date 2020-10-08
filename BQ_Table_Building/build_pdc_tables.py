@@ -1148,16 +1148,18 @@ def build_uniprot_tsv(dest_scratch_fp):
 
         return print_str
 
-    download_from_bucket(BQ_PARAMS, BQ_PARAMS['UNIPROT_MAPPING_FILE'])
+    console_out("creating uniprot tsv... ", end='')
 
-    src_scratch_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['UNIPROT_MAPPING_FILE'])
+    download_from_bucket(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+
+    src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
 
     csv.field_size_limit(sys.maxsize)
 
-    ref_keys = BQ_PARAMS['UNIPROT_MAPPING_KEYS']
+    ref_keys = API_PARAMS['UNIPROT_MAPPING_KEYS']
 
     with open(dest_scratch_fp, 'w') as dest_tsv_file:
-        unwanted_indices = BQ_PARAMS['UNIPROT_EXCLUDE_INDICES']
+        unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
 
         ref_keys = pop_unwanted(ref_keys, unwanted_indices)
         header = create_tsv_row(ref_keys)
@@ -1170,6 +1172,8 @@ def build_uniprot_tsv(dest_scratch_fp):
                 row = pop_unwanted(row, unwanted_indices)
                 row_str = create_tsv_row(row)
                 dest_tsv_file.write(row_str)
+
+    console_out("done!")
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
