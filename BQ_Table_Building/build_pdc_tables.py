@@ -369,16 +369,19 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
     with open(gene_tsv, file_mode) as gene_fh:
         if not append or not gene_tsv_exists:
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format('gene_id',
-                                                                            'gene_name',
-                                                                            'NCBI_gene_id',
-                                                                            'authority',
-                                                                            'description',
-                                                                            'organism',
-                                                                            'chromosome',
-                                                                            'locus',
-                                                                            'proteins',
-                                                                            'assays'))
+            header_row_str = create_tsv_row(['gene_id',
+                                             'gene_name',
+                                             'NCBI_gene_id',
+                                             'authority',
+                                             'hgnc_gene_id',
+                                             'description',
+                                             'organism',
+                                             'chromosome',
+                                             'locus',
+                                             'proteins',
+                                             'assays'])
+
+            gene_fh.write(header_row_str)
 
         count = 0
 
@@ -388,7 +391,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
         for gene_name in gene_name_set:
             count += 1
             json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
-            time.sleep(0.5)  # need a delay to avoid making too many api requests and getting 500 server error
+            time.sleep(0.1)  # need a delay to avoid making too many api requests and getting 500 server error
 
             gene = json_res['data']['geneSpectralCount'][0]
 
@@ -408,19 +411,32 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 gene[key] = str(gene[key]).strip()
 
                 if not gene[key] or gene[key] == '':
-                    gene[key] = 'N/A'
+                    gene[key] = 'None'
 
+            authority = None
+            hgnc_gene_id = None
 
-            gene_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(gene['gene_id'],
-                                                                            gene['gene_name'],
-                                                                            gene['NCBI_gene_id'],
-                                                                            gene['authority'],
-                                                                            gene['description'],
-                                                                            gene['organism'],
-                                                                            gene['chromosome'],
-                                                                            gene['locus'],
-                                                                            gene['proteins'],
-                                                                            gene['assays']))
+            split_authority = gene['authority'].split(':')
+            if len(split_authority) > 2:
+                has_fatal_error("Authority should only split into two (or less). Value: {}".format(gene['authority']))
+            if len(split_authority) > 0:
+                authority = split_authority[0]
+            if len(split_authority) > 1:
+                hgnc_gene_id = split_authority[1]
+
+            row_str = create_tsv_row([gene['gene_id'],
+                                      gene['gene_name'],
+                                      gene['NCBI_gene_id'],
+                                      authority,
+                                      hgnc_gene_id,
+                                      gene['description'],
+                                      gene['organism'],
+                                      gene['chromosome'],
+                                      gene['locus'],
+                                      gene['proteins'],
+                                      gene['assays']])
+
+            gene_fh.write(row_str)
 
 
 def make_total_cases_aliquots_query():
@@ -1125,7 +1141,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
         return row_list
 
-    def create_tsv_row(row_list):
+    def create_tsv_row_filter_wrapped_lines(row_list):
         # some of the rows are really continuations of long PubMed article lists, not actually new rows--
         # probably due to field size limit in Python? Or just error in UniProt data
         if ';' in row_list[0]:
@@ -1154,7 +1170,7 @@ def build_uniprot_tsv(dest_scratch_fp):
         unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
 
         ref_keys = pop_unwanted(ref_keys, unwanted_indices)
-        header = create_tsv_row(ref_keys)
+        header = create_tsv_row_filter_wrapped_lines(ref_keys)
         dest_tsv_file.write(header)
 
         with open(src_scratch_fp, 'r') as src_tsv_file:
@@ -1162,7 +1178,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
             for row in csv_reader:
                 row = pop_unwanted(row, unwanted_indices)
-                row_str = create_tsv_row(row)
+                row_str = create_tsv_row_filter_wrapped_lines(row)
                 dest_tsv_file.write(row_str)
 
     console_out("done!")
@@ -1333,7 +1349,7 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['GENE_TABLE'],
-                             null_marker='N/A')
+                             null_marker='None')
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
@@ -1447,14 +1463,11 @@ def main(args):
         table_name = API_PARAMS['UNIPROT_MAPPING_TABLE']
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         console_out("Building {0}... ", (table_id,))
-
         schema_filename = '{}.json'.format(table_id)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker='')
-
         console_out("Uniprot table built!")
-        pass
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))

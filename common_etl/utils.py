@@ -1679,3 +1679,14 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
             # remove excluded field from column order lists
             if field in column_order_dict[base_fg]:
                 column_order_dict[base_fg].pop(field)
+
+
+def create_tsv_row(row_list):
+    print_str = ''
+    last_idx = len(row_list) - 1
+
+    for i, column in enumerate(row_list):
+        delimiter = "\t" if i < last_idx else "\n"
+        print_str += row_list[i] + delimiter
+
+    return print_str
