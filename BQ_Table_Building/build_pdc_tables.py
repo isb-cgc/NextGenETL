@@ -1433,14 +1433,28 @@ def main(args):
             protein_list = row.get('proteins').split(';')
 
             for protein in protein_list:
+                uniprot_table_name = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'])
+                uniprot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], uniprot_table_name)
+
                 if is_uniprot_accession_id(protein):
-                    print(protein)
-                    curr_uniprot_ids += 1
+                    query = """
+                    SELECT COUNT(*) as cnt
+                    FROM {}
+                    WHERE uniprot_kb_accession = '{}'
+                    """.format(uniprot_table_id, protein)
+
+                    res = get_query_results(query)
+
+                    for row in res:
+                        count = row.get('cnt')
+                        break
+
+                    if count > 0:
+                        curr_uniprot_ids += 1
 
             max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
 
-
-        print(max_uniprot_ids)
+        print("max uniprot ids: {}".format(max_uniprot_ids))
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
@@ -1545,13 +1559,13 @@ def main(args):
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_uniprot_tsv' in steps:
-        uniprot_dest_file = API_PARAMS['UNIPROT_MAPPING_TABLE'] + '.tsv'
+        uniprot_dest_file = BQ_PARAMS['UNIPROT_MAPPING_TABLE'] + '.tsv'
         uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
         build_uniprot_tsv(uniprot_dest_fp)
         upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
 
     if 'build_uniprot_table' in steps:
-        table_name = API_PARAMS['UNIPROT_MAPPING_TABLE']
+        table_name = BQ_PARAMS['UNIPROT_MAPPING_TABLE']
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         console_out("Building {0}... ", (table_id,))
         schema_filename = '{}.json'.format(table_id)
