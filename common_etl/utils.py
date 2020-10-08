@@ -1381,7 +1381,7 @@ def download_from_bucket(bq_params, filename):
     blob = bucket.blob(blob_name)
 
     scratch_fp = get_scratch_fp(bq_params, filename)
-    with open(scratch_fp, 'w') as file_obj:
+    with open(scratch_fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 
 
