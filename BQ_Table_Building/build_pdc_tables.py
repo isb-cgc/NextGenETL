@@ -1434,9 +1434,11 @@ def main(args):
 
             for protein in protein_list:
                 if is_uniprot_accession_id(protein):
+                    print(protein)
                     curr_uniprot_ids += 1
 
             max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
+
 
         print(max_uniprot_ids)
 
