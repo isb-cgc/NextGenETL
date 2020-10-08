@@ -1427,12 +1427,14 @@ def main(args):
 
         res = get_query_results(query)
 
-        max_uniprot_ids = 0
+        max_uniprot_count = 0
 
         for row in res:
-            curr_uniprot_ids = 0
+            curr_uniprot_id_count = 0
 
             protein_list = row.get('proteins').split(';')
+
+            count_tally_list = [0] * 70
 
             for protein in protein_list:
                 uniprot_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], include_release=False)
@@ -1450,14 +1452,16 @@ def main(args):
                     for uniprot_row in uniprot_res:
                         count = uniprot_row.get('cnt')
                         if count > 0:
-                            curr_uniprot_ids += 1
+                            curr_uniprot_id_count += 1
                         break
 
-            print(max_uniprot_ids)
+            count_tally_list[curr_uniprot_id_count] = count_tally_list[curr_uniprot_id_count] + 1
 
-            max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
+            print(count_tally_list)
 
-        print("max uniprot ids: {}".format(max_uniprot_ids))
+            max_uniprot_count = max(max_uniprot_count, curr_uniprot_id_count)
+
+        print("max uniprot ids: {}".format(max_uniprot_count))
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
