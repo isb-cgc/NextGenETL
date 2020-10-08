@@ -1374,6 +1374,17 @@ def upload_to_bucket(bq_params, scratch_fp):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
+def download_from_bucket(bq_params, filename):
+    storage_client = storage.Client(project="")
+    blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], filename)
+    bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+    blob = bucket.blob(blob_name)
+
+    scratch_fp = get_scratch_fp(bq_params, filename)
+    with open(scratch_fp, 'w') as file_obj:
+        blob.download_to_file(file_obj)
+
+
 #       ANALYZE DATA
 
 

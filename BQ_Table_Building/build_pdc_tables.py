@@ -1124,6 +1124,54 @@ def build_case_metadata_jsonl(cases_list):
     console_out("Case metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
+def build_uniprot_tsv(dest_scratch_fp):
+    def pop_unwanted(row_list, excluded_idx_list):
+        excluded_idx_list.sort(reverse=True)
+
+        for idx in excluded_idx_list:
+            row_list.pop(idx)
+
+        return row_list
+
+    def create_tsv_row(row_list):
+        # some of the rows are really continuations of long PubMed article lists, not actually new rows--
+        # probably due to field size limit in Python? Or just error in UniProt data
+        if ';' in row_list[0]:
+            return None
+
+        print_str = ''
+        last_idx = len(row_list) - 1
+
+        for i, column in enumerate(row_list):
+            delimiter = "\t" if i < last_idx else "\n"
+            print_str += row_list[i] + delimiter
+
+        return print_str
+
+    download_from_bucket(BQ_PARAMS, BQ_PARAMS['UNIPROT_MAPPING_FILE'])
+
+    src_scratch_fp = get_scratch_fp(BQ_PARAMS, BQ_PARAMS['UNIPROT_MAPPING_FILE'])
+
+    csv.field_size_limit(sys.maxsize)
+
+    ref_keys = BQ_PARAMS['UNIPROT_MAPPING_KEYS']
+
+    with open(dest_scratch_fp, 'w') as dest_tsv_file:
+        unwanted_indices = BQ_PARAMS['UNIPROT_EXCLUDE_INDICES']
+
+        ref_keys = pop_unwanted(ref_keys, unwanted_indices)
+        header = create_tsv_row(ref_keys)
+        dest_tsv_file.write(header)
+
+        with open(src_scratch_fp, 'r') as src_tsv_file:
+            csv_reader = csv.reader(src_tsv_file, delimiter='\t')
+
+            for row in csv_reader:
+                row = pop_unwanted(row, unwanted_indices)
+                row_str = create_tsv_row(row)
+                dest_tsv_file.write(row_str)
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
@@ -1259,8 +1307,6 @@ def main(args):
                 update_table_metadata(bio_table_id, table_metadata)
 
     if 'build_gene_tsv' in steps:
-        # *** NOTE: Currently Broken in PDC API
-
         gene_name_list = build_proteome_gene_name_list()
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
@@ -1391,6 +1437,14 @@ def main(args):
     if 'build_case_metadata_table' in steps:
         pass
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
+
+    if 'build_uniprot_tsv' in steps:
+        uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, 'uniprot.tsv')
+        build_uniprot_tsv(uniprot_dest_fp)
+        upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
+
+    if 'build_uniprot_table' in steps:
+        pass
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
