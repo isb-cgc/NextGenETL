@@ -1440,8 +1440,7 @@ def main(args):
         build_uniprot_tsv(uniprot_dest_fp)
         upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
 
-        build_start = time.time()
-
+    if 'build_uniprot_table' in steps:
         table_name = API_PARAMS['UNIPROT_MAPPING_TABLE']
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         console_out("Building {0}... ", (table_id,))
@@ -1451,10 +1450,7 @@ def main(args):
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id)
 
-        build_end = time.time() - build_start
-        console_out("Table built in {0}!\n", (format_seconds(build_end),))
-
-    if 'build_uniprot_table' in steps:
+        console_out("Uniprot table built!")
         pass
 
     end = time.time() - start
