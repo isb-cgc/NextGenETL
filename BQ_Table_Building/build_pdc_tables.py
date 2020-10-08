@@ -460,21 +460,66 @@ def make_total_cases_aliquots_query():
 
 
 def make_cases_aliquots_query(offset, limit):
-    return '''
-    {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
-    total casesSamplesAliquots {{
-    case_id case_submitter_id external_case_id  
-    samples {{
-    sample_id sample_submitter_id
-    aliquots {{ aliquot_id aliquot_submitter_id
-    aliquot_run_metadata {{ aliquot_run_metadata_id}}
-    }}
-    }}
-    }}
-    pagination {{ count sort from page total pages size }}
-    }}
-    }}
-    '''.format(offset, limit)
+    return '''{{ 
+        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+            total casesSamplesAliquots {{
+                case_id 
+                samples {{
+                    sample_id 
+                    aliquots {{ 
+                        aliquot_id 
+                        aliquot_submitter_id
+                        aliquot_run_metadata {{ 
+                            aliquot_run_metadata_id
+                        }}
+                    }}
+                }}
+            }}
+            pagination {{ 
+                count 
+                from 
+                page 
+                total 
+                pages 
+                size 
+            }}
+        }}
+    }}'''.format(offset, limit)
+
+
+def build_cases_aliquots_jsonl(csa_jsonl_fp):
+    offset = 0
+    limit = API_PARAMS['CSA_LIMIT']
+    page = 1
+
+    cases_aliquots = list()
+
+    csa_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, limit))
+
+    total_pages = csa_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
+
+    print("Retrieved api response for page {} of {}.\n{}".format(
+        page, total_pages, csa_res['data']['paginatedCasesSamplesAliquots']['pagination']))
+
+    for case in csa_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
+        cases_aliquots.append(case)
+
+    while page <= total_pages:
+        page += 1
+        offset = offset + limit
+
+        csa_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, limit))
+
+        print("Retrieved api response for page {} of {}.\n{}".format(
+            page, total_pages, csa_res['data']['paginatedCasesSamplesAliquots']['pagination']))
+
+        for case in csa_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
+            cases_aliquots.append(case)
+
+        print("Appended data to dict! New size: {}".format(len(cases_aliquots)))
+
+
+    write_list_to_jsonl(csa_jsonl_fp, cases_aliquots)
 
 
 def build_cases_samples_aliquots_tsv(csa_tsv):
@@ -895,54 +940,6 @@ def build_file_metadata_jsonl(file_ids):
 
     jsonl_end = time.time() - jsonl_start
     console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
-
-def make_case_per_file_query(file_id):
-    return """    
-    {{ casePerFile(file_id:\"{}\") {{ 
-        file_id 
-        case_id 
-        case_submitter_id 
-        }}
-    }}
-    """.format(file_id)
-
-
-def build_case_per_file_jsonl(file_id_list):
-    jsonl_start = time.time()
-    case_file_list = []
-    has_case_cnt = 0
-    null_case_cnt = 0
-
-    print("(had case count, no case count)")
-    for file in file_id_list:
-        file_id = file['file_id']
-        cases_res = get_graphql_api_response(API_PARAMS, make_case_per_file_query(file_id))
-
-        if 'casePerFile' in cases_res['data'] and cases_res['data']['casePerFile']:
-            for case_file_row in cases_res['data']['casePerFile']:
-                if case_file_row['case_id']:
-                    case_file_list.append(case_file_row)
-                    has_case_cnt += 1
-                else:
-                    null_case_cnt += 1
-
-                print("({}, {})".format(has_case_cnt, null_case_cnt))
-
-    if has_case_cnt == 0:
-        if len(case_file_list) > 0:
-            print("Error, different counts in build_case_per_file_jsonl.")
-        print("No case_id returned in casePerFile! {} file_ids tried".format(str(len(file_id_list))))
-        return
-
-    case_per_file_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
-    write_list_to_jsonl(case_per_file_jsonl_fp, case_file_list)
-    upload_to_bucket(BQ_PARAMS, case_per_file_jsonl_fp)
-
-    jsonl_end = time.time() - jsonl_start
-    list_size = str(len(case_file_list))
-
-    console_out("casePerFile jsonl created in {0}, {} rows added!\n", (format_seconds(jsonl_end), list_size))
 
 
 def make_cases_query():
@@ -1462,13 +1459,24 @@ def main(args):
 
         print("max uniprot ids: {}".format(max_uniprot_count))
 
-    if 'build_cases_samples_aliquots_tsv' in steps:
+    if 'build_cases_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
         build_cases_samples_aliquots_tsv(csa_tsv_path)
         upload_to_bucket(BQ_PARAMS, csa_tsv_path)
 
-    if 'build_cases_samples_aliquots_table' in steps:
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+    if 'build_cases_aliquots_jsonl' in steps:
+        jsonl_start = time.time()
+
+        csa_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.jsonl')
+        build_cases_aliquots_jsonl(csa_jsonl_fp)
+        upload_to_bucket(BQ_PARAMS, csa_jsonl_fp)
+
+        jsonl_end = time.time() - jsonl_start
+        console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
+    if 'build_cases_aliquots_table' in steps:
+        # build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
@@ -1527,15 +1535,6 @@ def main(args):
 
     if 'build_file_metadata_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILES_TABLE'])
-
-    if 'build_case_per_file_jsonl' in steps:
-        # *** NOTE: Currently Broken in PDC API
-        file_ids = get_file_ids()
-        build_case_per_file_jsonl(file_ids)
-
-    if 'build_case_per_file_table' in steps:
-        # *** NOTE: Currently Broken in PDC API
-        pass
 
     if 'build_cases_jsonl' in steps:
         build_cases_jsonl()
