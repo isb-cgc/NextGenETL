@@ -1453,6 +1453,8 @@ def main(args):
                             curr_uniprot_ids += 1
                         break
 
+            print(max_uniprot_ids)
+
             max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
 
         print("max uniprot ids: {}".format(max_uniprot_ids))
