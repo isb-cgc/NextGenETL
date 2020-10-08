@@ -77,40 +77,10 @@ def make_study_query(study_id):
         analytical_fraction 
         experiment_type 
         cases_count 
-        aliquots_count 
+        aliquots_count
+        embargo_date 
     }} }}
     """.format(study_id)
-
-
-"""
-def get_study_payload(study_id, pdc_study_id, study_submitter_id):
-    query_str = ('\"query study ($study_id: String, '
-                 '$pdc_study_id: String, '
-                 '$study_submitter_id: String) { '
-                 'study (study_id: $study_id, '
-                 'pdc_study_id: $pdc_study_id, '
-                 'study_submitter_id: $study_submitter_id) { '
-                 'pdc_study_id '
-                 'study_id '
-                 'study_submitter_id '
-                 'study_name '
-                 'disease_type '
-                 'primary_site '
-                 'cases_count '
-                 'aliquots_count '
-                 '} '
-                 '}\"'
-                 )
-
-    study_vars = ("{{   \"study_id\": \"{}\", "
-                  "   \"pdc_study_id\": \"{}\", "
-                  "   \"study_submitter_id\": \"{}\"}}"
-                  ).format(study_id, pdc_study_id, study_submitter_id)
-
-    payload = '{{ \"query\": {}, \"variables\": {} }}'.format(query_str, study_vars)
-
-    return payload
-"""
 
 
 def create_studies_dict(json_res):
@@ -131,12 +101,10 @@ def create_studies_dict(json_res):
 
             for study in project['studies']:
                 study_dict = study.copy()
+                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study_dict['study_id']))
+                study_metadata = json_res['data']['study'][0]
 
-                study_query = make_study_query(study_dict['study_id'])
-
-                study_metadata = get_graphql_api_response(API_PARAMS, query=study_query)
-
-                for k, v in study_metadata['data']['study'][0].items():
+                for k, v in study_metadata.items():
                     study_dict[k] = v
 
                 study_dict['program_id'] = program_id
@@ -158,28 +126,25 @@ def create_studies_dict(json_res):
     return studies
 
 
+def get_study_ids():
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                            BQ_PARAMS['DEV_META_DATASET'],
+                            get_table_name(BQ_PARAMS['STUDIES_TABLE']))
+
+    return """
+    SELECT study_id, study_submitter_id, pdc_study_id, study_name, aliquots_count, cases_count
+    FROM  `{}`
+    """.format(table_id)
+
+
 def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
 
 
-def get_table_name(prefix, suffix=None, include_release=True):
-    table_name = prefix
-
-    if suffix:
-        table_name += '_' + suffix
-    if include_release:
-        table_name += '_' + BQ_PARAMS['RELEASE']
-
-    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
-
-
-def get_table_id(project, dataset, table_name):
-    return "{}.{}.{}".format(project, dataset, table_name)
-
-
-def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
+def build_quant_tsv(study_id_dict, data_type, tsv_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_id = study_id_dict['study_id']
+    study_name = study_id_dict['study_name']
     lines_written = 0
 
     res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type),
@@ -201,7 +166,7 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
 
         aliquot_metadata.append(
             {
-                "study_id": study_id,
+                "study_name": study_name,
                 "aliquot_run_metadata_id": aliquot_run_metadata_id,
                 "aliquot_submitter_id": aliquot_submitter_id
             }
@@ -212,59 +177,26 @@ def get_and_write_quant_data(study_id_dict, data_type, tsv_fp):
         fh.write("{}\t{}\t{}\t{}\t{}\n".format(
             'aliquot_run_metadata_id',
             'aliquot_submitter_id',
-            'study_id',
-            'gene',
-            'log2_ratio')
+            'study_name',
+            'gene_symbol',
+            'protein_abundance_log2ratio')
         )
 
         for row in res_json['data']['quantDataMatrix']:
-            gene = row.pop(0)
+            gene_symbol = row.pop(0)
 
-            for i, log2_ratio in enumerate(row):
+            for i, protein_abundance_log2ratio in enumerate(row):
                 fh.write("{}\t{}\t{}\t{}\t{}\n".format(
                     aliquot_metadata[i]['aliquot_run_metadata_id'],
                     aliquot_metadata[i]['aliquot_submitter_id'],
                     aliquot_metadata[i]['study_id'],
-                    gene,
-                    log2_ratio)
+                    gene_symbol,
+                    protein_abundance_log2ratio)
                 )
 
                 lines_written += 1
 
     return lines_written
-
-
-def has_table(project, dataset, table_name):
-    query = """
-    SELECT COUNT(1) AS has_table
-    FROM `{}.{}.__TABLES_SUMMARY__`
-    WHERE table_id = '{}'
-    """.format(project, dataset, table_name)
-
-    res = get_query_results(query)
-
-    for row in res:
-        has_table = row['has_table']
-        break
-
-    return bool(has_table)
-
-
-def has_quant_table(study_submitter_id):
-    return has_table(BQ_PARAMS['DEV_PROJECT'],
-                     BQ_PARAMS['DEV_DATASET'],
-                     get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
-
-
-def get_study_ids():
-    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                            BQ_PARAMS['DEV_META_DATASET'],
-                            get_table_name(BQ_PARAMS['STUDIES_TABLE']))
-
-    return """
-    SELECT study_id, study_submitter_id, pdc_study_id, aliquots_count, cases_count
-    FROM  `{}`
-    """.format(table_id)
 
 
 def get_quant_files():
@@ -372,10 +304,10 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     with open(gene_tsv, file_mode) as gene_fh:
         if not append or not gene_tsv_exists:
             header_row_str = create_tsv_row(['gene_id',
-                                             'gene_name',
+                                             'gene_symbol',
                                              'NCBI_gene_id',
                                              'authority',
-                                             'hgnc_gene_id',
+                                             'authority_gene_id',
                                              'description',
                                              'organism',
                                              'chromosome',
@@ -416,7 +348,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                     gene[key] = 'None'
 
             authority = None
-            hgnc_gene_id = None
+            authority_gene_id = None
 
             split_authority = gene['authority'].split(':')
             if len(split_authority) > 2:
@@ -424,13 +356,13 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             if len(split_authority) > 0:
                 authority = split_authority[0]
             if len(split_authority) > 1:
-                hgnc_gene_id = split_authority[1]
+                authority_gene_id = split_authority[1]
 
             row_str = create_tsv_row([gene['gene_id'],
                                       gene['gene_name'],
                                       gene['NCBI_gene_id'],
                                       authority,
-                                      hgnc_gene_id,
+                                      authority_gene_id,
                                       gene['description'],
                                       gene['organism'],
                                       gene['chromosome'],
@@ -1282,6 +1214,43 @@ def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
+def get_table_name(prefix, suffix=None, include_release=True):
+    table_name = prefix
+
+    if suffix:
+        table_name += '_' + suffix
+    if include_release:
+        table_name += '_' + BQ_PARAMS['RELEASE']
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
+
+
+def get_table_id(project, dataset, table_name):
+    return "{}.{}.{}".format(project, dataset, table_name)
+
+
+def has_table(project, dataset, table_name):
+    query = """
+    SELECT COUNT(1) AS has_table
+    FROM `{}.{}.__TABLES_SUMMARY__`
+    WHERE table_id = '{}'
+    """.format(project, dataset, table_name)
+
+    res = get_query_results(query)
+
+    for row in res:
+        has_table = row['has_table']
+        break
+
+    return bool(has_table)
+
+
+def has_quant_table(study_submitter_id):
+    return has_table(BQ_PARAMS['DEV_PROJECT'],
+                     BQ_PARAMS['DEV_DATASET'],
+                     get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
+
+
 def print_nested_biospecimen_statistics(counts):
     print_str = """
 Biospecimen JSON created. Statistics for total distinct:
@@ -1308,6 +1277,7 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     if 'build_studies_jsonl' in steps:
+        console_out("Building studies table... ", end='')
         jsonl_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
@@ -1320,8 +1290,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
-
-        console_out("Studies table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+        console_out("done, created in {0}!", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
@@ -1337,9 +1306,10 @@ def main(args):
 
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
+            study_name = study_id_dict['study_name']
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
             quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
-            lines_written = get_and_write_quant_data(study_id_dict, 'log2_ratio', quant_tsv_fp)
+            lines_written = build_quant_tsv(study_id_dict, 'protein_abundance_log2ratio', quant_tsv_fp)
 
             console_out("{0} lines written for {1}", (lines_written, study_submitter_id))
 
@@ -1477,6 +1447,30 @@ def main(args):
     if 'build_cases_aliquots_table' in steps:
         # build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+
+    if 'build_final_quant_tables' in steps:
+        csa_table_id = 'isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09'
+        quant_table_id = 'isb-project-zero.PDC.quant_CPTAC_GBM_Discovery_Study_Proteome_2020_09'
+        gene_table_id = 'isb-project-zero.PDC_metadata.genes_pdc_api_2020_09'
+
+        combined_query = """
+            WITH aliquot_run 
+            AS (
+              SELECT case_id, samp.sample_id, aliq.aliquot_id, aliq.aliquot_submitter_id, ar.aliquot_run_metadata_id
+              FROM `{0}`
+              CROSS JOIN UNNEST(samples) AS samp
+              CROSS JOIN UNNEST(samp.aliquots) AS aliq
+              CROSS JOIN UNNEST(aliq.aliquot_run_metadata) AS ar)
+            SELECT  a.case_id, a.sample_id, a.aliquot_id, a.aliquot_submitter_id, 
+                    q.aliquot_run_metadata_id, q.study_id, q.gene, q.log2_ratio, 
+                    g.gene_id, g.NCBI_gene_id, g.authority, g.description, g.organism, g.chromosome, g.locus, g.proteins, g.assays
+            FROM `{1}` q
+            LEFT JOIN aliquot_run a
+              ON a.aliquot_run_metadata_id = q.aliquot_run_metadata_id
+            LEFT JOIN `{2}` g
+              ON g.gene_name = q.gene
+        """.format(csa_table_id, quant_table_id, gene_table_id)
+
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
