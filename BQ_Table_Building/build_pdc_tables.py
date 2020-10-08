@@ -1428,13 +1428,12 @@ def main(args):
         res = get_query_results(query)
 
         max_uniprot_count = 0
+        count_tally_list = [0] * 70
 
         for row in res:
             curr_uniprot_id_count = 0
 
             protein_list = row.get('proteins').split(';')
-
-            count_tally_list = [0] * 70
 
             for protein in protein_list:
                 uniprot_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], include_release=False)
