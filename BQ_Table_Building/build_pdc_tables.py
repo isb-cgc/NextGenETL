@@ -162,11 +162,13 @@ def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
 
 
-def get_table_name(prefix, suffix=None):
-    if not suffix:
-        table_name = "{}_{}".format(prefix, BQ_PARAMS['RELEASE'])
-    else:
-        table_name = "{}_{}_{}".format(prefix, suffix, BQ_PARAMS['RELEASE'])
+def get_table_name(prefix, suffix=None, include_release=True):
+    table_name = prefix
+
+    if suffix:
+        table_name += '_' + suffix
+    if include_release:
+        table_name += '_' + BQ_PARAMS['RELEASE']
 
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
@@ -1433,8 +1435,8 @@ def main(args):
             protein_list = row.get('proteins').split(';')
 
             for protein in protein_list:
-                uniprot_table_name = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'])
-                uniprot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], uniprot_table_name)
+                uniprot_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], include_release=False)
+                uniprot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], uniprot_table)
 
                 if is_uniprot_accession_id(protein):
                     query = """
@@ -1443,14 +1445,13 @@ def main(args):
                     WHERE uniprot_kb_accession = '{}'
                     """.format(uniprot_table_id, protein)
 
-                    res = get_query_results(query)
+                    uniprot_res = get_query_results(query)
 
-                    for row in res:
-                        count = row.get('cnt')
+                    for uniprot_row in uniprot_res:
+                        count = uniprot_row.get('cnt')
+                        if count > 0:
+                            curr_uniprot_ids += 1
                         break
-
-                    if count > 0:
-                        curr_uniprot_ids += 1
 
             max_uniprot_ids = max(max_uniprot_ids, curr_uniprot_ids)
 
