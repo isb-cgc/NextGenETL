@@ -1184,6 +1184,69 @@ def build_uniprot_tsv(dest_scratch_fp):
     console_out("done!")
 
 
+def is_uniprot_accession_id(id_str):
+    # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
+    def is_alphanumeric(char):
+        if char.isdigit() or char.isalpha():
+            return True
+        return False
+
+    def is_opq_char(char):
+        if 'O' in char or 'P' in char or 'Q' in char:
+            return True
+
+    """
+    is length 6 or 10?
+    is idx 1, 5 a digit?
+    is idx 3, 4 alphanumeric?
+
+    if 10 char:
+    is idx 0 A-N, R-Z?
+    is idx 6 alpha?
+    is idx 7, 8 alphanumeric?
+    is idx 9 a digit?
+
+    if 6 char:
+    is idx 0 O, P, Q?
+        is idx 2 alphanumeric?
+    else alpha?
+        is idx 2 alpha?
+    """
+
+    id_length = len(id_str)
+    id_str = str.upper(id_str)
+    id_str = id_str.strip()
+
+    if id_length != 6 and id_length != 10:
+        return False
+    if not id_str[1].isdigit() or not id_str[5].isdigit():
+        return False
+    if not is_alphanumeric(id_str[3]) or not is_alphanumeric(id_str[4]):
+        return False
+
+    if id_length == 10:
+        if is_opq_char(id_str[0]) or not id_str[0].isalpha():
+            return False
+        if not id_str[2].isalpha() or not id_str[6].isalpha():
+            return False
+        if not is_alphanumeric(id_str[7]) or not is_alphanumeric(id_str[8]):
+            return False
+        if not id_str[9].isdigit():
+            return False
+    else:
+        if is_opq_char(id_str[0]):
+            if not is_alphanumeric(id_str[2]):
+                return False
+        elif not id_str[0].isalpha():
+            return False
+        else:
+            # don't get cute and try to remove this, needed
+            if not id_str[2].isalpha():
+                return False
+
+    return True
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, null_marker=""):
     build_start = time.time()
 
@@ -1350,6 +1413,21 @@ def main(args):
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['GENE_TABLE'],
                              null_marker='None')
+
+    if 'analyze_gene_table' in steps:
+        table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
+        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+
+        query = """
+        SELECT gene_name, gene_id, proteins 
+        FROM `{}`
+        """.format(table_id)
+
+        res = get_query_results(query)
+
+        for row in res:
+            print(row)
+            exit()
 
     if 'build_cases_samples_aliquots_tsv' in steps:
         csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
