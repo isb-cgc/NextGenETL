@@ -1681,12 +1681,15 @@ def modify_fields_for_app(api_params, schema, column_order_dict, columns):
                 column_order_dict[base_fg].pop(field)
 
 
-def create_tsv_row(row_list):
+def create_tsv_row(row_list, null_marker="None"):
     print_str = ''
     last_idx = len(row_list) - 1
 
     for i, column in enumerate(row_list):
+        if not column:
+            column = null_marker
+
         delimiter = "\t" if i < last_idx else "\n"
-        print_str += row_list[i] + delimiter
+        print_str += column + delimiter
 
     return print_str

@@ -151,7 +151,6 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
                                         fail_on_error=False)
 
     if not res_json or not res_json['data']['quantDataMatrix']:
-        print("res_json empty quant -- query: {}".format(make_quant_data_matrix_query(study_submitter_id, data_type)))
         return lines_written
 
     aliquot_metadata = list()
@@ -179,7 +178,8 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
                                  'aliquot_submitter_id',
                                  'study_name',
                                  'gene_symbol',
-                                 'protein_abundance_log2ratio']))
+                                 'protein_abundance_log2ratio'],
+                                null_marker=BQ_PARAMS['NULL_MARKER']))
 
         for row in res_json['data']['quantDataMatrix']:
             gene_symbol = row.pop(0)
@@ -189,7 +189,8 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
                                          aliquot_metadata[i]['aliquot_submitter_id'],
                                          aliquot_metadata[i]['study_name'],
                                          gene_symbol,
-                                         protein_abundance_log2ratio]))
+                                         protein_abundance_log2ratio],
+                                        null_marker=BQ_PARAMS['NULL_MARKER']))
 
             lines_written += 1
 
@@ -235,9 +236,9 @@ def build_proteome_gene_name_list():
     gene_name_set = set()
 
     for proteome_study in proteome_studies:
-        console_out("Add gene names from {0}... ", (proteome_study,), end="")
+        console_out("Add gene names from {0}... ", (proteome_study,))
         add_gene_names_per_study(proteome_study, gene_name_set)
-        console_out("new set size: {0}", (len(gene_name_set),))
+        console_out("\t\t\t- new set size: {0}", (len(gene_name_set),))
 
     gene_name_list = list(gene_name_set)
     gene_name_list.sort()
@@ -270,7 +271,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     gene_tsv_exists = os.path.exists(gene_tsv)
 
     if append:
-        console_out("Resuming geneSpectralCount API calls. ", end='')
+        console_out("Resuming geneSpectralCount API calls... ", end='')
 
         if gene_tsv_exists:
             with open(gene_tsv, 'r') as tsv_file:
@@ -300,19 +301,18 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
     with open(gene_tsv, file_mode) as gene_fh:
         if not append or not gene_tsv_exists:
-            header_row_str = create_tsv_row(['gene_id',
-                                             'gene_symbol',
-                                             'NCBI_gene_id',
-                                             'authority',
-                                             'authority_gene_id',
-                                             'description',
-                                             'organism',
-                                             'chromosome',
-                                             'locus',
-                                             'proteins',
-                                             'assays'])
-
-            gene_fh.write(header_row_str)
+            gene_fh.write(create_tsv_row(['gene_id',
+                                          'gene_symbol',
+                                          'NCBI_gene_id',
+                                          'authority',
+                                          'authority_gene_id',
+                                          'description',
+                                          'organism',
+                                          'chromosome',
+                                          'locus',
+                                          'proteins',
+                                          'assays'],
+                                         null_marker=BQ_PARAMS['NULL_MARKER']))
 
         count = 0
 
@@ -355,19 +355,18 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             if len(split_authority) > 1:
                 authority_gene_id = split_authority[1]
 
-            row_str = create_tsv_row([gene['gene_id'],
-                                      gene['gene_name'],
-                                      gene['NCBI_gene_id'],
-                                      authority,
-                                      authority_gene_id,
-                                      gene['description'],
-                                      gene['organism'],
-                                      gene['chromosome'],
-                                      gene['locus'],
-                                      gene['proteins'],
-                                      gene['assays']])
-
-            gene_fh.write(row_str)
+            gene_fh.write(create_tsv_row([gene['gene_id'],
+                                          gene['gene_name'],
+                                          gene['NCBI_gene_id'],
+                                          authority,
+                                          authority_gene_id,
+                                          gene['description'],
+                                          gene['organism'],
+                                          gene['chromosome'],
+                                          gene['locus'],
+                                          gene['proteins'],
+                                          gene['assays']],
+                                         null_marker=BQ_PARAMS['NULL_MARKER']))
 
 
 def make_total_cases_aliquots_query():
@@ -450,71 +449,6 @@ def build_cases_aliquots_jsonl(csa_jsonl_fp):
     write_list_to_jsonl(csa_jsonl_fp, cases_aliquots)
 
 
-def build_cases_samples_aliquots_tsv(csa_tsv):
-    console_out("Building cases_samples_aliquots tsv!")
-
-    with open(csa_tsv, 'w') as csa_fh:
-        csa_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-            'case_id',
-            'case_submitter_id',
-            'external_case_id',
-            'sample_id',
-            'sample_submitter_id',
-            'aliquot_id',
-            'aliquot_submitter_id',
-            'aliquot_run_metadata_id')
-        )
-
-    pages_res = get_graphql_api_response(API_PARAMS, make_total_cases_aliquots_query())
-    total_rows = pages_res['data']['paginatedCasesSamplesAliquots']['total']
-    pages = math.ceil(total_rows / API_PARAMS['CSA_LIMIT'])
-
-    with open(csa_tsv, 'a') as csa_fh:
-        for i in range(pages):
-            offset = API_PARAMS['CSA_LIMIT'] * i
-            console_out("Getting CasesSamplesAliquots results from offset {0}... ", (offset,), end='')
-
-            json_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, API_PARAMS['CSA_LIMIT']))
-
-            for case in json_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
-                case_submitter_id = case['case_submitter_id']
-                case_id = case['case_id']
-                external_case_id = case['external_case_id']
-
-                for sample in case['samples']:
-                    sample_submitter_id = sample['sample_submitter_id']
-                    sample_id = sample['sample_id']
-
-                    sample_row = "{}\t{}\t{}\t{}\t{}\t".format(case_id,
-                                                               case_submitter_id,
-                                                               external_case_id,
-                                                               sample_id,
-                                                               sample_submitter_id)
-
-                    if len(sample['aliquots']) == 0:
-                        # no aliquot_id associated with sample_id
-                        aliquot_row = "{}\t{}\t{}\n".format("\\N", '\\N', '\\N')
-                        run_row = sample_row + aliquot_row
-                        csa_fh.write(run_row)
-                    else:
-                        for aliquots in sample['aliquots']:
-                            aliq_row = "{}\t{}\t".format(aliquots['aliquot_id'], aliquots['aliquot_submitter_id'])
-                            aliquot_row = sample_row + aliq_row
-
-                            if len(aliquots['aliquot_run_metadata']) == 0:
-                                # no aliquot_run_metadata_id associated with aliquot_id
-                                run_meta_id_str = "{}\n".format("\\N")
-                                run_row = aliquot_row + run_meta_id_str
-                                csa_fh.write(run_row)
-                            else:
-                                for aliquot_run_metadata in aliquots['aliquot_run_metadata']:
-                                    run_meta_id_str = "{}\n".format(aliquot_run_metadata['aliquot_run_metadata_id'])
-                                    run_row = aliquot_row + run_meta_id_str
-                                    csa_fh.write(run_row)
-
-            console_out("written to tsv file.")
-
-
 def make_biospecimen_per_study_query(study_id):
     return '''
     {{ biospecimenPerStudy( study_id: \"{}\") {{
@@ -537,24 +471,23 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
     print("{} studies total".format(len(study_ids_list)))
 
     with open(biospecimen_tsv, 'w') as bio_fh:
-        bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-            'aliquot_id',
-            'sample_id',
-            'case_id',
-            'study_id',
-            'aliquot_submitter_id',
-            'sample_submitter_id',
-            'case_submitter_id',
-            'aliquot_status',
-            'case_status',
-            'sample_status',
-            'project_name',
-            'sample_type',
-            'disease_type',
-            'primary_site',
-            'pool',
-            'taxon'
-        ))
+        bio_fh.write(create_tsv_row(['aliquot_id',
+                                     'sample_id',
+                                     'case_id',
+                                     'study_id',
+                                     'aliquot_submitter_id',
+                                     'sample_submitter_id',
+                                     'case_submitter_id',
+                                     'aliquot_status',
+                                     'case_status',
+                                     'sample_status',
+                                     'project_name',
+                                     'sample_type',
+                                     'disease_type',
+                                     'primary_site',
+                                     'pool',
+                                     'taxon'],
+                                    null_marker=BQ_PARAMS['NULL_MARKER']))
 
         for study in study_ids_list:
             json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
@@ -569,24 +502,24 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                         (study['study_id'], study['study_submitter_id'], has_quant_tbl, aliquots_cnt, res_size))
 
             for biospecimen in json_res['data']['biospecimenPerStudy']:
-                bio_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
-                    biospecimen['aliquot_id'],
-                    biospecimen['sample_id'],
-                    biospecimen['case_id'],
-                    study['study_id'],
-                    biospecimen['aliquot_submitter_id'],
-                    biospecimen['sample_submitter_id'],
-                    biospecimen['case_submitter_id'],
-                    biospecimen['aliquot_status'],
-                    biospecimen['case_status'],
-                    biospecimen['sample_status'],
-                    biospecimen['project_name'],
-                    biospecimen['sample_type'],
-                    biospecimen['disease_type'],
-                    biospecimen['primary_site'],
-                    biospecimen['pool'],
-                    biospecimen['taxon']
-                ))
+                # create_tsv_row([], BQ_PARAMS['NULL_MARKER'])
+                bio_fh.write(create_tsv_row([biospecimen['aliquot_id'],
+                                             biospecimen['sample_id'],
+                                             biospecimen['case_id'],
+                                             study['study_id'],
+                                             biospecimen['aliquot_submitter_id'],
+                                             biospecimen['sample_submitter_id'],
+                                             biospecimen['case_submitter_id'],
+                                             biospecimen['aliquot_status'],
+                                             biospecimen['case_status'],
+                                             biospecimen['sample_status'],
+                                             biospecimen['project_name'],
+                                             biospecimen['sample_type'],
+                                             biospecimen['disease_type'],
+                                             biospecimen['primary_site'],
+                                             biospecimen['pool'],
+                                             biospecimen['taxon']],
+                                            null_marker=BQ_PARAMS['NULL_MARKER']))
 
 
 def build_biospec_query(bio_table_id, csa_table_id):
@@ -1068,7 +1001,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
         return row_list
 
-    def create_tsv_row_filter_wrapped_lines(row_list):
+    def create_tsv_row_filter_wrapped_lines(row_list, null_marker="None"):
         # some of the rows are really continuations of long PubMed article lists, not actually new rows--
         # probably due to field size limit in Python? Or just error in UniProt data
         if ';' in row_list[0]:
@@ -1078,12 +1011,15 @@ def build_uniprot_tsv(dest_scratch_fp):
         last_idx = len(row_list) - 1
 
         for i, column in enumerate(row_list):
+            if not column:
+                column = null_marker
+
             delimiter = "\t" if i < last_idx else "\n"
-            print_str += row_list[i] + delimiter
+            print_str += column + delimiter
 
         return print_str
 
-    console_out("creating uniprot tsv... ", end='')
+    console_out("creating uniprot tsv... ")
 
     download_from_bucket(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
 
@@ -1097,7 +1033,7 @@ def build_uniprot_tsv(dest_scratch_fp):
         unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
 
         ref_keys = pop_unwanted(ref_keys, unwanted_indices)
-        header = create_tsv_row_filter_wrapped_lines(ref_keys)
+        header = create_tsv_row_filter_wrapped_lines(ref_keys, null_marker=BQ_PARAMS['NULL_MARKER'])
         dest_tsv_file.write(header)
 
         with open(src_scratch_fp, 'r') as src_tsv_file:
@@ -1105,10 +1041,10 @@ def build_uniprot_tsv(dest_scratch_fp):
 
             for row in csv_reader:
                 row = pop_unwanted(row, unwanted_indices)
-                row_str = create_tsv_row_filter_wrapped_lines(row)
+                row_str = create_tsv_row_filter_wrapped_lines(row, null_marker=BQ_PARAMS['NULL_MARKER'])
                 dest_tsv_file.write(row_str)
 
-    console_out("done!")
+    console_out("\t\t\t- done!")
 
 
 def is_uniprot_accession_id(id_str):
@@ -1174,7 +1110,7 @@ def is_uniprot_accession_id(id_str):
     return True
 
 
-def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, null_marker=""):
+def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
     build_start = time.time()
 
     table_name = get_table_name(table_prefix, table_suffix)
@@ -1185,7 +1121,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, null
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     tsv_name = '{}.tsv'.format(table_name)
-    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker)
+    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
     build_end = time.time() - build_start
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
@@ -1297,6 +1233,7 @@ Biospecimen JSON created. Statistics for total distinct:
 
 def main(args):
     start = time.time()
+    console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
 
     try:
         global API_PARAMS, BQ_PARAMS
@@ -1318,7 +1255,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
-        console_out("\t\t\tdone, created in {0}!", (format_seconds(jsonl_end),))
+        console_out("\t\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
@@ -1346,10 +1283,12 @@ def main(args):
 
             console_out("{0} lines written for {1}", (lines_written, study_submitter_id))
 
-            if lines_written > 0:
-                upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
-                console_out("{0} uploaded to Google Cloud bucket!", (filename,))  # os.remove(quant_tsv_fp)
-                os.remove(quant_tsv_fp)
+            if lines_written == 0:
+                continue
+
+            upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
+            console_out("{0} uploaded to Google Cloud bucket!", (filename,))
+            os.remove(quant_tsv_fp)
 
         tsv_end = time.time() - tsv_start
         console_out("Quant table tsv files created in {0}!\n", (format_seconds(tsv_end),))
@@ -1602,7 +1541,7 @@ def main(args):
         schema_filename = '{}.json'.format(table_id)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         tsv_name = '{}.tsv'.format(table_name)
-        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker='')
+        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Uniprot table built!")
 
     end = time.time() - start
