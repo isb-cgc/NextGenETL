@@ -224,7 +224,7 @@ def add_gene_names_per_study(proteome_study, gene_set):
     results = get_query_results(make_gene_name_set_query(proteome_study))
 
     for row in results:
-        gene_set.add(row['gene'])
+        gene_set.add(row['gene_symbol'])
 
     return gene_set
 
@@ -266,7 +266,7 @@ def make_gene_query(gene_name):
 
 
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
-    gene_name_set = set(gene_name_list)
+    gene_symbol_set = set(gene_name_list)
 
     gene_tsv_exists = os.path.exists(gene_tsv)
 
@@ -287,9 +287,9 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
                     saved_genes.add(row[1])
 
-            gene_name_set = gene_name_set - saved_genes
+            gene_symbol_set = gene_symbol_set - saved_genes
 
-        remaining_genes = len(gene_name_set)
+        remaining_genes = len(gene_symbol_set)
 
         if remaining_genes == 0:
             console_out("{} gene API calls remaining--skipping step.", (remaining_genes,))
@@ -319,20 +319,20 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
         no_spectral_count_set = set()
         empty_spectral_count_set = set()
 
-        for gene_name in gene_name_set:
+        for gene_symbol in gene_symbol_set:
             count += 1
-            json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_name))
+            json_res = get_graphql_api_response(API_PARAMS, make_gene_query(gene_symbol))
             time.sleep(0.1)  # need a delay to avoid making too many api requests and getting 500 server error
 
             gene = json_res['data']['geneSpectralCount'][0]
 
             if not gene:
-                console_out("No geneSpectralCount data found for {0}", (gene_name,))
-                no_spectral_count_set.add(gene_name)
+                console_out("No geneSpectralCount data found for {0}", (gene_symbol,))
+                no_spectral_count_set.add(gene_symbol)
                 continue
             elif not gene['gene_name']:
-                console_out("Empty geneSpectralCount data found for {0}", (gene_name,))
-                empty_spectral_count_set.add(gene_name)
+                console_out("Empty geneSpectralCount data found for {0}", (gene_symbol,))
+                empty_spectral_count_set.add(gene_symbol)
                 continue
             else:
                 if count % 50 == 0:
