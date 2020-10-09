@@ -147,7 +147,10 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
     study_name = study_id_dict['study_name']
     lines_written = 0
 
-    res_json = get_graphql_api_response(API_PARAMS, query=make_quant_data_matrix_query(study_submitter_id, data_type),
+    print(study_id_dict)
+
+    res_json = get_graphql_api_response(API_PARAMS,
+                                        make_quant_data_matrix_query(study_submitter_id, data_type),
                                         fail_on_error=False)
 
     if not res_json or not res_json['data']['quantDataMatrix']:
