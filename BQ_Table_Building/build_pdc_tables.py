@@ -349,16 +349,18 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 if not gene[key] or gene[key] == '':
                     gene[key] = 'None'
 
-            authority = None
-            authority_gene_id = None
+            authority = ""
+            authority_gene_id = ""
 
             split_authority = gene['authority'].split(':')
             if len(split_authority) > 2:
-                has_fatal_error("Authority should only split into two (or less). Value: {}".format(gene['authority']))
+                has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene['authority']))
             if len(split_authority) > 0:
-                authority = split_authority[0]
+                if split_authority[0]:
+                    authority = split_authority[0]
             if len(split_authority) > 1:
-                authority_gene_id = split_authority[1]
+                if split_authority[1]:
+                    authority_gene_id = split_authority[1]
 
             gene_fh.write(create_tsv_row([gene['gene_id'],
                                           gene['gene_name'],
