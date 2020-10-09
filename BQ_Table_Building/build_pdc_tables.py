@@ -175,28 +175,25 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
-
         fh.write(create_tsv_row(['aliquot_run_metadata_id',
                                  'aliquot_submitter_id',
                                  'study_name',
                                  'gene_symbol',
-                                 'protein_abundance_log2ratio'])
-                 )
+                                 'protein_abundance_log2ratio']))
 
         for row in res_json['data']['quantDataMatrix']:
             gene_symbol = row.pop(0)
 
-        for i, protein_abundance_log2ratio in enumerate(row):
-            fh.write(create_tsv_row([aliquot_metadata[i]['aliquot_run_metadata_id'],
-                                     aliquot_metadata[i]['aliquot_submitter_id'],
-                                     aliquot_metadata[i]['study_name'],
-                                     gene_symbol,
-                                     protein_abundance_log2ratio])
-                     )
+            for i, protein_abundance_log2ratio in enumerate(row):
+                fh.write(create_tsv_row([aliquot_metadata[i]['aliquot_run_metadata_id'],
+                                         aliquot_metadata[i]['aliquot_submitter_id'],
+                                         aliquot_metadata[i]['study_name'],
+                                         gene_symbol,
+                                         protein_abundance_log2ratio]))
 
-        lines_written += 1
+            lines_written += 1
 
-    return lines_written
+        return lines_written
 
 
 def get_quant_files():
@@ -1335,6 +1332,7 @@ def main(args):
         else:
             console_out("Excluding \"{}\"  from studies list--data embargoed until {}.", (study.get('study_name'),
                                                                                           study.get('embargo_date')))
+    console_out("")
 
     if 'build_quant_tsvs' in steps:
         tsv_start = time.time()
