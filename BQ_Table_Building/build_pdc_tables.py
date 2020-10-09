@@ -1258,6 +1258,11 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
+    if 'delete_tables' in steps:
+        for table_id in BQ_PARAMS['DELETE_TABLES']:
+            delete_bq_table(table_id)
+            console_out("Deleted table: {}", (table_id,))
+
     if 'build_studies_jsonl' in steps:
         console_out("Building studies table... ")
         jsonl_start = time.time()
