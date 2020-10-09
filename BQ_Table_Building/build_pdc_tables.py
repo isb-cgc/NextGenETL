@@ -154,9 +154,6 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
         print("res_json empty quant -- query: {}".format(make_quant_data_matrix_query(study_submitter_id, data_type)))
         return lines_written
 
-    print(res_json['data']['quantDataMatrix'])
-
-
     aliquot_metadata = list()
 
     id_row = res_json['data']['quantDataMatrix'].pop(0)
@@ -178,27 +175,26 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
-        fh.write("{}\t{}\t{}\t{}\t{}\n".format(
-            'aliquot_run_metadata_id',
-            'aliquot_submitter_id',
-            'study_name',
-            'gene_symbol',
-            'protein_abundance_log2ratio')
-        )
+
+        fh.write(create_tsv_row(['aliquot_run_metadata_id',
+                                 'aliquot_submitter_id',
+                                 'study_name',
+                                 'gene_symbol',
+                                 'protein_abundance_log2ratio'])
+                 )
 
         for row in res_json['data']['quantDataMatrix']:
             gene_symbol = row.pop(0)
 
-            for i, protein_abundance_log2ratio in enumerate(row):
-                fh.write("{}\t{}\t{}\t{}\t{}\n".format(
-                    aliquot_metadata[i]['aliquot_run_metadata_id'],
-                    aliquot_metadata[i]['aliquot_submitter_id'],
-                    aliquot_metadata[i]['study_id'],
-                    gene_symbol,
-                    protein_abundance_log2ratio)
-                )
+        for i, protein_abundance_log2ratio in enumerate(row):
+            fh.write(create_tsv_row([aliquot_metadata[i]['aliquot_run_metadata_id'],
+                                     aliquot_metadata[i]['aliquot_submitter_id'],
+                                     aliquot_metadata[i]['study_name'],
+                                     gene_symbol,
+                                     protein_abundance_log2ratio])
+                     )
 
-                lines_written += 1
+        lines_written += 1
 
     return lines_written
 
