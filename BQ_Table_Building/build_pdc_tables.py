@@ -216,8 +216,8 @@ def get_quant_files():
 
 
 def make_gene_name_set_query(proteome_study):
-    table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], proteome_study, BQ_PARAMS['RELEASE'])
-    table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], proteome_study, BQ_PARAMS['RELEASE'])
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
     return """
         SELECT DISTINCT(gene_symbol)
@@ -1117,16 +1117,26 @@ def is_uniprot_accession_id(id_str):
     return True
 
 
-def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None):
+def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
     build_start = time.time()
 
     table_name = get_table_name(table_prefix, table_suffix)
     table_id = get_table_id(project, dataset, table_name)
-    console_out("Building {0}... ", (table_id,))
-
     schema_filename = '{}.json'.format(table_id)
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
+    if not schema and not metadata and backup_table_suffix:
+        console_out("No schema file found for {}, trying backup ({})", (table_suffix, backup_table_suffix))
+        table_name = get_table_name(table_prefix, backup_table_suffix)
+        table_id = get_table_id(project, dataset, table_name)
+        schema_filename = '{}.json'.format(table_id)
+        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    if not schema:
+        console_out("No schema file found for {}, skipping table.", (backup_table_suffix,))
+        return
+
+    console_out("Building {0}... ", (table_id,))
     tsv_name = '{}.tsv'.format(table_name)
     create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
@@ -1314,19 +1324,21 @@ def main(args):
 
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
 
             if filename not in blob_files:
                 console_out('Skipping quant table build for {}\n\t\t\t- (gs://{}/{}/{} not found).', (
                     study_submitter_id, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename))
             else:
-                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'],
-                                     BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_DATASET'],
+                                     BQ_PARAMS['QUANT_DATA_TABLE'],
+                                     study_name)
 
     if 'update_quant_tables_metadata' in steps:
         for study_id_dict in study_ids_list:
             study_submitter_id = study_id_dict['study_submitter_id']
-            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name)
             bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
             schema_filename = bio_table_id + '.json'
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
