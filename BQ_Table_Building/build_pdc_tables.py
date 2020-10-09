@@ -215,7 +215,7 @@ def make_gene_name_set_query(proteome_study):
     table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
     return """
-        SELECT DISTINCT(gene)
+        SELECT DISTINCT(gene_symbol)
         FROM `{}`
     """.format(table_id)
 
