@@ -1352,8 +1352,7 @@ def main(args):
 
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                              BQ_PARAMS['DEV_META_DATASET'],
-                             BQ_PARAMS['GENE_TABLE'],
-                             null_marker='None')
+                             BQ_PARAMS['GENE_TABLE'])
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
