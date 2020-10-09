@@ -1346,7 +1346,7 @@ def main(args):
             study_name = study_id_dict['study_name']
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
             quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
-            lines_written = build_quant_tsv(study_id_dict, 'protein_abundance_log2ratio', quant_tsv_fp)
+            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
 
             console_out("{0} lines written for {1}", (lines_written, study_submitter_id))
 
