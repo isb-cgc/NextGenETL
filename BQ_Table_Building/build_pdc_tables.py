@@ -165,7 +165,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
         split_el = el.split(':')
 
-        if split_el != 2:
+        if len(split_el) != 2:
             console_out("Quant API returns non-standard aliquot_run_metadata_id entry: {}", (el,))
         else:
             if split_el[0]:
