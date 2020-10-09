@@ -132,7 +132,7 @@ def get_study_ids():
                             get_table_name(BQ_PARAMS['STUDIES_TABLE']))
 
     return """
-    SELECT study_id, study_submitter_id, pdc_study_id, study_name, aliquots_count, cases_count
+    SELECT study_id, study_submitter_id, pdc_study_id, study_name, aliquots_count, cases_count, embargo_date
     FROM  `{}`
     """.format(table_id)
 
@@ -449,7 +449,6 @@ def build_cases_aliquots_jsonl(csa_jsonl_fp):
             cases_aliquots.append(case)
 
         print("Appended data to dict! New size: {}".format(len(cases_aliquots)))
-
 
     write_list_to_jsonl(csa_jsonl_fp, cases_aliquots)
 
@@ -1251,6 +1250,24 @@ def has_quant_table(study_submitter_id):
                      get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id))
 
 
+def is_currently_embargoed(embargo_date):
+    if embargo_date:
+        split_embargo_date = embargo_date.split('-')
+        current_date = time.strftime("%Y-%m-%d", time.localtime())
+        split_current_date = current_date.split('-')
+
+        if split_embargo_date[0] > split_current_date[0]:  # year YYYY
+            return True
+        elif split_embargo_date[0] == split_current_date[0]:
+            if split_embargo_date[1] > split_current_date[1]:  # month MM
+                return True
+            elif split_embargo_date[1] == split_current_date[1]:
+                if split_embargo_date[2] >= split_current_date[2]:  # day DD
+                    return True
+
+    return False
+
+
 def print_nested_biospecimen_statistics(counts):
     print_str = """
 Biospecimen JSON created. Statistics for total distinct:
@@ -1277,7 +1294,7 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     if 'build_studies_jsonl' in steps:
-        console_out("Building studies table... ", end='')
+        console_out("Building studies table... ")
         jsonl_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
@@ -1290,7 +1307,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
-        console_out("done, created in {0}!", (format_seconds(jsonl_end),))
+        console_out("\t\t\tdone, created in {0}!", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
@@ -1299,7 +1316,11 @@ def main(args):
     study_ids = get_query_results(get_study_ids())
 
     for study in study_ids:
-        study_ids_list.append(dict(study.items()))
+        if not is_currently_embargoed(study.get('embargo_date')):
+            study_ids_list.append(dict(study.items()))
+        else:
+            console_out("Study \"{}\" embargoed until {}, excluding from studies list.", (study.get('study_name'),
+                                                                                          study.get('embargo_date')))
 
     if 'build_quant_tsvs' in steps:
         tsv_start = time.time()
@@ -1470,7 +1491,6 @@ def main(args):
             LEFT JOIN `{2}` g
               ON g.gene_name = q.gene
         """.format(csa_table_id, quant_table_id, gene_table_id)
-
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
