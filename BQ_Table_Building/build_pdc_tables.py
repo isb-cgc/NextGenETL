@@ -150,10 +150,12 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
                                         make_quant_data_matrix_query(study_submitter_id, data_type),
                                         fail_on_error=False)
 
-    print(res_json)
-
     if not res_json or not res_json['data']['quantDataMatrix']:
+        print("res_json empty quant -- query: {}".format(make_quant_data_matrix_query(study_submitter_id, data_type)))
         return lines_written
+
+    print(res_json['data']['quantDataMatrix'])
+
 
     aliquot_metadata = list()
 
