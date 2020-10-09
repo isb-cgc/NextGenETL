@@ -243,7 +243,7 @@ def build_proteome_gene_name_list():
     for proteome_study in proteome_studies:
         console_out("Add gene names from {0}... ", (proteome_study,))
         add_gene_names_per_study(proteome_study, gene_name_set)
-        console_out("\t\t\t- new set size: {0}", (len(gene_name_set),))
+        console_out("\t\t- new set size: {0}", (len(gene_name_set),))
 
     gene_name_list = list(gene_name_set)
     gene_name_list.sort()
@@ -1051,7 +1051,7 @@ def build_uniprot_tsv(dest_scratch_fp):
                 row_str = create_tsv_row_filter_wrapped_lines(row, null_marker=BQ_PARAMS['NULL_MARKER'])
                 dest_tsv_file.write(row_str)
 
-    console_out("\t\t\t- done!")
+    console_out("\t\t- done!")
 
 
 def is_uniprot_accession_id(id_str):
@@ -1272,7 +1272,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, studies_fp)
 
         jsonl_end = time.time() - jsonl_start
-        console_out("\t\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
+        console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
@@ -1292,9 +1292,7 @@ def main(args):
     console_out("Studies with currently embargoed data (excluded by script):")
 
     for excluded_tuple in excluded_studies:
-        console_out("\t\t\t- {} (embargo expires {})", excluded_tuple)
-
-    console_out("")
+        console_out("\t\t- {} (embargo expires {})", excluded_tuple)
 
     if 'build_quant_tsvs' in steps:
         tsv_start = time.time()
@@ -1306,7 +1304,7 @@ def main(args):
             quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
 
-            console_out("{0} lines written for {1}", (lines_written, study_submitter_id))
+            console_out("\n{0} lines written for {1}", (lines_written, study_submitter_id))
 
             if lines_written == 0:
                 continue
@@ -1323,11 +1321,12 @@ def main(args):
         blob_files = get_quant_files()
 
         for study_id_dict in study_ids_list:
+            study_name = study_id_dict['study_name']
             study_submitter_id = study_id_dict['study_submitter_id']
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
 
             if filename not in blob_files:
-                console_out('Skipping quant table build for {}\n\t\t\t- (gs://{}/{}/{} not found).', (
+                console_out('Skipping quant table build for {}\n\t\t- (gs://{}/{}/{} not found).', (
                     study_submitter_id, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename))
             else:
                 build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
