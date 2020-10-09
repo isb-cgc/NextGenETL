@@ -1267,6 +1267,20 @@ def is_currently_embargoed(embargo_date):
 
     return False
 
+    """
+    # Desired output (assuming current date is 2020-10-08...)
+    assert is_currently_embargoed("") is False
+    assert is_currently_embargoed(None) is False
+    assert is_currently_embargoed("2019-01-02") is False
+    assert is_currently_embargoed("2019-12-31") is False
+    assert is_currently_embargoed("2020-09-30") is False
+    assert is_currently_embargoed("2020-10-07") is False
+    assert is_currently_embargoed("2020-10-08") is True
+    assert is_currently_embargoed("2020-10-09") is True
+    assert is_currently_embargoed("2021-01-01") is True
+    assert is_currently_embargoed("2021-12-31") is True
+    """
+
 
 def print_nested_biospecimen_statistics(counts):
     print_str = """
@@ -1319,7 +1333,7 @@ def main(args):
         if not is_currently_embargoed(study.get('embargo_date')):
             study_ids_list.append(dict(study.items()))
         else:
-            console_out("Study \"{}\" embargoed until {}, excluding from studies list.", (study.get('study_name'),
+            console_out("Excluding \"{}\"  from studies list--data embargoed until {}.", (study.get('study_name'),
                                                                                           study.get('embargo_date')))
 
     if 'build_quant_tsvs' in steps:
