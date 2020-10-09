@@ -160,17 +160,22 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
     # process first row, which gives us the aliquot ids and idx positions
     for el in id_row:
-        split_el = el.split(':')
-        aliquot_run_metadata_id = split_el[0]
-        aliquot_submitter_id = split_el[1]
+        aliquot_run_metadata_id = ""
+        aliquot_submitter_id = ""
 
-        aliquot_metadata.append(
-            {
-                "study_name": study_name,
-                "aliquot_run_metadata_id": aliquot_run_metadata_id,
-                "aliquot_submitter_id": aliquot_submitter_id
-            }
-        )
+        split_el = el.split(':')
+
+        if split_el != 2:
+            console_out("Quant API returns non-standard aliquot_run_metadata_id entry: {}", (el,))
+        else:
+            if split_el[0]:
+                aliquot_run_metadata_id = split_el[0]
+            if split_el[1]:
+                aliquot_submitter_id = split_el[1]
+
+        aliquot_metadata.append({
+            "aliquot_run_metadata_id": aliquot_run_metadata_id,
+            "aliquot_submitter_id": aliquot_submitter_id})
 
     # iterate over each gene row and add to the correct aliquot_run obj
     with open(tsv_fp, 'w') as fh:
@@ -184,12 +189,12 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
         for row in res_json['data']['quantDataMatrix']:
             gene_symbol = row.pop(0)
 
-            for i, protein_abundance_log2ratio in enumerate(row):
+            for i, log2_ratio in enumerate(row):
                 fh.write(create_tsv_row([aliquot_metadata[i]['aliquot_run_metadata_id'],
                                          aliquot_metadata[i]['aliquot_submitter_id'],
-                                         aliquot_metadata[i]['study_name'],
+                                         study_name,
                                          gene_symbol,
-                                         protein_abundance_log2ratio],
+                                         log2_ratio],
                                         null_marker=BQ_PARAMS['NULL_MARKER']))
 
             lines_written += 1
@@ -1263,12 +1268,20 @@ def main(args):
     study_ids_list = list()
     study_ids = get_query_results(get_study_ids())
 
+    excluded_studies = []
+
     for study in study_ids:
         if not is_currently_embargoed(study.get('embargo_date')):
             study_ids_list.append(dict(study.items()))
         else:
-            console_out("Excluding \"{}\"  from studies list--data embargoed until {}.", (study.get('study_name'),
-                                                                                          study.get('embargo_date')))
+            excluded_tuple = (study.get('study_name'), study.get('embargo_date'))
+            excluded_studies.append(excluded_tuple)
+
+    console_out("Studies with currently embargoed data (excluded by script):")
+
+    for excluded_tuple in excluded_studies:
+        console_out("\t\t\t- {} (embargo expires {})", excluded_tuple)
+
     console_out("")
 
     if 'build_quant_tsvs' in steps:
