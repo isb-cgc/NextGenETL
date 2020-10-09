@@ -1302,7 +1302,7 @@ def main(args):
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id) + '.tsv'
 
             if filename not in blob_files:
-                console_out('skipping quant table build for {} (gs://{}/{}/{} not found).', (
+                console_out('Skipping quant table build for {}\n\t\t\t- (gs://{}/{}/{} not found).', (
                     study_submitter_id, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename))
             else:
                 build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'],
@@ -1317,9 +1317,9 @@ def main(args):
             schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
             if not table_metadata:
-                console_out("No schema for {}, skipping", (study_submitter_id,))
+                console_out("No schema for {}, skipping.", (study_submitter_id,))
             else:
-                console_out("Updating table metadata for {}", (study_submitter_id,))
+                console_out("Updating table metadata for {}.", (study_submitter_id,))
                 update_table_metadata(bio_table_id, table_metadata)
 
     if 'build_gene_tsv' in steps:
