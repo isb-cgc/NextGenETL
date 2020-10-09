@@ -1341,6 +1341,7 @@ def main(args):
 
     if 'update_quant_tables_metadata' in steps:
         for study_id_dict in study_ids_list:
+            study_name = study_id_dict['study_name']
             study_submitter_id = study_id_dict['study_submitter_id']
             bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name)
             bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
