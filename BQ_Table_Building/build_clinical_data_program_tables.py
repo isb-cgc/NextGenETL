@@ -416,6 +416,8 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     """
     merged_column_orders = dict()
 
+    print(column_orders)
+
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
         table_id_key = get_field_group_id_key(API_PARAMS, table, is_webapp)
@@ -506,8 +508,6 @@ def create_schema_lists(schema, record_counts, merged_orders):
         schema_field_lists_dict[table] = list()
 
         # sort merged table columns by index
-
-        print(sorted(merged_orders[table].items(), key=lambda i: i[1]))
 
         for column in [col for col, idx in sorted(merged_orders[table].items(), key=lambda i: i[1])]:
             if column not in schema:
