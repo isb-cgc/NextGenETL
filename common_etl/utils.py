@@ -710,7 +710,7 @@ def get_dir_files(bq_params):
     :param bq_params: bq param object from yaml config
     :return: list of filenames
     """
-    fp = get_schema_metadata_fp(bq_params, bq_params['TABLE_METADATA_DIR'], '')
+    fp = get_schema_metadata_fp(bq_params, bq_params['TABLE_METADATA_DIR'], 'r26')
 
     print([f for f in os.listdir(fp)])
 

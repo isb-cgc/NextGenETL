@@ -831,7 +831,7 @@ def update_table_metadata():
     (labels, description, friendly name)
     """
 
-    metadata_files = get_dir_files(BQ_PARAMS)
+    # metadata_files = get_dir_files(BQ_PARAMS)
 
     for json_file in get_dir_files(BQ_PARAMS):
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
@@ -842,8 +842,6 @@ def update_table_metadata():
             continue
 
         metadata_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['TABLE_METADATA_DIR'], json_file)
-
-        print(metadata_fp)
 
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
