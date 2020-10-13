@@ -741,7 +741,11 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
             # count child records
             if field_grp in flat_case:
                 for record in flat_case[field_grp]:
-                    parent_id = record[parent_id_key]
+                    if parent_id_key in record:
+                        parent_id = record[parent_id_key]
+                    else:
+                        parent_id = parent_record[parent_id_key]
+
                     record_count_dict[field_grp][parent_id] += 1
         else:
             print("parent_fg not found in flat case")
