@@ -79,7 +79,6 @@ def build_column_order_dict():
 
             # assign index to field, then increment
             column_orders[field_key] = idx
-            print("column_orders[{}] = {}".format(field_key, idx))
             idx += 1 if field_name != field_grp_id_name else id_index_gap
 
     # is this still necessary? experiment
