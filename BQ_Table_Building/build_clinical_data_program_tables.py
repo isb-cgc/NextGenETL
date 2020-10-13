@@ -716,6 +716,9 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
     # initialize dict with field groups that can't be flattened
     # record_count_dict = {field_grp: 0 for field_grp in record_counts if
     # record_counts[field_grp] > 1}
+
+    print("flat case: {}".format(flat_case))
+
     record_count_dict = get_max_record_counts(record_counts)
 
     for field_grp, parent_ids in record_count_dict.copy().items():
@@ -735,7 +738,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         # count child records
         if field_grp in flat_case:
             for record in flat_case[field_grp]:
-                print(record)
+                # print(record)
                 parent_id = record[parent_id_key]
                 parent_ids[parent_id] += 1
 
@@ -956,10 +959,7 @@ def output_report(start, steps):
     :param steps: set of steps to be performed (configured in YAML)
     """
     seconds = time.time() - start
-    minutes = math.floor(seconds / 60)
-    seconds -= minutes * 60
-
-    console_out("Script executed in {0} min, {1:.0f} sec\n", (minutes, seconds))
+    console_out("Script executed in {0}\n", format_seconds(seconds))
 
     console_out("Steps completed: ")
 
@@ -1073,7 +1073,7 @@ def main(args):
                 create_tables(program, cases, schema)
 
             prog_end = time.time() - prog_start
-            console_out("{0} processed in {1:0.0f}s!\n", (program, prog_end))
+            console_out("{0} processed in {1}!\n", (program, format_seconds(prog_end)))
 
     if 'update_table_metadata' in steps:
         update_metadata()
