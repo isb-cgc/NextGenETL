@@ -722,11 +722,9 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         tables = get_one_to_many_tables(API_PARAMS, record_counts)
         parent_field_grp = get_parent_fg(tables, field_grp)
 
-        field_grp_id_name = get_fg_id_name(API_PARAMS, parent_field_grp,
-                                           is_webapp)
+        field_grp_id_name = get_fg_id_name(API_PARAMS, parent_field_grp, is_webapp)
 
-        parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp,
-                                    parent_field_grp)
+        parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp, parent_field_grp)
 
         # initialize record counts for parent id
         if parent_field_grp in flat_case:
@@ -737,6 +735,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         # count child records
         if field_grp in flat_case:
             for record in flat_case[field_grp]:
+                print(record)
                 parent_id = record[parent_id_key]
                 parent_ids[parent_id] += 1
 
@@ -747,8 +746,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         count_name = get_bq_name(API_PARAMS, 'count', field_grp)
 
         for parent_id, count in parent_ids.items():
-            p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id,
-                                       is_webapp)
+            p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id, is_webapp)
 
             flat_case[parent_field_grp][p_key_idx][count_name] = count
 
