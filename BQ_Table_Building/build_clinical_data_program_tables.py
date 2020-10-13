@@ -1127,6 +1127,8 @@ def main(args):
                 if len(split_fg) == 3:
                     depth_two_fgs.append(amended_fg)
 
+        print("depth_one: {}\ndepth_two: {}".format(depth_one_fgs, depth_two_fgs))
+
         for fg in depth_two_fgs:
             all_program_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=False)
             all_res = get_query_results(all_program_query)
