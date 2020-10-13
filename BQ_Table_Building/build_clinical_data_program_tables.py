@@ -68,6 +68,7 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
     child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
     parent_fg = '.'.join(split_fg[:-1])
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
+    working_table_id = get_working_table_id(BQ_PARAMS)
 
     projects_with_fg_query = """
         WITH projects_with_fg 
@@ -78,13 +79,15 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
                 FROM `{1}`
                 CROSS JOIN UNNEST({3}) AS {3}
                 CROSS JOIN UNNEST({2}))
+
         SELECT DISTINCT(proj_name) 
         FROM (
           SELECT proj_name                
           FROM projects_with_fg 
           GROUP BY proj_name, case_id
-          {4})
-    """.format(child_fg_id, get_working_table_id(BQ_PARAMS), child_fg, parent_fg, having_clause)
+          {4}
+          )
+    """.format(child_fg_id, working_table_id, child_fg, parent_fg, having_clause)
 
     return projects_with_fg_query
 
