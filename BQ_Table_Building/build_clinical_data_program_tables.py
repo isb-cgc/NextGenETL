@@ -1130,10 +1130,11 @@ def main(args):
             all_res = get_query_results(all_program_query)
 
             for row in all_res:
+                program = row[0]
+
                 if program not in program_fgs:
                     program_fgs[program] = {'fgs': list(), 'one_many': list()}
 
-                program = row[0]
                 program_fgs[program]['fgs'].append(fg)
 
             nested_programs_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=True)
@@ -1148,10 +1149,10 @@ def main(args):
             all_res = get_query_results(all_program_query)
 
             for row in all_res:
+                program = row[0]
                 if program not in program_fgs:
                     program_fgs[program] = {'fgs': list(), 'one_many': list()}
 
-                program = row[0]
                 program_fgs[program]['fgs'].append(fg)
 
             nested_programs_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=True)
