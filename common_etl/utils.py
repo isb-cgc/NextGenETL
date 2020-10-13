@@ -844,11 +844,12 @@ def get_cases_by_program_2(bq_params, program):
     cases = []
 
     query = """
-        SELECT * 
-        FROM `{}` 
-        CROSS JOIN UNNEST(project) AS project
-        WHERE project.project_id LIKE '{}%'
-    """.format(get_working_table_id(bq_params), program)
+        SELECT *
+        FROM `{0}` as c
+        INNER JOIN `{1}` as b
+        ON c.case_id = b.case_gdc_id
+    """.format(get_working_table_id(bq_params),
+               get_biospecimen_table_id(bq_params, program))
 
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())

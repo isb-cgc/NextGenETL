@@ -1080,7 +1080,7 @@ def main(args):
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
     # programs = get_program_list(BQ_PARAMS)
-    programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
+    programs = ['GENIE', 'HCMI', 'NCICCR']
     programs = sorted(programs)
 
     if 'get_field_groups_per_program' in steps:
@@ -1124,10 +1124,11 @@ def main(args):
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
+            cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
+
             cases = get_cases_by_program(BQ_PARAMS, program)
 
-            cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
-            continue
+            exit()
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
