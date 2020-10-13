@@ -1486,15 +1486,6 @@ def get_sorted_fg_depths(record_counts, reverse=False):
     return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
 
 
-def get_max_record_counts(fg_max_counts):
-    """Get a dictionary of field groups and their max record counts.
-
-    :param fg_max_counts: max record count for field group
-    :return: dict of record counts
-    """
-    return {fg: dict() for fg in fg_max_counts if fg_max_counts[fg] > 1}
-
-
 #       MISC UTILITIES
 
 

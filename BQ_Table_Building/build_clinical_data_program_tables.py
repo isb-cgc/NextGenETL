@@ -714,11 +714,9 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
     # initialize dict with field groups that can't be flattened
-    record_count_dict = {field_grp: 0 for field_grp in record_counts if record_counts[field_grp] > 1}
+    record_count_dict = {field_grp: dict() for field_grp in record_counts if record_counts[field_grp] > 1}
 
-    # record_count_dict = get_max_record_counts(record_counts)
-
-    print(record_count_dict)
+    print(record_counts)
 
     for field_grp, parent_ids in record_count_dict.copy().items():
         tables = get_one_to_many_tables(API_PARAMS, record_counts)
