@@ -435,11 +435,13 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
     :return: str representing table key
     """
     if field_group not in api_params['FIELD_CONFIG']:
+        console_out("field group not in API_PARAMS['FIELD_CONFIG']")
         return None
     if 'id_key' not in api_params['FIELD_CONFIG'][field_group]:
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = api_params['FIELD_CONFIG'][field_group]['id_key']
+    print(": {}".format(fg_id_name))
     fg_id_key = get_field_key(field_group, fg_id_name)
 
     if is_webapp:
