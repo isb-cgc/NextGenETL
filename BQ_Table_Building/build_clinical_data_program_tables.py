@@ -1127,7 +1127,7 @@ def main(args):
             cases = get_cases_by_program(BQ_PARAMS, program)
 
             cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
-            exit()
+            continue()
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
