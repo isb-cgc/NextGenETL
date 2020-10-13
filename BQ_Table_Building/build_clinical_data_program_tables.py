@@ -1036,7 +1036,7 @@ def main(args):
 
     # programs = get_program_list(BQ_PARAMS)
     # programs = ['BEATAML1.0']
-    programs = ['VAREPOP']
+    programs = ['OHSU', 'TARGET', 'WCDT', 'CPTAC']
 
     for program in programs:
         prog_start = time.time()
