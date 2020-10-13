@@ -896,14 +896,11 @@ def copy_tables_into_public_project():
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-    files = get_metadata_files()
-
-    for json_file in files:
-        src_table_id, curr_table_id, vers_table_id = convert_json_to_table_id(BQ_PARAMS,
-                                                                              json_file)
+    for metadata_file in get_metadata_files():
+        src_table_id, curr_table_id, vers_table_id = convert_json_to_table_id(BQ_PARAMS, metadata_file)
 
         if not exists_bq_table(src_table_id):
-            console_out('No table found for file (skipping): {0}', (json_file,))
+            console_out('No table found for file (skipping): {0}', (metadata_file,))
             continue
 
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
@@ -1039,8 +1036,8 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    # programs = get_program_list(BQ_PARAMS)
-    programs = ['BEATAML1.0']
+    programs = get_program_list(BQ_PARAMS)
+    # programs = ['BEATAML1.0']
 
     for program in programs:
         prog_start = time.time()
