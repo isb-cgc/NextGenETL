@@ -711,6 +711,9 @@ def get_dir_files(bq_params):
     :return: list of filenames
     """
     fp = get_schema_metadata_fp(bq_params, bq_params['TABLE_METADATA_DIR'], '')
+
+    print([f for f in os.listdir(fp)])
+
     return [f for f in os.listdir(fp) if os.path.isfile(os.path.join(fp, f))]
 
 

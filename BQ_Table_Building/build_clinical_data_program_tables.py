@@ -832,7 +832,6 @@ def update_table_metadata():
     """
 
     metadata_files = get_dir_files(BQ_PARAMS)
-    print(metadata_files)
 
     for json_file in get_dir_files(BQ_PARAMS):
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
