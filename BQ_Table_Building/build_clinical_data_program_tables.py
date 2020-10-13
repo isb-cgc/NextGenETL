@@ -995,29 +995,36 @@ def create_tables(program, cases, schema, is_webapp=False):
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
+    print("1")
 
     # add the parent id to field group dicts that will create separate tables
     column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
+    print("2")
 
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
     if is_webapp:
         modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
+    print("3")
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
+    print("4")
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
+    print("5")
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
         schemas = create_app_schema_lists(schema, record_counts, merged_orders)
+        print("6")
     else:
         schemas = create_schema_lists(schema, record_counts, merged_orders)
+        print("7")
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
-
+    print('8')
 
 def main(args):
     """Script execution function.
@@ -1053,6 +1060,7 @@ def main(args):
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
             cases = get_cases_by_program(BQ_PARAMS, program)
+            print("get cases for program")
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
