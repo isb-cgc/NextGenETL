@@ -849,17 +849,29 @@ def get_schema_metadata_fp(repo_dir, filename):
     return get_filepath(dir_path, filename)
 
 
+def make_and_check_metadata_table_id(json_file):
+    table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
+    table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+    if not exists_bq_table(table_id):
+        console_out('\t\t- skipping -- no table found for file: {0}', (json_file,))
+        return None
+    else:
+        console_out('\t\t- updating {0}', (json_file,))
+        return table_id
+
+
 def update_metadata():
     """
     Use .json file in the BQEcosystem repo to update a bq table's metadata
     (labels, description, friendly name)
     """
-    for json_file in get_metadata_files():
-        table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
-        table_id = get_working_table_id(BQ_PARAMS, table_name)
+    console_out("Updating metadata!")
 
-        if not exists_bq_table(table_id):
-            console_out('No table found for file (skipping): {0}', (json_file,))
+    for json_file in get_metadata_files():
+        table_id = make_and_check_metadata_table_id(json_file)
+
+        if not table_id:
             continue
 
         metadata_dir = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
@@ -875,7 +887,7 @@ def update_clin_schema():
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
     """
-
+    console_out("Updating schemas (field descriptions!")
     fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(BQ_PARAMS))
     field_desc_fp = get_schema_metadata_fp(BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
 
@@ -883,8 +895,10 @@ def update_clin_schema():
         descriptions = json.load(field_output)
 
     for json_file in get_metadata_files():
-        table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
-        table_id = get_working_table_id(BQ_PARAMS, table_name)
+        table_id = make_and_check_metadata_table_id(json_file)
+
+        if not table_id:
+            continue
 
         update_schema(table_id, descriptions)
 
