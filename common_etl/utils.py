@@ -804,6 +804,9 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     for schema_field in bq_table.schema:
         schema_list.append(schema_field.to_api_repr())
 
+    print(schema_list)
+    exit()
+
     schema = dict()
 
     parse_bq_schema_obj(api_params=api_params,
@@ -913,7 +916,8 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
         field_key = get_field_key(fg, schema_field['name'])
 
         # if has 'fields', then the current obj contains nested objs
-        if 'fields' in schema_field:
+        if schema_field['type'] == 'RECORD':
+        # if 'fields' in schema_field:
             # if nested, recurse down to the next level
             parse_bq_schema_obj(api_params,
                                 schema,

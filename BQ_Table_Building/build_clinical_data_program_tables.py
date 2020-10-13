@@ -997,29 +997,25 @@ def create_tables(program, cases, is_webapp=False):
     # removes the excluded fields/field groups
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
-        column_orders = add_ref_columns(columns, record_counts, webapp_schema, program,
-                                        is_webapp)
+        column_orders = add_ref_columns(columns, record_counts, webapp_schema, program, is_webapp)
 
         modify_fields_for_app(API_PARAMS, webapp_schema, column_orders, columns)
 
         # reassign merged_column_orders to column_orders
-        merged_orders = merge_column_orders(webapp_schema, columns, record_counts,
-                                            column_orders, is_webapp)
+        merged_orders = merge_column_orders(webapp_schema, columns, record_counts, column_orders, is_webapp)
 
     else:
         column_orders = add_ref_columns(columns, record_counts, schema, program)
 
         # reassign merged_column_orders to column_orders
-        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders,
-                                            is_webapp)
+        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
-        webapp_schemas = create_app_schema_lists(webapp_schema, record_counts,
-                                                 merged_orders)
+        webapp_schemas = create_app_schema_lists(webapp_schema, record_counts, merged_orders)
         create_and_load_tables(program, cases, webapp_schemas, record_counts, is_webapp)
 
     else:
@@ -1037,10 +1033,10 @@ def main(args):
 
     try:
         global API_PARAMS, BQ_PARAMS
-
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
+
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
@@ -1051,7 +1047,7 @@ def main(args):
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...\n", (program,))
 
-        if 'create_biospecimen_stub_tables' in steps:
+        if 'create_biospecimen_stub_tables' in steps:  # FOR WEBAPP TABLES
             console_out("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
@@ -1065,7 +1061,7 @@ def main(args):
             # rename so that '1.0' doesn't break bq table name
             program = program.replace('.', '_')
 
-            if 'create_webapp_tables' in steps:
+            if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 webapp_cases = copy.deepcopy(cases)
                 create_tables(program, webapp_cases, is_webapp=True)
 
