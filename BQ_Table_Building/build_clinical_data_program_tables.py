@@ -827,18 +827,15 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         if os.path.exists(jsonl_fp):
             os.remove(jsonl_fp)
 
-    for case in cases:
+    for case, i in enumerate(cases):
         flat_case = flatten_case(case, is_webapp)
-        print("1")
 
         # remove excluded field groups
         for fg in flat_case.copy():
             if fg not in record_counts:
                 flat_case.pop(fg)
-        print("2")
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
-        print("3")
 
         for bq_table in flat_case:
             if bq_table not in record_tables:
@@ -848,7 +845,8 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
-            print("4")
+
+        print("processed case {} of {}, case_id: {}".format(i, len(cases), flat_case['cases']['case_id']))
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
@@ -861,9 +859,8 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-
+        print("5")
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
-    print("5")
 
 
 def get_metadata_files():
