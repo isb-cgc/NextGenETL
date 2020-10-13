@@ -496,8 +496,7 @@ def create_app_schema_lists(schema, record_counts, merged_orders):
         schema_field_lists[table] = list()
 
         if table not in merged_orders:
-            has_fatal_error("record counts and merged orders disagree on program's "
-                            "table architecture")
+            has_fatal_error("record counts and merged orders disagree on program's table architecture")
 
         for field in merged_orders[table]:
             schema_field_lists[table].append(schema[field])
@@ -846,10 +845,13 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
-        print("processed case {} of {}, case_id: {}".format(i, len(cases), flat_case['cases'][0]['case_gdc_id']))
+        if i % 100 == 0:
+            print("wrote case {} of {} to jsonl".format(i, len(cases)))
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
+
+        print("Upload {} to bucket".format(jsonl_name))
 
         upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
 
@@ -859,7 +861,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-        print("5")
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
 
@@ -1079,7 +1080,8 @@ def main(args):
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
     # programs = get_program_list(BQ_PARAMS)
-    programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
+    # programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
+    programs = ['GENIE']
 
     if 'get_field_groups_per_program' in steps:
         field_groups = API_PARAMS['FG_CONFIG']['order']

@@ -783,16 +783,20 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
 
     schema_list = []
 
+    print("1")
+
     for schema_field in bq_table.schema:
         schema_list.append(schema_field.to_api_repr())
 
     schema = dict()
+    print("2")
 
     parse_bq_schema_obj(api_params=api_params,
                         schema=schema,
                         fg=get_base_fg(api_params),
                         schema_list=schema_list,
                         is_webapp=is_webapp)
+    print("3")
 
     return schema
 
