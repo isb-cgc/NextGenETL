@@ -867,11 +867,10 @@ def update_metadata():
 
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
-
             update_table_metadata(table_id, metadata)
 
 
-def update_schema():
+def update_clin_schema():
     """
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
@@ -1081,7 +1080,7 @@ def main(args):
         update_metadata()
 
     if 'update_schema' in steps:
-        update_schema()
+        update_clin_schema()
 
     if 'cleanup_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
