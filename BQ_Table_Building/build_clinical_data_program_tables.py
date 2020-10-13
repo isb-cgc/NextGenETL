@@ -1147,6 +1147,9 @@ def main(args):
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
 
+        print(program_fgs)
+        exit()
+
         for fg in depth_one_fgs:
             all_program_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=False)
             all_res = get_query_results(all_program_query)
