@@ -666,7 +666,12 @@ def get_filepath(dir_path, filename=None):
     :param filename: name of the file
     :return: full path to file
     """
-    return '/'.join([os.path.expanduser('~'), dir_path, filename])
+    join_list = [os.path.expanduser('~'), dir_path]
+
+    if filename:
+        join_list.append(filename)
+
+    return '/'.join(join_list)
 
 
 def get_scratch_fp(bq_params, filename):
