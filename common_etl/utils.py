@@ -440,7 +440,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
         split_fg.insert(0, api_params['FG_CONFIG']['base_fg'])
 
     if field_group not in api_params['FIELD_CONFIG']:
-        console_out("field group not in API_PARAMS['FIELD_CONFIG']")
+        console_out("field group {} not in API_PARAMS['FIELD_CONFIG']".format(field_group))
         return None
     if 'id_key' not in api_params['FIELD_CONFIG'][field_group]:
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
