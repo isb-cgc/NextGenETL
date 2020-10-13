@@ -739,8 +739,6 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
                         parent_id = parent_record[parent_id_key]
 
                     record_count_dict[field_grp][parent_id] += 1
-        else:
-            console_out("parent_fg not found in flat case")
 
     # insert record count into flattened dict entries
     for field_grp, parent_ids in record_count_dict.items():
@@ -1017,7 +1015,6 @@ def create_tables(program, cases, schema, is_webapp=False):
         schemas = create_app_schema_lists(schema, record_counts, merged_orders)
     else:
         schemas = create_schema_lists(schema, record_counts, merged_orders)
-    console_out(" - Created schemas.")
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
 
@@ -1039,8 +1036,8 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    programs = get_program_list(BQ_PARAMS)
-    # programs = ['BEATAML1.0']
+    # programs = get_program_list(BQ_PARAMS)
+    programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
 
     for program in programs:
         prog_start = time.time()
