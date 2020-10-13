@@ -1111,7 +1111,7 @@ def main(args):
 
         # todo
 
-    for program in programs:
+    for program in programs.sort():
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...", (program,))
 
