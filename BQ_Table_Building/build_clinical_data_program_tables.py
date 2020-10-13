@@ -825,13 +825,26 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
 
+def get_metadata_files(bq_params):
+    """Get all the file names in a directory as a list of as strings.
+
+    :param bq_params: bq param object from yaml config
+    :return: list of filenames
+    """
+    rel_path = '/'.join([bq_params['BQ_REPO'], bq_params['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
+    metadata_fp = get_filepath(rel_path)
+
+    return [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
+
+
 def update_table_metadata():
     """
     Use .json file in the BQEcosystem repo to update a bq table's metadata
     (labels, description, friendly name)
     """
 
-    # metadata_files = get_dir_files(BQ_PARAMS)
+    metadata_files = get_metadata_files(BQ_PARAMS)
+    print(metadata_files)
 
     for json_file in get_dir_files(BQ_PARAMS):
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)

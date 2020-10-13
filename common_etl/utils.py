@@ -659,7 +659,7 @@ def build_jsonl_name(api_params, bq_params, program, table, is_webapp=False):
     return file_name + '.jsonl'
 
 
-def get_filepath(dir_path, filename):
+def get_filepath(dir_path, filename=None):
     """Get file path for location on VM.
 
     :param dir_path: directory portion of the filepath (starting at user home dir)
