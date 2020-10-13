@@ -1119,7 +1119,7 @@ def main(args):
 
         for fg in field_groups:
             split_fg = fg.split('.')
-            if len(split_fg) == 1 or len(split_fg) == 2:
+            if len(split_fg) == 2 or len(split_fg) == 3:
                 amended_fg = '.'.join(split_fg[1:])
                 if len(split_fg) == 2:
                     depth_one_fgs.append(amended_fg)
