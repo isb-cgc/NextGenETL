@@ -73,10 +73,10 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
     projects_with_fg_query = """
         WITH projects_with_fg 
             AS (
-                SELECT  case_id, 
+                SELECT  c.case_id, 
                         {0},
                         SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}`
+                FROM `{1}` AS c
                 CROSS JOIN UNNEST({3}) AS {3}
                 CROSS JOIN UNNEST({2}))
 
@@ -104,10 +104,10 @@ def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
     projects_with_fg_query = """
         WITH projects_with_fg 
             AS (
-                SELECT  case_id, 
+                SELECT  c.case_id, 
                         {0},
                         SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}`
+                FROM `{1}` AS c
                 CROSS JOIN UNNEST({2}))
         SELECT DISTINCT(proj_name) 
         FROM (
