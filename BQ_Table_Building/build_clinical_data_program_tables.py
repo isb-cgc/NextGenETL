@@ -94,6 +94,8 @@ def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
         print("error")
 
     fg_id = get_field_group_id_key(API_PARAMS, fg)
+    fg_id = fg_id.split('.')[1:]
+
     print("fg: {}, fg_id: {}".format(fg, fg_id))
 
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
