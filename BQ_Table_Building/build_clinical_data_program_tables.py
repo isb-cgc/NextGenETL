@@ -255,7 +255,7 @@ def generate_id_schema_entry(column, parent_table, program):
         "type": 'STRING',
         "description": ("Reference to ancestor {}, located in {}."
                         .format(bq_col_name, source_table)),
-        "mode": 'REQUIRED'
+        "mode": 'NULLABLE'
     }
 
 
@@ -293,8 +293,7 @@ def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
     parent_field_grp = get_field_group(field_grp)
 
     # add reference id field to schema
-    schema[field_grp_id_key] = generate_id_schema_entry(field_grp_id_key,
-                                                        parent_field_grp, program)
+    schema[field_grp_id_key] = generate_id_schema_entry(field_grp_id_key, parent_field_grp, program)
     columns[field_grp].add(field_grp_id_key)
     column_order[field_grp][field_grp_id_key] = field_grp_id_idx
 
@@ -656,9 +655,6 @@ def flatten_case(case, is_webapp):
                     if base_id_name in fg_entry:
                         flat_case[fg_key][j].pop(base_id_name)
 
-    print(case)
-    print(flat_case)
-
     return flat_case
 
 
@@ -1019,6 +1015,8 @@ def create_tables(program, cases, schema, is_webapp=False):
     else:
         schemas = create_schema_lists(schema, record_counts, merged_orders)
 
+    print(schemas)
+
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
 
 
@@ -1064,9 +1062,6 @@ def main(args):
 
             # rename so that '1.0' doesn't break bq table name
             program = program.replace('.', '_')
-
-            # generate table schemas
-            # webapp_schema = copy.deepcopy(schema)
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
