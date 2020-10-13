@@ -836,19 +836,6 @@ def get_metadata_files():
     return [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
 
-def get_schema_metadata_fp(repo_dir, filename):
-    """ Get filepath to schema and/or metadata file in BQEcosystem repo.
-
-    :param bq_params: bq param object from yaml config
-    :param repo_dir: directory in which the schema/metadata file resides
-    :param filename: schema/metadata file name
-    :return: path to schema/metadata file on VM
-    """
-    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], repo_dir])
-
-    return get_filepath(dir_path, filename)
-
-
 def make_and_check_metadata_table_id(json_file):
     table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
     table_id = get_working_table_id(BQ_PARAMS, table_name)
@@ -888,8 +875,10 @@ def update_clin_schema():
     without a table rebuild, Google's restriction).
     """
     console_out("Updating schemas (field descriptions!")
+
+    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
     fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(BQ_PARAMS))
-    field_desc_fp = get_schema_metadata_fp(BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
+    field_desc_fp = get_filepath(dir_path, fields_file)
 
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
