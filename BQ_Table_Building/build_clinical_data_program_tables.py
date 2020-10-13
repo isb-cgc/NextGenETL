@@ -512,6 +512,8 @@ def create_schema_lists(schema, record_counts, merged_orders):
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
             schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
+
+    print(schema_field_lists)
     return schema_field_lists
 
 
@@ -787,11 +789,10 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
     :param record_counts: field group count dict
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
-    ancillary_tables = get_one_to_many_tables(API_PARAMS, record_counts)
+    record_tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
-    for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
-
+    for record_table in record_tables:
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
         # If jsonl scratch file exists, delete so we don't append
@@ -809,7 +810,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
         for bq_table in flat_case:
-            if bq_table not in ancillary_tables:
+            if bq_table not in record_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
 
             jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, bq_table, is_webapp)
@@ -817,22 +818,19 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
-    for ancillary_table in ancillary_tables:
-        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, ancillary_table, is_webapp)
+    for record_table in record_tables:
+        jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
 
         upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
 
-        table_name = get_full_table_name(program, ancillary_table)
+        table_name = get_full_table_name(program, record_table)
 
         if is_webapp:
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_name, schemas[ancillary_table], table_id)
-
-
-#   Modify existing tables
+        create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
 
 def update_table_metadata():
@@ -988,8 +986,6 @@ def create_tables(program, cases, is_webapp=False):
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
     webapp_schema = copy.deepcopy(schema)
 
-    print(schema)
-
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
@@ -1017,7 +1013,6 @@ def create_tables(program, cases, is_webapp=False):
     if is_webapp:
         webapp_schemas = create_app_schema_lists(webapp_schema, record_counts, merged_orders)
         create_and_load_tables(program, cases, webapp_schemas, record_counts, is_webapp)
-
     else:
         table_schemas = create_schema_lists(schema, record_counts, merged_orders)
         create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)

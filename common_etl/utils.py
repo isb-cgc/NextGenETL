@@ -921,9 +921,6 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
 
             for field_name in required_field_list:
                 schema[field_name]['mode'] = 'REQUIRED'
-
-            # remove nested schema field after recursion
-            # schema_list.pop(i)
         else:
             # not a nested field entry--do we need to prefix the schema field name?
             schema_field['name'] = get_bq_name(api_params, field_key, is_webapp)
@@ -980,7 +977,6 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-
         console_out(' - Inserting into {0}... ', (table_id,), end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
