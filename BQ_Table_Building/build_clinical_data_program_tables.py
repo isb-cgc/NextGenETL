@@ -742,9 +742,8 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
 
     # insert record count into flattened dict entries
     for field_grp, parent_ids in record_count_dict.items():
-        tables = get_one_to_many_tables(API_PARAMS, record_counts)
         parent_field_grp = get_parent_fg(tables, field_grp)
-        count_name = get_bq_name(API_PARAMS, 'count', field_grp)
+        count_name = get_bq_name(API_PARAMS, 'count', is_webapp, field_grp)
 
         for parent_id, count in parent_ids.items():
             p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id, is_webapp)
