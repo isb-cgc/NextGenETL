@@ -1063,7 +1063,9 @@ def main(args):
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
+                print("created schema")
                 webapp_cases = copy.deepcopy(cases)
+                print("copied cases")
                 create_tables(program, webapp_cases, schema, is_webapp=True)
 
             if 'create_and_load_tables' in steps:
