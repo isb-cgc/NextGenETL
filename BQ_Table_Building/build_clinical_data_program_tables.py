@@ -632,9 +632,13 @@ def flatten_case(case, is_webapp):
 
     flat_case = dict()
 
-    flatten_case_entry(record=case, fg=base_fg, flat_case=flat_case,
-                       case_id=case[base_id_name], pid=case[base_id_name],
-                       pid_name=base_id_name, is_webapp=is_webapp)
+    flatten_case_entry(record=case,
+                       fg=base_fg,
+                       flat_case=flat_case,
+                       case_id=case[base_id_name],
+                       pid=case[base_id_name],
+                       pid_name=base_id_name,
+                       is_webapp=is_webapp)
 
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
@@ -718,6 +722,8 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
 
     print()
     print(flat_case)
+    print()
+    print()
 
     tables = get_one_to_many_tables(API_PARAMS, record_counts)
 
@@ -737,6 +743,8 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
                 for record in flat_case[field_grp]:
                     parent_id = record[parent_id_key]
                     record_count_dict[field_grp][parent_id] += 1
+        else:
+            print("parent_fg not found in flat case")
 
     print(record_count_dict)
 
@@ -747,7 +755,6 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
 
         for parent_id, count in parent_ids.items():
             p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id, is_webapp)
-
             flat_case[parent_field_grp][p_key_idx][count_name] = count
 
 
