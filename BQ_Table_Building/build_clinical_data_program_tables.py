@@ -420,7 +420,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
             merge_dict_key = get_parent_fg(columns.keys(), table)
             # if merging key into parent table, that key is no longer required, might
             # not exist in some cases
-            # schema[table_id_key]['mode'] = 'NULLABLE'
+            schema[table_id_key]['mode'] = 'NULLABLE'
 
         if merge_dict_key not in merged_column_orders:
             merged_column_orders[merge_dict_key] = dict()
@@ -1034,9 +1034,9 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    programs = get_program_list(BQ_PARAMS)
+    # programs = get_program_list(BQ_PARAMS)
     # programs = ['BEATAML1.0']
-    # programs = ['CGCI']
+    programs = ['VAREPOP']
 
     for program in programs:
         prog_start = time.time()
