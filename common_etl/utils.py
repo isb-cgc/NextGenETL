@@ -434,6 +434,11 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: str representing table key
     """
+
+    split_fg = field_group.split('.')
+    if split_fg[0] != api_params['FG_CONFIG']['base_fg']:
+        split_fg.insert(0, api_params['FG_CONFIG']['base_fg'])
+
     if field_group not in api_params['FIELD_CONFIG']:
         console_out("field group not in API_PARAMS['FIELD_CONFIG']")
         return None
