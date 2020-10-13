@@ -854,7 +854,7 @@ def update_table_metadata():
     Use .json file in the BQEcosystem repo to update a bq table's metadata
     (labels, description, friendly name)
     """
-    for json_file in get_metadata_files(BQ_PARAMS):
+    for json_file in get_metadata_files():
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
