@@ -804,9 +804,6 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
     for schema_field in bq_table.schema:
         schema_list.append(schema_field.to_api_repr())
 
-    print(schema_list)
-    exit()
-
     schema = dict()
 
     parse_bq_schema_obj(api_params=api_params,
@@ -917,13 +914,8 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
 
         # if has 'fields', then the current obj contains nested objs
         if schema_field['type'] == 'RECORD':
-        # if 'fields' in schema_field:
             # if nested, recurse down to the next level
-            parse_bq_schema_obj(api_params,
-                                schema,
-                                field_key,
-                                schema_field['fields'],
-                                is_webapp)
+            parse_bq_schema_obj(api_params, schema, field_key, schema_field['fields'], is_webapp)
 
             required_field_list = get_required_fields(api_params, fg)
 
@@ -935,8 +927,7 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
         else:
             # not a nested field entry--do we need to prefix the schema field name?
             schema_field['name'] = get_bq_name(api_params, field_key, is_webapp)
-
-        schema[field_key] = schema_field
+            schema[field_key] = schema_field
 
 
 def get_fgs_and_id_keys(api_params):

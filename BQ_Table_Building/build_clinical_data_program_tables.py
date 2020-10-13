@@ -985,12 +985,10 @@ def create_tables(program, cases, is_webapp=False):
     :return:
     """
     # generate table schemas
-    print(API_PARAMS)
-
-    print(BQ_PARAMS)
-
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
     webapp_schema = copy.deepcopy(schema)
+
+    print(schema)
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
