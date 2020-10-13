@@ -989,6 +989,12 @@ def create_tables(program, cases, schema, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return:
     """
+
+    if is_webapp:
+        console_out(" - Creating webapp table(s).")
+    else:
+        console_out(" - Creating public BQ table(s).")
+
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
@@ -1011,6 +1017,7 @@ def create_tables(program, cases, schema, is_webapp=False):
         schemas = create_app_schema_lists(schema, record_counts, merged_orders)
     else:
         schemas = create_schema_lists(schema, record_counts, merged_orders)
+    console_out(" - Created schemas.")
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
 
@@ -1044,7 +1051,7 @@ def main(args):
             these tables are used to populate the per-program clinical tables, 
             and are also needed for populating data into the webapp
             '''
-            console_out("Creating biospecimen stub tables!")
+            console_out(" - Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
