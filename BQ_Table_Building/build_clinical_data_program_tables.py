@@ -849,7 +849,7 @@ def get_schema_metadata_fp(repo_dir, filename):
     return get_filepath(dir_path, filename)
 
 
-def update_table_metadata():
+def update_metadata():
     """
     Use .json file in the BQEcosystem repo to update a bq table's metadata
     (labels, description, friendly name)
@@ -1078,7 +1078,7 @@ def main(args):
             console_out("{0} processed in {1:0.0f}s!\n", (program, prog_end))
 
     if 'update_table_metadata' in steps:
-        update_table_metadata()
+        update_metadata()
 
     if 'update_schema' in steps:
         update_schema()
