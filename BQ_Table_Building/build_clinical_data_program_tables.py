@@ -817,7 +817,9 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
     :param record_counts: field group count dict
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     """
+    print("1")
     record_tables = get_one_to_many_tables(API_PARAMS, record_counts)
+    print("2")
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
@@ -826,6 +828,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         # If jsonl scratch file exists, delete so we don't append
         if os.path.exists(jsonl_fp):
             os.remove(jsonl_fp)
+    print("3")
 
     for case in cases:
         flat_case = flatten_case(case, is_webapp)
@@ -845,6 +848,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
+    print("4")
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
@@ -859,6 +863,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
+    print("5")
 
 
 def get_metadata_files():
