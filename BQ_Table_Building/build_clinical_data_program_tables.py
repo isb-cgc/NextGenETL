@@ -62,8 +62,6 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
     if len(split_fg) != 2:
         print("error")
 
-    # diagnoses.treatments
-
     child_fg = '.'.join(split_fg)
     child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
     parent_fg = '.'.join(split_fg[:-1])
@@ -97,7 +95,6 @@ def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
         print("error")
 
     fg_id = get_field_group_id_key(API_PARAMS, fg, return_field_only=True)
-    print("fg: {}, fg_id: {}".format(fg, fg_id))
 
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
 
@@ -1126,8 +1123,6 @@ def main(args):
                 if len(split_fg) == 3:
                     depth_two_fgs.append(amended_fg)
 
-        print("depth_one: {}\ndepth_two: {}".format(depth_one_fgs, depth_two_fgs))
-
         for fg in depth_two_fgs:
             all_program_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=False)
             all_res = get_query_results(all_program_query)
@@ -1146,9 +1141,6 @@ def main(args):
             for row in nested_res:
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
-
-        print(program_fgs)
-        exit()
 
         for fg in depth_one_fgs:
             all_program_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=False)
