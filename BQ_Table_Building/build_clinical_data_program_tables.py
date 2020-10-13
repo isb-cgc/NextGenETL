@@ -716,14 +716,14 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
     # initialize dict with field groups that can't be flattened
     record_count_dict = {field_grp: dict() for field_grp in record_counts if record_counts[field_grp] > 1}
 
+    print()
     print(flat_case)
 
+    tables = get_one_to_many_tables(API_PARAMS, record_counts)
+
     for field_grp in record_count_dict:
-        tables = get_one_to_many_tables(API_PARAMS, record_counts)
         parent_field_grp = get_parent_fg(tables, field_grp)
-
         field_grp_id_name = get_fg_id_name(API_PARAMS, parent_field_grp, is_webapp)
-
         parent_id_key = get_bq_name(API_PARAMS, field_grp_id_name, is_webapp, parent_field_grp)
 
         # initialize record counts for parent id
@@ -732,12 +732,11 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
                 parent_id = parent_record[parent_id_key]
                 record_count_dict[field_grp][parent_id] = 0
 
-        # count child records
-        if field_grp in flat_case:
-            for record in flat_case[field_grp]:
-                # print(record)
-                parent_id = record[parent_id_key]
-                record_count_dict[field_grp][parent_id] += 1
+            # count child records
+            if field_grp in flat_case:
+                for record in flat_case[field_grp]:
+                    parent_id = record[parent_id_key]
+                    record_count_dict[field_grp][parent_id] += 1
 
     print(record_count_dict)
 
