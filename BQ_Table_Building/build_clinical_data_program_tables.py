@@ -92,7 +92,7 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
 def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
     split_fg = fg.split('.')
 
-    if split_fg[0] == BQ_PARAMS['FG_CONFIG']['base_fg']:
+    if split_fg[0] == API_PARAMS['FG_CONFIG']['base_fg']:
         split_fg.pop(0)
 
     if len(split_fg) != 1:
