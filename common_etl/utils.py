@@ -438,6 +438,7 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
     split_fg = field_group.split('.')
     if split_fg[0] != api_params['FG_CONFIG']['base_fg']:
         split_fg.insert(0, api_params['FG_CONFIG']['base_fg'])
+        field_group = ".".join(split_fg)
 
     if field_group not in api_params['FIELD_CONFIG']:
         console_out("field group {} not in API_PARAMS['FIELD_CONFIG']".format(field_group))
