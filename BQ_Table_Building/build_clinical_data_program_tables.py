@@ -1080,8 +1080,8 @@ def main(args):
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
     # programs = get_program_list(BQ_PARAMS)
-    # programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
-    programs = ['GENIE']
+    programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
+    programs = sorted(programs)
 
     if 'get_field_groups_per_program' in steps:
         field_groups = API_PARAMS['FG_CONFIG']['order']
@@ -1111,7 +1111,7 @@ def main(args):
 
         # todo
 
-    for program in programs.sort():
+    for program in programs:
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...", (program,))
 
