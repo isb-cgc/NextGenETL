@@ -65,7 +65,7 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
     # diagnoses.treatments
 
     child_fg = '.'.join(split_fg)
-    child_fg_id = get_field_group_id_key(API_PARAMS, child_fg)
+    child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
     parent_fg = '.'.join(split_fg[:-1])
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
 
@@ -93,9 +93,7 @@ def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
     if len(fg.split('.')) != 1:
         print("error")
 
-    fg_id = get_field_group_id_key(API_PARAMS, fg)
-    fg_id = fg_id.split('.')[1:]
-
+    fg_id = get_field_group_id_key(API_PARAMS, fg, return_field_only=True)
     print("fg: {}, fg_id: {}".format(fg, fg_id))
 
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""

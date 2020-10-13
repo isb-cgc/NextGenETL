@@ -426,7 +426,7 @@ def get_field_group(field_name):
     return ".".join(field_name.split('.')[:-1])
 
 
-def get_field_group_id_key(api_params, field_group, is_webapp=False):
+def get_field_group_id_key(api_params, field_group, is_webapp=False, return_field_only=False):
     """Retrieves the id key used to uniquely identify a table record.
 
     :param api_params: api param object from yaml config
@@ -447,7 +447,10 @@ def get_field_group_id_key(api_params, field_group, is_webapp=False):
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = api_params['FIELD_CONFIG'][field_group]['id_key']
-    print(": {}".format(fg_id_name))
+
+    if return_field_only:
+        return fg_id_name
+
     fg_id_key = get_field_key(field_group, fg_id_name)
 
     if is_webapp:
@@ -470,6 +473,7 @@ def get_fg_id_name(api_params, field_group, is_webapp=False):
     fg_id_key = get_field_group_id_key(api_params, field_group, is_webapp)
 
     return get_field_name(fg_id_key)
+    # todo this should be replaced
 
 
 def get_field_name(field_col_key):
