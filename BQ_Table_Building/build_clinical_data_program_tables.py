@@ -98,8 +98,8 @@ def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
     if len(split_fg) != 1:
         print("error")
 
-    fg = '.'.join(split_fg)
-    fg_id = get_field_group_id_key(API_PARAMS, fg)
+    made_fg = '.'.join(split_fg)
+    fg_id = get_field_group_id_key(API_PARAMS, made_fg)
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
 
     projects_with_fg_query = """
