@@ -808,21 +808,55 @@ def get_cases_by_program(bq_params, program):
     :param program: the program from which the cases originate
     :return: cases dict
     """
+    start_time = time.time()
     cases = []
 
     sample_table_id = get_biospecimen_table_id(bq_params, program)
 
-    query = ("""
+    query = """
         SELECT * 
         FROM `{}` 
         WHERE case_id IN (
             SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
             WHERE project_name = '{}')
-    """).format(get_working_table_id(bq_params), sample_table_id, program)
+    """.format(get_working_table_id(bq_params), sample_table_id, program)
 
     for case_row in get_query_results(query):
-        cases.append(dict(case_row.items()))
+        case_items = dict(case_row.items())
+        case_items.pop('project')
+        cases.append(case_items)
+
+    end_time = time.time() - start_time
+    print("get_cases_by_program benchmark: {}".format(format_seconds(end_time)))
+
+    return cases
+
+
+def get_cases_by_program_2(bq_params, program):
+    """Get a dict obj containing all the cases associated with a given program.
+
+    :param bq_params: bq param object from yaml config
+    :param program: the program from which the cases originate
+    :return: cases dict
+    """
+    start_time = time.time()
+    cases = []
+
+    query = """
+        SELECT * 
+        FROM `{}` 
+        CROSS JOIN UNNEST(project) AS project
+        WHERE project.project_id LIKE '{}%'
+    """.format(get_working_table_id(bq_params), program)
+
+    for case_row in get_query_results(query):
+        case_items = dict(case_row.items())
+        case_items.pop('project')
+        cases.append(case_items)
+
+    end_time = time.time() - start_time
+    print("get_cases_by_program_2 benchmark: {}".format(format_seconds(end_time)))
 
     return cases
 

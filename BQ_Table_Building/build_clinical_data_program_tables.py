@@ -1125,7 +1125,9 @@ def main(args):
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
             cases = get_cases_by_program(BQ_PARAMS, program)
-            print("get cases for program")
+
+            cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
+            exit()
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
