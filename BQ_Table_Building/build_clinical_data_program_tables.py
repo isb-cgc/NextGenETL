@@ -483,7 +483,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
     :param schema: dict containing schema records
     :param record_counts: field group count dict
     :param merged_orders: merged dict of field groups: fields with index position data
-    :return: schema_field_lists, one schema per field group turned into table
+    :return: schema_field_lists_dict, one schema per field group turned into table
     """
     # add bq abbreviations to schema field dicts
     for entry in schema:
@@ -492,10 +492,10 @@ def create_schema_lists(schema, record_counts, merged_orders):
         if field != 'case_id':
             schema[entry]['name'] = get_bq_name(API_PARAMS, entry)
 
-    schema_field_lists = dict()
+    schema_field_lists_dict = dict()
 
     for table in get_one_to_many_tables(API_PARAMS, record_counts):
-        # this is just alphabetizing the count columns
+        # this alphabetizes the count columns
         counts_idx = get_count_column_index(table, merged_orders[table])
         count_cols = [col for col, i in merged_orders[table].items() if i == counts_idx]
 
@@ -503,7 +503,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
             merged_orders[table][count_column] = counts_idx
             counts_idx += 1
 
-        schema_field_lists[table] = list()
+        schema_field_lists_dict[table] = list()
 
         # sort merged table columns by index
         for column in [col for col, idx in sorted(merged_orders[table].items(),
@@ -511,10 +511,10 @@ def create_schema_lists(schema, record_counts, merged_orders):
             if column not in schema:
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
-            schema_field_lists[table].append(to_bq_schema_obj(schema[column]))
+            schema_field_lists_dict[table].append(to_bq_schema_obj(schema[column]))
 
-    print(schema_field_lists)
-    return schema_field_lists
+    print(schema_field_lists_dict)
+    return schema_field_lists_dict
 
 
 def remove_excluded_fields(case, field_grp, excluded, is_webapp):
@@ -984,7 +984,7 @@ def create_tables(program, cases, is_webapp=False):
     """
     # generate table schemas
     schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
-    webapp_schema = copy.deepcopy(schema)
+    # webapp_schema = copy.deepcopy(schema)
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
@@ -993,12 +993,12 @@ def create_tables(program, cases, is_webapp=False):
     # removes the excluded fields/field groups
     if is_webapp:
         # add the parent id to field group dicts that will create separate tables
-        column_orders = add_ref_columns(columns, record_counts, webapp_schema, program, is_webapp)
+        column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
 
-        modify_fields_for_app(API_PARAMS, webapp_schema, column_orders, columns)
+        modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
 
         # reassign merged_column_orders to column_orders
-        merged_orders = merge_column_orders(webapp_schema, columns, record_counts, column_orders, is_webapp)
+        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
 
     else:
         column_orders = add_ref_columns(columns, record_counts, schema, program)
@@ -1011,7 +1011,7 @@ def create_tables(program, cases, is_webapp=False):
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
-        webapp_schemas = create_app_schema_lists(webapp_schema, record_counts, merged_orders)
+        webapp_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
         create_and_load_tables(program, cases, webapp_schemas, record_counts, is_webapp)
     else:
         table_schemas = create_schema_lists(schema, record_counts, merged_orders)
@@ -1042,7 +1042,11 @@ def main(args):
         prog_start = time.time()
         console_out("\nRunning script for program: {0}...\n", (program,))
 
-        if 'create_biospecimen_stub_tables' in steps:  # FOR WEBAPP TABLES
+        if 'create_biospecimen_stub_tables' in steps:
+            '''
+            these tables are used to populate the per-program clinical tables, 
+            and are also needed for populating data into the webapp
+            '''
             console_out("Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(program)
 
