@@ -53,6 +53,45 @@ def get_full_table_name(program, table):
     return build_table_name(table_name)
 
 
+def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
+    split_fg = fg.split('.')
+
+    if split_fg[0] == BQ_PARAMS['FG_CONFIG']['base_fg']:
+        split_fg.pop(0)
+
+    if len(split_fg) != 2:
+        print("error")
+
+    # diagnoses.treatments
+
+    child_fg = '.'.join(split_fg)
+    child_fg_id = get_field_group_id_key(API_PARAMS, fg)
+    parent_fg = '.'.join(split_fg[:-1])
+    parent_fg_id = get_field_group_id_key(API_PARAMS, parent_fg)
+
+    having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
+
+    projects_with_fg_query = """
+        WITH projects_with_fg 
+            AS (
+                SELECT  case_id, 
+                        {1},
+                        SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
+                FROM `isb-project-zero.GDC_Clinical_Data.r26_clinical`
+                CROSS JOIN UNNEST({2}) AS {2}
+                CROSS JOIN UNNEST({0}))
+
+        SELECT DISTINCT(proj_name) 
+        FROM (
+          SELECT proj_name                
+          FROM projects_with_fg 
+          GROUP BY proj_name, case_id
+          {3})
+    """.format(child_fg, child_fg_id, parent_fg, parent_fg_id, having_clause)
+
+    print(projects_with_fg_query)
+
+
 def build_column_order_dict():
     """
     Using table order provided in YAML, with add't ordering for reference
@@ -995,36 +1034,30 @@ def create_tables(program, cases, schema, is_webapp=False):
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
-    print("1")
 
     # add the parent id to field group dicts that will create separate tables
     column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
-    print("2")
 
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
     if is_webapp:
         modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
-    print("3")
 
     # reassign merged_column_orders to column_orders
     merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
-    print("4")
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
-    print("5")
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
         schemas = create_app_schema_lists(schema, record_counts, merged_orders)
-        print("6")
     else:
         schemas = create_schema_lists(schema, record_counts, merged_orders)
-        print("7")
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
-    print('8')
+    # todo sticking in here
+
 
 def main(args):
     """Script execution function.
@@ -1045,6 +1078,34 @@ def main(args):
 
     # programs = get_program_list(BQ_PARAMS)
     programs = ['GENIE', 'HCMI', 'NCICCR', 'CMI']
+
+    if 'get_field_groups_per_program' in steps:
+        field_groups = API_PARAMS['FG_CONFIG']['order']
+        fg_programs = dict()
+        depth_one_fgs = []
+        depth_two_fgs = []
+
+        for fg in field_groups:
+            split_fg = fg.split('.')
+            if len(split_fg) <= 1 or len(split_fg) > 3:
+                continue
+
+            amended_fg = '.'.join(split_fg[1:])
+            if len(split_fg) == 2:
+                depth_one_fgs.append(amended_fg)
+            if len(split_fg) == 3:
+                depth_two_fgs.append(amended_fg)
+
+            fg_programs[amended_fg] = {
+                "flat": list(),
+                "one_to_many": list()
+            }
+
+        for fg in depth_two_fgs:
+            make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=True)
+            make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=False)
+
+        # todo
 
     for program in programs:
         prog_start = time.time()
