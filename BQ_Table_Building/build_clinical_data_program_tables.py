@@ -577,20 +577,22 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
                                    is_webapp=is_webapp)
                 continue
 
-            elif fg_id_name != pid_name:
-                parent_fg = get_field_group(fg)
+            else:
 
-                pid_key = get_bq_name(API_PARAMS, pid_name, is_webapp, parent_fg)
+                if fg_id_name != pid_name:
+                    parent_fg = get_field_group(fg)
 
-                # add parent_id key and value to row
-                row[pid_key] = pid
+                    pid_key = get_bq_name(API_PARAMS, pid_name, is_webapp, parent_fg)
 
-            elif fg_id_name != base_pid_name:
-                row[base_pid_name] = case_id
+                    # add parent_id key and value to row
+                    row[pid_key] = pid
 
-            column = get_bq_name(API_PARAMS, field, is_webapp, fg)
+                if fg_id_name != base_pid_name:
+                    row[base_pid_name] = case_id
 
-            row[column] = columns
+                column = get_bq_name(API_PARAMS, field, is_webapp, fg)
+
+                row[column] = columns
 
             if fg not in flat_case:
                 # if this is first row added for fg, create an empty list
