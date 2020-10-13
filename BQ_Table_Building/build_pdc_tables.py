@@ -19,10 +19,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import math
 import re
 import csv
-import os
+
 from common_etl.utils import *
 
 API_PARAMS = dict()
@@ -1431,11 +1430,6 @@ def main(args):
             max_uniprot_count = max(max_uniprot_count, curr_uniprot_id_count)
 
         print("max uniprot ids: {}".format(max_uniprot_count))
-
-    if 'build_cases_aliquots_tsv' in steps:
-        csa_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.tsv')
-        build_cases_samples_aliquots_tsv(csa_tsv_path)
-        upload_to_bucket(BQ_PARAMS, csa_tsv_path)
 
     if 'build_cases_aliquots_jsonl' in steps:
         jsonl_start = time.time()

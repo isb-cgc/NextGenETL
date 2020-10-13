@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import copy
-import math
 
 from common_etl.utils import *
 
@@ -287,8 +286,6 @@ def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
     :param id_tuple: the field group id's index, key, and program name
     """
     # add parent id to one-to-many table
-    console_out(id_tuple)
-
     field_grp_id_idx, field_grp_id_key, program = id_tuple
     parent_field_grp = get_field_group(field_grp)
 
@@ -1040,7 +1037,7 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        console_out("\nRunning script for program: {0}...\n", (program,))
+        console_out("\nRunning script for program: {0}...", (program,))
 
         if 'create_biospecimen_stub_tables' in steps:
             '''
@@ -1090,13 +1087,15 @@ def main(args):
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
 
-    '''
     if 'generate_documentation' in steps:
-        generate_docs(API_PARAMS, BQ_PARAMS)
-    '''
+        pass
+        # generate_docs(API_PARAMS, BQ_PARAMS) # todo
 
     if 'validate_data' in steps:
         pass  # todo: integrate the queries in compare_clinical_gdc_api_releases.py
+
+    if 'output_changes' in steps:
+        pass  # todo
 
     output_report(start, steps)
 

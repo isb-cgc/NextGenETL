@@ -980,6 +980,7 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
     job_config.skip_leading_rows = 1
+    job_config.null_marker = null_marker  # todo added this back, is that ok?
 
     gs_uri = build_working_gs_uri(bq_params, tsv_file)
 
@@ -1132,7 +1133,9 @@ def from_schema_file_to_obj(bq_params, filename):
     :param filename: name of the schema file
     :return: schema list, table metadata dict
     """
-    fp = get_schema_metadata_fp(bq_params, bq_params['SCHEMA_DIR'], filename)
+
+    fp = get_filepath(bq_params['SCHEMA_DIR'], filename)
+    # todo changed this, does it work?
 
     if not os.path.exists(fp):
         return None, None
