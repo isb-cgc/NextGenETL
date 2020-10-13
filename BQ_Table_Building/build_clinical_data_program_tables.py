@@ -344,6 +344,8 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
     # get relative index of every field, across tables/field groups, in non-nested dict
     field_indexes = build_column_order_dict()
 
+    print(field_indexes)
+
     for field_grp, depth in get_sorted_fg_depths(record_counts):
 
         # get ordered list for each field_grp
@@ -351,8 +353,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
 
         # for a given field_grp, assign each field a global index; insert into
         # segregated column order dict (e.g. column_orders[field_grp][field] = idx)
-        column_orders[field_grp] = {f: field_indexes[f] for f in
-                                    ordered_field_grp_field_keys}
+        column_orders[field_grp] = {f: field_indexes[f] for f in ordered_field_grp_field_keys}
 
         if depth == 1 or field_grp not in columns:
             continue
@@ -364,14 +365,10 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
         # get parent id key, append to column order dict of child field group, increment
         # index from field_grp_id_key's position, assign to parent_id_key (foreign
         # reference key)
-        parent_id_key = get_field_group_id_key(API_PARAMS,
-                                               get_field_group(field_grp),
-                                               is_webapp)
+        parent_id_key = get_field_group_id_key(API_PARAMS, get_field_group(field_grp), is_webapp)
 
         if is_webapp:
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS,
-                                                           get_base_fg(API_PARAMS),
-                                                           is_webapp)
+            base_field_grp_id_key = get_field_group_id_key(API_PARAMS, get_base_fg(API_PARAMS), is_webapp)
 
             # append parent_id_key to field_grp column list and column order dict
             columns[field_grp].add(parent_id_key)
@@ -388,15 +385,12 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
             # if not webapp, there are additional reference columns to insert
             # (count of foreign records associated with the current field_grp)
             if depth > 2:
-                insert_ref_id_keys(schema, columns, column_orders, field_grp,
-                                   (idx, parent_id_key, program))
+                insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, parent_id_key, program))
                 idx += 1
 
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS,
-                                                           get_base_fg(API_PARAMS))
+            base_field_grp_id_key = get_field_group_id_key(API_PARAMS, get_base_fg(API_PARAMS))
 
-            insert_ref_id_keys(schema, columns, column_orders, field_grp,
-                               (idx, base_field_grp_id_key, program))
+            insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, base_field_grp_id_key, program))
             idx += 1
 
             add_record_count_refs(schema, columns, column_orders, field_grp)
@@ -415,8 +409,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     :return: merged column orders dict
     """
     merged_column_orders = dict()
-
-    print(column_orders)
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
