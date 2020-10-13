@@ -831,6 +831,7 @@ def update_table_metadata():
     (labels, description, friendly name)
     """
     for json_file in get_dir_files(BQ_PARAMS):
+        print(json_file)
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
@@ -838,9 +839,7 @@ def update_table_metadata():
             console_out('No table found for file (skipping): {0}', (json_file,))
             continue
 
-        metadata_fp = get_schema_metadata_fp(BQ_PARAMS,
-                                             BQ_PARAMS['TABLE_METADATA_DIR'],
-                                             json_file)
+        metadata_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['TABLE_METADATA_DIR'], json_file)
 
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
