@@ -253,8 +253,7 @@ def generate_id_schema_entry(column, parent_table, program):
     return {
         "name": get_field_name(column),
         "type": 'STRING',
-        "description": ("Reference to ancestor {}, located in {}."
-                        .format(bq_col_name, source_table)),
+        "description": ("Reference to ancestor {}, located in {}.".format(bq_col_name, source_table)),
         "mode": 'NULLABLE'
     }
 
@@ -846,7 +845,7 @@ def make_and_check_metadata_table_id(json_file):
         console_out('\t\t- skipping -- no table found for file: {0}', (json_file,))
         return None
     else:
-        console_out('\t\t- updating {0}', (json_file,))
+        console_out('\t- updating {0}', (json_file,))
         return table_id
 
 
@@ -876,7 +875,7 @@ def update_clin_schema():
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
     """
-    console_out("Updating schemas (field descriptions!")
+    console_out("\nUpdating schemas (field descriptions)!")
 
     dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
     fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(BQ_PARAMS))
@@ -960,7 +959,7 @@ def output_report(start, steps):
     :param steps: set of steps to be performed (configured in YAML)
     """
     seconds = time.time() - start
-    console_out("Script executed in {0}\n", format_seconds(seconds))
+    console_out("Script executed in {0}\n", (format_seconds(seconds),))
 
     console_out("Steps completed: ")
 
@@ -1037,9 +1036,9 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    # programs = get_program_list(BQ_PARAMS)
+    programs = get_program_list(BQ_PARAMS)
     # programs = ['BEATAML1.0']
-    programs = ['TCGA', 'CGCI']
+    # programs = ['CGCI']
 
     for program in programs:
         prog_start = time.time()
