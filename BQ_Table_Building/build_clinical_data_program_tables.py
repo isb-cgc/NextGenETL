@@ -254,8 +254,9 @@ def generate_id_schema_entry(column, parent_table, program):
         "name": get_field_name(column),
         "type": 'STRING',
         "description": ("Reference to ancestor {}, located in {}.".format(bq_col_name, source_table)),
-        "mode": 'NULLABLE'
+        "mode": 'REQUIRED'
     }
+    # todo this is the place I changed
 
 
 def generate_count_schema_entry(count_id_key, parent_table):
