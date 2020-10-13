@@ -684,19 +684,6 @@ def get_scratch_fp(bq_params, filename):
     return get_filepath(bq_params['SCRATCH_DIR'], filename)
 
 
-def get_schema_metadata_fp(bq_params, repo_dir, filename):
-    """ Get filepath to schema and/or metadata file in BQEcosystem repo.
-
-    :param bq_params: bq param object from yaml config
-    :param repo_dir: directory in which the schema/metadata file resides
-    :param filename: schema/metadata file name
-    :return: path to schema/metadata file on VM
-    """
-    dir_path = '/'.join([bq_params['BQ_REPO'], repo_dir])
-
-    return get_filepath(dir_path, filename)
-
-
 #       FILESYSTEM HELPERS
 
 
@@ -707,19 +694,6 @@ def get_dir(fp):
     :return: directory component of fp
     """
     return '/'.join(fp.split('/')[:-1])
-
-
-def get_dir_files(bq_params):
-    """Get all the file names in a directory as a list of as strings.
-
-    :param bq_params: bq param object from yaml config
-    :return: list of filenames
-    """
-    fp = get_schema_metadata_fp(bq_params, bq_params['TABLE_METADATA_DIR'], 'r26')
-
-    print([f for f in os.listdir(fp)])
-
-    return [f for f in os.listdir(fp) if os.path.isfile(os.path.join(fp, f))]
 
 
 def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):

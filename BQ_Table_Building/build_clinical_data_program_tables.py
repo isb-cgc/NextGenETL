@@ -825,16 +825,28 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
 
-def get_metadata_files(bq_params):
+def get_metadata_files():
     """Get all the file names in a directory as a list of as strings.
 
-    :param bq_params: bq param object from yaml config
     :return: list of filenames
     """
-    rel_path = '/'.join([bq_params['BQ_REPO'], bq_params['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
+    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
     metadata_fp = get_filepath(rel_path)
 
     return [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
+
+
+def get_schema_metadata_fp(repo_dir, filename):
+    """ Get filepath to schema and/or metadata file in BQEcosystem repo.
+
+    :param bq_params: bq param object from yaml config
+    :param repo_dir: directory in which the schema/metadata file resides
+    :param filename: schema/metadata file name
+    :return: path to schema/metadata file on VM
+    """
+    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], repo_dir])
+
+    return get_filepath(dir_path, filename)
 
 
 def update_table_metadata():
@@ -842,11 +854,7 @@ def update_table_metadata():
     Use .json file in the BQEcosystem repo to update a bq table's metadata
     (labels, description, friendly name)
     """
-
-    metadata_files = get_metadata_files(BQ_PARAMS)
-    print(metadata_files)
-
-    for json_file in get_dir_files(BQ_PARAMS):
+    for json_file in get_metadata_files(BQ_PARAMS):
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
@@ -854,7 +862,7 @@ def update_table_metadata():
             console_out('No table found for file (skipping): {0}', (json_file,))
             continue
 
-        metadata_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['TABLE_METADATA_DIR'], json_file)
+        metadata_fp = get_schema_metadata_fp(BQ_PARAMS['TABLE_METADATA_DIR'], json_file)
 
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
@@ -868,15 +876,13 @@ def update_schema():
     without a table rebuild, Google's restriction).
     """
 
-    fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_'
-    fields_file += get_rel_prefix(BQ_PARAMS) + '.json'
-
-    field_desc_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
+    fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(BQ_PARAMS))
+    field_desc_fp = get_schema_metadata_fp(BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
 
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
-    for json_file in get_dir_files(BQ_PARAMS):
+    for json_file in get_metadata_files():
         table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
@@ -887,7 +893,7 @@ def copy_tables_into_public_project():
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-    files = get_dir_files(BQ_PARAMS)
+    files = get_metadata_files()
 
     for json_file in files:
         src_table_id, curr_table_id, vers_table_id = convert_json_to_table_id(BQ_PARAMS,
