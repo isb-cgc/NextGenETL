@@ -506,8 +506,10 @@ def create_schema_lists(schema, record_counts, merged_orders):
         schema_field_lists_dict[table] = list()
 
         # sort merged table columns by index
+
+        print(sorted(merged_orders[table].items(), key=lambda i: i[1]))
+
         for column in [col for col, idx in sorted(merged_orders[table].items(), key=lambda i: i[1])]:
-            print(column)
             if column not in schema:
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
