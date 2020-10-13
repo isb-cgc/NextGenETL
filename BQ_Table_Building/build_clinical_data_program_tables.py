@@ -720,7 +720,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
     print(flat_case)
     exit()
 
-    for field_grp, parent_ids in record_count_dict.items():
+    for field_grp in record_count_dict:
         tables = get_one_to_many_tables(API_PARAMS, record_counts)
         parent_field_grp = get_parent_fg(tables, field_grp)
 
@@ -732,14 +732,14 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         if parent_field_grp in flat_case:
             for parent_record in flat_case[parent_field_grp]:
                 parent_id = parent_record[parent_id_key]
-                parent_ids[parent_id] = 0
+                record_count_dict[field_grp][parent_id] = 0
 
         # count child records
         if field_grp in flat_case:
             for record in flat_case[field_grp]:
                 # print(record)
                 parent_id = record[parent_id_key]
-                parent_ids[parent_id] += 1
+                record_count_dict[field_grp][parent_id] += 1
 
     # insert record count into flattened dict entries
     for field_grp, parent_ids in record_count_dict.items():
