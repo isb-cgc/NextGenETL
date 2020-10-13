@@ -506,14 +506,13 @@ def create_schema_lists(schema, record_counts, merged_orders):
         schema_field_lists_dict[table] = list()
 
         # sort merged table columns by index
-        for column in [col for col, idx in sorted(merged_orders[table].items(),
-                                                  key=lambda i: i[1])]:
+        for column in [col for col, idx in sorted(merged_orders[table].items(), key=lambda i: i[1])]:
+            print(column)
             if column not in schema:
                 console_out("{0} not in src table; excluding schema field.", (column,))
                 continue
             schema_field_lists_dict[table].append(to_bq_schema_obj(schema[column]))
 
-    print(schema_field_lists_dict)
     return schema_field_lists_dict
 
 
@@ -973,7 +972,7 @@ def output_report(start, steps):
     console_out('\n\n')
 
 
-def create_tables(program, cases, is_webapp=False):
+def create_tables(program, cases, schema, is_webapp=False):
     """
     Run the overall script which creates schemas, modifies data, prepares it for loading,
     and creates the databases.
@@ -982,40 +981,30 @@ def create_tables(program, cases, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return:
     """
-    # generate table schemas
-    schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp)
-    # webapp_schema = copy.deepcopy(schema)
-
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
+
+    # add the parent id to field group dicts that will create separate tables
+    column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
 
     # removes the prefix from schema field name attributes
     # removes the excluded fields/field groups
     if is_webapp:
-        # add the parent id to field group dicts that will create separate tables
-        column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
-
         modify_fields_for_app(API_PARAMS, schema, column_orders, columns)
 
-        # reassign merged_column_orders to column_orders
-        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
-
-    else:
-        column_orders = add_ref_columns(columns, record_counts, schema, program)
-
-        # reassign merged_column_orders to column_orders
-        merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
+    # reassign merged_column_orders to column_orders
+    merged_orders = merge_column_orders(schema, columns, record_counts, column_orders, is_webapp)
 
     # drop any null fields from the merged column order dicts
     remove_null_fields(columns, merged_orders)
 
     # creates dictionary of lists of SchemaField objects in json format
     if is_webapp:
-        webapp_schemas = create_app_schema_lists(schema, record_counts, merged_orders)
-        create_and_load_tables(program, cases, webapp_schemas, record_counts, is_webapp)
+        schemas = create_app_schema_lists(schema, record_counts, merged_orders)
     else:
-        table_schemas = create_schema_lists(schema, record_counts, merged_orders)
-        create_and_load_tables(program, cases, table_schemas, record_counts, is_webapp)
+        schemas = create_schema_lists(schema, record_counts, merged_orders)
+
+    create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
 
 
 def main(args):
@@ -1060,12 +1049,17 @@ def main(args):
             # rename so that '1.0' doesn't break bq table name
             program = program.replace('.', '_')
 
+            # generate table schemas
+            # webapp_schema = copy.deepcopy(schema)
+
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
+                schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
                 webapp_cases = copy.deepcopy(cases)
-                create_tables(program, webapp_cases, is_webapp=True)
+                create_tables(program, webapp_cases, schema, is_webapp=True)
 
             if 'create_and_load_tables' in steps:
-                create_tables(program, cases)
+                schema = create_schema_dict(API_PARAMS, BQ_PARAMS)
+                create_tables(program, cases, schema)
 
             prog_end = time.time() - prog_start
             console_out("{0} processed in {1:0.0f}s!\n", (program, prog_end))
