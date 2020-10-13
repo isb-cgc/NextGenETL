@@ -923,7 +923,7 @@ def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=Fals
                 schema[field_name]['mode'] = 'REQUIRED'
 
             # remove nested schema field after recursion
-            schema_list.pop(i)
+            # schema_list.pop(i)
         else:
             # not a nested field entry--do we need to prefix the schema field name?
             schema_field['name'] = get_bq_name(api_params, field_key, is_webapp)
