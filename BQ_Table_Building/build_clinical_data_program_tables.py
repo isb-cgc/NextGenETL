@@ -63,7 +63,8 @@ def build_column_order_dict():
     column_orders = dict()
     # list of fields in order, grouped by field_grp
     field_grp_order_list = API_PARAMS['FG_CONFIG']['order']
-    # gap leaves room to add reference columns (foreign ids, one-to-many record counts)
+
+    # leave room to add reference columns (foreign ids, one-to-many record counts)
     id_index_gap = ((len(field_grp_order_list) - 1) * 2)
 
     idx = 0
@@ -78,7 +79,8 @@ def build_column_order_dict():
 
             # assign index to field, then increment
             column_orders[field_key] = idx
-            idx = idx + 1 if field_name != field_grp_id_name else id_index_gap
+            print("column_orders[{}] = {}".format(field_key, idx))
+            idx += 1 if field_name != field_grp_id_name else id_index_gap
 
     # is this still necessary? experiment
     for end_field in get_last_fields_in_table(API_PARAMS):
@@ -343,8 +345,6 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
 
     # get relative index of every field, across tables/field groups, in non-nested dict
     field_indexes = build_column_order_dict()
-
-    print(field_indexes)
 
     for field_grp, depth in get_sorted_fg_depths(record_counts):
 
