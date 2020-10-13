@@ -846,7 +846,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
-        print("processed case {} of {}, case_id: {}".format(i, len(cases), flat_case['cases'][0]['case_id']))
+        print("processed case {} of {}, case_id: {}".format(i, len(cases), flat_case['cases'][0]))
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
