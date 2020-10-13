@@ -66,7 +66,7 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
 
     child_fg = '.'.join(split_fg)
     child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
-    parent_fg = '.'.join(split_fg[:])
+    parent_fg = '.'.join(split_fg[:-1])
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
     working_table_id = get_working_table_id(BQ_PARAMS)
 
