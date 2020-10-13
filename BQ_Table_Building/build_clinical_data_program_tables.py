@@ -90,16 +90,12 @@ def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
 
 
 def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
-    split_fg = fg.split('.')
-
-    if split_fg[0] == API_PARAMS['FG_CONFIG']['base_fg']:
-        split_fg.pop(0)
-
-    if len(split_fg) != 1:
+    if len(fg.split('.')) != 1:
         print("error")
 
-    made_fg = '.'.join(split_fg)
-    fg_id = get_field_group_id_key(API_PARAMS, made_fg)
+    fg_id = get_field_group_id_key(API_PARAMS, fg)
+    print("fg: {}, fg_id: {}".format(fg, fg_id))
+
     having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
 
     projects_with_fg_query = """
