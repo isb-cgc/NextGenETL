@@ -655,6 +655,9 @@ def flatten_case(case, is_webapp):
                     if base_id_name in fg_entry:
                         flat_case[fg_key][j].pop(base_id_name)
 
+    print(case)
+    print(flat_case)
+
     return flat_case
 
 
