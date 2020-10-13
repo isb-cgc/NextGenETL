@@ -843,6 +843,8 @@ def update_table_metadata():
 
         metadata_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['TABLE_METADATA_DIR'], json_file)
 
+        print(metadata_fp)
+
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
 
@@ -858,8 +860,7 @@ def update_schema():
     fields_file = BQ_PARAMS['FIELD_DESC_FILE_PREFIX'] + '_'
     fields_file += get_rel_prefix(BQ_PARAMS) + '.json'
 
-    field_desc_fp = get_schema_metadata_fp(
-        BQ_PARAMS, BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
+    field_desc_fp = get_schema_metadata_fp(BQ_PARAMS, BQ_PARAMS['FIELD_DESC_DIR'], fields_file)
 
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
