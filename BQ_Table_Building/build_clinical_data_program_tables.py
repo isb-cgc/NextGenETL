@@ -1160,8 +1160,7 @@ def main(args):
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
 
-        print(program_fgs)
-        exit()
+        # print(program_fgs)
 
     for program in programs:
         prog_start = time.time()
