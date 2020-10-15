@@ -23,51 +23,104 @@ SOFTWARE.
 old_rel = 'r25'
 new_rel = 'r26'
 
-# comparing two releases, which field_paths only appear in one
+# comparing two releases, which fields only appear in one
 field_diff = """
-    SELECT field_path, table_name FROM
-     `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-    WHERE field_path in
-      (SELECT field_path FROM
-       `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-       where (table_name='{}_clinical' or table_name='{}_clinical')
+    SELECT table_name AS release, field_path AS field
+    FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+    WHERE field_path IN (
+        SELECT field_path 
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE table_name='{}_clinical' 
+            OR table_name='{}_clinical'
        GROUP BY field_path
-       HAVING count(field_path) <= 1
-       )
+       HAVING COUNT(field_path) <= 1)
 """.format(old_rel, new_rel)
 
 
 # comparing two releases for contradictory data types
 data_type_diff = """
-    SELECT field_path, data_type, count(field_path) as cnt FROM
-    `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-    where (table_name='{}_clinical' or table_name='{}_clinical') 
-    AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
+    SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
+    FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+    WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+        AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
     GROUP BY field_path, data_type 
-    HAVING cnt <= 1
+    HAVING distinct_data_type_cnt <= 1
 """.format(old_rel, new_rel)
 
 
-new_case_ids = """
-    SELECT * FROM
-       `isb-project-zero`.GDC_Clinical_Data.{}_clinical
-       where case_id not in (
-        SELECT case_id FROM
-        `isb-project-zero`.GDC_Clinical_Data.{}_clinical
-       )
+# if param 1 is new release and param 2 is old release, find added case_ids; else, find removed
+diff_case_ids = """
+    SELECT * 
+    FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical
+    WHERE case_id NOT IN (
+        SELECT case_id 
+        FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical)
 """.format(new_rel, old_rel)
 
 
-removed_case_ids = """
-SELECT * FROM
-   `isb-project-zero`.GDC_Clinical_Data.{}_clinical
-   where case_id not in (
-    SELECT case_id FROM
-    `isb-project-zero`.GDC_Clinical_Data.{}_clinical
-   )
+# diff table counts
+programs_with_different_number_of_tables_query = """
+    WITH old_table_cnts AS (
+      SELECT program, COUNT(program) AS num_tables 
+      FROM (
+        SELECT els[OFFSET(1)] AS program
+        FROM (
+          SELECT SPLIT(table_name, '_') AS els
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{}%'))
+      WHERE program != 'clinical'
+      GROUP BY program
+    ),
+    new_table_cnts AS (
+      SELECT program, COUNT(program) AS num_tables 
+      FROM (
+        SELECT els[OFFSET(1)] AS program
+        FROM (
+          SELECT SPLIT(table_name, '_') AS els
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{}%'))
+      WHERE program != 'clinical'
+      GROUP BY program
+    )
+    
+    SELECT  o.program AS prev_rel_program_name, 
+            n.program AS new_rel_program_name, 
+            o.num_tables AS prev_table_cnt, 
+            n.num_tables AS new_table_cnt
+    FROM new_table_cnts n
+    FULL OUTER JOIN old_table_cnts o
+      ON o.program = n.program
+    WHERE o.num_tables != n.num_tables
+      OR o.num_tables IS NULL or n.num_tables IS NULL
+    ORDER BY n.num_tables DESC
 """.format(old_rel, new_rel)
 
+# get tables list
+program_tables_list_query = """
+    SELECT (
+        SELECT els[OFFSET(1)] AS program
+    ) AS program,
+    (
+        SELECT TRIM(STRING_AGG(table_fg, ' '), '0 ')
+        FROM UNNEST(els) AS table_fg 
+        WITH OFFSET index
+        WHERE index BETWEEN 2 AND 100
+    ) AS table_name
+    FROM (
+        SELECT SPLIT(table_name, '_') AS els
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+        WHERE table_name LIKE '{}%'
+        AND table_name != '{}_clinical')
+    ORDER BY program
+""".format(new_rel)
 
+
+
+#### END CASES DATA VALIDATION
+
+
+
+# not for validation -- shows where naming conflicts could occur
 repeated_fields = """
     SELECT field, count(field) AS occur 
     FROM (  SELECT ARRAY_REVERSE(SPLIT(field_path, '.'))[OFFSET(0)] as field
@@ -109,13 +162,3 @@ biospecimen_stub = """
 """.format(new_rel)
 
 
-"""
-select program, count(program) AS num_tables FROM (SELECT
-els[OFFSET(1)] AS program
-FROM (SELECT SPLIT(table_name, '_') AS els
-  FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-  WHERE table_name LIKE 'r25%' LIMIT 30))
-  group by program
-  order by num_tables desc
-  
-"""

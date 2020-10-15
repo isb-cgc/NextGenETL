@@ -1014,37 +1014,6 @@ def make_biospecimen_stub_tables(program):
 #    Script execution
 
 
-def output_report(start, steps):
-    """
-    Outputs a basic report of script's results, including total processing
-    time and which steps were specified in YAML.
-    :param start: float representing script's start time.
-    :param steps: set of steps to be performed (configured in YAML)
-    """
-    seconds = time.time() - start
-    console_out("Script executed in {0}\n", (format_seconds(seconds),))
-
-    console_out("Steps completed: ")
-
-    if 'create_biospecimen_stub_tables' in steps:
-        console_out('\t - created biospecimen stub tables for webapp use')
-    if 'create_webapp_tables' in steps:
-        console_out('\t - created tables for webapp use')
-    if 'create_and_load_tables' in steps:
-        console_out('\t - created tables and inserted data')
-    if 'update_table_metadata' in steps:
-        console_out('\t - added/updated table metadata')
-    if 'update_schema' in steps:
-        console_out('\t - updated table field descriptions')
-    if 'copy_tables_into_production' in steps:
-        console_out('\t - copied tables into production (public-facing bq tables)')
-    if 'validate_data' in steps:
-        console_out('\t - validated data (tests not considered exhaustive)')
-    if 'generate_documentation' in steps:
-        console_out('\t - generated documentation')
-    console_out('\n\n')
-
-
 def create_tables(program, cases, schema, is_webapp=False):
     """
     Run the overall script which creates schemas, modifies data, prepares it for loading,
@@ -1085,6 +1054,66 @@ def create_tables(program, cases, schema, is_webapp=False):
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
     # todo sticking in here
+
+
+def make_release_fields_comparison_query(old_rel, new_rel):
+    return """
+        SELECT table_name AS release, field_path AS field
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE field_path IN (
+            SELECT field_path 
+            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE table_name='{}_clinical' 
+                OR table_name='{}_clinical'
+           GROUP BY field_path
+           HAVING COUNT(field_path) <= 1)
+    """.format(old_rel, new_rel)
+
+
+def find_release_changed_data_types_query(old_rel, new_rel):
+    return """
+        SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+            AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
+        GROUP BY field_path, data_type 
+        HAVING distinct_data_type_cnt <= 1
+    """.format(old_rel, new_rel)
+
+
+def validate_data():
+    pass
+
+
+def output_report(start, steps):
+    """
+    Outputs a basic report of script's results, including total processing
+    time and which steps were specified in YAML.
+    :param start: float representing script's start time.
+    :param steps: set of steps to be performed (configured in YAML)
+    """
+    seconds = time.time() - start
+    console_out("Script executed in {0}\n", (format_seconds(seconds),))
+
+    console_out("Steps completed: ")
+
+    if 'create_biospecimen_stub_tables' in steps:
+        console_out('\t - created biospecimen stub tables for webapp use')
+    if 'create_webapp_tables' in steps:
+        console_out('\t - created tables for webapp use')
+    if 'create_and_load_tables' in steps:
+        console_out('\t - created tables and inserted data')
+    if 'update_table_metadata' in steps:
+        console_out('\t - added/updated table metadata')
+    if 'update_schema' in steps:
+        console_out('\t - updated table field descriptions')
+    if 'copy_tables_into_production' in steps:
+        console_out('\t - copied tables into production (public-facing bq tables)')
+    if 'validate_data' in steps:
+        console_out('\t - validated data (tests not considered exhaustive)')
+    if 'generate_documentation' in steps:
+        console_out('\t - generated documentation')
+    console_out('\n\n')
 
 
 def main(args):
@@ -1226,9 +1255,6 @@ def main(args):
 
     if 'validate_data' in steps:
         pass  # todo: integrate the queries in compare_clinical_gdc_api_releases.py
-
-    if 'output_changes' in steps:
-        pass  # todo
 
     output_report(start, steps)
 
