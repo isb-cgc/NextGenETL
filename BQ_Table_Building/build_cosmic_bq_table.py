@@ -101,10 +101,10 @@ def clean_file_names(file_name):
     if split_name[0] == "classification":
         final_name = split_name[0]
     elif len(split_name) > 1:
-        new_name = [x.capitalize() for x in split_name]
-        if new_name[0] == "Ascat":
+        new_name = [x.lower() for x in split_name]
+        if new_name[0] == "ascat":
             new_name[0] = "ASCAT"
-            new_name[1] = "Purity"
+            new_name[1] = "purity"
             final_name = '_'.join(new_name)
         else:
             final_name = '_'.join(new_name)
@@ -119,9 +119,9 @@ def clean_file_names(file_name):
             final_name = ''.join(new_name)
         elif new_name[0] == "Complete":
             abv = ''.join(new_name[1:len(new_name)])
-            final_name = ''.join([new_name[0], "_", abv])
+            final_name = ''.join([new_name[0].lower(), "_", abv])
         else:
-            final_name = '_'.join(new_name)
+            final_name = '_'.join([x.lower() for x in new_name])
     return final_name
 
 '''
