@@ -963,13 +963,11 @@ def copy_tables_into_public_project():
     for metadata_file in get_metadata_files():
         src_table_id, curr_table_id, vers_table_id = convert_json_to_table_id(BQ_PARAMS, metadata_file)
 
-        print("\t{}\n\t{}\n\t{}".format(src_table_id, curr_table_id, vers_table_id))
-
         if not exists_bq_table(src_table_id):
             console_out('No table found for file (skipping): {0}', (metadata_file,))
             continue
 
-        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)  # todo remove
+        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
         copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
         update_friendly_name(BQ_PARAMS, vers_table_id)
 
