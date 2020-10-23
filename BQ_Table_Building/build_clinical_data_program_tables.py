@@ -1081,9 +1081,12 @@ def find_release_changed_data_types_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def make_field_diff_query(old_rel, new_rel):
+def make_field_diff_query(old_rel, new_rel, removed_fields):
+
+    check_rel = old_rel if removed_fields else new_rel
+
     return """
-        SELECT table_name AS release, field_path AS field
+        SELECT field_path AS field
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
         WHERE field_path IN (
             SELECT field_path 
@@ -1092,7 +1095,8 @@ def make_field_diff_query(old_rel, new_rel):
                 OR table_name='{}_clinical'
            GROUP BY field_path
            HAVING COUNT(field_path) <= 1)
-    """.format(old_rel, new_rel)
+       AND table_name='{}_clinical'
+    """.format(old_rel, new_rel, check_rel)
 
 
 def make_datatype_diff_query(old_rel, new_rel):
@@ -1178,10 +1182,18 @@ def get_data_diff():
     old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(BQ_PARAMS)
 
-    print("old rel: {}, new rel: {}".format(old_rel, new_rel))
-    field_diff_res = get_query_results(make_field_diff_query(old_rel, new_rel))
+    # which fields have been removed?
+    removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
 
-    for row in field_diff_res:
+    # which fields were added?
+    added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
+
+    print("Removed fields:")
+    for row in removed_fields_res:
+        print(row)
+
+    print("Added fields:")
+    for row in added_fields_res:
         print(row)
 
 
