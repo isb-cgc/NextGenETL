@@ -23,8 +23,6 @@ import copy
 
 from common_etl.utils import *
 
-# from temp.gdc_clinical_resources_OLD.generate_docs import generate_docs
-
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
@@ -967,7 +965,9 @@ def copy_tables_into_public_project():
             console_out('No table found for file (skipping): {0}', (metadata_file,))
             continue
 
+        console_out("Publishing {}".format(vers_table_id))
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
+        console_out("Publishing {}".format(curr_table_id))
         copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
         update_friendly_name(BQ_PARAMS, vers_table_id)
 
@@ -1081,8 +1081,105 @@ def find_release_changed_data_types_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def validate_data():
-    pass
+def make_field_diff_query(old_rel, new_rel):
+    return """
+        SELECT table_name AS release, field_path AS field
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE field_path IN (
+            SELECT field_path 
+            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE table_name='{}_clinical' 
+                OR table_name='{}_clinical'
+           GROUP BY field_path
+           HAVING COUNT(field_path) <= 1)
+    """.format(old_rel, new_rel)
+
+
+def make_datatype_diff_query(old_rel, new_rel):
+    return """
+        SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+            AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
+        GROUP BY field_path, data_type 
+        HAVING distinct_data_type_cnt <= 1
+    """.format(old_rel, new_rel)
+
+
+def make_case_ids_diff_query(old_rel, new_rel):
+    return """
+        SELECT * 
+        FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical
+        WHERE case_id NOT IN (
+            SELECT case_id 
+            FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical)
+    """.format(new_rel, old_rel)
+
+
+def make_tables_diff_query(old_rel, new_rel):
+    return """
+        WITH old_table_cnts AS (
+          SELECT program, COUNT(program) AS num_tables 
+          FROM (
+            SELECT els[OFFSET(1)] AS program
+            FROM (
+              SELECT SPLIT(table_name, '_') AS els
+              FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+              WHERE table_name LIKE '{}%'))
+          WHERE program != 'clinical'
+          GROUP BY program
+        ),
+        new_table_cnts AS (
+          SELECT program, COUNT(program) AS num_tables 
+          FROM (
+            SELECT els[OFFSET(1)] AS program
+            FROM (
+              SELECT SPLIT(table_name, '_') AS els
+              FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+              WHERE table_name LIKE '{}%'))
+          WHERE program != 'clinical'
+          GROUP BY program
+        )
+
+        SELECT  o.program AS prev_rel_program_name, 
+                n.program AS new_rel_program_name, 
+                o.num_tables AS prev_table_cnt, 
+                n.num_tables AS new_table_cnt
+        FROM new_table_cnts n
+        FULL OUTER JOIN old_table_cnts o
+          ON o.program = n.program
+        WHERE o.num_tables != n.num_tables
+          OR o.num_tables IS NULL or n.num_tables IS NULL
+        ORDER BY n.num_tables DESC
+    """.format(old_rel, new_rel)
+
+
+def make_program_tables_list_query(new_rel):
+    return """
+        SELECT (
+            SELECT els[OFFSET(1)] AS program
+        ) AS program,
+        (
+            SELECT TRIM(STRING_AGG(table_fg, ' '), '0 ')
+            FROM UNNEST(els) AS table_fg 
+            WITH OFFSET index
+            WHERE index BETWEEN 2 AND 100
+        ) AS table_name
+        FROM (
+            SELECT SPLIT(table_name, '_') AS els
+            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '{}%'
+            AND table_name != '{}_clinical')
+        ORDER BY program
+    """.format(new_rel)
+
+
+def get_data_diff():
+    old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
+    new_rel = get_rel_prefix(BQ_PARAMS)
+    field_dif_res = get_query_results(make_field_diff_query(old_rel, new_rel))
+
+    print(field_dif_res)
 
 
 def output_report(start, steps):
@@ -1110,7 +1207,7 @@ def output_report(start, steps):
     if 'copy_tables_into_production' in steps:
         console_out('\t - copied tables into production (public-facing bq tables)')
     if 'validate_data' in steps:
-        console_out('\t - validated data (tests not considered exhaustive)')
+        console_out('\t - validated data')
     if 'generate_documentation' in steps:
         console_out('\t - generated documentation')
     console_out('\n\n')
@@ -1193,7 +1290,12 @@ def main(args):
 
     for program in programs:
         prog_start = time.time()
-        console_out("\nRunning script for program: {0}...", (program,))
+        if (
+                'create_biospecimen_stub_tables' in steps or
+                'create_webapp_tables' in steps or
+                'create_and_load_tables' in steps
+        ):
+            console_out("\nRunning script for program: {0}...", (program,))
 
         if 'create_biospecimen_stub_tables' in steps:
             '''
@@ -1249,12 +1351,8 @@ def main(args):
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
 
-    if 'generate_documentation' in steps:
-        pass
-        # generate_docs(API_PARAMS, BQ_PARAMS) # todo
-
     if 'validate_data' in steps:
-        pass  # todo: integrate the queries in compare_clinical_gdc_api_releases.py
+        get_data_diff()
 
     output_report(start, steps)
 
