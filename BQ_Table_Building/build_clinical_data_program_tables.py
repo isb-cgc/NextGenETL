@@ -1232,7 +1232,7 @@ def get_data_diff():
 
     # any case ids removed?
     console_out("Removed case ids:")
-    removed_case_ids_res = make_removed_case_ids_query(old_rel, new_rel)
+    removed_case_ids_res = get_query_results(make_removed_case_ids_query(old_rel, new_rel))
 
     if removed_case_ids_res.total_rows == 0:
         console_out("none detected")
@@ -1242,7 +1242,7 @@ def get_data_diff():
 
     # any case ids added?
     console_out("Added case id counts:")
-    added_case_ids_res = make_added_case_ids_query(old_rel, new_rel)
+    added_case_ids_res = get_query_results(make_added_case_ids_query(old_rel, new_rel))
 
     if added_case_ids_res.total_rows == 0:
         console_out("none detected")
