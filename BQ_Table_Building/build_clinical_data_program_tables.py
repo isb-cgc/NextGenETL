@@ -1198,6 +1198,14 @@ def get_data_diff():
     for row in added_fields_res:
         console_out(row[0])
 
+    datatype_diff_res = get_query_results(make_datatype_diff_query(old_rel, new_rel))
+
+    for row in datatype_diff_res:
+        console_out(row)
+
+
+    console_out("\n--- End Report ---\n")
+
 
 def output_report(start, steps):
     """
