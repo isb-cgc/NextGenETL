@@ -1113,13 +1113,26 @@ def make_datatype_diff_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def make_case_ids_diff_query(old_rel, new_rel):
+def make_removed_case_ids_query(old_rel, new_rel):
     return """
-        SELECT * 
-        FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical
+        SELECT case_id, project.project_id
+        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        CROSS JOIN UNNEST(project) as project
         WHERE case_id NOT IN (
             SELECT case_id 
-            FROM `isb-project-zero`.GDC_Clinical_Data.{}_clinical)
+            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)    
+    """.format(old_rel, new_rel)
+
+
+def make_added_case_ids_query(old_rel, new_rel):
+    return """
+        SELECT project.project_id, count(case_id) as new_case_cnt
+        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        CROSS JOIN UNNEST(project) as project
+        WHERE case_id NOT IN (
+            SELECT case_id 
+            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)
+        GROUP BY project.project_id
     """.format(new_rel, old_rel)
 
 
@@ -1189,31 +1202,53 @@ def get_data_diff():
 
     # which fields have been removed?
     removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
-
-    # which fields were added?
-    added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
-
     console_out("\nRemoved fields:")
+
     if removed_fields_res.total_rows == 0:
         console_out("none detected")
     else:
         for row in removed_fields_res:
             console_out(row[0])
 
+    # which fields were added?
+    added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
     console_out("\nAdded fields:")
+
     if added_fields_res.total_rows == 0:
         console_out("none detected")
     else:
         for row in added_fields_res:
             console_out(row[0])
 
+    # any changes in field data type?
     datatype_diff_res = get_query_results(make_datatype_diff_query(old_rel, new_rel))
+    console_out("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
         console_out("none detected")
     else:
         for row in datatype_diff_res:
-            console_out(row)
+            console_out(row[0])
+
+    # any case ids removed?
+    console_out("Removed case ids:")
+    removed_case_ids_res = make_removed_case_ids_query(old_rel, new_rel)
+
+    if removed_case_ids_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in datatype_diff_res:
+            console_out(row[0])
+
+    # any case ids added?
+    console_out("Added case id counts:")
+    added_case_ids_res = make_added_case_ids_query(old_rel, new_rel)
+
+    if added_case_ids_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in datatype_diff_res:
+            console_out("{}: {}".format(row[0], row[1]))
 
     console_out("\n--- End Report ---\n")
 
