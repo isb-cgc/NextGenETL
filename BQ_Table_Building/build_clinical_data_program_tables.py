@@ -1101,12 +1101,15 @@ def make_field_diff_query(old_rel, new_rel, removed_fields):
 
 def make_datatype_diff_query(old_rel, new_rel):
     return """
-        SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
-        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-        WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+        WITH data_types as (SELECT field_path, data_type
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+          WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
             AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
-        GROUP BY field_path, data_type 
-        HAVING distinct_data_type_cnt <= 1
+          GROUP BY field_path, data_type)
+        SELECT field_path
+        FROM data_types
+        GROUP BY field_path
+        HAVING COUNT(field_path) > 1
     """.format(old_rel, new_rel)
 
 
@@ -1191,18 +1194,26 @@ def get_data_diff():
     added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
 
     console_out("\nRemoved fields:")
-    for row in removed_fields_res:
-        console_out(row[0])
+    if removed_fields_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in removed_fields_res:
+            console_out(row[0])
 
     console_out("\nAdded fields:")
-    for row in added_fields_res:
-        console_out(row[0])
+    if added_fields_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in added_fields_res:
+            console_out(row[0])
 
     datatype_diff_res = get_query_results(make_datatype_diff_query(old_rel, new_rel))
 
-    for row in datatype_diff_res:
-        console_out(row)
-
+    if datatype_diff_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in datatype_diff_res:
+            console_out(row)
 
     console_out("\n--- End Report ---\n")
 
