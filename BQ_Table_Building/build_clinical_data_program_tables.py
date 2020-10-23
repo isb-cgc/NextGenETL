@@ -1172,24 +1172,23 @@ def make_tables_diff_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def make_program_tables_list_query(new_rel):
+def make_new_table_list_query(old_rel, new_rel):
     return """
-        SELECT (
-            SELECT els[OFFSET(1)] AS program
-        ) AS program,
-        (
-            SELECT TRIM(STRING_AGG(table_fg, ' '), '0 ')
-            FROM UNNEST(els) AS table_fg 
-            WITH OFFSET index
-            WHERE index BETWEEN 2 AND 100
-        ) AS table_name
-        FROM (
-            SELECT SPLIT(table_name, '_') AS els
-            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '{}%'
-            AND table_name != '{}_clinical')
-        ORDER BY program
-    """.format(new_rel)
+        WITH old_tables AS (
+          SELECT table_name
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{0}%'
+          ORDER BY table_name),
+        new_tables AS (
+          SELECT table_name
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{1}%'
+          ORDER BY table_name)
+        
+        SELECT table_name
+        FROM new_tables 
+        WHERE LTRIM(table_name, '{1}_') NOT IN (SELECT LTRIM(table_name, '{0}_') FROM old_tables)
+    """.format(old_rel, new_rel)
 
 
 def get_data_diff():
@@ -1203,7 +1202,7 @@ def get_data_diff():
     console_out("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in removed_fields_res:
             console_out(row[0])
@@ -1213,7 +1212,7 @@ def get_data_diff():
     console_out("\nAdded fields:")
 
     if added_fields_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in added_fields_res:
             console_out(row[0])
@@ -1223,7 +1222,7 @@ def get_data_diff():
     console_out("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in datatype_diff_res:
             console_out(row[0])
@@ -1233,7 +1232,7 @@ def get_data_diff():
     removed_case_ids_res = get_query_results(make_removed_case_ids_query(old_rel, new_rel))
 
     if removed_case_ids_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in removed_case_ids_res:
             console_out(row[0])
@@ -1243,7 +1242,7 @@ def get_data_diff():
     added_case_ids_res = get_query_results(make_added_case_ids_query(old_rel, new_rel))
 
     if added_case_ids_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in added_case_ids_res:
             console_out("{}: {} new case ids".format(row[0], row[1]))
@@ -1253,16 +1252,26 @@ def get_data_diff():
     table_count_res = get_query_results(make_tables_diff_query(old_rel, new_rel))
 
     if table_count_res.total_rows == 0:
-        console_out("none detected")
+        console_out("none")
     else:
         for row in table_count_res:
             program_name = row[0] if row[0] else row[1]
             prev_table_cnt = 0 if not row[2] else row[2]
             new_table_cnt = 0 if not row[3] else row[3]
 
-            console_out("{}: {} tables in {}, {} tables in {}".format(program_name,
-                                                                      prev_table_cnt, old_rel,
-                                                                      new_table_cnt, new_rel))
+            console_out("{}: {} table(s) in {}, {} table(s) in {}".format(program_name,
+                                                                          prev_table_cnt, old_rel,
+                                                                          new_table_cnt, new_rel))
+
+    console_out("Added tables: ")
+    added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
+
+    if added_table_res.total_rows == 0:
+        console_out("none")
+    else:
+        for row in added_table_res:
+            console_out(row[0])
+
 
     console_out("\n--- End Report ---\n")
 
