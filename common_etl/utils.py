@@ -325,6 +325,8 @@ def convert_json_to_table_id(bq_params, json_file):
     repositories
     """
     split_json = json_file.split('.')
+    print("split: {}".format(split_json))
+
     dest_table = "_".join(split_json[2].split('_')[:-1])
 
     dev_project = bq_params['DEV_PROJECT']
