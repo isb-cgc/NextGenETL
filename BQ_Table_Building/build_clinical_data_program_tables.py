@@ -1053,7 +1053,6 @@ def create_tables(program, cases, schema, is_webapp=False):
         schemas = create_schema_lists(schema, record_counts, merged_orders)
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
-    # todo sticking in here
 
 
 def make_release_fields_comparison_query(old_rel, new_rel):
@@ -1082,7 +1081,6 @@ def find_release_changed_data_types_query(old_rel, new_rel):
 
 
 def make_field_diff_query(old_rel, new_rel, removed_fields):
-
     check_rel = old_rel if removed_fields else new_rel
 
     return """
@@ -1248,7 +1246,23 @@ def get_data_diff():
         console_out("none detected")
     else:
         for row in added_case_ids_res:
-            console_out("{}: {}".format(row[0], row[1]))
+            console_out("{}: {} new case ids".format(row[0], row[1]))
+
+    # any case ids added?
+    console_out("\nTable count changes: ")
+    table_count_res = get_query_results(make_tables_diff_query(old_rel, new_rel))
+
+    if table_count_res.total_rows == 0:
+        console_out("none detected")
+    else:
+        for row in table_count_res:
+            program_name = row[0] if row[0] else row[1]
+            prev_table_cnt = 0 if not row[2] else row[2]
+            new_table_cnt = 0 if not row[3] else row[2]
+
+            console_out("{}: {} tables in {}, {} tables in {}".format(program_name,
+                                                                      prev_table_cnt, old_rel,
+                                                                      new_table_cnt, new_rel))
 
     console_out("\n--- End Report ---\n")
 
