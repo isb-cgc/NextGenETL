@@ -1190,11 +1190,11 @@ def get_data_diff():
 
     print("Removed fields:")
     for row in removed_fields_res:
-        print(row)
+        print(row[0])
 
     print("Added fields:")
     for row in added_fields_res:
-        print(row)
+        print(row[0])
 
 
 def output_report(start, steps):
