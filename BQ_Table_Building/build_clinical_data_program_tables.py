@@ -1177,9 +1177,10 @@ def make_program_tables_list_query(new_rel):
 def get_data_diff():
     old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(BQ_PARAMS)
-    field_dif_res = get_query_results(make_field_diff_query(old_rel, new_rel))
+    field_diff_res = get_query_results(make_field_diff_query(old_rel, new_rel))
 
-    print(field_dif_res)
+    for row in field_diff_res:
+        print(row)
 
 
 def output_report(start, steps):
