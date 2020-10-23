@@ -977,7 +977,7 @@ def get_fgs_and_id_keys(api_params):
     return id_key_dict
 
 
-def copy_bq_table(bq_params, src_table, dest_table):
+def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
     """Copy an existing BQ table into a new location.
 
     :param bq_params: bq param object from yaml config
@@ -986,11 +986,16 @@ def copy_bq_table(bq_params, src_table, dest_table):
     """
     client = bigquery.Client()
 
-    bq_job = client.copy_table(src_table, dest_table)
+    job_config = bigquery.CopyJobConfig()
+
+    if replace_table:
+        job_config.write_disposition = "WRITE_TRUNCATE"
+
+    bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
 
     if await_job(bq_params, client, bq_job):
         console_out("Successfully copied table:")
-        console_out("src:  {0}\n dest: {1}\n", (src_table, dest_table))
+        console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
 
 
 def create_and_load_table(bq_params, jsonl_file, schema, table_id):
