@@ -1258,7 +1258,7 @@ def get_data_diff():
         for row in table_count_res:
             program_name = row[0] if row[0] else row[1]
             prev_table_cnt = 0 if not row[2] else row[2]
-            new_table_cnt = 0 if not row[3] else row[2]
+            new_table_cnt = 0 if not row[3] else row[3]
 
             console_out("{}: {} tables in {}, {} tables in {}".format(program_name,
                                                                       prev_table_cnt, old_rel,
