@@ -115,9 +115,7 @@ program_tables_list_query = """
 """.format(new_rel)
 
 
-
 #### END CASES DATA VALIDATION
-
 
 
 # not for validation -- shows where naming conflicts could occur
@@ -160,5 +158,3 @@ biospecimen_stub = """
         WHERE pos1 = pos2
         ORDER BY proj, case_gdc_id
 """.format(new_rel)
-
-
