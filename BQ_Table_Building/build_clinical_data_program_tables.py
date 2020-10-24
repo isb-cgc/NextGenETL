@@ -1209,7 +1209,7 @@ def get_data_diff():
 
     # which fields were added?
     added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
-    console_out("\nAdded fields:")
+    console_out("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
         console_out("none")
@@ -1271,7 +1271,6 @@ def get_data_diff():
     else:
         for row in added_table_res:
             console_out(row[0])
-
 
     console_out("\n--- End Report ---\n")
 
