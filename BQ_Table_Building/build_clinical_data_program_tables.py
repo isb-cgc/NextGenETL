@@ -1195,7 +1195,7 @@ def get_data_diff():
     old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(BQ_PARAMS)
 
-    console_out("\n--- Report: Differences between {} and {} ---".format(old_rel, new_rel))
+    console_out("\n*** {} -> {} GDC CLinical Data Comparision Report ***".format(old_rel, new_rel))
 
     # which fields have been removed?
     removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
@@ -1272,7 +1272,7 @@ def get_data_diff():
         for row in added_table_res:
             console_out(row[0])
 
-    console_out("\n--- End Report ---\n")
+    console_out("\n*** End Report ***\n\n")
 
 
 def output_report(start, steps):
