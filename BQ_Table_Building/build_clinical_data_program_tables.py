@@ -960,7 +960,6 @@ def change_status_to_archived(table_id):
     stripped_table_id = table_id.replace(current_release_tag, "")
     previous_release_tag = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     prev_table_id = stripped_table_id + previous_release_tag
-    print("prev table_id: {}".format(table_id))
 
     try:
         prev_table = client.get_table(prev_table_id)
