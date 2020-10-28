@@ -962,12 +962,15 @@ def change_status_to_archived(table_id):
     prev_table_id = stripped_table_id + previous_release_tag
     print("prev table_id: {}".format(table_id))
 
-    prev_table = client.get_table(prev_table_id)
-    prev_table.labels['status'] = 'archived'
-    print("labels: {}".format(prev_table.labels))
-    client.update_table(prev_table, ["labels"])
+    try:
+        prev_table = client.get_table(prev_table_id)
+        prev_table.labels['status'] = 'archived'
+        print("labels: {}".format(prev_table.labels))
+        client.update_table(prev_table, ["labels"])
 
-    assert prev_table.labels['status'] == 'archived'
+        assert prev_table.labels['status'] == 'archived'
+    except NotFound:
+        print("Not writing archived label for table that didn't exist in a previous version.")
 
 
 def copy_tables_into_public_project():
