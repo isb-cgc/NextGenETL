@@ -954,6 +954,22 @@ def update_clin_schema():
         update_schema(table_id, descriptions)
 
 
+def change_status_to_archived(table_id):
+    client = bigquery.Client()
+    current_release_tag = get_rel_prefix(BQ_PARAMS)
+    stripped_table_id = table_id.replace(current_release_tag, "")
+    previous_release_tag = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
+    prev_table_id = stripped_table_id + previous_release_tag
+    print("prev table_id: {}".format(table_id))
+
+    prev_table = client.get_table(prev_table_id)
+    prev_table.labels['status'] = 'archived'
+    print("labels: {}".format(prev_table.labels))
+    client.update_table(prev_table, ["labels"])
+
+    assert prev_table.labels['status'] == 'archived'
+
+
 def copy_tables_into_public_project():
     """Move production-ready bq tables onto the public-facing production server.
 
@@ -966,10 +982,12 @@ def copy_tables_into_public_project():
             continue
 
         console_out("Publishing {}".format(vers_table_id))
-        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
+        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
         console_out("Publishing {}".format(curr_table_id))
         copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
+
         update_friendly_name(BQ_PARAMS, vers_table_id)
+        change_status_to_archived(vers_table_id)
 
 
 #    Webapp specific functions
@@ -1191,18 +1209,18 @@ def make_new_table_list_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def get_data_diff():
+def compare_gdc_releases():
     old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(BQ_PARAMS)
 
-    console_out("\n*** {} -> {} GDC CLinical Data Comparision Report ***".format(old_rel, new_rel))
+    console_out("\n\n*** {} -> {} GDC Clinical Data Comparison Report ***".format(old_rel, new_rel))
 
     # which fields have been removed?
     removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
     console_out("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in removed_fields_res:
             console_out(row[0])
@@ -1212,7 +1230,7 @@ def get_data_diff():
     console_out("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in added_fields_res:
             console_out(row[0])
@@ -1222,7 +1240,7 @@ def get_data_diff():
     console_out("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in datatype_diff_res:
             console_out(row[0])
@@ -1232,7 +1250,7 @@ def get_data_diff():
     removed_case_ids_res = get_query_results(make_removed_case_ids_query(old_rel, new_rel))
 
     if removed_case_ids_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in removed_case_ids_res:
             console_out(row[0])
@@ -1242,7 +1260,7 @@ def get_data_diff():
     added_case_ids_res = get_query_results(make_added_case_ids_query(old_rel, new_rel))
 
     if added_case_ids_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in added_case_ids_res:
             console_out("{}: {} new case ids".format(row[0], row[1]))
@@ -1252,7 +1270,7 @@ def get_data_diff():
     table_count_res = get_query_results(make_tables_diff_query(old_rel, new_rel))
 
     if table_count_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in table_count_res:
             program_name = row[0] if row[0] else row[1]
@@ -1267,7 +1285,7 @@ def get_data_diff():
     added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
 
     if added_table_res.total_rows == 0:
-        console_out("none")
+        console_out("<none>")
     else:
         for row in added_table_res:
             console_out(row[0])
@@ -1379,8 +1397,6 @@ def main(args):
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
 
-        # print(program_fgs)
-
     for program in programs:
         prog_start = time.time()
         if (
@@ -1399,11 +1415,7 @@ def main(args):
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
-            cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
-
             cases = get_cases_by_program(BQ_PARAMS, program)
-
-            exit()
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
@@ -1414,9 +1426,7 @@ def main(args):
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
-                print("created schema")
                 webapp_cases = copy.deepcopy(cases)
-                print("copied cases")
                 create_tables(program, webapp_cases, schema, is_webapp=True)
 
             if 'create_and_load_tables' in steps:
@@ -1445,7 +1455,7 @@ def main(args):
         copy_tables_into_public_project()
 
     if 'validate_data' in steps:
-        get_data_diff()
+        compare_gdc_releases()
 
     output_report(start, steps)
 

@@ -796,20 +796,16 @@ def create_schema_dict(api_params, bq_params, is_webapp=False):
 
     schema_list = []
 
-    print("1")
-
     for schema_field in bq_table.schema:
         schema_list.append(schema_field.to_api_repr())
 
     schema = dict()
-    print("2")
 
     parse_bq_schema_obj(api_params=api_params,
                         schema=schema,
                         fg=get_base_fg(api_params),
                         schema_list=schema_list,
                         is_webapp=is_webapp)
-    print("3")
 
     return schema
 
@@ -841,36 +837,6 @@ def get_cases_by_program(bq_params, program):
         cases.append(case_items)
 
     end_time = time.time() - start_time
-    print("get_cases_by_program benchmark: {}".format(format_seconds(end_time)))
-
-    return cases
-
-
-def get_cases_by_program_2(bq_params, program):
-    """Get a dict obj containing all the cases associated with a given program.
-
-    :param bq_params: bq param object from yaml config
-    :param program: the program from which the cases originate
-    :return: cases dict
-    """
-    start_time = time.time()
-    cases = []
-
-    query = """
-        SELECT *
-        FROM `{0}` as c
-        INNER JOIN `{1}` as b
-        ON c.case_id = b.case_gdc_id
-    """.format(get_working_table_id(bq_params),
-               get_biospecimen_table_id(bq_params, program))
-
-    for case_row in get_query_results(query):
-        case_items = dict(case_row.items())
-        case_items.pop('project')
-        cases.append(case_items)
-
-    end_time = time.time() - start_time
-    print("get_cases_by_program_2 benchmark: {}".format(format_seconds(end_time)))
 
     return cases
 
@@ -989,7 +955,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
     job_config = bigquery.CopyJobConfig()
 
     if replace_table:
-        job_config.write_disposition = "WRITE_TRUNCATE"
+        delete_bq_table(dest_table)
 
     bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
 
@@ -1062,7 +1028,7 @@ def delete_bq_table(table_id):
 
 
 def exists_bq_table(table_id):
-    """Determine whether bq_table exists or now.
+    """Determine whether bq_table exists.
 
     :param table_id: table id in standard SQL format
     :return: True if exists, False otherwise
