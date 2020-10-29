@@ -1119,6 +1119,24 @@ def is_uniprot_accession_number(id_str):
     return True
 
 
+def filter_uniprot_accession_nums(proteins_str):
+    uniprot_list = []
+
+    split_protein_list = proteins_str.split(';')
+
+    for protein in split_protein_list:
+        # doesn't include isoforms
+        if is_uniprot_accession_number(protein):
+            uniprot_list.append(protein)
+
+    uniprot_id_str = ";".join(uniprot_list)
+
+    if not uniprot_id_str:
+        uniprot_id_str = None
+
+    return uniprot_id_str
+
+
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
     build_start = time.time()
 
@@ -1414,6 +1432,10 @@ def main(args):
 
             for key in keys:
                 row_dict[key] = row.get(key)
+
+            uniprot_id_str = filter_uniprot_accession_nums(row_dict['proteins'])
+
+            row_dict['uniprot_accession_nums'] = uniprot_id_str
 
             row_list.append(row_dict)
 
