@@ -1415,6 +1415,8 @@ def main(args):
             for key in keys:
                 row_dict[key] = row.get(key)
 
+            row_list.append(row_dict)
+
         print(row_list)
 
     if 'analyze_gene_table' in steps:
