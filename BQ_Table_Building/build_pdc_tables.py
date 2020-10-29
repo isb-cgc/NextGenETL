@@ -1393,6 +1393,10 @@ def main(args):
                                      BQ_PARAMS['DEV_META_DATASET'],
                                      get_table_name(BQ_PARAMS['GENE_TABLE']))
 
+        old_gene_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_META_DATASET'],
+                                     get_table_name(BQ_PARAMS['GENE_TABLE'], 'old'))
+
         gene_table = client.get_table(gene_table_id)
         prev_gene_table_schema = gene_table.schema
         new_gene_table_schema = prev_gene_table_schema[:]
@@ -1403,7 +1407,11 @@ def main(args):
 
         assert len(new_gene_table_schema) == len(prev_gene_table_schema) + 1
 
+        delete_bq_table(old_gene_table_id)
+        copy_bq_table(BQ_PARAMS, gene_table_id, old_gene_table_id)
         gene_table = client.update_table(gene_table, ["schema"])
+
+        print("new schema: {}".format(gene_table.schema))
 
 
     if 'analyze_gene_table' in steps:
