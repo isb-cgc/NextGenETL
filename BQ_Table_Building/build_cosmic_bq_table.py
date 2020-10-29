@@ -283,8 +283,8 @@ def main(args):
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
             version = ''.join(['VERSION ', file_components[-1]])
             hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-            schema_tags = {'---tag-ref-genome-0---' : hg,
-                            '---tag-release---' : version}
+            schema_tags = {'---tag-ref-genome-0---': hg,
+                           '---tag-release---': version}
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
@@ -305,10 +305,10 @@ def main(args):
 
             if 'replace_schema_tags' in steps:
                 print('replace_schema_tags')
-                version = ''.join(['VERSION ', file_components[-1]])
-                hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-                schema_tags = {'---tag-ref-genome-0---': hg,
-                               '---tag-release---': version}
+                #version = ''.join(['VERSION ', file_components[-1]])
+                #hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
+                #schema_tags = {'---tag-ref-genome-0---': hg,
+                #               '---tag-release---': version}
                 tag_map_list = []
                 for tag in schema_tags:
                     use_pair = {tag : schema_tags[tag]}
@@ -332,7 +332,7 @@ def main(args):
             file = line.split('/')[-1]
             file_name, ext = os.path.splitext(file)
             file_components = file_name.split("_")
-            data_type = "_".join(file_components[0:(len(file_components) - 2)])
+            #data_type = "_".join(file_components[0:(len(file_components) - 2)])
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
 
             if 'upload_to_bucket' in steps:
