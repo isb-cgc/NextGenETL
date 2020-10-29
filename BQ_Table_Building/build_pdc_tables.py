@@ -1054,6 +1054,9 @@ def build_uniprot_tsv(dest_scratch_fp):
 
 
 def is_uniprot_accession_id(id_str):
+
+    # todo strip off isomer suffix (-1
+
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
     def is_alphanumeric(char):
         if char.isdigit() or char.isalpha():

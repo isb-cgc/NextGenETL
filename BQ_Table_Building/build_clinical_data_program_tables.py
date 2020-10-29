@@ -23,8 +23,6 @@ import copy
 
 from common_etl.utils import *
 
-# from temp.gdc_clinical_resources_OLD.generate_docs import generate_docs
-
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
@@ -956,6 +954,24 @@ def update_clin_schema():
         update_schema(table_id, descriptions)
 
 
+def change_status_to_archived(table_id):
+    client = bigquery.Client()
+    current_release_tag = get_rel_prefix(BQ_PARAMS)
+    stripped_table_id = table_id.replace(current_release_tag, "")
+    previous_release_tag = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
+    prev_table_id = stripped_table_id + previous_release_tag
+
+    try:
+        prev_table = client.get_table(prev_table_id)
+        prev_table.labels['status'] = 'archived'
+        print("labels: {}".format(prev_table.labels))
+        client.update_table(prev_table, ["labels"])
+
+        assert prev_table.labels['status'] == 'archived'
+    except NotFound:
+        print("Not writing archived label for table that didn't exist in a previous version.")
+
+
 def copy_tables_into_public_project():
     """Move production-ready bq tables onto the public-facing production server.
 
@@ -967,9 +983,13 @@ def copy_tables_into_public_project():
             console_out('No table found for file (skipping): {0}', (metadata_file,))
             continue
 
-        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id)
-        copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id)
+        console_out("Publishing {}".format(vers_table_id))
+        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
+        console_out("Publishing {}".format(curr_table_id))
+        copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
+
         update_friendly_name(BQ_PARAMS, vers_table_id)
+        change_status_to_archived(vers_table_id)
 
 
 #    Webapp specific functions
@@ -1053,7 +1073,6 @@ def create_tables(program, cases, schema, is_webapp=False):
         schemas = create_schema_lists(schema, record_counts, merged_orders)
 
     create_and_load_tables(program, cases, schemas, record_counts, is_webapp)
-    # todo sticking in here
 
 
 def make_release_fields_comparison_query(old_rel, new_rel):
@@ -1081,8 +1100,199 @@ def find_release_changed_data_types_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
-def validate_data():
-    pass
+def make_field_diff_query(old_rel, new_rel, removed_fields):
+    check_rel = old_rel if removed_fields else new_rel
+
+    return """
+        SELECT field_path AS field
+        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+        WHERE field_path IN (
+            SELECT field_path 
+            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE table_name='{}_clinical' 
+                OR table_name='{}_clinical'
+           GROUP BY field_path
+           HAVING COUNT(field_path) <= 1)
+       AND table_name='{}_clinical'
+    """.format(old_rel, new_rel, check_rel)
+
+
+def make_datatype_diff_query(old_rel, new_rel):
+    return """
+        WITH data_types as (SELECT field_path, data_type
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+          WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+            AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
+          GROUP BY field_path, data_type)
+        SELECT field_path
+        FROM data_types
+        GROUP BY field_path
+        HAVING COUNT(field_path) > 1
+    """.format(old_rel, new_rel)
+
+
+def make_removed_case_ids_query(old_rel, new_rel):
+    return """
+        SELECT case_id, project.project_id
+        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        CROSS JOIN UNNEST(project) as project
+        WHERE case_id NOT IN (
+            SELECT case_id 
+            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)    
+    """.format(old_rel, new_rel)
+
+
+def make_added_case_ids_query(old_rel, new_rel):
+    return """
+        SELECT project.project_id, count(case_id) as new_case_cnt
+        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        CROSS JOIN UNNEST(project) as project
+        WHERE case_id NOT IN (
+            SELECT case_id 
+            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)
+        GROUP BY project.project_id
+    """.format(new_rel, old_rel)
+
+
+def make_tables_diff_query(old_rel, new_rel):
+    return """
+        WITH old_table_cnts AS (
+          SELECT program, COUNT(program) AS num_tables 
+          FROM (
+            SELECT els[OFFSET(1)] AS program
+            FROM (
+              SELECT SPLIT(table_name, '_') AS els
+              FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+              WHERE table_name LIKE '{}%'))
+          WHERE program != 'clinical'
+          GROUP BY program
+        ),
+        new_table_cnts AS (
+          SELECT program, COUNT(program) AS num_tables 
+          FROM (
+            SELECT els[OFFSET(1)] AS program
+            FROM (
+              SELECT SPLIT(table_name, '_') AS els
+              FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+              WHERE table_name LIKE '{}%'))
+          WHERE program != 'clinical'
+          GROUP BY program
+        )
+
+        SELECT  o.program AS prev_rel_program_name, 
+                n.program AS new_rel_program_name, 
+                o.num_tables AS prev_table_cnt, 
+                n.num_tables AS new_table_cnt
+        FROM new_table_cnts n
+        FULL OUTER JOIN old_table_cnts o
+          ON o.program = n.program
+        WHERE o.num_tables != n.num_tables
+          OR o.num_tables IS NULL or n.num_tables IS NULL
+        ORDER BY n.num_tables DESC
+    """.format(old_rel, new_rel)
+
+
+def make_new_table_list_query(old_rel, new_rel):
+    return """
+        WITH old_tables AS (
+          SELECT table_name
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{0}%'
+          ORDER BY table_name),
+        new_tables AS (
+          SELECT table_name
+          FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
+          WHERE table_name LIKE '{1}%'
+          ORDER BY table_name)
+        
+        SELECT table_name
+        FROM new_tables 
+        WHERE LTRIM(table_name, '{1}_') NOT IN (SELECT LTRIM(table_name, '{0}_') FROM old_tables)
+    """.format(old_rel, new_rel)
+
+
+def compare_gdc_releases():
+    old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
+    new_rel = get_rel_prefix(BQ_PARAMS)
+
+    console_out("\n\n*** {} -> {} GDC Clinical Data Comparison Report ***".format(old_rel, new_rel))
+
+    # which fields have been removed?
+    removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
+    console_out("\nRemoved fields:")
+
+    if removed_fields_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in removed_fields_res:
+            console_out(row[0])
+
+    # which fields were added?
+    added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
+    console_out("\nNew GDC API fields:")
+
+    if added_fields_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in added_fields_res:
+            console_out(row[0])
+
+    # any changes in field data type?
+    datatype_diff_res = get_query_results(make_datatype_diff_query(old_rel, new_rel))
+    console_out("\nColumns with data type change:")
+
+    if datatype_diff_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in datatype_diff_res:
+            console_out(row[0])
+
+    # any case ids removed?
+    console_out("\nRemoved case ids:")
+    removed_case_ids_res = get_query_results(make_removed_case_ids_query(old_rel, new_rel))
+
+    if removed_case_ids_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in removed_case_ids_res:
+            console_out(row[0])
+
+    # any case ids added?
+    console_out("\nAdded case id counts:")
+    added_case_ids_res = get_query_results(make_added_case_ids_query(old_rel, new_rel))
+
+    if added_case_ids_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in added_case_ids_res:
+            console_out("{}: {} new case ids".format(row[0], row[1]))
+
+    # any case ids added?
+    console_out("\nTable count changes: ")
+    table_count_res = get_query_results(make_tables_diff_query(old_rel, new_rel))
+
+    if table_count_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in table_count_res:
+            program_name = row[0] if row[0] else row[1]
+            prev_table_cnt = 0 if not row[2] else row[2]
+            new_table_cnt = 0 if not row[3] else row[3]
+
+            console_out("{}: {} table(s) in {}, {} table(s) in {}".format(program_name,
+                                                                          prev_table_cnt, old_rel,
+                                                                          new_table_cnt, new_rel))
+
+    console_out("\nAdded tables: ")
+    added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
+
+    if added_table_res.total_rows == 0:
+        console_out("<none>")
+    else:
+        for row in added_table_res:
+            console_out(row[0])
+
+    console_out("\n*** End Report ***\n\n")
 
 
 def output_report(start, steps):
@@ -1110,7 +1320,7 @@ def output_report(start, steps):
     if 'copy_tables_into_production' in steps:
         console_out('\t - copied tables into production (public-facing bq tables)')
     if 'validate_data' in steps:
-        console_out('\t - validated data (tests not considered exhaustive)')
+        console_out('\t - validated data')
     if 'generate_documentation' in steps:
         console_out('\t - generated documentation')
     console_out('\n\n')
@@ -1189,11 +1399,14 @@ def main(args):
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
 
-        # print(program_fgs)
-
     for program in programs:
         prog_start = time.time()
-        console_out("\nRunning script for program: {0}...", (program,))
+        if (
+                'create_biospecimen_stub_tables' in steps or
+                'create_webapp_tables' in steps or
+                'create_and_load_tables' in steps
+        ):
+            console_out("\nRunning script for program: {0}...", (program,))
 
         if 'create_biospecimen_stub_tables' in steps:
             '''
@@ -1204,11 +1417,7 @@ def main(args):
             make_biospecimen_stub_tables(program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
-            cases_2 = get_cases_by_program_2(BQ_PARAMS, program)
-
             cases = get_cases_by_program(BQ_PARAMS, program)
-
-            exit()
 
             if not cases:
                 console_out("No cases found for program {0}, skipping.", (program,))
@@ -1219,9 +1428,7 @@ def main(args):
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
-                print("created schema")
                 webapp_cases = copy.deepcopy(cases)
-                print("copied cases")
                 create_tables(program, webapp_cases, schema, is_webapp=True)
 
             if 'create_and_load_tables' in steps:
@@ -1249,12 +1456,8 @@ def main(args):
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
 
-    if 'generate_documentation' in steps:
-        pass
-        # generate_docs(API_PARAMS, BQ_PARAMS) # todo
-
     if 'validate_data' in steps:
-        pass  # todo: integrate the queries in compare_clinical_gdc_api_releases.py
+        compare_gdc_releases()
 
     output_report(start, steps)
 
