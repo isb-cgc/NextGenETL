@@ -1395,7 +1395,7 @@ def main(args):
 
         gene_table = client.get_table(gene_table_id)
 
-        print("schema: {}".format(gene_table.schema))
+        print("schema: {}".format(gene_table.schema.to_api_repr()))
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
