@@ -1393,19 +1393,18 @@ def main(args):
                                      BQ_PARAMS['DEV_META_DATASET'],
                                      get_table_name(BQ_PARAMS['GENE_TABLE']))
 
-        schema_list = []
-
         gene_table = client.get_table(gene_table_id)
+        prev_gene_table_schema = gene_table.schema
+        new_gene_table_schema = prev_gene_table_schema[:]
 
-        for schema_field in gene_table.schema:
-            schema_obj = schema_field.to_api_repr()
-            schema_list.append(schema_obj)
+        uniprot_schema_field = bigquery.SchemaField(name='uniprot_accession_nums', mode='NULLABLE', type='STRING')
 
-        new_schema_field = {'description': '', 'name': 'uniprot_accession_nums', 'mode': 'NULLABLE', 'type': 'STRING'}
+        new_gene_table_schema.insert(-2, uniprot_schema_field)
 
-        schema_list.insert(-2, new_schema_field)
+        assert len(new_gene_table_schema) == len(prev_gene_table_schema) + 1
 
-        print("schema: {}".format(schema_list))
+        gene_table = client.update_table(gene_table, ["schema"])
+
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
