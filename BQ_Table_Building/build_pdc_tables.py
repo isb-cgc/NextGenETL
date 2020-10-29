@@ -1401,7 +1401,7 @@ def main(args):
         prev_gene_table_schema = gene_table.schema
         new_gene_table_schema = prev_gene_table_schema[:]
 
-        uniprot_schema_field = bigquery.SchemaField(name='uniprot_accession_nums', mode='NULLABLE', type='STRING')
+        uniprot_schema_field = bigquery.SchemaField('uniprot_accession_nums', 'STRING')
 
         new_gene_table_schema.insert(-2, uniprot_schema_field)
 
