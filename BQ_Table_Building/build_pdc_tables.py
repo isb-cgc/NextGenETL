@@ -1401,6 +1401,10 @@ def main(args):
             schema_obj = schema_field.to_api_repr()
             schema_list.append(schema_obj)
 
+        new_schema_field = {'description': '', 'name': 'uniprot_accession_nums', 'mode': 'NULLABLE', 'type': 'STRING'}
+
+        schema_list.insert(-2, new_schema_field)
+
         print("schema: {}".format(schema_list))
 
     if 'analyze_gene_table' in steps:
