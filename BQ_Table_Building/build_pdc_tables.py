@@ -1053,7 +1053,7 @@ def build_uniprot_tsv(dest_scratch_fp):
     console_out("\t\t- done!")
 
 
-def is_uniprot_accession_id(id_str):
+def is_uniprot_accession_number(id_str):
 
     # todo strip off isomer suffix (-1
 
@@ -1364,8 +1364,6 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
-        # *** NOTE: Currently Broken in PDC API
-
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
         with open(gene_tsv_path, 'r') as tsv_file:
@@ -1387,6 +1385,15 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['GENE_TABLE'])
+
+    if 'modify_gene_table' in steps:
+        client = bigquery.Client()
+
+        gene_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
+
+        gene_table = client.get_table(gene_table_id)
+
+        print("schema: {}".format(gene_table.schema))
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
@@ -1411,7 +1418,7 @@ def main(args):
                 uniprot_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], include_release=False)
                 uniprot_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], uniprot_table)
 
-                if is_uniprot_accession_id(protein):
+                if is_uniprot_accession_number(protein):
                     query = """
                     SELECT COUNT(*) as cnt
                     FROM {}
