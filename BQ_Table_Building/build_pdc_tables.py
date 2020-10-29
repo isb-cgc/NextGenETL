@@ -1407,9 +1407,9 @@ def main(args):
 
         assert len(new_gene_table_schema) == len(prev_gene_table_schema) + 1
 
-        delete_bq_table(old_gene_table_id)
-        copy_bq_table(BQ_PARAMS, gene_table_id, old_gene_table_id)
-        gene_table = client.update_table(gene_table, ["schema"])
+        copy_bq_table(BQ_PARAMS, gene_table_id, old_gene_table_id, replace_table=True)
+
+        gene_table = client.update_table(gene_table_id, ["schema"])
 
         print("new schema: {}".format(gene_table.schema))
 
