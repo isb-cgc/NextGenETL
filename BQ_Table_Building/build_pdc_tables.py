@@ -1409,7 +1409,9 @@ def main(args):
 
         copy_bq_table(BQ_PARAMS, gene_table_id, old_gene_table_id, replace_table=True)
 
-        gene_table = client.update_table(gene_table_id, ["schema"])
+        gene_table.schema = new_gene_table_schema
+
+        gene_table = client.update_table(gene_table, ["schema"])
 
         print("new schema: {}".format(gene_table.schema))
 
