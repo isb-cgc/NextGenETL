@@ -252,14 +252,11 @@ def main(args):
         console_out('Uploading jsonl file to cloud storage!')
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
-    schema = None
-
-    if 'create_bq_schema_obj' in steps:
+    if 'build_bq_table' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
         console_out('Creating BQ schema object!')
         schema = create_bq_schema(scratch_fp)
 
-    if 'build_bq_table' in steps:
         # Creates and populates BQ table
         if not schema:
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
@@ -267,6 +264,10 @@ def main(args):
 
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+        print(schema)
+        exit()
+
         create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
 
     end = time.time() - start

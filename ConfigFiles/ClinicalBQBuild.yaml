@@ -93,12 +93,12 @@ bq_params:
 steps:
 
   # Get the manifest from the source data node:
-  - retrieve_cases_and_write_to_jsonl
+  # - retrieve_cases_and_write_to_jsonl
 
-  - upload_jsonl_to_cloud_storage
+  # - upload_jsonl_to_cloud_storage
 
   # Get the table schema/description/tags pulled from git:
-  - create_bq_schema_obj
+  # - create_bq_schema_obj
 
   # Build BQ Table
   - build_bq_table
