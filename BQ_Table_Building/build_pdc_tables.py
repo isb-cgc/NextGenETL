@@ -1393,9 +1393,15 @@ def main(args):
                                      BQ_PARAMS['DEV_META_DATASET'],
                                      get_table_name(BQ_PARAMS['GENE_TABLE']))
 
+        schema_dict = {}
+
         gene_table = client.get_table(gene_table_id)
 
-        print("schema: {}".format(gene_table.schema.to_api_repr()))
+        for schema_field in gene_table.schema:
+            schema_obj = schema_field.to_api_repr()
+            schema_dict.append(schema_obj)
+
+        print("schema: {}".format(schema_dict))
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
