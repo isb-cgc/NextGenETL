@@ -314,6 +314,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                           'organism',
                                           'chromosome',
                                           'locus',
+                                          'uniprot_accession_nums',
                                           'proteins',
                                           'assays'],
                                          null_marker=BQ_PARAMS['NULL_MARKER']))
@@ -361,6 +362,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 if split_authority[1]:
                     authority_gene_id = split_authority[1]
 
+            uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
+
             gene_fh.write(create_tsv_row([gene['gene_id'],
                                           gene['gene_name'],
                                           gene['NCBI_gene_id'],
@@ -370,6 +373,7 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                           gene['organism'],
                                           gene['chromosome'],
                                           gene['locus'],
+                                          uniprot_accession_str,
                                           gene['proteins'],
                                           gene['assays']],
                                          null_marker=BQ_PARAMS['NULL_MARKER']))
@@ -1054,7 +1058,6 @@ def build_uniprot_tsv(dest_scratch_fp):
 
 
 def is_uniprot_accession_number(id_str):
-
     # todo strip off isomer suffix (-1
 
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
@@ -1404,6 +1407,7 @@ def main(args):
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['GENE_TABLE'])
 
+    """
     if 'modify_gene_table' in steps:
         client = bigquery.Client()
 
@@ -1438,8 +1442,7 @@ def main(args):
             row_dict['uniprot_accession_nums'] = uniprot_id_str
 
             row_list.append(row_dict)
-
-        print(row_list)
+    """
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
