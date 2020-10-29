@@ -1389,7 +1389,9 @@ def main(args):
     if 'modify_gene_table' in steps:
         client = bigquery.Client()
 
-        gene_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
+        gene_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_META_DATASET'],
+                                     get_table_name(BQ_PARAMS['GENE_TABLE']))
 
         gene_table = client.get_table(gene_table_id)
 
