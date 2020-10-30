@@ -265,6 +265,8 @@ def main(args):
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
+        print(schema)
+
         create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
 
     end = time.time() - start
