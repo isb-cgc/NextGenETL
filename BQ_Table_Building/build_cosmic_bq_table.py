@@ -271,73 +271,64 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if 'process_and_create_schema' in steps:
-
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
-        for line in all_files:
+    for line in all_files:
 
-            file_name, ext = os.path.splitext(line.split('/')[-1])
-            file_components = file_name.split("_")
+        file_name, ext = os.path.splitext(line.split('/')[-1])
+        file_components = file_name.split("_")
+
+        if 'process_git_schemas' in steps:
+            print('process_git_schema: {}'.format(line))
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
+            # Where do we dump the schema git repository?
+            schema_file_name = ''.join([data_type, ".json"])
+            print("schema_file_name: " + schema_file_name)
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+            print(schema_file + "\t" + full_file_prefix)
+
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
+        # Customize generic schema to this data program:
+
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
             version = ''.join(['VERSION ', file_components[-1]])
             hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
             schema_tags = {'---tag-ref-genome-0---': hg,
                            '---tag-release---': version}
-
-            if 'process_git_schemas' in steps:
-                print('process_git_schema: {}'.format(line))
-
-                # Where do we dump the schema git repository?
-                schema_file_name = ''.join([data_type, ".json"])
-                print("schema_file_name: " + schema_file_name)
-                schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
-                print(schema_file + "\t" + full_file_prefix)
-
-                # Write out the details
-                success = generate_table_detail_files(schema_file, full_file_prefix)
-                if not success:
-                    print("process_git_schemas failed")
-                    return
-            # Customize generic schema to this data program:
-
-            if 'replace_schema_tags' in steps:
-                print('replace_schema_tags')
-                #version = ''.join(['VERSION ', file_components[-1]])
-                #hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-                #schema_tags = {'---tag-ref-genome-0---': hg,
-                #               '---tag-release---': version}
-                tag_map_list = []
-                for tag in schema_tags:
-                    use_pair = {tag : schema_tags[tag]}
-                    tag_map_list.append(use_pair)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
-                # Write out the details
-                success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-                if not success:
-                    print("replace_schema_tags failed")
-                    return
+            tag_map_list = []
+            for tag in schema_tags:
+                use_pair = {tag : schema_tags[tag]}
+                tag_map_list.append(use_pair)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+            if not success:
+                print("replace_schema_tags failed")
+                return
 
     # Create BQ tables
 
-    if 'create_bq_tables' in steps:
+    with open(file_traversal_list, mode='r') as traversal_list_file:
+        all_files = traversal_list_file.read().splitlines()
 
-        with open(file_traversal_list, mode='r') as traversal_list_file:
-            all_files = traversal_list_file.read().splitlines()
+    for line in all_files:
 
-        for line in all_files:
+        file = line.split('/')[-1]
+        file_name, ext = os.path.splitext(file)
+        file_components = file_name.split("_")
+        data_type = "_".join(file_components[0:(len(file_components) - 2)])
+        bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
 
-            file = line.split('/')[-1]
-            file_name, ext = os.path.splitext(file)
-            file_components = file_name.split("_")
-            #data_type = "_".join(file_components[0:(len(file_components) - 2)])
-            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
-
-            if 'upload_to_bucket' in steps:
-                print('upload_to_bucket')
-                upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, line)
+        if 'upload_to_bucket' in steps:
+            print('upload_to_bucket')
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, line)
 
 
 
