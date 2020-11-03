@@ -1003,7 +1003,7 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
     job_config.skip_leading_rows = 1
-    job_config.null_marker = null_marker  # todo added this back, is that ok?
+    job_config.null_marker = null_marker
 
     gs_uri = build_working_gs_uri(bq_params, tsv_file)
 

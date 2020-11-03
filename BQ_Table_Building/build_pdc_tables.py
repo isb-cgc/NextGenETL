@@ -1156,7 +1156,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     if not schema:
-        console_out("No schema file found for {}, skipping table.", (backup_table_suffix,))
+        console_out("No schema file found for {}, skipping table.", (table_id,))
         return
 
     console_out("Building {0}... ", (table_id,))
@@ -1417,8 +1417,7 @@ def main(args):
 
         gene_table = client.get_table(gene_table_id)
         prev_gene_table_schema = gene_table.schema
-        new_gene_table_schema = prev_gene_table_schema[:]
-
+        new_gene_table_schema = prev_gene_table_schema[:]=2
         uniprot_schema_field = bigquery.SchemaField('uniprot_accession_nums', 'STRING')
 
         new_gene_table_schema.insert(-2, uniprot_schema_field)
