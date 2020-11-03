@@ -37,7 +37,7 @@ from json import loads as json_loads
 from createSchemaP3 import build_schema
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files, upload_to_bucket, build_combined_schema
+                                generate_table_detail_files, upload_to_bucket, build_combined_schema, csv_to_bq
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -271,8 +271,8 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-        with open(file_traversal_list, mode='r') as traversal_list_file:
-            all_files = traversal_list_file.read().splitlines()
+    with open(file_traversal_list, mode='r') as traversal_list_file:
+        all_files = traversal_list_file.read().splitlines()
 
     for line in all_files:
 
@@ -328,8 +328,14 @@ def main(args):
 
         if 'upload_to_bucket' in steps:
             print('upload_to_bucket')
-            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, line)
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, file)
 
+        if 'create_bq_from_tsv' in steps:
+            print('create_bq_from_tsv')
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
+            with open(hold_schema_list, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file, params['BQ_AS_BATCH'])
 
 
 
