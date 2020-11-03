@@ -1160,6 +1160,8 @@ def from_schema_file_to_obj(bq_params, filename):
     fp = get_filepath(bq_params['SCHEMA_DIR'], filename)
     # todo changed this, does it work?
 
+    print("get_filepath: {}".format(fp))
+
     if not os.path.exists(fp):
         return None, None
 
