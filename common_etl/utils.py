@@ -1157,7 +1157,7 @@ def from_schema_file_to_obj(bq_params, filename):
     :return: schema list, table metadata dict
     """
 
-    fp = get_filepath(bq_params['SCHEMA_DIR'], filename)
+    fp = get_filepath("BQEcosystem/" + bq_params['SCHEMA_DIR'], filename)
     # todo changed this, does it work?
 
     print("get_filepath: {}".format(fp))
