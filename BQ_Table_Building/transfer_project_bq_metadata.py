@@ -128,7 +128,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 print(table_id)
 
                 #
-                # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+                # Make a completely new copy of the source schema. Do we have to? Probably not. Paranoid.
                 #
                 targ_schema = []
                 for sf in tbl_obj.schema:
@@ -151,6 +151,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                     targ_table = bigquery.Table(table_id)
 
                 targ_table.friendlyName = tbl_obj.friendly_name
+                print("Table {} FN: {}".format(table_id, tbl_obj.friendly_name))
                 targ_table.description = tbl_obj.description
 
                 if tbl_obj.labels is not None:
@@ -166,21 +167,24 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                     targ_table.view_query = use_query
 
                     #
-                    # "Number of rows" in a shadow empty table is provided through a private tag label. Same
-                    # with friendly name:
+                    # "Number of rows" in a shadow empty table is provided through a private tag label.
+                    # While we now can use the friendlyName property for the view (don't need to use tag),
+                    # we currently have two views running off the same data table. So we cannot just use
+                    # the table friendlyName. So pull that from config file and use that instead.
                     #
 
                     num_row_tag = "{}_{}".format(shadow_prefix, "num_rows")
                     targ_table.labels[num_row_tag] = use_row_count
-                    friendly_name_tag = "{}_{}".format(shadow_prefix, "friendly_name")
-                    friendly_name_key = "{}.{}".format(dataset.dataset_id, tbl.table_id)
-                    for adict in view_friendly_names:
-                        view_id, friendly = next(iter(adict.items()))
-                        if view_id == friendly_name_key:
-                            use_name = friendly
-                            break
+                    #friendly_name_tag = "{}_{}".format(shadow_prefix, "friendly_name")
+                    #friendly_name_key = "{}.{}".format(dataset.dataset_id, tbl.table_id)
+                    #for adict in view_friendly_names:
+                    #    view_id, friendly = next(iter(adict.items()))
+                    #    if view_id == friendly_name_key:
+                    #        use_name = friendly
+                    #        break
 
-                    targ_table.labels[friendly_name_tag] = use_name
+                    #targ_table.labels[friendly_name_tag] = use_name
+                    #targ_table.friendlyName = use_name
 
                 shadow_table = shadow_client.create_table(targ_table)
 
@@ -194,6 +198,28 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
     return True
 
+
+'''
+----------------------------------------------------------------------------------------------
+Friendly names for views to not appear in the console. Dump them out to check what is there
+'''
+
+def dumpViewFriendlyNames(source_client, source_project, skip_datasets):
+
+    dataset_list = source_client.list_datasets()
+
+    for dataset in dataset_list:
+        # Some datasets (security logs) should be ignored outright:
+        if dataset.dataset_id in skip_datasets:
+            continue
+        table_list = list(source_client.list_tables(dataset.dataset_id))
+        for tbl in table_list:
+            tbl_obj = source_client.get_table(tbl)
+            if tbl_obj.view_query is not None:
+                src_tab_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
+                print("View: {} Friendly Name: {}".format(src_tab_id, tbl_obj.friendly_name))
+
+    return True
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -272,6 +298,12 @@ def main(args):
 
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
+
+    if 'show_friendly_names' in steps:
+        success = dumpViewFriendlyNames(source_client, source_project, skip_datasets)
+        if not success:
+            print("show_friendly_names failed")
+            return
 
     if 'clean_shadow' in steps:
         success = clean_shadow_project(shadow_client, shadow_project)
