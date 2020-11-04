@@ -271,7 +271,7 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if os.exists(file_traversal_list):
+    if os.path.exists(file_traversal_list):
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
