@@ -163,8 +163,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     tables = get_one_to_many_tables(API_PARAMS, record_counts)
     table_columns = dict()
 
-    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in
-                        field_groups}
+    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
@@ -176,12 +175,9 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         if is_webapp and field_grp in excluded_fields:
             continue
 
-        field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp],
-                                                         field_grp, excluded_fields,
-                                                         is_webapp)
+        field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
 
-        field_keys = {get_field_key(field_grp, field) for field in
-                      field_groups[field_grp]}
+        field_keys = {get_field_key(field_grp, field) for field in field_groups[field_grp]}
 
         if field_grp in tables:
             table_columns[field_grp] = field_keys
@@ -1006,22 +1002,24 @@ def make_biospecimen_stub_tables(program):
     :param program: the program from which the cases originate.
     """
     query = ("""
-        SELECT project_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
-          (SELECT project_name, case_gdc_id, case_barcode, 
+          (SELECT program_name, project_short_name, case_gdc_id, case_barcode, 
             SPLIT(sample_ids, ', ') as s_gdc_ids, 
             SPLIT(submitter_sample_ids, ', ') as s_barcodes
             FROM
                 (SELECT case_id as case_gdc_id, 
                     submitter_id as case_barcode, 
-                    sample_ids, submitter_sample_ids, 
-                    SPLIT((SELECT project_id
-                           FROM UNNEST(project)), '-')[OFFSET(0)] AS project_name
-                FROM `{}.{}.{}{}_{}`)), 
+                    sample_ids, 
+                    submitter_sample_ids, 
+                    SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
+                    p.project_id as project_short_name
+                FROM `{}.{}.{}{}_{}`,
+                UNNEST(project) AS p))), 
         UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
         UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
         WHERE pos1 = pos2
-        AND project_name = '{}'
+        AND program_name = '{}'
     """).format(BQ_PARAMS['DEV_PROJECT'],
                 BQ_PARAMS['DEV_DATASET'],
                 BQ_PARAMS['REL_PREFIX'],
@@ -1402,14 +1400,14 @@ def main(args):
                 program = row[0]
                 program_fgs[program]['one_many'].append(fg)
 
-    for program in programs:
+    for orig_program in programs:
         prog_start = time.time()
         if (
                 'create_biospecimen_stub_tables' in steps or
                 'create_webapp_tables' in steps or
                 'create_and_load_tables' in steps
         ):
-            console_out("\nRunning script for program: {0}...", (program,))
+            console_out("\nRunning script for program: {0}...", (orig_program,))
 
         if 'create_biospecimen_stub_tables' in steps:
             '''
@@ -1417,17 +1415,17 @@ def main(args):
             and are also needed for populating data into the webapp
             '''
             console_out(" - Creating biospecimen stub tables!")
-            make_biospecimen_stub_tables(program)
+            make_biospecimen_stub_tables(orig_program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
-            cases = get_cases_by_program(BQ_PARAMS, program)
+            cases = get_cases_by_program(BQ_PARAMS, orig_program)
 
             if not cases:
-                console_out("No cases found for program {0}, skipping.", (program,))
+                console_out("No cases found for program {0}, skipping.", (orig_program,))
                 continue
 
             # rename so that '1.0' doesn't break bq table name
-            program = program.replace('.', '_')
+            program = orig_program.replace('.', '_')
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
