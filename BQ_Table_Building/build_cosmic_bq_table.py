@@ -118,8 +118,11 @@ def clean_file_names(file_name):
         if ''.join(new_name).isupper():
             final_name = ''.join(new_name)
         elif new_name[0] == "Complete":
-            abv = ''.join(new_name[1:len(new_name)])
-            final_name = ''.join([new_name[0].lower(), "_", abv])
+            if ''.join(new_name[1:]).isupper():
+                final_name = ''.join([new_name[0].lower(), "_"] + new_name[1:])
+            else:
+                abv = '_'.join(new_name[1:len(new_name)]).lower()
+                final_name = ''.join([new_name[0].lower(), "_", abv])
         else:
             final_name = '_'.join([x.lower() for x in new_name])
     return final_name
@@ -279,10 +282,11 @@ def main(args):
 
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
+            data_type = "_".join(file_components[0:(len(file_components) - 2)])
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
-                data_type = "_".join(file_components[0:(len(file_components) - 2)])
+                #data_type = "_".join(file_components[0:(len(file_components) - 2)])
                 # Where do we dump the schema git repository?
                 schema_file_name = ''.join([data_type, ".json"])
                 print("schema_file_name: " + schema_file_name)
@@ -306,7 +310,7 @@ def main(args):
                                '---tag-release---': version}
                 tag_map_list = []
                 for tag in schema_tags:
-                    use_pair = {tag : schema_tags[tag]}
+                    use_pair = {tag: schema_tags[tag]}
                     tag_map_list.append(use_pair)
                 full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
                 # Write out the details
