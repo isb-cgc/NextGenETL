@@ -325,7 +325,7 @@ def main(args):
        # for line in all_files:
 
             file = line.split('/')[-1]
-            target_file = '{}/{}'.format("~", file)
+            #target_file = '{}/{}'.format("~", file)
             # target_file = '/'.join(['~',line.split('/')[-3], line.split('/')[-2], line.split('/')[-1]])
         #    file_name, ext = os.path.splitext(file)
         #    file_components = file_name.split("_")
@@ -334,7 +334,7 @@ def main(args):
 
             if 'upload_to_bucket' in steps:
                 print('upload_to_bucket')
-                upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, target_file)
+                upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, line)
 
             if 'create_bq_from_tsv' in steps:
                 print('create_bq_from_tsv')
