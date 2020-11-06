@@ -284,13 +284,14 @@ def main(args):
             file_components = file_name.split("_")
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
             schema_file_name = ''.join([data_type, ".json"])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
                 # Where do we dump the schema git repository?
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 print(schema_file + "\t" + full_file_prefix)
 
                 # Write out the details
@@ -310,26 +311,22 @@ def main(args):
                 for tag in schema_tags:
                     use_pair = {tag: schema_tags[tag]}
                     tag_map_list.append(use_pair)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 # Write out the details
                 success = customize_labels_and_desc(full_file_prefix, tag_map_list)
                 if not success:
                     print("replace_schema_tags failed")
                     return
 
-        # Create BQ tables
-
-        #with open(file_traversal_list, mode='r') as traversal_list_file:
-        #    all_files = traversal_list_file.read().splitlines()
-
-       # for line in all_files:
+            if 'analyze_the_schema' in steps:
+                typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+                schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+                build_combined_schema(None, schema_dict_loc,
+                                      typing_tups, hold_schema_list.format(file_name),
+                                      hold_schema_dict.format(file_name))
 
             file = line.split('/')[-1]
-            #target_file = '{}/{}'.format("~", file)
-            # target_file = '/'.join(['~',line.split('/')[-3], line.split('/')[-2], line.split('/')[-1]])
-        #    file_name, ext = os.path.splitext(file)
-        #    file_components = file_name.split("_")
-        #    data_type = "_".join(file_components[0:(len(file_components) - 2)])
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
 
             if 'upload_to_bucket' in steps:
@@ -339,8 +336,8 @@ def main(args):
             if 'create_bq_from_tsv' in steps:
                 print('create_bq_from_tsv')
                 bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-                with open(hold_schema_list, mode='r') as schema_hold_dict:
-                    typed_schema = json_loads(schema_hold_dict.read())
+                with open(hold_schema_list, mode='r') as hold_schema_dict:
+                    typed_schema = json_loads(hold_schema_dict.read())
                 csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file, params['BQ_AS_BATCH'])
 
 if __name__ == "__main__":
