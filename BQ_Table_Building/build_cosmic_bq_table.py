@@ -287,9 +287,7 @@ def main(args):
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
-                #data_type = "_".join(file_components[0:(len(file_components) - 2)])
                 # Where do we dump the schema git repository?
-                #schema_file_name = ''.join([data_type, ".json"])
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
                 full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
@@ -304,7 +302,6 @@ def main(args):
             # Customize generic schema to this data program:
 
             if 'replace_schema_tags' in steps:
-                print('replace_schema_tags')
                 version = ''.join(['VERSION ', file_components[-1]])
                 hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
                 schema_tags = {'---tag-ref-genome-0---': hg,
@@ -314,7 +311,6 @@ def main(args):
                     use_pair = {tag: schema_tags[tag]}
                     tag_map_list.append(use_pair)
                 full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
-                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
                 # Write out the details
                 success = customize_labels_and_desc(full_file_prefix, tag_map_list)
                 if not success:
