@@ -295,8 +295,7 @@ def main(args):
                 print(schema_file + "\t" + full_file_prefix)
 
                 # Write out the details
-                success = generate_table_detail_files(schema_file, fls -lh
-                ull_file_prefix)
+                success = generate_table_detail_files(schema_file, full_file_prefix)
                 if not success:
                     print("process_git_schemas failed")
                     return
