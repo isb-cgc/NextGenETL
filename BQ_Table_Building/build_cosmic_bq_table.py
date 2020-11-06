@@ -325,11 +325,12 @@ def main(args):
        # for line in all_files:
 
             file = line.split('/')[-1]
+            target_file = '{}/{}'.format("~", file)
             # target_file = '/'.join(['~',line.split('/')[-3], line.split('/')[-2], line.split('/')[-1]])
         #    file_name, ext = os.path.splitext(file)
         #    file_components = file_name.split("_")
         #    data_type = "_".join(file_components[0:(len(file_components) - 2)])
-            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
+            bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], target_file)
 
             if 'upload_to_bucket' in steps:
                 print('upload_to_bucket')
