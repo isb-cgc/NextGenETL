@@ -295,7 +295,8 @@ def main(args):
                 print(schema_file + "\t" + full_file_prefix)
 
                 # Write out the details
-                success = generate_table_detail_files(schema_file, full_file_prefix)
+                success = generate_table_detail_files(schema_file, fls -lh
+                ull_file_prefix)
                 if not success:
                     print("process_git_schemas failed")
                     return
@@ -312,7 +313,8 @@ def main(args):
                 for tag in schema_tags:
                     use_pair = {tag: schema_tags[tag]}
                     tag_map_list.append(use_pair)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
+                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], '_'.join(file_components[:-2]))
                 # Write out the details
                 success = customize_labels_and_desc(full_file_prefix, tag_map_list)
                 if not success:
