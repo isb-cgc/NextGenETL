@@ -845,10 +845,11 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             os.remove(jsonl_fp)
 
     for i, case in enumerate(cases):
-        flat_case = flatten_case(case, is_webapp)
 
-        if is_webapp:
-            print(schemas)
+        print(case)
+        exit()
+
+        flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
         for fg in flat_case.copy():
