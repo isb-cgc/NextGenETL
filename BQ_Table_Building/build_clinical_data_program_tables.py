@@ -853,7 +853,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             if 'diagnoses' in case:
                 new_diagnosis_list = []
                 for diagnosis in case['diagnoses']:
-                    if 'age_at_diagnosis' in diagnosis:
+                    if 'age_at_diagnosis' in diagnosis and diagnosis['age_at_diagnosis']:
                         diagnosis['age_at_diagnosis_days'] = diagnosis['age_at_diagnosis']
                         diagnosis['age_at_diagnosis'] = diagnosis['age_at_diagnosis_days']/365
                         added_age_at_diagnosis_days = True
@@ -927,8 +927,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-
-        print(schemas[record_table])
 
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
