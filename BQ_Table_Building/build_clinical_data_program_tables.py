@@ -1017,7 +1017,7 @@ def make_biospecimen_stub_tables(program):
                     SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
                     p.project_id as project_short_name
                 FROM `{}.{}.{}{}_{}`,
-                UNNEST(project) AS p))), 
+                UNNEST(project) AS p)), 
         UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
         UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
         WHERE pos1 = pos2
