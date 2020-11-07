@@ -928,6 +928,8 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
 
+        print(schemas[record_table])
+
         create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
 
 
