@@ -892,9 +892,9 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                 'description': ""
             }
 
-            if 'cases.diagnoses' in schemas:
+            if 'cases.diagnoses' in schemas and 'age_at_diagnosis_days' not in schemas['cases.diagnoses']:
                 schemas['cases.diagnoses'].append(age_at_diagnosis_days_schema)
-            else:
+            elif 'age_at_diagnosis_days' not in schemas['cases']:
                 schemas['cases'].append(age_at_diagnosis_days_schema)
 
         disease_code_schema = {
