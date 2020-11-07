@@ -844,11 +844,10 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         if os.path.exists(jsonl_fp):
             os.remove(jsonl_fp)
 
+    added_age_at_diagnosis_days = False
+
     for i, case in enumerate(cases):
-
         if is_webapp:
-            added_age_at_diagnosis_days = False
-
             # add derived age_at_diagnosis in years (from days)
             if 'diagnoses' in case:
                 new_diagnosis_list = []
@@ -859,36 +858,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                         added_age_at_diagnosis_days = True
                     new_diagnosis_list.append(diagnosis)
                 case['diagnoses'] = new_diagnosis_list
-
-            if added_age_at_diagnosis_days:
-                age_at_diagnosis_days_schema = {
-                  'mode': 'NULLABLE',
-                  'name': 'age_at_diagnosis_days',
-                  'type': 'INTEGER',
-                  'description': ""
-                }
-
-                if 'cases.diagnoses' in schemas:
-                    schemas['cases.diagnoses'].append(age_at_diagnosis_days_schema)
-                else:
-                    schemas['cases'].append(age_at_diagnosis_days_schema)
-
-            disease_code_schema = {
-                'mode': 'NULLABLE',
-                'name': 'disease_code',
-                'type': 'STRING',
-                'description': ""
-            }
-
-            program_name_schema = {
-                'mode': 'NULLABLE',
-                'name': 'program_name',
-                'type': 'STRING',
-                'description': ""
-            }
-
-            schemas['cases'].append(disease_code_schema)
-            schemas['cases'].append(program_name_schema)
 
             program_name = program.replace("_", ".")
             case['program_name'] = program_name
@@ -913,6 +882,37 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
         if i % 100 == 0:
             print("wrote case {} of {} to jsonl".format(i, len(cases)))
+
+    if is_webapp:
+        if added_age_at_diagnosis_days:
+            age_at_diagnosis_days_schema = {
+                'mode': 'NULLABLE',
+                'name': 'age_at_diagnosis_days',
+                'type': 'INTEGER',
+                'description': ""
+            }
+
+            if 'cases.diagnoses' in schemas:
+                schemas['cases.diagnoses'].append(age_at_diagnosis_days_schema)
+            else:
+                schemas['cases'].append(age_at_diagnosis_days_schema)
+
+        disease_code_schema = {
+            'mode': 'NULLABLE',
+            'name': 'disease_code',
+            'type': 'STRING',
+            'description': ""
+        }
+
+        program_name_schema = {
+            'mode': 'NULLABLE',
+            'name': 'program_name',
+            'type': 'STRING',
+            'description': ""
+        }
+
+        schemas['cases'].append(disease_code_schema)
+        schemas['cases'].append(program_name_schema)
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
