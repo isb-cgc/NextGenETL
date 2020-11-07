@@ -846,8 +846,52 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
     for i, case in enumerate(cases):
 
-        print(case)
-        exit()
+        if is_webapp:
+            added_age_at_diagnosis_days = False
+
+            # add derived age_at_diagnosis in years (from days)
+            if 'diagnoses' in case:
+                new_diagnosis_list = []
+                for diagnosis in case['diagnoses']:
+                    if 'age_at_diagnosis' in diagnosis:
+                        diagnosis['age_at_diagnosis_days'] = diagnosis['age_at_diagnosis']
+                        diagnosis['age_at_diagnosis'] = diagnosis['age_at_diagnosis_days']/365
+                        added_age_at_diagnosis_days = True
+                    new_diagnosis_list.append(diagnosis)
+                case['diagnoses'] = new_diagnosis_list
+
+            if added_age_at_diagnosis_days:
+                age_at_diagnosis_days_schema = {
+                  'mode': 'NULLABLE',
+                  'name': 'age_at_diagnosis_days',
+                  'type': 'INTEGER',
+                  'description': ""
+                }
+
+                if 'cases.diagnoses' in schemas:
+                    schemas['cases.diagnoses'].append(age_at_diagnosis_days_schema)
+                else:
+                    schemas['cases'].append(age_at_diagnosis_days_schema)
+
+            disease_code_schema = {
+                'mode': 'NULLABLE',
+                'name': 'disease_code',
+                'type': 'STRING',
+                'description': ""
+            }
+
+            program_name_schema = {
+                'mode': 'NULLABLE',
+                'name': 'program_name',
+                'type': 'STRING',
+                'description': ""
+            }
+
+            schemas['cases'].append(disease_code_schema)
+            schemas['cases'].append(program_name_schema)
+
+            program_name = program.replace("_", ".")
+            case['program_name'] = program_name
 
         flat_case = flatten_case(case, is_webapp)
 
