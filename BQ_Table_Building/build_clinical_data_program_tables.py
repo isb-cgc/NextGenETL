@@ -167,8 +167,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
-            console_out("\n[INFO] Caution, not confirmed "
-                        "to work with nested depth > 3\n")
+            console_out("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
 
         excluded_fields = get_excluded_fields_all_fgs(API_PARAMS, field_groups, is_webapp)
 
@@ -848,6 +847,9 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
     for i, case in enumerate(cases):
         flat_case = flatten_case(case, is_webapp)
 
+        if is_webapp:
+            print(schemas)
+
         # remove excluded field groups
         for fg in flat_case.copy():
             if fg not in record_counts:
@@ -1344,9 +1346,9 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    programs = get_program_list(BQ_PARAMS)
-    # programs = ['GENIE', 'HCMI', 'NCICCR']
-    programs = sorted(programs)
+    programs = ['BEATAML1.0']
+    # programs = get_program_list(BQ_PARAMS)
+    # programs = sorted(programs)
 
     if 'get_field_groups_per_program' in steps:
         field_groups = API_PARAMS['FG_CONFIG']['order']
@@ -1410,10 +1412,7 @@ def main(args):
             console_out("\nRunning script for program: {0}...", (orig_program,))
 
         if 'create_biospecimen_stub_tables' in steps:
-            '''
-            these tables are used to populate the per-program clinical tables, 
-            and are also needed for populating data into the webapp
-            '''
+            # these tables are used to populate the per-program clinical tables and the webapp tables
             console_out(" - Creating biospecimen stub tables!")
             make_biospecimen_stub_tables(orig_program)
 
