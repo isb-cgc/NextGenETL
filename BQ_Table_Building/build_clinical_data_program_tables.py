@@ -854,7 +854,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                 for diagnosis in case['diagnoses']:
                     if 'age_at_diagnosis' in diagnosis and diagnosis['age_at_diagnosis']:
                         diagnosis['age_at_diagnosis_days'] = diagnosis['age_at_diagnosis']
-                        diagnosis['age_at_diagnosis'] = diagnosis['age_at_diagnosis_days']/365
+                        diagnosis['age_at_diagnosis'] = diagnosis['age_at_diagnosis_days']//365
                         added_age_at_diagnosis_days = True
                     new_diagnosis_list.append(diagnosis)
                 case['diagnoses'] = new_diagnosis_list
