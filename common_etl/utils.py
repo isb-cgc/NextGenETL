@@ -828,7 +828,7 @@ def get_cases_by_program(bq_params, program):
         WHERE case_id IN (
             SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
-            WHERE project_name = '{}')
+            WHERE program_name = '{}')
     """.format(get_working_table_id(bq_params), sample_table_id, program)
 
     for case_row in get_query_results(query):
