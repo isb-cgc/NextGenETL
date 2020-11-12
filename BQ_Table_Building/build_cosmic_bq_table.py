@@ -339,7 +339,7 @@ def main(args):
                 desc_schema = "_".join([full_file_prefix, "schema.json"])
                 with open(desc_schema, mode='r') as hold_schema_dict:
                     typed_schema = json_loads(hold_schema_dict.read())
-                csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file, params['BQ_AS_BATCH'])
+                csv_to_bq(typed_schema, bucket_src_url, params['WORKING_BUCKET'], file, params['BQ_AS_BATCH'])
 
 if __name__ == "__main__":
     main(sys.argv)
