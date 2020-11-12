@@ -336,7 +336,8 @@ def main(args):
             if 'create_bq_from_tsv' in steps:
                 print('create_bq_from_tsv')
                 bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-                with open(full_file_prefix, mode='r') as hold_schema_dict:
+                desc_schema = "_".join([full_file_prefix, "schema.json"])
+                with open(desc_schema, mode='r') as hold_schema_dict:
                     typed_schema = json_loads(hold_schema_dict.read())
                 csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file, params['BQ_AS_BATCH'])
 
