@@ -35,6 +35,7 @@ import string
 from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
+import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
                                 generate_table_detail_files, upload_to_bucket, build_combined_schema, csv_to_bq
@@ -252,13 +253,29 @@ def main(args):
             else:
                 print("{} doesn't need to be uncompressed".format(file))
 
+    if 'covert_csv_to_tsv' in steps:
+        print('convert csv to tsv')
+        all_files = build_file_list(local_files_dir)
+        for line in all_files:
+            file_name, ext = os.path.splitext(line)
+            tsv_file_name = ''.join([file_name, ".tsv"])
+            if ext == '.csv':
+                with open(line, 'r') as csv_file, open(tsv_file_name, 'w') as tsv_file:
+                    csv_file = csv.reader(csv_file)
+                    tsv_file = csv.writer(tsv_file, delimiter='\t')
+
+                for row in csv_file:
+                    tsv_file.writerow(row)
+
 
     if 'build_file_list' in steps:
         print('build_file_list')
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
-                traversal_list.write("{}\n".format(line))
+                file_name, ext = os.path.splitext(line)
+                if ext != '.csv':
+                    traversal_list.write("{}\n".format(line))
 
     #
     # Schemas and table descriptions are maintained in the github repo:
