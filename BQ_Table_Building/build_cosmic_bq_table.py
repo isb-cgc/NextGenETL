@@ -264,8 +264,8 @@ def main(args):
                     csv_file = csv.reader(csv_file)
                     tsv_file = csv.writer(tsv_file, delimiter='\t')
 
-                for row in csv_file:
-                    tsv_file.writerow(row)
+                    for row in csv_file:
+                        tsv_file.writerow(row)
 
 
     if 'build_file_list' in steps:
