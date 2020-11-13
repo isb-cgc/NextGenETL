@@ -330,7 +330,7 @@ def main(args):
                     tag_map_list.append(use_pair)
                 #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 # Write out the details
-                success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+                success = customize_labels_and_desc(data_type, tag_map_list)
                 if not success:
                     print("replace_schema_tags failed")
                     return
