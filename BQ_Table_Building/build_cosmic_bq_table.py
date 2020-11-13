@@ -253,7 +253,7 @@ def main(args):
             else:
                 print("{} doesn't need to be uncompressed".format(file))
 
-    if 'covert_csv_to_tsv' in steps:
+    if 'convert_csv_to_tsv' in steps:
         print('convert csv to tsv')
         all_files = build_file_list(local_files_dir)
         for line in all_files:
