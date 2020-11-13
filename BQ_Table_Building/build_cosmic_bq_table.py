@@ -309,10 +309,10 @@ def main(args):
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
                 # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
-                print(schema_file + "\t" + full_file_prefix)
+                print(schema_file + "\t" + data_type)
 
                 # Write out the details
-                success = generate_table_detail_files(schema_file, full_file_prefix)
+                success = generate_table_detail_files(schema_file, data_type)
                 if not success:
                     print("process_git_schemas failed")
                     return
