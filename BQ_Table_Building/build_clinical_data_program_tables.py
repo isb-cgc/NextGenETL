@@ -673,7 +673,6 @@ def flatten_case(case, is_webapp):
     base_fg = get_base_fg(API_PARAMS)
     get_field_group_id_key(API_PARAMS, base_fg, is_webapp)
 
-    """
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
             if len(old_key.split('.')) == 2:
@@ -682,7 +681,6 @@ def flatten_case(case, is_webapp):
                 if old_name in case:
                     case[new_name] = case[old_name]
                     case.pop(old_name)
-    """
 
     base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
@@ -697,15 +695,14 @@ def flatten_case(case, is_webapp):
                        is_webapp=is_webapp)
 
     if is_webapp:
-        for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
-            old = old_key.split('.')[-1]
-            new = new_key.split('.')[-1]
+        # Note: will rename any instance of that field in any table at the moment, use with care
+        for old_field, new_field in API_PARAMS['RENAMED_NESTED_FIELDS'].items():
 
             for key in flat_case:
-                if old in flat_case[key]:
-                    val = flat_case[key][old]
-                    flat_case[key][new] = val
-                    flat_case[key].pop(old)
+                if old_field in flat_case[key]:
+                    val = flat_case[key][old_field]
+                    flat_case[key][new_field] = val
+                    flat_case[key].pop(old_field)
 
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
