@@ -673,13 +673,17 @@ def flatten_case(case, is_webapp):
     base_fg = get_base_fg(API_PARAMS)
     get_field_group_id_key(API_PARAMS, base_fg, is_webapp)
 
+    """
     if is_webapp:
+        # this only works for 
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
-            old_name = get_field_name(old_key)
-            new_name = get_field_name(new_key)
-            if old_name in case:
-                case[new_name] = case[old_name]
-                case.pop(old_name)
+            if len(old_key.split('.')) == 2:
+                old_name = get_field_name(old_key)
+                new_name = get_field_name(new_key)
+                if old_name in case:
+                    case[new_name] = case[old_name]
+                    case.pop(old_name)
+    """
 
     base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
@@ -699,7 +703,6 @@ def flatten_case(case, is_webapp):
         base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
 
         if base_id_key in renamed_fields:
-            print(base_id_key)
             base_id_name = get_field_name(base_id_key)
 
             fg_keys = list(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
@@ -1087,6 +1090,7 @@ def create_tables(program, cases, schema, is_webapp=False):
     and creates the databases.
     :param program: the source for the inserted cases data
     :param cases: dict representations of clinical case data from GDC
+    :param schema:  # todo
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return:
     """
