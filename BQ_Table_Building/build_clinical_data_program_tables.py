@@ -694,6 +694,8 @@ def flatten_case(case, is_webapp):
                        pid_name=base_id_name,
                        is_webapp=is_webapp)
 
+    print(flat_case)
+
     if is_webapp:
         # Note: will rename any instance of that field in any table at the moment, use with care
         for old_field, new_field in API_PARAMS['RENAMED_NESTED_FIELDS'].items():
@@ -708,6 +710,8 @@ def flatten_case(case, is_webapp):
 
         base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
 
+        # if case_id in renamed fields (it is), remove the grandparent addition of case_id to doubly nested tables--
+        # naming would be incorrect, and it's unnecessary info for webapp tables.
         if base_id_key in renamed_fields:
             base_id_name = get_field_name(base_id_key)
 
