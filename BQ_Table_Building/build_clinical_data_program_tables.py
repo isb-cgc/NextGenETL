@@ -699,6 +699,7 @@ def flatten_case(case, is_webapp):
         base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
 
         if base_id_key in renamed_fields:
+            print("base_id_key")
             base_id_name = get_field_name(base_id_key)
 
             fg_keys = list(filter(lambda k: len(k.split('.')) > 2, flat_case.keys()))
@@ -1389,8 +1390,8 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    # programs = ['BEATAML1.0']
-    programs = get_program_list(BQ_PARAMS)
+    programs = ['BEATAML1.0']
+    # programs = get_program_list(BQ_PARAMS)
     programs = sorted(programs)
 
     # NOT USED

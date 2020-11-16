@@ -1637,7 +1637,7 @@ def main(args):
         print(schema)
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
-        console_out("Swiss-Prot table built!")
+        console_out("Swiss-prot table built!")
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
