@@ -817,7 +817,6 @@ def get_cases_by_program(bq_params, program):
     :param program: the program from which the cases originate
     :return: cases dict
     """
-    start_time = time.time()
     cases = []
 
     sample_table_id = get_biospecimen_table_id(bq_params, program)
@@ -833,10 +832,8 @@ def get_cases_by_program(bq_params, program):
 
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())
-        case_items.pop('project')
+        # case_items.pop('project')
         cases.append(case_items)
-
-    end_time = time.time() - start_time
 
     return cases
 
@@ -1158,9 +1155,6 @@ def from_schema_file_to_obj(bq_params, filename):
     """
 
     fp = get_filepath("BQEcosystem/" + bq_params['SCHEMA_DIR'], filename)
-    # todo changed this, does it work?
-
-    print("get_filepath: {}".format(fp))
 
     if not os.path.exists(fp):
         return None, None

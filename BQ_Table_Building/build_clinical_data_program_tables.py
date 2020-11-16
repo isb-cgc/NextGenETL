@@ -694,8 +694,6 @@ def flatten_case(case, is_webapp):
                        pid_name=base_id_name,
                        is_webapp=is_webapp)
 
-    print(flat_case)
-
     if is_webapp:
         # Note: will rename any instance of that field in any table at the moment, use with care
         for old_field, new_field in API_PARAMS['RENAMED_NESTED_FIELDS'].items():
@@ -876,9 +874,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
             program_name = program.replace("_", ".")
             case['program_name'] = program_name
-
-        print(case)
-        exit()
 
         flat_case = flatten_case(case, is_webapp)
 
@@ -1113,9 +1108,6 @@ def create_tables(program, cases, schema, is_webapp=False):
         console_out(" - Creating webapp table(s).")
     else:
         console_out(" - Creating public BQ table(s).")
-
-    print(cases)
-    exit()
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
