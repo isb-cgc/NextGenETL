@@ -877,6 +877,9 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             program_name = program.replace("_", ".")
             case['program_name'] = program_name
 
+        print(case)
+        exit()
+
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
