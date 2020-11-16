@@ -675,7 +675,6 @@ def flatten_case(case, is_webapp):
 
     """
     if is_webapp:
-        # this only works for 
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
             if len(old_key.split('.')) == 2:
                 old_name = get_field_name(old_key)
@@ -698,6 +697,16 @@ def flatten_case(case, is_webapp):
                        is_webapp=is_webapp)
 
     if is_webapp:
+        for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
+            old = old_key.split('.')[-1]
+            new = new_key.split('.')[-1]
+
+            for key in flat_case:
+                if old in flat_case[key]:
+                    val = flat_case[key][old]
+                    flat_case[key][new] = val
+                    flat_case[key].pop(old)
+
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
         base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
@@ -710,6 +719,7 @@ def flatten_case(case, is_webapp):
             for i, fg_key in enumerate(fg_keys):
                 for j, fg_entry in enumerate(flat_case[fg_key]):
                     if base_id_name in fg_entry:
+                        print("popping {}".format(base_id_name))
                         flat_case[fg_key][j].pop(base_id_name)
 
     return flat_case
