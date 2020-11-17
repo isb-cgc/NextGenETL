@@ -871,11 +871,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                     new_diagnosis_list.append(diagnosis)
                 case['diagnoses'] = new_diagnosis_list
 
-            if 'project' in case and 'project_id' in case['project']:
-                project_short_name = case['project']['project_id']
-                case['project_short_name'] = project_short_name
-                case['project'].pop('project_id')
-
             program_name = program.replace("_", ".")
             case['program_name'] = program_name
 
@@ -901,6 +896,10 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             print("wrote case {} of {} to jsonl".format(i, len(cases)))
 
     if is_webapp:
+        if 'project_id' in flat_case['cases']:
+            flat_case['cases']['project_short_name'] = flat_case['cases']['project_id']
+            flat_case['cases'].pop('project_id')
+
         if added_age_at_diagnosis_days:
             age_at_diagnosis_days_schema = {
                 'mode': 'NULLABLE',
