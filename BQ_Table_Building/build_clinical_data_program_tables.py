@@ -887,7 +887,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             if 'project_id' in flat_case['cases'][0]:
                 flat_case['cases'][0]['project_short_name'] = flat_case['cases'][0]['project_id']
                 flat_case['cases'][0].pop('project_id')
-                print("yes")
 
         for bq_table in flat_case:
             if bq_table not in record_tables:
