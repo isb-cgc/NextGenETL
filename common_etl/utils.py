@@ -1154,7 +1154,13 @@ def from_schema_file_to_obj(bq_params, filename):
     :return: schema list, table metadata dict
     """
 
-    fp = get_filepath("BQEcosystem/" + bq_params['SCHEMA_DIR'], filename)
+    if "BQ_REPO" in bq_params:
+        repo = bq_params['BQ_REPO']
+    else:
+        # may not need this, but want to make sure we're not breaking something
+        repo = 'BQEcosystem'
+
+    fp = get_filepath(repo + "/" + bq_params['SCHEMA_DIR'], filename)
 
     if not os.path.exists(fp):
         return None, None
