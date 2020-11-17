@@ -718,7 +718,6 @@ def flatten_case(case, is_webapp):
             for i, fg_key in enumerate(fg_keys):
                 for j, fg_entry in enumerate(flat_case[fg_key]):
                     if base_id_name in fg_entry:
-                        print("popping {}".format(base_id_name))
                         flat_case[fg_key][j].pop(base_id_name)
 
     return flat_case
@@ -872,6 +871,11 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                     new_diagnosis_list.append(diagnosis)
                 case['diagnoses'] = new_diagnosis_list
 
+            if 'project' in case and 'project_id' in case['project']:
+                project_short_name = case['project']['project_id']
+                case['project']['project_short_name'] = project_short_name
+                case['project'].pop('project_id')
+
             program_name = program.replace("_", ".")
             case['program_name'] = program_name
 
@@ -924,8 +928,16 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             'description': ""
         }
 
+        project_short_name_schema = {
+            'mode': 'NULLABLE',
+            'name': 'project_short_name',
+            'type': 'STRING',
+            'description': ""
+        }
+
         schemas['cases'].append(disease_code_schema)
         schemas['cases'].append(program_name_schema)
+        schemas['cases'].append(project_short_name_schema)
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
