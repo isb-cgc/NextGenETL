@@ -883,6 +883,11 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
+        if is_webapp:
+            if 'project_id' in flat_case['cases']:
+                flat_case['cases']['project_short_name'] = flat_case['cases']['project_id']
+                flat_case['cases'].pop('project_id')
+
         for bq_table in flat_case:
             if bq_table not in record_tables:
                 has_fatal_error("Table {} not found in table keys".format(bq_table))
@@ -896,10 +901,6 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             print("wrote case {} of {} to jsonl".format(i, len(cases)))
 
     if is_webapp:
-        if 'project_id' in flat_case['cases']:
-            flat_case['cases']['project_short_name'] = flat_case['cases']['project_id']
-            flat_case['cases'].pop('project_id')
-
         if added_age_at_diagnosis_days:
             age_at_diagnosis_days_schema = {
                 'mode': 'NULLABLE',
