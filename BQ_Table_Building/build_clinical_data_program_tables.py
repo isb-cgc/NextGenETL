@@ -873,7 +873,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
             if 'project' in case and 'project_id' in case['project']:
                 project_short_name = case['project']['project_id']
-                case['project']['project_short_name'] = project_short_name
+                case['project_short_name'] = project_short_name
                 case['project'].pop('project_id')
 
             program_name = program.replace("_", ".")
