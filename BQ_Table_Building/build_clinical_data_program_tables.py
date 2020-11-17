@@ -884,9 +884,11 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         merge_or_count_records(flat_case, record_counts, is_webapp)
 
         if is_webapp:
+            print(flat_case)
             if 'project_id' in flat_case['cases']:
                 flat_case['cases']['project_short_name'] = flat_case['cases']['project_id']
                 flat_case['cases'].pop('project_id')
+                print("yes")
 
         for bq_table in flat_case:
             if bq_table not in record_tables:
