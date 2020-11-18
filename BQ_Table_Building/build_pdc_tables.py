@@ -279,8 +279,11 @@ def make_swissprot_query():
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
     swissprot_res = get_query_results(make_swissprot_query())
 
-    for id in swissprot_res:
-        print(id)
+    swissprot_set = set()
+
+    for row in swissprot_res:
+        swissprot_set.add(row[0])
+    print(swissprot_set)
     exit()
 
     gene_symbol_set = set(gene_name_list)
