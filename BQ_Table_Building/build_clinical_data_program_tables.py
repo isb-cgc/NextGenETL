@@ -1414,8 +1414,8 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
-    programs = ['BEATAML1.0']
-    # programs = get_program_list(BQ_PARAMS)
+    # programs = ['BEATAML1.0']
+    programs = get_program_list(BQ_PARAMS)
     programs = sorted(programs)
 
     # NOT USED
