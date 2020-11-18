@@ -269,7 +269,20 @@ def make_gene_query(gene_name):
     '''.format(gene_name)
 
 
+def make_swissprot_query():
+    return """
+    SELECT swissprot_id 
+    FROM `{}.{}.{}`
+    """.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['SWISSPROT_TABLE'])
+
+
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
+    swissprot_res = get_query_results(make_swissprot_query())
+
+    for id in swissprot_res:
+        print(id)
+    exit()
+
     gene_symbol_set = set(gene_name_list)
 
     gene_tsv_exists = os.path.exists(gene_tsv)
@@ -1138,6 +1151,10 @@ def filter_uniprot_accession_nums(proteins_str):
         uniprot_id_str = None
 
     return uniprot_id_str
+
+
+def filter_swissprot_accession_nums():
+    pass
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
