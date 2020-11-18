@@ -277,14 +277,11 @@ def make_swissprot_query():
 
 
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
-    swissprot_res = get_query_results(make_swissprot_query())
-
     swissprot_set = set()
+    swissprot_res = get_query_results(make_swissprot_query())
 
     for row in swissprot_res:
         swissprot_set.add(row[0])
-    print(swissprot_set)
-    exit()
 
     gene_symbol_set = set(gene_name_list)
 
@@ -339,6 +336,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
         no_spectral_count_set = set()
         empty_spectral_count_set = set()
+        swissprot_count_dict = {0: 0,
+                                1: 0}
 
         for gene_symbol in gene_symbol_set:
             count += 1
@@ -378,7 +377,14 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 if split_authority[1]:
                     authority_gene_id = split_authority[1]
 
-            uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
+            swissprot_str, swissprot_count = filter_swissprot_accession_nums(gene['proteins'], swissprot_set)
+
+            if swissprot_count in swissprot_count_dict:
+                swissprot_count_dict[swissprot_count] += 1
+            else:
+                swissprot_count_dict[swissprot_count] = 1
+
+            # uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
 
             gene_fh.write(create_tsv_row([gene['gene_id'],
                                           gene['gene_name'],
@@ -389,10 +395,12 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                           gene['organism'],
                                           gene['chromosome'],
                                           gene['locus'],
-                                          uniprot_accession_str,
+                                          swissprot_str,
                                           gene['proteins'],
                                           gene['assays']],
                                          null_marker=BQ_PARAMS['NULL_MARKER']))
+
+        print(swissprot_count_dict)
 
 
 def make_total_cases_aliquots_query():
@@ -1156,8 +1164,21 @@ def filter_uniprot_accession_nums(proteins_str):
     return uniprot_id_str
 
 
-def filter_swissprot_accession_nums():
-    pass
+def filter_swissprot_accession_nums(proteins, swissprot_set):
+    protein_list = proteins.split(";")
+
+    swissprot_count = 0
+    swissprot_str = ''
+
+    for protein in protein_list:
+        if protein in swissprot_set:
+            swissprot_count += 1
+            swissprot_str += protein
+
+            if swissprot_count > 1:
+                swissprot_str += ';'
+
+    return swissprot_str, swissprot_count
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
