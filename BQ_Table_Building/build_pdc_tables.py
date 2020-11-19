@@ -1172,11 +1172,10 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 
     for protein in protein_list:
         if protein in swissprot_set:
-            swissprot_count += 1
-            swissprot_str += protein
-
-            if swissprot_count > 1:
+            if swissprot_count >= 1:
                 swissprot_str += ';'
+            swissprot_str += protein
+            swissprot_count += 1
 
     return swissprot_str, swissprot_count
 
