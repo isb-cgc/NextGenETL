@@ -1186,7 +1186,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
     table_name = get_table_name(table_prefix, table_suffix)
     table_id = get_table_id(project, dataset, table_name)
-    schema_filename = '{}.json'.format(table_id)
+    schema_filename = '{}.json'.format(table_name)
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     if not schema and not metadata and backup_table_suffix:
@@ -1438,7 +1438,6 @@ def main(args):
                 if not passed_first_row:
                     num_columns = len(row)
                     passed_first_row = True
-                    print(row)
                     continue
 
                 if len(row) != num_columns:
