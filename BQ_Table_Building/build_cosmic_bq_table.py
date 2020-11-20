@@ -301,6 +301,7 @@ def main(args):
             file_components = file_name.split("_")
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
             schema_file_name = ''.join([data_type, ".json"])
+            schema_file_tag = "{}/{}".format(params['PROX_DESC_PREFIX'], data_type)
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
 
             if 'process_git_schemas' in steps:
@@ -312,7 +313,7 @@ def main(args):
                 print(schema_file + "\t" + data_type)
 
                 # Write out the details
-                success = generate_table_detail_files(schema_file, data_type)
+                success = generate_table_detail_files(schema_file, schema_file_tag)
                 if not success:
                     print("process_git_schemas failed")
                     return
