@@ -308,7 +308,7 @@ def main(args):
                 # Where do we dump the schema git repository?
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 print(schema_file + "\t" + data_type)
 
                 # Write out the details
