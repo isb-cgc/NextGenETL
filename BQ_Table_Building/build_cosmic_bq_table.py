@@ -312,7 +312,7 @@ def main(args):
                 print(schema_file + "\t" + data_type)
 
                 # Write out the details
-                success = generate_table_detail_files(schema_file, data_type)
+                success = generate_table_detail_files(schema_file, full_file_prefix)
                 if not success:
                     print("process_git_schemas failed")
                     return
