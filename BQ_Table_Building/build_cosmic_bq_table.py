@@ -302,7 +302,7 @@ def main(args):
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
             schema_file_name = ''.join([data_type, ".json"])
             schema_file_tag = "{}/{}".format(params['PROX_DESC_PREFIX'], data_type)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
+            #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
@@ -336,13 +336,13 @@ def main(args):
                     print("replace_schema_tags failed")
                     return
 
-            if 'analyze_the_schema' in steps:
-                typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
-                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-                schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-                build_combined_schema(None, schema_dict_loc,
-                                      typing_tups, hold_schema_list.format(file_name),
-                                      hold_schema_dict.format(file_name))
+            #if 'analyze_the_schema' in steps:
+            #    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+            #    #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            #    schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            #    build_combined_schema(None, schema_dict_loc,
+            #                          typing_tups, hold_schema_list.format(file_name),
+            #                          hold_schema_dict.format(file_name))#
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
@@ -354,7 +354,7 @@ def main(args):
             if 'create_bq_from_tsv' in steps:
                 print('create_bq_from_tsv')
                 bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-                desc_schema = "_".join([full_file_prefix, "schema.json"])
+                desc_schema = "_".join([schema_file_tag, "schema.json"])
                 with open(desc_schema, mode='r') as hold_schema_dict:
                     typed_schema = json_loads(hold_schema_dict.read())
                 csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file_name, params['BQ_AS_BATCH'])
