@@ -150,7 +150,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 else:
                     targ_table = bigquery.Table(table_id)
 
-                targ_table.friendlyName = tbl_obj.friendly_name
+                targ_table.friendly_name = tbl_obj.friendly_name
                 print("Table {} FN: {}".format(table_id, tbl_obj.friendly_name))
                 targ_table.description = tbl_obj.description
 
@@ -176,7 +176,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 shadow_table = shadow_client.create_table(targ_table)
 
                 #
-                # If we created a view, update the schema after creation:
+                # If we created a view, update the schema after creation.
                 #
 
                 if use_query is not None:
