@@ -21,6 +21,7 @@ SOFTWARE.
 """
 import re
 import csv
+from functools import cmp_to_key
 
 from common_etl.utils import *
 
@@ -277,6 +278,8 @@ def make_swissprot_query():
 
 
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
+    compare_uniprot_ids = cmp_to_key(sort_uniprot_by_age)
+
     swissprot_set = set()
     swissprot_res = get_query_results(make_swissprot_query())
 
@@ -327,7 +330,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                           'organism',
                                           'chromosome',
                                           'locus',
-                                          'uniprot_accession_nums',
+                                          'uniprotkb_id',
+                                          'uniprotkb_ids',
                                           'proteins',
                                           'assays'],
                                          null_marker=BQ_PARAMS['NULL_MARKER']))
@@ -384,7 +388,29 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             else:
                 swissprot_count_dict[swissprot_count] = 1
 
-            # uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
+            if swissprot_count == 1:
+                uniprotkb_id = swissprot_str
+                uniprotkb_ids = ""
+            if swissprot_count > 1:
+                swissprot_list = swissprot_str.split(';')
+                swissprot_list.sort(key=compare_uniprot_ids)
+
+                uniprotkb_id = swissprot_list.pop(0)
+                uniprotkb_ids = ';'.join(swissprot_list)
+            if swissprot_count == 0:
+                uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
+                uniprot_list = uniprot_accession_str.split(';')
+                uniprot_list.sort(key=compare_uniprot_ids)
+
+                uniprotkb_id = uniprot_list[0]
+                uniprotkb_ids = ""
+
+            if swissprot_count == 1:
+                print("Exactly one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
+            elif swissprot_count == 0:
+                print("More than one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
+            else:
+                print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
 
             gene_fh.write(create_tsv_row([gene['gene_id'],
                                           gene['gene_name'],
@@ -395,7 +421,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                                           gene['organism'],
                                           gene['chromosome'],
                                           gene['locus'],
-                                          swissprot_str,
+                                          uniprotkb_id,
+                                          uniprotkb_ids,
                                           gene['proteins'],
                                           gene['assays']],
                                          null_marker=BQ_PARAMS['NULL_MARKER']))
@@ -1082,8 +1109,6 @@ def build_uniprot_tsv(dest_scratch_fp):
 
 
 def is_uniprot_accession_number(id_str):
-    # todo strip off isomer suffix (-1
-
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
     def is_alphanumeric(char):
         if char.isdigit() or char.isalpha():
@@ -1144,6 +1169,37 @@ def is_uniprot_accession_number(id_str):
                 return False
 
     return True
+
+
+def sort_uniprot_by_age(a, b):
+    """
+    To use:
+    compare_uniprot_ids = cmp_to_key(sort_uniprot_by_age)
+    uniprot_list.sort(key=compare_uniprot_ids)
+    """
+
+    sort_order = ['P', 'Q', 'O', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'R',
+                  'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+    if a == b:
+        return 0
+
+    index_of_a = sort_order.index(a[0])
+    index_of_b = sort_order.index(b[0])
+    len_of_a = len(a)
+    len_of_b = len(b)
+
+    # 10 digit uniprot ids are more recent than 6 digit ids
+    if len_of_a > len_of_b:
+        return 1
+    if len_of_b > len_of_a:
+        return -1
+
+    # if IDs start with same letter, sort by digit at index 1
+    if index_of_a == index_of_b:
+        return int(a[1]) - int(b[1])
+
+    return index_of_a - index_of_b
 
 
 def filter_uniprot_accession_nums(proteins_str):
