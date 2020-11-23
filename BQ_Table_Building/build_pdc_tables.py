@@ -405,11 +405,9 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 uniprotkb_id = uniprot_list[0]
                 uniprotkb_ids = ""
 
-            if swissprot_count == 1:
-                print("Exactly one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
-            elif swissprot_count == 0:
+            if swissprot_count == 0:
                 print("More than one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
-            else:
+            elif swissprot_count > 1:
                 print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
 
             gene_fh.write(create_tsv_row([gene['gene_id'],
