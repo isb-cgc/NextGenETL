@@ -412,7 +412,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
             if swissprot_count == 0:
                 print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
                 print("(for string: {})".format(swissprot_str))
-            elif swissprot_count > 1:
+
+            if swissprot_count > 1:
                 print("More than one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
                 print("(for string: {})".format(swissprot_str))
 
