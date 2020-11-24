@@ -162,6 +162,7 @@ def make_proteome_quant_table_query(study):
     CROSS JOIN UNNEST(samples) as s
     CROSS JOIN UNNEST(s.aliquots) as a
     CROSS JOIN UNNEST(a.aliquot_run_metadata) as arm)
+
     SELECT c.case_id, c.sample_id, c.aliquot_id, 
     q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio,
     g.*
@@ -170,7 +171,7 @@ def make_proteome_quant_table_query(study):
     ON c.aliquot_run_metadata_id = q.aliquot_run_metadata_id
     INNER JOIN `{}` as g 
     ON g.gene_symbol = q.gene_symbol
-    """.format(quant_table_id, case_aliquot_table_id, gene_table_id)
+    """.format(case_aliquot_table_id, quant_table_id, gene_table_id)
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp):
