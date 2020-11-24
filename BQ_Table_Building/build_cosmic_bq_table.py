@@ -302,14 +302,12 @@ def main(args):
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
             schema_file_name = ''.join([data_type, ".json"])
             schema_file_tag = "{}/{}".format(params['PROX_DESC_PREFIX'], data_type)
-            #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
 
             if 'process_git_schemas' in steps:
                 print('process_git_schema: {}'.format(line))
                 # Where do we dump the schema git repository?
                 print("schema_file_name: " + schema_file_name)
                 schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 print(schema_file + "\t" + data_type)
 
                 # Write out the details
@@ -329,20 +327,11 @@ def main(args):
                 for tag in schema_tags:
                     use_pair = {tag: schema_tags[tag]}
                     tag_map_list.append(use_pair)
-                #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], schema_file_name)
                 # Write out the details
                 success = customize_labels_and_desc(schema_file_tag, tag_map_list)
                 if not success:
                     print("replace_schema_tags failed")
                     return
-
-            #if 'analyze_the_schema' in steps:
-            #    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
-            #    #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-            #    schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-            #    build_combined_schema(None, schema_dict_loc,
-            #                          typing_tups, hold_schema_list.format(file_name),
-            #                          hold_schema_dict.format(file_name))#
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
