@@ -141,6 +141,38 @@ def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
 
 
+def make_proteome_quant_table_query(study):
+    quant_table_id = "{}.{}.{}_{}_{}".format(BQ_PARAMS['DEV_PROJECT'],
+                                             BQ_PARAMS['DEV_DATASET'],
+                                             BQ_PARAMS['QUANT_DATA_TABLE'],
+                                             study,
+                                             BQ_PARAMS['RELEASE'])
+    case_aliquot_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                 BQ_PARAMS['DEV_META_DATASET'],
+                                                 BQ_PARAMS['CASE_ALIQUOT_TABLE'],
+                                                 BQ_PARAMS['RELEASE'])
+    gene_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                         BQ_PARAMS['DEV_META_DATASET'],
+                                         BQ_PARAMS['GENE_TABLE'],
+                                         BQ_PARAMS['RELEASE'])
+
+    return """
+    WITH csa_mapping AS (SELECT case_id, s.sample_id, a.aliquot_id, arm.aliquot_run_metadata_id
+    FROM `{}` 
+    CROSS JOIN UNNEST(samples) as s
+    CROSS JOIN UNNEST(s.aliquots) as a
+    CROSS JOIN UNNEST(a.aliquot_run_metadata) as arm)
+    SELECT c.case_id, c.sample_id, c.aliquot_id, 
+    q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio,
+    g.*
+    FROM `{}` as q
+    INNER JOIN csa_mapping AS c 
+    ON c.aliquot_run_metadata_id = q.aliquot_run_metadata_id
+    INNER JOIN `{}` as g 
+    ON g.gene_symbol = q.gene_symbol
+    """.format(quant_table_id, case_aliquot_table_id, gene_table_id)
+
+
 def build_quant_tsv(study_id_dict, data_type, tsv_fp):
     study_submitter_id = study_id_dict['study_submitter_id']
     study_name = study_id_dict['study_name']
@@ -1462,6 +1494,15 @@ def main(args):
                                      BQ_PARAMS['DEV_DATASET'],
                                      BQ_PARAMS['QUANT_DATA_TABLE'],
                                      study_name)
+
+    if 'build_proteome_quant_tables' in steps:
+        for study in API_PARAMS['PROTEOME_STUDIES']:
+            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_DATASET'],
+                                                      BQ_PARAMS['DEV_PROJECT'],
+                                                      BQ_PARAMS['QUANT_FINAL_TABLE'],
+                                                      study.lower(),
+                                                      BQ_PARAMS['RELEASE'])
+            load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
 
     if 'update_quant_tables_metadata' in steps:
         for study_id_dict in study_ids_list:
