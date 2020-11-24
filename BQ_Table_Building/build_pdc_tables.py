@@ -399,11 +399,15 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 uniprotkb_ids = ';'.join(swissprot_list)
             if swissprot_count == 0:
                 uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
-                uniprot_list = uniprot_accession_str.split(';')
-                uniprot_list.sort(key=compare_uniprot_ids)
+                if len(uniprot_accession_str > 1):
+                    uniprot_list = uniprot_accession_str.split(';')
+                    uniprot_list.sort(key=compare_uniprot_ids)
 
-                uniprotkb_id = uniprot_list[0]
-                uniprotkb_ids = ""
+                    uniprotkb_id = uniprot_list[0]
+                    uniprotkb_ids = ""
+                else:
+                    uniprotkb_id = ""
+                    uniprotkb_ids = ""
 
             if swissprot_count == 0:
                 print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
