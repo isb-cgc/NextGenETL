@@ -353,6 +353,7 @@ def main(args):
 
             if 'create_bq_from_tsv' in steps:
                 print('create_bq_from_tsv')
+                print('loading file: ', file_name)
                 bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
                 desc_schema = "_".join([schema_file_tag, "schema.json"])
                 with open(desc_schema, mode='r') as hold_schema_dict:
