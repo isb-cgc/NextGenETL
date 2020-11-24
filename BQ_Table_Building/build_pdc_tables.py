@@ -1497,8 +1497,8 @@ def main(args):
 
     if 'build_proteome_quant_tables' in steps:
         for study in API_PARAMS['PROTEOME_STUDIES']:
-            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_DATASET'],
-                                                      BQ_PARAMS['DEV_PROJECT'],
+            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                      BQ_PARAMS['DEV_DATASET'],
                                                       BQ_PARAMS['QUANT_FINAL_TABLE'],
                                                       study.lower(),
                                                       BQ_PARAMS['RELEASE'])
