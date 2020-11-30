@@ -1505,6 +1505,25 @@ def main(args):
                                                       BQ_PARAMS['RELEASE'])
             load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
 
+    if 'update_proteome_quant_metadata' in steps:
+        dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+        fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], BQ_PARAMS['RELEASE'])
+        field_desc_fp = get_filepath(dir_path, fields_file)
+
+        with open(field_desc_fp) as field_output:
+            descriptions = json.load(field_output)
+
+        for study in API_PARAMS['PROTEOME_STUDIES']:
+            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                      BQ_PARAMS['DEV_DATASET'],
+                                                      BQ_PARAMS['QUANT_FINAL_TABLE'],
+                                                      study.lower(),
+                                                      BQ_PARAMS['RELEASE'])
+
+            console_out("Updating metadata for {}", (final_table_id,))
+
+            update_schema(final_table_id, descriptions)
+
     if 'update_quant_tables_metadata' in steps:
         for study_id_dict in study_ids_list:
             study_name = study_id_dict['study_name']
