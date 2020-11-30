@@ -414,6 +414,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                 if split_authority[1]:
                     authority_gene_id = split_authority[1]
 
+            uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
+
             swissprot_str, swissprot_count = filter_swissprot_accession_nums(gene['proteins'], swissprot_set)
 
             if swissprot_count in swissprot_count_dict:
@@ -423,24 +425,21 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
             if swissprot_count == 1:
                 uniprotkb_id = swissprot_str
-                uniprotkb_ids = ""
             if swissprot_count > 1:
                 swissprot_list = swissprot_str.split(';')
                 swissprot_list.sort(key=compare_uniprot_ids)
 
                 uniprotkb_id = swissprot_list.pop(0)
-                uniprotkb_ids = ';'.join(swissprot_list)
             if swissprot_count == 0:
-                uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
                 if uniprot_accession_str and len(uniprot_accession_str) > 1:
                     uniprot_list = uniprot_accession_str.split(';')
                     uniprot_list.sort(key=compare_uniprot_ids)
 
                     uniprotkb_id = uniprot_list[0]
-                    uniprotkb_ids = ""
                 else:
                     uniprotkb_id = ""
-                    uniprotkb_ids = ""
+
+            uniprotkb_ids = uniprot_accession_str
 
             if swissprot_count == 0:
                 print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
