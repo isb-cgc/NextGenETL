@@ -1278,16 +1278,17 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
     table_name = get_table_name(table_prefix, table_suffix)
     table_id = get_table_id(project, dataset, table_name)
-    schema_filename = '{}.json'.format(table_name)
+    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     if not schema and not metadata and backup_table_suffix:
         console_out("No schema file found for {}, trying backup ({})", (table_suffix, backup_table_suffix))
         table_name = get_table_name(table_prefix, backup_table_suffix)
         table_id = get_table_id(project, dataset, table_name)
-        schema_filename = '{}.json'.format(table_id)
+        schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
+    # still no schema? return
     if not schema:
         console_out("No schema file found for {}, skipping table.", (table_id,))
         return
@@ -1309,7 +1310,7 @@ def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
     table_id = get_table_id(project, dataset, table_name)
     console_out("Building {0}... ", (table_id,))
 
-    schema_filename = '{}.json'.format(table_id)
+    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     jsonl_name = '{}.jsonl'.format(table_name)
@@ -1683,7 +1684,7 @@ def main(args):
         table_name = BQ_PARAMS['UNIPROT_MAPPING_TABLE']
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         console_out("Building {0}... ", (table_id,))
-        schema_filename = '{}.json'.format(table_id)
+        schema_filename = '{}/{}/{}.json'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
@@ -1693,10 +1694,8 @@ def main(args):
         table_name = BQ_PARAMS['SWISSPROT_TABLE']
         table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         console_out("Building {0}... ", (table_id,))
-        schema_filename = '{}.json'.format(table_name)
-        print(schema_filename)
+        schema_filename = '{}/{}/{}.json'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        print(schema)
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Swiss-prot table built!")
@@ -1742,7 +1741,6 @@ def main(args):
                                      pdc_study_id)
 
     if 'build_proteome_quant_tables' in steps:
-
         for study in API_PARAMS['PROTEOME_STUDIES']:
             study_name = study.replace("_Proteome", "")
             study_name = change_study_name_to_table_name_format(study_name)
