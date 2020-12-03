@@ -30,22 +30,6 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def map_biospecimen_query(column_id_1, column_id_2):
-    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                            BQ_PARAMS['DEV_META_DATASET'],
-                            get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']))
-
-    return """
-            WITH map_ids AS (
-                SELECT {0}, ARRAY_AGG(distinct {1}) AS {1}s
-                FROM `{2}`
-                GROUP BY {0}
-            )
-            SELECT {0}, {1}s
-            FROM map_ids
-    """.format(column_id_1, column_id_2, table_id)
-
-
 def make_all_programs_query():
     return """{allPrograms{
             program_id
@@ -81,6 +65,353 @@ def make_study_query(study_id):
         embargo_date 
     }} }}
     """.format(study_id)
+
+
+def make_quant_data_matrix_query(study_submitter_id, data_type):
+    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
+
+
+def make_proteome_quant_table_query(study):
+    quant_table_id = "{}.{}.{}_{}_{}".format(BQ_PARAMS['DEV_PROJECT'],
+                                             BQ_PARAMS['DEV_DATASET'],
+                                             BQ_PARAMS['QUANT_DATA_TABLE'],
+                                             study,
+                                             BQ_PARAMS['RELEASE'])
+    case_aliquot_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                 BQ_PARAMS['DEV_META_DATASET'],
+                                                 BQ_PARAMS['CASE_ALIQUOT_TABLE'],
+                                                 BQ_PARAMS['RELEASE'])
+    gene_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                         BQ_PARAMS['DEV_META_DATASET'],
+                                         BQ_PARAMS['GENE_TABLE'],
+                                         BQ_PARAMS['RELEASE'])
+
+    return """
+    WITH csa_mapping AS (SELECT case_id, s.sample_id, a.aliquot_id, arm.aliquot_run_metadata_id
+    FROM `{}` 
+    CROSS JOIN UNNEST(samples) as s
+    CROSS JOIN UNNEST(s.aliquots) as a
+    CROSS JOIN UNNEST(a.aliquot_run_metadata) as arm)
+
+    SELECT c.case_id, c.sample_id, c.aliquot_id, 
+    q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio,
+    g.*
+    FROM `{}` as q
+    INNER JOIN csa_mapping AS c 
+    ON c.aliquot_run_metadata_id = q.aliquot_run_metadata_id
+    INNER JOIN `{}` as g 
+    ON g.gene_symbol = q.gene_symbol
+    """.format(case_aliquot_table_id, quant_table_id, gene_table_id)
+
+
+def make_gene_name_set_query(proteome_study):
+    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], proteome_study, BQ_PARAMS['RELEASE'])
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+
+    return """
+        SELECT DISTINCT(gene_symbol)
+        FROM `{}`
+    """.format(table_id)
+
+
+def make_gene_query(gene_name):
+    return '''
+    {{ 
+        geneSpectralCount(gene_name: \"{}\") {{
+            gene_id
+            gene_name
+            NCBI_gene_id 
+            authority 
+            description 
+            organism 
+            chromosome 
+            locus 
+            proteins 
+            assays
+        }}
+    }}
+    '''.format(gene_name)
+
+
+def make_swissprot_query():
+    return """
+    SELECT swissprot_id 
+    FROM `{}.{}.{}`
+    """.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['SWISSPROT_TABLE'])
+
+
+def make_total_cases_aliquots_query():
+    return '''
+    {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+    total casesSamplesAliquots {{
+    case_id case_submitter_id external_case_id  
+    samples {{
+    sample_id sample_submitter_id
+    aliquots {{ aliquot_id aliquot_submitter_id
+    aliquot_run_metadata {{ aliquot_run_metadata_id}}
+    }} 
+    }}
+    }}
+    pagination {{ count sort from page total pages size }}
+    }}
+    }}
+    '''.format(0, 1)
+
+
+def make_cases_aliquots_query(offset, limit):
+    return '''{{ 
+        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+            total casesSamplesAliquots {{
+                case_id 
+                samples {{
+                    sample_id 
+                    aliquots {{ 
+                        aliquot_id 
+                        aliquot_submitter_id
+                        aliquot_run_metadata {{ 
+                            aliquot_run_metadata_id
+                        }}
+                    }}
+                }}
+            }}
+            pagination {{ 
+                count 
+                from 
+                page 
+                total 
+                pages 
+                size 
+            }}
+        }}
+    }}'''.format(offset, limit)
+
+
+def make_biospecimen_per_study_query(study_id):
+    return '''
+    {{ biospecimenPerStudy( study_id: \"{}\") {{
+        aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id 
+        aliquot_status case_status sample_status project_name sample_type disease_type primary_site pool taxon
+    }}
+    }}'''.format(study_id)
+
+
+def make_unique_biospecimen_query(dup_table_id):
+    return """
+            SELECT DISTINCT * 
+            FROM `{}`
+            """.format(dup_table_id)
+
+
+def make_biospec_query(bio_table_id, csa_table_id):
+    return """
+    SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+        FROM `{}` AS a
+        LEFT JOIN `{}` AS b
+        ON a.aliquot_id = b.aliquot_id
+        AND a.sample_id = b.sample_id
+        AND a.case_id = b.case_id
+        GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+    """.format(bio_table_id, csa_table_id)
+
+
+def make_biospec_count_query(biospec_table_id, csa_table_id):
+    return """
+        SELECT bio_study_count, bio_case_count, bio_sample_count, bio_aliquot_count, csa_aliquot_run_count 
+        FROM ( 
+          SELECT COUNT(DISTINCT aliquot_run_metadata_id) AS csa_aliquot_run_count
+          FROM `{}`) 
+        AS csa, 
+        ( 
+          SELECT COUNT(DISTINCT case_id) AS bio_case_count,
+                 COUNT(DISTINCT study_id) AS bio_study_count,
+                 COUNT(DISTINCT sample_id) AS bio_sample_count,
+                 COUNT(DISTINCT aliquot_id) AS bio_aliquot_count
+          FROM `{}`) 
+        AS bio
+    """.format(csa_table_id, biospec_table_id)
+
+
+def make_aliquot_run_query(table_id, case_id, sample_id, aliquot_id):
+    return """
+        SELECT aliquot_run_metadata_id
+        FROM `{}` 
+        WHERE case_id = '{}'
+        AND sample_id = '{}'
+        AND aliquot_id = '{}'    
+    """.format(table_id, case_id, sample_id, aliquot_id)
+
+
+def make_files_per_study_query(study_id):
+    return """
+    {{ filesPerStudy (study_id: \"{}\") {{
+            study_id 
+            pdc_study_id 
+            study_name file_id 
+            file_name 
+            file_submitter_id 
+            file_type md5sum 
+            file_location 
+            file_size 
+            data_category 
+            file_format
+        }} 
+    }}""".format(study_id)
+
+
+def make_file_id_query(table_id, batch=True):
+    # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
+    # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
+
+    if batch and API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
+        start_idx = API_PARAMS['METADATA_OFFSET']
+        end_idx = start_idx + API_PARAMS['METADATA_BATCH_SIZE']
+        where_clause = "WHERE row_number BETWEEN {} AND {}".format(start_idx, end_idx)
+    elif batch and API_PARAMS['METADATA_BATCH']:
+        start_idx = API_PARAMS['METADATA_OFFSET']
+        where_clause = "WHERE row_number >= {}".format(start_idx)
+    else:
+        where_clause = ''
+
+    return """
+        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) 
+            AS row_number, file_id 
+        FROM `{}`
+        {}
+        ORDER BY file_id ASC
+    """.format(table_id, where_clause)
+
+
+def make_file_metadata_query(file_id):
+    return """
+    {{ fileMetadata(file_id: \"{}\") {{
+        file_id 
+        fraction_number 
+        experiment_type 
+        plex_or_dataset_name 
+        analyte 
+        instrument 
+        study_run_metadata_submitter_id 
+        study_run_metadata_id 
+        }} 
+    }}    
+    """.format(file_id)
+
+
+def make_cases_query():
+    return """ 
+    { allCases {
+        case_id
+        case_submitter_id
+        project_submitter_id
+        disease_type
+        primary_site
+        }
+    }"""
+
+
+def make_case_query(case_submitter_id):
+    return """
+    {{ case (case_submitter_id: \"{}\") {{
+        case_id
+        case_submitter_id
+        project_submitter_id
+        external_case_id
+        tissue_source_site_code
+        days_to_lost_to_followup
+        disease_type
+        lost_to_followup
+        primary_site
+        demographics {{
+            demographic_id
+            ethnicity
+            gender
+            demographic_submitter_id
+            race
+            cause_of_death
+            days_to_birth
+            days_to_death
+            vital_status
+            year_of_birth
+            year_of_death
+        }}
+        diagnoses {{ 
+            diagnosis_id 
+            tissue_or_organ_of_origin
+            age_at_diagnosis
+            primary_diagnosis
+            tumor_grade
+            tumor_stage
+            diagnosis_submitter_id
+            classification_of_tumor
+            days_to_last_follow_up
+            days_to_last_known_disease_status
+            days_to_recurrence
+            last_known_disease_status
+            morphology
+            progression_or_recurrence
+            site_of_resection_or_biopsy
+            prior_malignancy
+            ajcc_clinical_m
+            ajcc_clinical_n
+            ajcc_clinical_stage
+            ajcc_clinical_t
+            ajcc_pathologic_m
+            ajcc_pathologic_n
+            ajcc_pathologic_stage
+            ajcc_pathologic_t
+            ann_arbor_b_symptoms
+            ann_arbor_clinical_stage
+            ann_arbor_extranodal_involvement
+            ann_arbor_pathologic_stage
+            best_overall_response
+            burkitt_lymphoma_clinical_variant
+            circumferential_resection_margin
+            colon_polyps_history
+            days_to_best_overall_response
+            days_to_diagnosis
+            days_to_hiv_diagnosis
+            days_to_new_event
+            figo_stage
+            hiv_positive
+            hpv_positive_type
+            hpv_status
+            iss_stage
+            laterality
+            ldh_level_at_diagnosis
+            ldh_normal_range_upper
+            lymph_nodes_positive
+            lymphatic_invasion_present
+            method_of_diagnosis
+            new_event_anatomic_site
+            new_event_type
+            overall_survival
+            perineural_invasion_present
+            prior_treatment
+            progression_free_survival
+            progression_free_survival_event
+            residual_disease
+            vascular_invasion_present
+            year_of_diagnosis
+            }} 
+        }} 
+    }}
+    """.format(case_submitter_id)
+
+
+def map_biospecimen_query(column_id_1, column_id_2):
+    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                            BQ_PARAMS['DEV_META_DATASET'],
+                            get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE']))
+
+    return """
+            WITH map_ids AS (
+                SELECT {0}, ARRAY_AGG(distinct {1}) AS {1}s
+                FROM `{2}`
+                GROUP BY {0}
+            )
+            SELECT {0}, {1}s
+            FROM map_ids
+    """.format(column_id_1, column_id_2, table_id)
 
 
 def create_studies_dict(json_res):
@@ -137,41 +468,13 @@ def get_study_ids():
     """.format(table_id)
 
 
-def make_quant_data_matrix_query(study_submitter_id, data_type):
-    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
+def add_gene_names_per_study(proteome_study, gene_set):
+    results = get_query_results(make_gene_name_set_query(proteome_study))
 
+    for row in results:
+        gene_set.add(row['gene_symbol'])
 
-def make_proteome_quant_table_query(study):
-    quant_table_id = "{}.{}.{}_{}_{}".format(BQ_PARAMS['DEV_PROJECT'],
-                                             BQ_PARAMS['DEV_DATASET'],
-                                             BQ_PARAMS['QUANT_DATA_TABLE'],
-                                             study,
-                                             BQ_PARAMS['RELEASE'])
-    case_aliquot_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                 BQ_PARAMS['DEV_META_DATASET'],
-                                                 BQ_PARAMS['CASE_ALIQUOT_TABLE'],
-                                                 BQ_PARAMS['RELEASE'])
-    gene_table_id = '{}.{}.{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                         BQ_PARAMS['DEV_META_DATASET'],
-                                         BQ_PARAMS['GENE_TABLE'],
-                                         BQ_PARAMS['RELEASE'])
-
-    return """
-    WITH csa_mapping AS (SELECT case_id, s.sample_id, a.aliquot_id, arm.aliquot_run_metadata_id
-    FROM `{}` 
-    CROSS JOIN UNNEST(samples) as s
-    CROSS JOIN UNNEST(s.aliquots) as a
-    CROSS JOIN UNNEST(a.aliquot_run_metadata) as arm)
-
-    SELECT c.case_id, c.sample_id, c.aliquot_id, 
-    q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio,
-    g.*
-    FROM `{}` as q
-    INNER JOIN csa_mapping AS c 
-    ON c.aliquot_run_metadata_id = q.aliquot_run_metadata_id
-    INNER JOIN `{}` as g 
-    ON g.gene_symbol = q.gene_symbol
-    """.format(case_aliquot_table_id, quant_table_id, gene_table_id)
+    return gene_set
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp):
@@ -248,25 +551,6 @@ def get_quant_files():
     return files
 
 
-def make_gene_name_set_query(proteome_study):
-    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], proteome_study, BQ_PARAMS['RELEASE'])
-    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
-
-    return """
-        SELECT DISTINCT(gene_symbol)
-        FROM `{}`
-    """.format(table_id)
-
-
-def add_gene_names_per_study(proteome_study, gene_set):
-    results = get_query_results(make_gene_name_set_query(proteome_study))
-
-    for row in results:
-        gene_set.add(row['gene_symbol'])
-
-    return gene_set
-
-
 def build_proteome_gene_name_list():
     console_out("Building proteome gene name tsv!")
 
@@ -282,32 +566,6 @@ def build_proteome_gene_name_list():
     gene_name_list.sort()
 
     return gene_name_list
-
-
-def make_gene_query(gene_name):
-    return '''
-    {{ 
-        geneSpectralCount(gene_name: \"{}\") {{
-            gene_id
-            gene_name
-            NCBI_gene_id 
-            authority 
-            description 
-            organism 
-            chromosome 
-            locus 
-            proteins 
-            assays
-        }}
-    }}
-    '''.format(gene_name)
-
-
-def make_swissprot_query():
-    return """
-    SELECT swissprot_id 
-    FROM `{}.{}.{}`
-    """.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['SWISSPROT_TABLE'])
 
 
 def build_gene_tsv(gene_name_list, gene_tsv, append=False):
@@ -467,52 +725,6 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
         print(swissprot_count_dict)
 
 
-def make_total_cases_aliquots_query():
-    return '''
-    {{ paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
-    total casesSamplesAliquots {{
-    case_id case_submitter_id external_case_id  
-    samples {{
-    sample_id sample_submitter_id
-    aliquots {{ aliquot_id aliquot_submitter_id
-    aliquot_run_metadata {{ aliquot_run_metadata_id}}
-    }} 
-    }}
-    }}
-    pagination {{ count sort from page total pages size }}
-    }}
-    }}
-    '''.format(0, 1)
-
-
-def make_cases_aliquots_query(offset, limit):
-    return '''{{ 
-        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
-            total casesSamplesAliquots {{
-                case_id 
-                samples {{
-                    sample_id 
-                    aliquots {{ 
-                        aliquot_id 
-                        aliquot_submitter_id
-                        aliquot_run_metadata {{ 
-                            aliquot_run_metadata_id
-                        }}
-                    }}
-                }}
-            }}
-            pagination {{ 
-                count 
-                from 
-                page 
-                total 
-                pages 
-                size 
-            }}
-        }}
-    }}'''.format(offset, limit)
-
-
 def build_cases_aliquots_jsonl(csa_jsonl_fp):
     offset = 0
     limit = API_PARAMS['CSA_LIMIT']
@@ -545,22 +757,6 @@ def build_cases_aliquots_jsonl(csa_jsonl_fp):
         print("Appended data to dict! New size: {}".format(len(cases_aliquots)))
 
     write_list_to_jsonl(csa_jsonl_fp, cases_aliquots)
-
-
-def make_biospecimen_per_study_query(study_id):
-    return '''
-    {{ biospecimenPerStudy( study_id: \"{}\") {{
-        aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id 
-        aliquot_status case_status sample_status project_name sample_type disease_type primary_site pool taxon
-    }}
-    }}'''.format(study_id)
-
-
-def make_unique_biospecimen_query(dup_table_id):
-    return """
-            SELECT DISTINCT * 
-            FROM `{}`
-            """.format(dup_table_id)
 
 
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
@@ -620,45 +816,6 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                                             null_marker=BQ_PARAMS['NULL_MARKER']))
 
 
-def build_biospec_query(bio_table_id, csa_table_id):
-    return """
-    SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
-        FROM `{}` AS a
-        LEFT JOIN `{}` AS b
-        ON a.aliquot_id = b.aliquot_id
-        AND a.sample_id = b.sample_id
-        AND a.case_id = b.case_id
-        GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
-    """.format(bio_table_id, csa_table_id)
-
-
-def build_biospec_count_query(biospec_table_id, csa_table_id):
-    return """
-        SELECT bio_study_count, bio_case_count, bio_sample_count, bio_aliquot_count, csa_aliquot_run_count 
-        FROM ( 
-          SELECT COUNT(DISTINCT aliquot_run_metadata_id) AS csa_aliquot_run_count
-          FROM `{}`) 
-        AS csa, 
-        ( 
-          SELECT COUNT(DISTINCT case_id) AS bio_case_count,
-                 COUNT(DISTINCT study_id) AS bio_study_count,
-                 COUNT(DISTINCT sample_id) AS bio_sample_count,
-                 COUNT(DISTINCT aliquot_id) AS bio_aliquot_count
-          FROM `{}`) 
-        AS bio
-    """.format(csa_table_id, biospec_table_id)
-
-
-def build_aliquot_run_query(table_id, case_id, sample_id, aliquot_id):
-    return """
-        SELECT aliquot_run_metadata_id
-        FROM `{}` 
-        WHERE case_id = '{}'
-        AND sample_id = '{}'
-        AND aliquot_id = '{}'    
-    """.format(table_id, case_id, sample_id, aliquot_id)
-
-
 def build_nested_biospecimen_jsonl():
     bio_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
     bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], bio_table_name)
@@ -666,7 +823,7 @@ def build_nested_biospecimen_jsonl():
     csa_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], csa_table_name)
 
     case_id_keys_obj = dict()
-    biospec_count_res = get_query_results(build_biospec_count_query(bio_table_id, csa_table_id))
+    biospec_count_res = get_query_results(make_biospec_count_query(bio_table_id, csa_table_id))
     counts = dict()
 
     for row in biospec_count_res:
@@ -675,7 +832,7 @@ def build_nested_biospecimen_jsonl():
             val = counts_tuple[1]
             counts[key] = val
 
-    biospec_res = get_query_results(build_biospec_query(bio_table_id, csa_table_id))
+    biospec_res = get_query_results(make_biospec_query(bio_table_id, csa_table_id))
     counts['total_rows'] = biospec_res.total_rows
 
     i = 0
@@ -779,23 +936,6 @@ def build_nested_biospecimen_jsonl():
     print_nested_biospecimen_statistics(case_study_sample_aliquot_obj['total_distinct'])
 
 
-def make_files_per_study_query(study_id):
-    return """
-    {{ filesPerStudy (study_id: \"{}\") {{
-            study_id 
-            pdc_study_id 
-            study_name file_id 
-            file_name 
-            file_submitter_id 
-            file_type md5sum 
-            file_location 
-            file_size 
-            data_category 
-            file_format
-        }} 
-    }}""".format(study_id)
-
-
 def build_per_study_file_jsonl(study_ids_list):
     jsonl_start = time.time()
     file_list = []
@@ -825,45 +965,6 @@ def build_per_study_file_jsonl(study_ids_list):
     jsonl_end = time.time() - jsonl_start
 
     console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
-
-def make_file_id_query(table_id, batch=True):
-    # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
-    # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
-
-    if batch and API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
-        start_idx = API_PARAMS['METADATA_OFFSET']
-        end_idx = start_idx + API_PARAMS['METADATA_BATCH_SIZE']
-        where_clause = "WHERE row_number BETWEEN {} AND {}".format(start_idx, end_idx)
-    elif batch and API_PARAMS['METADATA_BATCH']:
-        start_idx = API_PARAMS['METADATA_OFFSET']
-        where_clause = "WHERE row_number >= {}".format(start_idx)
-    else:
-        where_clause = ''
-
-    return """
-        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) 
-            AS row_number, file_id 
-        FROM `{}`
-        {}
-        ORDER BY file_id ASC
-    """.format(table_id, where_clause)
-
-
-def make_file_metadata_query(file_id):
-    return """
-    {{ fileMetadata(file_id: \"{}\") {{
-        file_id 
-        fraction_number 
-        experiment_type 
-        plex_or_dataset_name 
-        analyte 
-        instrument 
-        study_run_metadata_submitter_id 
-        study_run_metadata_id 
-        }} 
-    }}    
-    """.format(file_id)
 
 
 def get_file_ids():
@@ -901,18 +1002,6 @@ def build_file_metadata_jsonl(file_ids):
     console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
-def make_cases_query():
-    return """ 
-    { allCases {
-        case_id
-        case_submitter_id
-        project_submitter_id
-        disease_type
-        primary_site
-        }
-    }"""
-
-
 def build_cases_jsonl():
     jsonl_start = time.time()
 
@@ -934,95 +1023,6 @@ def build_cases_jsonl():
 
     jsonl_end = time.time() - jsonl_start
     console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
-
-def make_case_query(case_submitter_id):
-    return """
-    {{ case (case_submitter_id: \"{}\") {{
-        case_id
-        case_submitter_id
-        project_submitter_id
-        external_case_id
-        tissue_source_site_code
-        days_to_lost_to_followup
-        disease_type
-        lost_to_followup
-        primary_site
-        demographics {{
-            demographic_id
-            ethnicity
-            gender
-            demographic_submitter_id
-            race
-            cause_of_death
-            days_to_birth
-            days_to_death
-            vital_status
-            year_of_birth
-            year_of_death
-        }}
-        diagnoses {{ 
-            diagnosis_id 
-            tissue_or_organ_of_origin
-            age_at_diagnosis
-            primary_diagnosis
-            tumor_grade
-            tumor_stage
-            diagnosis_submitter_id
-            classification_of_tumor
-            days_to_last_follow_up
-            days_to_last_known_disease_status
-            days_to_recurrence
-            last_known_disease_status
-            morphology
-            progression_or_recurrence
-            site_of_resection_or_biopsy
-            prior_malignancy
-            ajcc_clinical_m
-            ajcc_clinical_n
-            ajcc_clinical_stage
-            ajcc_clinical_t
-            ajcc_pathologic_m
-            ajcc_pathologic_n
-            ajcc_pathologic_stage
-            ajcc_pathologic_t
-            ann_arbor_b_symptoms
-            ann_arbor_clinical_stage
-            ann_arbor_extranodal_involvement
-            ann_arbor_pathologic_stage
-            best_overall_response
-            burkitt_lymphoma_clinical_variant
-            circumferential_resection_margin
-            colon_polyps_history
-            days_to_best_overall_response
-            days_to_diagnosis
-            days_to_hiv_diagnosis
-            days_to_new_event
-            figo_stage
-            hiv_positive
-            hpv_positive_type
-            hpv_status
-            iss_stage
-            laterality
-            ldh_level_at_diagnosis
-            ldh_normal_range_upper
-            lymph_nodes_positive
-            lymphatic_invasion_present
-            method_of_diagnosis
-            new_event_anatomic_site
-            new_event_type
-            overall_survival
-            perineural_invasion_present
-            prior_treatment
-            progression_free_survival
-            progression_free_survival_event
-            residual_disease
-            vascular_invasion_present
-            year_of_diagnosis
-            }} 
-        }} 
-    }}
-    """.format(case_submitter_id)
 
 
 def get_cases_data():
@@ -1334,6 +1334,50 @@ def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
 
+def get_study_dataset(pdc_study_id):
+    studies_table = BQ_PARAMS['STUDIES_TABLE'] + BQ_PARAMS["RELEASE"]
+
+    query = """SELECT project_submitter_id
+            FROM {}.{}.{}
+            WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
+                                              BQ_PARAMS["DEV_META_DATASET"],
+                                              studies_table,
+                                              pdc_study_id)
+
+    res = get_query_results(query)
+
+    for row in res:
+        project_submitter_id = row[0]
+        break
+
+    if project_submitter_id == "CPTAC3-Discovery" or project_submitter_id == "CPTAC-2":
+        dataset = "CPTAC"
+    elif project_submitter_id == "CPTAC-TCGA":
+        dataset = "TCGA"
+    else:
+        dataset = None
+
+    return dataset
+
+
+def change_study_name_to_table_name_format(study_name):
+    study_name = study_name.replace("-", " ")
+    study_name = study_name.replace("   ", " ")
+    study_name = study_name.replace("  ", " ")
+
+    study_name_list = study_name.split(" ")
+    new_study_name_list = list()
+
+    for name in study_name_list:
+        if not name.isupper():
+            name = name.lower()
+
+        if name:
+            new_study_name_list.append(name)
+
+    return "_".join(new_study_name_list)
+
+
 def has_table(project, dataset, table_name):
     query = """
     SELECT COUNT(1) AS has_table
@@ -1455,89 +1499,6 @@ def main(args):
     for excluded_tuple in excluded_studies:
         console_out("\t\t- {} (embargo expires {})", excluded_tuple)
 
-    if 'build_quant_tsvs' in steps:
-        tsv_start = time.time()
-
-        for study_id_dict in study_ids_list:
-            study_submitter_id = study_id_dict['study_submitter_id']
-            study_name = study_id_dict['study_name']
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
-            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
-            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
-
-            console_out("\n{0} lines written for {1}", (lines_written, study_submitter_id))
-
-            if lines_written == 0:
-                continue
-
-            upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
-            console_out("{0} uploaded to Google Cloud bucket!", (filename,))
-            os.remove(quant_tsv_fp)
-
-        tsv_end = time.time() - tsv_start
-        console_out("Quant table tsv files created in {0}!\n", (format_seconds(tsv_end),))
-
-    if 'build_quant_tables' in steps:
-        console_out("Building quant tables...")
-        blob_files = get_quant_files()
-
-        for study_id_dict in study_ids_list:
-            study_name = study_id_dict['study_name']
-            study_submitter_id = study_id_dict['study_submitter_id']
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name) + '.tsv'
-
-            if filename not in blob_files:
-                console_out('Skipping quant table build for {}\n\t\t- (gs://{}/{}/{} not found).', (
-                    study_submitter_id, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename))
-            else:
-                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
-                                     BQ_PARAMS['DEV_DATASET'],
-                                     BQ_PARAMS['QUANT_DATA_TABLE'],
-                                     study_name)
-
-    if 'build_proteome_quant_tables' in steps:
-        for study in API_PARAMS['PROTEOME_STUDIES']:
-            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                      BQ_PARAMS['DEV_DATASET'],
-                                                      BQ_PARAMS['QUANT_FINAL_TABLE'],
-                                                      study.lower(),
-                                                      BQ_PARAMS['RELEASE'])
-            load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
-
-    if 'update_proteome_quant_metadata' in steps:
-        dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-        fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], BQ_PARAMS['RELEASE'])
-        field_desc_fp = get_filepath(dir_path, fields_file)
-
-        with open(field_desc_fp) as field_output:
-            descriptions = json.load(field_output)
-
-        for study in API_PARAMS['PROTEOME_STUDIES']:
-            final_table_id = '{}.{}.{}_{}_v{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                      BQ_PARAMS['DEV_DATASET'],
-                                                      BQ_PARAMS['QUANT_FINAL_TABLE'],
-                                                      study.lower(),
-                                                      BQ_PARAMS['RELEASE'])
-
-            console_out("Updating metadata for {}", (final_table_id,))
-
-            update_schema(final_table_id, descriptions)
-
-    if 'update_quant_tables_metadata' in steps:
-        for study_id_dict in study_ids_list:
-            study_name = study_id_dict['study_name']
-            study_submitter_id = study_id_dict['study_submitter_id']
-            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name)
-            bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
-            schema_filename = bio_table_id + '.json'
-            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-            if not table_metadata:
-                console_out("No schema for {}, skipping.", (study_submitter_id,))
-            else:
-                console_out("Updating table metadata for {}.", (study_submitter_id,))
-                update_table_metadata(bio_table_id, table_metadata)
-
     if 'build_gene_tsv' in steps:
         gene_name_list = build_proteome_gene_name_list()
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
@@ -1566,42 +1527,6 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                              BQ_PARAMS['DEV_META_DATASET'],
                              BQ_PARAMS['GENE_TABLE'])
-
-    """
-    if 'modify_gene_table' in steps:
-        client = bigquery.Client()
-
-        gene_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                     BQ_PARAMS['DEV_META_DATASET'],
-                                     get_table_name(BQ_PARAMS['GENE_TABLE']))
-
-        gene_table = client.get_table(gene_table_id)
-        prev_gene_table_schema = gene_table.schema
-        new_gene_table_schema = prev_gene_table_schema[:]=2
-        uniprot_schema_field = bigquery.SchemaField('uniprot_accession_nums', 'STRING')
-
-        new_gene_table_schema.insert(-2, uniprot_schema_field)
-
-        assert len(new_gene_table_schema) == len(prev_gene_table_schema) + 1
-
-        gene_res = get_query_results("SELECT * FROM {}".format(gene_table_id))
-
-        row_list = []
-
-        for row in gene_res:
-            keys = row.keys()
-
-            row_dict = {}
-
-            for key in keys:
-                row_dict[key] = row.get(key)
-
-            uniprot_id_str = filter_uniprot_accession_nums(row_dict['proteins'])
-
-            row_dict['uniprot_accession_nums'] = uniprot_id_str
-
-            row_list.append(row_dict)
-    """
 
     if 'analyze_gene_table' in steps:
         table_name = get_table_name(BQ_PARAMS['GENE_TABLE'])
@@ -1662,29 +1587,6 @@ def main(args):
     if 'build_cases_aliquots_table' in steps:
         # build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
-
-    if 'build_final_quant_tables' in steps:
-        csa_table_id = 'isb-project-zero.PDC_metadata.case_aliquot_run_metadata_mapping_2020_09'
-        quant_table_id = 'isb-project-zero.PDC.quant_CPTAC_GBM_Discovery_Study_Proteome_2020_09'
-        gene_table_id = 'isb-project-zero.PDC_metadata.genes_pdc_api_2020_09'
-
-        combined_query = """
-            WITH aliquot_run 
-            AS (
-              SELECT case_id, samp.sample_id, aliq.aliquot_id, aliq.aliquot_submitter_id, ar.aliquot_run_metadata_id
-              FROM `{0}`
-              CROSS JOIN UNNEST(samples) AS samp
-              CROSS JOIN UNNEST(samp.aliquots) AS aliq
-              CROSS JOIN UNNEST(aliq.aliquot_run_metadata) AS ar)
-            SELECT  a.case_id, a.sample_id, a.aliquot_id, a.aliquot_submitter_id, 
-                    q.aliquot_run_metadata_id, q.study_id, q.gene, q.log2_ratio, 
-                    g.gene_id, g.NCBI_gene_id, g.authority, g.description, g.organism, g.chromosome, g.locus, g.proteins, g.assays
-            FROM `{1}` q
-            LEFT JOIN aliquot_run a
-              ON a.aliquot_run_metadata_id = q.aliquot_run_metadata_id
-            LEFT JOIN `{2}` g
-              ON g.gene_name = q.gene
-        """.format(csa_table_id, quant_table_id, gene_table_id)
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
@@ -1798,6 +1700,95 @@ def main(args):
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Swiss-prot table built!")
+
+    if 'build_quant_tsvs' in steps:
+        tsv_start = time.time()
+
+        for study_id_dict in study_ids_list:
+            pdc_study_id = study_id_dict['pdc_study_id']
+            study_name = study_id_dict['study_name']
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id) + '.tsv'
+            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
+            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
+
+            console_out("\n{0} lines written for {1}", (lines_written, study_name))
+
+            if lines_written == 0:
+                continue
+
+            upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
+            console_out("{0} uploaded to Google Cloud bucket!", (filename,))
+            os.remove(quant_tsv_fp)
+
+        tsv_end = time.time() - tsv_start
+        console_out("Quant table tsv files created in {0}!\n", (format_seconds(tsv_end),))
+
+    if 'build_quant_tables' in steps:
+        console_out("Building quant tables...")
+        blob_files = get_quant_files()
+
+        for study_id_dict in study_ids_list:
+            pdc_study_id = study_id_dict['pdc_study_id']
+            study_name = study_id_dict['study_name']
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id) + '.tsv'
+
+            if filename not in blob_files:
+                console_out('Skipping quant table build for {}\n\t\t- (gs://{}/{}/{} not found).', (
+                    study_name, BQ_PARAMS['WORKING_BUCKET'], BQ_PARAMS['WORKING_BUCKET_DIR'], filename))
+            else:
+                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_DATASET'],
+                                     BQ_PARAMS['QUANT_DATA_TABLE'],
+                                     pdc_study_id)
+
+    if 'build_proteome_quant_tables' in steps:
+
+        for study in API_PARAMS['PROTEOME_STUDIES']:
+            study_name = study.replace("_Proteome", "")
+            study_name = change_study_name_to_table_name_format(study_name)
+            final_table_id = '{}.{}.{}_proteome_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                              BQ_PARAMS['DEV_DATASET'],
+                                                              BQ_PARAMS['QUANT_DATA_TABLE'],
+                                                              study_name,
+                                                              BQ_PARAMS['RELEASE'])
+            load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
+
+    if 'update_proteome_quant_metadata' in steps:
+        dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+        fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], BQ_PARAMS['RELEASE'])
+        field_desc_fp = get_filepath(dir_path, fields_file)
+
+        with open(field_desc_fp) as field_output:
+            descriptions = json.load(field_output)
+
+        for study in API_PARAMS['PROTEOME_STUDIES']:
+            final_table_id = '{}.{}.{}_{}_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                        BQ_PARAMS['DEV_DATASET'],
+                                                        BQ_PARAMS['QUANT_DATA_TABLE'],
+                                                        study,
+                                                        BQ_PARAMS['DATA_SOURCE'],
+                                                        BQ_PARAMS['RELEASE'])
+
+            console_out("Updating metadata for {}", (final_table_id,))
+
+            update_schema(final_table_id, descriptions)
+
+    """
+    if 'update_quant_tables_metadata' in steps:
+        for study_id_dict in study_ids_list:
+            study_name = study_id_dict['study_name']
+            study_submitter_id = study_id_dict['study_submitter_id']
+            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name)
+            bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
+            schema_filename = bio_table_id + '.json'
+            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+            if not table_metadata:
+                console_out("No schema for {}, skipping.", (study_submitter_id,))
+            else:
+                console_out("Updating table metadata for {}.", (study_submitter_id,))
+                update_table_metadata(bio_table_id, table_metadata)
+    """
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
