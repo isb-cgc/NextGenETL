@@ -1759,13 +1759,14 @@ def main(args):
 
             study_name = study_name.replace("Proteome", "")
             study_name = change_study_name_to_table_name_format(study_name)
-            final_table_id = '{}.{}.{}_proteome_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                              BQ_PARAMS['DEV_DATASET'],
-                                                              BQ_PARAMS['QUANT_DATA_TABLE'],
-                                                              study_name,
-                                                              BQ_PARAMS['RELEASE'])
+            final_table_id = '{}.{}.{}_proteome_{}_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                                                BQ_PARAMS['DEV_DATASET'],
+                                                                BQ_PARAMS['QUANT_DATA_TABLE'],
+                                                                study_name,
+                                                                BQ_PARAMS['DATA_SOURCE'],
+                                                                BQ_PARAMS['RELEASE'])
 
-            print(final_table_id)
+            print(final_table_id.split('.')[-1])
             continue
 
             load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
