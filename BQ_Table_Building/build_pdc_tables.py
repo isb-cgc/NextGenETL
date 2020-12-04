@@ -1766,9 +1766,6 @@ def main(args):
                                                                 BQ_PARAMS['DATA_SOURCE'],
                                                                 BQ_PARAMS['RELEASE'])
 
-            print(final_table_id.split('.')[-1])
-            continue
-
             load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
 
     if 'update_proteome_quant_metadata' in steps:
