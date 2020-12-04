@@ -1746,8 +1746,8 @@ def main(args):
 
             query = """
             SELECT study_name 
-            FROM {}.{}.{}
-            WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
+            FROM `{}.{}.{}`
+            WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
                                               BQ_PARAMS['DEV_META_DATASET'],
                                               study_table_name,
                                               study)
