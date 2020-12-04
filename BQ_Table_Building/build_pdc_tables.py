@@ -1336,9 +1336,10 @@ def get_table_id(project, dataset, table_name):
 
 
 def get_study_dataset(pdc_study_id):
-    studies_table = BQ_PARAMS['STUDIES_TABLE'] + BQ_PARAMS["RELEASE"]
+    studies_table = BQ_PARAMS['STUDIES_TABLE'] + '_' + BQ_PARAMS["RELEASE"]
 
-    query = """SELECT project_submitter_id
+    query = """
+            SELECT project_submitter_id
             FROM {}.{}.{}
             WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
                                               BQ_PARAMS["DEV_META_DATASET"],
