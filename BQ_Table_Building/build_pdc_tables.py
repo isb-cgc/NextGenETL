@@ -1742,13 +1742,32 @@ def main(args):
 
     if 'build_proteome_quant_tables' in steps:
         for study in API_PARAMS['PROTEOME_STUDIES']:
-            study_name = study.replace("_Proteome", "")
+            study_table_name = BQ_PARAMS['STUDIES_TABLE'] + "_" + BQ_PARAMS['RELEASE']
+
+            query = """
+            SELECT study_name 
+            FROM {}.{}.{}
+            WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
+                                              BQ_PARAMS['DEV_META_DATASET'],
+                                              BQ_PARAMS[study_table_name],
+                                              study)
+
+            res = get_query_results(query)
+
+            for row in res:
+                study_name = row[0]
+
+            study_name = study_name.replace("Proteome", "")
             study_name = change_study_name_to_table_name_format(study_name)
             final_table_id = '{}.{}.{}_proteome_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
                                                               BQ_PARAMS['DEV_DATASET'],
                                                               BQ_PARAMS['QUANT_DATA_TABLE'],
                                                               study_name,
                                                               BQ_PARAMS['RELEASE'])
+
+            print(final_table_id)
+            continue
+
             load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
 
     if 'update_proteome_quant_metadata' in steps:
@@ -1767,30 +1786,12 @@ def main(args):
                                                         BQ_PARAMS['DATA_SOURCE'],
                                                         BQ_PARAMS['RELEASE'])
 
-            console_out("Updating metadata for {}", (final_table_id,))
+        console_out("Updating metadata for {}", (final_table_id,))
 
-            update_schema(final_table_id, descriptions)
-
-    """
-    if 'update_quant_tables_metadata' in steps:
-        for study_id_dict in study_ids_list:
-            study_name = study_id_dict['study_name']
-            study_submitter_id = study_id_dict['study_submitter_id']
-            bio_table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_name)
-            bio_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bio_table_name)
-            schema_filename = bio_table_id + '.json'
-            schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-            if not table_metadata:
-                console_out("No schema for {}, skipping.", (study_submitter_id,))
-            else:
-                console_out("Updating table metadata for {}.", (study_submitter_id,))
-                update_table_metadata(bio_table_id, table_metadata)
-    """
+        update_schema(final_table_id, descriptions)
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
 
-
-if __name__ == '__main__':
-    main(sys.argv)
+    if __name__ == '__main__':
+        main(sys.argv)
