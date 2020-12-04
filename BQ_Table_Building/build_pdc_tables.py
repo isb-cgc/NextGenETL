@@ -1749,7 +1749,7 @@ def main(args):
             FROM {}.{}.{}
             WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
                                               BQ_PARAMS['DEV_META_DATASET'],
-                                              BQ_PARAMS[study_table_name],
+                                              study_table_name,
                                               study)
 
             res = get_query_results(query)
