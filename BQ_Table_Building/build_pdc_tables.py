@@ -1793,5 +1793,6 @@ def main(args):
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
 
-    if __name__ == '__main__':
-        main(sys.argv)
+
+if __name__ == '__main__':
+    main(sys.argv)
