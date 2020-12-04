@@ -1341,7 +1341,7 @@ def get_study_dataset(pdc_study_id):
     query = """
             SELECT project_submitter_id
             FROM {}.{}.{}
-            WHERE pdc_study_id = {}""".format(BQ_PARAMS['DEV_PROJECT'],
+            WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
                                               BQ_PARAMS["DEV_META_DATASET"],
                                               studies_table,
                                               pdc_study_id)
