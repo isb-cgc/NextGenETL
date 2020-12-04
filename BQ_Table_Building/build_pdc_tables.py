@@ -1395,6 +1395,33 @@ def has_table(project, dataset, table_name):
     return bool(has_table)
 
 
+def get_quant_table_name(pdc_study_id, study_type):
+    study_table_name = BQ_PARAMS['STUDIES_TABLE'] + "_" + BQ_PARAMS['RELEASE']
+
+    query = """
+    SELECT study_name 
+    FROM `{}.{}.{}`
+    WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
+                                        BQ_PARAMS['DEV_META_DATASET'],
+                                        study_table_name,
+                                        pdc_study_id)
+
+    res = get_query_results(query)
+
+    for row in res:
+        study_name = row[0]
+
+    study_name = study_name.replace(study_type, "")
+    study_name = change_study_name_to_table_name_format(study_name)
+    study_type = study_type.lower()
+    table_name = '{}_{}_{}_{}_{}'.format(BQ_PARAMS['QUANT_DATA_TABLE'],
+                                         study_type,
+                                         study_name,
+                                         BQ_PARAMS['DATA_SOURCE'],
+                                         BQ_PARAMS['RELEASE'])
+    return table_name
+
+
 def has_quant_table(study_submitter_id):
     return has_table(BQ_PARAMS['DEV_PROJECT'],
                      BQ_PARAMS['DEV_DATASET'],
@@ -1741,32 +1768,13 @@ def main(args):
                                      pdc_study_id)
 
     if 'build_proteome_quant_tables' in steps:
-        for study in API_PARAMS['PROTEOME_STUDIES']:
-            study_table_name = BQ_PARAMS['STUDIES_TABLE'] + "_" + BQ_PARAMS['RELEASE']
+        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
+            table_name = get_quant_table_name(pdc_study_id, "Proteome")
+            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                         BQ_PARAMS['DEV_DATASET'],
+                                         table_name)
 
-            query = """
-            SELECT study_name 
-            FROM `{}.{}.{}`
-            WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
-                                              BQ_PARAMS['DEV_META_DATASET'],
-                                              study_table_name,
-                                              study)
-
-            res = get_query_results(query)
-
-            for row in res:
-                study_name = row[0]
-
-            study_name = study_name.replace("Proteome", "")
-            study_name = change_study_name_to_table_name_format(study_name)
-            final_table_id = '{}.{}.{}_proteome_{}_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                                BQ_PARAMS['DEV_DATASET'],
-                                                                BQ_PARAMS['QUANT_DATA_TABLE'],
-                                                                study_name,
-                                                                BQ_PARAMS['DATA_SOURCE'],
-                                                                BQ_PARAMS['RELEASE'])
-
-            load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(study))
+            load_table_from_query(BQ_PARAMS, table_id, make_proteome_quant_table_query(pdc_study_id))
 
     if 'update_proteome_quant_metadata' in steps:
         dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
@@ -1776,17 +1784,21 @@ def main(args):
         with open(field_desc_fp) as field_output:
             descriptions = json.load(field_output)
 
-        for study in API_PARAMS['PROTEOME_STUDIES']:
-            final_table_id = '{}.{}.{}_{}_{}_{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                                        BQ_PARAMS['DEV_DATASET'],
-                                                        BQ_PARAMS['QUANT_DATA_TABLE'],
-                                                        study,
-                                                        BQ_PARAMS['DATA_SOURCE'],
-                                                        BQ_PARAMS['RELEASE'])
+        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
+            table_name = get_quant_table_name(pdc_study_id, "Proteome")
+            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
+                                         BQ_PARAMS['DEV_DATASET'],
+                                         table_name)
 
-        console_out("Updating metadata for {}", (final_table_id,))
+            console_out("Updating metadata for {}", (table_id,))
+            update_schema(table_id, descriptions)
 
-        update_schema(final_table_id, descriptions)
+    if "publish_proteome_tables" in steps:
+        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
+            table_name = get_quant_table_name(pdc_study_id, "Proteome")
+            dataset = get_study_dataset(pdc_study_id)
+            if dataset:
+                print("{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name))
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
