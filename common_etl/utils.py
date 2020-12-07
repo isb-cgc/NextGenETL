@@ -1281,12 +1281,13 @@ def update_table_metadata(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def update_friendly_name(bq_params, table_id, custom_name=None):
+def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
     """Modify a table's friendly name metadata.
 
     :param bq_params: bq param object from yaml config
     :param table_id: table id in standard SQL format
     :param custom_name: By default, appends "'REL' + bq_params['RELEASE'] + ' VERSIONED'"
+    :param is_gdc: If this is GDC, we add REL before the version
     onto the existing friendly name. If custom_name is specified, this behavior is
     overridden, and the table's friendly name is replaced entirely.
     """
@@ -1296,7 +1297,12 @@ def update_friendly_name(bq_params, table_id, custom_name=None):
     if custom_name:
         new_name = custom_name
     else:
-        new_name = table.friendly_name + ' REL' + bq_params['RELEASE'] + ' VERSIONED'
+        if is_gdc:
+            release_str = ' REL' + bq_params['RELEASE']
+        else:
+            release_str = ' ' + bq_params['RELEASE']
+
+        new_name = table.friendly_name + release_str + ' VERSIONED'
 
     table.friendly_name = new_name
     client.update_table(table, ["friendly_name"])

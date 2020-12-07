@@ -1798,22 +1798,6 @@ def main(args):
             console_out("Updating metadata for {}", (table_id,))
             update_schema(table_id, descriptions)
 
-    if "publish_proteome_tables" in steps:
-        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
-            table_name = get_quant_table_name(pdc_study_id, "Proteome")
-            dataset = get_study_dataset(pdc_study_id)
-
-            if not dataset == "CPTAC" and not dataset == "TCGA":
-                continue
-
-            vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name)
-            current_table_id = vers_table_id[:-7] + 'current'
-            src_table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
-
-            print(src_table_id)
-            print(vers_table_id)
-            print(current_table_id)
-
     if "update_table_metadata" in steps:
         metadata_pdc_dir = BQ_PARAMS['DATA_SOURCE'] + '_' + BQ_PARAMS["RELEASE"]
         rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], metadata_pdc_dir])
@@ -1831,6 +1815,28 @@ def main(args):
             with open(metadata_fp) as json_file_output:
                 metadata = json.load(json_file_output)
                 update_table_metadata(table_id, metadata)
+
+    if "publish_proteome_tables" in steps:
+        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
+            table_name = get_quant_table_name(pdc_study_id, "Proteome")
+            dataset = get_study_dataset(pdc_study_id)
+
+            if not dataset == "CPTAC" and not dataset == "TCGA":
+                continue
+
+            vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name)
+            curr_table_id = vers_table_id[:-7] + 'current'
+            src_table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
+
+            console_out("Publishing {}".format(vers_table_id))
+            copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
+            console_out("Publishing {}".format(curr_table_id))
+            copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
+
+            update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
+
+            # todo -- next round -- how to change past version to archived, since it isn't version# - 1
+
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
