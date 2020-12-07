@@ -1787,12 +1787,30 @@ def main(args):
 
         for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
             table_name = get_quant_table_name(pdc_study_id, "Proteome")
-            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                         BQ_PARAMS['DEV_DATASET'],
-                                         table_name)
+            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
             console_out("Updating metadata for {}", (table_id,))
             update_schema(table_id, descriptions)
+
+        rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], ''])
+        metadata_fp = get_filepath(rel_path)
+
+        metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
+
+        for json_file in metadata_files:
+            table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
+            table_id = get_working_table_id(BQ_PARAMS, table_name)
+
+            if not exists_bq_table(table_id):
+                print("skipping for {}, no bq table found.".format(table_id))
+                continue
+
+            metadata_dir = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
+            metadata_fp = get_filepath(metadata_dir, json_file)
+
+            with open(metadata_fp) as json_file_output:
+                metadata = json.load(json_file_output)
+                update_table_metadata(table_id, metadata)
 
     if "publish_proteome_tables" in steps:
         for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
@@ -1800,6 +1818,7 @@ def main(args):
             dataset = get_study_dataset(pdc_study_id)
             if dataset:
                 print("{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name))
+            # todo finish publishing
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
