@@ -1805,8 +1805,9 @@ def main(args):
         metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
         for json_file in metadata_files:
-            table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
-            print(table_name)
+            table_name = json_file.split('.')[-1]
+            table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
+            print(table_id)
             continue
 
             if not exists_bq_table(table_id):
