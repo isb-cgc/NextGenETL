@@ -1806,7 +1806,8 @@ def main(args):
 
         for json_file in metadata_files:
             table_name = convert_json_to_table_name(BQ_PARAMS, json_file)
-            table_id = get_working_table_id(BQ_PARAMS, table_name)
+            print(table_name)
+            continue
 
             if not exists_bq_table(table_id):
                 print("skipping for {}, no bq table found.".format(table_id))
