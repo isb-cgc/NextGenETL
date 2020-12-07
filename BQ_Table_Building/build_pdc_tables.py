@@ -1807,14 +1807,14 @@ def main(args):
         for json_file in metadata_files:
             table_name = json_file.split('.')[-2]
             table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
-            print(table_id)
-            continue
 
             if not exists_bq_table(table_id):
                 print("skipping for {}, no bq table found.".format(table_id))
                 continue
 
-            with open(metadata_fp) as json_file_output:
+            json_fp = metadata_fp + '/' + json_file
+
+            with open(json_fp) as json_file_output:
                 metadata = json.load(json_file_output)
                 update_table_metadata(table_id, metadata)
 
