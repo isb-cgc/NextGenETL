@@ -1805,7 +1805,7 @@ def main(args):
         metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
         for json_file in metadata_files:
-            table_name = json_file.split('.')[-1]
+            table_name = json_file.split('.')[-2]
             table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
             print(table_id)
             continue
