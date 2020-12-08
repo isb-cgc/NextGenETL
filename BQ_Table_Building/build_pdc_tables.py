@@ -1620,7 +1620,6 @@ def main(args):
         console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
     if 'build_cases_aliquots_table' in steps:
-        # build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_biospecimen_tsv' in steps:
@@ -1647,19 +1646,6 @@ def main(args):
 
         if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
             delete_bq_table(dup_table_id)
-
-    if 'build_aliquot_sample_study_maps' in steps:
-        aliq_study_table = get_table_name('map_aliquot_study')
-        aliq_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], aliq_study_table)
-        load_table_from_query(BQ_PARAMS, aliq_study_table_id, map_biospecimen_query('aliquot_id', 'study_id'))
-
-        samp_study_table = get_table_name('map_sample_study')
-        sample_study_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], samp_study_table)
-        load_table_from_query(BQ_PARAMS, sample_study_table_id, map_biospecimen_query('sample_id', 'study_id'))
-
-        sample_aliq_table = get_table_name('map_sample_aliquot')
-        sample_aliq_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], sample_aliq_table)
-        load_table_from_query(BQ_PARAMS, sample_aliq_table_id, map_biospecimen_query('sample_id', 'aliquot_id'))
 
     if 'build_nested_biospecimen_dict_and_jsonl' in steps:
         build_nested_biospecimen_jsonl()
@@ -1838,7 +1824,6 @@ def main(args):
             update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
 
             # todo -- next round -- how to change past version to archived, since it isn't version# - 1
-
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
