@@ -1521,6 +1521,7 @@ def main(args):
                 has_fatal_error("Can only use cleanup_tables on DEV_PROJECT.")
 
             delete_bq_table(table_id)
+            console_out("Deleted table: {}", (table_id,))
 
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()

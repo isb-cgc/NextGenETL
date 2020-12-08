@@ -1021,8 +1021,6 @@ def delete_bq_table(table_id):
     client = bigquery.Client()
     client.delete_table(table_id, not_found_ok=True)
 
-    console_out("deleted table: {0}", (table_id,))
-
 
 def exists_bq_table(table_id):
     """Determine whether bq_table exists.
