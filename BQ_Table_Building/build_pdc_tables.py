@@ -1812,8 +1812,8 @@ def main(args):
             if not dataset == "CPTAC" and not dataset == "TCGA":
                 continue
 
-            vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name)
-            curr_table_id = vers_table_id[:-7] + 'current'
+            vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
+            curr_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + '_current')
             src_table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
 
             console_out("Publishing {}".format(vers_table_id))
