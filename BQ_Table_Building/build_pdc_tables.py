@@ -1813,7 +1813,7 @@ def main(args):
                 continue
 
             vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
-            curr_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + '_current')
+            curr_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + 'current')
             src_table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
 
             console_out("Publishing {}".format(vers_table_id))
