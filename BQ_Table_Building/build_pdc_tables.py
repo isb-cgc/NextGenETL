@@ -457,13 +457,14 @@ def create_studies_dict(json_res):
     return studies
 
 
-def get_study_ids():
+def get_studies():
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
                             BQ_PARAMS['DEV_META_DATASET'],
                             get_table_name(BQ_PARAMS['STUDIES_TABLE']))
 
     return """
-    SELECT study_id, study_submitter_id, pdc_study_id, study_name, aliquots_count, cases_count, embargo_date
+    SELECT study_id, study_submitter_id, pdc_study_id, study_name, project_submitter_id,
+    aliquots_count, cases_count, embargo_date, analytical_fraction
     FROM  `{}`
     """.format(table_id)
 
@@ -540,8 +541,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
 def get_quant_files():
     storage_client = storage.Client()
-    blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'],
-                                      prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
+    blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'], prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
     files = set()
 
     for blob in blobs:
@@ -683,12 +683,12 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
 
             if swissprot_count == 1:
                 uniprotkb_id = swissprot_str
-            if swissprot_count > 1:
+            elif swissprot_count > 1:
                 swissprot_list = swissprot_str.split(';')
                 swissprot_list.sort(key=compare_uniprot_ids)
 
                 uniprotkb_id = swissprot_list.pop(0)
-            if swissprot_count == 0:
+            elif swissprot_count == 0:
                 if uniprot_accession_str and len(uniprot_accession_str) > 1:
                     uniprot_list = uniprot_accession_str.split(';')
                     uniprot_list.sort(key=compare_uniprot_ids)
@@ -696,6 +696,8 @@ def build_gene_tsv(gene_name_list, gene_tsv, append=False):
                     uniprotkb_id = uniprot_list[0]
                 else:
                     uniprotkb_id = ""
+            else:
+                uniprotkb_id = ""
 
             uniprotkb_ids = uniprot_accession_str
 
@@ -1335,39 +1337,6 @@ def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
 
-def get_study_dataset(pdc_study_id):
-    studies_table = BQ_PARAMS['STUDIES_TABLE'] + '_' + BQ_PARAMS["RELEASE"]
-
-    query = """
-            SELECT project_submitter_id
-            FROM {}.{}.{}
-            WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
-                                                BQ_PARAMS["DEV_META_DATASET"],
-                                                studies_table,
-                                                pdc_study_id)
-
-    res = get_query_results(query)
-
-    for row in res:
-        project_submitter_id = row[0]
-        break
-
-    if project_submitter_id == "CPTAC3-Discovery" or project_submitter_id == "CPTAC-2":
-        dataset = "CPTAC"
-    elif project_submitter_id == "CPTAC-TCGA":
-        dataset = "TCGA"
-    elif project_submitter_id == "Academia Sinica LUAD-100" \
-            or project_submitter_id == "Integrated Proteogenomic Characterization of HBV-related Hepatocellular carcinoma" \
-            or project_submitter_id == "Human Early-Onset Gastric Cancer - Korea University":
-        dataset = "ICPC"
-    elif project_submitter_id == "Proteogenomic Analysis of Pediatric Brain Cancer Tumors Pilot Study":
-        dataset = "CBTTC"
-    else:
-        dataset = None
-
-    return dataset
-
-
 def change_study_name_to_table_name_format(study_name):
     study_name = study_name.replace("-", " ")
     study_name = study_name.replace("   ", " ")
@@ -1396,33 +1365,19 @@ def has_table(project, dataset, table_name):
     res = get_query_results(query)
 
     for row in res:
-        has_table = row['has_table']
-        break
-
-    return bool(has_table)
+        has_table_res = row['has_table']
+        return bool(has_table_res)
 
 
-def get_quant_table_name(pdc_study_id, study_type):
-    study_table_name = BQ_PARAMS['STUDIES_TABLE'] + "_" + BQ_PARAMS['RELEASE']
+def get_quant_table_name(study):
+    study_name = study['study_name']
+    analytical_fraction = study['analytical_fraction']
 
-    query = """
-    SELECT study_name 
-    FROM `{}.{}.{}`
-    WHERE pdc_study_id = '{}'""".format(BQ_PARAMS['DEV_PROJECT'],
-                                        BQ_PARAMS['DEV_META_DATASET'],
-                                        study_table_name,
-                                        pdc_study_id)
-
-    res = get_query_results(query)
-
-    for row in res:
-        study_name = row[0]
-
-    study_name = study_name.replace(study_type, "")
+    study_name = study_name.replace(analytical_fraction, "")
     study_name = change_study_name_to_table_name_format(study_name)
-    study_type = study_type.lower()
+    analytical_fraction = analytical_fraction.lower()
     table_name = '{}_{}_{}_{}_{}'.format(BQ_PARAMS['QUANT_DATA_TABLE'],
-                                         study_type,
+                                         analytical_fraction,
                                          study_name,
                                          BQ_PARAMS['DATA_SOURCE'],
                                          BQ_PARAMS['RELEASE'])
@@ -1452,20 +1407,6 @@ def is_currently_embargoed(embargo_date):
 
     return False
 
-    """
-    # Desired output (assuming current date is 2020-10-08...)
-    assert is_currently_embargoed("") is False
-    assert is_currently_embargoed(None) is False
-    assert is_currently_embargoed("2019-01-02") is False
-    assert is_currently_embargoed("2019-12-31") is False
-    assert is_currently_embargoed("2020-09-30") is False
-    assert is_currently_embargoed("2020-10-07") is False
-    assert is_currently_embargoed("2020-10-08") is True
-    assert is_currently_embargoed("2020-10-09") is True
-    assert is_currently_embargoed("2021-01-01") is True
-    assert is_currently_embargoed("2021-12-31") is True
-    """
-
 
 def print_nested_biospecimen_statistics(counts):
     print_str = """
@@ -1481,6 +1422,16 @@ Biospecimen JSON created. Statistics for total distinct:
                                                                             counts['biospec_aliquots'],
                                                                             counts['aliquot_run_metadata'])
     print(print_str)
+
+
+def get_proteome_studies(studies_list):
+    proteome_studies_list = list()
+
+    for study in studies_list:
+        if study['analytical_fraction'] == "Proteome":
+            proteome_studies_list.append(study)
+
+    return proteome_studies_list
 
 
 def main(args):
@@ -1517,21 +1468,18 @@ def main(args):
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
 
-    study_ids_list = list()
-    study_ids = get_query_results(get_study_ids())
+    studies_list = list()
+    excluded_studies_list = list()
 
-    excluded_studies = []
-
-    for study in study_ids:
-        if not is_currently_embargoed(study.get('embargo_date')):
-            study_ids_list.append(dict(study.items()))
+    for study in get_query_results(get_studies()):
+        if is_currently_embargoed(study.get('embargo_date')):
+            excluded_studies_list.append((study.get('study_name'), study.get('embargo_date')))
         else:
-            excluded_tuple = (study.get('study_name'), study.get('embargo_date'))
-            excluded_studies.append(excluded_tuple)
+            studies_list.append(dict(study.items()))
 
     console_out("Studies with currently embargoed data (excluded by script):")
 
-    for excluded_tuple in excluded_studies:
+    for excluded_tuple in excluded_studies_list:
         console_out("\t\t- {} (embargo expires {})", excluded_tuple)
 
     if 'build_gene_tsv' in steps:
@@ -1627,7 +1575,7 @@ def main(args):
 
         biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS,
                                               get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates') + '.tsv')
-        build_biospecimen_tsv(study_ids_list, biospecimen_tsv_path)
+        build_biospecimen_tsv(studies_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
     if 'build_biospecimen_table' in steps:
@@ -1655,7 +1603,7 @@ def main(args):
             BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_STUDY_BIOSPECIMEN_TABLE'])
 
     if 'build_per_study_file_jsonl' in steps:
-        build_per_study_file_jsonl(study_ids_list)
+        build_per_study_file_jsonl(studies_list)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
@@ -1723,7 +1671,7 @@ def main(args):
     if 'build_quant_tsvs' in steps:
         tsv_start = time.time()
 
-        for study_id_dict in study_ids_list:
+        for study_id_dict in studies_list:
             pdc_study_id = study_id_dict['pdc_study_id']
             study_name = study_id_dict['study_name']
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id) + '.tsv'
@@ -1746,7 +1694,7 @@ def main(args):
         console_out("Building quant tables...")
         blob_files = get_quant_files()
 
-        for study_id_dict in study_ids_list:
+        for study_id_dict in studies_list:
             pdc_study_id = study_id_dict['pdc_study_id']
             study_name = study_id_dict['study_name']
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id) + '.tsv'
@@ -1761,13 +1709,12 @@ def main(args):
                                      pdc_study_id)
 
     if 'build_proteome_quant_tables' in steps:
-        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
-            table_name = get_quant_table_name(pdc_study_id, "Proteome")
-            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'],
-                                         BQ_PARAMS['DEV_DATASET'],
-                                         table_name)
+        for study in get_proteome_studies(studies_list):
 
-            load_table_from_query(BQ_PARAMS, table_id, make_proteome_quant_table_query(pdc_study_id))
+            table_name = get_quant_table_name(study)
+            table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+
+            load_table_from_query(BQ_PARAMS, table_id, make_proteome_quant_table_query(study['pdc_study_id']))
 
     if 'update_proteome_quant_metadata' in steps:
         dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
@@ -1777,8 +1724,8 @@ def main(args):
         with open(field_desc_fp) as field_output:
             descriptions = json.load(field_output)
 
-        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
-            table_name = get_quant_table_name(pdc_study_id, "Proteome")
+        for study in get_proteome_studies(studies_list):
+            table_name = get_quant_table_name(study)
             table_id = '{}.{}.{}'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
             console_out("Updating metadata for {}", (table_id,))
@@ -1805,12 +1752,10 @@ def main(args):
                 update_table_metadata(table_id, metadata)
 
     if "publish_proteome_tables" in steps:
-        for pdc_study_id in API_PARAMS['PROTEOME_STUDIES']:
-            table_name = get_quant_table_name(pdc_study_id, "Proteome")
-            dataset = get_study_dataset(pdc_study_id)
-
-            if not dataset == "CPTAC" and not dataset == "TCGA":
-                continue
+        for study in get_proteome_studies(studies_list):
+            table_name = get_quant_table_name(study)
+            project_submitter_id = study['project_submitter_id']
+            dataset = BQ_PARAMS['PROD_DATASET_MAP'][project_submitter_id]
 
             vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
             curr_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + 'current')
