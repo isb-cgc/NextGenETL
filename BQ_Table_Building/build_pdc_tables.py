@@ -1759,6 +1759,10 @@ def main(args):
         for study in get_proteome_studies(studies_list):
             table_name = get_quant_table_name(study)
             project_submitter_id = study['project_submitter_id']
+
+            if project_submitter_id not in BQ_PARAMS['PROD_DATASET_MAP']:
+                continue
+
             dataset = BQ_PARAMS['PROD_DATASET_MAP'][project_submitter_id]
 
             vers_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
