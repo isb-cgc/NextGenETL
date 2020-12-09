@@ -1737,13 +1737,17 @@ def main(args):
         metadata_fp = get_filepath(rel_path)
         metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
+        console_out("Updating table metadata:")
+
         for json_file in metadata_files:
             table_name = json_file.split('.')[-2]
             table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
 
             if not exists_bq_table(table_id):
-                print("skipping for {}, no bq table found.".format(table_id))
+                console_out("skipping {} (no bq table found)", (table_id,))
                 continue
+            else:
+                console_out("- {}", (table_id,))
 
             json_fp = metadata_fp + '/' + json_file
 
