@@ -1761,14 +1761,15 @@ def main(args):
             curr_table_id = "{}.{}.{}".format(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + 'current')
             src_table_id = "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS["DEV_DATASET"], table_name)
 
-            console_out("Publishing {}".format(vers_table_id))
-            copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
-            console_out("Publishing {}".format(curr_table_id))
-            copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
+            if exists_bq_table(src_table_id):
+                console_out("Publishing {}".format(vers_table_id))
+                copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
+                console_out("Publishing {}".format(curr_table_id))
+                copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
 
-            update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
+                update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
 
-            # todo -- next round -- how to change past version to archived, since it isn't version# - 1
+                # todo -- next round -- how to change past version to archived, since it isn't version# - 1
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
