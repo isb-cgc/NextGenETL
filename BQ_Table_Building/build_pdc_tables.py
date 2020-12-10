@@ -21,6 +21,8 @@ SOFTWARE.
 """
 import re
 import csv
+import ftplib
+import os
 from functools import cmp_to_key
 
 from common_etl.utils import *
@@ -512,13 +514,10 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
 
 
 def build_uniprot_tsv(dest_scratch_fp):
+
     def pop_unwanted(row_list, excluded_idx_list):
-        excluded_idx_list.sort(reverse=True)
-
-        for idx in excluded_idx_list:
+        for idx in excluded_idx_list.sort(reverse=True):
             row_list.pop(idx)
-
-        return row_list
 
     def create_tsv_row_filter_wrapped_lines(row_list, null_marker="None"):
         # some of the rows are really continuations of long PubMed article lists, not actually new rows--
@@ -530,19 +529,24 @@ def build_uniprot_tsv(dest_scratch_fp):
         last_idx = len(row_list) - 1
 
         for i, column in enumerate(row_list):
-            if not column:
-                column = null_marker
-
-            delimiter = "\t" if i < last_idx else "\n"
+            column = null_marker if not column else column
+            delimiter = "\n" if i == last_idx else "\t"
             print_str += column + delimiter
 
         return print_str
 
     console_out("creating uniprot tsv... ")
 
-    download_from_bucket(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+    with ftplib.FTP(API_PARAMS['UNIPROT_FTP']) as ftp:
+        try:
+            ftp.login()
 
-    src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['SWISSPROT_FILE'])) as fp:
+                ftp.retrbinary('RETR ' + API_PARAMS['SWISSPROT_FTP_DIR'] + API_PARAMS['SWISSPROT_FILE'], fp.write)
+        except ftplib.all_errors as e:
+            has_fatal_error("Error getting SwissProt file via FTP:\n {}".format(e), ftplib.error_perm)
+
+    src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['SWISSPROT_FILE'])
 
     csv.field_size_limit(sys.maxsize)
 
@@ -1388,6 +1392,7 @@ def main(args):
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_uniprot_tsv' in steps:
+        # todo replace file source
         uniprot_dest_file = BQ_PARAMS['UNIPROT_MAPPING_TABLE'] + '.tsv'
         uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
         build_uniprot_tsv(uniprot_dest_fp)
