@@ -82,15 +82,19 @@ def is_currently_embargoed(embargo_date):
     return False
 
 
-def get_table_name(prefix, suffix=None, include_release=True):
+def get_table_name(prefix, suffix=None, include_release=True, release=None):
     table_name = prefix
 
     if suffix:
         table_name += '_' + suffix
-    if include_release:
+
+    if include_release and not release:
         table_name += '_' + BQ_PARAMS['RELEASE']
+    elif release:
+        table_name += '_' + release
 
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
+
 
 
 def get_table_id(project, dataset, table_name):
@@ -373,7 +377,8 @@ def make_gene_query(gene_name):
 
 
 def make_swissprot_query():
-    swissprot_table_id = get_dev_table_id(BQ_PARAMS['SWISSPROT_TABLE'], is_metadata=True)
+    table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+    swissprot_table_id = get_dev_table_id(table_name, is_metadata=True)
     return """
     SELECT swissprot_id 
     FROM `{}`
@@ -1360,27 +1365,28 @@ def main(args):
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_uniprot_tsv' in steps:
-        # todo replace file source
-        uniprot_dest_file = BQ_PARAMS['UNIPROT_MAPPING_TABLE'] + '.tsv'
+        mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        uniprot_dest_file = mapping_table + '.tsv'
         uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
         build_uniprot_tsv(uniprot_dest_fp)
         upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
 
     if 'build_uniprot_table' in steps:
-        table_name = BQ_PARAMS['UNIPROT_MAPPING_TABLE']
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        table_id = get_dev_table_id(mapping_table, is_metadata=True)
+
         console_out("Building {0}... ", (table_id,))
-        schema_filename = '{}/{}/{}.json'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        tsv_name = '{}.tsv'.format(table_name)
+        tsv_name = '{}.tsv'.format(mapping_table)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Uniprot table built!")
 
     if 'build_swissprot_table' in steps:
-        table_name = BQ_PARAMS['SWISSPROT_TABLE']
-        table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        table_id = get_dev_table_id(table_name, is_metadata=True)
         console_out("Building {0}... ", (table_id,))
-        schema_filename = '{}/{}/{}.json'.format(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+        schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         tsv_name = '{}.tsv'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
