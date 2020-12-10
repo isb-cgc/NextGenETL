@@ -985,7 +985,7 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
         has_fatal_error(err)
 
 
-def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker=''):
+def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -999,7 +999,7 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-    job_config.skip_leading_rows = 1
+    job_config.skip_leading_rows = num_header_rows
     job_config.null_marker = null_marker
 
     gs_uri = build_working_gs_uri(bq_params, tsv_file)

@@ -22,7 +22,8 @@ SOFTWARE.
 import re
 import csv
 import ftplib
-import os
+import gzip
+
 from functools import cmp_to_key
 
 from common_etl.utils import *
@@ -515,59 +516,25 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
 
 def build_uniprot_tsv(dest_scratch_fp):
 
-    def pop_unwanted(row_list, excluded_idx_list):
-        for idx in excluded_idx_list.sort(reverse=True):
-            row_list.pop(idx)
-
-    def create_tsv_row_filter_wrapped_lines(row_list, null_marker="None"):
-        # some of the rows are really continuations of long PubMed article lists, not actually new rows--
-        # probably due to field size limit in Python? Or just error in UniProt data
-        if ';' in row_list[0]:
-            return None
-
-        print_str = ''
-        last_idx = len(row_list) - 1
-
-        for i, column in enumerate(row_list):
-            column = null_marker if not column else column
-            delimiter = "\n" if i == last_idx else "\t"
-            print_str += column + delimiter
-
-        return print_str
-
     console_out("creating uniprot tsv... ")
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP']) as ftp:
         try:
             ftp.login()
 
-            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['SWISSPROT_FILE'])) as fp:
-                ftp.retrbinary('RETR ' + API_PARAMS['SWISSPROT_FTP_DIR'] + API_PARAMS['SWISSPROT_FILE'], fp.write)
+            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])) as fp:
+                ftp.retrbinary('RETR ' + API_PARAMS['UNIPROT_MAPPING_FP'], fp.write)
+
+            src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+
+            with gzip.open(src_scratch_fp, 'rb') as zipped_file:
+                with open(dest_scratch_fp, 'w') as dest_tsv_file:
+                    dest_tsv_file.write(zipped_file.read())
+
+            console_out("\t\t- done!")
         except ftplib.all_errors as e:
-            has_fatal_error("Error getting SwissProt file via FTP:\n {}".format(e), ftplib.error_perm)
+            has_fatal_error("Error getting UniProt file via FTP:\n {}".format(e), ftplib.error_perm)
 
-    src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['SWISSPROT_FILE'])
-
-    csv.field_size_limit(sys.maxsize)
-
-    ref_keys = API_PARAMS['UNIPROT_MAPPING_KEYS']
-
-    with open(dest_scratch_fp, 'w') as dest_tsv_file:
-        unwanted_indices = API_PARAMS['UNIPROT_EXCLUDE_INDICES']
-
-        ref_keys = pop_unwanted(ref_keys, unwanted_indices)
-        header = create_tsv_row_filter_wrapped_lines(ref_keys, null_marker=BQ_PARAMS['NULL_MARKER'])
-        dest_tsv_file.write(header)
-
-        with open(src_scratch_fp, 'r') as src_tsv_file:
-            csv_reader = csv.reader(src_tsv_file, delimiter='\t')
-
-            for row in csv_reader:
-                row = pop_unwanted(row, unwanted_indices)
-                row_str = create_tsv_row_filter_wrapped_lines(row, null_marker=BQ_PARAMS['NULL_MARKER'])
-                dest_tsv_file.write(row_str)
-
-    console_out("\t\t- done!")
 
 
 def is_uniprot_accession_number(id_str):
