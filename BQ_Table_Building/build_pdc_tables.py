@@ -524,7 +524,7 @@ def build_uniprot_tsv(tab_destination_file):
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
-            # ftp.login()
+            ftp.login()
 
             # write remote gz to local file via ftp connection
             with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE']), 'wb') as fp:
