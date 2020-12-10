@@ -525,10 +525,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
     console_out("Creating {} tsv... ", (type_str,), end="")
 
     gz_destination_file = server_fp.split('/')[-1]
-    split_local_file_name = local_file.split('.')
-    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
-    versioned_fp = get_scratch_fp(BQ_PARAMS, versioned_file)
-
+    versioned_fp = get_scratch_fp(BQ_PARAMS, local_file)
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
