@@ -542,7 +542,6 @@ def build_uniprot_tsv(dest_scratch_fp):
             has_fatal_error("Error getting UniProt file via FTP:\n {}".format(e), ftplib.error_perm)
 
 
-
 def is_uniprot_accession_number(id_str):
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
     def is_alphanumeric(char):
@@ -1366,7 +1365,7 @@ def main(args):
 
     if 'build_uniprot_tsv' in steps:
         mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        uniprot_dest_file = mapping_table + '.tsv'
+        uniprot_dest_file = mapping_table + '.tab'
         uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
         build_uniprot_tsv(uniprot_dest_fp)
         upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
