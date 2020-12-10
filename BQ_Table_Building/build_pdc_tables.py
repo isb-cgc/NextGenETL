@@ -1263,7 +1263,7 @@ def main(args):
     embargoed_str_list = ["\t- {} (embargoed until {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    console_out("Currently embargoed (expiration date):\n{}\n", (embargoed_print_str,))
+    console_out("\nCurrently embargoed (expiration date):\n{}\n", (embargoed_print_str,))
 
     if 'build_gene_tsv' in steps:
         gene_name_list = build_gene_symbol_list(studies_list)
