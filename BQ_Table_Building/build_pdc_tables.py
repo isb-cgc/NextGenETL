@@ -146,6 +146,11 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
+def delete_from_steps(step, steps):
+    delete_idx = steps.index(step)
+    steps.pop(delete_idx)
+
+
 # ***** STUDY TABLE CREATION FUNCTIONS
 
 def make_all_programs_query():
@@ -1232,8 +1237,7 @@ def main(args):
             delete_bq_table(table_id)
             console_out("Deleted table: {}", (table_id,))
 
-        delete_idx = steps.index('delete_tables')
-        steps.pop(delete_idx)
+        delete_from_steps('delete_tables', steps)
 
     if 'build_studies_jsonl' in steps:
         console_out("build_studies_jsonl started")
@@ -1251,14 +1255,12 @@ def main(args):
         jsonl_end = time.time() - jsonl_start
         console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
 
-        delete_idx = steps.index('delete_tables')
-        steps.pop(delete_idx)
+        delete_from_steps('build_studies_jsonl', steps)
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
 
-        delete_idx = steps.index('delete_tables')
-        steps.pop(delete_idx)
+        delete_from_steps('build_studies_table', steps)
 
     # Don't bother building the study list if we aren't running further steps, exit
     if len(steps) == 0:
