@@ -1236,6 +1236,7 @@ def main(args):
         steps.pop(delete_idx)
 
     if 'build_studies_jsonl' in steps:
+        console_out("build_studies_jsonl started")
         jsonl_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
