@@ -522,7 +522,7 @@ def build_uniprot_tsv(dest_scratch_fp):
         try:
             ftp.login()
 
-            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])) as fp:
+            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE']), 'w') as fp:
                 ftp.retrbinary('RETR ' + API_PARAMS['UNIPROT_MAPPING_FP'], fp.write)
 
             src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
