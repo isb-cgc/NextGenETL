@@ -519,27 +519,28 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
                 console_out("Added {0} genes", (count,))
 
 
-def build_uniprot_tsv(dest_scratch_fp):
-
-    console_out("creating uniprot tsv... ")
+def build_uniprot_tsv(tab_destination_file):
+    console_out("Creating uniprot tsv... ", end="")
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
-            ftp.login()
+            # ftp.login()
 
+            # write remote gz to local file via ftp connection
             with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE']), 'wb') as fp:
                 ftp.retrbinary('RETR ' + API_PARAMS['UNIPROT_MAPPING_FP'], fp.write)
 
-            src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+            uniprot_tab_file = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
 
-            with gzip.open(src_scratch_fp, 'rt') as zipped_file:
-                with open(dest_scratch_fp, 'w') as dest_tsv_file:
+            with gzip.open(uniprot_tab_file, 'rt') as zipped_file:
+                with open(tab_destination_file, 'w') as dest_tsv_file:
                     for row in zipped_file:
                         dest_tsv_file.write(row)
 
-            console_out("\t\t- done!")
         except ftplib.all_errors as e:
             has_fatal_error("Error getting UniProt file via FTP:\n {}".format(e), ftplib.error_perm)
+
+    console_out(" done!")
 
 
 def is_uniprot_accession_number(id_str):
