@@ -540,6 +540,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
 
             with gzip.open(gz_destination_fp, 'rt') as zipped_file:
                 with open(versioned_file, 'w') as dest_tsv_file:
+                    print(versioned_file)
                     for row in zipped_file:
                         dest_tsv_file.write(row)
 
