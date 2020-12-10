@@ -1232,7 +1232,6 @@ def main(args):
             console_out("Deleted table: {}", (table_id,))
 
     if 'build_studies_jsonl' in steps:
-        console_out("Building studies table... ")
         jsonl_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
