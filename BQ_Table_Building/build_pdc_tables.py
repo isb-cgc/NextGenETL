@@ -519,21 +519,27 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
                 console_out("Added {0} genes", (count,))
 
 
-def build_uniprot_tsv(tab_destination_file):
-    console_out("Creating uniprot tsv... ", end="")
+# API_PARAMS['UNIPROT_MAPPING_FILE'], API_PARAMS['UNIPROT_MAPPING_FP']
+# API_PARAMS['SWISSPROT_OUTPUT_FILE'], API_PARAMS['SWISSPROT_FTP_FP']
+def download_from_uniprot_ftp(local_file, server_fp, type_str):
+    console_out("Creating {} tsv... ", (type_str,), end="")
+
+    gz_destination_file = server_fp.split('/')[-1]
+    split_local_file_name = local_file.split('.')
+    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + split_local_file_name[-1]
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
             ftp.login()
 
             # write remote gz to local file via ftp connection
-            with open(get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE']), 'wb') as fp:
-                ftp.retrbinary('RETR ' + API_PARAMS['UNIPROT_MAPPING_FP'], fp.write)
+            with open(get_scratch_fp(BQ_PARAMS, gz_destination_file), 'wb') as fp:
+                ftp.retrbinary('RETR ' + server_fp, fp.write)
 
-            uniprot_tab_file = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
+            gz_destination_fp = get_scratch_fp(BQ_PARAMS, gz_destination_file)
 
-            with gzip.open(uniprot_tab_file, 'rt') as zipped_file:
-                with open(tab_destination_file, 'w') as dest_tsv_file:
+            with gzip.open(gz_destination_fp, 'rt') as zipped_file:
+                with open(versioned_file, 'w') as dest_tsv_file:
                     for row in zipped_file:
                         dest_tsv_file.write(row)
 
@@ -1257,7 +1263,7 @@ def main(args):
     embargoed_str_list = ["\t- {} (embargoed until {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    console_out("Currently embargoed studies (excluded from table creation): \n{}\n", (embargoed_print_str,))
+    console_out("Embargoed, excluded studies (embargo expiration date in parentheses):\n{}\n", (embargoed_print_str,))
 
     if 'build_gene_tsv' in steps:
         gene_name_list = build_gene_symbol_list(studies_list)
@@ -1365,11 +1371,12 @@ def main(args):
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_uniprot_tsv' in steps:
-        mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        uniprot_dest_file = mapping_table + '.tab'
-        uniprot_dest_fp = get_scratch_fp(BQ_PARAMS, uniprot_dest_file)
-        build_uniprot_tsv(uniprot_dest_fp)
-        upload_to_bucket(BQ_PARAMS, uniprot_dest_fp)
+        gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
+        split_file = gz_file_name.split('.')[0]
+        mapping_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+
+        download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
+        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file))
 
     if 'build_uniprot_table' in steps:
         mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
@@ -1378,18 +1385,30 @@ def main(args):
         console_out("Building {0}... ", (table_id,))
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        tsv_name = '{}.tab'.format(mapping_table)
-        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
+        data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+        null = BQ_PARAMS['NULL_MARKER']
+        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
         console_out("Uniprot table built!")
+
+    if 'build_swissprot_tsv' in steps:
+        gz_file_name = API_PARAMS['SWISSPROT_FTP_FP'].split('/')[-1]
+        split_file = gz_file_name.split('.')[0]
+        mapping_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+
+        download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
+        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file))
 
     if 'build_swissprot_table' in steps:
         table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
         table_id = get_dev_table_id(table_name, is_metadata=True)
+
         console_out("Building {0}... ", (table_id,))
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        tsv_name = '{}.tab'.format(table_name)
-        create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
+
+        data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+        null = BQ_PARAMS['NULL_MARKER']
+        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
         console_out("Swiss-prot table built!")
 
     if 'build_quant_tsvs' in steps:
