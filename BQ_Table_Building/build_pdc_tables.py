@@ -527,6 +527,8 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
     gz_destination_file = server_fp.split('/')[-1]
     split_local_file_name = local_file.split('.')
     versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+    versioned_fp = get_scratch_fp(BQ_PARAMS, versioned_file)
+
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
@@ -539,8 +541,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
             gz_destination_fp = get_scratch_fp(BQ_PARAMS, gz_destination_file)
 
             with gzip.open(gz_destination_fp, 'rt') as zipped_file:
-                with open(versioned_file, 'w') as dest_tsv_file:
-                    print(versioned_file)
+                with open(versioned_fp, 'w') as dest_tsv_file:
                     for row in zipped_file:
                         dest_tsv_file.write(row)
 
