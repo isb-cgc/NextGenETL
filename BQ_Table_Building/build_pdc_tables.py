@@ -1389,14 +1389,6 @@ def main(args):
         create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
         console_out("Uniprot table built!")
 
-    if 'build_swissprot_tsv' in steps:
-        gz_file_name = API_PARAMS['SWISSPROT_FTP_FP'].split('/')[-1]
-        split_file = gz_file_name.split('.')[0]
-        mapping_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
-
-        download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
-        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file))
-
     if 'build_swissprot_table' in steps:
         table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
         table_id = get_dev_table_id(table_name, is_metadata=True)
@@ -1405,7 +1397,7 @@ def main(args):
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
-        data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
+        data_file = table_name + API_PARAMS['UNIPROT_FILE_EXT']
         null = BQ_PARAMS['NULL_MARKER']
         create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
         console_out("Swiss-prot table built!")
