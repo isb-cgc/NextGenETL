@@ -526,7 +526,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
 
     gz_destination_file = server_fp.split('/')[-1]
     split_local_file_name = local_file.split('.')
-    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + split_local_file_name[-1]
+    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + '.' + split_local_file_name[-1]
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
@@ -1260,7 +1260,7 @@ def main(args):
         else:
             studies_list.append(dict(study.items()))
 
-    embargoed_str_list = ["\t- {} (embargoed until {})".format(study, embargo_date)
+    embargoed_str_list = ["\t- {} ({})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
     console_out("\nCurrently embargoed (expiration date):\n{}\n", (embargoed_print_str,))
