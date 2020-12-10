@@ -1377,7 +1377,7 @@ def main(args):
         console_out("Building {0}... ", (table_id,))
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        tsv_name = '{}.tsv'.format(mapping_table)
+        tsv_name = '{}.tab'.format(mapping_table)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Uniprot table built!")
 
@@ -1387,7 +1387,7 @@ def main(args):
         console_out("Building {0}... ", (table_id,))
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-        tsv_name = '{}.tsv'.format(table_name)
+        tsv_name = '{}.tab'.format(table_name)
         create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, null_marker=BQ_PARAMS['NULL_MARKER'])
         console_out("Swiss-prot table built!")
 
