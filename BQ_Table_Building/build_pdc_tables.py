@@ -1232,6 +1232,9 @@ def main(args):
             delete_bq_table(table_id)
             console_out("Deleted table: {}", (table_id,))
 
+        delete_idx = steps.index('delete_tables')
+        steps.pop(delete_idx)
+
     if 'build_studies_jsonl' in steps:
         jsonl_start = time.time()
 
@@ -1247,8 +1250,20 @@ def main(args):
         jsonl_end = time.time() - jsonl_start
         console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
 
+        delete_idx = steps.index('delete_tables')
+        steps.pop(delete_idx)
+
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
+
+        delete_idx = steps.index('delete_tables')
+        steps.pop(delete_idx)
+
+    # Don't bother building the study list if we aren't running further steps, exit
+    if len(steps) == 0:
+        end = time.time() - start
+        console_out("Finished program execution in {}!\n", (format_seconds(end),))
+        exit()
 
     studies_list = list()
     excluded_studies_list = list()

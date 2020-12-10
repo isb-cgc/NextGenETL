@@ -1564,9 +1564,7 @@ def load_config(args, yaml_dict_keys):
     yaml_file_arg = args[1]
 
     with open(yaml_file_arg, mode='r') as yaml_file_arg:
-
         yaml_dict = None
-
         config_stream = io.StringIO(yaml_file_arg.read())
 
         try:
