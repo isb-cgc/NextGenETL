@@ -1240,7 +1240,7 @@ def main(args):
         delete_from_steps('delete_tables', steps)
 
     if 'build_studies_jsonl' in steps:
-        console_out("build_studies_jsonl started")
+        console_out("\nbuild_studies_jsonl started")
         jsonl_start = time.time()
 
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
