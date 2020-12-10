@@ -527,9 +527,10 @@ def build_uniprot_tsv(dest_scratch_fp):
 
             src_scratch_fp = get_scratch_fp(BQ_PARAMS, API_PARAMS['UNIPROT_MAPPING_FILE'])
 
-            with gzip.open(src_scratch_fp, 'rb') as zipped_file:
+            with gzip.open(src_scratch_fp, 'rt') as zipped_file:
                 with open(dest_scratch_fp, 'w') as dest_tsv_file:
-                    dest_tsv_file.write(zipped_file.read())
+                    for row in zipped_file:
+                        dest_tsv_file.write(row)
 
             console_out("\t\t- done!")
         except ftplib.all_errors as e:
