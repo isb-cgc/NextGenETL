@@ -33,7 +33,8 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # ***** FUNCTIONS USED BY MULTIPLE PROCESSES
 
 def make_all_studies_query():
-    table_id = get_dev_table_id(BQ_PARAMS['STUDIES_TABLE'], is_metadata=True)
+    table_name = get_table_name(BQ_PARAMS['STUDIES_TABLE'])
+    table_id = get_dev_table_id(table_name, is_metadata=True)
 
     return """
     SELECT study_id, study_submitter_id, pdc_study_id, study_name, project_submitter_id,
@@ -78,6 +79,17 @@ def is_currently_embargoed(embargo_date):
     return False
 
 
+def get_table_name(prefix, suffix=None, include_release=True):
+    table_name = prefix
+
+    if suffix:
+        table_name += '_' + suffix
+    if include_release:
+        table_name += '_' + BQ_PARAMS['RELEASE']
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
+
+
 def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
@@ -104,17 +116,6 @@ def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
 
     build_end = time.time() - build_start
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
-
-
-def get_table_name(prefix, suffix=None, include_release=True):
-    table_name = prefix
-
-    if suffix:
-        table_name += '_' + suffix
-    if include_release:
-        table_name += '_' + BQ_PARAMS['RELEASE']
-
-    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
