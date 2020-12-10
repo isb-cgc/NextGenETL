@@ -518,7 +518,7 @@ def build_uniprot_tsv(dest_scratch_fp):
 
     console_out("creating uniprot tsv... ")
 
-    with ftplib.FTP(API_PARAMS['UNIPROT_FTP']) as ftp:
+    with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
             ftp.login()
 
