@@ -526,7 +526,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
 
     gz_destination_file = server_fp.split('/')[-1]
     split_local_file_name = local_file.split('.')
-    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + '.' + split_local_file_name[-1]
+    versioned_file = split_local_file_name[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
 
     with ftplib.FTP(API_PARAMS['UNIPROT_FTP_DOMAIN']) as ftp:
         try:
