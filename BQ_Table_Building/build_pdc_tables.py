@@ -403,9 +403,9 @@ def build_gene_symbol_list(studies_list):
 
         if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name):
             add_gene_symbols_per_study(study['pdc_study_id'], gene_symbol_set)
-            console_out("Added {}, current count: {}", (study['pdc_study_id'], len(gene_symbol_set)))
+            console_out("- Added {}, current count: {}", (study['pdc_study_id'], len(gene_symbol_set)))
         else:
-            console_out("No table for {}, skipping.", (study['pdc_study_id'],))
+            console_out("- No table for {}, skipping.", (study['pdc_study_id'],))
 
     gene_symbol_list = list(sorted(gene_symbol_set))
     return gene_symbol_list
@@ -860,18 +860,21 @@ def get_proteome_studies(studies_list):
     return proteome_studies_list
 
 
-def get_quant_table_name(study):
-    study_name = study['study_name']
+def get_quant_table_name(study, is_final=True):
     analytical_fraction = study['analytical_fraction']
 
-    study_name = study_name.replace(analytical_fraction, "")
-    study_name = change_study_name_to_table_name_format(study_name)
+    if not is_final:
+        return get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+    else:
+        study_name = study['study_name']
+        study_name = study_name.replace(analytical_fraction, "")
+        study_name = change_study_name_to_table_name_format(study_name)
 
-    return "_".join([BQ_PARAMS['QUANT_DATA_TABLE'],
-                     analytical_fraction.lower(),
-                     study_name,
-                     BQ_PARAMS['DATA_SOURCE'],
-                     BQ_PARAMS['RELEASE']])
+        return "_".join([BQ_PARAMS['QUANT_DATA_TABLE'],
+                         analytical_fraction.lower(),
+                         study_name,
+                         BQ_PARAMS['DATA_SOURCE'],
+                         BQ_PARAMS['RELEASE']])
 
 
 def change_study_name_to_table_name_format(study_name):
@@ -1436,11 +1439,20 @@ def main(args):
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_proteome_quant_tables' in steps:
-        for study in get_proteome_studies(studies_list):
-            table_name = get_quant_table_name(study)
-            table_id = get_dev_table_id(table_name)
+        for study in studies_list:
 
-            load_table_from_query(BQ_PARAMS, table_id, make_proteome_quant_table_query(study['pdc_study_id']))
+            # only run the build script for analytes we're currently publishing
+            if study['analytical_fraction'] not in BQ_PARAMS["BUILD_ANALYTES"]:
+                continue
+
+            pdc_study_id = study['pdc_study_id']
+            raw_table_name = get_quant_table_name(study, is_final=False)
+
+            if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], raw_table_name):
+                final_table_name = get_quant_table_name(study)
+                final_table_id = get_dev_table_id(final_table_name)
+
+                load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(pdc_study_id))
 
     if 'update_proteome_quant_metadata' in steps:
         dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
@@ -1507,9 +1519,6 @@ def main(args):
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
-
-    # TODO : figure out how to use the new tables for uniprot and swissprot
-
 
 if __name__ == '__main__':
     main(sys.argv)
