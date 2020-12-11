@@ -31,10 +31,10 @@ import requests
 import gzip
 import shutil
 import re
-import string
+#import string
 from git import Repo
 from json import loads as json_loads
-from createSchemaP3 import build_schema
+#from createSchemaP3 import build_schema
 import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
@@ -55,7 +55,7 @@ def load_config(yaml_config):
     if yaml_dict is None:
         return None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['update_schema_tables'], yaml_dict['steps']
 
 
 '''
@@ -195,7 +195,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps = load_config(yaml_file.read())
+        params, update_schema_tables, steps = load_config(yaml_file.read())
 
 
     #
@@ -207,8 +207,8 @@ def main(args):
     local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
+    #hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
+    #hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -300,38 +300,46 @@ def main(args):
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
-            schema_file_name = ''.join([data_type, ".json"])
+            #schema_file_name = ''.join([data_type, ".json"]) #change
             schema_file_tag = "{}/{}".format(params['PROX_DESC_PREFIX'], data_type)
 
-            if 'process_git_schemas' in steps:
-                print('process_git_schema: {}'.format(line))
-                # Where do we dump the schema git repository?
-                print("schema_file_name: " + schema_file_name)
-                schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
-                print(schema_file + "\t" + data_type)
+            for table in update_schema_tables:
+                if table == 'current':
+                    schema_file_name = ''.join([data_type, ".json"])
+                    schema_release = 'current'
+                else:
+                    schema_file_name = ''.join(["versioned.", data_type, ".json"])
+                    schema_release = params['VERSION']
 
-                # Write out the details
-                success = generate_table_detail_files(schema_file, schema_file_tag)
-                if not success:
-                    print("process_git_schemas failed")
-                    return
+                if 'process_git_schemas' in steps:
+                    print('process_git_schema: {}'.format(line))
+                    # Where do we dump the schema git repository?
+                    print("schema_file_name: " + schema_file_name)
+                    schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+                    print(schema_file + "\t" + data_type)
 
-            # Customize generic schema to this data program:
+                    # Write out the details
+                    success = generate_table_detail_files(schema_file, schema_file_tag)
+                    if not success:
+                        print("process_git_schemas failed")
+                        return
 
-            if 'replace_schema_tags' in steps:
-                version = ''.join(['VERSION ', file_components[-1]])
-                hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-                schema_tags = {'---tag-ref-genome-0---': hg,
-                               '---tag-release---': version}
-                tag_map_list = []
-                for tag in schema_tags:
-                    use_pair = {tag: schema_tags[tag]}
-                    tag_map_list.append(use_pair)
-                # Write out the details
-                success = customize_labels_and_desc(schema_file_tag, tag_map_list)
-                if not success:
-                    print("replace_schema_tags failed")
-                    return
+                # Customize generic schema to this data program:
+
+                if 'replace_schema_tags' in steps:
+                    version = ''.join([schema_release, file_components[-1]])
+                    hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
+                    schema_tags = {'---tag-ref-genome-0---': hg,
+                                   '---tag-release---': version}
+                    tag_map_list = []
+                    for tag in schema_tags:
+                        use_pair = {tag: schema_tags[tag]}
+                        tag_map_list.append(use_pair)
+                    # Write out the details
+                    success = customize_labels_and_desc(schema_file_tag, tag_map_list)
+                    if not success:
+                        print("replace_schema_tags failed")
+                        return
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
