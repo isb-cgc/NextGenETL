@@ -385,12 +385,13 @@ def make_swissprot_query():
 
 
 def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
-    results = get_query_results(make_gene_symbols_per_study_query(pdc_study_id))
+    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
 
-    for row in results:
-        gene_symbol_set.add(row['gene_symbol'])
+    if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name):
+        results = get_query_results(make_gene_symbols_per_study_query(pdc_study_id))
 
-    return gene_symbol_set
+        for row in results:
+            gene_symbol_set.add(row['gene_symbol'])
 
 
 def build_gene_symbol_list(studies_list):
@@ -398,8 +399,13 @@ def build_gene_symbol_list(studies_list):
     gene_symbol_set = set()
 
     for study in studies_list:
-        add_gene_symbols_per_study(study['pdc_study_id'], gene_symbol_set)
-        console_out("Added gene symbols from {}\n\t- current count: {}", (study['study_name'], len(gene_symbol_set)))
+        table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+
+        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name):
+            add_gene_symbols_per_study(study['pdc_study_id'], gene_symbol_set)
+            console_out("Added {}, current count: {}", (study['pdc_study_id'], len(gene_symbol_set)))
+        else:
+            console_out("No table for {}, skipping.", (study['pdc_study_id'],))
 
     gene_symbol_list = list(sorted(gene_symbol_set))
     return gene_symbol_list
