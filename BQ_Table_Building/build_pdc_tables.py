@@ -96,7 +96,6 @@ def get_table_name(prefix, suffix=None, include_release=True, release=None):
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
-
 def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
@@ -145,7 +144,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
         console_out("No schema file found for {}, skipping table.", (table_id,))
         return
 
-    console_out("Building {0}... ", (table_id,))
+    console_out("\nBuilding {0}... ", (table_id,))
     tsv_name = '{}.tsv'.format(table_name)
     create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
@@ -1363,12 +1362,7 @@ def main(args):
             filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
 
             if filename not in blob_files:
-                gs_file_path = "gs://{}/{}/{}".format(BQ_PARAMS['WORKING_BUCKET'],
-                                                      BQ_PARAMS['WORKING_BUCKET_DIR'],
-                                                      filename)
-
-                console_out('Skipping quant table build for {}\n\t- ({} not found).', (study_id_dict['study_name'],
-                                                                                       gs_file_path))
+                console_out('Skipping quant table build for {} (no file found in gs).', (study_id_dict['study_name'],))
             else:
                 build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
                                      BQ_PARAMS['DEV_DATASET'],
@@ -1387,7 +1381,7 @@ def main(args):
         mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
         table_id = get_dev_table_id(mapping_table, is_metadata=True)
 
-        console_out("Building {0}... ", (table_id,))
+        console_out("\nBuilding {0}... ", (table_id,))
         schema_filename = "/".join(table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
@@ -1409,10 +1403,10 @@ def main(args):
         console_out("Swiss-prot table built!")
 
     if 'build_gene_tsv' in steps:
-        gene_name_list = build_gene_symbol_list(studies_list)
+        gene_symbol_list = build_gene_symbol_list(studies_list)
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
-        build_gene_tsv(gene_name_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
+        build_gene_tsv(gene_symbol_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
@@ -1509,6 +1503,7 @@ def main(args):
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
 
     # TODO : figure out how to use the new tables for uniprot and swissprot
+
 
 if __name__ == '__main__':
     main(sys.argv)
