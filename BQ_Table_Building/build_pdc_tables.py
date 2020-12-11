@@ -1264,33 +1264,6 @@ def main(args):
     embargoed_print_str = "\n".join(embargoed_str_list)
     console_out("\nCurrently embargoed (expiration date):\n{}\n", (embargoed_print_str,))
 
-    if 'build_gene_tsv' in steps:
-        gene_name_list = build_gene_symbol_list(studies_list)
-        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
-
-        build_gene_tsv(gene_name_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
-        upload_to_bucket(BQ_PARAMS, gene_tsv_path)
-
-    if 'build_gene_table' in steps:
-        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
-
-        with open(gene_tsv_path, 'r') as tsv_file:
-            gene_reader = csv.reader(tsv_file, delimiter='\t')
-
-            passed_first_row = False
-            num_columns = None
-
-            for row in gene_reader:
-                if not passed_first_row:
-                    num_columns = len(row)
-                    passed_first_row = True
-                    continue
-
-                if len(row) != num_columns:
-                    print(row)
-
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
-
     if 'build_cases_aliquots_jsonl' in steps:
         jsonl_start = time.time()
 
@@ -1369,6 +1342,39 @@ def main(args):
         pass
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
+    if 'build_quant_tsvs' in steps:
+        for study_id_dict in studies_list:
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
+            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
+
+            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
+            console_out("\n{0} lines written for {1}", (lines_written, study_id_dict['study_name']))
+
+            if lines_written > 0:
+                upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
+                console_out("{0} uploaded to Google Cloud bucket!", (filename,))
+                os.remove(quant_tsv_fp)
+
+    if 'build_quant_tables' in steps:
+        console_out("Building quant tables...")
+        blob_files = get_quant_files()
+
+        for study_id_dict in studies_list:
+            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
+
+            if filename not in blob_files:
+                gs_file_path = "gs://{}/{}/{}".format(BQ_PARAMS['WORKING_BUCKET'],
+                                                      BQ_PARAMS['WORKING_BUCKET_DIR'],
+                                                      filename)
+
+                console_out('Skipping quant table build for {}\n\t- ({} not found).', (study_id_dict['study_name'],
+                                                                                       gs_file_path))
+            else:
+                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
+                                     BQ_PARAMS['DEV_DATASET'],
+                                     BQ_PARAMS['QUANT_DATA_TABLE'],
+                                     study_id_dict['pdc_study_id'])
+
     if 'build_uniprot_tsv' in steps:
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
         split_file = gz_file_name.split('.')
@@ -1402,38 +1408,32 @@ def main(args):
         create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
         console_out("Swiss-prot table built!")
 
-    if 'build_quant_tsvs' in steps:
-        for study_id_dict in studies_list:
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
-            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
+    if 'build_gene_tsv' in steps:
+        gene_name_list = build_gene_symbol_list(studies_list)
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
-            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
-            console_out("\n{0} lines written for {1}", (lines_written, study_id_dict['study_name']))
+        build_gene_tsv(gene_name_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
+        upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
-            if lines_written > 0:
-                upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
-                console_out("{0} uploaded to Google Cloud bucket!", (filename,))
-                os.remove(quant_tsv_fp)
+    if 'build_gene_table' in steps:
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
 
-    if 'build_quant_tables' in steps:
-        console_out("Building quant tables...")
-        blob_files = get_quant_files()
+        with open(gene_tsv_path, 'r') as tsv_file:
+            gene_reader = csv.reader(tsv_file, delimiter='\t')
 
-        for study_id_dict in studies_list:
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
+            passed_first_row = False
+            num_columns = None
 
-            if filename not in blob_files:
-                gs_file_path = "gs://{}/{}/{}".format(BQ_PARAMS['WORKING_BUCKET'],
-                                                      BQ_PARAMS['WORKING_BUCKET_DIR'],
-                                                      filename)
+            for row in gene_reader:
+                if not passed_first_row:
+                    num_columns = len(row)
+                    passed_first_row = True
+                    continue
 
-                console_out('Skipping quant table build for {}\n\t- ({} not found).', (study_id_dict['study_name'],
-                                                                                       gs_file_path))
-            else:
-                build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
-                                     BQ_PARAMS['DEV_DATASET'],
-                                     BQ_PARAMS['QUANT_DATA_TABLE'],
-                                     study_id_dict['pdc_study_id'])
+                if len(row) != num_columns:
+                    print(row)
+
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_proteome_quant_tables' in steps:
         for study in get_proteome_studies(studies_list):
@@ -1508,6 +1508,7 @@ def main(args):
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
 
+    # TODO : figure out how to use the new tables for uniprot and swissprot
 
 if __name__ == '__main__':
     main(sys.argv)
