@@ -1130,8 +1130,9 @@ def bq_table_is_empty(target_dataset, dest_table):
     table = client.get_table(table_ref)
     return table.num_rows == 0
 
-def delete_table_bq_job(target_dataset, delete_table):
-    client = bigquery.Client()
+def delete_table_bq_job(target_dataset, delete_table, project = None):
+
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(delete_table)
     try:
         client.delete_table(table_ref)
@@ -1143,7 +1144,6 @@ def delete_table_bq_job(target_dataset, delete_table):
         return False
 
     return True
-
 
 def confirm_google_vm():
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"
