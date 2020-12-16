@@ -1130,22 +1130,9 @@ def bq_table_is_empty(target_dataset, dest_table):
     table = client.get_table(table_ref)
     return table.num_rows == 0
 
-def delete_table_bq_job(target_dataset, delete_table):
-    client = bigquery.Client()
-    table_ref = client.dataset(target_dataset).table(delete_table)
-    try:
-        client.delete_table(table_ref)
-        print('Table {}:{} deleted'.format(target_dataset, delete_table))
-    except exceptions.NotFound as ex:
-        print('Table {}:{} was not present'.format(target_dataset, delete_table))
-    except Exception as ex:
-        print(ex)
-        return False
+def delete_table_bq_job(target_dataset, delete_table, project = None):
 
-    return True
-
-def delete_table_bq_job_w_proj(target_project, target_dataset, delete_table):
-    client = bigquery.Client(target_project)
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(delete_table)
     try:
         client.delete_table(table_ref)
