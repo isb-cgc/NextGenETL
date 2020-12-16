@@ -1081,7 +1081,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     # compare the two tables
     if 'compare_remove_old_current' in steps:
-        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
+        table = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_{}')
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
