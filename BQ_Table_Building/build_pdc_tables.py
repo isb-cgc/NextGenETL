@@ -971,9 +971,6 @@ def build_per_study_file_jsonl(study_ids_list):
                 study_file_count += 1
                 file_list.append(file_row)
 
-                if len(file_row['signedUrl']) > 1:
-                    print("More than one signedUrl")
-
             print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
         else:
             print("No data returned by per-study file query for {}".format(study_id))
