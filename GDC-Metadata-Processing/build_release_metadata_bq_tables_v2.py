@@ -964,7 +964,8 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                         "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE']))
         success = install_uris(union_table, "{}{}".format(params['UUID_2_URL_TABLE'], path_tag),
                                params['TARGET_DATASET'], 
-                               "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE']), params['BQ_AS_BATCH'])
+                               "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc', params['RELEASE']),
+                               params['BQ_AS_BATCH'])
         if not success:
             print("{} {} create_final_table job failed".format(dataset_tuple[0], build))
             return False
@@ -982,7 +983,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
                                             use_schema)
-            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc', schema_release)
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
@@ -1018,7 +1019,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc', schema_release)
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
@@ -1027,7 +1028,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 return False
 
     if 'create_current_table' in steps:
-        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
+        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                          draft_table.format(params['RELEASE']))
         current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
@@ -1045,7 +1046,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     for table in update_schema_tables:
         schema_release = 'current' if table == 'current' else params['RELEASE']
         if 'install_field_descriptions' in steps:
-            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc', schema_release)
             print('install_field_descriptions: {}'.format(table_name))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
@@ -1065,7 +1066,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         #
 
         if 'install_table_description' in steps:
-            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc', schema_release)
             print('install_table_description: {}'.format(table_name))
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
             success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
@@ -1080,7 +1081,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     # compare the two tables
     if 'compare_remove_old_current' in steps:
-        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
+        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
@@ -1131,13 +1132,13 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
         for table in tables:
             if table == 'versioned':
-                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
+                table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                                  '_'.join([params['TARGET_DATASET'], 'versioned']), table_name)
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      '_'.join([dataset_tuple[1], 'versioned']), table_name)
             elif table == 'current':
-                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'current')
+                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_current')
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
             print('publish: {}'.format(table_name))
