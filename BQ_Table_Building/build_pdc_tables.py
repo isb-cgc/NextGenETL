@@ -902,7 +902,8 @@ def make_files_per_study_query(study_id):
     {{ filesPerStudy (study_id: \"{}\") {{
             study_id 
             pdc_study_id 
-            study_name file_id 
+            study_name 
+            file_id 
             file_name 
             file_submitter_id 
             file_type md5sum 
@@ -974,7 +975,7 @@ def build_per_study_file_jsonl(study_ids_list):
         else:
             print("No data returned by per-study file query for {}".format(study_id))
 
-    per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['TEMP_FILE_TABLE']) + '.jsonl')
+    per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE']) + '.jsonl')
 
     write_list_to_jsonl(per_study_file_jsonl_path, file_list)
     upload_to_bucket(BQ_PARAMS, per_study_file_jsonl_path)
@@ -1314,7 +1315,8 @@ def main(args):
         build_per_study_file_jsonl(studies_list)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['TEMP_FILE_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
+                               BQ_PARAMS['FILES_PER_STUDY_TABLE'])
 
     if 'build_file_metadata_jsonl' in steps:
         file_ids = get_file_ids()
@@ -1519,6 +1521,7 @@ def main(args):
 
     end = time.time() - start
     console_out("Finished program execution in {}!\n", (format_seconds(end),))
+
 
 if __name__ == '__main__':
     main(sys.argv)
