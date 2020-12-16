@@ -1136,7 +1136,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
                                                            params['RELEASE'])
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                                 '_'.join([params['TARGET_DATASET'], 'versioned']), draft_table_name)
+                                                 params['TARGET_DATASET'], draft_table_name)
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      '_'.join([dataset_tuple[1], 'versioned']), table_name)
             elif table == 'current':
