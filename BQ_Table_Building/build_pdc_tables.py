@@ -913,7 +913,6 @@ def make_files_per_study_query(study_id):
             file_size 
             data_category 
             file_format
-            signedUrl {{ url }}
         }} 
     }}""".format(study_id)
 
