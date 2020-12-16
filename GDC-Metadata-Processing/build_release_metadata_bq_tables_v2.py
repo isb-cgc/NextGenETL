@@ -1159,7 +1159,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if 'update_status_tag' in steps:
         print('Update previous table')
         previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
-        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+        success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
                                     previous_ver_table,
                                     'archived')
 
