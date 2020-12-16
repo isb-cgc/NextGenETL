@@ -1089,7 +1089,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                                table.format(params['PREVIOUS_RELEASE']))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                        "_".join([dataset_tuple[1],
-                                                 params['PREVIOUS_RELEASE'],
+                                                 table.format(params['PREVIOUS_RELEASE']),
                                                  'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
