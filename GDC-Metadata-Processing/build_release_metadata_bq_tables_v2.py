@@ -1028,9 +1028,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     if 'create_current_table' in steps:
         draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                          draft_table.format(params['RELEASE']))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                          draft_table.format('current'))
 
         success = publish_table(source_table, current_dest)
@@ -1085,12 +1085,10 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                               table.format("".join(["r",
-                                                                                 str(params['PREVIOUS_RELEASE'])])))
-        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                               table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                        "_".join([params['PROGRAM'],
-                                                 table.format("".join(["r",
-                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
                                                  'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
