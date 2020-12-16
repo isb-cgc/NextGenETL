@@ -902,15 +902,18 @@ def make_files_per_study_query(study_id):
     {{ filesPerStudy (study_id: \"{}\") {{
             study_id 
             pdc_study_id 
+            study_submitter_id
             study_name 
             file_id 
             file_name 
             file_submitter_id 
-            file_type md5sum 
+            file_type 
+            md5sum 
             file_location 
             file_size 
             data_category 
             file_format
+            signedUrl {{ url }}
         }} 
     }}""".format(study_id)
 
@@ -966,10 +969,11 @@ def build_per_study_file_jsonl(study_ids_list):
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
-                print(file_row)
-
                 study_file_count += 1
                 file_list.append(file_row)
+
+                if len(file_row['signedUrl']) > 1:
+                    print("More than one signedUrl")
 
             print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
         else:
