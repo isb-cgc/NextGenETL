@@ -35,7 +35,7 @@ from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, \
                                update_schema_with_dict, install_labels_and_desc, \
-                               compare_two_tables, publish_table
+                               compare_two_tables, publish_table, update_status_tag
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1151,6 +1151,21 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             if not success:
                 print("publish failed")
                 return False
+
+    #
+    # Update previous versioned table with archived tag
+    #
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+        previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
+        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                    previous_ver_table,
+                                    'archived')
+
+        if not success:
+            print("update status tag table failed")
+            return
 
     #
     # Clear out working temp tables:
