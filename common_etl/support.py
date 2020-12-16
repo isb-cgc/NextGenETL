@@ -1098,11 +1098,11 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
-def update_status_tag(target_dataset, dest_table, status):
+def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     table.labels = {"status": status}

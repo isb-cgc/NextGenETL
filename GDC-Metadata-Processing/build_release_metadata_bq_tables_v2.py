@@ -1162,7 +1162,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
         success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
                                     previous_ver_table,
-                                    'archived')
+                                    'archived', params['PUBLICATION_PROJECT'])
 
         if not success:
             print("update status tag table failed")
