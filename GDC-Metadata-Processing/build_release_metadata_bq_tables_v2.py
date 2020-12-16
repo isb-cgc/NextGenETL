@@ -1027,7 +1027,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 return False
 
     if 'create_current_table' in steps:
-        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build)
+        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                          draft_table.format(params['RELEASE']))
         current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
@@ -1080,7 +1080,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     # compare the two tables
     if 'compare_remove_old_current' in steps:
-        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build)
+        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
