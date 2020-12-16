@@ -34,7 +34,8 @@ from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_harness_with_result, delete_table_bq_job, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, \
-                               update_schema_with_dict, install_labels_and_desc, publish_table
+                               update_schema_with_dict, install_labels_and_desc, \
+                               compare_two_tables, publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -49,11 +50,11 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None
 
     return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], 
             yaml_dict['builds'], yaml_dict['build_tags'], yaml_dict['path_tags'],
-            yaml_dict['programs'], yaml_dict['schema_tags'])
+            yaml_dict['programs'], yaml_dict['update_schema_tables'], yaml_dict['schema_tags'])
 
 
 '''
@@ -806,7 +807,7 @@ Do all the steps for a given dataset and build sequence
 '''
 
 def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
-                         aliquot_map_programs, params, schema_tags):
+                         aliquot_map_programs, params, schema_tags, update_schema_tables):
 
     file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
 
@@ -957,7 +958,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     # Merge the URL info into the final table we are building:
 
-    if 'create_final_table' in steps:
+    if 'create_versioned_table' in steps:
         union_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
                                         params['TARGET_DATASET'], 
                                         "{}_{}_{}".format(dataset_tuple[1], build, params['UNION_TABLE']))
@@ -969,105 +970,184 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             return False
 
     # Stage the schema metadata from the repo copy:
+    for table in update_schema_tables:
+        if table == 'current':
+            use_schema = params['SCHEMA_FILE_NAME']
+            schema_release = 'current'
+        else:
+            use_schema = params['VER_SCHEMA_FILE_NAME']
+            schema_release = params['RELEASE']
+        if 'process_git_schemas' in steps:
+            print('process_git_schema')
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
+                                            use_schema)
+            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return False
 
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
-                                        params['GENERIC_SCHEMA_FILE_NAME'])
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        # Write out the details
-        success = generate_table_detail_files(schema_file, full_file_prefix)
-        if not success:
-            print("process_git_schemas failed")
-            return False
+        # Customize generic schema to this data program:
 
-    # Customize generic schema to this data program:
-
-    if 'replace_schema_tags' in steps:
-        print('replace_schema_tags')
-        tag_map_list = []
-        for tag_pair in schema_tags:
-            for tag in tag_pair:
-                val = tag_pair[tag]
-                use_pair = {}
-                tag_map_list.append(use_pair)
-                if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                    chunks = val.split('-', 1)
-                    if chunks[1] == 'programs':
-                        if val.find('~lcbqs-') == 0:
-                            rep_val = dataset_tuple[1].lower() # can't have "." in a tag...
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = tag_pair[tag]
+                    use_pair = {}
+                    tag_map_list.append(use_pair)
+                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                        chunks = val.split('-', 1)
+                        if chunks[1] == 'programs':
+                            if val.find('~lcbqs-') == 0:
+                                rep_val = dataset_tuple[1].lower() # can't have "." in a tag...
+                            else:
+                                rep_val = dataset_tuple[0]
+                        elif chunks[1] == 'path_tags':
+                            rep_val = path_tag
+                        elif chunks[1] == 'builds':
+                            rep_val = build
                         else:
-                            rep_val = dataset_tuple[0]
-                    elif chunks[1] == 'path_tags':
-                        rep_val = path_tag
-                    elif chunks[1] == 'builds':
-                        rep_val = build
+                            raise Exception()
+                        if val.find('~lc-') == 0:
+                            rep_val = rep_val.lower()
+                        use_pair[tag] = rep_val
                     else:
-                        raise Exception()
-                    if val.find('~lc-') == 0:
-                        rep_val = rep_val.lower()
-                    use_pair[tag] = rep_val
-                else:
-                    use_pair[tag] = val
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        # Write out the details
-        success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+                        use_pair[tag] = val
+            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+            if not success:
+                print("replace_schema_tags failed")
+                return False
+
+    if 'create_current_table' in steps:
+        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build)
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format(params['RELEASE']))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format('current'))
+
+        success = publish_table(source_table, current_dest)
+
         if not success:
-            print("replace_schema_tags failed")
-            return False
+            print("create current table failed")
+            return
 
     #
     # Update the per-field descriptions:
     #
+    for table in update_schema_tables:
+        schema_release = 'current' if table == 'current' else params['RELEASE']
+        if 'install_field_descriptions' in steps:
+            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            print('install_field_descriptions: {}'.format(table_name))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            schema_dict = {}
+            with open(schema_dict_loc, mode='r') as schema_hold_dict:
+                full_schema_list = json_loads(schema_hold_dict.read())
+            for entry in full_schema_list:
+                schema_dict[entry['name']] = {'description': entry['description']}
+            success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict,
+                                              project=params['WORKING_PROJECT'])
+            if not success:
+                print("install_field_descriptions failed")
+                return False
 
-    if 'install_field_descriptions' in steps:
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        print('install_field_descriptions: {}'.format(table_name))
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        schema_dict = {}
-        with open(schema_dict_loc, mode='r') as schema_hold_dict:
-            full_schema_list = json_loads(schema_hold_dict.read())
-        for entry in full_schema_list:
-            schema_dict[entry['name']] = {'description': entry['description']}
-        success = update_schema_with_dict(params['TARGET_DATASET'], table_name, schema_dict, project=params['WORKING_PROJECT'])
-        if not success:
-            print("install_field_descriptions failed")
-            return False
+        #
+        # Add description and labels to the target table:
+        #
+
+        if 'install_table_description' in steps:
+            table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, schema_release)
+            print('install_table_description: {}'.format(table_name))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
+            success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
+                                              project=params['WORKING_PROJECT'])
+            if not success:
+                print("install_table_description failed")
+                return False
 
     #
-    # Add description and labels to the target table:
+    # compare and remove old current table
     #
 
-    if 'install_table_description' in steps:
-        table_name = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, params['RELEASE'])
-        print('install_table_description: {}'.format(table_name))
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_name)
-        success = install_labels_and_desc(params['TARGET_DATASET'], table_name, full_file_prefix,
-                                          project=params['WORKING_PROJECT'])
-        if not success:
-            print("install_table_description failed")
-            return False
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build)
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                       "_".join([params['PROGRAM'],
+                                                 table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
 
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        if compare is not None:
+            num_rows = compare.total_rows
+
+            if num_rows == 0:
+                print('the tables are the same')
+            else:
+                print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+            if not compare:
+                print('compare_tables failed')
+                return
+            # move old table to a temporary location
+            elif compare and num_rows == 0:
+                print('Move old table to temp location')
+                table_moved = publish_table(old_current_table, table_temp)
+
+                if not table_moved:
+                    print('Old Table was not moved and will not be deleted')
+                # remove old table
+                elif table_moved:
+                    print('Deleting old table: {}'.format(old_current_table))
+                    delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], table.format('current'))
+                    if not delete_table:
+                        print('delete table failed')
+                        return
+        else:
+            print('no previous table available for ', table.format(params['RELEASE']))
     #
     # publish table:
     #
 
     if 'publish' in steps:
-        table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
-        print('publish: {}'.format(table_name))
+        print('publish tables')
+        tables = ['versioned', 'current']
 
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
+        for table in tables:
+            if table == 'versioned':
+                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, params['RELEASE'])
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                                 '_'.join([params['TARGET_DATASET'], 'versioned']), table_name)
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     '_'.join([dataset_tuple[1], 'versioned']), table_name)
+            elif table == 'current':
+                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'current')
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
+            print('publish: {}'.format(table_name))
+            success = publish_table(source_table, publication_dest)
 
-        success = publish_table(source_table, publication_dest)
-
-        if not success:
-            print("publish failed")
-            return False
+            if not success:
+                print("publish failed")
+                return False
 
     #
     # Clear out working temp tables:
@@ -1120,7 +1200,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, builds, build_tags, path_tags, programs, schema_tags = load_config(yaml_file.read())
+        params, steps, builds, build_tags, path_tags, programs, update_schema_tables, schema_tags = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -1172,7 +1252,7 @@ def main(args):
         for dataset_tuple in dataset_tuples:
             print ("Processing build {} ({}) for program {}".format(build, build_tag, dataset_tuple[0]))
             ok = do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
-                                      aliquot_map_programs, params, schema_tags)
+                                      aliquot_map_programs, params, schema_tags, update_schema_tables)
             if not ok:
                 return
             
