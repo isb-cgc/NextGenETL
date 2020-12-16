@@ -917,7 +917,7 @@ def make_files_per_study_query(study_id):
     }}""".format(study_id)
 
 
-def make_file_id_query(table_id, batch=True):
+def make_file_id_query(table_id, batch=False):
     # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
     # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
 
@@ -931,6 +931,7 @@ def make_file_id_query(table_id, batch=True):
     else:
         where_clause = ''
 
+    '''
     return """
         SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) 
             AS row_number, file_id 
@@ -938,12 +939,20 @@ def make_file_id_query(table_id, batch=True):
         {}
         ORDER BY file_id ASC
     """.format(table_id, where_clause)
+    '''
+
+    return """
+    SELECT file_id
+    FROM `{}`
+    ORDER BY file_id
+    """.format(table_id)
 
 
 def make_file_metadata_query(file_id):
     return """
     {{ fileMetadata(file_id: \"{}\") {{
         file_id 
+        file_name
         fraction_number 
         experiment_type 
         plex_or_dataset_name 
@@ -951,6 +960,14 @@ def make_file_metadata_query(file_id):
         instrument 
         study_run_metadata_submitter_id 
         study_run_metadata_id 
+        aliquots {{
+            aliquot_id
+            aliquot_submitter_id
+            sample_id
+            sample_submitter_id
+            case_id
+            case_submitter_id
+            }}
         }} 
     }}    
     """.format(file_id)
@@ -986,18 +1003,16 @@ def build_per_study_file_jsonl(study_ids_list):
 
 
 def get_file_ids():
-    table_name = get_table_name(BQ_PARAMS['TEMP_FILE_TABLE'])
-    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], table_name)
+    table_name = get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+    table_id = get_dev_table_id(table_name, is_metadata=True)
     return get_query_results(make_file_id_query(table_id, batch=False))  # todo fix back
 
 
-def build_file_metadata_jsonl(file_ids):
-    num_files = file_ids.total_rows
+def build_file_pdc_metadata_jsonl(file_ids):
     jsonl_start = time.time()
     file_metadata_list = []
-    cnt = 0
 
-    for row in file_ids:
+    for count, row in enumerate(file_ids):
         file_id = row['file_id']
         file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
@@ -1007,18 +1022,18 @@ def build_file_metadata_jsonl(file_ids):
 
         for metadata_row in file_metadata_res['data']['fileMetadata']:
             file_metadata_list.append(metadata_row)
-            cnt += 1
+            count += 1
 
-            if cnt % 25 == 0:
-                print("{} of {} files retrieved".format(cnt, num_files))
+            if count % 50 == 0:
+                print("{} of {} files retrieved".format(count, file_ids.total_rows))
 
-    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILES_TABLE']) + '.jsonl')
+    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILE_PDC_METADATA_TABLE']) + '.jsonl')
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
     upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
 
     jsonl_end = time.time() - jsonl_start
-    console_out("File metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+    console_out("File PDC metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
 # ***** CASE METADATA TABLE CREATION FUNCTIONS
@@ -1318,12 +1333,13 @@ def main(args):
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
                                BQ_PARAMS['FILES_PER_STUDY_TABLE'])
 
-    if 'build_file_metadata_jsonl' in steps:
+    if 'build_file_pdc_metadata_jsonl' in steps:
         file_ids = get_file_ids()
-        build_file_metadata_jsonl(file_ids)
+        build_file_pdc_metadata_jsonl(file_ids)
 
-    if 'build_file_metadata_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILES_TABLE'])
+    if 'build_file_pdc_metadata_table' in steps:
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
+                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
 
     if 'build_cases_jsonl' in steps:
         build_cases_jsonl()
