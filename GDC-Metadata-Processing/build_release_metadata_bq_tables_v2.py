@@ -1087,7 +1087,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                                "_".join([dataset_tuple[1], 'versioned']),
                                                table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                       "_".join([params['PROGRAM'],
+                                       "_".join([dataset_tuple[1],
                                                  table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
                                                  'backup']))
 
