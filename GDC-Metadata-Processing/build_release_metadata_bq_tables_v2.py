@@ -1081,10 +1081,10 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     # compare the two tables
     if 'compare_remove_old_current' in steps:
         table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, '{}')
-        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               "_".join([dataset_tuple[1], 'versioned']),
                                                table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                        "_".join([params['PROGRAM'],
@@ -1115,7 +1115,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 # remove old table
                 elif table_moved:
                     print('Deleting old table: {}'.format(old_current_table))
-                    delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], table.format('current'))
+                    delete_table = delete_table_bq_job(dataset_tuple[1], table.format('current'))
                     if not delete_table:
                         print('delete table failed')
                         return
