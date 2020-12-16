@@ -1144,6 +1144,19 @@ def delete_table_bq_job(target_dataset, delete_table):
 
     return True
 
+def delete_table_bq_job_w_proj(target_project, target_dataset, delete_table):
+    client = bigquery.Client(target_project)
+    table_ref = client.dataset(target_dataset).table(delete_table)
+    try:
+        client.delete_table(table_ref)
+        print('Table {}:{} deleted'.format(target_dataset, delete_table))
+    except exceptions.NotFound as ex:
+        print('Table {}:{} was not present'.format(target_dataset, delete_table))
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
 
 def confirm_google_vm():
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"

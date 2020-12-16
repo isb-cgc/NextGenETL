@@ -35,7 +35,7 @@ from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, \
                                update_schema_with_dict, install_labels_and_desc, \
-                               compare_two_tables, publish_table, update_status_tag
+                               compare_two_tables, delete_table_bq_job_w_proj, publish_table, update_status_tag
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1116,7 +1116,8 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 # remove old table
                 elif table_moved:
                     print('Deleting old table: {}'.format(old_current_table))
-                    delete_table = delete_table_bq_job(dataset_tuple[1], table.format('current'))
+                    delete_table = delete_table_bq_job_w_proj(params['PUBLICATION_PROJECT'], dataset_tuple[1],
+                                                              table.format('current'))
                     if not delete_table:
                         print('delete table failed')
                         return
