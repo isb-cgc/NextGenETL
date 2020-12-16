@@ -1133,13 +1133,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         for table in tables:
             if table == 'versioned':
                 table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
+                draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
+                                                           params['RELEASE'])
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                                 '_'.join([params['TARGET_DATASET'], 'versioned']), table_name)
+                                                 '_'.join([params['TARGET_DATASET'], 'versioned']), draft_table_name)
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                      '_'.join([dataset_tuple[1], 'versioned']), table_name)
             elif table == 'current':
                 table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_current')
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
+                draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
+                                                           'current')
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], draft_table_name)
                 publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
             print('publish: {}'.format(table_name))
             success = publish_table(source_table, publication_dest)
