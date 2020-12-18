@@ -192,7 +192,8 @@ def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
                           b.sample_barcode AS sample_barcode_tumor,
                           a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
                           a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
-                          a.Start_Position
+                          a.Start_Position,
+			  a.Chromosome
                 FROM
                   `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
             a2 AS (SELECT a1.project_short_name,
@@ -202,7 +203,8 @@ def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
                           a1.aliquot_barcode_tumor,
                           c.aliquot_barcode AS aliquot_barcode_normal,
                           a1.aliquot_gdc_id_tumor,
-                          a1.Start_Position
+                          a1.Start_Position, 
+			  a1.Chromosome
                 FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
                 WHERE c.case_gdc_id = a1.case_gdc_id)
             SELECT a2.project_short_name,
@@ -213,7 +215,8 @@ def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
                    a2.aliquot_barcode_tumor,
                    a2.aliquot_barcode_normal,
                    a2.aliquot_gdc_id_tumor,
-                   a2.Start_Position
+                   a2.Start_Position, 
+		   a2.Chromosome
             FROM a2 JOIN `{2}` AS d ON a2.case_barcode = d.case_barcode
         '''.format(maf_table, aliquot_table, case_table)
 
@@ -259,7 +262,7 @@ def final_join_sql(maf_table, barcodes_table, program):
                     a.aliquot_barcode_tumor, 
                     a.aliquot_barcode_normal,
              FROM `{0}` as a JOIN `{1}` as b 
-             ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position
+             ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
         '''.format(barcodes_table, maf_table)
 
 
