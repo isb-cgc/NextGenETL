@@ -207,8 +207,6 @@ def main(args):
     local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    #hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    #hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -300,7 +298,6 @@ def main(args):
             file_name, ext = os.path.splitext(line.split('/')[-1])
             file_components = file_name.split("_")
             data_type = "_".join(file_components[0:(len(file_components) - 2)])
-            #schema_file_name = ''.join([data_type, ".json"]) #change
             schema_file_tag = "{}/{}".format(params['PROX_DESC_PREFIX'], data_type)
 
             for table in update_schema_tables:
