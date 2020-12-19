@@ -38,7 +38,7 @@ from json import loads as json_loads
 import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files, upload_to_bucket, build_combined_schema, csv_to_bq
+                                generate_table_detail_files, upload_to_bucket, csv_to_bq, publish_table
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -353,6 +353,19 @@ def main(args):
                 with open(desc_schema, mode='r') as hold_schema_dict:
                     typed_schema = json_loads(hold_schema_dict.read())
                 csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file_name, params['BQ_AS_BATCH'])
+
+            if 'create_current_table' in steps:
+                print('create current tables')
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 file_name)
+                current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     params['PUBLICATION_DATASET'],
+                                                     "_".join([data_type, "current"]))
+                success = publish_table(source_table, current_table)
+
+                if not success:
+                    print("publish table failed")
+                    return
 
 if __name__ == "__main__":
     main(sys.argv)
