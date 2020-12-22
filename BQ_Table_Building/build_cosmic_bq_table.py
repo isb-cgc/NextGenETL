@@ -358,8 +358,8 @@ def main(args):
                 print('create current tables')
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                  file_name)
-                current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     params['PUBLICATION_DATASET'],
+                current_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                                     params['SCRATCH_DATASET'],
                                                      "_".join([data_type, "current"]))
                 success = publish_table(source_table, current_table)
 
