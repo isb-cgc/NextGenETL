@@ -360,7 +360,7 @@ def main(args):
                                                  file_name)
                 current_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                                      params['SCRATCH_DATASET'],
-                                                     "_".join([data_type, "current"]))
+                                                     "_".join([data_type, file_components[-2], "current"]))
                 success = publish_table(source_table, current_table)
 
                 if not success:
