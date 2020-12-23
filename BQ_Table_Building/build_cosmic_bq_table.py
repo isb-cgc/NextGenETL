@@ -208,6 +208,8 @@ def main(args):
     local_file = "{}/{}".format(home, params['DOWNLOAD_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
+    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
+    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
