@@ -371,7 +371,7 @@ def main(args):
             # The derived table we generate has no field descriptions. Add them from the github json files:
             #
             for table in update_schema_tables:
-                schema_release = 'current' if table == 'current' else params['RELEASE']
+                schema_release = 'current' if table == 'current' else params['VERSION']
                 if 'update_final_schema' in steps:
                     success = update_schema(params['SCRATCH_DATASET'],
                                             "_".join([data_type, file_components[-2], schema_release]))
