@@ -38,7 +38,8 @@ from json import loads as json_loads
 import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files, upload_to_bucket, csv_to_bq, publish_table
+                                generate_table_detail_files, upload_to_bucket, csv_to_bq, publish_table, \
+                                update_schema, install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -366,6 +367,33 @@ def main(args):
                 if not success:
                     print("publish table failed")
                     return
+            #
+            # The derived table we generate has no field descriptions. Add them from the github json files:
+            #
+            for table in update_schema_tables:
+                schema_release = 'current' if table == 'current' else params['RELEASE']
+                if 'update_final_schema' in steps:
+                    success = update_schema(params['SCRATCH_DATASET'],
+                                            "_".join([data_type, file_components[-2], schema_release]))
+                    if not success:
+                        print("Schema update failed")
+                        return
+
+                #
+                # Add description and labels to the target table:
+                #
+
+                if 'add_table_description' in steps:
+                    print('update_table_description')
+                    full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
+                                                      "_".join([data_type, file_components[-2], schema_release]))
+                    success = install_labels_and_desc(params['SCRATCH_DATASET'],
+                                                      "_".join([data_type, file_components[-2], schema_release]),
+                                                      full_file_prefix)
+                    if not success:
+                        print("update_table_description failed")
+                        return
+
 
 if __name__ == "__main__":
     main(sys.argv)
