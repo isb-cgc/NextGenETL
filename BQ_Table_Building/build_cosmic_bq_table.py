@@ -376,7 +376,8 @@ def main(args):
                 schema_release = 'current' if table == 'current' else params['VERSION']
                 if 'update_final_schema' in steps:
                     success = update_schema(params['SCRATCH_DATASET'],
-                                            "_".join([data_type, file_components[-2], schema_release]))
+                                            "_".join([data_type, file_components[-2], schema_release]),
+                                            hold_schema_dict)
                     if not success:
                         print("Schema update failed")
                         return
