@@ -34,12 +34,12 @@ import re
 #import string
 from git import Repo
 from json import loads as json_loads
-#from createSchemaP3 import build_schema
+from createSchemaP3 import build_schema
 import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
-                                generate_table_detail_files, upload_to_bucket, csv_to_bq, publish_table, \
-                                update_schema, install_labels_and_desc
+                                generate_table_detail_files, upload_to_bucket, csv_to_bq, build_combined_schema, \
+                                publish_table, update_schema, install_labels_and_desc
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -315,7 +315,8 @@ def main(args):
                     print('process_git_schema: {}'.format(line))
                     # Where do we dump the schema git repository?
                     print("schema_file_name: " + schema_file_name)
-                    schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], schema_file_name)
+                    schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
+                                                    schema_file_name)
                     print(schema_file + "\t" + data_type)
 
                     # Write out the details
@@ -340,6 +341,16 @@ def main(args):
                     if not success:
                         print("replace_schema_tags failed")
                         return
+
+                if 'analyze_the_schema' in steps:
+                    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+                    #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+                    schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+                    build_combined_schema(None, schema_dict_loc,
+                                          typing_tups, hold_schema_list.format(file_name),
+                                          hold_schema_dict.format(file_name))
+                if 'create_schema_dict' in steps:
+                    print('Creating Schema Dictionary')
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
@@ -375,6 +386,7 @@ def main(args):
             for table in update_schema_tables:
                 schema_release = 'current' if table == 'current' else params['VERSION']
                 if 'update_final_schema' in steps:
+
                     success = update_schema(params['SCRATCH_DATASET'],
                                             "_".join([data_type, file_components[-2], schema_release]),
                                             hold_schema_dict.format(data_type))
