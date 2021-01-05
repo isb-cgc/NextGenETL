@@ -344,12 +344,13 @@ def main(args):
 
                 if 'analyze_the_schema' in steps:
                     typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
-                    full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                                      data_type)
-                    schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-                    build_combined_schema(None, schema_dict_loc,
-                                          typing_tups, hold_schema_list.format(file_name),
-                                          hold_schema_dict.format(file_name))
+                    print(typing_tups)
+                    #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
+                    #                                  data_type)
+                    #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+                    #build_combined_schema(None, schema_dict_loc,
+                    #                      typing_tups, hold_schema_list.format(file_name),
+                    #                      hold_schema_dict.format(file_name))
                 if 'create_schema_dict' in steps:
                     print('Creating Schema Dictionary')
 
