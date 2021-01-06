@@ -343,9 +343,8 @@ def main(args):
                         return
 
                 if 'analyze_the_schema' in steps:
-                    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
-                    print("typing tups is")
-                    print(typing_tups[0], "\t", typing_tups[1], "\t", len(typing_tups), "\t", type(typing_tups))
+                    #typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+
                     #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
                     #                                  data_type)
                     #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
