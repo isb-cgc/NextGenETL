@@ -985,10 +985,7 @@ def build_per_study_file_jsonl(study_ids_list):
         print("Retrieving for {}: {}".format(study_id, study['study_id']))
         files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id), fail_on_error=False)
 
-        if 'errors' in files_res:
-            error_message = files_res['errors'][0]['message']
-            print("Error message for {}: {}".format(study_id, error_message))
-        elif 'data' in files_res:
+        if 'data' in files_res:
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
@@ -996,6 +993,9 @@ def build_per_study_file_jsonl(study_ids_list):
                 file_list.append(file_row)
 
             print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
+        elif 'errors' in files_res:
+            error_message = files_res['errors'][0]['message']
+            print("Error message for {}: {}".format(study_id, error_message))
         else:
             print("No data returned by per-study file query for {}".format(study_id))
 
