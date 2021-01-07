@@ -986,7 +986,7 @@ def build_per_study_file_jsonl(study_ids_list):
         files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id), fail_on_error=False)
 
         if 'errors' in files_res:
-            error_message = files_res['errors']['message']
+            error_message = files_res['errors'][0]['message']
             print("Error message for {}: {}".format(study_id, error_message))
         elif 'data' in files_res:
             study_file_count = 0
