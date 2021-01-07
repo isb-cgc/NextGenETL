@@ -34,7 +34,7 @@ import re
 #import string
 from git import Repo
 from json import loads as json_loads
-from createSchemaP3 import build_schema
+#from createSchemaP3 import build_schema
 import csv
 
 from common_etl.support import confirm_google_vm, create_clean_target, bucket_to_local, build_file_list,\
@@ -345,7 +345,14 @@ def main(args):
                         return
 
                 if 'analyze_the_schema' in steps:
-                    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+                    #typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+                    # Create a list of tuples with name and type from schema files
+                    with open("{}_schema.json".format(schema_file_tag), mode='r') as schema_file:
+                        schema = json_loads(schema_file.read())
+                    typing_tups = []
+                    for field in schema:
+                        tup = (field['name'], field['type'])
+                        typing_tups.append(tup)
 
                     full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
                                                       data_type)
