@@ -51,70 +51,6 @@ def get_full_table_name(program, table):
     return build_table_name(table_name)
 
 
-def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
-    split_fg = fg.split('.')
-
-    if split_fg[0] == API_PARAMS['FG_CONFIG']['base_fg']:
-        split_fg.pop(0)
-
-    if len(split_fg) != 2:
-        print("error")
-
-    child_fg = '.'.join(split_fg)
-    child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
-    parent_fg = '.'.join(split_fg[:-1])
-    having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
-    working_table_id = get_working_table_id(BQ_PARAMS)
-
-    projects_with_fg_query = """
-        WITH projects_with_fg 
-            AS (
-                SELECT  c.case_id, 
-                        {0},
-                        SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}` AS c
-                CROSS JOIN UNNEST({3}) AS {3}
-                CROSS JOIN UNNEST({2}))
-
-        SELECT DISTINCT(proj_name) 
-        FROM (
-          SELECT proj_name                
-          FROM projects_with_fg 
-          GROUP BY proj_name, case_id
-          {4}
-          )
-    """.format(child_fg_id, working_table_id, child_fg, parent_fg, having_clause)
-
-    return projects_with_fg_query
-
-
-def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
-    if len(fg.split('.')) != 1:
-        print("error")
-
-    fg_id = get_field_group_id_key(API_PARAMS, fg, return_field_only=True)
-
-    having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
-
-    projects_with_fg_query = """
-        WITH projects_with_fg 
-            AS (
-                SELECT  c.case_id, 
-                        {0},
-                        SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}` AS c
-                CROSS JOIN UNNEST({2}))
-        SELECT DISTINCT(proj_name) 
-        FROM (
-          SELECT proj_name                
-          FROM projects_with_fg 
-          GROUP BY proj_name, case_id
-          {3})
-    """.format(fg_id, get_working_table_id(BQ_PARAMS), fg, having_clause)
-
-    return projects_with_fg_query
-
-
 def build_column_order_dict():
     """
     Using table order provided in YAML, with add't ordering for reference
@@ -1202,6 +1138,7 @@ def make_datatype_diff_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
+# todo cross join
 def make_removed_case_ids_query(old_rel, new_rel):
     return """
         SELECT case_id, project.project_id
@@ -1213,6 +1150,7 @@ def make_removed_case_ids_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
+# todo cross join
 def make_added_case_ids_query(old_rel, new_rel):
     return """
         SELECT project.project_id, count(case_id) as new_case_cnt
@@ -1417,59 +1355,6 @@ def main(args):
     # programs = ['BEATAML1.0']
     programs = get_program_list(BQ_PARAMS)
     programs = sorted(programs)
-
-    # NOT USED
-    if 'get_field_groups_per_program' in steps:
-        field_groups = API_PARAMS['FG_CONFIG']['order']
-        program_fgs = dict()
-        depth_one_fgs = []
-        depth_two_fgs = []
-
-        for fg in field_groups:
-            split_fg = fg.split('.')
-            if len(split_fg) == 2 or len(split_fg) == 3:
-                amended_fg = '.'.join(split_fg[1:])
-                if len(split_fg) == 2:
-                    depth_one_fgs.append(amended_fg)
-                if len(split_fg) == 3:
-                    depth_two_fgs.append(amended_fg)
-
-        for fg in depth_two_fgs:
-            all_program_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=False)
-            all_res = get_query_results(all_program_query)
-
-            for row in all_res:
-                program = row[0]
-
-                if program not in program_fgs:
-                    program_fgs[program] = {'fgs': list(), 'one_many': list()}
-
-                program_fgs[program]['fgs'].append(fg)
-
-            nested_programs_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=True)
-            nested_res = get_query_results(nested_programs_query)
-
-            for row in nested_res:
-                program = row[0]
-                program_fgs[program]['one_many'].append(fg)
-
-        for fg in depth_one_fgs:
-            all_program_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=False)
-            all_res = get_query_results(all_program_query)
-
-            for row in all_res:
-                program = row[0]
-                if program not in program_fgs:
-                    program_fgs[program] = {'fgs': list(), 'one_many': list()}
-
-                program_fgs[program]['fgs'].append(fg)
-
-            nested_programs_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=True)
-            nested_res = get_query_results(nested_programs_query)
-
-            for row in nested_res:
-                program = row[0]
-                program_fgs[program]['one_many'].append(fg)
 
     for orig_program in programs:
         prog_start = time.time()
