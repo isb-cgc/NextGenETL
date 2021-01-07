@@ -352,8 +352,6 @@ def main(args):
                     #build_combined_schema(None, schema_dict_loc,
                     #                      typing_tups, hold_schema_list.format(file_name),
                     #                      hold_schema_dict.format(file_name))
-                if 'create_schema_dict' in steps:
-                    print('Creating Schema Dictionary')
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
