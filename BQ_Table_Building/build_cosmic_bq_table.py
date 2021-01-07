@@ -330,7 +330,7 @@ def main(args):
                 if 'replace_schema_tags' in steps:
                     version = ''.join([schema_release, file_components[-1]])
                     hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
-                    date = " ".join([params['MONTH'], params['YEAR']])
+                    date = " ".join([params['MONTH'], str(params['YEAR'])])
                     schema_tags = {'---tag-ref-genome-0---': hg,
                                    '---tag-release---': version,
                                    '{---tag-release-month-year---}': date}
