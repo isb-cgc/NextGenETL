@@ -345,14 +345,14 @@ def main(args):
                         return
 
                 if 'analyze_the_schema' in steps:
-                    #typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
+                    typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
 
-                    #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                    #                                  data_type)
-                    #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-                    #build_combined_schema(None, schema_dict_loc,
-                    #                      typing_tups, hold_schema_list.format(file_name),
-                    #                      hold_schema_dict.format(file_name))
+                    full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
+                                                      data_type)
+                    schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+                    build_combined_schema(None, schema_dict_loc,
+                                          typing_tups, hold_schema_list.format(file_name),
+                                          hold_schema_dict.format(file_name))
 
             file = line.split('/')[-1]
             bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], file)
