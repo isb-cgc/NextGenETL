@@ -899,7 +899,7 @@ def change_study_name_to_table_name_format(study_name):
 
 def make_files_per_study_query(study_id):
     return """
-    {{ filesPerStudy (study_id: \"{}\") {{
+    {{ filesPerStudy (pdc_study_id: \"{}\") {{
             study_id 
             pdc_study_id 
             study_submitter_id
@@ -981,7 +981,8 @@ def build_per_study_file_jsonl(study_ids_list):
     file_list = []
 
     for study in study_ids_list:
-        study_id = study['study_id']
+        study_id = study['pdc_study_id']
+        print("Retrieving for {}".format(study['study_id']))
         files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id))
 
         if 'data' in files_res:
