@@ -331,7 +331,8 @@ def main(args):
                     version = ''.join([schema_release, file_components[-1]])
                     hg = 'hg19' if file_components[-2] == 'GRCh37' else 'hg38'
                     schema_tags = {'---tag-ref-genome-0---': hg,
-                                   '---tag-release---': version}
+                                   '---tag-release---': version,
+                                   '{---tag-release-month-year---}': " ".join([params['MONTH'], params['YEAR']])}
                     tag_map_list = []
                     for tag in schema_tags:
                         use_pair = {tag: schema_tags[tag]}
