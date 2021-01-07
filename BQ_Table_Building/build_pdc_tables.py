@@ -986,6 +986,10 @@ def build_per_study_file_jsonl(study_ids_list):
         files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id), fail_on_error=False)
 
         if 'data' in files_res:
+            if 'errors' in files_res:
+                print(files_res)
+                exit()
+
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
