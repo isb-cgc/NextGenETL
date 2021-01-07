@@ -333,7 +333,7 @@ def main(args):
                     date = " ".join([params['MONTH'], str(params['YEAR'])])
                     schema_tags = {'---tag-ref-genome-0---': hg,
                                    '---tag-release---': version,
-                                   '{---tag-release-month-year---}': date}
+                                   '---tag-release-month-year---': date}
                     tag_map_list = []
                     for tag in schema_tags:
                         use_pair = {tag: schema_tags[tag]}
