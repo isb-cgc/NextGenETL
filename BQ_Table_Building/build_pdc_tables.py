@@ -992,6 +992,9 @@ def build_per_study_file_jsonl(study_ids_list):
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
+                print(file_row)
+                time.sleep(1)
+
                 study_file_count += 1
                 file_list.append(file_row)
 
@@ -1347,6 +1350,9 @@ def main(args):
     if 'build_file_pdc_metadata_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
                                BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+
+    if 'build_merged_pdc_file_metadata_table' in steps:
+        pass
 
     if 'build_cases_jsonl' in steps:
         build_cases_jsonl()
