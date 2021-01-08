@@ -395,12 +395,14 @@ def main(args):
                 schema_release = 'current' if table == 'current' else params['VERSION']
                 if 'update_final_schema' in steps:
                     print("update final schema")
-                    success = update_schema(params['SCRATCH_DATASET'],
-                                            "_".join([data_type, file_components[-2], schema_release]),
-                                            hold_schema_dict.format(file_name))
-                    if not success:
-                        print("Schema update failed")
-                        return
+                    print(params['SCRATCH_DATASET'], "\t", "_".join([data_type, file_components[-2], schema_release]),
+                          "\t", hold_schema_dict.format(file_name))
+                    #success = update_schema(params['SCRATCH_DATASET'],
+                    #                        "_".join([data_type, file_components[-2], schema_release]),
+                    #                        hold_schema_dict.format(file_name))
+                    #if not success:
+                    #    print("Schema update failed")
+                    #    return
 
                 #
                 # Add description and labels to the target table:
