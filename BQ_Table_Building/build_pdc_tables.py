@@ -982,28 +982,29 @@ def build_per_study_file_jsonl(study_ids_list):
 
     for study in study_ids_list:
         study_id = study['pdc_study_id']
-        print("Retrieving for {}: {}".format(study_id, study['study_id']))
+        print("Retrieving for {}: {}".format(study_id, study['study_submitter_id']))
         files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id), fail_on_error=False)
 
         if 'errors' in files_res:
             error_message = files_res['errors'][0]['message']
-            print("\nError message for {}: {}\n".format(study_id, error_message))
+            print("**{} not included due to error: {}".format(study_id, error_message))
         if 'data' in files_res:
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
                 if 'signedUrl' in file_row and 'url' in file_row['signedUrl']:
                     file_row['url'] = file_row['signedUrl']['url']
-                    file_row.pop('signedUrl')
                 else:
                     file_row['url'] = None
+
+                file_row.pop('signedUrl', None)
 
                 study_file_count += 1
                 file_list.append(file_row)
 
-            print("{} files retrieved for {}".format(study_file_count, study['study_submitter_id']))
+            print("{} files retrieved for {}\n".format(study_file_count, study['study_submitter_id']))
         else:
-            print("No data returned by per-study file query for {}".format(study_id))
+            print("No data returned by per-study file query for {}\n".format(study_id))
 
     per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE']) + '.jsonl')
 
