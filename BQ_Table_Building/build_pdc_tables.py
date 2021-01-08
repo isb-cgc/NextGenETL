@@ -1002,7 +1002,7 @@ def build_per_study_file_jsonl(study_ids_list):
                 study_file_count += 1
                 file_list.append(file_row)
 
-            print("{} files retrieved for {}\n".format(study_file_count, study['study_submitter_id']))
+            print("{} files retrieved.\n".format(study_file_count))
         else:
             print("No data returned by per-study file query for {}\n".format(study_id))
 
