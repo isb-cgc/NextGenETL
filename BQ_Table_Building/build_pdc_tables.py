@@ -992,8 +992,11 @@ def build_per_study_file_jsonl(study_ids_list):
             study_file_count = 0
 
             for file_row in files_res['data']['filesPerStudy']:
-                print(file_row)
-                time.sleep(1)
+                if 'signedUrl' in file_row and 'url' in file_row['signedUrl']:
+                    file_row['url'] = file_row['signedUrl']['url']
+                    file_row.pop('signedUrl')
+                else:
+                    file_row['url'] = None
 
                 study_file_count += 1
                 file_list.append(file_row)
