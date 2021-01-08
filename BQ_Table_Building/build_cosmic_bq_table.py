@@ -345,7 +345,6 @@ def main(args):
                         return
 
                 if 'analyze_the_schema' in steps:
-                    #typing_tups = build_schema(line, params['SCHEMA_SAMPLE_SKIPS'])
                     # Create a list of tuples with name and type from schema files
                     with open("{}_schema.json".format(schema_file_tag), mode='r') as schema_file:
                         schema = json_loads(schema_file.read())
@@ -398,7 +397,7 @@ def main(args):
 
                     success = update_schema(params['SCRATCH_DATASET'],
                                             "_".join([data_type, file_components[-2], schema_release]),
-                                            hold_schema_dict.format(data_type))
+                                            hold_schema_dict.format(file_name))
                     if not success:
                         print("Schema update failed")
                         return
