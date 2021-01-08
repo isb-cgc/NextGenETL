@@ -305,16 +305,15 @@ def main(args):
 
             for table in update_schema_tables:
                 if table == 'current':
-                    schema_file_name = ''.join([data_type, ".json"])
+                    schema_file_name = ''.join([file_name, ".json"])
                     schema_release = 'current'
                 else:
-                    schema_file_name = ''.join(["versioned.", data_type, ".json"])
+                    schema_file_name = ''.join(["versioned.", file_name, ".json"])
                     schema_release = params['VERSION']
 
                 if 'process_git_schemas' in steps:
                     print('process_git_schema: {}'.format(line))
                     # Where do we dump the schema git repository?
-                    print("schema_file_name: " + schema_file_name)
                     schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'],
                                                     schema_file_name)
                     print(schema_file + "\t" + data_type)
