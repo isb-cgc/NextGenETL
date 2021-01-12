@@ -1035,7 +1035,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
             continue
 
         for metadata_row in file_metadata_res['data']['fileMetadata']:
-            if 'fraction_number' in metadata_row:
+            if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                 fraction_number = metadata_row['fraction_number'].strip()
 
                 if fraction_number == '' or fraction_number == 'N/A':
@@ -1058,6 +1058,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
     jsonl_end = time.time() - jsonl_start
     console_out("File PDC metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+
 
 
 # ***** CASE METADATA TABLE CREATION FUNCTIONS
