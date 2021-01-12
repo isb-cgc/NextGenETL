@@ -1003,7 +1003,8 @@ def build_per_study_file_jsonl(study_ids_list):
 
             for file_row in files_res['data']['filesPerStudy']:
                 if 'signedUrl' in file_row and 'url' in file_row['signedUrl']:
-                    file_row['url'] = file_row['signedUrl']['url']
+                    url = file_row['signedUrl']['url']
+                    file_row['url'] = url.split("?")[0]
                 else:
                     file_row['url'] = None
 
@@ -1376,6 +1377,9 @@ def main(args):
                                BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
 
     if 'build_file_associated_entries_table' in steps:
+        # Note, this currently only works for aliquots, because there were no entries in the API pull that had entries
+        # in the aliquots list, but that didn't have an aliquot_id. If this ever changes, we'll need to adjust,
+        # but based on the way I've seen their api work I don't expect that to happen.
         table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
         full_table_id = get_dev_table_id(table_name, is_metadata=True)
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
