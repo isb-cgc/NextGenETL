@@ -1035,6 +1035,16 @@ def build_file_pdc_metadata_jsonl(file_ids):
             continue
 
         for metadata_row in file_metadata_res['data']['fileMetadata']:
+            if 'fraction_number' in metadata_row:
+                fraction_number = metadata_row['fraction_number'].strip()
+
+                if fraction_number == '' or fraction_number == 'N/A':
+                    fraction_number = None
+                elif fraction_number == 'Pool' or fraction_number == 'pool':
+                    fraction_number = 'POOL'
+
+                metadata_row['fraction_number'] = fraction_number
+
             file_metadata_list.append(metadata_row)
             count += 1
 
