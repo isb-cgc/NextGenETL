@@ -976,6 +976,16 @@ def make_file_metadata_query(file_id):
     """.format(file_id)
 
 
+def make_associated_entities_query():
+    return """SELECT file_id, 
+    aliq.case_id as case_id, 
+    aliq.aliquot_id as entity_id, 
+    aliq.aliquot_submitter_id as entity_submitter_id, 
+    "aliquot" as entity_type
+    FROM `isb-project-zero.PDC_metadata.file_pdc_metadata_{}`
+    CROSS JOIN UNNEST(aliquots) as aliq""".format(BQ_PARAMS['RELEASE'])
+
+
 def build_per_study_file_jsonl(study_ids_list):
     jsonl_start = time.time()
     file_list = []
@@ -1038,7 +1048,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
             if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                 fraction_number = metadata_row['fraction_number'].strip()
 
-                if fraction_number == '' or fraction_number == 'N/A':
+                if fraction_number == 'N/A' or fraction_number == 'NOFRACTION' or not fraction_number.isalnum():
                     fraction_number = None
                 elif fraction_number == 'Pool' or fraction_number == 'pool':
                     fraction_number = 'POOL'
@@ -1058,7 +1068,6 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
     jsonl_end = time.time() - jsonl_start
     console_out("File PDC metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
 
 
 # ***** CASE METADATA TABLE CREATION FUNCTIONS
@@ -1366,8 +1375,10 @@ def main(args):
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
                                BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
 
-    if 'build_merged_pdc_file_metadata_table' in steps:
-        pass
+    if 'build_file_associated_entries_table' in steps:
+        table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+        full_table_id = get_dev_table_id(table_name, is_metadata=True)
+        load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
 
     if 'build_cases_jsonl' in steps:
         build_cases_jsonl()
