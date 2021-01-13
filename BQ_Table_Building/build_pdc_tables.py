@@ -983,7 +983,9 @@ def make_associated_entities_query():
     aliq.aliquot_submitter_id as entity_submitter_id, 
     "aliquot" as entity_type
     FROM `isb-project-zero.PDC_metadata.file_pdc_metadata_{}`
-    CROSS JOIN UNNEST(aliquots) as aliq""".format(BQ_PARAMS['RELEASE'])
+    CROSS JOIN UNNEST(aliquots) as aliq
+    GROUP BY file_id, case_id, entity_id, entity_submitter_id, entity_type
+    """.format(BQ_PARAMS['RELEASE'])
 
 
 def build_per_study_file_jsonl(study_ids_list):
