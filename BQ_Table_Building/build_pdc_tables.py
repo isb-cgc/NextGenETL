@@ -977,15 +977,37 @@ def make_file_metadata_query(file_id):
 
 
 def make_associated_entities_query():
+    table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+    table_id = get_dev_table_id(table_name, is_metadata=True)
+
     return """SELECT file_id, 
     aliq.case_id as case_id, 
     aliq.aliquot_id as entity_id, 
     aliq.aliquot_submitter_id as entity_submitter_id, 
     "aliquot" as entity_type
-    FROM `isb-project-zero.PDC_metadata.file_pdc_metadata_{}`
+    FROM `{}`
     CROSS JOIN UNNEST(aliquots) as aliq
     GROUP BY file_id, case_id, entity_id, entity_submitter_id, entity_type
-    """.format(BQ_PARAMS['RELEASE'])
+    """.format(table_id)
+
+
+def make_combined_file_metadata_query():
+    file_metadata_table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+    file_metadata_table_id = get_dev_table_id(file_metadata_table_name, is_metadata=True)
+    file_per_study_table_name = BQ_PARAMS['FILES_PER_STUDY_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+    file_per_study_table_id = get_dev_table_id(file_per_study_table_name, is_metadata=True)
+
+    return """
+    SELECT fps.file_id, fps.file_submitter_id, fps.file_name, 
+        fps.study_id, fps.pdc_study_id, fps.study_name, fps.study_submitter_id, 
+        fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
+        fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
+        fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
+        fps.md5sum, fps.file_location, fps.url, "open" AS `access`, CURRENT_TIMESTAMP() as `updated_datetime`
+    FROM `{}` AS fps
+    FULL JOIN `{}` AS fpm
+        ON fpm.file_id = fps.file_id
+    """.format(file_per_study_table_id, file_metadata_table_id)
 
 
 def build_per_study_file_jsonl(study_ids_list):
@@ -1385,6 +1407,11 @@ def main(args):
         table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
         full_table_id = get_dev_table_id(table_name, is_metadata=True)
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
+
+    if 'build_file_combined_table' in steps:
+        table_name = BQ_PARAMS['FILE_COMBINED_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+        full_table_id = get_dev_table_id(table_name, is_metadata=True)
+        load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
 
     if 'build_cases_jsonl' in steps:
         build_cases_jsonl()
