@@ -8,24 +8,34 @@ version: 3
 api_params:
   # GDC API endpoint for retrieval of cases dataset
   # ENDPOINT: 'https://api.gdc.cancer.gov/cases'
-  ENDPOINT: URL/OF/API/ENDPOINT
+  ENDPOINT: https://api.gdc.cancer.gov/cases
 
   # List of 'expand' field groups to include in the clinical data bq table
   EXPAND_FIELD_GROUPS:
-    - your
-    - list
-    - of
-    - expand
-    - field
-    - groups
+    - demographic
+    - diagnoses
+    - diagnoses.treatments
+    - diagnoses.annotations
+    - exposures
+    - family_histories
+    - follow_ups
+    - follow_ups.molecular_tests
+    - project
 
   # fields that aren't desired for bq. Example:
   EXCLUDE_FIELDS:
-    - your
-    - list
-    - of
-    - excluded
-    - fields
+    - aliquot_ids
+    - analyte_ids
+    - case_autocomplete
+    - diagnosis_ids
+    - id
+    - portion_ids
+    - slide_ids
+    - submitter_aliquot_ids
+    - submitter_analyte_ids
+    - submitter_diagnosis_ids
+    - submitter_portion_ids
+    - submitter_slide_ids
 
   # How many case records to retrieve per GDC API call. Larger batch sizes are more
   # likely to fail before completion, seems to work consistently at 2500
@@ -39,37 +49,40 @@ api_params:
 
   # 'a' if appending to existing cases json (for continuation of interrupted file build)
   # 'w' if creating or overwriting existing CASES_JSON_FILE (default)
-  IO_MODE: w
+  IO_MODE: 'w'
 
   # Directory to which to write the cases clinical data json file
-  SCRATCH_DIR: path/from/home/directory
+  SCRATCH_DIR: scratch
 
   # File to which to write the cases clinical data json file
-  DATA_OUTPUT_FILE: your_datafile.jsonl
+  DATA_OUTPUT_FILE: clinical_data.jsonl
 
   # most recent GDC release number
   # (NOTE: pulls data from the current release regardless of value here, not currently
   # possible to specify a release number when making API calls.)
-  GDC_RELEASE: relXX
+  GDC_RELEASE: rel25
+
+  REL_PREFIX: 'r'
+
 
 bq_params:
   # What project are we in:
-  WORKING_PROJECT: your_working_project_id
+  WORKING_PROJECT: isb-project-zero
 
   # Where is the BQ table dataset:
   TARGET_DATASET: your_bq_dataset_name_in_working_project
 
   # Reference Dataset
-  METADATA_DATASET: metadata_dataset
+  METADATA_DATASET: GDC_Clinical_Data
 
   # What bucket is going to get the text file heading to BQ?
-  WORKING_BUCKET: your_bucket_name
+  WORKING_BUCKET: next-gen-etl-scratch
 
   # What is the file path to the text file in the bucket:
-  WORKING_BUCKET_DIR: full/path/in/bucket # DO NOT HAVE A LEADING /
+  WORKING_BUCKET_DIR: law # DO NOT HAVE A LEADING /
 
   # name for master table (will be prefixed with GDC_RELEASE value)
-  MASTER_TABLE: clinical_data
+  MASTER_TABLE: clinical
 
   # Component of table name, differentiates that this is a clinical data table
   # base program table name form: GDC_RELEASE + '_' + TABLE_PREFIX  + '_' + program_name
@@ -80,7 +93,9 @@ bq_params:
 steps:
 
   # Get the manifest from the source data node:
-  - retrieve_and_output_cases
+  - retrieve_cases_and_write_to_jsonl
+
+  - upload_jsonl_to_cloud_storage
 
   # Get the table schema/description/tags pulled from git:
   - create_bq_schema_obj
