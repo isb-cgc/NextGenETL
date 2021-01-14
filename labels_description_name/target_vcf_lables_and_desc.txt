@@ -1,0 +1,3 @@
+description = This is the final table to be pushed into ISB-CABQ 
+friendlyName = TARGET REL22 VCF CURRENT
+labels = access:controlled,data_type:vcf,source:target,reference_genome_0:hg38,category:genomic_reference_database,status:current
