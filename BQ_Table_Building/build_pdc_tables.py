@@ -998,15 +998,21 @@ def make_combined_file_metadata_query():
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, is_metadata=True)
 
     return """
-    SELECT fps.file_id, fps.file_submitter_id, fps.file_name, 
+    SELECT fps.file_id, fps.file_submitter_id, 
         fps.study_id, fps.pdc_study_id, fps.study_name, fps.study_submitter_id, 
         fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
-        fps.md5sum, fps.file_location, fps.url, "open" AS `access`, CURRENT_TIMESTAMP() as `updated_datetime`
+        fps.md5sum, fps.url, "open" AS `access`
     FROM `{}` AS fps
     FULL JOIN `{}` AS fpm
         ON fpm.file_id = fps.file_id
+    GROUP BY fps.file_id, fps.file_submitter_id, 
+        fps.study_id, fps.pdc_study_id, fps.study_name, fps.study_submitter_id, 
+        fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
+        fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
+        fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
+        fps.md5sum, fps.url
     """.format(file_per_study_table_id, file_metadata_table_id)
 
 
