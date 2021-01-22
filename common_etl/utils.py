@@ -852,6 +852,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     tries = 0
 
     while not api_res.ok and tries < max_retries:
+        if api_res.status_code == '400':
+            console_out("API response status code {}\nRequest body:\n{}".format(api_res.status_code, req_body))
+            # don't try again!
+            api_res.raise_for_status()
+
         console_out("API response status code {}: {};\nRetry {} of {}...",
                     (api_res.status_code, api_res.reason, tries, max_retries))
         time.sleep(3)
