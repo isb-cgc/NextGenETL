@@ -1273,7 +1273,7 @@ def build_case_metadata_jsonl(cases_list):
 
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     return """
-    {{ paginatedCaseDemographicsPerStudy (pdc_study_id: {0} offset: {1} limit: {2}) {{ 
+    {{ paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2}) {{ 
         total caseDemographicsPerStudy {{ 
             case_id 
             case_submitter_id 
@@ -1500,7 +1500,6 @@ def main(args):
 
     if 'build_case_diagnoses_jsonl' in steps:
         build_cases_diagnoses_jsonl(studies_list)
-
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
