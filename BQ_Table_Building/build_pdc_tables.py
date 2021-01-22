@@ -920,30 +920,7 @@ def make_files_per_study_query(study_id):
     }}""".format(study_id)
 
 
-def make_file_id_query(table_id, batch=False):
-    # Note -- ROW_NUMBER can be used to resume file metadata jsonl creation, as an index, in WHERE CLAUSE
-    # e.g. (WHERE RowNumber BETWEEN 50 AND 60)
-
-    if batch and API_PARAMS['METADATA_BATCH'] and API_PARAMS['METADATA_BATCH_SIZE']:
-        start_idx = API_PARAMS['METADATA_OFFSET']
-        end_idx = start_idx + API_PARAMS['METADATA_BATCH_SIZE']
-        where_clause = "WHERE row_number BETWEEN {} AND {}".format(start_idx, end_idx)
-    elif batch and API_PARAMS['METADATA_BATCH']:
-        start_idx = API_PARAMS['METADATA_OFFSET']
-        where_clause = "WHERE row_number >= {}".format(start_idx)
-    else:
-        where_clause = ''
-
-    '''
-    return """
-        SELECT ROW_NUMBER() OVER(ORDER BY file_id ASC) 
-            AS row_number, file_id 
-        FROM `{}`
-        {}
-        ORDER BY file_id ASC
-    """.format(table_id, where_clause)
-    '''
-
+def make_file_id_query(table_id):
     return """
     SELECT file_id
     FROM `{}`
@@ -1060,7 +1037,7 @@ def build_per_study_file_jsonl(study_ids_list):
 def get_file_ids():
     table_name = get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE'])
     table_id = get_dev_table_id(table_name, is_metadata=True)
-    return get_query_results(make_file_id_query(table_id, batch=False))  # todo fix back
+    return get_query_results(make_file_id_query(table_id))  # todo fix back
 
 
 def build_file_pdc_metadata_jsonl(file_ids):
@@ -1292,6 +1269,81 @@ def build_case_metadata_jsonl(cases_list):
     console_out("Case metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
+# ***** CLINICAL TABLE CREATION FUNCTIONS
+
+def make_cases_diagnoses_query(pdc_study_id, offset, limit):
+    return """
+    {{ paginatedCaseDemographicsPerStudy (pdc_study_id: {0} offset: {1} limit: {2}) {{ 
+        total caseDemographicsPerStudy {{ 
+            case_id 
+            case_submitter_id 
+            disease_type 
+            primary_site 
+            demographics {{ 
+                demographic_id
+                ethnicity
+                gender
+                demographic_submitter_id
+                race
+                cause_of_death
+                days_to_birth
+                days_to_death
+                vital_status
+                year_of_birth
+                year_of_death 
+            }} 
+        }} 
+        pagination {{ 
+            count 
+            sort 
+            from 
+            page 
+            total pages 
+            size 
+        }} 
+    }} }}
+    """.format(pdc_study_id, offset, limit)
+
+
+def build_cases_diagnoses_jsonl(studies_list):
+    offset = 0
+    limit = API_PARAMS['CSA_LIMIT']
+    page = 1
+
+    cases_diagnoses = list()
+
+    diagnoses_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE']) + '.jsonl')
+
+    for study in studies_list:
+        pdc_study_id = study['pdc_study_id']
+
+        diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
+
+        total_pages = diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']['pages']
+
+        print("Retrieved api response for page {} of {}.\n{}".format(
+            page, total_pages, diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']))
+
+        for case in diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['caseDemographicsPerStudy']:
+            cases_diagnoses.append(case)
+
+        while page <= total_pages:
+            page += 1
+            offset = offset + limit
+
+            diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(offset, limit))
+
+            print("Retrieved api response for page {} of {}.\n{}".format(
+                page, total_pages, diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']))
+
+            for case in diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['caseDemographicsPerStudy']:
+                cases_diagnoses.append(case)
+
+            print("Appended data to dict! New size: {}".format(len(cases_diagnoses)))
+
+        write_list_to_jsonl(diagnoses_jsonl_path, cases_diagnoses)
+
+
 def main(args):
     start = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -1445,6 +1497,10 @@ def main(args):
     if 'build_case_metadata_table' in steps:
         pass
         # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
+
+    if 'build_case_diagnoses_jsonl' in steps:
+        build_cases_diagnoses_jsonl(studies_list)
+
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
