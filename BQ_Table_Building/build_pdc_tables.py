@@ -1339,7 +1339,6 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
             }}
             pagination {{
                 count
-                sort
                 from 
                 page 
                 total
@@ -1374,10 +1373,10 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
         }} 
         pagination {{ 
             count 
-            sort 
             from 
             page 
-            total pages 
+            total 
+            pages 
             size 
         }} 
     }} }}
