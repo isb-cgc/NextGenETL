@@ -1172,9 +1172,6 @@ def make_cases_query():
     return """{{
         allCases {{
             case_id 
-            case_submitter_id 
-            project_submitter_id 
-            primary_site 
         }}
     }}"""
 
