@@ -25,6 +25,7 @@ import ftplib
 import gzip
 
 from functools import cmp_to_key
+from datetime import date
 
 from common_etl.utils import *
 
@@ -66,6 +67,7 @@ def has_quant_table(study_submitter_id):
 
 
 def is_currently_embargoed(embargo_date):
+    """
     if embargo_date:
         split_embargo_date = embargo_date.split('-')
         current_date = time.strftime("%Y-%m-%d", time.localtime())
@@ -80,6 +82,8 @@ def is_currently_embargoed(embargo_date):
                 if split_embargo_date[2] >= split_current_date[2]:  # day DD
                     return True
     return False
+    """
+    return False if embargo_date < date.today else True
 
 
 def get_table_name(prefix, suffix=None, include_release=True, release=None):
