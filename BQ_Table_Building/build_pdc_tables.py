@@ -1336,12 +1336,12 @@ def build_cases_diagnoses_jsonl(studies_list):
 
         diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
 
-        total_pages = diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']['pages']
+        total_pages = diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']['pages']
 
         print("Retrieved api response for page {} of {}.\n{}".format(
-            page, total_pages, diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']))
+            page, total_pages, diagnoses_res['data']['paginatedCaseDDiagnosesPerStudy']['pagination']))
 
-        for case in diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['caseDemographicsPerStudy']:
+        for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
             cases_diagnoses.append(case)
 
         while page <= total_pages:
@@ -1351,9 +1351,9 @@ def build_cases_diagnoses_jsonl(studies_list):
             diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(offset, limit))
 
             print("Retrieved api response for page {} of {}.\n{}".format(
-                page, total_pages, diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['pagination']))
+                page, total_pages, diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']))
 
-            for case in diagnoses_res['data']['paginatedCaseDemographicsPerStudy']['caseDemographicsPerStudy']:
+            for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
                 cases_diagnoses.append(case)
 
             print("Appended data to dict! New size: {}".format(len(cases_diagnoses)))
