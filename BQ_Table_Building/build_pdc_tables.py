@@ -1275,67 +1275,6 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
             total caseDiagnosesPerStudy {{
                 case_id
-                case_submitter_id
-                disease_type
-                primary_site
-                diagnoses
-                diagnosis_id
-                tissue_or_organ_of_origin
-                age_at_diagnosis
-                primary_diagnosis
-                tumor_grade
-                tumor_stage
-                diagnosis_submitter_id
-                classification_of_tumor
-                days_to_last_follow_up
-                days_to_last_known_disease_status
-                days_to_recurrence
-                last_known_disease_status
-                morphology
-                progression_or_recurrence
-                site_of_resection_or_biopsy
-                prior_malignancy
-                ajcc_clinical_m
-                ajcc_clinical_n
-                ajcc_clinical_stage
-                ajcc_clinical_t
-                ajcc_pathologic_m
-                ajcc_pathologic_n
-                ajcc_pathologic_stage
-                ajcc_pathologic_t
-                ann_arbor_b_symptoms
-                ann_arbor_clinical_stage
-                ann_arbor_extranodal_involvement
-                ann_arbor_pathologic_stage
-                best_overall_response
-                burkitt_lymphoma_clinical_variant
-                circumferential_resection_margin
-                colon_polyps_history
-                days_to_best_overall_response
-                days_to_diagnosis
-                days_to_hiv_diagnosis
-                days_to_new_event
-                figo_stage
-                hiv_positive
-                hpv_positive_type
-                hpv_status
-                iss_stage
-                laterality
-                ldh_level_at_diagnosis
-                ldh_normal_range_upper
-                lymph_nodes_positive
-                lymphatic_invasion_present
-                method_of_diagnosis
-                new_event_anatomic_site
-                new_event_type
-                overall_survival
-                perineural_invasion_present
-                prior_treatment
-                progression_free_survival
-                progression_free_survival_event
-                residual_disease
-                vascular_invasion_present
-                year_of_diagnosis
             }}
             pagination {{
                 count
