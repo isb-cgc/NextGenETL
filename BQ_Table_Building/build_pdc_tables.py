@@ -369,7 +369,8 @@ def alter_all_programs_json(all_programs_json_obj):
 
                 temp_programs_json_obj_list.append(study_obj)
 
-    all_programs_json_obj = temp_programs_json_obj_list
+    all_programs_json_obj.clear()
+    all_programs_json_obj.append(temp_programs_json_obj_list)
 
 
 # ***** BIOSPECIMEN TABLE CREATION FUNCTIONS
@@ -1310,6 +1311,11 @@ def main(args):
         delete_from_steps('delete_tables', steps)
 
     if 'build_studies_jsonl' in steps:
+        build_jsonl_from_pdc_api(endpoint='allPrograms',
+                                 request_function=make_all_programs_query,
+                                 alter_json_function=alter_all_programs_json)
+
+        """
         console_out("\nbuild_studies_jsonl started")
         jsonl_start = time.time()
 
@@ -1326,6 +1332,7 @@ def main(args):
         console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
 
         delete_from_steps('build_studies_jsonl', steps)
+        """
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
