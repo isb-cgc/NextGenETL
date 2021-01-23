@@ -243,7 +243,8 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
             paginated_request_params = request_parameters + (offset, limit)
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data()
-            print("Appended page {} of {}.".format(page, total_pages))
+            if 'Study' not in endpoint:
+                print("Appended page {} of {}.".format(page, total_pages))
 
             if new_total_pages != total_pages:
                 has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
