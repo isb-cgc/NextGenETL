@@ -1374,14 +1374,14 @@ def main(args):
                                  request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_METADATA_TABLE'])
+        build_table_from_jsonl("allCases")
 
     if 'build_cases_aliquots_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
                                  request_function=make_cases_aliquots_query)
 
     if 'build_cases_aliquots_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        build_table_from_jsonl("paginatedCasesSamplesAliquots")
 
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
@@ -1389,7 +1389,7 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_case_diagnoses_table' in steps:
-        pass
+        build_table_from_jsonl('paginatedCaseDiagnosesPerStudy')
 
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
@@ -1397,7 +1397,7 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_case_demographics_table' in steps:
-        pass
+        build_table_from_jsonl('paginatedCaseDemographicsPerStudy')
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
