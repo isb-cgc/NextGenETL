@@ -258,19 +258,16 @@ def make_all_programs_query():
     return """{allPrograms{
             program_id
             program_submitter_id
-            name
             start_date
             end_date
             program_manager
             projects {
                 project_id
                 project_submitter_id
-                name
                 studies {
                     pdc_study_id
                     study_id
                     study_submitter_id
-                    submitter_id_name
                     analytical_fraction
                     experiment_type
                     acquisition_type
@@ -365,10 +362,12 @@ def alter_all_programs_json(all_programs_json_obj):
                 # ** unpacks each dictionary's items without altering program and project
                 study_obj = {**program, **project, **study, **study_metadata}
 
+                """
                 # todo why?
                 for k, v in study_obj.items():
                     if not v:
                         study_obj[k] = None
+                """
 
                 temp_programs_json_obj_list.append(study_obj)
 
