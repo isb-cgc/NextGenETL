@@ -1339,7 +1339,7 @@ def build_cases_diagnoses_jsonl(studies_list):
         total_pages = diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']['pages']
 
         print("Retrieved api response for page {} of {}.\n{}".format(
-            page, total_pages, diagnoses_res['data']['paginatedCaseDDiagnosesPerStudy']['pagination']))
+            page, total_pages, diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']))
 
         for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
             cases_diagnoses.append(case)
