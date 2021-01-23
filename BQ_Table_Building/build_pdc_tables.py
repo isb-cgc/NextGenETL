@@ -192,6 +192,7 @@ def build_jsonl_from_pdc_api(endpoint_name, request_function, ids_list=None, req
 
 
 def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
+    print(API_PARAMS['ENDPOINT_SETTINGS'])
     is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
 
     def append_api_response_data():
