@@ -1348,7 +1348,7 @@ def build_cases_diagnoses_jsonl(studies_list):
             page += 1
             offset = offset + limit
 
-            diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(offset, limit))
+            diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
 
             print("Retrieved api response for page {} of {}.\n{}".format(
                 page, total_pages, diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']))
