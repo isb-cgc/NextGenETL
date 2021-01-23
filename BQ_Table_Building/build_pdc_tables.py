@@ -297,6 +297,7 @@ def make_all_programs_query():
 def make_study_query(pdc_study_id):
     return """{{ study 
     (pdc_study_id: \"{}\") {{ 
+        study_name
         disease_type
         primary_site
         embargo_date
