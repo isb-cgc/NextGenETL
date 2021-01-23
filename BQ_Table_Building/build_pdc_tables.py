@@ -229,7 +229,8 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*paginated_request_params)
         total_pages = append_api_response_data()
-        print("Appended page {} of {}.".format(page, total_pages))
+        if 'Study' not in endpoint:
+            print("Appended page {} of {}.".format(page, total_pages))
 
         if not total_pages:
             has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
@@ -1513,6 +1514,8 @@ def main(args):
             excluded_studies_list.append((study.get('study_name'), study.get('embargo_date')))
         else:
             studies_list.append(dict(study.items()))
+
+    excluded_studies_list.sort(key = lambda x: x[0])
 
     embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
