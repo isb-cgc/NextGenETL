@@ -1385,9 +1385,9 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
 
     if delete_local and os.path.exists(scratch_fp):
         os.remove(scratch_fp)
-        print("Successfully uploaded file to {}/{}. Local file deleted.".format(bucket, blob_name))
+        print("\nSuccessfully uploaded file to {}/{}. Local file deleted.".format(bucket, blob_name))
     else:
-        print("Successfully uploaded file to {}/{}. Local file not deleted (path: {}).".
+        print("\nSuccessfully uploaded file to {}/{}. Local file not deleted (path: {}).".
               format(bucket, blob_name, scratch_fp))
 
 

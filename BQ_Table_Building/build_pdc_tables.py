@@ -177,7 +177,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids_list) < 100:
-                print("Appended data for {}. Total record count: {}".format(id_entry, len(joined_record_list)))
+                print("Added data for {}. Total record count: {}".format(id_entry, len(joined_record_list)))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print("{} records appended.".format(len(joined_record_list)))
     else:
@@ -1508,20 +1508,6 @@ def main(args):
 
     pdc_study_ids.sort()
 
-    if 'build_cases_aliquots_jsonl' in steps:
-        jsonl_start = time.time()
-
-        cases_aliquots_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_ALIQUOT_TABLE'])
-        cases_aliquots_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_aliquots_jsonl_file)
-        build_cases_aliquots_jsonl(cases_aliquots_jsonl_path)
-        upload_to_bucket(BQ_PARAMS, cases_aliquots_jsonl_path)
-
-        jsonl_end = time.time() - jsonl_start
-        console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
-    if 'build_cases_aliquots_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
-
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
 
@@ -1576,28 +1562,45 @@ def main(args):
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
 
     if 'build_cases_jsonl' in steps:
-        build_cases_jsonl()
+        build_jsonl_from_pdc_api(endpoint="allCases", request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
                                BQ_PARAMS['CASE_METADATA_TABLE'])
 
-    if 'build_case_metadata_jsonl' in steps:
-        pass
+    if 'build_cases_aliquots_jsonl' in steps:
+        build_jsonl_from_pdc_api(endpoint="casesSamplesAliquots", request_function=make_cases_aliquots_query)
 
-    if 'build_case_metadata_table' in steps:
-        pass
+        """
+        jsonl_start = time.time()
+
+        cases_aliquots_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        cases_aliquots_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_aliquots_jsonl_file)
+        build_cases_aliquots_jsonl(cases_aliquots_jsonl_path)
+        upload_to_bucket(BQ_PARAMS, cases_aliquots_jsonl_path)
+
+        jsonl_end = time.time() - jsonl_start
+        console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+        """
+
+    if 'build_cases_aliquots_table' in steps:
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
                                  request_function=make_cases_diagnoses_query,
                                  ids_list=pdc_study_ids)
 
+    if 'build_case_diagnoses_table' in steps:
+        pass
+
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
                                  request_function=make_cases_demographics_query,
                                  ids_list=pdc_study_ids)
 
+    if 'build_case_demographics_table' in steps:
+        pass
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
