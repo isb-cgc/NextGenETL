@@ -1169,19 +1169,18 @@ def build_file_pdc_metadata_jsonl(file_ids):
 # ***** CASE METADATA TABLE CREATION FUNCTIONS
 
 def make_cases_query():
-    return """{{ 
+    return """{{
         allCases {{
-            case_id
-            case_submitter_id
-            project_submitter_id
-            disease_type
-            primary_site
-            externalReferences {{
+            case_id 
+            case_submitter_id 
+            project_submitter_id 
+             primary_site 
+             externalReferences {{ 
                 external_reference_id 
                 reference_resource_shortname 
                 reference_resource_name 
-                reference_entity_location
-            }}  
+                reference_entity_location 
+            }}
         }}
     }}"""
 
