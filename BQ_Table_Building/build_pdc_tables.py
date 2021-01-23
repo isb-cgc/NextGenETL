@@ -1273,8 +1273,9 @@ def main(args):
                                  alter_json_function=alter_all_programs_json)
 
     if 'build_studies_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
+        build_table_from_jsonl(endpoint='allPrograms')
 
+        # todo why?
         delete_from_steps('build_studies_table', steps)
 
     # Don't bother building the study list if we aren't running further steps, exit
