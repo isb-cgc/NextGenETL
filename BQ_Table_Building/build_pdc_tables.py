@@ -1275,6 +1275,34 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
             total caseDiagnosesPerStudy {{
                 case_id
+                case_submitter_id
+                disease_type
+                primary_site
+                diagnoses
+                diagnosis_id
+                tissue_or_organ_of_origin
+                age_at_diagnosis
+                primary_diagnosis
+                tumor_grade
+                tumor_stage
+                diagnosis_submitter_id
+                classification_of_tumor
+                days_to_last_follow_up
+                days_to_last_known_disease_status
+                days_to_recurrence
+                last_known_disease_status
+                morphology
+                progression_or_recurrence
+                site_of_resection_or_biopsy
+                prior_malignancy
+                ajcc_clinical_m
+                ajcc_clinical_n
+                ajcc_clinical_stage
+                ajcc_clinical_t
+                ajcc_pathologic_m
+                ajcc_pathologic_n
+                ajcc_pathologic_stage
+                ajcc_pathologic_t
             }}
             pagination {{
                 count
