@@ -979,7 +979,7 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     if schema:
         job_config.schema = schema
     else:
-        print("No schema supplied for table_id, using schema autodetect.")
+        print(" - No schema supplied for table_id, using schema autodetect.")
         job_config.autodetect = True
 
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
@@ -1123,7 +1123,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    console_out(" done. {0} rows inserted.", (table.num_rows,))
+    console_out(" done. {0} rows inserted.\n", (table.num_rows,))
 
 
 def await_job(bq_params, client, bq_job):
