@@ -170,6 +170,8 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     """
     joined_record_list = list()
 
+    print("\nAppending data from {} endpoint.".format(endpoint))
+
     if ids_list:
         for idx, id_entry in enumerate(ids_list):
             if len(joined_record_list) % 1000 == 0 and len(ids_list) > 100 and len(joined_record_list) != 0:
@@ -177,15 +179,14 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids_list) < 100:
-                print("Appended data for {}.".format(endpoint, id_entry))
+                print("Appended data for {}.".format(id_entry))
             print("New record count: {}\n".format(len(joined_record_list)))
-
     else:
-        joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
+        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_parameters)
+        print("Collected {} records.\n".format(len(joined_record_list)))
 
     jsonl_filename = get_file_name('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
-
     write_list_to_jsonl(local_filepath, joined_record_list)
 
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
