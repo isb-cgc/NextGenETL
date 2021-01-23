@@ -170,14 +170,14 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     """
     joined_record_list = list()
 
-    print("\nSending request to {} endpoint".format(endpoint))
+    print("\nSending api request ({} endpoint)!".format(endpoint))
 
     if ids_list:
         for idx, id_entry in enumerate(ids_list):
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids_list) < 100:
-                print("Added {} data, new record count: {:4d}".format(id_entry, len(joined_record_list)))
+                print("{:4d} total records after adding {} data.".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print("{} records appended.".format(len(joined_record_list)))
     else:
