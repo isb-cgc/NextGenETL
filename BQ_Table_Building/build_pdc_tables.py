@@ -162,7 +162,8 @@ def delete_from_steps(step, steps):
     steps.pop(delete_idx)
 
 
-def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_parameters=tuple()):
+def build_jsonl_from_pdc_api(endpoint, request_function, alter_json_function=None, ids_list=None,
+                             request_parameters=tuple()):
     """
     usage:
     build_jsonl_from_pdc_api("endpoint_name", request_function(), ids_list)
@@ -170,7 +171,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     """
     joined_record_list = list()
 
-    print("Sending API request ({} endpoint)!".format(endpoint))
+    print("Sending {} API request.".format(endpoint))
 
     if ids_list:
         for idx, id_entry in enumerate(ids_list):
@@ -183,6 +184,9 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     else:
         joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_parameters)
         print("Collected {} records.".format(len(joined_record_list)))
+
+    if alter_json_function:
+        alter_json_function(joined_record_list)
 
     jsonl_filename = get_file_name('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
@@ -225,6 +229,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*paginated_request_params)
         total_pages = append_api_response_data()
+        print("Appended page {} of {}.".format(page, total_pages))
 
         if not total_pages:
             has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
@@ -236,6 +241,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
             paginated_request_params = request_parameters + (offset, limit)
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data()
+            print("Appended page {} of {}.".format(page, total_pages))
 
             if new_total_pages != total_pages:
                 has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
@@ -1079,6 +1085,16 @@ def make_combined_file_metadata_query():
     """.format(file_per_study_table_id, file_metadata_table_id)
 
 
+def alter_files_per_study_json(files_per_study_obj_list):
+    for files_per_study_obj in files_per_study_obj_list:
+        signedUrl = files_per_study_obj.pop('signedUrl', None)
+        url = signedUrl.pop('url', None)
+
+        if not url:
+            print("url not found in filesPerStudy response:\n{}\n".format(files_per_study_obj))
+        files_per_study_obj['url'] = url
+
+"""
 def build_per_study_file_jsonl(study_ids_list):
     jsonl_start = time.time()
     file_list = []
@@ -1119,7 +1135,7 @@ def build_per_study_file_jsonl(study_ids_list):
     jsonl_end = time.time() - jsonl_start
 
     console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
+"""
 
 def get_file_ids():
     table_name = get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE'])
@@ -1501,7 +1517,7 @@ def main(args):
     embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    print("\nStudies excluded due to data embargo:\n{}".format(embargoed_print_str))
+    print("\nStudies excluded due to data embargo:\n{}\n".format(embargoed_print_str))
 
     for study in studies_list:
         pdc_study_ids.append(study['pdc_study_id'])
@@ -1533,7 +1549,12 @@ def main(args):
             delete_bq_table(dup_table_id)
 
     if 'build_per_study_file_jsonl' in steps:
-        build_per_study_file_jsonl(studies_list)
+        build_jsonl_from_pdc_api(endpoint="filesPerStudy",
+                                 request_function=make_files_per_study_query,
+                                 alter_json_function=alter_files_per_study_json,
+                                 ids_list=pdc_study_ids)
+
+        # build_per_study_file_jsonl(studies_list)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
