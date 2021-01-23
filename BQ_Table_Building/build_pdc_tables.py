@@ -36,12 +36,12 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # ***** FUNCTIONS USED BY MULTIPLE PROCESSES
 
 def make_all_studies_query():
-    table_name = get_table_name(BQ_PARAMS['STUDIES_TABLE'])
+    # todo cleanup var
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['allPrograms']['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata=True)
 
     return """
-    SELECT study_id, study_submitter_id, pdc_study_id, study_name, project_submitter_id,
-    aliquots_count, cases_count, embargo_date, analytical_fraction
+    SELECT pdc_study_id, study_name, embargo_date, analytical_fraction
     FROM  `{}`
     """.format(table_id)
 
