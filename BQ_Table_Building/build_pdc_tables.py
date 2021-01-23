@@ -162,29 +162,22 @@ def delete_from_steps(step, steps):
     steps.pop(delete_idx)
 
 
-"""
-endpoint = 'endpoint_name'
-
-# make pdc_study_id list if applicable
-
-build_jsonl_from_pdc_api(endpoint, request_function(), ids_list)
-# or 
-# build_jsonl_from_pdc_api(endpoint, request_function())
-
-"""
-
-def build_jsonl_from_pdc_api(endpoint_name, request_function, ids_list=None, request_parameters=tuple()):
-    endpoint_settings = API_PARAMS['ENDPOINT_SETTINGS'][endpoint_name]
+def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_parameters=tuple()):
+    """
+    usage:
+    build_jsonl_from_pdc_api("endpoint_name", request_function(), ids_list)
+    build_jsonl_from_pdc_api("endpoint_name", request_function())
+    """
     joined_record_list = list()
 
     if ids_list:
         for id_entry in ids_list:
             request_parameters += (id_entry,)
-            joined_record_list += request_data_from_pdc_api(endpoint_settings, request_function, request_parameters)
+            joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
     else:
-        joined_record_list += request_data_from_pdc_api(endpoint_settings, request_function, request_parameters)
+        joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
 
-    jsonl_filename = get_file_name('jsonl', endpoint_settings['output_name'])
+    jsonl_filename = get_file_name('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, joined_record_list)
