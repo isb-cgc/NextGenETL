@@ -1408,8 +1408,9 @@ def build_cases_diagnoses_jsonl(studies_list):
         for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
             cases_diagnoses.append(case)
 
-        while page <= total_pages:
-            page += 1
+        page += 1
+
+        while page < total_pages:
             offset = offset + limit
 
             diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
@@ -1421,6 +1422,7 @@ def build_cases_diagnoses_jsonl(studies_list):
                 cases_diagnoses.append(case)
 
             print("Appended data to dict! New size: {}".format(len(cases_diagnoses)))
+            page += 1
 
         write_list_to_jsonl(diagnoses_jsonl_path, cases_diagnoses)
 
