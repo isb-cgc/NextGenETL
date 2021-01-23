@@ -172,8 +172,8 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
 
     if ids_list:
         for id_entry in ids_list:
-            request_parameters += (id_entry,)
-            joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
+            combined_request_parameters = request_parameters + (id_entry,)
+            joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
     else:
         joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
 
@@ -1582,10 +1582,14 @@ def main(args):
         pass
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_jsonl_from_pdc_api("paginatedCaseDiagnosesPerStudy", make_cases_diagnoses_query, pdc_study_ids)
+        build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
+                                 request_function=make_cases_diagnoses_query,
+                                 ids_list=pdc_study_ids)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_jsonl_from_pdc_api("paginatedCaseDemographicsPerStudy", make_cases_demographics_query, pdc_study_ids)
+        build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
+                                 request_function=make_cases_demographics_query,
+                                 ids_list=pdc_study_ids)
 
 
     if 'build_quant_tsvs' in steps:
