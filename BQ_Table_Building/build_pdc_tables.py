@@ -171,9 +171,15 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     joined_record_list = list()
 
     if ids_list:
-        for id_entry in ids_list:
+        for id_entry, idx in enumerate(ids_list):
+            if len(ids_list) < 100:
+                print("Appending {} data for {}.".format(endpoint, id_entry))
+            elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
+                print("{} records appended".format(len(joined_record_list)))
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
+            print("Appended data to dict! New size: {}".format(len(joined_record_list)))
+
     else:
         joined_record_list += request_data_from_pdc_api(endpoint, request_function, request_parameters)
 
@@ -181,11 +187,11 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, joined_record_list)
+
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
 
 def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
-    print(API_PARAMS['ENDPOINT_SETTINGS'][endpoint])
     is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
     payload_key = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
@@ -197,7 +203,6 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
         for record in response_body[payload_key]:
             record_list.append(record)
 
-        print("Appended data to dict! New size: {}".format(len(record_list)))
         return response_body['pagination']['pages'] if 'pagination' in response_body else None
 
     record_list = list()
