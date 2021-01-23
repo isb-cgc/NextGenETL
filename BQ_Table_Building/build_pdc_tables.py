@@ -327,7 +327,7 @@ def alter_all_programs_json(all_programs_json_obj):
                 temp_programs_json_obj_list.append(study_obj)
 
     all_programs_json_obj.clear()
-    all_programs_json_obj.append(temp_programs_json_obj_list)
+    all_programs_json_obj.extend(temp_programs_json_obj_list)
 
 
 # ***** BIOSPECIMEN TABLE CREATION FUNCTIONS
