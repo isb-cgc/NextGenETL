@@ -208,12 +208,8 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     record_list = list()
 
     if not is_paginated:
-        if request_parameters:
-            # * operator unpacks tuple for use as positional function args
-            graphql_request_body = request_body_function(*request_parameters)
-        else:
-            graphql_request_body = request_body_function()
-
+        # * operator unpacks tuple for use as positional function args
+        graphql_request_body = request_body_function(*request_parameters)
         total_pages = append_api_response_data()
 
         # should be None, if value is returned then endpoint is actually paginated

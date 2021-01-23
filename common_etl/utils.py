@@ -854,7 +854,9 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
-            has_fatal_error("API response status code {}\nRequest body:\n{}".format(api_res.status_code, req_body))
+            has_fatal_error("status code {):\n{}.\nRequest body:\n{}".format(api_res.status_code,
+                                                                              api_res.reason,
+                                                                              req_body))
 
         console_out("API response status code {}: {};\nRetry {} of {}...",
                     (api_res.status_code, api_res.reason, tries, max_retries))
@@ -1389,8 +1391,6 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     else:
         print("\nSuccessfully uploaded file to {}/{}. Local file not deleted (path: {}).".
               format(bucket, blob_name, scratch_fp))
-
-
 
 
 def download_from_bucket(bq_params, filename):
