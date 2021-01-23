@@ -162,8 +162,7 @@ def delete_from_steps(step, steps):
     steps.pop(delete_idx)
 
 
-def build_jsonl_from_pdc_api(endpoint, request_function, alter_json_function=None, ids_list=None,
-                             request_parameters=tuple()):
+def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None, ids=None):
     """
     usage:
     build_jsonl_from_pdc_api("endpoint_name", request_function(), ids_list)
@@ -173,16 +172,16 @@ def build_jsonl_from_pdc_api(endpoint, request_function, alter_json_function=Non
 
     print("Sending {} API request.".format(endpoint))
 
-    if ids_list:
-        for idx, id_entry in enumerate(ids_list):
-            combined_request_parameters = request_parameters + (id_entry,)
+    if ids:
+        for idx, id_entry in enumerate(ids):
+            combined_request_parameters = request_params + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
-            if len(ids_list) < 100:
-                print("{:4d} current records (added {}).".format(len(joined_record_list), id_entry))
+            if len(ids) < 100:
+                print("{:5d} current records (added {}).".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print("{} records appended.".format(len(joined_record_list)))
     else:
-        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_parameters)
+        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
         print("Collected {} records.".format(len(joined_record_list)))
 
     if alter_json_function:
@@ -229,6 +228,8 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*paginated_request_params)
         total_pages = append_api_response_data()
+
+        # Useful for endpoints which don't access per-study data, otherwise too verbose
         if 'Study' not in endpoint:
             print("Appended page {} of {}.".format(page, total_pages))
 
@@ -267,15 +268,29 @@ def make_all_programs_query():
                 studies {
                     pdc_study_id
                     study_id
+                    study_submitter_id
+                    submitter_id_name
+                    analytical_fraction
+                    experiment_type
                     acquisition_type
                 } 
             }
         }}"""
 
 
-def make_study_query(study_id):
+def make_study_query(pdc_study_id):
     return """{{ study 
-    (study_id: \"{}\") {{ 
+    (pdc_study_id: \"{}\") {{ 
+        disease_type
+        primary_site
+        embargo_date
+    }} }}
+    """.format(pdc_study_id)
+
+'''
+def make_study_query(pdc_study_id):
+    return """{{ study 
+    (pdc_study_id: \"{}\") {{ 
         study_submitter_id 
         study_name 
         disease_type 
@@ -286,8 +301,8 @@ def make_study_query(study_id):
         aliquots_count
         embargo_date 
     }} }}
-    """.format(study_id)
-
+    """.format(pdc_study_id)
+'''
 
 def create_studies_dict(json_res):
     studies = []
@@ -330,6 +345,31 @@ def create_studies_dict(json_res):
                 studies.append(study_dict)
 
     return studies
+
+
+def alter_all_programs_json(all_programs_json_obj):
+    temp_programs_json_obj_list = list()
+
+    for program in all_programs_json_obj:
+        projects = program.pop("projects", None)
+        for project in projects:
+            studies = project.pop("studies", None)
+            for study in studies:
+                # grab a few add't fields from study endpoint
+                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study_dict['pdc_study_id']))
+                study_metadata = json_res['data']['study'][0]
+
+                # ** unpacks each dictionary's items without altering program and project
+                study_obj = {**program, **project, **study, **study_metadata}
+
+                # todo why?
+                for k, v in study_obj.items():
+                    if not v:
+                        study_obj[k] = None
+
+                temp_programs_json_obj_list.append(study_obj)
+
+    all_programs_json_obj = temp_programs_json_obj_list
 
 
 # ***** BIOSPECIMEN TABLE CREATION FUNCTIONS
@@ -804,40 +844,6 @@ def make_cases_aliquots_query(offset, limit):
     }}'''.format(offset, limit)
 
 
-def build_cases_aliquots_jsonl(csa_jsonl_fp):
-    offset = 0
-    limit = API_PARAMS['PAGINATED_LIMIT']
-    page = 1
-
-    cases_aliquots = list()
-
-    csa_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, limit))
-
-    total_pages = csa_res['data']['paginatedCasesSamplesAliquots']['pagination']['pages']
-
-    print("Retrieved api response for page {} of {}.\n{}".format(
-        page, total_pages, csa_res['data']['paginatedCasesSamplesAliquots']['pagination']))
-
-    for case in csa_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
-        cases_aliquots.append(case)
-
-    while page <= total_pages:
-        page += 1
-        offset = offset + limit
-
-        csa_res = get_graphql_api_response(API_PARAMS, make_cases_aliquots_query(offset, limit))
-
-        print("Retrieved api response for page {} of {}.\n{}".format(
-            page, total_pages, csa_res['data']['paginatedCasesSamplesAliquots']['pagination']))
-
-        for case in csa_res['data']['paginatedCasesSamplesAliquots']['casesSamplesAliquots']:
-            cases_aliquots.append(case)
-
-        print("Appended data to dict! New size: {}".format(len(cases_aliquots)))
-
-    write_list_to_jsonl(csa_jsonl_fp, cases_aliquots)
-
-
 # ***** QUANT DATA MATRIX TABLE CREATION FUNCTIONS
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
@@ -1095,48 +1101,6 @@ def alter_files_per_study_json(files_per_study_obj_list):
             print("url not found in filesPerStudy response:\n{}\n".format(files_per_study_obj))
         files_per_study_obj['url'] = url
 
-"""
-def build_per_study_file_jsonl(study_ids_list):
-    jsonl_start = time.time()
-    file_list = []
-
-    for study in study_ids_list:
-        study_id = study['pdc_study_id']
-        print("Retrieving for {}: {}".format(study_id, study['study_submitter_id']))
-        files_res = get_graphql_api_response(API_PARAMS, make_files_per_study_query(study_id), fail_on_error=False)
-
-        if 'errors' in files_res:
-            error_message = files_res['errors'][0]['message']
-            print("**{} not included due to error: {}".format(study_id, error_message))
-        if 'data' in files_res:
-            study_file_count = 0
-
-            for file_row in files_res['data']['filesPerStudy']:
-                if 'signedUrl' in file_row and 'url' in file_row['signedUrl']:
-                    url = file_row['signedUrl']['url']
-                    file_row['url'] = url.split("?")[0]
-                else:
-                    file_row['url'] = None
-
-                file_row.pop('signedUrl', None)
-
-                study_file_count += 1
-                file_list.append(file_row)
-
-            print("{} files retrieved.\n".format(study_file_count))
-        else:
-            print("No data returned by per-study file query for {}\n".format(study_id))
-
-    files_per_study_jsonl_file = get_file_name('jsonl', BQ_PARAMS['FILES_PER_STUDY_TABLE'])
-    files_per_study_jsonl_path = get_scratch_fp(BQ_PARAMS, files_per_study_jsonl_file)
-
-    write_list_to_jsonl(files_per_study_jsonl_path, file_list)
-    upload_to_bucket(BQ_PARAMS, files_per_study_jsonl_path)
-
-    jsonl_end = time.time() - jsonl_start
-
-    console_out("Per-study file metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-"""
 
 def get_file_ids():
     table_name = get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE'])
@@ -1202,33 +1166,6 @@ def make_cases_query():
     }"""
 
 
-"""
-def build_cases_jsonl():
-    jsonl_start = time.time()
-
-    cases_list = []
-    cases_res = get_graphql_api_response(API_PARAMS, make_cases_query())
-
-    for case_row in cases_res['data']['allCases']:
-        cases_list.append({
-            "case_id": case_row['case_id'],
-            "case_submitter_id": case_row['case_submitter_id'],
-            "project_submitter_id": case_row['project_submitter_id'],
-            "disease_type": case_row['disease_type'],
-            "primary_site": case_row['primary_site']
-        })
-
-    cases_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASES_TABLE'])
-    cases_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_jsonl_file)
-
-    write_list_to_jsonl(cases_jsonl_path, cases_list)
-
-    upload_to_bucket(BQ_PARAMS, cases_jsonl_path)
-
-    jsonl_end = time.time() - jsonl_start
-    console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-"""
-
 def get_cases_data():
     cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], cases_table)
@@ -1237,66 +1174,6 @@ def get_cases_data():
         SELECT * 
         FROM `{}`
     """.format(table_id)
-
-
-"""
-def build_case_metadata_jsonl(cases_list):
-    print("building case metadata jsonl")
-    jsonl_start = time.time()
-    case_metadata_list = []
-
-    for case in cases_list:
-        case_dict = dict()
-        meta_cnt = 0
-
-        case_meta_query = make_case_query(case['case_submitter_id'])
-        case_meta_res = get_graphql_api_response(API_PARAMS, case_meta_query)
-
-        if 'data' not in case_meta_res or 'case' not in case_meta_res['data']:
-            print("Result has an issue: {}".format(case_meta_res))
-            # case_dict.update(case)
-            continue
-
-        num_case_meta_res = len(case_meta_res['data']['case'])
-        res = case_meta_res['data']['case']
-
-        if num_case_meta_res == 0:
-            # print(res)
-            continue
-        elif num_case_meta_res > 1:
-            print("results > 2:\n{}".format(res))
-            # print(res)
-            continue
-
-        case_metadata = res[0]
-
-        if (case_metadata['project_submitter_id'] != case['project_submitter_id'] or
-                case_metadata['case_submitter_id'] != case['case_submitter_id'] or
-                case_metadata['case_id'] != case['case_id'] or
-                case_metadata['primary_site'] != case['primary_site'] or
-                case_metadata['disease_type'] != case['disease_type']):
-            print("weird, non-matching column data!")
-            continue
-
-        case_dict.update(case_metadata)
-
-        meta_cnt += 1
-        case_metadata_list.append(case_dict)
-
-        if meta_cnt >= 5:
-            print("woot!!")
-            exit()
-
-    case_metadata_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_METADATA_TABLE'])
-    case_meta_jsonl_path = get_scratch_fp(BQ_PARAMS, case_metadata_jsonl_file)
-
-    write_list_to_jsonl(case_meta_jsonl_path, cases_list)
-
-    upload_to_bucket(BQ_PARAMS, case_meta_jsonl_path)
-
-    jsonl_end = time.time() - jsonl_start
-    console_out("Case metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-"""
 
 
 # ***** CLINICAL TABLE CREATION FUNCTIONS
@@ -1414,50 +1291,6 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     """.format(pdc_study_id, offset, limit)
 
 
-def build_cases_diagnoses_jsonl(studies_list):
-    cases_diagnoses = list()
-
-    diagnoses_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
-    diagnoses_jsonl_path = get_scratch_fp(BQ_PARAMS, diagnoses_jsonl_file)
-
-    for study in studies_list:
-        offset = 0
-        page = 1
-        limit = API_PARAMS['PAGINATED_LIMIT']
-
-        pdc_study_id = study['pdc_study_id']
-
-        print("\nFor {}:".format(pdc_study_id))
-
-        diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
-
-        total_pages = diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']['pages']
-
-        print("Retrieved api response for page {} of {}.\n{}".format(
-            page, total_pages, diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']))
-
-        for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
-            cases_diagnoses.append(case)
-
-        page += 1
-
-        while page < total_pages:
-            offset = offset + limit
-
-            diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
-
-            print("Retrieved api response for page {} of {}.\n{}".format(
-                page, total_pages, diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['pagination']))
-
-            for case in diagnoses_res['data']['paginatedCaseDiagnosesPerStudy']['caseDiagnosesPerStudy']:
-                cases_diagnoses.append(case)
-
-            print("Appended data to dict! New size: {}".format(len(cases_diagnoses)))
-            page += 1
-
-        write_list_to_jsonl(diagnoses_jsonl_path, cases_diagnoses)
-
-
 def main(args):
     start = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -1555,9 +1388,7 @@ def main(args):
         build_jsonl_from_pdc_api(endpoint="filesPerStudy",
                                  request_function=make_files_per_study_query,
                                  alter_json_function=alter_files_per_study_json,
-                                 ids_list=pdc_study_ids)
-
-        # build_per_study_file_jsonl(studies_list)
+                                 ids=pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
@@ -1596,25 +1427,13 @@ def main(args):
         build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
                                  request_function=make_cases_aliquots_query)
 
-        """
-        jsonl_start = time.time()
-
-        cases_aliquots_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_ALIQUOT_TABLE'])
-        cases_aliquots_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_aliquots_jsonl_file)
-        build_cases_aliquots_jsonl(cases_aliquots_jsonl_path)
-        upload_to_bucket(BQ_PARAMS, cases_aliquots_jsonl_path)
-
-        jsonl_end = time.time() - jsonl_start
-        console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-        """
-
     if 'build_cases_aliquots_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_ALIQUOT_TABLE'])
 
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
                                  request_function=make_cases_diagnoses_query,
-                                 ids_list=pdc_study_ids)
+                                 ids=pdc_study_ids)
 
     if 'build_case_diagnoses_table' in steps:
         pass
@@ -1622,7 +1441,7 @@ def main(args):
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
                                  request_function=make_cases_demographics_query,
-                                 ids_list=pdc_study_ids)
+                                 ids=pdc_study_ids)
 
     if 'build_case_demographics_table' in steps:
         pass
