@@ -83,7 +83,13 @@ def is_currently_embargoed(embargo_date):
                     return True
     return False
     """
-    return False if embargo_date < date.today() else True
+    if not embargo_date:
+        return False
+    elif embargo_date < date.today():
+        return False
+    else:
+        return True
+
 
 def get_table_name(prefix, suffix=None, include_release=True, release=None):
     table_name = prefix
