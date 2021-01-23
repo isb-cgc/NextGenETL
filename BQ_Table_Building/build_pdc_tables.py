@@ -1323,15 +1323,15 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
 
 
 def build_cases_diagnoses_jsonl(studies_list):
-    offset = 0
-    limit = API_PARAMS['CSA_LIMIT']
-    page = 1
-
     cases_diagnoses = list()
 
     diagnoses_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE']) + '.jsonl')
 
     for study in studies_list:
+        offset = 0
+        page = 1
+        limit = API_PARAMS['CSA_LIMIT']
+
         pdc_study_id = study['pdc_study_id']
 
         diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
