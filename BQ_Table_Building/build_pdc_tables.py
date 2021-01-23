@@ -305,6 +305,7 @@ def make_study_query(pdc_study_id):
     """.format(pdc_study_id)
 '''
 
+"""
 def create_studies_dict(json_res):
     studies = []
 
@@ -346,6 +347,7 @@ def create_studies_dict(json_res):
                 studies.append(study_dict)
 
     return studies
+"""
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -357,7 +359,7 @@ def alter_all_programs_json(all_programs_json_obj):
             studies = project.pop("studies", None)
             for study in studies:
                 # grab a few add't fields from study endpoint
-                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study_dict['pdc_study_id']))
+                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
 
                 # ** unpacks each dictionary's items without altering program and project
