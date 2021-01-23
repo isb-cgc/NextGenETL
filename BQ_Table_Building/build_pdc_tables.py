@@ -177,7 +177,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids_list) < 100:
-                print("{:4d} current total records (added data from {}).".format(len(joined_record_list), id_entry))
+                print("{:4d} current records (added {}).".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print("{} records appended.".format(len(joined_record_list)))
     else:
@@ -1501,11 +1501,10 @@ def main(args):
     embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    console_out("\nCurrently embargoed, excluded from subsequent table building:\n{}\n", (embargoed_print_str,))
+    print("\nStudies excluded due to data embargo:\n{}".format(embargoed_print_str))
 
     for study in studies_list:
         pdc_study_ids.append(study['pdc_study_id'])
-
     pdc_study_ids.sort()
 
     if 'build_biospecimen_tsv' in steps:
