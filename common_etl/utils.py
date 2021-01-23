@@ -979,7 +979,7 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     if schema:
         job_config.schema = schema
     else:
-        print(" - No schema supplied for table_id, using schema autodetect.")
+        print(" - No schema supplied for {}, using schema autodetect.".format(table_id))
         job_config.autodetect = True
 
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON

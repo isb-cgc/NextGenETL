@@ -274,9 +274,6 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     return record_list
 
 
-def create_table_from_jsonl_autodetect():
-    pass
-
 # ***** STUDY TABLE CREATION FUNCTIONS
 
 def make_all_programs_query():
