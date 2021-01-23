@@ -1562,14 +1562,16 @@ def main(args):
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
 
     if 'build_cases_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="allCases", request_function=make_cases_query)
+        build_jsonl_from_pdc_api(endpoint="allCases",
+                                 request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
                                BQ_PARAMS['CASE_METADATA_TABLE'])
 
     if 'build_cases_aliquots_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="casesSamplesAliquots", request_function=make_cases_aliquots_query)
+        build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
+                                 request_function=make_cases_aliquots_query)
 
         """
         jsonl_start = time.time()
