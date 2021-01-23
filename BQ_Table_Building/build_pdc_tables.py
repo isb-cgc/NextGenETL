@@ -96,6 +96,11 @@ def get_table_name(prefix, suffix=None, include_release=True, release=None):
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
+def get_file_name(file_extension, prefix, suffix=None, include_release=True, release=None):
+    filename = get_table_name(prefix, suffix, include_release, release)
+    return "{}.{}".format(filename, file_extension)
+
+
 def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
@@ -145,7 +150,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
         return
 
     console_out("\nBuilding {0}... ", (table_id,))
-    tsv_name = '{}.tsv'.format(table_name)
+    tsv_name = get_file_name('tsv', table_prefix, table_suffix)
     create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
     build_end = time.time() - build_start
@@ -155,6 +160,87 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 def delete_from_steps(step, steps):
     delete_idx = steps.index(step)
     steps.pop(delete_idx)
+
+
+"""
+endpoint = 'endpoint_name'
+
+# make pdc_study_id list if applicable
+
+build_jsonl_from_pdc_api(endpoint, request_function(), ids_list)
+# or 
+# build_jsonl_from_pdc_api(endpoint, request_function())
+
+"""
+
+def build_jsonl_from_pdc_api(endpoint_name, request_function, ids_list=None, request_parameters=tuple()):
+    endpoint_settings = API_PARAMS['ENDPOINT_SETTINGS'][endpoint_name]
+    joined_record_list = list()
+
+    if ids_list:
+        for id_entry in ids_list:
+            request_parameters += (id_entry,)
+            joined_record_list += request_data_from_pdc_api(endpoint_settings, request_function, request_parameters)
+    else:
+        joined_record_list += request_data_from_pdc_api(endpoint_settings, request_function, request_parameters)
+
+    jsonl_filename = get_file_name('jsonl', endpoint_settings['output_name'])
+    local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+
+    write_list_to_jsonl(local_filepath, joined_record_list)
+    upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
+
+
+def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
+    is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
+
+    def append_api_response_data():
+        api_response = get_graphql_api_response(API_PARAMS, graphql_request_body)
+
+        response_body = api_response['data'][endpoint] if is_paginated else api_response['data']
+
+        for record in response_body['payload_key']:
+            record_list.append(record)
+
+        print("Appended data to dict! New size: {}".format(len(record_list)))
+        return response_body['pagination']['pages'] if 'pagination' in response_body else None
+
+    record_list = list()
+
+    if not is_paginated:
+        # * operator unpacks tuple for use as positional function args
+        graphql_request_body = request_body_function(*request_parameters)
+        total_pages = append_api_response_data()
+
+        # should be None, if value is returned then endpoint is actually paginated
+        if total_pages:
+            has_fatal_error("Paginated API response ({} pages), but is_paginated set to False.".format(total_pages))
+    else:
+        limit = API_PARAMS['PAGINATED_LIMIT']
+        offset = 0
+        page = 1
+
+        paginated_request_params = request_parameters + (offset, limit)
+
+        # * operator unpacks tuple for use as positional function args
+        graphql_request_body = request_body_function(*paginated_request_params)
+        total_pages = append_api_response_data()
+
+        if not total_pages:
+            has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
+
+        while page < total_pages:
+            offset += limit
+            page += 1
+
+            paginated_request_params = request_parameters + (offset, limit)
+            graphql_request_body = request_body_function(*paginated_request_params)
+            new_total_pages = append_api_response_data()
+
+            if new_total_pages != total_pages:
+                has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
+
+    return record_list
 
 
 # ***** STUDY TABLE CREATION FUNCTIONS
@@ -713,7 +799,7 @@ def make_cases_aliquots_query(offset, limit):
 
 def build_cases_aliquots_jsonl(csa_jsonl_fp):
     offset = 0
-    limit = API_PARAMS['CSA_LIMIT']
+    limit = API_PARAMS['PAGINATED_LIMIT']
     page = 1
 
     cases_aliquots = list()
@@ -1024,10 +1110,11 @@ def build_per_study_file_jsonl(study_ids_list):
         else:
             print("No data returned by per-study file query for {}\n".format(study_id))
 
-    per_study_file_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE']) + '.jsonl')
+    files_per_study_jsonl_file = get_file_name('jsonl', BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+    files_per_study_jsonl_path = get_scratch_fp(BQ_PARAMS, files_per_study_jsonl_file)
 
-    write_list_to_jsonl(per_study_file_jsonl_path, file_list)
-    upload_to_bucket(BQ_PARAMS, per_study_file_jsonl_path)
+    write_list_to_jsonl(files_per_study_jsonl_path, file_list)
+    upload_to_bucket(BQ_PARAMS, files_per_study_jsonl_path)
 
     jsonl_end = time.time() - jsonl_start
 
@@ -1069,7 +1156,8 @@ def build_file_pdc_metadata_jsonl(file_ids):
             if count % 50 == 0:
                 print("{} of {} files retrieved".format(count, file_ids.total_rows))
 
-    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['FILE_PDC_METADATA_TABLE']) + '.jsonl')
+    file_metadata_jsonl_file = get_file_name('jsonl', BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+    file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, file_metadata_jsonl_file)
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
     upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
@@ -1081,104 +1169,21 @@ def build_file_pdc_metadata_jsonl(file_ids):
 # ***** CASE METADATA TABLE CREATION FUNCTIONS
 
 def make_cases_query():
-    return """ 
-    { allCases {
-        case_id
-        case_submitter_id
-        project_submitter_id
-        disease_type
-        primary_site
-        }
-    }"""
-
-
-def make_case_query(case_submitter_id):
-    return """
-    {{ case (case_submitter_id: \"{}\") {{
-        case_id
-        case_submitter_id
-        project_submitter_id
-        external_case_id
-        tissue_source_site_code
-        days_to_lost_to_followup
-        disease_type
-        lost_to_followup
-        primary_site
-        demographics {{
-            demographic_id
-            ethnicity
-            gender
-            demographic_submitter_id
-            race
-            cause_of_death
-            days_to_birth
-            days_to_death
-            vital_status
-            year_of_birth
-            year_of_death
+    return """{{ 
+        allCases {{
+            case_id
+            case_submitter_id
+            project_submitter_id
+            disease_type
+            primary_site
+            externalReferences {{
+                external_reference_id 
+                reference_resource_shortname 
+                reference_resource_name 
+                reference_entity_location
+            }}  
         }}
-        diagnoses {{ 
-            diagnosis_id 
-            tissue_or_organ_of_origin
-            age_at_diagnosis
-            primary_diagnosis
-            tumor_grade
-            tumor_stage
-            diagnosis_submitter_id
-            classification_of_tumor
-            days_to_last_follow_up
-            days_to_last_known_disease_status
-            days_to_recurrence
-            last_known_disease_status
-            morphology
-            progression_or_recurrence
-            site_of_resection_or_biopsy
-            prior_malignancy
-            ajcc_clinical_m
-            ajcc_clinical_n
-            ajcc_clinical_stage
-            ajcc_clinical_t
-            ajcc_pathologic_m
-            ajcc_pathologic_n
-            ajcc_pathologic_stage
-            ajcc_pathologic_t
-            ann_arbor_b_symptoms
-            ann_arbor_clinical_stage
-            ann_arbor_extranodal_involvement
-            ann_arbor_pathologic_stage
-            best_overall_response
-            burkitt_lymphoma_clinical_variant
-            circumferential_resection_margin
-            colon_polyps_history
-            days_to_best_overall_response
-            days_to_diagnosis
-            days_to_hiv_diagnosis
-            days_to_new_event
-            figo_stage
-            hiv_positive
-            hpv_positive_type
-            hpv_status
-            iss_stage
-            laterality
-            ldh_level_at_diagnosis
-            ldh_normal_range_upper
-            lymph_nodes_positive
-            lymphatic_invasion_present
-            method_of_diagnosis
-            new_event_anatomic_site
-            new_event_type
-            overall_survival
-            perineural_invasion_present
-            prior_treatment
-            progression_free_survival
-            progression_free_survival_event
-            residual_disease
-            vascular_invasion_present
-            year_of_diagnosis
-            }} 
-        }} 
-    }}
-    """.format(case_submitter_id)
+    }}"""
 
 
 def build_cases_jsonl():
@@ -1196,9 +1201,12 @@ def build_cases_jsonl():
             "primary_site": case_row['primary_site']
         })
 
-    cases_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASES_TABLE']) + '.jsonl')
-    write_list_to_jsonl(cases_jsonl_fp, cases_list)
-    upload_to_bucket(BQ_PARAMS, cases_jsonl_fp)
+    cases_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASES_TABLE'])
+    cases_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_jsonl_file)
+
+    write_list_to_jsonl(cases_jsonl_path, cases_list)
+
+    upload_to_bucket(BQ_PARAMS, cases_jsonl_path)
 
     jsonl_end = time.time() - jsonl_start
     console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
@@ -1214,6 +1222,7 @@ def get_cases_data():
     """.format(table_id)
 
 
+"""
 def build_case_metadata_jsonl(cases_list):
     print("building case metadata jsonl")
     jsonl_start = time.time()
@@ -1261,12 +1270,16 @@ def build_case_metadata_jsonl(cases_list):
             print("woot!!")
             exit()
 
-    case_meta_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_METADATA_TABLE']) + '.jsonl')
-    write_list_to_jsonl(case_meta_jsonl_fp, cases_list)
-    upload_to_bucket(BQ_PARAMS, case_meta_jsonl_fp)
+    case_metadata_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_METADATA_TABLE'])
+    case_meta_jsonl_path = get_scratch_fp(BQ_PARAMS, case_metadata_jsonl_file)
+
+    write_list_to_jsonl(case_meta_jsonl_path, cases_list)
+
+    upload_to_bucket(BQ_PARAMS, case_meta_jsonl_path)
 
     jsonl_end = time.time() - jsonl_start
     console_out("Case metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
+"""
 
 
 # ***** CLINICAL TABLE CREATION FUNCTIONS
@@ -1387,16 +1400,17 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
 def build_cases_diagnoses_jsonl(studies_list):
     cases_diagnoses = list()
 
-    diagnoses_jsonl_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE']) + '.jsonl')
+    diagnoses_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+    diagnoses_jsonl_path = get_scratch_fp(BQ_PARAMS, diagnoses_jsonl_file)
 
     for study in studies_list:
         offset = 0
         page = 1
-        limit = API_PARAMS['CSA_LIMIT']
+        limit = API_PARAMS['PAGINATED_LIMIT']
 
         pdc_study_id = study['pdc_study_id']
 
-        print("\n for {}:".format(pdc_study_id))
+        print("\nFor {}:".format(pdc_study_id))
 
         diagnoses_res = get_graphql_api_response(API_PARAMS, make_cases_diagnoses_query(pdc_study_id, offset, limit))
 
@@ -1452,11 +1466,11 @@ def main(args):
         json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
         studies = create_studies_dict(json_res)
 
-        filename = get_table_name(BQ_PARAMS['STUDIES_TABLE']) + '.jsonl'
-        studies_fp = get_scratch_fp(BQ_PARAMS, filename)
+        studies_jsonl_file = get_file_name('jsonl', BQ_PARAMS['STUDIES_TABLE'])
+        studies_jsonl_path = get_scratch_fp(BQ_PARAMS, studies_jsonl_file)
 
-        write_list_to_jsonl(studies_fp, studies)
-        upload_to_bucket(BQ_PARAMS, studies_fp)
+        write_list_to_jsonl(studies_jsonl_path, studies)
+        upload_to_bucket(BQ_PARAMS, studies_jsonl_path)
 
         jsonl_end = time.time() - jsonl_start
         console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
@@ -1476,6 +1490,7 @@ def main(args):
 
     studies_list = list()
     excluded_studies_list = list()
+    pdc_study_ids = list()
 
     for study in get_query_results(make_all_studies_query()):
         if is_currently_embargoed(study.get('embargo_date')):
@@ -1483,17 +1498,21 @@ def main(args):
         else:
             studies_list.append(dict(study.items()))
 
-    embargoed_str_list = ["\t- {} ({})".format(study, embargo_date)
+    embargoed_str_list = ["\t- {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    console_out("\nCurrently embargoed (expiration date):\n{}\n", (embargoed_print_str,))
+    console_out("\nCurrently embargoed:\n{}\n", (embargoed_print_str,))
+
+    for study in studies_list:
+        pdc_study_ids.append(study['pdc_study_id'])
 
     if 'build_cases_aliquots_jsonl' in steps:
         jsonl_start = time.time()
 
-        csa_jsonl_fp = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['CASE_ALIQUOT_TABLE']) + '.jsonl')
-        build_cases_aliquots_jsonl(csa_jsonl_fp)
-        upload_to_bucket(BQ_PARAMS, csa_jsonl_fp)
+        cases_aliquots_jsonl_file = get_file_name('jsonl', BQ_PARAMS['CASE_ALIQUOT_TABLE'])
+        cases_aliquots_jsonl_path = get_scratch_fp(BQ_PARAMS, cases_aliquots_jsonl_file)
+        build_cases_aliquots_jsonl(cases_aliquots_jsonl_path)
+        upload_to_bucket(BQ_PARAMS, cases_aliquots_jsonl_path)
 
         jsonl_end = time.time() - jsonl_start
         console_out("Cases Aliquots table jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
@@ -1504,8 +1523,8 @@ def main(args):
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
 
-        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS,
-                                              get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates') + '.tsv')
+        biospecimen_tsv_file = get_file_name('tsv', BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
+        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_file)
         build_biospecimen_tsv(studies_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
 
@@ -1562,49 +1581,39 @@ def main(args):
                                BQ_PARAMS['CASE_METADATA_TABLE'])
 
     if 'build_case_metadata_jsonl' in steps:
-        cases_list = list()
-        cases_rows = get_query_results(get_cases_data())
-
-        for case_row in cases_rows:
-            keys = case_row.keys()
-
-            case_dict = dict()
-
-            for key in keys:
-                case_dict[key] = case_row[key]
-
-            cases_list.append(case_dict)
-
-        build_case_metadata_jsonl(cases_list)
+        pass
 
     if 'build_case_metadata_table' in steps:
         pass
-        # build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASES_TABLE'])
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_cases_diagnoses_jsonl(studies_list)
+        build_jsonl_from_pdc_api("paginatedCaseDiagnosesPerStudy", make_cases_diagnoses_query, pdc_study_ids)
+
+    if 'build_case_demographics_jsonl' in steps:
+        build_jsonl_from_pdc_api("paginatedCaseDemographicsPerStudy", make_cases_demographics_query, pdc_study_ids)
+
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
-            quant_tsv_fp = get_scratch_fp(BQ_PARAMS, filename)
+            quant_tsv_file = get_file_name('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
+            quant_tsv_path = get_scratch_fp(BQ_PARAMS, quant_tsv_file)
 
-            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_fp)
+            lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path)
             console_out("\n{0} lines written for {1}", (lines_written, study_id_dict['study_name']))
 
             if lines_written > 0:
-                upload_to_bucket(BQ_PARAMS, quant_tsv_fp)
-                console_out("{0} uploaded to Google Cloud bucket!", (filename,))
-                os.remove(quant_tsv_fp)
+                upload_to_bucket(BQ_PARAMS, quant_tsv_path)
+                console_out("{0} uploaded to Google Cloud bucket!", (quant_tsv_file,))
+                os.remove(quant_tsv_path)
 
     if 'build_quant_tables' in steps:
         console_out("Building quant tables...")
         blob_files = get_quant_files()
 
         for study_id_dict in studies_list:
-            filename = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id']) + '.tsv'
+            quant_tsv_file = get_file_name('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
 
-            if filename not in blob_files:
+            if quant_tsv_file not in blob_files:
                 console_out('Skipping quant table build for {} (no file found in gs).', (study_id_dict['study_name'],))
             else:
                 build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
@@ -1647,13 +1656,15 @@ def main(args):
 
     if 'build_gene_tsv' in steps:
         gene_symbol_list = build_gene_symbol_list(studies_list)
-        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
+        gene_tsv_file = get_file_name('tsv', BQ_PARAMS['GENE_TABLE'])
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
         build_gene_tsv(gene_symbol_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
-        gene_tsv_path = get_scratch_fp(BQ_PARAMS, get_table_name(BQ_PARAMS['GENE_TABLE']) + '.tsv')
+        gene_tsv_file = get_file_name('tsv', BQ_PARAMS['GENE_TABLE'])
+        gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
         with open(gene_tsv_path, 'r') as tsv_file:
             gene_reader = csv.reader(tsv_file, delimiter='\t')

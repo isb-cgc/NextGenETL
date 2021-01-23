@@ -1361,12 +1361,15 @@ def upload_file_to_bucket(project, bucket, blob_dir, fp):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def upload_to_bucket(bq_params, scratch_fp):
+def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     """Uploads file to a google storage bucket (location specified in yaml config).
 
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
+    :param delete_local: todo
     """
+    if not os.path.exists(scratch_fp):
+        has_fatal_error("Invalid filepath: {}".format(scratch_fp), FileNotFoundError)
 
     try:
         storage_client = storage.Client(project="")
@@ -1379,6 +1382,9 @@ def upload_to_bucket(bq_params, scratch_fp):
         blob.upload_from_filename(scratch_fp)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+    if delete_local and os.path.exists(scratch_fp):
+        os.remove(scratch_fp)
 
 
 def download_from_bucket(bq_params, filename):
