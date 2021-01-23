@@ -67,28 +67,9 @@ def has_quant_table(study_submitter_id):
 
 
 def is_currently_embargoed(embargo_date):
-    """
-    if embargo_date:
-        split_embargo_date = embargo_date.split('-')
-        current_date = time.strftime("%Y-%m-%d", time.localtime())
-        split_current_date = current_date.split('-')
-
-        if split_embargo_date[0] > split_current_date[0]:  # year YYYY
-            return True
-        elif split_embargo_date[0] == split_current_date[0]:
-            if split_embargo_date[1] > split_current_date[1]:  # month MM
-                return True
-            elif split_embargo_date[1] == split_current_date[1]:
-                if split_embargo_date[2] >= split_current_date[2]:  # day DD
-                    return True
-    return False
-    """
-    if not embargo_date:
+    if not embargo_date or embargo_date < date.today():
         return False
-    elif embargo_date < date.today():
-        return False
-    else:
-        return True
+    return True
 
 
 def get_table_name(prefix, suffix=None, include_release=True, release=None):
@@ -130,7 +111,7 @@ def build_table_from_jsonl(endpoint, is_metadata=True):
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata)
 
-    print("Creating {}!".format(table_id))
+    print("Creating {}.".format(table_id))
     schema_filename = infer_schema_file_location_by_table_id(table_id)
 
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
@@ -192,19 +173,19 @@ def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
     """
     joined_record_list = list()
 
-    print("Sending {} API request.".format(endpoint))
+    print("Sending {} API request".format(endpoint))
 
     if ids:
         for idx, id_entry in enumerate(ids):
             combined_request_parameters = request_params + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids) < 100:
-                print("{:5d} current records (added {}).".format(len(joined_record_list), id_entry))
+                print(" - {:6d} current records (added {})".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
-                print("{} records appended.".format(len(joined_record_list)))
+                print(" - {} records appended.".format(len(joined_record_list)))
     else:
         joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
-        print("Collected {} records.".format(len(joined_record_list)))
+        print(" - collected {} records".format(len(joined_record_list)))
 
     if alter_json_function:
         alter_json_function(joined_record_list)
@@ -253,7 +234,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
         if 'Study' not in endpoint:
-            print("Appended page {} of {}.".format(page, total_pages))
+            print("Appended page {} of {}".format(page, total_pages))
 
         if not total_pages:
             has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
