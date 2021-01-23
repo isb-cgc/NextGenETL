@@ -1293,12 +1293,12 @@ def main(args):
     pdc_study_ids = list()
 
     for study in get_query_results(make_all_studies_query()):
-        if is_currently_embargoed(study.get('embargo_date')):
+        if is_currently_embargoed(study['embargo_date']):
             excluded_studies_list.append((study.get('study_name'), study.get('embargo_date')))
         else:
             studies_list.append(dict(study.items()))
 
-    excluded_studies_list.sort(key = lambda x: x[0])
+    excluded_studies_list.sort(key=lambda x: x[0])
 
     embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
