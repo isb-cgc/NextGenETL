@@ -187,13 +187,14 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
 def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
     print(API_PARAMS['ENDPOINT_SETTINGS'][endpoint])
     is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
+    payload_key = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
     def append_api_response_data():
         api_response = get_graphql_api_response(API_PARAMS, graphql_request_body)
 
-        response_body = api_response['data'][endpoint] if is_paginated else api_response['data']
+        response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
 
-        for record in response_body['payload_key']:
+        for record in response_body[payload_key]:
             record_list.append(record)
 
         print("Appended data to dict! New size: {}".format(len(record_list)))
