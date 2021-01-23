@@ -170,7 +170,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     """
     joined_record_list = list()
 
-    print("\nSending api request ({} endpoint)!".format(endpoint))
+    print("Sending API request ({} endpoint)!".format(endpoint))
 
     if ids_list:
         for idx, id_entry in enumerate(ids_list):
@@ -1498,10 +1498,10 @@ def main(args):
         else:
             studies_list.append(dict(study.items()))
 
-    embargoed_str_list = ["\t- {} (expires {})".format(study, embargo_date)
+    embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
                           for study, embargo_date in excluded_studies_list]
     embargoed_print_str = "\n".join(embargoed_str_list)
-    console_out("\nCurrently embargoed:\n{}\n", (embargoed_print_str,))
+    console_out("\nCurrently embargoed, excluded from subsequent table building:\n{}\n", (embargoed_print_str,))
 
     for study in studies_list:
         pdc_study_ids.append(study['pdc_study_id'])
