@@ -171,7 +171,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
     joined_record_list = list()
 
     if ids_list:
-        for id_entry, idx in enumerate(ids_list):
+        for idx, id_entry in enumerate(ids_list):
             if len(ids_list) < 100:
                 print("Appending {} data for {}.".format(endpoint, id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
