@@ -96,7 +96,7 @@ def get_table_name(prefix, suffix=None, include_release=True, release=None):
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
-def get_file_name(file_extension, prefix, suffix=None, include_release=True, release=None):
+def get_filename(file_extension, prefix, suffix=None, include_release=True, release=None):
     filename = get_table_name(prefix, suffix, include_release, release)
     return "{}.{}".format(filename, file_extension)
 
@@ -110,24 +110,37 @@ def get_dev_table_id(table_name, is_metadata=False):
     return get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
 
 
-def build_table_from_jsonl(project, dataset, table_prefix, table_suffix=None):
-    print("Building {} table!".format(table_prefix))
+def infer_schema_file_location_by_table_id(table_id):
+    filepath = "/".join(table_id.split('.'))
+    filepath += ".json"
+    return filepath
 
-    build_start = time.time()
 
-    table_name = get_table_name(table_prefix, table_suffix)
+def build_table_from_jsonl(endpoint, is_metadata=True):
+    table_name = get_table_name(BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    filename = get_filename('jsonl', BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_id = get_dev_table_id(table_name, is_metadata)
+
+    print("Creating {}!".format(table_id))
+    schema_filename = infer_schema_file_location_by_table_id(table_id)
+
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+
+
+"""
+def build_table_from_jsonl(project, dataset, endpoint):
+    output_name = BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+    table_name = get_table_name(output_name)
     table_id = get_table_id(project, dataset, table_name)
-    console_out("Building {0}... ", (table_id,))
+    print("Creating table: {}... ".format(table_id))
 
     schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     jsonl_name = '{}.jsonl'.format(table_name)
-    create_and_load_table(BQ_PARAMS, jsonl_name, schema, table_id)
-
-    build_end = time.time() - build_start
-    console_out("Table built in {0}!\n", (format_seconds(build_end),))
-
+    create_and_load_table(BQ_PARAMS, jsonl_name, table_id, schema)
+"""
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
     build_start = time.time()
@@ -150,7 +163,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
         return
 
     console_out("\nBuilding {0}... ", (table_id,))
-    tsv_name = get_file_name('tsv', table_prefix, table_suffix)
+    tsv_name = get_filename('tsv', table_prefix, table_suffix)
     create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
     build_end = time.time() - build_start
@@ -187,7 +200,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
     if alter_json_function:
         alter_json_function(joined_record_list)
 
-    jsonl_filename = get_file_name('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
     write_list_to_jsonl(local_filepath, joined_record_list)
 
@@ -252,10 +265,14 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     return record_list
 
 
+def create_table_from_jsonl_autodetect():
+    pass
+
 # ***** STUDY TABLE CREATION FUNCTIONS
 
 def make_all_programs_query():
-    return """{allPrograms{
+    return """{
+        allPrograms{
             program_id
             program_submitter_id
             start_date
@@ -273,7 +290,8 @@ def make_all_programs_query():
                     acquisition_type
                 } 
             }
-        }}"""
+        }
+    }"""
 
 
 def make_study_query(pdc_study_id):
@@ -284,67 +302,6 @@ def make_study_query(pdc_study_id):
         embargo_date
     }} }}
     """.format(pdc_study_id)
-
-'''
-def make_study_query(pdc_study_id):
-    return """{{ study 
-    (pdc_study_id: \"{}\") {{ 
-        study_submitter_id 
-        study_name 
-        disease_type 
-        primary_site 
-        analytical_fraction 
-        experiment_type 
-        cases_count 
-        aliquots_count
-        embargo_date 
-    }} }}
-    """.format(pdc_study_id)
-'''
-
-"""
-def create_studies_dict(json_res):
-    studies = []
-
-    for program in json_res['data']['allPrograms']:
-        program_id = program['program_id']
-        program_submitter_id = program['program_submitter_id']
-        program_name = program['name']
-        program_start_date = program['start_date']
-        program_end_date = program['end_date']
-        program_manager = program['program_manager']
-
-        for project in program['projects']:
-            project_id = project['project_id']
-            project_submitter_id = project['project_submitter_id']
-            project_name = project['name']
-
-            for study in project['studies']:
-                study_dict = study.copy()
-                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study_dict['study_id']))
-                study_metadata = json_res['data']['study'][0]
-
-                for k, v in study_metadata.items():
-                    study_dict[k] = v
-
-                study_dict['program_id'] = program_id
-                study_dict['program_submitter_id'] = program_submitter_id
-                study_dict['program_name'] = program_name
-                study_dict['program_start_date'] = program_start_date
-                study_dict['program_end_date'] = program_end_date
-                study_dict['program_manager'] = program_manager
-                study_dict['project_id'] = project_id
-                study_dict['project_submitter_id'] = project_submitter_id
-                study_dict['project_name'] = project_name
-
-                for k, v in study_dict.items():
-                    if not v:
-                        study_dict[k] = None
-
-                studies.append(study_dict)
-
-    return studies
-"""
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -362,12 +319,10 @@ def alter_all_programs_json(all_programs_json_obj):
                 # ** unpacks each dictionary's items without altering program and project
                 study_obj = {**program, **project, **study, **study_metadata}
 
-                """
-                # todo why?
+                # normalize empty strings (turn into null)
                 for k, v in study_obj.items():
                     if not v:
                         study_obj[k] = None
-                """
 
                 temp_programs_json_obj_list.append(study_obj)
 
@@ -1140,7 +1095,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
             if count % 50 == 0:
                 print("{} of {} files retrieved".format(count, file_ids.total_rows))
 
-    file_metadata_jsonl_file = get_file_name('jsonl', BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+    file_metadata_jsonl_file = get_filename('jsonl', BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
     file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, file_metadata_jsonl_file)
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
@@ -1317,25 +1272,6 @@ def main(args):
                                  request_function=make_all_programs_query,
                                  alter_json_function=alter_all_programs_json)
 
-        """
-        console_out("\nbuild_studies_jsonl started")
-        jsonl_start = time.time()
-
-        json_res = get_graphql_api_response(API_PARAMS, make_all_programs_query())
-        studies = create_studies_dict(json_res)
-
-        studies_jsonl_file = get_file_name('jsonl', BQ_PARAMS['STUDIES_TABLE'])
-        studies_jsonl_path = get_scratch_fp(BQ_PARAMS, studies_jsonl_file)
-
-        write_list_to_jsonl(studies_jsonl_path, studies)
-        upload_to_bucket(BQ_PARAMS, studies_jsonl_path)
-
-        jsonl_end = time.time() - jsonl_start
-        console_out("\t\t- done, created in {0}!", (format_seconds(jsonl_end),))
-
-        delete_from_steps('build_studies_jsonl', steps)
-        """
-
     if 'build_studies_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['STUDIES_TABLE'])
 
@@ -1371,7 +1307,7 @@ def main(args):
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
 
-        biospecimen_tsv_file = get_file_name('tsv', BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
+        biospecimen_tsv_file = get_filename('tsv', BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
         biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_file)
         build_biospecimen_tsv(studies_list, biospecimen_tsv_path)
         upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
@@ -1400,16 +1336,14 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILES_PER_STUDY_TABLE'])
 
     if 'build_file_pdc_metadata_jsonl' in steps:
         file_ids = get_file_ids()
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_file_pdc_metadata_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
 
     if 'build_file_associated_entries_table' in steps:
         # Note, this currently only works for aliquots, because there were no entries in the API pull that had entries
@@ -1429,8 +1363,7 @@ def main(args):
                                  request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['CASE_METADATA_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['CASE_METADATA_TABLE'])
 
     if 'build_cases_aliquots_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
@@ -1457,7 +1390,7 @@ def main(args):
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
-            quant_tsv_file = get_file_name('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
+            quant_tsv_file = get_filename('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, quant_tsv_file)
 
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path)
@@ -1473,7 +1406,7 @@ def main(args):
         blob_files = get_quant_files()
 
         for study_id_dict in studies_list:
-            quant_tsv_file = get_file_name('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
+            quant_tsv_file = get_filename('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
 
             if quant_tsv_file not in blob_files:
                 console_out('Skipping quant table build for {} (no file found in gs).', (study_id_dict['study_name'],))
@@ -1518,14 +1451,14 @@ def main(args):
 
     if 'build_gene_tsv' in steps:
         gene_symbol_list = build_gene_symbol_list(studies_list)
-        gene_tsv_file = get_file_name('tsv', BQ_PARAMS['GENE_TABLE'])
+        gene_tsv_file = get_filename('tsv', BQ_PARAMS['GENE_TABLE'])
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
         build_gene_tsv(gene_symbol_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
         upload_to_bucket(BQ_PARAMS, gene_tsv_path)
 
     if 'build_gene_table' in steps:
-        gene_tsv_file = get_file_name('tsv', BQ_PARAMS['GENE_TABLE'])
+        gene_tsv_file = get_filename('tsv', BQ_PARAMS['GENE_TABLE'])
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
         with open(gene_tsv_path, 'r') as tsv_file:

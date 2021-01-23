@@ -965,7 +965,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
         console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
 
 
-def create_and_load_table(bq_params, jsonl_file, schema, table_id):
+def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -975,7 +975,13 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
-    job_config.schema = schema
+
+    if schema:
+        job_config.schema = schema
+    else:
+        print("No schema supplied for table_id, using schema autodetect.")
+        job_config.autodetect = True
+
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
@@ -1146,6 +1152,7 @@ def await_job(bq_params, client, bq_job):
         has_fatal_error("While running BQ job: {}\n{}".format(err_res, errs))
 
 
+# todo not using one of the return vars
 def from_schema_file_to_obj(bq_params, filename):
     """
     Open table schema file and convert to python dict, in order to pass the data to
@@ -1168,18 +1175,15 @@ def from_schema_file_to_obj(bq_params, filename):
         return None, None
 
     with open(fp, 'r') as schema_file:
-        try:
-            schema_file = json.load(schema_file)
+        schema_file = json.load(schema_file)
 
-            schema = schema_file['schema']['fields']
+        schema = schema_file['schema']['fields']
 
-            table_metadata = {
-                'description': schema_file['description'],
-                'friendlyName': schema_file['friendlyName'],
-                'labels': schema_file['labels']
-            }
-        except FileNotFoundError:
-            return None, None
+        table_metadata = {
+            'description': schema_file['description'],
+            'friendlyName': schema_file['friendlyName'],
+            'labels': schema_file['labels']
+        }
 
         return schema, table_metadata
 

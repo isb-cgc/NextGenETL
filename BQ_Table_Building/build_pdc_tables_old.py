@@ -261,7 +261,7 @@ def main(args):
 
         schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
-        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
+        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], table_id, schema)
         update_table_metadata(table_id, table_metadata)
 
         studies_end = time.time() - studies_start
@@ -293,7 +293,7 @@ def main(args):
 
         schema, table_metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
-        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], schema, table_id)
+        create_and_load_table(BQ_PARAMS, BQ_PARAMS['STUDIES_JSONL'], table_id, schema)
         update_table_metadata(table_id, table_metadata)
 
         files_end = time.time() - files_start

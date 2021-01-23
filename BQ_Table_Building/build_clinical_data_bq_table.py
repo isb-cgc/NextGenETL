@@ -265,7 +265,7 @@ def main(args):
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_output_file, schema, table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
 
     end = time.time() - start
     console_out("Script executed in {0:.0f} seconds\n", (end,))
