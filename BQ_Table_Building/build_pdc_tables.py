@@ -117,8 +117,8 @@ def infer_schema_file_location_by_table_id(table_id):
 
 
 def build_table_from_jsonl(endpoint, is_metadata=True):
-    table_name = get_table_name(BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    filename = get_filename('jsonl', BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata)
 
     print("Creating {}!".format(table_id))
