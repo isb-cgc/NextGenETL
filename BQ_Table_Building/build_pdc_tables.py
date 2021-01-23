@@ -177,7 +177,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, ids_list=None, request_
             combined_request_parameters = request_parameters + (id_entry,)
             joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
             if len(ids_list) < 100:
-                print("Appended data for {}. Total record count: {}.".format(id_entry, len(joined_record_list)))
+                print("Appended data for {}. Total record count: {}".format(id_entry, len(joined_record_list)))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print("{} records appended.".format(len(joined_record_list)))
     else:
@@ -1505,6 +1505,8 @@ def main(args):
 
     for study in studies_list:
         pdc_study_ids.append(study['pdc_study_id'])
+
+    pdc_study_ids.sort()
 
     if 'build_cases_aliquots_jsonl' in steps:
         jsonl_start = time.time()
