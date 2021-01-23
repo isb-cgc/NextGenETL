@@ -208,8 +208,12 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     record_list = list()
 
     if not is_paginated:
-        # * operator unpacks tuple for use as positional function args
-        graphql_request_body = request_body_function(*request_parameters)
+        if request_parameters:
+            # * operator unpacks tuple for use as positional function args
+            graphql_request_body = request_body_function(*request_parameters)
+        else:
+            graphql_request_body = request_body_function()
+
         total_pages = append_api_response_data()
 
         # should be None, if value is returned then endpoint is actually paginated
@@ -1185,6 +1189,7 @@ def make_cases_query():
     }}"""
 
 
+"""
 def build_cases_jsonl():
     jsonl_start = time.time()
 
@@ -1209,7 +1214,7 @@ def build_cases_jsonl():
 
     jsonl_end = time.time() - jsonl_start
     console_out("Cases jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
-
+"""
 
 def get_cases_data():
     cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
