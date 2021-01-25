@@ -1238,7 +1238,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    filename = get_filename('jsonl', "test")
+    filename = get_filename('jsonl', "test", include_release=False)
     local_filepath = get_scratch_fp(BQ_PARAMS, filename)
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
