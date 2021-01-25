@@ -106,31 +106,21 @@ def infer_schema_file_location_by_table_id(table_id):
     return filepath
 
 
-def build_table_from_jsonl(endpoint, is_metadata=True):
+def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata)
 
-    print("Creating {}.".format(table_id))
+    print("Creating {}:".format(table_id))
     schema_filename = infer_schema_file_location_by_table_id(table_id)
 
     schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    if not infer_schema and not schema:
+        has_fatal_error("No schema found and infer_schema set to False, exiting")
+
     create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
-
-"""
-def build_table_from_jsonl(project, dataset, endpoint):
-    output_name = BQ_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
-    table_name = get_table_name(output_name)
-    table_id = get_table_id(project, dataset, table_name)
-    print("Creating table: {}... ".format(table_id))
-
-    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-    jsonl_name = '{}.jsonl'.format(table_name)
-    create_and_load_table(BQ_PARAMS, jsonl_name, table_id, schema)
-"""
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
     build_start = time.time()
@@ -173,7 +163,7 @@ def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
     """
     joined_record_list = list()
 
-    print("Sending {} API request".format(endpoint))
+    print("Sending {} API request: ".format(endpoint))
 
     if ids:
         for idx, id_entry in enumerate(ids):
@@ -234,7 +224,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
         if 'Study' not in endpoint:
-            print("Appended page {} of {}".format(page, total_pages))
+            print(" - Appended page {} of {}".format(page, total_pages))
 
         if not total_pages:
             has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
@@ -247,7 +237,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data()
             if 'Study' not in endpoint:
-                print("Appended page {} of {}.".format(page, total_pages))
+                print(" - Appended page {} of {}".format(page, total_pages))
 
             if new_total_pages != total_pages:
                 has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
@@ -1247,6 +1237,14 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
+
+    table_name = get_table_name(prefix="test", include_release=False)
+    filename = get_filename('jsonl', "test")
+    table_id = get_dev_table_id(table_name, is_metadata=True)
+
+    create_and_load_table(BQ_PARAMS, filename, table_id)
+
+    exit()
 
     if 'delete_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
