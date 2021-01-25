@@ -1240,7 +1240,7 @@ def main(args):
 
     filename = get_filename('jsonl', "test", include_release=False)
     local_filepath = get_scratch_fp(BQ_PARAMS, filename)
-    upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
+    upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=False)
 
     table_name = get_table_name(prefix="test", include_release=False)
     table_id = get_dev_table_id(table_name, is_metadata=True)
