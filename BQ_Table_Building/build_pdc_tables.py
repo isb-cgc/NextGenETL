@@ -1238,10 +1238,12 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    table_name = get_table_name(prefix="test", include_release=False)
     filename = get_filename('jsonl', "test")
-    table_id = get_dev_table_id(table_name, is_metadata=True)
+    local_filepath = get_scratch_fp(BQ_PARAMS, filename)
+    upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
+    table_name = get_table_name(prefix="test", include_release=False)
+    table_id = get_dev_table_id(table_name, is_metadata=True)
     create_and_load_table(BQ_PARAMS, filename, table_id)
 
     exit()
