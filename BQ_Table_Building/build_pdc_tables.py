@@ -1111,12 +1111,10 @@ def make_cases_query():
 
 def alter_cases_json(case_json_obj_list):
     for case in case_json_obj_list:
-
         external_references = case.pop("externalReferences")
 
         if len(external_references) > 1:
-            continue
-            # has_fatal_error("Cannot unnest external_references for case json obj, exiting.")
+            has_fatal_error("Cannot unnest external_references for case json obj, exiting.")
         elif len(external_references) == 1:
             if external_references[0]['reference_resource_shortname'] != "GDC":
                 print(external_references[0]['reference_resource_shortname'])
@@ -1129,8 +1127,6 @@ def alter_cases_json(case_json_obj_list):
                 "reference_entity_location": None
             }
             case.update(ref_dict)
-
-    exit()
 
 
 def get_cases_data():
@@ -1266,8 +1262,6 @@ def alter_case_demographics_json(json_obj_list):
         if len(demographics) > 1:
             has_fatal_error("Cannot unnest case demographics because multiple records exist.")
         elif len(demographics) == 1:
-            if demographics[0]['reference_resource_shortname'] != "GDC":
-                print(demographics[0]['reference_resource_shortname'])
             case.update(demographics[0])
         else:
             ref_dict = {
