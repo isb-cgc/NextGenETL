@@ -1128,6 +1128,8 @@ def alter_cases_json(case_json_obj_list):
             }
             case.update(ref_dict)
 
+        ex
+
 
 def get_cases_data():
     cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
