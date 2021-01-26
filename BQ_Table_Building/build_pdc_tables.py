@@ -1115,12 +1115,11 @@ def alter_cases_json(case_json_obj_list):
         external_references = case.pop("externalReferences")
 
         if len(external_references) > 1:
-            for ref in external_references:
-                print(ref['reference_resource_shortname'], end=" ")
-            print()
-            # print(external_references)
+            continue
             # has_fatal_error("Cannot unnest external_references for case json obj, exiting.")
         elif len(external_references) == 1:
+            if external_references[0]['reference_resource_shortname'] != "GDC":
+                print(external_references[0]['reference_resource_shortname'])
             case.update(external_references[0])
         else:
             ref_dict = {
