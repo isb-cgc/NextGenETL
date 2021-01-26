@@ -1128,7 +1128,7 @@ def alter_cases_json(case_json_obj_list):
             }
             case.update(ref_dict)
 
-        exit()
+    exit()
 
 
 def get_cases_data():
