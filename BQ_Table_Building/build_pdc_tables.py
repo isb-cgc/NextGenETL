@@ -1111,12 +1111,21 @@ def make_cases_query():
 
 def alter_cases_json(case_json_obj_list):
     for case in case_json_obj_list:
+
         external_references = case.pop("externalReferences")
 
         if len(external_references) > 1:
             has_fatal_error("Cannot unnest external_references for case json obj, exiting.")
-
-        case.update(external_references[0])
+        elif len(external_references) == 1:
+            case.update(external_references[0])
+        else:
+            ref_dict = {
+                "external_reference_id": None,
+                "reference_resource_shortname": None,
+                "reference_resource_name": None,
+                "reference_entity_location": None
+            }
+            case.update(ref_dict)
 
 
 def get_cases_data():
