@@ -1112,7 +1112,10 @@ def make_cases_query():
 def alter_cases_json(case_json_obj_list):
     for case in case_json_obj_list:
         external_references = case.pop("externalReferences")
-        case.update(external_references)
+
+        print(external_references)
+
+        # case.update(external_references)
 
 
 def get_cases_data():
