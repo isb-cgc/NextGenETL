@@ -36,15 +36,21 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 # ***** FUNCTIONS USED BY MULTIPLE PROCESSES
 
-def make_all_studies_query():
-    # todo cleanup var
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['allPrograms']['output_name'])
+def retrieve_all_studies_query(output_name):
+    table_name = get_table_name(output_name)
     table_id = get_dev_table_id(table_name, is_metadata=True)
 
     return """
     SELECT pdc_study_id, study_name, embargo_date, analytical_fraction
     FROM  `{}`
     """.format(table_id)
+
+
+def print_embargoed_studies(excluded_studies_list):
+    print("\nStudies excluded due to data embargo:")
+
+    for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
+        print(" - {} (expires {})".format(study['study_name'], study['embargo_date']))
 
 
 def has_table(project, dataset, table_name):
@@ -106,61 +112,18 @@ def infer_schema_file_location_by_table_id(table_id):
     return filepath
 
 
-def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(table_name, is_metadata)
-
-    print("Creating {}:".format(table_id))
-    schema_filename = infer_schema_file_location_by_table_id(table_id)
-
-    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-    if not infer_schema and not schema:
-        has_fatal_error("No schema found and infer_schema set to False, exiting")
-
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
-
-
-def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
-    build_start = time.time()
-
-    table_name = get_table_name(table_prefix, table_suffix)
-    table_id = get_table_id(project, dataset, table_name)
-    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-    if not schema and not metadata and backup_table_suffix:
-        console_out("No schema file found for {}, trying backup ({})", (table_suffix, backup_table_suffix))
-        table_name = get_table_name(table_prefix, backup_table_suffix)
-        table_id = get_table_id(project, dataset, table_name)
-        schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
-
-    # still no schema? return
-    if not schema:
-        console_out("No schema file found for {}, skipping table.", (table_id,))
-        return
-
-    console_out("\nBuilding {0}... ", (table_id,))
-    tsv_name = get_filename('tsv', table_prefix, table_suffix)
-    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
-
-    build_end = time.time() - build_start
-    console_out("Table built in {0}!\n", (format_seconds(build_end),))
-
-
 def delete_from_steps(step, steps):
     delete_idx = steps.index(step)
     steps.pop(delete_idx)
 
 
+def print_elapsed_time_and_exit(start_time):
+    end = time.time() - start_time
+    console_out("Finished program execution in {}!\n", (format_seconds(end),))
+    exit()
+
+
 def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None, ids=None):
-    """
-    usage:
-    build_jsonl_from_pdc_api("endpoint_name", request_function(), ids_list)
-    build_jsonl_from_pdc_api("endpoint_name", request_function())
-    """
     joined_record_list = list()
 
     print("Sending {} API request: ".format(endpoint))
@@ -243,6 +206,50 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
                 has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
 
     return record_list
+
+
+def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_id = get_dev_table_id(table_name, is_metadata)
+
+    print("Creating {}:".format(table_id))
+    schema_filename = infer_schema_file_location_by_table_id(table_id)
+
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    if not infer_schema and not schema:
+        has_fatal_error("No schema found and infer_schema set to False, exiting")
+
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+
+
+def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
+    build_start = time.time()
+
+    table_name = get_table_name(table_prefix, table_suffix)
+    table_id = get_table_id(project, dataset, table_name)
+    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    if not schema and not metadata and backup_table_suffix:
+        console_out("No schema file found for {}, trying backup ({})", (table_suffix, backup_table_suffix))
+        table_name = get_table_name(table_prefix, backup_table_suffix)
+        table_id = get_table_id(project, dataset, table_name)
+        schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
+        schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    # still no schema? return
+    if not schema:
+        console_out("No schema file found for {}, skipping table.", (table_id,))
+        return
+
+    console_out("\nBuilding {0}... ", (table_id,))
+    tsv_name = get_filename('tsv', table_prefix, table_suffix)
+    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
+
+    build_end = time.time() - build_start
+    console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
 # ***** STUDY TABLE CREATION FUNCTIONS
@@ -1102,6 +1109,12 @@ def make_cases_query():
     }"""
 
 
+def alter_cases_json(case_json_obj_list):
+    for case in case_json_obj_list:
+        external_references = case.pop("externalReferences")
+        case.update(external_references)
+
+
 def get_cases_data():
     cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
     table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], cases_table)
@@ -1110,6 +1123,8 @@ def get_cases_data():
         SELECT * 
         FROM `{}`
     """.format(table_id)
+
+
 
 
 # ***** CLINICAL TABLE CREATION FUNCTIONS
@@ -1228,8 +1243,9 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
 
 
 def main(args):
-    start = time.time()
+    start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+
     steps = None
 
     try:
@@ -1238,60 +1254,43 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    filename = get_filename('jsonl', "test", include_release=False)
-    local_filepath = get_scratch_fp(BQ_PARAMS, filename)
-    upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=False)
-
-    table_name = get_table_name(prefix="test", include_release=False)
-    table_id = get_dev_table_id(table_name, is_metadata=True)
-    create_and_load_table(BQ_PARAMS, filename, table_id)
-
-    exit()
-
     if 'delete_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
             delete_bq_table(table_id)
             console_out("Deleted table: {}", (table_id,))
 
-        delete_from_steps('delete_tables', steps)
+        delete_from_steps('delete_tables', steps)  # allows for exit without building study lists if not used
 
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint='allPrograms',
                                  request_function=make_all_programs_query,
                                  alter_json_function=alter_all_programs_json)
 
+        delete_from_steps('build_studies_jsonl', steps)  # allows for exit without building study lists if not used
+
     if 'build_studies_table' in steps:
         build_table_from_jsonl(endpoint='allPrograms')
 
-        # todo why?
-        delete_from_steps('build_studies_table', steps)
+        delete_from_steps('build_studies_table', steps)  # allows for exit without building study lists if not used
 
-    # Don't bother building the study list if we aren't running further steps, exit
-    if len(steps) == 0:
-        end = time.time() - start
-        console_out("Finished program execution in {}!\n", (format_seconds(end),))
-        exit()
+    # build embargoed and open studies lists (only if subsequent steps exist)
+    if len(steps) > 0:
+        studies_list = list()
+        embargoed_studies_list = list()
+        pdc_study_ids = list()
 
-    studies_list = list()
-    excluded_studies_list = list()
-    pdc_study_ids = list()
+        studies_output_name = API_PARAMS['ENDPOINT_SETTINGS']['allPrograms']['output_name']
 
-    for study in get_query_results(make_all_studies_query()):
-        if is_currently_embargoed(study['embargo_date']):
-            excluded_studies_list.append((study.get('study_name'), study.get('embargo_date')))
-        else:
-            studies_list.append(dict(study.items()))
+        for study in get_query_results(retrieve_all_studies_query(studies_output_name)):
+            if is_currently_embargoed(study['embargo_date']):
+                embargoed_studies_list.append(dict(study.items()))
+            else:
+                studies_list.append(dict(study.items()))
 
-    excluded_studies_list.sort(key=lambda x: x[0])
+        print_embargoed_studies(embargoed_studies_list)
 
-    embargoed_str_list = ["  - {} (expires {})".format(study, embargo_date)
-                          for study, embargo_date in excluded_studies_list]
-    embargoed_print_str = "\n".join(embargoed_str_list)
-    print("\nStudies excluded due to data embargo:\n{}\n".format(embargoed_print_str))
-
-    for study in studies_list:
-        pdc_study_ids.append(study['pdc_study_id'])
-    pdc_study_ids.sort()
+        for study in sorted(studies_list, key=lambda item: item['pdc_study_id']):
+            pdc_study_ids.append(study['pdc_study_id'])
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
@@ -1325,19 +1324,22 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
+                               BQ_PARAMS['DEV_META_DATASET'],
+                               BQ_PARAMS['FILES_PER_STUDY_TABLE'])
 
     if 'build_file_pdc_metadata_jsonl' in steps:
         file_ids = get_file_ids()
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_file_pdc_metadata_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
+                               BQ_PARAMS['DEV_META_DATASET'],
+                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
 
     if 'build_file_associated_entries_table' in steps:
-        # Note, this currently only works for aliquots, because there were no entries in the API pull that had entries
-        # in the aliquots list, but that didn't have an aliquot_id. If this ever changes, we'll need to adjust,
-        # but based on the way I've seen their api work I don't expect that to happen.
+        # Note, this assumes aliquot id will exist, because that's true. This will either be null,
+        # or it'll have an aliquot id. If this ever changes, we'll need to adjust, but not expected that it will.
         table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
         full_table_id = get_dev_table_id(table_name, is_metadata=True)
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
@@ -1349,7 +1351,8 @@ def main(args):
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
-                                 request_function=make_cases_query)
+                                 request_function=make_cases_query,
+                                 alter_json_function=alter_cases_json)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl("allCases")
@@ -1546,8 +1549,7 @@ def main(args):
 
                 # todo -- next round -- how to change past version to archived, since it isn't version# - 1
 
-    end = time.time() - start
-    console_out("Finished program execution in {}!\n", (format_seconds(end),))
+    print_elapsed_time_and_exit(start_time)
 
 
 if __name__ == '__main__':
