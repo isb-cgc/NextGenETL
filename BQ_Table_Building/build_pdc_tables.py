@@ -1417,7 +1417,7 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_case_demographics_table' in steps:
-        build_table_from_jsonl('paginatedCaseDemographicsPerStudy')
+        build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
