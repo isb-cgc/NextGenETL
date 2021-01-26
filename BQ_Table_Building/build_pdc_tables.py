@@ -1143,8 +1143,6 @@ def get_cases_data():
     """.format(table_id)
 
 
-
-
 # ***** CLINICAL TABLE CREATION FUNCTIONS
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     return ''' {{ 
@@ -1258,6 +1256,34 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
         }} 
     }} }}
     """.format(pdc_study_id, offset, limit)
+
+
+def alter_case_demographics_json(json_obj_list):
+    for case in json_obj_list:
+
+        demographics = case.pop("demographics")
+
+        if len(demographics) > 1:
+            has_fatal_error("Cannot unnest case demographics because multiple records exist.")
+        elif len(demographics) == 1:
+            if demographics[0]['reference_resource_shortname'] != "GDC":
+                print(demographics[0]['reference_resource_shortname'])
+            case.update(demographics[0])
+        else:
+            ref_dict = {
+                "demographic_id": None,
+                "ethnicity": None,
+                "gender": None,
+                "demographic_submitter_id": None,
+                "race": None,
+                "cause_of_death": None,
+                "days_to_birth": None,
+                "days_to_death": None,
+                "vital_status": None,
+                "year_of_birth": None,
+                "year_of_death": None
+            }
+            case.update(ref_dict)
 
 
 def main(args):
@@ -1393,6 +1419,7 @@ def main(args):
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
                                  request_function=make_cases_demographics_query,
+                                 alter_json_function=alter_case_demographics_json,
                                  ids=pdc_study_ids)
 
     if 'build_case_demographics_table' in steps:
