@@ -1511,6 +1511,7 @@ def main(args):
                 if case_id_key_tuple not in diagnosis_records_by_case_id:
                     if case_id_key_tuple not in demographic_records_by_case_id:
                         cases_with_no_clinical_data.append(case_id_key_tuple)
+                        continue
 
                 if case_id_key_tuple in diagnosis_records_by_case_id:
                     diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
@@ -1544,30 +1545,15 @@ def main(args):
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             for case in project_dict['cases']:
-
-                print(case)
-                print()
-
-                demographics = case.pop('demographics') if 'demographics' in case else None
                 diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
-                case_fields = case
+                clinical_records.update(case)
                 case.clear()
 
-                if not demographics and not diagnoses:
-                    continue
-
-                clinical_records.update(case_fields)
-
-                if demographics:
-                    clinical_records.update(demographics)
-
-                if max_diagnosis_count == 0:
-                    continue
                 if max_diagnosis_count == 1:
                     clinical_records.update(diagnoses[0])
-                else:
-                    clinical_diagnoses_records['case_id'] = case_fields['case_id']
-                    clinical_diagnoses_records['case_submitter_id'] = case_fields['case_submitter_id']
+                elif max_diagnosis_count > 1:
+                    clinical_diagnoses_records['case_id'] = clinical_records['case_id']
+                    clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records.update(diagnoses)
 
             clinical_filename = "_".join(project_name.split(" "))
