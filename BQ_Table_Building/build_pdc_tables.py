@@ -1558,17 +1558,13 @@ def main(args):
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records['diagnoses'] = diagnoses
 
-            # clinical_filename = "_".join(project_name.split(" "))
-            clinical_filename += project_name + "_clinical"
-            clinical_jsonl_filename = get_filename('jsonl', clinical_filename)
+            clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
             local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
             write_list_to_jsonl(local_clinical_filepath, clinical_records)
             upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
             if len(clinical_diagnoses_records) > 0:
-                clinical_diagnoses_filename = "_".join(project_name.split(" "))
-                clinical_diagnoses_filename += "_clinical_diagnoses"
-                clinical_diagnoses_jsonl_filename = get_filename('jsonl', clinical_filename)
+                clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
                 write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
                 upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
