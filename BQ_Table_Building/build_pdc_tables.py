@@ -119,8 +119,6 @@ def print_elapsed_time_and_exit(start_time):
 
 def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
                              alter_json_function=None, ids=None, insert_id=False):
-    joined_record_list = list()
-
     print("Sending {} API request: ".format(endpoint))
 
     if ids:
@@ -1531,17 +1529,49 @@ def main(args):
         # todo remove when fixed by PDC
         cases_by_project_submitter['Academia Sinica LUAD-100'] = cases_by_project_submitter.pop('LUAD-100')
 
+        print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
+
         for project_name, project_dict in cases_by_project_submitter.items():
             record_count = len(project_dict['cases'])
             max_diagnosis_count = project_dict['max_diagnosis_count']
 
-            print("{}: {} records, {} max diagnoses\n".format(project_name, record_count, max_diagnosis_count))
+            print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
 
-        print("{} cases with no clinical data\n".format(len(cases_with_no_clinical_data)))
+            clinical = dict()
+            clinical_diagnoses = dict()
 
-        # iterate over now-populated project dicts
-        # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
-        # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
+            # iterate over now-populated project dicts
+            # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
+            # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
+            for case in project_dict['cases']:
+                demographics = case.pop(demographics)
+                diagnoses = case.pop(diagnoses)
+                case_fields = case
+                case.clear()
+
+                clinical.update(case_fields)
+                clinical.update(demographics)
+                if max_diagnosis_count == 1:
+                    clinical.update(diagnoses)
+                else:
+                    clinical_diagnoses['case_id'] = case_fields['case_id']
+                    clinical_diagnoses['case_submitter_id'] = case_fields['case_submitter_id']
+                    clinical_diagnoses.update(diagnoses)
+
+            clinical_filename = "_".join(project_name.split(" "))
+            clinical_filename += "_clinical"
+            clinical_jsonl_filename = get_filename('jsonl', clinical_filename)
+            local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
+            write_list_to_jsonl(local_clinical_filepath, joined_record_list)
+            upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
+
+            if len(clinical_diagnoses) > 0:
+                clinical_diagnoses_filename = "_".join(project_name.split(" "))
+                clinical_diagnoses_filename += "_clinical_diagnoses"
+                clinical_diagnoses_jsonl_filename = get_filename('jsonl', clinical_filename)
+                local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
+                write_list_to_jsonl(local_clinical_diagnoses_filepath, joined_record_list)
+                upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
