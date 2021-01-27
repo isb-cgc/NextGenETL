@@ -112,44 +112,47 @@ def create_view_sql(new_table):
     FROM `{}`
     '''.format(new_table)
 
-'''
-----------------------------------------------------------------------------------------------
-Update view shcema
-'''
+#'''
+#----------------------------------------------------------------------------------------------
+#Update view schema
+#'''
 
-def update_view_schema(source_client, view, new_table):
-    table_obj = source_client.get_table(new_table)
-    row_count = table_obj.rum_rows
-
+#def update_view_schema(view, new_table):
+    # new_project, new_dataset, new_table = new_table.split('.')
+    # # Construct a BigQuery client object.
+    # client = bigquery.Client(new_project)
+    # table_obj = client.get_table(new_table)
+    # row_count = table_obj.rum_rows
     #
-    # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+    # #
+    # # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+    # #
     #
-
-    targ_schema= []
-    for schema_field in table_obj.schema:
-        name = schema_field.name
-        field_type = schema_field.field_type
-        mode = schema_field.mode
-        description = schema_field.description
-        fields = tuple(schema_field.fields)
-        targ_schema.append(bigquery.SchemaFiled(name, field_type, mode, description, fields))
-
-    # Create a reference to the view we are updating
-    targ_table = bigquery.Table(view, schema=targ_schema)
-
-    # Update the table description from the new table
-    targ_table.description = table_obj.description
-
-    # Copy the labels from the original
-    targ_table.labels = table_obj.labels.copy()
-
-    # Update view tag to deprecated
-    view_project, view_dataset, view_table = view.split('.')
-    update_status_tag(view_dataset, view_table, 'deprecated')
-
-    
-
-    return
+    # targ_schema= []
+    # for schema_field in table_obj.schema:
+    #     name = schema_field.name
+    #     field_type = schema_field.field_type
+    #     mode = schema_field.mode
+    #     description = schema_field.description
+    #     fields = tuple(schema_field.fields)
+    #     targ_schema.append(bigquery.SchemaFiled(name, field_type, mode, description, fields))
+    #
+    # # Create a reference to the view we are updating
+    # targ_table = bigquery.Table(view, schema=targ_schema)
+    #
+    # # Update the table description from the new table
+    # targ_table.description = table_obj.description
+    #
+    # # Copy the labels from the original
+    # targ_table.labels = table_obj.labels.copy()
+    #
+    # # Update view tag to deprecated
+    # view_project, view_dataset, view_table = view.split('.')
+    # update_status_tag(view_dataset, view_table, 'deprecated')
+    #
+    # # Add a label for the row numbers
+    #
+    # return
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -231,11 +234,71 @@ def main(args):
             print('create view failed')
             return
 
-    if 'update_view_schema' in steps:
-        print('update view schema')
+    # if 'update_view_schema' in steps:
+    #     print('update view schema')
+    #
+    #     succcess = update_view_schema(table_old, table_new)
+    #
+    #     if not success:
+    #         print('update view schema failed')
+    #         return
 
-        succcess = update_view_schema(table_old, table_new)
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
 
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    if 'process_git_schemas' in steps:
+        print('process_git_schemas: {}'.format(table_old))
+        # Where do we dump the schema git repository?
+        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_old)
+        # Write out the details
+        success = generate_table_detail_files(schema_file, full_file_prefix)
+        if not success:
+            print("process_git_schemas failed")
+            return
+    #
+    # Update the per-field descriptions:
+    #
+
+    if 'update_field_descriptions' in steps:
+        print('update_field_descriptions: {}'.format(table_old))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_old)
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        schema_dict = {}
+        with open(schema_dict_loc, mode='r') as schema_hold_dict:
+            full_schema_list = json_loads(schema_hold_dict.read())
+        for entry in full_schema_list:
+            schema_dict[entry['name']] = {'description': entry['description']}
+        print(table_old)
+        set_and_table = table_old.split('.', maxsplit=1)
+        success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['TARGET_PROJECT'])
+        if not success:
+            print("update_field_descriptions failed")
+            return
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'update_table_description' in steps:
+        print('update_table_description: {}'.format(table_old))
+        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_old)
+        set_and_table = table_old.split('.', maxsplit=1)
+        success = install_labels_and_desc(set_and_table[0], set_and_table[1], full_file_prefix, project=params['TARGET_PROJECT'])
+        if not success:
+            print("update_table_description failed")
+            return
 
     if 'removed_temp_table' in steps:
         print('removed temp table')
