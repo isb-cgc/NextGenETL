@@ -1503,7 +1503,7 @@ def main(args):
         # retrieve case demographic and diagnoses for case, pop, add to case record
         # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
 
-        embargoed_case_list = list()
+        cases_with_no_clinical_data = list()
 
         for project_name, project_dict in cases_by_project_submitter.items():
             print(project_name)
@@ -1514,7 +1514,7 @@ def main(args):
 
                 if case_id_key_tuple not in diagnosis_records_by_case_id:
                     if case_id_key_tuple not in demographic_records_by_case_id:
-                        embargoed_case_list.append(case_id_key_tuple)
+                        cases_with_no_clinical_data.append(case_id_key_tuple)
 
                 if case_id_key_tuple in diagnosis_records_by_case_id:
                     diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
@@ -1533,7 +1533,11 @@ def main(args):
         # todo remove when fixed by PDC
         cases_by_project_submitter['Academia Sinica LUAD-100'] = cases_by_project_submitter.pop('LUAD-100')
 
-        print(embargoed_case_list)
+        for project_name, project_dict in cases_by_project_submitter.items():
+            record_count = len(project_dict['cases'])
+            max_diagnosis_count = project_dict['max_diagnosis_count']
+
+            print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
 
         # iterate over now-populated project dicts
         # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
