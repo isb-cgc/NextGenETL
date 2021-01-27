@@ -1537,40 +1537,40 @@ def main(args):
 
             print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
 
-            clinical = dict()
-            clinical_diagnoses = dict()
+            clinical_records = dict()
+            clinical_diagnoses_records = dict()
 
             # iterate over now-populated project dicts
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             for case in project_dict['cases']:
-                demographics = case.pop(demographics)
-                diagnoses = case.pop(diagnoses)
+                demographics = case.pop('demographics')
+                diagnoses = case.pop('diagnoses')
                 case_fields = case
                 case.clear()
 
-                clinical.update(case_fields)
-                clinical.update(demographics)
+                clinical_records.update(case_fields)
+                clinical_records.update(demographics)
                 if max_diagnosis_count == 1:
-                    clinical.update(diagnoses)
+                    clinical_records.update(diagnoses)
                 else:
-                    clinical_diagnoses['case_id'] = case_fields['case_id']
-                    clinical_diagnoses['case_submitter_id'] = case_fields['case_submitter_id']
-                    clinical_diagnoses.update(diagnoses)
+                    clinical_diagnoses_records['case_id'] = case_fields['case_id']
+                    clinical_diagnoses_records['case_submitter_id'] = case_fields['case_submitter_id']
+                    clinical_diagnoses_records.update(diagnoses)
 
             clinical_filename = "_".join(project_name.split(" "))
             clinical_filename += "_clinical"
             clinical_jsonl_filename = get_filename('jsonl', clinical_filename)
             local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
-            write_list_to_jsonl(local_clinical_filepath, clinical)
+            write_list_to_jsonl(local_clinical_filepath, clinical_records)
             upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
-            if len(clinical_diagnoses) > 0:
+            if len(clinical_diagnoses_records) > 0:
                 clinical_diagnoses_filename = "_".join(project_name.split(" "))
                 clinical_diagnoses_filename += "_clinical_diagnoses"
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', clinical_filename)
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
-                write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses)
+                write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
                 upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
 
     if 'build_quant_tsvs' in steps:
