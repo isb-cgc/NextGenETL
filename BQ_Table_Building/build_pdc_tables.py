@@ -1530,12 +1530,10 @@ def main(args):
 
                     case.update(demographic_record)
 
-
-
-
-
         # todo remove when fixed by PDC
         cases_by_project_submitter['Academia Sinica LUAD-100'] = cases_by_project_submitter.pop('LUAD-100')
+
+        print(embargoed_case_list)
 
         # iterate over now-populated project dicts
         # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
