@@ -1566,8 +1566,8 @@ def main(args):
 
             print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
 
-            clinical_records = dict()
-            clinical_diagnoses_records = dict()
+            clinical_records = []
+            clinical_diagnoses_records = []
 
             # iterate over now-populated project dicts
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
