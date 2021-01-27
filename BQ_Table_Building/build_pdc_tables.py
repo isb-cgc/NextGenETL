@@ -1517,8 +1517,8 @@ def main(args):
                 if case_id_key_tuple in diagnosis_records_by_case_id:
                     diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
 
-                    if len(diagnosis_record) > project_dict['max_diagnosis_count']:
-                        project_dict['max_diagnosis_count'] = len(diagnosis_record)
+                    if len(diagnosis_record['diagnoses']) > project_dict['max_diagnosis_count']:
+                        project_dict['max_diagnosis_count'] = len(diagnosis_record['diagnoses'])
 
                     case.update(diagnosis_record)
 
@@ -1535,7 +1535,10 @@ def main(args):
             record_count = len(project_dict['cases'])
             max_diagnosis_count = project_dict['max_diagnosis_count']
 
+            if project_name =
+
             print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
+            print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
         # iterate over now-populated project dicts
         # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
