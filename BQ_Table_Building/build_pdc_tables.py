@@ -1464,7 +1464,7 @@ def main(args):
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
 
-    if 'build_case_clinical_json' in steps:
+    if 'build_case_clinical_jsonl_per_project' in steps:
         # get unique project_submitter_ids from studies_list
         cases_by_project_submitter = dict()
 
