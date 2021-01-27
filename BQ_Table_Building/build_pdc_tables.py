@@ -1506,8 +1506,6 @@ def main(args):
         cases_with_no_clinical_data = list()
 
         for project_name, project_dict in cases_by_project_submitter.items():
-            print(project_name)
-            print()
 
             for case in project_dict['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
