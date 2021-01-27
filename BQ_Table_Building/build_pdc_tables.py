@@ -129,10 +129,10 @@ def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
             combined_request_parameters = request_params + (id_entry,)
             record_list = request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
 
-            if alter_json_function and not insert_id:
-                alter_json_function(record_list)
-            else:
+            if alter_json_function and insert_id:
                 alter_json_function(record_list, id_entry)
+            elif alter_json_function:
+                alter_json_function(record_list)
 
             joined_record_list += record_list
 
