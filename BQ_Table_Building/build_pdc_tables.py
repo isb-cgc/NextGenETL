@@ -1130,7 +1130,7 @@ def alter_cases_json(case_json_obj_list):
 
 
 def get_cases(include_external_references=False):
-    endpoint = 'caseDemographicsPerStudy'
+    endpoint = 'allCases'
     dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
 
     if include_external_references:
@@ -1142,7 +1142,7 @@ def get_cases(include_external_references=False):
 
 
 def get_case_demographics():
-    endpoint = 'caseDemographicsPerStudy'
+    endpoint = 'paginatedCaseDemographicsPerStudy'
     dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
 
     select_statement = """
@@ -1155,7 +1155,7 @@ def get_case_demographics():
 
 
 def get_case_diagnoses():
-    endpoint = 'caseDiagnosesPerStudy'
+    endpoint = 'paginatedCaseDiagnosesPerStudy'
     dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
     select_statement = "SELECT case_id, case_submitter_id, diagnoses"
 
@@ -1192,8 +1192,6 @@ def make_cases_aliquots_query(offset, limit):
 
 
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
-
-
     return ''' {{ 
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
             total caseDiagnosesPerStudy {{
