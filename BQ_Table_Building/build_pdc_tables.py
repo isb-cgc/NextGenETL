@@ -1579,8 +1579,6 @@ def main(args):
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             cases = project_dict['cases']
             for case in cases:
-                print(case)
-                exit()
                 if 'case_id' not in case:
                     print(case)
                     exit()
