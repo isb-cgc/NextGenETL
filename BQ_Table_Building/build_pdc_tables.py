@@ -1111,6 +1111,7 @@ def make_cases_query():
     }"""
 
 
+"""
 def alter_cases_json(case_json_obj_list):
     for case in case_json_obj_list:
         external_references = case.pop("externalReferences")
@@ -1127,7 +1128,7 @@ def alter_cases_json(case_json_obj_list):
 
             ref_dict = dict.fromkeys(ref_keys_list, None)
             case.update(ref_dict)
-
+"""
 
 def get_cases(include_external_references=False):
     endpoint = 'allCases'
@@ -1430,8 +1431,7 @@ def main(args):
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
-                                 request_function=make_cases_query,
-                                 alter_json_function=alter_cases_json)
+                                 request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl("allCases")
