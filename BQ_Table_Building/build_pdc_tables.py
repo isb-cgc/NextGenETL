@@ -36,22 +36,6 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 # ***** FUNCTIONS USED BY MULTIPLE PROCESSES
 
-def retrieve_all_studies_query(output_name):
-    table_name = get_table_name(output_name)
-    table_id = get_dev_table_id(table_name, is_metadata=True)
-
-    return """
-    SELECT pdc_study_id, study_name, embargo_date, analytical_fraction
-    FROM  `{}`
-    """.format(table_id)
-
-
-def print_embargoed_studies(excluded_studies_list):
-    print("\nStudies excluded due to data embargo:")
-
-    for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
-        print(" - {} (expires {})".format(study['study_name'], study['embargo_date']))
-
 
 def has_table(project, dataset, table_name):
     query = """
@@ -65,17 +49,6 @@ def has_table(project, dataset, table_name):
     for row in res:
         has_table_res = row['has_table']
         return bool(has_table_res)
-
-
-def has_quant_table(study_submitter_id):
-    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
-    return has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
-
-
-def is_currently_embargoed(embargo_date):
-    if not embargo_date or embargo_date < date.today():
-        return False
-    return True
 
 
 def get_table_name(prefix, suffix=None, include_release=True, release=None):
@@ -123,25 +96,36 @@ def print_elapsed_time_and_exit(start_time):
     exit()
 
 
-def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None, ids=None):
+def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
+                             alter_json_function=None, ids=None, insert_id=False):
     joined_record_list = list()
 
     print("Sending {} API request: ".format(endpoint))
 
     if ids:
+        joined_record_list = list()
         for idx, id_entry in enumerate(ids):
             combined_request_parameters = request_params + (id_entry,)
-            joined_record_list += request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
+            record_list = request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
+
+            if alter_json_function and not insert_id:
+                alter_json_function(record_list)
+            else:
+                alter_json_function(record_list, id_entry)
+
+            joined_record_list += record_list
+
             if len(ids) < 100:
                 print(" - {:6d} current records (added {})".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print(" - {} records appended.".format(len(joined_record_list)))
+
     else:
         joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
 
-    if alter_json_function:
-        alter_json_function(joined_record_list)
+        if alter_json_function:
+            alter_json_function(joined_record_list)
 
     jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
@@ -252,70 +236,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
     console_out("Table built in {0}!\n", (format_seconds(build_end),))
 
 
-# ***** STUDY TABLE CREATION FUNCTIONS
-
-def make_all_programs_query():
-    return """{
-        allPrograms{
-            program_id
-            program_submitter_id
-            start_date
-            end_date
-            program_manager
-            projects {
-                project_id
-                project_submitter_id
-                studies {
-                    pdc_study_id
-                    study_id
-                    study_submitter_id
-                    analytical_fraction
-                    experiment_type
-                    acquisition_type
-                } 
-            }
-        }
-    }"""
-
-
-def make_study_query(pdc_study_id):
-    return """{{ study 
-    (pdc_study_id: \"{}\") {{ 
-        study_name
-        disease_type
-        primary_site
-        embargo_date
-    }} }}
-    """.format(pdc_study_id)
-
-
-def alter_all_programs_json(all_programs_json_obj):
-    temp_programs_json_obj_list = list()
-
-    for program in all_programs_json_obj:
-        projects = program.pop("projects", None)
-        for project in projects:
-            studies = project.pop("studies", None)
-            for study in studies:
-                # grab a few add't fields from study endpoint
-                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
-                study_metadata = json_res['data']['study'][0]
-
-                # ** unpacks each dictionary's items without altering program and project
-                study_obj = {**program, **project, **study, **study_metadata}
-
-                # normalize empty strings (turn into null)
-                for k, v in study_obj.items():
-                    if not v:
-                        study_obj[k] = None
-
-                temp_programs_json_obj_list.append(study_obj)
-
-    all_programs_json_obj.clear()
-    all_programs_json_obj.extend(temp_programs_json_obj_list)
-
-
-# ***** BIOSPECIMEN TABLE CREATION FUNCTIONS
+# ***** BIOSPECIMEN TABLE FUNCTIONS
 
 def make_biospecimen_per_study_query(study_id):
     return '''
@@ -419,7 +340,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                                             null_marker=BQ_PARAMS['NULL_MARKER']))
 
 
-# ***** GENE TABLE CREATION FUNCTIONS
+# ***** GENE TABLE FUNCTIONS
 
 def make_gene_symbols_per_study_query(pdc_study_id):
     # todo make function to build these names
@@ -600,8 +521,6 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
                 console_out("Added {0} genes", (count,))
 
 
-# API_PARAMS['UNIPROT_MAPPING_FILE'], API_PARAMS['UNIPROT_MAPPING_FP']
-# API_PARAMS['SWISSPROT_OUTPUT_FILE'], API_PARAMS['SWISSPROT_FTP_FP']
 def download_from_uniprot_ftp(local_file, server_fp, type_str):
     console_out("Creating {} tsv... ", (type_str,), end="")
 
@@ -757,37 +676,7 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
     return swissprot_str, swissprot_count
 
 
-# ***** CASES SAMPLES ALIQUOTS TABLE CREATION FUNCTIONS
-
-def make_cases_aliquots_query(offset, limit):
-    return '''{{ 
-        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
-            total casesSamplesAliquots {{
-                case_id 
-                samples {{
-                    sample_id 
-                    aliquots {{ 
-                        aliquot_id 
-                        aliquot_submitter_id
-                        aliquot_run_metadata {{ 
-                            aliquot_run_metadata_id
-                        }}
-                    }}
-                }}
-            }}
-            pagination {{ 
-                count 
-                from 
-                page 
-                total 
-                pages 
-                size 
-            }}
-        }}
-    }}'''.format(offset, limit)
-
-
-# ***** QUANT DATA MATRIX TABLE CREATION FUNCTIONS
+# ***** QUANT DATA MATRIX FUNCTIONS
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
@@ -892,6 +781,11 @@ def get_quant_files():
     return files
 
 
+def has_quant_table(study_submitter_id):
+    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+    return has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+
+
 def get_proteome_studies(studies_list):
     proteome_studies_list = list()
 
@@ -937,7 +831,93 @@ def change_study_name_to_table_name_format(study_name):
     return "_".join(new_study_name_list)
 
 
-# ***** FILE METADATA TABLE CREATION FUNCTIONS
+# ***** STUDY TABLE CREATION FUNCTIONS
+
+def make_all_programs_query():
+    return """{
+        allPrograms{
+            program_id
+            program_submitter_id
+            start_date
+            end_date
+            program_manager
+            projects {
+                project_id
+                project_submitter_id
+                studies {
+                    pdc_study_id
+                    study_id
+                    study_submitter_id
+                    analytical_fraction
+                    experiment_type
+                    acquisition_type
+                } 
+            }
+        }
+    }"""
+
+
+def make_study_query(pdc_study_id):
+    return """{{ study 
+    (pdc_study_id: \"{}\") {{ 
+        study_name
+        disease_type
+        primary_site
+        embargo_date
+    }} }}
+    """.format(pdc_study_id)
+
+
+def alter_all_programs_json(all_programs_json_obj):
+    temp_programs_json_obj_list = list()
+
+    for program in all_programs_json_obj:
+        projects = program.pop("projects", None)
+        for project in projects:
+            studies = project.pop("studies", None)
+            for study in studies:
+                # grab a few add't fields from study endpoint
+                json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
+                study_metadata = json_res['data']['study'][0]
+
+                # ** unpacks each dictionary's items without altering program and project
+                study_obj = {**program, **project, **study, **study_metadata}
+
+                # normalize empty strings (turn into null)
+                for k, v in study_obj.items():
+                    if not v:
+                        study_obj[k] = None
+
+                temp_programs_json_obj_list.append(study_obj)
+
+    all_programs_json_obj.clear()
+    all_programs_json_obj.extend(temp_programs_json_obj_list)
+
+
+def print_embargoed_studies(excluded_studies_list):
+    print("\nStudies excluded due to data embargo:")
+
+    for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
+        print(" - {} (expires {})".format(study['study_name'], study['embargo_date']))
+
+
+def is_currently_embargoed(embargo_date):
+    if not embargo_date or embargo_date < date.today():
+        return False
+    return True
+
+
+def retrieve_all_studies_query(output_name):
+    table_name = get_table_name(output_name)
+    table_id = get_dev_table_id(table_name, is_metadata=True)
+
+    return """
+    SELECT pdc_study_id, study_name, embargo_date, analytical_fraction
+    FROM  `{}`
+    """.format(table_id)
+
+
+# ***** FILE METADATA FUNCTIONS
 
 def make_files_per_study_query(study_id):
     return """
@@ -1090,7 +1070,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
     console_out("File PDC metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
-# ***** CASE METADATA TABLE CREATION FUNCTIONS
+# ***** CASE METADATA / CLINICAL FUNCTIONS
 
 def make_cases_query():
     return """{
@@ -1120,12 +1100,10 @@ def alter_cases_json(case_json_obj_list):
                 print(external_references[0]['reference_resource_shortname'])
             case.update(external_references[0])
         else:
-            ref_dict = {
-                "external_reference_id": None,
-                "reference_resource_shortname": None,
-                "reference_resource_name": None,
-                "reference_entity_location": None
-            }
+            ref_keys_list = ["external_reference_id", "reference_resource_shortname",
+                             "reference_resource_name", "reference_entity_location"]
+
+            ref_dict = dict.fromkeys(ref_keys_list, None)
             case.update(ref_dict)
 
 
@@ -1139,7 +1117,34 @@ def get_cases_data():
     """.format(table_id)
 
 
-# ***** CLINICAL TABLE CREATION FUNCTIONS
+def make_cases_aliquots_query(offset, limit):
+    return '''{{ 
+        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+            total casesSamplesAliquots {{
+                case_id 
+                samples {{
+                    sample_id 
+                    aliquots {{ 
+                        aliquot_id 
+                        aliquot_submitter_id
+                        aliquot_run_metadata {{ 
+                            aliquot_run_metadata_id
+                        }}
+                    }}
+                }}
+            }}
+            pagination {{ 
+                count 
+                from 
+                page 
+                total 
+                pages 
+                size 
+            }}
+        }}
+    }}'''.format(offset, limit)
+
+
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     return ''' {{ 
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
@@ -1220,6 +1225,11 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     }}'''.format(pdc_study_id, offset, limit)
 
 
+def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
+    for case in json_obj_list:
+        case['pdc_study_id'] = pdc_study_id
+
+
 def make_cases_demographics_query(pdc_study_id, offset, limit):
     return """
     {{ paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2}) {{ 
@@ -1254,7 +1264,7 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     """.format(pdc_study_id, offset, limit)
 
 
-def alter_case_demographics_json(json_obj_list):
+def alter_case_demographics_json(json_obj_list, pdc_study_id):
     for case in json_obj_list:
 
         demographics = case.pop("demographics")
@@ -1262,22 +1272,17 @@ def alter_case_demographics_json(json_obj_list):
         if len(demographics) > 1:
             has_fatal_error("Cannot unnest case demographics because multiple records exist.")
         elif len(demographics) == 1:
-            case.update(demographics[0])
+            ref_dict = demographics[0]
         else:
-            ref_dict = {
-                "demographic_id": None,
-                "ethnicity": None,
-                "gender": None,
-                "demographic_submitter_id": None,
-                "race": None,
-                "cause_of_death": None,
-                "days_to_birth": None,
-                "days_to_death": None,
-                "vital_status": None,
-                "year_of_birth": None,
-                "year_of_death": None
-            }
-            case.update(ref_dict)
+            demographics_key_list = ["demographic_id", "ethnicity", "gender", "demographic_submitter_id",
+                                     "race", "cause_of_death", "days_to_birth", "days_to_death",
+                                     "vital_status", "year_of_birth", "year_of_death"]
+
+            ref_dict = dict.fromkeys(demographics_key_list, None)
+
+        case['pdc_study_id'] = pdc_study_id
+        case.update(ref_dict)
+
 
 
 def main(args):
@@ -1405,7 +1410,9 @@ def main(args):
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
                                  request_function=make_cases_diagnoses_query,
-                                 ids=pdc_study_ids)
+                                 alter_json_function=alter_case_diagnoses_json,
+                                 ids=pdc_study_ids,
+                                 insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
         build_table_from_jsonl('paginatedCaseDiagnosesPerStudy')
@@ -1414,7 +1421,8 @@ def main(args):
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
                                  request_function=make_cases_demographics_query,
                                  alter_json_function=alter_case_demographics_json,
-                                 ids=pdc_study_ids)
+                                 ids=pdc_study_ids,
+                                 insert_id=True)
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
