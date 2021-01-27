@@ -1586,6 +1586,8 @@ def main(args):
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records['diagnoses'] = diagnoses
 
+            print(clinical_records)
+
             if clinical_records:
                 clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
                 local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
