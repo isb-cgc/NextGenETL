@@ -1549,8 +1549,16 @@ def main(args):
                 case_fields = case
                 case.clear()
 
+                if not demographics and not diagnoses:
+                    continue
+
                 clinical_records.update(case_fields)
-                clinical_records.update(demographics)
+
+                if demographics:
+                    clinical_records.update(demographics)
+
+                if max_diagnosis_count == 0:
+                    continue
                 if max_diagnosis_count == 1:
                     clinical_records.update(diagnoses)
                 else:
