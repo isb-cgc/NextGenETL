@@ -1562,7 +1562,7 @@ def main(args):
             clinical_filename += "_clinical"
             clinical_jsonl_filename = get_filename('jsonl', clinical_filename)
             local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
-            write_list_to_jsonl(local_clinical_filepath, joined_record_list)
+            write_list_to_jsonl(local_clinical_filepath, clinical)
             upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
             if len(clinical_diagnoses) > 0:
@@ -1570,7 +1570,7 @@ def main(args):
                 clinical_diagnoses_filename += "_clinical_diagnoses"
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', clinical_filename)
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
-                write_list_to_jsonl(local_clinical_diagnoses_filepath, joined_record_list)
+                write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses)
                 upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
 
     if 'build_quant_tsvs' in steps:
