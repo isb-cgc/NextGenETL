@@ -1507,7 +1507,7 @@ def main(args):
             print(project_name)
             print()
 
-            for case in cases_by_project_submitter[project_dict]['cases']:
+            for case in project_dict['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
                 diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
 
