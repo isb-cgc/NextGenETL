@@ -929,7 +929,7 @@ def print_embargoed_studies(excluded_studies_list):
     print("\nStudies excluded due to data embargo:")
 
     for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
-        print(" - {} (expires {})".format(study['study_name'], study['embargo_date']))
+        print(" - {} ({}, expires {})".format(study['study_name'], study['pdc_study_id'], study['embargo_date']))
 
     print()
 
