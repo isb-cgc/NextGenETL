@@ -283,7 +283,11 @@ def main(args):
         print(table_old)
         #set_and_table = table_old.split('.', maxsplit=1)
         #print(set_and_table)
-        success = update_schema_with_dict(params['PROJECT_OLD'], table_old, schema_dict, project=params['PROJECT_OLD'])
+        success = update_schema_with_dict(params['PROJECT_OLD'],
+                                          '{}:{}.{}'.format(params['PROJECT_OLD'],
+                                                            params['DATASET_OLD'],
+                                                            params['TABLE_OLD']),
+                                          schema_dict, project=params['PROJECT_OLD'])
         if not success:
             print("update_field_descriptions failed")
             return
