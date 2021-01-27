@@ -1549,9 +1549,11 @@ def main(args):
                 clinical_records.update(case)
                 case.clear()
 
-                if max_diagnosis_count == 1:
+                if max_diagnosis_count == 0:
+                    continue
+                if max_diagnosis_count == 1 and diagnoses:
                     clinical_records.update(diagnoses[0])
-                elif max_diagnosis_count > 1:
+                elif max_diagnosis_count > 1 and diagnoses:
                     clinical_diagnoses_records['case_id'] = clinical_records['case_id']
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records['diagnoses'] = diagnoses
