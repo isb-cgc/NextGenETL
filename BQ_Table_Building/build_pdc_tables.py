@@ -1284,7 +1284,6 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
         case.update(ref_dict)
 
 
-
 def main(args):
     start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
