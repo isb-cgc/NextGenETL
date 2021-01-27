@@ -1558,8 +1558,8 @@ def main(args):
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records['diagnoses'] = diagnoses
 
-            clinical_filename = "_".join(project_name.split(" "))
-            clinical_filename += "_clinical"
+            # clinical_filename = "_".join(project_name.split(" "))
+            clinical_filename += project_name + "_clinical"
             clinical_jsonl_filename = get_filename('jsonl', clinical_filename)
             local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
             write_list_to_jsonl(local_clinical_filepath, clinical_records)
