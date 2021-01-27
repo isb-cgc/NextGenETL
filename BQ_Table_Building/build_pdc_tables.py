@@ -1586,8 +1586,8 @@ def main(args):
             write_list_to_jsonl(local_clinical_filepath, clinical_records)
             upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
-            table_prefix = get_table_name(project_name, "clinical")
-            build_clinical_table_from_jsonl(table_prefix, infer_schema=True)
+            clinical_table_prefix = get_table_name(project_name, "clinical")
+            build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
 
             if len(clinical_diagnoses_records) > 0:
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
@@ -1595,8 +1595,8 @@ def main(args):
                 write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
                 upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
 
-                table_prefix = get_table_name(project_name, "clinical_diagnoses")
-                build_clinical_table_from_jsonl(table_prefix, infer_schema=True)
+                clinical_diagnoses_table_prefix = get_table_name(project_name, "clinical_diagnoses")
+                build_clinical_table_from_jsonl(clinical_diagnoses_table_prefix, infer_schema=True)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
