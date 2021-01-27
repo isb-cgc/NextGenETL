@@ -1502,6 +1502,9 @@ def main(args):
         # iterate over project_submitter_id dict. (for project in project_dict, for case in project)
         # retrieve case demographic and diagnoses for case, pop, add to case record
         # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
+
+        print(cases_by_project_submitter)
+
         for project in cases_by_project_submitter:
             for case in project['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
@@ -1514,6 +1517,8 @@ def main(args):
 
                 case.update(diagnosis_record)
                 case.update(demographic_record)
+
+
 
         # todo remove when fixed by PDC
         cases_by_project_submitter['Academia Sinica LUAD-100'] = cases_by_project_submitter.pop('LUAD-100')
