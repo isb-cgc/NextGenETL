@@ -1577,9 +1577,10 @@ def main(args):
             # iterate over now-populated project dicts
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
-            print(project_dict)
-            exit()
-            for case in project_dict['cases']:
+            cases = project_dict['cases']
+            for case in cases:
+                print(case)
+                exit()
                 if 'case_id' not in case:
                     print(case)
                     exit()
