@@ -1536,7 +1536,8 @@ def main(args):
             max_diagnosis_count = project_dict['max_diagnosis_count']
 
             print("{}: {} records, {} max diagnoses\n".format(project_name, record_count, max_diagnosis_count))
-            print("{} cases with no clinical data\n".format(len(cases_with_no_clinical_data)))
+
+        print("{} cases with no clinical data\n".format(len(cases_with_no_clinical_data)))
 
         # iterate over now-populated project dicts
         # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
