@@ -1504,6 +1504,11 @@ def main(args):
 
         # get all case records, append to list for its project submitter id
         for case in get_cases():
+            if not case:
+                continue
+            if 'project_submitter_id' not in case:
+                continue
+
             project_submitter_id = case['project_submitter_id']
             cases_by_project_submitter[project_submitter_id]['cases'].append(case)
 
