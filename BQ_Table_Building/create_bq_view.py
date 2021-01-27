@@ -282,7 +282,7 @@ def main(args):
             schema_dict[entry['name']] = {'description': entry['description']}
         print(table_old)
         set_and_table = table_old.split('.', maxsplit=1)
-        success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['TARGET_PROJECT'])
+        success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['PROJECT_OLD'])
         if not success:
             print("update_field_descriptions failed")
             return
@@ -295,7 +295,7 @@ def main(args):
         print('update_table_description: {}'.format(table_old))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_old)
         set_and_table = table_old.split('.', maxsplit=1)
-        success = install_labels_and_desc(set_and_table[0], set_and_table[1], full_file_prefix, project=params['TARGET_PROJECT'])
+        success = install_labels_and_desc(set_and_table[0], set_and_table[1], full_file_prefix, project=params['PROJECT_OLD'])
         if not success:
             print("update_table_description failed")
             return
