@@ -297,7 +297,8 @@ def main(args):
         print('update_table_description: {}'.format(table_old))
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], table_old)
         #set_and_table = table_old.split('.', maxsplit=1)
-        success = install_labels_and_desc(params['PROJECT_OLD'], table_old, full_file_prefix, project=params['PROJECT_OLD'])
+        success = install_labels_and_desc(params['DATASET_OLD'], params['TABLE_OLD'], full_file_prefix,
+                                          project=params['PROJECT_OLD'])
         if not success:
             print("update_table_description failed")
             return
