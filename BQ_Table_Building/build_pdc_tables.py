@@ -1448,7 +1448,6 @@ def main(args):
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
                                  request_function=make_cases_diagnoses_query,
-                                 alter_json_function=alter_case_diagnoses_json,
                                  ids=pdc_study_ids,
                                  insert_id=True)
 
