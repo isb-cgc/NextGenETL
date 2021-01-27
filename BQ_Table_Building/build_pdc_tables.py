@@ -211,6 +211,22 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     return record_list
 
 
+def build_clinical_table_from_jsonl(table_prefix, infer_schema=False):
+    table_name = get_table_name(table_prefix)
+    filename = get_filename('jsonl', table_prefix)
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_CLINICAL_DATASET'])
+
+    print("Creating {}:".format(table_id))
+    schema_filename = infer_schema_file_location_by_table_id(table_id)
+
+    schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+    if not infer_schema and not schema:
+        has_fatal_error("No schema found and infer_schema set to False, exiting")
+
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+
+
 def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
@@ -1321,6 +1337,22 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
         case.update(ref_dict)
 
 
+def get_cases_by_project_submitter(studies_list):
+    # get unique project_submitter_ids from studies_list
+    cases_by_project_submitter = dict()
+
+    # todo remove when fixed by PDC
+    cases_by_project_submitter['LUAD-100'] = {'cases': list(), 'max_diagnosis_count': 0}
+
+    for study in studies_list:
+        cases_by_project_submitter[study['project_submitter_id']] = {
+            'cases': list(),
+            'max_diagnosis_count': 0
+        }
+
+    return cases_by_project_submitter
+
+
 def main(args):
     start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -1461,18 +1493,9 @@ def main(args):
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
 
-    if 'build_case_clinical_jsonl_per_project' in steps:
+    if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         # get unique project_submitter_ids from studies_list
-        cases_by_project_submitter = dict()
-
-        # todo remove when fixed by PDC
-        cases_by_project_submitter['LUAD-100'] = {'cases': list(), 'max_diagnosis_count': 0}
-
-        for study in studies_list:
-            cases_by_project_submitter[study['project_submitter_id']] = {
-                'cases': list(),
-                'max_diagnosis_count': 0
-            }
+        cases_by_project_submitter = get_cases_by_project_submitter(studies_list)
 
         # get all case records, append to list for its project submitter id
         for case in get_cases():
@@ -1563,11 +1586,17 @@ def main(args):
             write_list_to_jsonl(local_clinical_filepath, clinical_records)
             upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
+            table_prefix = get_table_name(project_name, "clinical")
+            build_clinical_table_from_jsonl(table_prefix, infer_schema=True)
+
             if len(clinical_diagnoses_records) > 0:
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
                 write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
                 upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
+
+                table_prefix = get_table_name(project_name, "clinical_diagnoses")
+                build_clinical_table_from_jsonl(table_prefix, infer_schema=True)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
