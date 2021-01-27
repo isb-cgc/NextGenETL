@@ -1436,7 +1436,7 @@ def main(args):
                                  request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl("allCases")
+        build_table_from_jsonl("allCases", infer_schema=True)
 
     if 'build_cases_aliquots_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
