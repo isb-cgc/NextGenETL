@@ -1554,7 +1554,7 @@ def main(args):
                 elif max_diagnosis_count > 1:
                     clinical_diagnoses_records['case_id'] = clinical_records['case_id']
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
-                    clinical_diagnoses_records.update(diagnoses)
+                    clinical_diagnoses_records['diagnoses'] = diagnoses
 
             clinical_filename = "_".join(project_name.split(" "))
             clinical_filename += "_clinical"
