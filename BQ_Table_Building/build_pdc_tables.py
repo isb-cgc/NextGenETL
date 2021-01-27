@@ -1503,9 +1503,9 @@ def main(args):
         # retrieve case demographic and diagnoses for case, pop, add to case record
         # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
 
-        print(cases_by_project_submitter)
-
         for project in cases_by_project_submitter:
+            print(project)
+
             for case in project['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
                 diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
