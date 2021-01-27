@@ -1503,7 +1503,7 @@ def main(args):
         # retrieve case demographic and diagnoses for case, pop, add to case record
         # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
 
-        for project_name, project_dict in cases_by_project_submitter.items:
+        for project_name, project_dict in cases_by_project_submitter.items():
             print(project_name)
             print()
 
