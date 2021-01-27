@@ -1452,7 +1452,7 @@ def main(args):
                                  insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
-        build_table_from_jsonl('paginatedCaseDiagnosesPerStudy')
+        build_table_from_jsonl('paginatedCaseDiagnosesPerStudy', infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
