@@ -1149,8 +1149,7 @@ def get_case_demographics():
     dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
 
     select_statement = """
-        SELECT demographic_id, demographic_submitter_id, case_id, case_submitter_id, 
-        gender, ethnicity, race, disease_type, primary_site, 
+        SELECT demographic_id, demographic_submitter_id, case_id, case_submitter_id, gender, ethnicity, race, 
         days_to_birth, days_to_death, year_of_birth, year_of_death, vital_status, cause_of_death
         """
 
