@@ -931,6 +931,8 @@ def print_embargoed_studies(excluded_studies_list):
     for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
         print(" - {} (expires {})".format(study['study_name'], study['embargo_date']))
 
+    print()
+
 
 def is_currently_embargoed(embargo_date):
     if not embargo_date or embargo_date < date.today():
