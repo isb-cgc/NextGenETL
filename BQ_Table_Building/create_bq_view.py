@@ -282,7 +282,8 @@ def main(args):
             schema_dict[entry['name']] = {'description': entry['description']}
         print(table_old)
         set_and_table = table_old.split('.', maxsplit=1)
-        success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['PROJECT_OLD'])
+        print(set_and_table)
+        #success = update_schema_with_dict(set_and_table[0], set_and_table[1], schema_dict, project=params['PROJECT_OLD'])
         if not success:
             print("update_field_descriptions failed")
             return
