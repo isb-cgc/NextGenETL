@@ -212,14 +212,9 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
 
 def build_clinical_table_from_jsonl(table_prefix, infer_schema=False):
-    print(table_prefix)
-
     table_name = get_table_name(table_prefix)
-    print(table_name)
     filename = get_filename('jsonl', table_prefix)
-    print(table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_CLINICAL_DATASET'])
-    print(table_id)
 
     print("Creating {}:".format(table_id))
     schema_filename = infer_schema_file_location_by_table_id(table_id)
@@ -1580,16 +1575,12 @@ def main(args):
             cases = project_dict['cases']
             for case in cases:
                 if 'case_id' not in case:
-                    print("no case_id")
-                    exit()
+                    continue
                 clinical_case_record = case
                 clinical_diagnoses_record = dict()
                 diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
-                case.clear()
 
-                if not clinical_case_record:
-                    print(project_dict)
-                if max_diagnosis_count == 0:
+                if not clinical_case_record or max_diagnosis_count == 0:
                     continue
                 if max_diagnosis_count == 1 and diagnoses:
                     clinical_case_record.update(diagnoses[0])
