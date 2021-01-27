@@ -1586,15 +1586,16 @@ def main(args):
                     clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
                     clinical_diagnoses_records['diagnoses'] = diagnoses
 
-            clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
-            local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
-            write_list_to_jsonl(local_clinical_filepath, clinical_records)
-            upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
+            if clinical_records:
+                clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
+                local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
+                write_list_to_jsonl(local_clinical_filepath, clinical_records)
+                upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
-            clinical_table_prefix = project_name + " clinical"
-            build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
+                clinical_table_prefix = project_name + " clinical"
+                build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
 
-            if len(clinical_diagnoses_records) > 0:
+            if clinical_diagnoses_records:
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
                 write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
