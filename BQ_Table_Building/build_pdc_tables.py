@@ -74,9 +74,30 @@ def get_table_id(project, dataset, table_name):
     return "{}.{}.{}".format(project, dataset, table_name)
 
 
-def get_dev_table_id(table_name, is_metadata=False):
-    dataset = BQ_PARAMS['DEV_META_DATASET'] if is_metadata else BQ_PARAMS['DEV_DATASET']
+# todo this could be reworked to only have two params, elminating is_metadata
+def get_dev_table_id(table_name, is_metadata=False, dataset=None):
+    if not dataset:
+        if is_metadata:
+            dataset = BQ_PARAMS['DEV_META_DATASET']
+        else:
+            dataset = BQ_PARAMS['DEV_DATASET']
+
     return get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
+
+
+def get_records(endpoint, select_statement, dataset):
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_id = get_dev_table_id(table_name, dataset)
+
+    query = select_statement
+    query += " FROM `{}`".format(table_id)
+
+    records = list()
+
+    for row in get_query_results(query):
+        records.append(dict(row.items()))
+
+    return records
 
 
 def infer_schema_file_location_by_table_id(table_id):
@@ -894,6 +915,16 @@ def alter_all_programs_json(all_programs_json_obj):
     all_programs_json_obj.extend(temp_programs_json_obj_list)
 
 
+def retrieve_all_studies_query(output_name):
+    table_name = get_table_name(output_name)
+    table_id = get_dev_table_id(table_name, is_metadata=True)
+
+    return """
+    SELECT pdc_study_id, study_name, embargo_date, project_submitter_id, analytical_fraction
+    FROM  `{}`
+    """.format(table_id)
+
+
 def print_embargoed_studies(excluded_studies_list):
     print("\nStudies excluded due to data embargo:")
 
@@ -905,16 +936,6 @@ def is_currently_embargoed(embargo_date):
     if not embargo_date or embargo_date < date.today():
         return False
     return True
-
-
-def retrieve_all_studies_query(output_name):
-    table_name = get_table_name(output_name)
-    table_id = get_dev_table_id(table_name, is_metadata=True)
-
-    return """
-    SELECT pdc_study_id, study_name, embargo_date, analytical_fraction
-    FROM  `{}`
-    """.format(table_id)
 
 
 # ***** FILE METADATA FUNCTIONS
@@ -1078,8 +1099,9 @@ def make_cases_query():
             case_id 
             case_submitter_id 
             project_submitter_id 
-             primary_site 
-             externalReferences { 
+            primary_site 
+            disease_type
+            externalReferences { 
                 external_reference_id 
                 reference_resource_shortname 
                 reference_resource_name 
@@ -1107,14 +1129,37 @@ def alter_cases_json(case_json_obj_list):
             case.update(ref_dict)
 
 
-def get_cases_data():
-    cases_table = get_table_name(BQ_PARAMS['CASES_TABLE'])
-    table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], cases_table)
+def get_cases(include_external_references=False):
+    endpoint = 'caseDemographicsPerStudy'
+    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
 
-    return """
-        SELECT * 
-        FROM `{}`
-    """.format(table_id)
+    if include_external_references:
+        select_statement = "SELECT *"
+    else:
+        select_statement = "SELECT case_id, case_submitter_id, project_submitter_id, primary_site, disease_type"
+
+        return get_records(endpoint, select_statement, dataset)
+
+
+def get_case_demographics():
+    endpoint = 'caseDemographicsPerStudy'
+    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
+
+    select_statement = """
+        SELECT demographic_id, demographic_submitter_id, case_id, case_submitter_id, 
+        gender, ethnicity, race, disease_type, primary_site, 
+        days_to_birth, days_to_death, year_of_birth, year_of_death, vital_status, cause_of_death
+        """
+
+    return get_records(endpoint, select_statement, dataset)
+
+
+def get_case_diagnoses():
+    endpoint = 'caseDiagnosesPerStudy'
+    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
+    select_statement = "SELECT case_id, case_submitter_id, diagnoses"
+
+    return get_records(endpoint, select_statement, dataset)
 
 
 def make_cases_aliquots_query(offset, limit):
@@ -1122,6 +1167,7 @@ def make_cases_aliquots_query(offset, limit):
         paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
             total casesSamplesAliquots {{
                 case_id 
+                case_submitter_id
                 samples {{
                     sample_id 
                     aliquots {{ 
@@ -1146,13 +1192,13 @@ def make_cases_aliquots_query(offset, limit):
 
 
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
+
+
     return ''' {{ 
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
             total caseDiagnosesPerStudy {{
                 case_id
                 case_submitter_id
-                disease_type
-                primary_site
                 diagnoses {{
                     diagnosis_id
                     tissue_or_organ_of_origin
@@ -1225,43 +1271,36 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     }}'''.format(pdc_study_id, offset, limit)
 
 
-def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
-    for case in json_obj_list:
-        case['pdc_study_id'] = pdc_study_id
-
-
 def make_cases_demographics_query(pdc_study_id, offset, limit):
-    return """
-    {{ paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2}) {{ 
-        total caseDemographicsPerStudy {{ 
-            case_id 
-            case_submitter_id 
-            disease_type 
-            primary_site 
-            demographics {{ 
-                demographic_id
-                ethnicity
-                gender
-                demographic_submitter_id
-                race
-                cause_of_death
-                days_to_birth
-                days_to_death
-                vital_status
-                year_of_birth
-                year_of_death 
+    return """{{ 
+        paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2}) {{ 
+            total caseDemographicsPerStudy {{ 
+                case_id 
+                case_submitter_id
+                demographics {{ 
+                    demographic_id
+                    ethnicity
+                    gender
+                    demographic_submitter_id
+                    race
+                    cause_of_death
+                    days_to_birth
+                    days_to_death
+                    vital_status
+                    year_of_birth
+                    year_of_death 
+                }} 
+            }} 
+            pagination {{ 
+                count 
+                from 
+                page 
+                total 
+                pages 
+                size 
             }} 
         }} 
-        pagination {{ 
-            count 
-            from 
-            page 
-            total 
-            pages 
-            size 
-        }} 
-    }} }}
-    """.format(pdc_study_id, offset, limit)
+    }}""".format(pdc_study_id, offset, limit)
 
 
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
@@ -1425,6 +1464,61 @@ def main(args):
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
+
+    if 'build_case_clinical_json' in steps:
+        # get unique project_submitter_ids from studies_list
+        cases_by_project_submitter = dict()
+
+        for study in studies_list:
+            cases_by_project_submitter[study['project_submitter_id']] = {
+                'cases': list(),
+                'max_diagnosis_count': 0
+            }
+
+        # get all case records, append to list for its project submitter id
+        for case in get_cases():
+            project_submitter_id = case['project_submitter_id']
+            cases_by_project_submitter[project_submitter_id]['cases'].append(case)
+
+        # get all demographic records
+        demographic_records = get_case_demographics()
+        demographic_records_by_case_id = dict()
+
+        # create dict where key = (case_id, case_submitter_id) and value = dict of remaining query results
+        for record in demographic_records:
+            case_id_key_tuple = (record.pop("case_id"), record.pop("case_submitter_id"))
+            demographic_records_by_case_id[case_id_key_tuple] = record
+
+        # get all diagnoses records, create dict where
+        # key = (case_id, case_submitter_id) and value = dict of remaining query results
+        diagnosis_records = get_case_diagnoses()
+        diagnosis_records_by_case_id = dict()
+
+        for record in diagnosis_records:
+            case_id_key_tuple = (record.pop("case_id"), record.pop("case_submitter_id"))
+            diagnosis_records_by_case_id[case_id_key_tuple] = record
+
+        # iterate over project_submitter_id dict. (for project in project_dict, for case in project)
+        # retrieve case demographic and diagnoses for case, pop, add to case record
+        # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
+        for project in cases_by_project_submitter:
+            for case in project['cases']:
+                case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
+                diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
+
+                if len(diagnosis_record) > project['max_diagnosis_count']:
+                    project['max_diagnosis_count'] = len(diagnosis_record)
+
+                demographic_record = demographic_records_by_case_id[case_id_key_tuple]
+
+                case.update(diagnosis_record)
+                case.update(demographic_record)
+
+        print(cases_by_project_submitter)
+
+        # iterate over now-populated project dicts
+        # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
+        # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
