@@ -1503,21 +1503,36 @@ def main(args):
         # retrieve case demographic and diagnoses for case, pop, add to case record
         # get length of each diagnosis record and compare to max_diagnoses_record_length, update if larger
 
+        embargoed_case_list = list()
+
         for project_name, project_dict in cases_by_project_submitter.items():
             print(project_name)
             print()
 
             for case in project_dict['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
-                diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
 
-                if len(diagnosis_record) > project_dict['max_diagnosis_count']:
-                    project_dict['max_diagnosis_count'] = len(diagnosis_record)
+                if case_id_key_tuple not in diagnosis_records_by_case_id:
+                    if case_id_key_tuple not in demographic_records_by_case_id:
+                        embargoed_case_list.append(case_id_key_tuple)
 
-                demographic_record = demographic_records_by_case_id[case_id_key_tuple]
+                if case_id_key_tuple in diagnosis_records_by_case_id:
+                    diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
 
-                case.update(diagnosis_record)
-                case.update(demographic_record)
+                    if len(diagnosis_record) > project_dict['max_diagnosis_count']:
+                        project_dict['max_diagnosis_count'] = len(diagnosis_record)
+
+                    case.update(diagnosis_record)
+
+                if case_id_key_tuple in demographic_records_by_case_id:
+
+                    demographic_record = demographic_records_by_case_id[case_id_key_tuple]
+
+                    case.update(demographic_record)
+
+
+
+
 
         # todo remove when fixed by PDC
         cases_by_project_submitter['Academia Sinica LUAD-100'] = cases_by_project_submitter.pop('LUAD-100')
