@@ -1573,20 +1573,22 @@ def main(args):
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             for case in project_dict['cases']:
+                clinical_case_record = case
+                clinical_diagnoses_record = dict()
                 diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
-                clinical_records.update(case)
                 case.clear()
 
                 if max_diagnosis_count == 0:
                     continue
                 if max_diagnosis_count == 1 and diagnoses:
-                    clinical_records.update(diagnoses[0])
+                    clinical_case_record.update(diagnoses[0])
                 elif max_diagnosis_count > 1 and diagnoses:
-                    clinical_diagnoses_records['case_id'] = clinical_records['case_id']
-                    clinical_diagnoses_records['case_submitter_id'] = clinical_records['case_submitter_id']
-                    clinical_diagnoses_records['diagnoses'] = diagnoses
+                    clinical_diagnoses_record['case_id'] = clinical_records['case_id']
+                    clinical_diagnoses_record['case_submitter_id'] = clinical_records['case_submitter_id']
+                    clinical_diagnoses_record['diagnoses'] = diagnoses
+                    clinical_diagnoses_records.append(clinical_diagnoses_record)
 
-            print(clinical_records)
+                clinical_records.append(clinical_case_record)
 
             if clinical_records:
                 clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
