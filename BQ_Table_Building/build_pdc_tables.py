@@ -212,9 +212,14 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
 
 def build_clinical_table_from_jsonl(table_prefix, infer_schema=False):
+    print(table_prefix)
+
     table_name = get_table_name(table_prefix)
+    print(table_name)
     filename = get_filename('jsonl', table_prefix)
+    print(table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_CLINICAL_DATASET'])
+    print(table_id)
 
     print("Creating {}:".format(table_id))
     schema_filename = infer_schema_file_location_by_table_id(table_id)
