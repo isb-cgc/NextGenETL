@@ -1505,8 +1505,9 @@ def main(args):
 
         for project in cases_by_project_submitter:
             print(project)
+            print()
 
-            for case in project['cases']:
+            for case in cases_by_project_submitter[project]['cases']:
                 case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
                 diagnosis_record = diagnosis_records_by_case_id[case_id_key_tuple]
 
