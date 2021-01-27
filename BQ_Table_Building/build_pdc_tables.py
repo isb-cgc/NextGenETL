@@ -1578,6 +1578,8 @@ def main(args):
                 diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
                 case.clear()
 
+                if not clinical_case_record:
+                    print(project_dict)
                 if max_diagnosis_count == 0:
                     continue
                 if max_diagnosis_count == 1 and diagnoses:
