@@ -1573,6 +1573,9 @@ def main(args):
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             for case in project_dict['cases']:
+                if 'case_id' not in case:
+                    print(case)
+                    exit()
                 clinical_case_record = case
                 clinical_diagnoses_record = dict()
                 diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
