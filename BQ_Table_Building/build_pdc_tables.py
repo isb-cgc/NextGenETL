@@ -1469,7 +1469,7 @@ def main(args):
         cases_by_project_submitter = dict()
 
         # todo remove when fixed by PDC
-        cases_by_project_submitter['LUAD-100'] = {'cases': list, 'max_diagnosis_count': 0}
+        cases_by_project_submitter['LUAD-100'] = {'cases': list(), 'max_diagnosis_count': 0}
 
         for study in studies_list:
             cases_by_project_submitter[study['project_submitter_id']] = {
