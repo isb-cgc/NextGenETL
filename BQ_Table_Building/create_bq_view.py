@@ -212,25 +212,33 @@ def main(args):
             print('compare_tables failed')
             return
 
-    if 'move_old_to_temp_and_delete_table' in steps:
+    if 'move_old_to_temp' in steps:
         print('Move old table to temp location')
-        table_moved = publish_table(table_old, table_temp)
+        success = publish_table(table_old, table_temp)
 
-        if not table_moved:
-            print('Old Table was not moved and will not be deleted')
-        elif table_moved:
-            print('Deleting old table: {}'.format(table_old))
-            success = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
+        #if not table_moved:
+        #    print('Old Table was not moved and will not be deleted')
+        #elif table_moved:
+        #    print('Deleting old table: {}'.format(table_old))
+        #    success = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
 
         if not success:
+            print('create temp table failed')
+            return
+
+    if 'remove_old_table_and_create_view' in steps:
+        print('Deleting old table: {}'.format(table_old))
+        deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
+
+        if not deleted:
             print('delete table failed')
             return
 
-    if 'create_view' in steps:
         print('create view')
-        success = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
 
-        if not success:
+        view_created = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
+
+        if not view_created:
             print('create view failed')
             return
 
@@ -300,11 +308,9 @@ def main(args):
             print("update_table_description failed")
             return
 
-    if 'removed_temp_table' in steps:
+    if 'remove_temp_table' in steps:
         print('removed temp table')
-
-
-
+        delete_table_bq_job(params['DATASET_TEMP'], params['TABLE_OLD'], params['PROJECT_TEMP'])
 
     print('job completed')
 
