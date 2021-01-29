@@ -112,48 +112,6 @@ def create_view_sql(new_table):
     FROM `{}`
     '''.format(new_table)
 
-#'''
-#----------------------------------------------------------------------------------------------
-#Update view schema
-#'''
-
-#def update_view_schema(view, new_table):
-    # new_project, new_dataset, new_table = new_table.split('.')
-    # # Construct a BigQuery client object.
-    # client = bigquery.Client(new_project)
-    # table_obj = client.get_table(new_table)
-    # row_count = table_obj.rum_rows
-    #
-    # #
-    # # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
-    # #
-    #
-    # targ_schema= []
-    # for schema_field in table_obj.schema:
-    #     name = schema_field.name
-    #     field_type = schema_field.field_type
-    #     mode = schema_field.mode
-    #     description = schema_field.description
-    #     fields = tuple(schema_field.fields)
-    #     targ_schema.append(bigquery.SchemaFiled(name, field_type, mode, description, fields))
-    #
-    # # Create a reference to the view we are updating
-    # targ_table = bigquery.Table(view, schema=targ_schema)
-    #
-    # # Update the table description from the new table
-    # targ_table.description = table_obj.description
-    #
-    # # Copy the labels from the original
-    # targ_table.labels = table_obj.labels.copy()
-    #
-    # # Update view tag to deprecated
-    # view_project, view_dataset, view_table = view.split('.')
-    # update_status_tag(view_dataset, view_table, 'deprecated')
-    #
-    # # Add a label for the row numbers
-    #
-    # return
-
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
@@ -227,6 +185,10 @@ def main(args):
             return
 
     if 'remove_old_table_and_create_view' in steps:
+        ## ADD ANOTHER COMPARE STEP ##
+
+
+
         print('Deleting old table: {}'.format(table_old))
         deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
 
@@ -241,15 +203,6 @@ def main(args):
         if not view_created:
             print('create view failed')
             return
-
-    # if 'update_view_schema' in steps:
-    #     print('update view schema')
-    #
-    #     succcess = update_view_schema(table_old, table_new)
-    #
-    #     if not success:
-    #         print('update view schema failed')
-    #         return
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -309,6 +262,7 @@ def main(args):
             return
 
     if 'remove_temp_table' in steps:
+        ## add a check to make sure that the view is correct ##
         print('removed temp table')
         delete_table_bq_job(params['DATASET_TEMP'], params['TABLE_OLD'], params['PROJECT_TEMP'])
 
