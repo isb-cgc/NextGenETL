@@ -240,7 +240,11 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     if not infer_schema and not schema:
         has_fatal_error("No schema found and infer_schema set to False, exiting")
 
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema, infer_schema=True)
+
+    if infer_schema and not schema:
+        pass
+        # todo add schema verification
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
@@ -1337,6 +1341,11 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
         case.update(ref_dict)
 
 
+def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
+    for case in json_obj_list:
+        case['pdc_study_id'] = pdc_study_id
+
+
 def get_cases_by_project_submitter(studies_list):
     # get unique project_submitter_ids from studies_list
     cases_by_project_submitter = dict()
@@ -1477,11 +1486,13 @@ def main(args):
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
                                  request_function=make_cases_diagnoses_query,
+                                 alter_json_function=alter_case_diagnoses_json,
                                  ids=pdc_study_ids,
                                  insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
-        build_table_from_jsonl('paginatedCaseDiagnosesPerStudy', infer_schema=True)
+        build_table_from_jsonl(endpoint='paginatedCaseDiagnosesPerStudy',
+                               infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",

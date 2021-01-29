@@ -965,7 +965,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
         console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
 
 
-def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
+def create_and_load_table(bq_params, jsonl_file, table_id, schema=None, infer_schema=False):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
