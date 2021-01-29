@@ -206,7 +206,7 @@ def main(args):
                 print('create view failed')
                 return
         else:
-            print('the temp table is not the same and differs by {} rows'.format(num_rows))
+            print('the temp table is not the same as the old table and differs by {} rows'.format(num_rows))
 
         if not success:
             print('remove_old_table_and_create_view failed')
@@ -270,9 +270,20 @@ def main(args):
             return
 
     if 'remove_temp_table' in steps:
-        ## add a check to make sure that the view is correct ##
-        print('removed temp table')
-        delete_table_bq_job(params['DATASET_TEMP'], params['TABLE_OLD'], params['PROJECT_TEMP'])
+        success = compare_two_tables(table_old, table_temp, params['BQ_AS_BATCH'])
+
+        num_rows = success.total_rows
+
+        if num_rows == 0:
+            print('removed temp table')
+            delete_table_bq_job(params['DATASET_TEMP'], params['TABLE_OLD'], params['PROJECT_TEMP'])
+
+        else:
+            print('the temp table is not the view and differs by {} rows'.format(num_rows))
+
+        if not success:
+            print('remove_temp_table')
+            return
 
     print('job completed')
 
