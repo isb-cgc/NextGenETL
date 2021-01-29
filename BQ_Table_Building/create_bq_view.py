@@ -185,23 +185,31 @@ def main(args):
             return
 
     if 'remove_old_table_and_create_view' in steps:
-        ## ADD ANOTHER COMPARE STEP ##
 
+        success = compare_two_tables(table_old, table_temp, params['BQ_AS_BATCH'])
 
+        num_rows = success.total_rows
 
-        print('Deleting old table: {}'.format(table_old))
-        deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
+        if num_rows == 0:
+            print('Deleting old table: {}'.format(table_old))
+            deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
 
-        if not deleted:
-            print('delete table failed')
-            return
+            if not deleted:
+                print('delete table failed')
+                return
 
-        print('create view')
+            print('create view')
 
-        view_created = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
+            view_created = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
 
-        if not view_created:
-            print('create view failed')
+            if not view_created:
+                print('create view failed')
+                return
+        else:
+            print('the temp table is not the same and differs by {} rows'.format(num_rows))
+
+        if not success:
+            print('remove_old_table_and_create_view failed')
             return
 
     #
