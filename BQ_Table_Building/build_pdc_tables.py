@@ -1321,7 +1321,6 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     }}""".format(pdc_study_id, offset, limit)
 
 
-"""
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
     for case in json_obj_list:
 
@@ -1340,27 +1339,6 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
 
         case['pdc_study_id'] = pdc_study_id
         case.update(ref_dict)
-"""
-
-
-def alter_case_demographics_json(json_obj_list, pdc_study_id):
-    for case in json_obj_list:
-
-        demographics = case.pop("demographics")
-        case_keys = list(case.keys())
-
-        if len(demographics) > 1:
-            has_fatal_error("Cannot unnest case demographics because multiple records exist.")
-        elif len(demographics) == 1:
-            case_keys += list(demographics[0].keys())
-            ref_dict = demographics[0]
-            case.update(ref_dict)
-
-        case['pdc_study_id'] = pdc_study_id
-
-        for key in case_keys:
-            if not case[key]:
-                case.pop(key)
 
 
 def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
@@ -1382,6 +1360,17 @@ def get_cases_by_project_submitter(studies_list):
         }
 
     return cases_by_project_submitter
+
+
+# works for flattened object
+def remove_null_values(json_obj_list):
+    for obj in json_obj_list:
+        obj_keys = list(obj.keys())
+
+        for key in obj_keys:
+            if not obj[key]:
+                obj.pop(key)
+
 
 
 def main(args):
@@ -1626,6 +1615,7 @@ def main(args):
                 clinical_records.append(clinical_case_record)
 
             if clinical_records:
+                remove_null_values(clinical_records)
                 clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
                 local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
                 write_list_to_jsonl(local_clinical_filepath, clinical_records)
@@ -1635,6 +1625,7 @@ def main(args):
                 build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
 
             if clinical_diagnoses_records:
+                remove_null_values(clinical_diagnoses_records)
                 clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
                 local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
                 write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
