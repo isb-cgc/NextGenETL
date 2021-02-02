@@ -1362,15 +1362,13 @@ def get_cases_by_project_submitter(studies_list):
     return cases_by_project_submitter
 
 
-# works for flattened object
 def remove_null_values(json_obj_list):
     for obj in json_obj_list:
-        obj_keys = list(obj.keys())
-
-        for key in obj_keys:
+        for key in obj.keys():
             if not obj[key]:
                 obj.pop(key)
-
+            elif isinstance(obj[key], list):
+                remove_null_values(obj[key])
 
 
 def main(args):
