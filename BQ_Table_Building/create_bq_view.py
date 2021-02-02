@@ -21,25 +21,14 @@ limitations under the License.
 '''
 
 import sys
-import shutil
-import os
 import yaml
 import io
 from git import Repo
-import zipfile
-import gzip
-from os.path import expanduser
 from json import loads as json_loads
-from createSchemaP3 import build_schema
-from datetime import date
-import re
 from google.cloud import bigquery
-from common_etl.support import create_clean_target, generic_bq_harness, upload_to_bucket, \
-                               csv_to_bq_write_depo, delete_table_bq_job, confirm_google_vm, \
-                               build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
-                               build_combined_schema, generic_bq_harness_write_depo, \
-                               install_labels_and_desc, update_schema_with_dict, generate_table_detail_files, publish_table, \
-                               bq_harness_with_result, delete_table_bq_job, update_status_tag
+from common_etl.support import create_clean_target, confirm_google_vm, install_labels_and_desc, \
+                               update_schema_with_dict, generate_table_detail_files, publish_table, \
+                               compare_two_tables, delete_table_bq_job
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -56,35 +45,6 @@ def load_config(yaml_config):
         return None, None
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
-
-'''
-----------------------------------------------------------------------------------------------
-Is the table that is replacing the view exactly the same?
-'''
-
-def compare_two_tables(old_table, new_table, do_batch):
-    sql = compare_two_tables_sql(old_table, new_table)
-    return bq_harness_with_result(sql, do_batch)
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for the compare_two_tables function
-'''
-
-def compare_two_tables_sql(old_table, new_table):
-    return '''
-        (
-            SELECT * FROM `{0}`
-            EXCEPT DISTINCT
-            SELECT * from `{1}`
-        )
-        UNION ALL
-        (
-            SELECT * FROM `{1}`
-            EXCEPT DISTINCT
-            SELECT * from `{0}`
-        )
-    '''.format(old_table, new_table)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -140,13 +100,6 @@ def main(args):
         params, steps = load_config(yaml_file.read())
 
     #
-    # BQ does not like to be given paths that have "~". So make all local paths absolute:
-    #
-
-    home = expanduser("~")
-    #local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-
-    #
     # Create table variables
     #
 
@@ -173,12 +126,6 @@ def main(args):
     if 'move_old_to_temp' in steps:
         print('Move old table to temp location')
         success = publish_table(table_old, table_temp)
-
-        #if not table_moved:
-        #    print('Old Table was not moved and will not be deleted')
-        #elif table_moved:
-        #    print('Deleting old table: {}'.format(table_old))
-        #    success = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
 
         if not success:
             print('create temp table failed')
