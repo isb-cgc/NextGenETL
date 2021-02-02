@@ -226,6 +226,8 @@ def build_clinical_table_from_jsonl(table_prefix, infer_schema=False):
 
     create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
+    return table_id
+
 
 def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
@@ -1373,6 +1375,19 @@ def remove_null_values(json_obj_list):
                 remove_null_values(obj[key])
 
 
+def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False):
+    clinical_type = "clinical" if not is_diagnoses else "clinical_diagnoses"
+
+    remove_null_values(records)
+    clinical_jsonl_filename = get_filename('jsonl', project_name, clinical_type)
+    local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
+    write_list_to_jsonl(local_clinical_filepath, records)
+    upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
+
+    clinical_table_prefix = "temp " + project_name + clinical_type
+    return build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
+
+
 def main(args):
     start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -1609,30 +1624,29 @@ def main(args):
                 elif max_diagnosis_count > 1 and diagnoses:
                     clinical_diagnoses_record['case_id'] = clinical_case_record['case_id']
                     clinical_diagnoses_record['case_submitter_id'] = clinical_case_record['case_submitter_id']
+                    clinical_diagnoses_record['project_submitter_id'] = clinical_case_record['project_submitter_id']
                     clinical_diagnoses_record['diagnoses'] = diagnoses
                     clinical_diagnoses_records.append(clinical_diagnoses_record)
 
                 clinical_records.append(clinical_case_record)
 
             if clinical_records:
-                remove_null_values(clinical_records)
-                clinical_jsonl_filename = get_filename('jsonl', project_name, "clinical")
-                local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
-                write_list_to_jsonl(local_clinical_filepath, clinical_records)
-                upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
+                clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
+                                                                       project_name)
 
-                clinical_table_prefix = project_name + " clinical"
-                build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema=True)
+                client = bigquery.Client()
+                clinical_table = client.get_table(clinical_table_id)
+                print("/n/nClinical table:")
+                print(clinical_table.schema)
 
             if clinical_diagnoses_records:
-                remove_null_values(clinical_diagnoses_records)
-                clinical_diagnoses_jsonl_filename = get_filename('jsonl', project_name, 'clinical_diagnoses')
-                local_clinical_diagnoses_filepath = get_scratch_fp(BQ_PARAMS, clinical_diagnoses_jsonl_filename)
-                write_list_to_jsonl(local_clinical_diagnoses_filepath, clinical_diagnoses_records)
-                upload_to_bucket(BQ_PARAMS, local_clinical_diagnoses_filepath, delete_local=True)
-
-                clinical_diagnoses_table_prefix = project_name + " clinical_diagnoses"
-                build_clinical_table_from_jsonl(clinical_diagnoses_table_prefix, infer_schema=True)
+                diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_records,
+                                                                        project_name,
+                                                                        is_diagnoses=False)
+                client = bigquery.Client()
+                diagnoses_table = client.get_table(diagnoses_table_id)
+                print("/n/nDiagnoses table:")
+                print(diagnoses_table.schema)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
