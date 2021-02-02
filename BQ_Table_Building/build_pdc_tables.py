@@ -1364,7 +1364,9 @@ def get_cases_by_project_submitter(studies_list):
 
 def remove_null_values(json_obj_list):
     for obj in json_obj_list:
-        for key in obj.keys():
+        obj_keys = list(obj.keys())
+
+        for key in obj_keys:
             if not obj[key]:
                 obj.pop(key)
             elif isinstance(obj[key], list):
