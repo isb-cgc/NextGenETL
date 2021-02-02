@@ -1321,6 +1321,7 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     }}""".format(pdc_study_id, offset, limit)
 
 
+"""
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
     for case in json_obj_list:
 
@@ -1339,6 +1340,25 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
 
         case['pdc_study_id'] = pdc_study_id
         case.update(ref_dict)
+"""
+
+
+def alter_case_demographics_json(json_obj_list, pdc_study_id):
+    for case in json_obj_list:
+
+        demographics = case.pop("demographics")
+
+        if len(demographics) > 1:
+            has_fatal_error("Cannot unnest case demographics because multiple records exist.")
+        elif len(demographics) == 1:
+            ref_dict = demographics[0]
+            case.update(ref_dict)
+
+        case['pdc_study_id'] = pdc_study_id
+
+        for key in case.keys():
+            if not case[key]:
+                case.pop(key)
 
 
 def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
