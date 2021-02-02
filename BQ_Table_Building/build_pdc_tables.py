@@ -1346,9 +1346,8 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
     for case in json_obj_list:
 
-        case_keys = list(case.keys())
-
         demographics = case.pop("demographics")
+        case_keys = list(case.keys())
         case_keys.append(demographics.keys())
 
         if len(demographics) > 1:
