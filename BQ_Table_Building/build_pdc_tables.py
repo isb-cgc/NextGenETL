@@ -1352,7 +1352,7 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
         if len(demographics) > 1:
             has_fatal_error("Cannot unnest case demographics because multiple records exist.")
         elif len(demographics) == 1:
-            case_keys.append(list(demographics[0].keys()))
+            case_keys += list(demographics[0].keys())
             ref_dict = demographics[0]
             case.update(ref_dict)
 
