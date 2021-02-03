@@ -1,0 +1,84 @@
+#
+# YAML Configuration file used for script create_view
+# Change a copied table to a view
+#
+
+version: 1
+files_and_buckets_and_tables:
+
+  # Update these parameters per run of the workflow #
+
+  ## Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  ## What is the table that is being turned into a view?
+  TABLE_OLD: your_table_to_be_turned_into_a_view
+
+  ## Which table is superseding it? (which table will the view point to?)
+  TABLE_NEW: new_table
+
+  ## Which data set that the table being turned into a view is in?
+  DATASET_OLD: your_dataset_to_be_turned_into_a_view
+
+  ## Which data set has the table that is superseding it in?
+  DATASET_NEW: your_new_dataset
+
+  ## Which data set should a copy of the old table be temporarly?
+  DATASET_TEMP: temp_dataset
+
+  ## Which project is table that is being turned into a view in?
+  PROJECT_OLD: your_project_where_the_table_to_be_turned_into_a_view
+
+  ## Which project is the table that is superseding it in?
+  PROJECT_NEW: your_new_project
+
+  ## Name of schema file:
+  SCHEMA_FILE_NAME: schemaFile.json
+
+  ## Which project should a copy of the old table be temporarly?
+  PROJECT_TEMP: your_temp_project
+
+  # Update these parameter per user of the workflow #
+
+  ## Where do we dump the schema git repository?
+  SCHEMA_REPO_LOCAL: /full/path/to/schemaRepo
+
+  ## What directory holds the processed schema, tag, and desc lists?
+  PROX_DESC_PREFIX: /full/path/to/scratch
+
+  # These parameters are rarely updated for the workflow #
+
+  ## Where is the repo?
+  SCHEMA_REPO_URL: https://github.com/your_org/yourSchemaRepo.git
+
+  ## What directory holds the schema data files in the repo?
+  RAW_SCHEMA_DIR: TableSchemasDirectory
+
+  ## What repo branch to use?
+  SCHEMA_REPO_BRANCH: master
+
+steps:
+
+  # Compare the new table to the old:
+  #- compare_tables
+
+  # Create a back up of the old table and then delete it:
+  #- move_old_to_temp
+
+  # Create a view to the new table with the old table's name
+  #- remove_old_table_and_create_view
+
+  # Get the table schema/description/tags pulled from git:
+  #- pull_table_info_from_git
+
+  # Extract the table schema/description/tags from that file:
+  #- process_git_schemas
+
+  # Update the field descriptions:
+  #- update_field_descriptions
+
+  # Add table description and tags to table:
+  #- update_table_description
+
+  # Delete temp table from scratch dataset
+  #- remove_temp_table
