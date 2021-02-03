@@ -1651,8 +1651,13 @@ def main(args):
                                                                         infer_schema=True)
                 client = bigquery.Client()
                 diagnoses_table = client.get_table(diagnoses_table_id)
-                print("/n/nDiagnoses table:")
-                print(diagnoses_table.schema)
+                diagnoses_schema = diagnoses_table.schema
+
+                for schema_field in diagnoses_schema:
+                    if schema_field.field_type = "RECORD":
+                        print(schema_field.name)
+                        print()
+                        print(schema_field.fields)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
