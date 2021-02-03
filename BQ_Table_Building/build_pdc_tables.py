@@ -1662,7 +1662,7 @@ def main(args):
                 diagnoses_schema = diagnoses_table.schema
 
                 diagnoses_table_name = get_table_name(project_name + "_clinical_diagnoses")
-                diagnoses_table_id = get_dev_table_id(diagnoses_table_name, dataset="clinical")
+                diagnoses_table_id = get_dev_table_id(diagnoses_table_name, dataset="PDC_clinical")
 
                 diagnoses_fields = {
                     "parent_level": list()
@@ -1701,7 +1701,7 @@ def main(args):
 
                 print(query)
 
-                # load_table_from_query(BQ_PARAMS, diagnoses_table_id, query)
+                load_table_from_query(BQ_PARAMS, diagnoses_table_id, query)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
