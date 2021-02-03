@@ -1662,6 +1662,8 @@ def main(args):
                         fields[schema_field.name] = set()
                         for child_schema_field in schema_field.fields:
                             fields[schema_field.name].add(child_schema_field.name)
+                    else:
+                        fields["parent_level"].add(schema_field.name)
 
                 print(fields)
 
