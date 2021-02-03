@@ -1598,8 +1598,6 @@ def main(args):
 
         print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
-        print(BQ_PARAMS["COLUMN_ORDER"])
-
         for project_name, project_dict in cases_by_project_submitter.items():
             record_count = len(project_dict['cases'])
             max_diagnosis_count = project_dict['max_diagnosis_count']
@@ -1664,18 +1662,20 @@ def main(args):
                 diagnoses_schema = diagnoses_table.schema
 
                 diagnoses_fields = {
-                    "parent_level": set()
+                    "parent_level": list()
                 }
 
                 for schema_field in diagnoses_schema:
                     if schema_field.field_type == "RECORD":
-                        diagnoses_fields[schema_field.name] = set()
+                        diagnoses_fields[schema_field.name] = list()
                         for child_schema_field in schema_field.fields:
-                            diagnoses_fields[schema_field.name].add(child_schema_field.name)
+                            column_position = BQ_PARAMS['COLUMN_ORDER'].index(child_schema_field.name)
+                            diagnoses_fields[schema_field.name].append((child_schema_field.name, column_position))
                     else:
-                        diagnoses_fields["parent_level"].add(schema_field.name)
+                        column_position = BQ_PARAMS['COLUMN_ORDER'].index(schema_field.name)
+                        diagnoses_fields["parent_level"].append((schema_field.name, column_position))
 
-                # print(diagnoses_fields)
+                print(diagnoses_fields)
 
 
 
