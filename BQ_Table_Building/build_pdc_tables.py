@@ -1653,11 +1653,17 @@ def main(args):
                 diagnoses_table = client.get_table(diagnoses_table_id)
                 diagnoses_schema = diagnoses_table.schema
 
+                fields = {
+                    "parent_level": set()
+                }
+
                 for schema_field in diagnoses_schema:
                     if schema_field.field_type == "RECORD":
-                        print(schema_field.name)
-                        print()
-                        print(schema_field.fields)
+                        fields[schema_field.name] = set()
+                        for child_schema_field in schema_field.fields:
+                            fields[schema_field.name].add(child_schema_field.name)
+
+                print(fields)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
