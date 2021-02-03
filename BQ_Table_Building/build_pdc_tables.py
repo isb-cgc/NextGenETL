@@ -1598,6 +1598,8 @@ def main(args):
 
         print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
+        print(BQ_PARAMS["COLUMN_ORDER"])
+
         for project_name, project_dict in cases_by_project_submitter.items():
             record_count = len(project_dict['cases'])
             max_diagnosis_count = project_dict['max_diagnosis_count']
@@ -1636,13 +1638,21 @@ def main(args):
                                                                        project_name,
                                                                        infer_schema=True)
 
-                # client = bigquery.Client()
-                # clinical_table = client.get_table(clinical_table_id)
-                # print("/n/nClinical table:")
-                # clinical_schema = clinical_table.schema
+                clinical_fields = {
+                    "parent_level": set()
+                }
 
-                # for schema_field in clinical_schema:
-                #     if schema_field.field_type = "RECORD"
+                client = bigquery.Client()
+                clinical_table = client.get_table(clinical_table_id)
+                clinical_schema = clinical_table.schema
+
+                for schema_field in clinical_schema:
+                    if schema_field.field_type == "RECORD":
+                        clinical_fields[schema_field.name] = set()
+                        for child_schema_field in schema_field.fields:
+                            clinical_fields[schema_field.name].add(child_schema_field.name)
+                    else:
+                        clinical_fields["parent_level"].add(schema_field.name)
 
             if clinical_diagnoses_records:
                 diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
@@ -1653,19 +1663,21 @@ def main(args):
                 diagnoses_table = client.get_table(diagnoses_table_id)
                 diagnoses_schema = diagnoses_table.schema
 
-                fields = {
+                diagnoses_fields = {
                     "parent_level": set()
                 }
 
                 for schema_field in diagnoses_schema:
                     if schema_field.field_type == "RECORD":
-                        fields[schema_field.name] = set()
+                        diagnoses_fields[schema_field.name] = set()
                         for child_schema_field in schema_field.fields:
-                            fields[schema_field.name].add(child_schema_field.name)
+                            diagnoses_fields[schema_field.name].add(child_schema_field.name)
                     else:
-                        fields["parent_level"].add(schema_field.name)
+                        diagnoses_fields["parent_level"].add(schema_field.name)
 
-                print(fields)
+                # print(diagnoses_fields)
+
+
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
