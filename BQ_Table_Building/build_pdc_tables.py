@@ -1699,7 +1699,9 @@ def main(args):
                 FROM {} clinical
                 """.format(parent_select_str, diagnoses_subquery, temp_diagnoses_table_id)
 
-                load_table_from_query(BQ_PARAMS, diagnoses_table_id, query)
+                print(query)
+
+                # load_table_from_query(BQ_PARAMS, diagnoses_table_id, query)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
