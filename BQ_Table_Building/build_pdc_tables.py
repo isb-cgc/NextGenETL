@@ -1390,6 +1390,65 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     return build_clinical_table_from_jsonl(clinical_table_prefix, clinical_jsonl_filename, infer_schema)
 
 
+def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
+    client = bigquery.Client()
+    temp_table = client.get_table(temp_table_id)
+    table_schema = temp_table.schema
+
+    table_name = get_table_name(project_name + "_" + clinical_type)
+
+    table_id = get_dev_table_id(table_name, dataset="PDC_clinical")
+
+    fields = {
+        "parent_level": list()
+    }
+
+    for schema_field in table_schema:
+        if schema_field.field_type == "RECORD":
+            fields[schema_field.name] = list()
+            for child_schema_field in schema_field.fields:
+                column_position = BQ_PARAMS['COLUMN_ORDER'].index(child_schema_field.name)
+                fields[schema_field.name].append((child_schema_field.name, column_position))
+        else:
+            column_position = BQ_PARAMS['COLUMN_ORDER'].index(schema_field.name)
+            fields["parent_level"].append((schema_field.name, column_position))
+
+    # sort list by index, output list of column names
+    parent_select_list = [tup[0] for tup in sorted(fields['parent_level'], key=lambda t: t[1])]
+    parent_select_str = ", ".join(parent_select_list)
+
+    fields.pop("parent_level")
+
+    if len(fields) > 0:
+        nested_field_list = fields.keys()
+
+    subqueries = ""
+
+    for field in nested_field_list:
+        select_list = [tup[0] for tup in sorted(fields[field], key=lambda t: t[1])]
+        select_str = ", ".join(select_list)
+
+        subquery = """
+            , ARRAY(
+                SELECT AS STRUCT
+                    {0}
+                FROM clinical.{1}
+            ) AS {1}
+        """.format(select_str, field)
+
+        subqueries += subquery
+
+    query = """
+    SELECT {}
+    {}
+    FROM {} clinical
+    """.format(parent_select_str, subqueries, temp_table_id)
+
+    # print(query)
+
+    load_table_from_query(BQ_PARAMS, table_id, query)
+
+
 def main(args):
     start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -1632,76 +1691,17 @@ def main(args):
                 clinical_records.append(clinical_case_record)
 
             if clinical_records:
-                clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
+                temp_clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
                                                                        project_name,
                                                                        infer_schema=True)
-
-                clinical_fields = {
-                    "parent_level": set()
-                }
-
-                client = bigquery.Client()
-                clinical_table = client.get_table(clinical_table_id)
-                clinical_schema = clinical_table.schema
-
-                for schema_field in clinical_schema:
-                    if schema_field.field_type == "RECORD":
-                        clinical_fields[schema_field.name] = set()
-                        for child_schema_field in schema_field.fields:
-                            clinical_fields[schema_field.name].add(child_schema_field.name)
-                    else:
-                        clinical_fields["parent_level"].add(schema_field.name)
-
+                create_ordered_clinical_table(temp_clinical_table_id, project_name, "clinical")
             if clinical_diagnoses_records:
                 temp_diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
                                                                              project_name,
                                                                              is_diagnoses=False,
                                                                              infer_schema=True)
-                client = bigquery.Client()
-                diagnoses_table = client.get_table(temp_diagnoses_table_id)
-                diagnoses_schema = diagnoses_table.schema
 
-                diagnoses_table_name = get_table_name(project_name + "_clinical_diagnoses")
-                diagnoses_table_id = get_dev_table_id(diagnoses_table_name, dataset="PDC_clinical")
-
-                diagnoses_fields = {
-                    "parent_level": list()
-                }
-
-                for schema_field in diagnoses_schema:
-                    if schema_field.field_type == "RECORD":
-                        diagnoses_fields[schema_field.name] = list()
-                        for child_schema_field in schema_field.fields:
-                            column_position = BQ_PARAMS['COLUMN_ORDER'].index(child_schema_field.name)
-                            diagnoses_fields[schema_field.name].append((child_schema_field.name, column_position))
-                    else:
-                        column_position = BQ_PARAMS['COLUMN_ORDER'].index(schema_field.name)
-                        diagnoses_fields["parent_level"].append((schema_field.name, column_position))
-
-                # sort list by index, output list of column names
-                parent_select_list = [tup[0] for tup in sorted(diagnoses_fields['parent_level'], key=lambda t: t[1])]
-                parent_select_str = ", ".join(parent_select_list)
-
-                diagnoses_select_list = [tup[0] for tup in sorted(diagnoses_fields['diagnoses'], key=lambda t: t[1])]
-                diagnoses_select_str = ", ".join(diagnoses_select_list)
-
-                diagnoses_subquery = """
-                , ARRAY(
-                    SELECT AS STRUCT
-                        {}
-                    FROM clinical.diagnoses
-                ) AS diagnoses
-                """.format(diagnoses_select_str)
-
-                query = """
-                SELECT {}
-                {}
-                FROM {} clinical
-                """.format(parent_select_str, diagnoses_subquery, temp_diagnoses_table_id)
-
-                print(query)
-
-                load_table_from_query(BQ_PARAMS, diagnoses_table_id, query)
+                create_ordered_clinical_table(temp_diagnoses_table_id, project_name, "clinical_diagnoses")
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
