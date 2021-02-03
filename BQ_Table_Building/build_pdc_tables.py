@@ -211,23 +211,20 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
     return record_list
 
 
-def build_clinical_table_from_jsonl(table_prefix, infer_schema=False, schema=None):
+def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, schema=None):
     table_name = get_table_name(table_prefix)
-    filename = get_filename('jsonl', table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
 
     if not infer_schema and not schema:
-        has_fatal_error("No schema passed to function and infer_schema set to False, exiting")
-    elif not schema:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
         if not schema:
             has_fatal_error("No schema, exiting")
 
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema, infer_schema)
 
     return table_id
 
@@ -1388,8 +1385,8 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     write_list_to_jsonl(local_clinical_filepath, records)
     upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
 
-    clinical_table_prefix = "temp " + project_name + clinical_type
-    return build_clinical_table_from_jsonl(clinical_table_prefix, infer_schema)
+    clinical_table_prefix = project_name + "_" + clinical_type
+    return build_clinical_table_from_jsonl(clinical_table_prefix, clinical_jsonl_filename, infer_schema)
 
 
 def main(args):
