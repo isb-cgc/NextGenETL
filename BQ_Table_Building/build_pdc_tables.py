@@ -1419,24 +1419,24 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     fields.pop("parent_level")
 
+    subqueries = ""
+
     if len(fields) > 0:
         nested_field_list = fields.keys()
 
-    subqueries = ""
+        for field in nested_field_list:
+            select_list = [tup[0] for tup in sorted(fields[field], key=lambda t: t[1])]
+            select_str = ", ".join(select_list)
 
-    for field in nested_field_list:
-        select_list = [tup[0] for tup in sorted(fields[field], key=lambda t: t[1])]
-        select_str = ", ".join(select_list)
+            subquery = """
+                , ARRAY(
+                    SELECT AS STRUCT
+                        {0}
+                    FROM clinical.{1}
+                ) AS {1}
+            """.format(select_str, field)
 
-        subquery = """
-            , ARRAY(
-                SELECT AS STRUCT
-                    {0}
-                FROM clinical.{1}
-            ) AS {1}
-        """.format(select_str, field)
-
-        subqueries += subquery
+            subqueries += subquery
 
     query = """
     SELECT {}
