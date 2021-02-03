@@ -23,7 +23,7 @@ files_and_buckets_and_tables:
   ## Which data set has the table that is superseding it in?
   DATASET_NEW: your_new_dataset
 
-  ## Which data set should a copy of the old table be temporarly?
+  ## Which data set should a copy of the old table be temporarily?
   DATASET_TEMP: temp_dataset
 
   ## Which project is table that is being turned into a view in?
@@ -35,7 +35,7 @@ files_and_buckets_and_tables:
   ## Name of schema file:
   SCHEMA_FILE_NAME: schemaFile.json
 
-  ## Which project should a copy of the old table be temporarly?
+  ## Which project should a copy of the old table be temporarily?
   PROJECT_TEMP: your_temp_project
 
   # Update these parameter per user of the workflow #
@@ -62,10 +62,10 @@ steps:
   # Compare the new table to the old:
   #- compare_tables
 
-  # Create a back up of the old table and then delete it:
+  # Create a back up of the old table:
   #- move_old_to_temp
 
-  # Create a view to the new table with the old table's name
+  # Remove old table and create a view to the new table with the old table's name
   #- remove_old_table_and_create_view
 
   # Get the table schema/description/tags pulled from git:
