@@ -1645,7 +1645,7 @@ def main(args):
                 #     if schema_field.field_type = "RECORD"
 
             if clinical_diagnoses_records:
-                diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_records,
+                diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
                                                                         project_name,
                                                                         is_diagnoses=False,
                                                                         infer_schema=True)
