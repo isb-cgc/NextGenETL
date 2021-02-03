@@ -1654,7 +1654,7 @@ def main(args):
                 diagnoses_schema = diagnoses_table.schema
 
                 for schema_field in diagnoses_schema:
-                    if schema_field.field_type = "RECORD":
+                    if schema_field.field_type == "RECORD":
                         print(schema_field.name)
                         print()
                         print(schema_field.fields)
