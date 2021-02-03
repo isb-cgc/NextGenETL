@@ -1685,15 +1685,19 @@ def main(args):
                 diagnoses_select_list = [tup[0] for tup in sorted(diagnoses_fields['diagnoses'], key=lambda t: t[1])]
                 diagnoses_select_str = ", ".join(diagnoses_select_list)
 
-                query = """
-                SELECT {},
-                ARRAY(
+                diagnoses_subquery = """
+                , ARRAY(
                     SELECT AS STRUCT
                         {}
-                    FROM data.diagnoses
+                    FROM clinical.diagnoses
                 ) AS diagnoses
-                FROM {}
-                """.format(parent_select_str, diagnoses_select_str, temp_diagnoses_table_id)
+                """.format(diagnoses_select_str)
+
+                query = """
+                SELECT {}
+                {}
+                FROM {} clinical
+                """.format(parent_select_str, diagnoses_subquery, temp_diagnoses_table_id)
 
                 print(query)
 
