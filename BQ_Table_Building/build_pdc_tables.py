@@ -1448,7 +1448,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     load_table_from_query(BQ_PARAMS, table_id, query)
 
-    delete_bq_table(temp_table_id)
+    # delete_bq_table(temp_table_id)
 
 
 def main(args):
