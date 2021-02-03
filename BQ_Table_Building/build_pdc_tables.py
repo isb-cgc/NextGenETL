@@ -1448,6 +1448,8 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     load_table_from_query(BQ_PARAMS, table_id, query)
 
+    delete_bq_table(temp_table_id)
+
 
 def main(args):
     start_time = time.time()
@@ -1692,13 +1694,13 @@ def main(args):
 
             if clinical_records:
                 temp_clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
-                                                                       project_name,
-                                                                       infer_schema=True)
+                                                                            project_name,
+                                                                            infer_schema=True)
                 create_ordered_clinical_table(temp_clinical_table_id, project_name, "clinical")
             if clinical_diagnoses_records:
                 temp_diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
                                                                              project_name,
-                                                                             is_diagnoses=False,
+                                                                             is_diagnoses=True,
                                                                              infer_schema=True)
 
                 create_ordered_clinical_table(temp_diagnoses_table_id, project_name, "clinical_diagnoses")
