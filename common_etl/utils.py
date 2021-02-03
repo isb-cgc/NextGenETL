@@ -1048,7 +1048,7 @@ def exists_bq_table(table_id):
 
 
 def load_table_from_query(bq_params, table_id, query):
-    """Create a new BQ table from the returned results of querying an existing BQ db.
+    """Create a new BQ table from the returned results of querying an existing BQ table.
 
     :param bq_params: bq params from yaml config file
     :param table_id: table id in standard SQL format

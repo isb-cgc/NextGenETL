@@ -1152,6 +1152,7 @@ def alter_cases_json(case_json_obj_list):
             case.update(ref_dict)
 """
 
+
 def get_cases(include_external_references=False):
     endpoint = 'allCases'
     dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
@@ -1588,7 +1589,6 @@ def main(args):
                     case.update(diagnosis_record)
 
                 if case_id_key_tuple in demographic_records_by_case_id:
-
                     demographic_record = demographic_records_by_case_id[case_id_key_tuple]
 
                     case.update(demographic_record)
@@ -1653,13 +1653,16 @@ def main(args):
                         clinical_fields["parent_level"].add(schema_field.name)
 
             if clinical_diagnoses_records:
-                diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
-                                                                        project_name,
-                                                                        is_diagnoses=False,
-                                                                        infer_schema=True)
+                temp_diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
+                                                                             project_name,
+                                                                             is_diagnoses=False,
+                                                                             infer_schema=True)
                 client = bigquery.Client()
-                diagnoses_table = client.get_table(diagnoses_table_id)
+                diagnoses_table = client.get_table(temp_diagnoses_table_id)
                 diagnoses_schema = diagnoses_table.schema
+
+                diagnoses_table_name = get_table_name(project_name + "_clinical_diagnoses")
+                diagnoses_table_id = get_dev_table_id(diagnoses_table_name, dataset="clinical")
 
                 diagnoses_fields = {
                     "parent_level": list()
@@ -1675,9 +1678,24 @@ def main(args):
                         column_position = BQ_PARAMS['COLUMN_ORDER'].index(schema_field.name)
                         diagnoses_fields["parent_level"].append((schema_field.name, column_position))
 
-                print(diagnoses_fields)
+                # sort list by index, output list of column names
+                parent_select_list = [tup[0] for tup in sorted(diagnoses_fields['parent_level'], key=lambda t: t[1])]
+                parent_select_str = ", ".join(parent_select_list)
 
+                diagnoses_select_list = [tup[0] for tup in sorted(diagnoses_fields['diagnoses'], key=lambda t: t[1])]
+                diagnoses_select_str = ", ".join(diagnoses_select_list)
 
+                query = """
+                SELECT {},
+                ARRAY(
+                    SELECT AS STRUCT
+                        {}
+                    FROM data.diagnoses
+                ) AS diagnoses
+                FROM {}
+                """.format(parent_select_str, diagnoses_select_str, temp_diagnoses_table_id)
+
+                print(query)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
