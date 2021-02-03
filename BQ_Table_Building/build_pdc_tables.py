@@ -1636,10 +1636,13 @@ def main(args):
                                                                        project_name,
                                                                        infer_schema=True)
 
-                client = bigquery.Client()
-                clinical_table = client.get_table(clinical_table_id)
-                print("/n/nClinical table:")
-                print(clinical_table.schema)
+                # client = bigquery.Client()
+                # clinical_table = client.get_table(clinical_table_id)
+                # print("/n/nClinical table:")
+                # clinical_schema = clinical_table.schema
+
+                # for schema_field in clinical_schema:
+                #     if schema_field.field_type = "RECORD"
 
             if clinical_diagnoses_records:
                 diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_records,
