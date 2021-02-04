@@ -123,7 +123,7 @@ def main(args):
             print('compare_tables failed')
             return
 
-    if 'move_old_to_temp' in steps:
+    if 'copy_old_to_temp' in steps:
         print('Move old table to temp location')
         success = publish_table(table_old, table_temp)
 
@@ -139,19 +139,20 @@ def main(args):
 
         if num_rows == 0:
             print('Deleting old table: {}'.format(table_old))
-            deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'])
+            deleted = delete_table_bq_job(params['DATASET_OLD'], params['TABLE_OLD'], params['PROJECT_OLD'])
 
             if not deleted:
                 print('delete table failed')
                 return
 
-            print('create view')
+            else:
+                print('create view')
 
-            view_created = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
+                view_created = create_view(params['TABLE_OLD'], table_new, params['PROJECT_OLD'], params['DATASET_OLD'])
 
-            if not view_created:
-                print('create view failed')
-                return
+                if not view_created:
+                    print('create view failed')
+                    return
         else:
             print('the temp table is not the same as the old table and differs by {} rows'.format(num_rows))
 
