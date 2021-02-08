@@ -817,7 +817,6 @@ def get_cases_by_program(bq_params, program):
     :param program: the program from which the cases originate
     :return: cases dict
     """
-    start_time = time.time()
     cases = []
 
     sample_table_id = get_biospecimen_table_id(bq_params, program)
@@ -828,15 +827,13 @@ def get_cases_by_program(bq_params, program):
         WHERE case_id IN (
             SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
-            WHERE project_name = '{}')
+            WHERE program_name = '{}')
     """.format(get_working_table_id(bq_params), sample_table_id, program)
 
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())
-        case_items.pop('project')
+        # case_items.pop('project')
         cases.append(case_items)
-
-    end_time = time.time() - start_time
 
     return cases
 
@@ -855,7 +852,12 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     tries = 0
 
     while not api_res.ok and tries < max_retries:
-        console_out("API response status code {}: {};\nRetry {} of {}...",
+        if api_res.status_code == 400:
+            # don't try again!
+            has_fatal_error("Response status code {}:\n{}.\nRequest body:\n{}".
+                            format(api_res.status_code, api_res.reason, req_body))
+
+        console_out("Response status code {}: {};\nRetry {} of {}...",
                     (api_res.status_code, api_res.reason, tries, max_retries))
         time.sleep(3)
 
@@ -872,7 +874,6 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     if 'errors' in json_res and json_res['errors']:
         if fail_on_error:
             has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
-        return None
 
     return json_res
 
@@ -964,7 +965,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
         console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
 
 
-def create_and_load_table(bq_params, jsonl_file, schema, table_id):
+def create_and_load_table(bq_params, jsonl_file, table_id, schema=None, infer_schema=False):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -974,7 +975,13 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
-    job_config.schema = schema
+
+    if schema:
+        job_config.schema = schema
+    else:
+        print(" - No schema supplied for {}, using schema autodetect.".format(table_id))
+        job_config.autodetect = True
+
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
@@ -988,7 +995,7 @@ def create_and_load_table(bq_params, jsonl_file, schema, table_id):
         has_fatal_error(err)
 
 
-def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker=''):
+def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -1002,8 +1009,8 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-    job_config.skip_leading_rows = 1
-    job_config.null_marker = null_marker  # todo added this back, is that ok?
+    job_config.skip_leading_rows = num_header_rows
+    job_config.null_marker = null_marker
 
     gs_uri = build_working_gs_uri(bq_params, tsv_file)
 
@@ -1024,8 +1031,6 @@ def delete_bq_table(table_id):
     client = bigquery.Client()
     client.delete_table(table_id, not_found_ok=True)
 
-    console_out("deleted table: {0}", (table_id,))
-
 
 def exists_bq_table(table_id):
     """Determine whether bq_table exists.
@@ -1043,7 +1048,7 @@ def exists_bq_table(table_id):
 
 
 def load_table_from_query(bq_params, table_id, query):
-    """Create a new BQ table from the returned results of querying an existing BQ db.
+    """Create a new BQ table from the returned results of querying an existing BQ table.
 
     :param bq_params: bq params from yaml config file
     :param table_id: table id in standard SQL format
@@ -1118,7 +1123,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    console_out(" done. {0} rows inserted.", (table.num_rows,))
+    console_out(" done. {0} rows inserted.\n", (table.num_rows,))
 
 
 def await_job(bq_params, client, bq_job):
@@ -1147,6 +1152,7 @@ def await_job(bq_params, client, bq_job):
         has_fatal_error("While running BQ job: {}\n{}".format(err_res, errs))
 
 
+# todo not using one of the return vars
 def from_schema_file_to_obj(bq_params, filename):
     """
     Open table schema file and convert to python dict, in order to pass the data to
@@ -1157,25 +1163,27 @@ def from_schema_file_to_obj(bq_params, filename):
     :return: schema list, table metadata dict
     """
 
-    fp = get_filepath(bq_params['SCHEMA_DIR'], filename)
-    # todo changed this, does it work?
+    if "BQ_REPO" in bq_params:
+        repo = bq_params['BQ_REPO']
+    else:
+        # may not need this, but want to make sure we're not breaking something
+        repo = 'BQEcosystem'
+
+    fp = get_filepath(repo + "/" + bq_params['SCHEMA_DIR'], filename)
 
     if not os.path.exists(fp):
         return None, None
 
     with open(fp, 'r') as schema_file:
-        try:
-            schema_file = json.load(schema_file)
+        schema_file = json.load(schema_file)
 
-            schema = schema_file['schema']['fields']
+        schema = schema_file['schema']['fields']
 
-            table_metadata = {
-                'description': schema_file['description'],
-                'friendlyName': schema_file['friendlyName'],
-                'labels': schema_file['labels']
-            }
-        except FileNotFoundError:
-            return None, None
+        table_metadata = {
+            'description': schema_file['description'],
+            'friendlyName': schema_file['friendlyName'],
+            'labels': schema_file['labels']
+        }
 
         return schema, table_metadata
 
@@ -1279,12 +1287,13 @@ def update_table_metadata(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def update_friendly_name(bq_params, table_id, custom_name=None):
+def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
     """Modify a table's friendly name metadata.
 
     :param bq_params: bq param object from yaml config
     :param table_id: table id in standard SQL format
     :param custom_name: By default, appends "'REL' + bq_params['RELEASE'] + ' VERSIONED'"
+    :param is_gdc: If this is GDC, we add REL before the version
     onto the existing friendly name. If custom_name is specified, this behavior is
     overridden, and the table's friendly name is replaced entirely.
     """
@@ -1294,7 +1303,12 @@ def update_friendly_name(bq_params, table_id, custom_name=None):
     if custom_name:
         new_name = custom_name
     else:
-        new_name = table.friendly_name + ' REL' + bq_params['RELEASE'] + ' VERSIONED'
+        if is_gdc:
+            release_str = ' REL' + bq_params['RELEASE']
+        else:
+            release_str = ' ' + bq_params['RELEASE']
+
+        new_name = table.friendly_name + release_str + ' VERSIONED'
 
     table.friendly_name = new_name
     client.update_table(table, ["friendly_name"])
@@ -1352,12 +1366,15 @@ def upload_file_to_bucket(project, bucket, blob_dir, fp):
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
 
 
-def upload_to_bucket(bq_params, scratch_fp):
+def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     """Uploads file to a google storage bucket (location specified in yaml config).
 
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
+    :param delete_local: todo
     """
+    if not os.path.exists(scratch_fp):
+        has_fatal_error("Invalid filepath: {}".format(scratch_fp), FileNotFoundError)
 
     try:
         storage_client = storage.Client(project="")
@@ -1370,6 +1387,14 @@ def upload_to_bucket(bq_params, scratch_fp):
         blob.upload_from_filename(scratch_fp)
     except exceptions.GoogleCloudError as err:
         has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+
+    if delete_local and os.path.exists(scratch_fp):
+        os.remove(scratch_fp)
+        print("Successfully uploaded file to {}/{}. Local file deleted.\n".
+              format(bq_params['WORKING_BUCKET'], blob_name))
+    else:
+        print("Successfully uploaded file to {}/{}. Local file not deleted (path: {}).\n".
+              format(bq_params['WORKING_BUCKET'], blob_name, scratch_fp))
 
 
 def download_from_bucket(bq_params, filename):
@@ -1558,9 +1583,7 @@ def load_config(args, yaml_dict_keys):
     yaml_file_arg = args[1]
 
     with open(yaml_file_arg, mode='r') as yaml_file_arg:
-
         yaml_dict = None
-
         config_stream = io.StringIO(yaml_file_arg.read())
 
         try:
