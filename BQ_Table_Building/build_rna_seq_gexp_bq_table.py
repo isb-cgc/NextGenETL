@@ -213,7 +213,7 @@ def attach_barcodes_sql(step2_table, aliquot_table, case_table):
                a1.file_gdc_id,
                a1.platform,
                a1.file_name
-        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = c.case_barcode
+        FROM a1 JOIN `{2}` AS c ON a1.case_barcode = c.case_barcode and a1.project_short_name = c.project_id
         '''.format(step2_table, aliquot_table, case_table)
 '''
 ----------------------------------------------------------------------------------------------
@@ -313,7 +313,7 @@ def join_three_sql(table1, table2, sql_dict):
           c.{5},
           c.platform
         FROM ab JOIN `{8}` AS c
-        ON (ab.aliquot_gdc_id = c.aliquot_gdc_id) AND (ab.Ensembl_gene_id_v = c.Ensembl_gene_id_v)
+        ON (ab.sample_gdc_id = c.sample_gdc_id) AND (ab.aliquot_gdc_id = c.aliquot_gdc_id) AND (ab.Ensembl_gene_id_v = c.Ensembl_gene_id_v)
         '''.format(table_1_vals['count_column'], table_2_vals['count_column'], table_3_vals['count_column'],
                    table_1_vals['file_column'], table_2_vals['file_column'], table_3_vals['file_column'],
                    table_1_vals['table'], table_2_vals['table'], table_3_vals['table'])
@@ -872,7 +872,8 @@ def main(args):
             # remove old table
             elif table_moved:
                 print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
+                                                   params['PUBLICATION_PROJECT'])
                 if not delete_table:
                     print('delete table failed')
                     return
@@ -915,7 +916,7 @@ def main(args):
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                     publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
-                                    'archived')
+                                    'archived', params['PUBLICATION_PROJECT'])
 
         if not success:
             print("update status tag table failed")
