@@ -1068,8 +1068,8 @@ def alter_files_per_study_json(files_per_study_obj_list):
         files_per_study_obj['url'] = url
 
 
-def get_file_ids():
-    table_name = get_table_name(BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+def get_file_ids(endpoint):
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata=True)
     return get_query_results(make_file_id_query(table_id))  # todo fix back
 
@@ -1538,7 +1538,7 @@ def main(args):
                                infer_schema=True)
 
     if 'build_file_pdc_metadata_jsonl' in steps:
-        file_ids = get_file_ids()
+        file_ids = get_file_ids("filesPerStudy")
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_file_pdc_metadata_table' in steps:
