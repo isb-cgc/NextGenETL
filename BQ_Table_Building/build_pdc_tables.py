@@ -1478,7 +1478,8 @@ def main(args):
         delete_from_steps('build_studies_jsonl', steps)  # allows for exit without building study lists if not used
 
     if 'build_studies_table' in steps:
-        build_table_from_jsonl(endpoint='allPrograms')
+        build_table_from_jsonl(endpoint='allPrograms',
+                               infer_schema=True)
 
         delete_from_steps('build_studies_table', steps)  # allows for exit without building study lists if not used
 
@@ -1535,7 +1536,8 @@ def main(args):
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
                                BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILES_PER_STUDY_TABLE'])
+                               BQ_PARAMS['FILES_PER_STUDY_TABLE'],
+                               infer_schema=True)
 
     if 'build_file_pdc_metadata_jsonl' in steps:
         file_ids = get_file_ids()
@@ -1544,7 +1546,8 @@ def main(args):
     if 'build_file_pdc_metadata_table' in steps:
         build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
                                BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'])
+                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'],
+                               infer_schema=True)
 
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
