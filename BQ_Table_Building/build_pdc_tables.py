@@ -1534,9 +1534,7 @@ def main(args):
                                  ids=pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
-                               BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILES_PER_STUDY_TABLE'],
+        build_table_from_jsonl("filesPerStudy",
                                infer_schema=True)
 
     if 'build_file_pdc_metadata_jsonl' in steps:
@@ -1544,9 +1542,7 @@ def main(args):
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_file_pdc_metadata_table' in steps:
-        build_table_from_jsonl(BQ_PARAMS['DEV_PROJECT'],
-                               BQ_PARAMS['DEV_META_DATASET'],
-                               BQ_PARAMS['FILE_PDC_METADATA_TABLE'],
+        build_table_from_jsonl("fileMetadata",
                                infer_schema=True)
 
     if 'build_file_associated_entries_table' in steps:
