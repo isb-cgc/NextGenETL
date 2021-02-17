@@ -1398,7 +1398,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     shortened_project_name = BQ_PARAMS["PROJECT_ABBREVIATION_MAP"][project_name]
     table_prefix = "_".join([clinical_type, shortened_project_name, BQ_PARAMS['DATA_SOURCE']])
     table_name = get_table_name(table_prefix)
-    table_id = get_dev_table_id(table_name, BQ_PARAMS['CLINICAL_DATASET'])
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     fields = {
         "parent_level": list()
