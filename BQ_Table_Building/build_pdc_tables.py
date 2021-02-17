@@ -1879,6 +1879,7 @@ def main(args):
                 load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(pdc_study_id))
 
                 update_column_metadata(BQ_PARAMS['QUANT_DATA_TABLE'], final_table_id)
+
         update_table_metadata(BQ_PARAMS['DEV_DATASET'], table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
 
     if "publish_proteome_tables" in steps:
