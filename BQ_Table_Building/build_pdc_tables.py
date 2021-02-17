@@ -1469,7 +1469,7 @@ def update_column_metadata(table_type, table_id):
     update_schema(table_id, descriptions)
 
 
-def update_table_metadata(table_type=None):
+def update_table_metadata(dataset, table_type=None):
     rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
     metadata_fp = get_filepath(rel_path)
     metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
@@ -1487,7 +1487,7 @@ def update_table_metadata(table_type=None):
 
     for json_file in filtered_metadata_files:
         table_name = json_file.split('.')[-2]
-        table_id = get_dev_table_id(table_name)
+        table_id = get_dev_table_id(table_name, dataset=dataset)
 
         if not exists_bq_table(table_id):
             console_out("skipping {} (no bq table found)", (table_id,))
@@ -1539,6 +1539,7 @@ def main(args):
         studies_list = list()
         embargoed_studies_list = list()
         pdc_study_ids = list()
+        embargoed_pdc_study_ids = list()
 
         studies_output_name = API_PARAMS['ENDPOINT_SETTINGS']['allPrograms']['output_name']
 
@@ -1552,6 +1553,11 @@ def main(args):
 
         for study in sorted(studies_list, key=lambda item: item['pdc_study_id']):
             pdc_study_ids.append(study['pdc_study_id'])
+
+        for study in embargoed_studies_list:
+            embargoed_pdc_study_ids.append(study['pdc_study_id'])
+
+        all_pdc_study_ids = embargoed_pdc_study_ids + pdc_study_ids
 
     if 'build_biospecimen_tsv' in steps:
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
@@ -1582,7 +1588,7 @@ def main(args):
         build_jsonl_from_pdc_api(endpoint="filesPerStudy",
                                  request_function=make_files_per_study_query,
                                  alter_json_function=alter_files_per_study_json,
-                                 ids=pdc_study_ids)
+                                 ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl("filesPerStudy",
@@ -1611,7 +1617,7 @@ def main(args):
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'update_file_metadata_tables_metadata' in steps:
-        update_table_metadata(BQ_PARAMS['FILE_METADATA'])
+        update_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
@@ -1764,7 +1770,7 @@ def main(args):
                                               project_name,
                                               BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
-        update_table_metadata(table_type=BQ_PARAMS['CLINICAL_TABLE'])
+        update_table_metadata(BQ_PARAMS['CLINICAL_DATASET'], table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
@@ -1873,7 +1879,7 @@ def main(args):
                 load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(pdc_study_id))
 
                 update_column_metadata(BQ_PARAMS['QUANT_DATA_TABLE'], final_table_id)
-        update_table_metadata(table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
+        update_table_metadata(BQ_PARAMS['DEV_DATASET'], table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
 
     if "publish_proteome_tables" in steps:
         for study in get_proteome_studies(studies_list):
