@@ -78,7 +78,7 @@ def get_table_id(project, dataset, table_name):
 def get_dev_table_id(table_name, is_metadata=False, dataset=None):
     if not dataset:
         if is_metadata:
-            dataset = BQ_PARAMS['DEV_META_DATASET']
+            dataset = BQ_PARAMS['META_DATASET']
         else:
             dataset = BQ_PARAMS['DEV_DATASET']
 
@@ -213,7 +213,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
 def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, schema=None):
     table_name = get_table_name(table_prefix)
-    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_CLINICAL_DATASET'])
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
 
@@ -1155,7 +1155,7 @@ def alter_cases_json(case_json_obj_list):
 
 def get_cases(include_external_references=False):
     endpoint = 'allCases'
-    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
+    dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     if include_external_references:
         select_statement = "SELECT *"
@@ -1167,7 +1167,7 @@ def get_cases(include_external_references=False):
 
 def get_case_demographics():
     endpoint = 'paginatedCaseDemographicsPerStudy'
-    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
+    dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     select_statement = """
         SELECT demographic_id, demographic_submitter_id, case_id, case_submitter_id, gender, ethnicity, race, 
@@ -1179,7 +1179,7 @@ def get_case_demographics():
 
 def get_case_diagnoses():
     endpoint = 'paginatedCaseDiagnosesPerStudy'
-    dataset = BQ_PARAMS['DEV_CLINICAL_DATASET']
+    dataset = BQ_PARAMS['CLINICAL_DATASET']
     select_statement = "SELECT case_id, case_submitter_id, diagnoses"
 
     return get_records(endpoint, select_statement, dataset)
@@ -1395,9 +1395,10 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     temp_table = client.get_table(temp_table_id)
     table_schema = temp_table.schema
 
-    table_name = get_table_name(project_name + "_" + clinical_type)
-
-    table_id = get_dev_table_id(table_name, dataset="PDC_clinical")
+    shortened_project_name = BQ_PARAMS["PROJECT_ABBREVIATION_MAP"][project_name]
+    table_prefix = "_".join([clinical_type, shortened_project_name, BQ_PARAMS['DATA_SOURCE']])
+    table_name = get_table_name(table_prefix)
+    table_id = get_dev_table_id(table_name, BQ_PARAMS['CLINICAL_DATASET'])
 
     fields = {
         "parent_level": list()
@@ -1444,11 +1445,61 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     FROM {} clinical
     """.format(parent_select_str, subqueries, temp_table_id)
 
-    # print(query)
-
     load_table_from_query(BQ_PARAMS, table_id, query)
-
+    update_column_metadata(BQ_PARAMS['CLINICAL_TABLE'], table_id)
     delete_bq_table(temp_table_id)
+
+
+def update_column_metadata(table_type, table_id):
+    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+
+    descriptions_file_name = "_".join([BQ_PARAMS['DATA_SOURCE'],
+                                       table_type,
+                                       BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'],
+                                       BQ_PARAMS['RELEASE']
+                                       ])
+
+    fields_file = "{}.json".format(descriptions_file_name)
+    field_desc_fp = get_filepath(dir_path, fields_file)
+
+    with open(field_desc_fp) as field_output:
+        descriptions = json.load(field_output)
+
+    console_out("Updating metadata for {}", (table_id,))
+    update_schema(table_id, descriptions)
+
+
+def update_table_metadata(table_type=None):
+    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
+    metadata_fp = get_filepath(rel_path)
+    metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
+
+    filtered_metadata_files = list()
+
+    if table_type:
+        for metadata_file in metadata_files:
+            if table_type in metadata_file:
+                filtered_metadata_files.append(metadata_file)
+    else:
+        filtered_metadata_files = metadata_files
+
+    console_out("Updating table metadata:")
+
+    for json_file in filtered_metadata_files:
+        table_name = json_file.split('.')[-2]
+        table_id = get_dev_table_id(table_name)
+
+        if not exists_bq_table(table_id):
+            console_out("skipping {} (no bq table found)", (table_id,))
+            continue
+        else:
+            console_out("- {}", (table_id,))
+
+        json_fp = metadata_fp + '/' + json_file
+
+        with open(json_fp) as json_file_output:
+            metadata = json.load(json_file_output)
+            update_table_metadata(table_id, metadata)
 
 
 def main(args):
@@ -1514,17 +1565,17 @@ def main(args):
         # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
 
         build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
-                             BQ_PARAMS['DEV_META_DATASET'],
+                             BQ_PARAMS['META_DATASET'],
                              BQ_PARAMS['BIOSPECIMEN_TABLE'],
                              'duplicates')
 
         dup_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
-        dup_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], dup_table_name)
+        dup_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], dup_table_name)
         final_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
-        final_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name)
+        final_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], final_table_name)
         load_table_from_query(BQ_PARAMS, final_table_id, make_unique_biospecimen_query(dup_table_id))
 
-        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], final_table_name):
+        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], final_table_name):
             delete_bq_table(dup_table_id)
 
     if 'build_per_study_file_jsonl' in steps:
@@ -1537,11 +1588,11 @@ def main(args):
         build_table_from_jsonl("filesPerStudy",
                                infer_schema=True)
 
-    if 'build_file_pdc_metadata_jsonl' in steps:
+    if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
         build_file_pdc_metadata_jsonl(file_ids)
 
-    if 'build_file_pdc_metadata_table' in steps:
+    if 'build_api_file_metadata_table' in steps:
         build_table_from_jsonl("fileMetadata",
                                infer_schema=True)
 
@@ -1551,11 +1602,16 @@ def main(args):
         table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
         full_table_id = get_dev_table_id(table_name, is_metadata=True)
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
+        update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
-    if 'build_file_combined_table' in steps:
-        table_name = BQ_PARAMS['FILE_COMBINED_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
+    if 'build_file_metadata_table' in steps:
+        table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
         full_table_id = get_dev_table_id(table_name, is_metadata=True)
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
+        update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
+
+    if 'update_file_metadata_tables_metadata' in steps:
+        update_table_metadata(BQ_PARAMS['FILE_METADATA'])
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
@@ -1695,14 +1751,20 @@ def main(args):
                 temp_clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
                                                                             project_name,
                                                                             infer_schema=True)
-                create_ordered_clinical_table(temp_clinical_table_id, project_name, "clinical")
+                create_ordered_clinical_table(temp_clinical_table_id,
+                                              project_name,
+                                              BQ_PARAMS['CLINICAL_TABLE'])
             if clinical_diagnoses_records:
                 temp_diagnoses_table_id = remove_nulls_and_create_temp_table(clinical_diagnoses_records,
                                                                              project_name,
                                                                              is_diagnoses=True,
                                                                              infer_schema=True)
 
-                create_ordered_clinical_table(temp_diagnoses_table_id, project_name, "clinical_diagnoses")
+                create_ordered_clinical_table(temp_diagnoses_table_id,
+                                              project_name,
+                                              BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+
+        update_table_metadata(table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
@@ -1792,7 +1854,7 @@ def main(args):
                 if len(row) != num_columns:
                     print(row)
 
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_META_DATASET'], BQ_PARAMS['GENE_TABLE'])
+        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], BQ_PARAMS['GENE_TABLE'])
 
     if 'build_proteome_quant_tables' in steps:
         for study in studies_list:
@@ -1810,44 +1872,8 @@ def main(args):
 
                 load_table_from_query(BQ_PARAMS, final_table_id, make_proteome_quant_table_query(pdc_study_id))
 
-    if 'update_proteome_quant_metadata' in steps:
-        dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-        fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], BQ_PARAMS['RELEASE'])
-        field_desc_fp = get_filepath(dir_path, fields_file)
-
-        with open(field_desc_fp) as field_output:
-            descriptions = json.load(field_output)
-
-        for study in get_proteome_studies(studies_list):
-            table_name = get_quant_table_name(study)
-            table_id = get_dev_table_id(table_name)
-
-            console_out("Updating metadata for {}", (table_id,))
-            update_schema(table_id, descriptions)
-
-    if "update_table_metadata" in steps:
-        metadata_pdc_dir = BQ_PARAMS['DATA_SOURCE'] + '_' + BQ_PARAMS["RELEASE"]
-        rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], metadata_pdc_dir])
-        metadata_fp = get_filepath(rel_path)
-        metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
-
-        console_out("Updating table metadata:")
-
-        for json_file in metadata_files:
-            table_name = json_file.split('.')[-2]
-            table_id = get_dev_table_id(table_name)
-
-            if not exists_bq_table(table_id):
-                console_out("skipping {} (no bq table found)", (table_id,))
-                continue
-            else:
-                console_out("- {}", (table_id,))
-
-            json_fp = metadata_fp + '/' + json_file
-
-            with open(json_fp) as json_file_output:
-                metadata = json.load(json_file_output)
-                update_table_metadata(table_id, metadata)
+                update_column_metadata(BQ_PARAMS['QUANT_DATA_TABLE'], final_table_id)
+        update_table_metadata(table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
 
     if "publish_proteome_tables" in steps:
         for study in get_proteome_studies(studies_list):
