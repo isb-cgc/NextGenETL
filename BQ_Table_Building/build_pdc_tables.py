@@ -1469,7 +1469,7 @@ def update_column_metadata(table_type, table_id):
     update_schema(table_id, descriptions)
 
 
-def update_table_metadata(dataset, table_type=None):
+def update_pdc_table_metadata(dataset, table_type=None):
     rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
     metadata_fp = get_filepath(rel_path)
     metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
@@ -1478,7 +1478,7 @@ def update_table_metadata(dataset, table_type=None):
 
     if table_type:
         for metadata_file in metadata_files:
-            if table_type in str(metadata_file):
+            if str(table_type) in str(metadata_file):
                 filtered_metadata_files.append(metadata_file)
     else:
         filtered_metadata_files = metadata_files
@@ -1617,7 +1617,7 @@ def main(args):
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'update_file_metadata_tables_metadata' in steps:
-        update_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
+        update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
@@ -1770,7 +1770,7 @@ def main(args):
                                               project_name,
                                               BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
-        update_table_metadata(BQ_PARAMS['CLINICAL_DATASET'], table_type=BQ_PARAMS['CLINICAL_TABLE'])
+        update_pdc_table_metadata(BQ_PARAMS['CLINICAL_DATASET'], table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
@@ -1880,7 +1880,7 @@ def main(args):
 
                 update_column_metadata(BQ_PARAMS['QUANT_DATA_TABLE'], final_table_id)
 
-        update_table_metadata(BQ_PARAMS['DEV_DATASET'], table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
+        update_pdc_table_metadata(BQ_PARAMS['DEV_DATASET'], table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
 
     if "publish_proteome_tables" in steps:
         for study in get_proteome_studies(studies_list):
