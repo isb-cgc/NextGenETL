@@ -1478,7 +1478,7 @@ def update_table_metadata(dataset, table_type=None):
 
     if table_type:
         for metadata_file in metadata_files:
-            if table_type in metadata_file:
+            if table_type in str(metadata_file):
                 filtered_metadata_files.append(metadata_file)
     else:
         filtered_metadata_files = metadata_files
