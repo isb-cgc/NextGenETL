@@ -1698,7 +1698,6 @@ def main(args):
 
     if 'update_file_metadata_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
-        update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
