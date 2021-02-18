@@ -1851,6 +1851,7 @@ def main(args):
                                               project_name,
                                               BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
+    if 'update_clinical_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['CLINICAL_DATASET'], table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
     if 'build_quant_tsvs' in steps:
