@@ -1612,9 +1612,11 @@ def main(args):
         fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
         fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
         temp_table_id = fps_table_id + '_temp'
+
         study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
         study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
+        delete_bq_table(temp_table_id)
         copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
         delete_bq_table(fps_table_id)
 
@@ -1642,7 +1644,6 @@ def main(args):
             query
         )
 
-        # delete_bq_table(temp_table_id)
 
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
