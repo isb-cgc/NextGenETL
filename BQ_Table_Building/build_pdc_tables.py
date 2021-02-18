@@ -1991,7 +1991,9 @@ def main(args):
                 # todo -- next round -- how to change past version to archived, since it isn't version# - 1
 
     if "publish_clinical_tables" in steps:
-        pass
+        current_clinical_table_list = list_bq_tables(BQ_PARAMS['CLINICAL_DATASET'], BQ_PARAMS['RELEASE'])
+
+        print(current_clinical_table_list)
 
     if "publish_file_metadata_tables" in steps:
         current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], 'current', include_release=False)

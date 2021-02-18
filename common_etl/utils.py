@@ -1047,6 +1047,18 @@ def exists_bq_table(table_id):
     return True
 
 
+def list_bq_tables(dataset_id, release=None):
+    table_list = list()
+    client = bigquery.Client()
+    tables = client.list_tables(dataset_id)
+
+    for table in tables:
+        if not release or release in table.table_id:
+            table_list.append(table.table_id)
+
+    return table_list
+
+
 def load_table_from_query(bq_params, table_id, query):
     """Create a new BQ table from the returned results of querying an existing BQ table.
 
