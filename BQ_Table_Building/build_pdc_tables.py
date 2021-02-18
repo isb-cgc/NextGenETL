@@ -1018,8 +1018,8 @@ def make_file_metadata_query(file_id):
 
 
 def make_associated_entities_query():
-    table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
-    table_id = get_dev_table_id(table_name, is_metadata=True)
+    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    table_id = get_dev_table_id(table_name, endpoint="PDC_metadata")
 
     return """SELECT file_id, 
     aliq.case_id as case_id, 
