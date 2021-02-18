@@ -1104,7 +1104,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
                 print("{} of {} files retrieved".format(count, file_ids.total_rows))
 
     file_metadata_jsonl_file = get_filename('jsonl',
-                                            BQ_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+                                            API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
     file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, file_metadata_jsonl_file)
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
