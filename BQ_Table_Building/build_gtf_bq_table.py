@@ -76,49 +76,49 @@ from common_etl.support import confirm_google_vm
 #         table = client.create_table(table)
 #         print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
 
-def publish_table(schema, project, dataset_id, table_id, staging_full_table_id):
-
-    '''
-        @parameters schema, project, dataset_id, table_id, staging_full_table_id
-
-        The function will use an SQL query to retrieve the bigquery table from the 
-        staging environment and make a push to the production environment including
-        the schema description.
-
-        return None
-
-    '''
-
-    client = bigquery.Client(project=project)
-    full_table_id = f'{project}.{dataset_id}.{table_id}'
-
-    
-    check_table_existance(client,
-                          full_table_id,
-                          schema)
-            
-    
-    add_labels_and_descriptions(dataset_id,
-                                full_table_id)
-    
-
-    job_config = bigquery.QueryJobConfig(
-        allow_large_results=True,
-        destination=full_table_id
-    )
-
-    sql = f'''
-        SELECT 
-            *
-        FROM
-            {staging_full_table_id}
-    '''
-
-    table = client.get_table(full_table_id)
-    query_job = client.query(sql, 
-                             job_config=job_config)
-    query_job.result()
-    print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
+# def publish_table(schema, project, dataset_id, table_id, staging_full_table_id):
+#
+#     '''
+#         @parameters schema, project, dataset_id, table_id, staging_full_table_id
+#
+#         The function will use an SQL query to retrieve the bigquery table from the
+#         staging environment and make a push to the production environment including
+#         the schema description.
+#
+#         return None
+#
+#     '''
+#
+#     client = bigquery.Client(project=project)
+#     full_table_id = f'{project}.{dataset_id}.{table_id}'
+#
+#
+#     check_table_existance(client,
+#                           full_table_id,
+#                           schema)
+#
+#
+#     add_labels_and_descriptions(dataset_id,
+#                                 full_table_id)
+#
+#
+#     job_config = bigquery.QueryJobConfig(
+#         allow_large_results=True,
+#         destination=full_table_id
+#     )
+#
+#     sql = f'''
+#         SELECT
+#             *
+#         FROM
+#             {staging_full_table_id}
+#     '''
+#
+#     table = client.get_table(full_table_id)
+#     query_job = client.query(sql,
+#                              job_config=job_config)
+#     query_job.result()
+#     print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
 
 
 def upload_to_staging_env(df,project, dataset_id, table_id):
