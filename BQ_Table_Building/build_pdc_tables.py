@@ -2003,7 +2003,7 @@ def main(args):
 
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(BQ_PARAMS['CLINICAL_DATASET'], BQ_PARAMS['RELEASE'])
-        removal_list = ['clinical_diagnoses_', 'clinical_', "_" + BQ_PARAMS['RELEASE']]
+        removal_list = ['clinical_diagnoses_', 'clinical_', "_pdc_" + BQ_PARAMS['RELEASE']]
 
         for table_name in current_clinical_table_list:
             project_shortname = table_name
