@@ -121,7 +121,7 @@ from common_etl.support import confirm_google_vm
 #     print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
 
 
-def upload_to_staging_env(df,project, dataset_id, table_id):
+def upload_to_staging_env(df, project, dataset_id, table_id):
 
     client = bigquery.Client(project=project)
     
@@ -342,21 +342,21 @@ def count_number_of_lines(a_file):
     
     return number_of_lines
 
-def schema_with_description(path_to_json):
-
-    '''
-        @parameters json_file_path 
-        
-        Give the file path to the json file to retrieve
-        the schema for the table which includes the 
-        description as well. 
-
-    '''
-
-    with open(path_to_json) as json_file:
-        schema = json_load(json_file)
-
-    return schema
+# def schema_with_description(path_to_json):
+#
+#     '''
+#         @parameters json_file_path
+#
+#         Give the file path to the json file to retrieve
+#         the schema for the table which includes the
+#         description as well.
+#
+#     '''
+#
+#     with open(path_to_json) as json_file:
+#         schema = json_load(json_file)
+#
+#     return schema
 
 
 def load_config(yaml_config):
@@ -407,9 +407,9 @@ def main(args):
     
     # Put csv files in a select folder 
     home = expanduser('~')
-    genomic_feature_file_csv = f"{home}/NextGenETL/intermediateFiles/{params['PARSED_GENOMIC_FORMAT_FILE']}"
-    attribute_column_split_csv = f"{home}/NextGenETL/intermediateFiles/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
-    final_merged_csv = f"{home}/NextGenETL/intermediateFiles/{params['FINAL_MERGED_CSV']}"
+    genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
+    attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
+    final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}"
 
 
     # Staging table info for staging env
