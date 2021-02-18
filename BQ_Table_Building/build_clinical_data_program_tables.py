@@ -51,70 +51,6 @@ def get_full_table_name(program, table):
     return build_table_name(table_name)
 
 
-def make_projects_with_doubly_nested_fg_query(fg, is_one_to_many):
-    split_fg = fg.split('.')
-
-    if split_fg[0] == API_PARAMS['FG_CONFIG']['base_fg']:
-        split_fg.pop(0)
-
-    if len(split_fg) != 2:
-        print("error")
-
-    child_fg = '.'.join(split_fg)
-    child_fg_id = get_field_group_id_key(API_PARAMS, child_fg, return_field_only=True)
-    parent_fg = '.'.join(split_fg[:-1])
-    having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(child_fg_id) if is_one_to_many else ""
-    working_table_id = get_working_table_id(BQ_PARAMS)
-
-    projects_with_fg_query = """
-        WITH projects_with_fg 
-            AS (
-                SELECT  c.case_id, 
-                        {0},
-                        SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}` AS c
-                CROSS JOIN UNNEST({3}) AS {3}
-                CROSS JOIN UNNEST({2}))
-
-        SELECT DISTINCT(proj_name) 
-        FROM (
-          SELECT proj_name                
-          FROM projects_with_fg 
-          GROUP BY proj_name, case_id
-          {4}
-          )
-    """.format(child_fg_id, working_table_id, child_fg, parent_fg, having_clause)
-
-    return projects_with_fg_query
-
-
-def make_projects_with_singly_nested_fg_query(fg, is_one_to_many):
-    if len(fg.split('.')) != 1:
-        print("error")
-
-    fg_id = get_field_group_id_key(API_PARAMS, fg, return_field_only=True)
-
-    having_clause = "HAVING COUNT(DISTINCT {0}) > 1".format(fg_id) if is_one_to_many else ""
-
-    projects_with_fg_query = """
-        WITH projects_with_fg 
-            AS (
-                SELECT  c.case_id, 
-                        {0},
-                        SPLIT(( SELECT project_id FROM UNNEST(project)), '-')[OFFSET(0)] AS proj_name
-                FROM `{1}` AS c
-                CROSS JOIN UNNEST({2}))
-        SELECT DISTINCT(proj_name) 
-        FROM (
-          SELECT proj_name                
-          FROM projects_with_fg 
-          GROUP BY proj_name, case_id
-          {3})
-    """.format(fg_id, get_working_table_id(BQ_PARAMS), fg, having_clause)
-
-    return projects_with_fg_query
-
-
 def build_column_order_dict():
     """
     Using table order provided in YAML, with add't ordering for reference
@@ -163,25 +99,20 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     tables = get_one_to_many_tables(API_PARAMS, record_counts)
     table_columns = dict()
 
-    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in
-                        field_groups}
+    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
-            console_out("\n[INFO] Caution, not confirmed "
-                        "to work with nested depth > 3\n")
+            console_out("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
 
         excluded_fields = get_excluded_fields_all_fgs(API_PARAMS, field_groups, is_webapp)
 
         if is_webapp and field_grp in excluded_fields:
             continue
 
-        field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp],
-                                                         field_grp, excluded_fields,
-                                                         is_webapp)
+        field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
 
-        field_keys = {get_field_key(field_grp, field) for field in
-                      field_groups[field_grp]}
+        field_keys = {get_field_key(field_grp, field) for field in field_groups[field_grp]}
 
         if field_grp in tables:
             table_columns[field_grp] = field_keys
@@ -680,11 +611,12 @@ def flatten_case(case, is_webapp):
 
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
-            old_name = get_field_name(old_key)
-            new_name = get_field_name(new_key)
-            if old_name in case:
-                case[new_name] = case[old_name]
-                case.pop(old_name)
+            if len(old_key.split('.')) == 2:
+                old_name = get_field_name(old_key)
+                new_name = get_field_name(new_key)
+                if old_name in case:
+                    case[new_name] = case[old_name]
+                    case.pop(old_name)
 
     base_id_name = get_fg_id_name(API_PARAMS, base_fg, is_webapp)
 
@@ -699,10 +631,21 @@ def flatten_case(case, is_webapp):
                        is_webapp=is_webapp)
 
     if is_webapp:
+        # Note: will rename any instance of that field in any table at the moment, use with care
+        for old_field, new_field in API_PARAMS['RENAMED_NESTED_FIELDS'].items():
+
+            for key in flat_case:
+                if old_field in flat_case[key]:
+                    val = flat_case[key][old_field]
+                    flat_case[key][new_field] = val
+                    flat_case[key].pop(old_field)
+
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
         base_id_key = get_field_group_id_key(API_PARAMS, base_fg)
 
+        # if case_id in renamed fields (it is), remove the grandparent addition of case_id to doubly nested tables--
+        # naming would be incorrect, and it's unnecessary info for webapp tables.
         if base_id_key in renamed_fields:
             base_id_name = get_field_name(base_id_key)
 
@@ -849,7 +792,24 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         if os.path.exists(jsonl_fp):
             os.remove(jsonl_fp)
 
+    added_age_at_diagnosis_days = False
+
     for i, case in enumerate(cases):
+        if is_webapp:
+            # add derived age_at_diagnosis in years (from days)
+            if 'diagnoses' in case:
+                new_diagnosis_list = []
+                for diagnosis in case['diagnoses']:
+                    if 'age_at_diagnosis' in diagnosis and diagnosis['age_at_diagnosis']:
+                        diagnosis['age_at_diagnosis_days'] = diagnosis['age_at_diagnosis']
+                        diagnosis['age_at_diagnosis'] = diagnosis['age_at_diagnosis_days']//365
+                        added_age_at_diagnosis_days = True
+                    new_diagnosis_list.append(diagnosis)
+                case['diagnoses'] = new_diagnosis_list
+
+            program_name = program.replace("_", ".")
+            case['program_name'] = program_name
+
         flat_case = flatten_case(case, is_webapp)
 
         # remove excluded field groups
@@ -858,6 +818,10 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
                 flat_case.pop(fg)
 
         merge_or_count_records(flat_case, record_counts, is_webapp)
+
+        if is_webapp:
+            if 'project_id' in flat_case['cases'][0]:
+                flat_case['cases'][0]['project_short_name'] = flat_case['cases'][0]['project_id']
 
         for bq_table in flat_case:
             if bq_table not in record_tables:
@@ -870,6 +834,45 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
         if i % 100 == 0:
             print("wrote case {} of {} to jsonl".format(i, len(cases)))
+
+    if is_webapp:
+        if added_age_at_diagnosis_days:
+            age_at_diagnosis_days_schema = {
+                'mode': 'NULLABLE',
+                'name': 'age_at_diagnosis_days',
+                'type': 'INTEGER',
+                'description': ""
+            }
+
+            if 'cases.diagnoses' in schemas and 'age_at_diagnosis_days' not in schemas['cases.diagnoses']:
+                schemas['cases.diagnoses'].append(age_at_diagnosis_days_schema)
+            elif 'age_at_diagnosis_days' not in schemas['cases']:
+                schemas['cases'].append(age_at_diagnosis_days_schema)
+
+        disease_code_schema = {
+            'mode': 'NULLABLE',
+            'name': 'disease_code',
+            'type': 'STRING',
+            'description': ""
+        }
+
+        program_name_schema = {
+            'mode': 'NULLABLE',
+            'name': 'program_name',
+            'type': 'STRING',
+            'description': ""
+        }
+
+        project_short_name_schema = {
+            'mode': 'NULLABLE',
+            'name': 'project_short_name',
+            'type': 'STRING',
+            'description': ""
+        }
+
+        schemas['cases'].append(disease_code_schema)
+        schemas['cases'].append(program_name_schema)
+        schemas['cases'].append(project_short_name_schema)
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(API_PARAMS, BQ_PARAMS, program, record_table, is_webapp)
@@ -884,7 +887,8 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
             table_id = get_working_table_id(BQ_PARAMS, table_name)
-        create_and_load_table(BQ_PARAMS, jsonl_name, schemas[record_table], table_id)
+
+        create_and_load_table(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
 
 
 def get_metadata_files():
@@ -1003,22 +1007,24 @@ def make_biospecimen_stub_tables(program):
     :param program: the program from which the cases originate.
     """
     query = ("""
-        SELECT project_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM
-          (SELECT project_name, case_gdc_id, case_barcode, 
+          (SELECT program_name, project_short_name, case_gdc_id, case_barcode, 
             SPLIT(sample_ids, ', ') as s_gdc_ids, 
             SPLIT(submitter_sample_ids, ', ') as s_barcodes
             FROM
                 (SELECT case_id as case_gdc_id, 
                     submitter_id as case_barcode, 
-                    sample_ids, submitter_sample_ids, 
-                    SPLIT((SELECT project_id
-                           FROM UNNEST(project)), '-')[OFFSET(0)] AS project_name
-                FROM `{}.{}.{}{}_{}`)), 
+                    sample_ids, 
+                    submitter_sample_ids, 
+                    SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
+                    p.project_id as project_short_name
+                FROM `{}.{}.{}{}_{}`,
+                UNNEST(project) AS p)), 
         UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
         UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
         WHERE pos1 = pos2
-        AND project_name = '{}'
+        AND program_name = '{}'
     """).format(BQ_PARAMS['DEV_PROJECT'],
                 BQ_PARAMS['DEV_DATASET'],
                 BQ_PARAMS['REL_PREFIX'],
@@ -1040,6 +1046,7 @@ def create_tables(program, cases, schema, is_webapp=False):
     and creates the databases.
     :param program: the source for the inserted cases data
     :param cases: dict representations of clinical case data from GDC
+    :param schema:  # todo
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return:
     """
@@ -1131,6 +1138,7 @@ def make_datatype_diff_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
+# todo cross join
 def make_removed_case_ids_query(old_rel, new_rel):
     return """
         SELECT case_id, project.project_id
@@ -1142,6 +1150,7 @@ def make_removed_case_ids_query(old_rel, new_rel):
     """.format(old_rel, new_rel)
 
 
+# todo cross join
 def make_added_case_ids_query(old_rel, new_rel):
     return """
         SELECT project.project_id, count(case_id) as new_case_cnt
@@ -1343,88 +1352,33 @@ def main(args):
     if not API_PARAMS['FIELD_CONFIG']:
         has_fatal_error("params['FIELD_CONFIG'] not found")
 
+    # programs = ['BEATAML1.0']
     programs = get_program_list(BQ_PARAMS)
-    # programs = ['GENIE', 'HCMI', 'NCICCR']
     programs = sorted(programs)
 
-    if 'get_field_groups_per_program' in steps:
-        field_groups = API_PARAMS['FG_CONFIG']['order']
-        program_fgs = dict()
-        depth_one_fgs = []
-        depth_two_fgs = []
-
-        for fg in field_groups:
-            split_fg = fg.split('.')
-            if len(split_fg) == 2 or len(split_fg) == 3:
-                amended_fg = '.'.join(split_fg[1:])
-                if len(split_fg) == 2:
-                    depth_one_fgs.append(amended_fg)
-                if len(split_fg) == 3:
-                    depth_two_fgs.append(amended_fg)
-
-        for fg in depth_two_fgs:
-            all_program_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=False)
-            all_res = get_query_results(all_program_query)
-
-            for row in all_res:
-                program = row[0]
-
-                if program not in program_fgs:
-                    program_fgs[program] = {'fgs': list(), 'one_many': list()}
-
-                program_fgs[program]['fgs'].append(fg)
-
-            nested_programs_query = make_projects_with_doubly_nested_fg_query(fg, is_one_to_many=True)
-            nested_res = get_query_results(nested_programs_query)
-
-            for row in nested_res:
-                program = row[0]
-                program_fgs[program]['one_many'].append(fg)
-
-        for fg in depth_one_fgs:
-            all_program_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=False)
-            all_res = get_query_results(all_program_query)
-
-            for row in all_res:
-                program = row[0]
-                if program not in program_fgs:
-                    program_fgs[program] = {'fgs': list(), 'one_many': list()}
-
-                program_fgs[program]['fgs'].append(fg)
-
-            nested_programs_query = make_projects_with_singly_nested_fg_query(fg, is_one_to_many=True)
-            nested_res = get_query_results(nested_programs_query)
-
-            for row in nested_res:
-                program = row[0]
-                program_fgs[program]['one_many'].append(fg)
-
-    for program in programs:
+    for orig_program in programs:
         prog_start = time.time()
         if (
                 'create_biospecimen_stub_tables' in steps or
                 'create_webapp_tables' in steps or
                 'create_and_load_tables' in steps
         ):
-            console_out("\nRunning script for program: {0}...", (program,))
+            console_out("\nRunning script for program: {0}...", (orig_program,))
 
         if 'create_biospecimen_stub_tables' in steps:
-            '''
-            these tables are used to populate the per-program clinical tables, 
-            and are also needed for populating data into the webapp
-            '''
+            # these tables are used to populate the per-program clinical tables and the webapp tables
             console_out(" - Creating biospecimen stub tables!")
-            make_biospecimen_stub_tables(program)
+            make_biospecimen_stub_tables(orig_program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
-            cases = get_cases_by_program(BQ_PARAMS, program)
+            cases = get_cases_by_program(BQ_PARAMS, orig_program)
 
             if not cases:
-                console_out("No cases found for program {0}, skipping.", (program,))
+                console_out("No cases found for program {0}, skipping.", (orig_program,))
                 continue
 
             # rename so that '1.0' doesn't break bq table name
-            program = program.replace('.', '_')
+            program = orig_program.replace('.', '_')
 
             if 'create_webapp_tables' in steps:  # FOR WEBAPP TABLES
                 schema = create_schema_dict(API_PARAMS, BQ_PARAMS, is_webapp=True)
@@ -1452,6 +1406,7 @@ def main(args):
                 has_fatal_error("Can only use cleanup_tables on DEV_PROJECT.")
 
             delete_bq_table(table_id)
+            console_out("Deleted table: {}", (table_id,))
 
     if 'copy_tables_into_production' in steps:
         copy_tables_into_public_project()
