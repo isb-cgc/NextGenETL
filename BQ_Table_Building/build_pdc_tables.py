@@ -1071,6 +1071,7 @@ def make_combined_file_metadata_query():
     """.format(file_per_study_table_id, file_metadata_table_id)
     '''
 
+
 def alter_files_per_study_json(files_per_study_obj_list):
     for files_per_study_obj in files_per_study_obj_list:
         signedUrl = files_per_study_obj.pop('signedUrl', None)
@@ -1991,9 +1992,50 @@ def main(args):
                 # todo -- next round -- how to change past version to archived, since it isn't version# - 1
 
     if "publish_clinical_tables" in steps:
-        current_clinical_table_list = list_bq_tables(BQ_PARAMS['CLINICAL_DATASET'], BQ_PARAMS['RELEASE'])
 
-        print(current_clinical_table_list)
+        # create dict of project shortnames and the dataset they belong to
+        dataset_map = dict()
+
+        for project_submitter_id in BQ_PARAMS['PROJECT_ABBREVIATION_MAP']:
+            key = BQ_PARAMS['PROJECT_ABBREVIATION_MAP'][project_submitter_id]
+            val = BQ_PARAMS['PROD_DATASET_MAP'][project_submitter_id]
+            dataset_map[key] = val
+
+        # iterate over existing dev project clinical tables for current API version
+        current_clinical_table_list = list_bq_tables(BQ_PARAMS['CLINICAL_DATASET'], BQ_PARAMS['RELEASE'])
+        removal_list = ['clinical_diagnoses_', 'clinical_', "_" + BQ_PARAMS['RELEASE']]
+
+        for table_name in current_clinical_table_list:
+            project_shortname = table_name
+
+            # strip table name down to project shortname
+            for rem_str in removal_list:
+                if rem_str in project_shortname:
+                    project_shortname = project_shortname.replace(rem_str, '')
+
+            dataset_id = dataset_map[project_shortname]
+
+            current_table_name = "_".join([BQ_PARAMS['CLINICAL_TABLE'], project_shortname, 'current'])
+            current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
+                                            dataset_id,
+                                            current_table_name)
+
+            versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
+                                              dataset_id + '_versioned',
+                                              table_name)
+
+            source_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                           BQ_PARAMS['CLINICAL_DATASET'],
+                                           table_name)
+
+            if exists_bq_table(source_table_id):
+                console_out("Publishing {}".format(versioned_table_id))
+                copy_bq_table(BQ_PARAMS, source_table_id, versioned_table_id, replace_table=True)
+
+                console_out("Publishing {}".format(current_table_id))
+                copy_bq_table(BQ_PARAMS, source_table_id, current_table_id, replace_table=True)
+
+                update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
     if "publish_file_metadata_tables" in steps:
         current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], 'current', include_release=False)
