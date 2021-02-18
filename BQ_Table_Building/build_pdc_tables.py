@@ -1499,8 +1499,6 @@ def update_pdc_table_metadata(dataset, table_type=None):
 
     print("Updating table metadata:")
 
-    print("file list: {}".format(filtered_metadata_files))
-
     for json_file in filtered_metadata_files:
         table_name = json_file.split('.')[-2]
         table_id = get_dev_table_id(table_name, dataset=dataset)
@@ -1700,6 +1698,8 @@ def main(args):
 
     if 'update_file_metadata_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
+        update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
