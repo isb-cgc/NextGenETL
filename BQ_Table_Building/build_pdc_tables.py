@@ -1497,17 +1497,19 @@ def update_pdc_table_metadata(dataset, table_type=None):
     else:
         filtered_metadata_files = metadata_files
 
-    console_out("Updating table metadata:")
+    print("Updating table metadata:")
+
+    print("file list: {}".format(filtered_metadata_files))
 
     for json_file in filtered_metadata_files:
         table_name = json_file.split('.')[-2]
         table_id = get_dev_table_id(table_name, dataset=dataset)
 
         if not exists_bq_table(table_id):
-            console_out("skipping {} (no bq table found)", (table_id,))
+            print("skipping {} (no bq table found)".format(table_id))
             continue
         else:
-            console_out("- {}", (table_id,))
+            print("- {}".format(table_id))
 
         json_fp = metadata_fp + '/' + json_file
 
