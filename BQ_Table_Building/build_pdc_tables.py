@@ -1616,6 +1616,7 @@ def main(args):
         study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
         copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
+        delete_bq_table(fps_table_id)
 
         query = """
             WITH grouped_study_ids AS (
@@ -1640,6 +1641,8 @@ def main(args):
             fps_table_id,
             query
         )
+
+        # delete_bq_table(temp_table_id)
 
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
