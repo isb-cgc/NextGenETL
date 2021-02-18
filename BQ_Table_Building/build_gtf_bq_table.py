@@ -1,6 +1,6 @@
 import sys
 #from json import loads as json_loads
-from json import load as json_load
+#from json import load as json_load
 import yaml
 #from google.cloud import storage
 from google.cloud import bigquery
@@ -12,7 +12,7 @@ import io
 import gzip
 import csv
 #import pyarrow
-from google.cloud.exceptions import NotFound
+#from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm
 
 # def add_labels_and_descriptions(project, full_table_id):
