@@ -1039,6 +1039,18 @@ def make_combined_file_metadata_query():
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, is_metadata=True)
 
     return """
+    SELECT distinct fps.file_id, fps.pdc_study_ids,
+        fm.study_run_metadata_id, fm.study_run_metadata_submitter_id,
+        fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
+        fm.fraction_number, fm.experiment_type, fm.plex_or_dataset_name, fm.analyte, fm.instrument, 
+        fps.md5sum, fps.url, fps.embargo_date, "open" AS `access`
+    FROM `{}` AS fps
+    INNER JOIN `{}` AS fm
+        ON fpm.file_id = fps.file_id
+    """.format(file_per_study_table_id, file_metadata_table_id)
+
+    '''
+    return """
     SELECT distinct fps.file_id, fps.file_submitter_id, 
         fps.pdc_study_id, stud.embargo_date, fps.study_name, fps.study_submitter_id, 
         fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
@@ -1057,7 +1069,7 @@ def make_combined_file_metadata_query():
         fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
         fps.md5sum, fps.url
     """.format(file_per_study_table_id, file_metadata_table_id)
-
+    '''
 
 def alter_files_per_study_json(files_per_study_obj_list):
     for files_per_study_obj in files_per_study_obj_list:
@@ -1597,9 +1609,11 @@ def main(args):
                                infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
-        fps_table_id = 'isb-project-zero.PDC_metadata.files_per_study_V1_9'
+        fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
+        fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
         temp_table_id = fps_table_id + '_temp'
-        study_table_id = 'isb-project-zero.PDC_metadata.studies_V1_9'
+        study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
+        study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
         copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
 
@@ -1614,7 +1628,8 @@ def main(args):
             )
     
             SELECT distinct g.file_id, f.file_name, g.embargo_date, g.pdc_study_ids,
-                f.data_category, f.file_format, f.file_type, f.file_size, SPLIT(f.url, '?')[OFFSET(0)] as url
+                f.data_category, f.file_format, f.file_type, f.file_size, f.md5sum, 
+                SPLIT(f.url, '?')[OFFSET(0)] as url
             FROM grouped_study_ids g
             INNER JOIN `{0}` f
                 ON g.file_id = f.file_id
