@@ -1618,7 +1618,7 @@ def main(args):
 
         delete_bq_table(temp_table_id)
         copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
-        delete_bq_table(fps_table_id)
+        # delete_bq_table(fps_table_id)
 
         query = """
             WITH grouped_study_ids AS (
