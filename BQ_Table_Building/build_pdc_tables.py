@@ -965,7 +965,6 @@ def is_currently_embargoed(embargo_date):
 def make_files_per_study_query(study_id):
     return """
     {{ filesPerStudy (pdc_study_id: \"{}\") {{
-            study_id 
             pdc_study_id 
             study_submitter_id
             study_name 
@@ -1040,8 +1039,8 @@ def make_combined_file_metadata_query():
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, is_metadata=True)
 
     return """
-    SELECT fps.file_id, fps.file_submitter_id, 
-        fps.study_id, fps.pdc_study_id, fps.study_name, fps.study_submitter_id, 
+    SELECT distinct fps.file_id, fps.file_submitter_id, 
+        fps.pdc_study_id, stud.embargo_date, fps.study_name, fps.study_submitter_id, 
         fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
@@ -1049,8 +1048,10 @@ def make_combined_file_metadata_query():
     FROM `{}` AS fps
     FULL JOIN `{}` AS fpm
         ON fpm.file_id = fps.file_id
+    JOIN `{}` AS stud
+        ON stud.pdc_study_id = fps.pdc_study_id
     GROUP BY fps.file_id, fps.file_submitter_id, 
-        fps.study_id, fps.pdc_study_id, fps.study_name, fps.study_submitter_id, 
+        fps.pdc_study_id, stud.embargo_date, fps.study_name, fps.study_submitter_id, 
         fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
@@ -1516,9 +1517,9 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     if 'delete_tables' in steps:
-        for table_id in BQ_PARAMS['DELETE_TABLES']:
-            delete_bq_table(table_id)
-            console_out("Deleted table: {}", (table_id,))
+        for fps_table_id in BQ_PARAMS['DELETE_TABLES']:
+            delete_bq_table(fps_table_id)
+            console_out("Deleted table: {}", (fps_table_id,))
 
         delete_from_steps('delete_tables', steps)  # allows for exit without building study lists if not used
 
@@ -1594,6 +1595,36 @@ def main(args):
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl("filesPerStudy",
                                infer_schema=True)
+
+    if 'alter_per_study_file_table' in steps:
+        fps_table_id = 'isb-project-zero.PDC_metadata.files_per_study_V1_9'
+        temp_table_id = fps_table_id + '_temp'
+        study_table_id = 'isb-project-zero.PDC_metadata.studies_V1_9'
+
+        copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
+
+        query = """
+            WITH grouped_study_ids AS (
+                SELECT fps.file_id, stud.embargo_date, 
+                    ARRAY_TO_STRING(ARRAY_AGG(stud.pdc_study_id), ';') as pdc_study_ids
+                FROM `{0}` fps
+                JOIN `{1}` stud
+                    ON fps.pdc_study_id = stud.pdc_study_id
+            GROUP BY fps.file_id, stud.embargo_date
+            )
+    
+            SELECT distinct g.file_id, f.file_name, g.embargo_date, g.pdc_study_ids,
+                f.data_category, f.file_format, f.file_type, f.file_size, SPLIT(f.url, '?')[OFFSET(0)] as url
+            FROM grouped_study_ids g
+            INNER JOIN `{0}` f
+                ON g.file_id = f.file_id
+            """.format(temp_table_id, study_table_id)
+
+        load_table_from_query(
+            BQ_PARAMS,
+            fps_table_id,
+            query
+        )
 
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
@@ -1811,27 +1842,27 @@ def main(args):
 
     if 'build_uniprot_table' in steps:
         mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        table_id = get_dev_table_id(mapping_table, is_metadata=True)
+        fps_table_id = get_dev_table_id(mapping_table, is_metadata=True)
 
-        console_out("\nBuilding {0}... ", (table_id,))
-        schema_filename = "/".join(table_id.split(".")) + '.json'
+        console_out("\nBuilding {0}... ", (fps_table_id,))
+        schema_filename = "/".join(fps_table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
         data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
         null = BQ_PARAMS['NULL_MARKER']
-        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
+        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, fps_table_id, null_marker=null, num_header_rows=0)
         console_out("Uniprot table built!")
 
     if 'build_swissprot_table' in steps:
         table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        table_id = get_dev_table_id(table_name, is_metadata=True)
+        fps_table_id = get_dev_table_id(table_name, is_metadata=True)
 
-        console_out("Building {0}... ", (table_id,))
-        schema_filename = "/".join(table_id.split(".")) + '.json'
+        console_out("Building {0}... ", (fps_table_id,))
+        schema_filename = "/".join(fps_table_id.split(".")) + '.json'
         schema, metadata = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
         data_file = table_name + API_PARAMS['UNIPROT_FILE_EXT']
         null = BQ_PARAMS['NULL_MARKER']
-        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, table_id, null_marker=null, num_header_rows=0)
+        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, fps_table_id, null_marker=null, num_header_rows=0)
         console_out("Swiss-prot table built!")
 
     if 'build_gene_tsv' in steps:
