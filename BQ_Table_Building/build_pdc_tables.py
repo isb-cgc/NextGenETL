@@ -1644,7 +1644,6 @@ def main(args):
             query
         )
 
-
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
         build_file_pdc_metadata_jsonl(file_ids)
@@ -1656,14 +1655,14 @@ def main(args):
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
         # or it'll have an aliquot id. If this ever changes, we'll need to adjust, but not expected that it will.
-        table_name = BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'] + '_' + BQ_PARAMS['RELEASE']
-        full_table_id = get_dev_table_id(table_name, is_metadata=True)
+        table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        full_table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'build_file_metadata_table' in steps:
-        table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
-        full_table_id = get_dev_table_id(table_name, is_metadata=True)
+        table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+        full_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
