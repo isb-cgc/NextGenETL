@@ -43,38 +43,38 @@ from common_etl.support import confirm_google_vm
 #     table = client.update_table(table, ['description','labels', 'friendlyName'])
 #     assert table.labels == labels
 
-def check_table_existance(client, 
-                          full_table_id, 
-                          schema):
-
-
-    table_exists = None 
-
-    try:
-        client.get_table(full_table_id)
-        table_exists = True
-    except NotFound:
-        table_exists = False
-
-    if table_exists == True:
-        print(f'{full_table_id} exists. Making deletion of the table')
-        client.delete_table(full_table_id)
-        table = bigquery.Table(full_table_id, schema=schema)
-        table.clustering_fields = ["CHROM",
-                                   "ID",
-                                   "analysis_workflow_type",
-                                   "project_short_name"]
-        table = client.create_table(table)
-        print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
-    else:
-        print(f'{full_table_id} does not exist. Creating the table')
-        table = bigquery.Table(full_table_id, schema=schema)
-        table.clustering_fields = ["CHROM",
-                                   "ID",
-                                   "analysis_workflow_type",
-                                   "project_short_name"]
-        table = client.create_table(table)
-        print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
+# def check_table_existance(client,
+#                           full_table_id,
+#                           schema):
+#
+#
+#     table_exists = None
+#
+#     try:
+#         client.get_table(full_table_id)
+#         table_exists = True
+#     except NotFound:
+#         table_exists = False
+#
+#     if table_exists == True:
+#         print(f'{full_table_id} exists. Making deletion of the table')
+#         client.delete_table(full_table_id)
+#         table = bigquery.Table(full_table_id, schema=schema)
+#         table.clustering_fields = ["CHROM",
+#                                    "ID",
+#                                    "analysis_workflow_type",
+#                                    "project_short_name"]
+#         table = client.create_table(table)
+#         print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
+#     else:
+#         print(f'{full_table_id} does not exist. Creating the table')
+#         table = bigquery.Table(full_table_id, schema=schema)
+#         table.clustering_fields = ["CHROM",
+#                                    "ID",
+#                                    "analysis_workflow_type",
+#                                    "project_short_name"]
+#         table = client.create_table(table)
+#         print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
 
 def publish_table(schema, project, dataset_id, table_id, staging_full_table_id):
 
