@@ -15,33 +15,33 @@ import csv
 from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm
 
-def add_labels_and_descriptions(project, full_table_id):
-    '''
-        @paramaters project, full_table_id
-
-        The function will add in the description, labels, and freindlyName to 
-        the published table. 
-
-        @return None 
-
-    '''
-    
-    client = bigquery.Client(project=project)
-    table = client.get_table(full_table_id)
-
-    print('Adding Labels, Description, and Friendly name to table')
-    table.description = 'Data was loaded from the GENCODE reference gene set, release 34, dated Aprilc 2020. These annotations are based on the hg38/GRCh38 reference genome. More details: see Harrow J, et al. (2012) GENCODE: The reference human genome annotation for The ENCODE Project http://www.ncbi.nlm.nih.gov/pubmed/22955987 and ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_34/gencode.v34.annotation.gtf.gz'
-    table.friendly_name = 'GENCODE V34'
-    assert table.labels == {}
-    labels = {"access": "open",
-              "data_type":"genome_annotation",
-              "source":"gencode",
-              "reference_genome_0":"hg38",
-              "category":"genomic_reference_database",
-              "status":"current"}
-    table.labels = labels
-    table = client.update_table(table, ['description','labels', 'friendlyName'])
-    assert table.labels == labels
+# def add_labels_and_descriptions(project, full_table_id):
+#     '''
+#         @paramaters project, full_table_id
+#
+#         The function will add in the description, labels, and freindlyName to
+#         the published table.
+#
+#         @return None
+#
+#     '''
+#
+#     client = bigquery.Client(project=project)
+#     table = client.get_table(full_table_id)
+#
+#     print('Adding Labels, Description, and Friendly name to table')
+#     table.description = 'Data was loaded from the GENCODE reference gene set, release 34, dated Aprilc 2020. These annotations are based on the hg38/GRCh38 reference genome. More details: see Harrow J, et al. (2012) GENCODE: The reference human genome annotation for The ENCODE Project http://www.ncbi.nlm.nih.gov/pubmed/22955987 and ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_34/gencode.v34.annotation.gtf.gz'
+#     table.friendly_name = 'GENCODE V34'
+#     assert table.labels == {}
+#     labels = {"access": "open",
+#               "data_type":"genome_annotation",
+#               "source":"gencode",
+#               "reference_genome_0":"hg38",
+#               "category":"genomic_reference_database",
+#               "status":"current"}
+#     table.labels = labels
+#     table = client.update_table(table, ['description','labels', 'friendlyName'])
+#     assert table.labels == labels
 
 def check_table_existance(client, 
                           full_table_id, 
