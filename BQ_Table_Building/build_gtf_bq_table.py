@@ -424,7 +424,7 @@ def main(args):
     publish_table_id = params['PUBLISH_TABLE_ID']
     path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION']
 
-    schema = schema_with_description(path_to_json_schema)
+#    schema = schema_with_description(path_to_json_schema)
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
@@ -461,13 +461,13 @@ def main(args):
                               staging_dataset_id,
                               staging_table_id)
     
-    if 'publish_table' in steps:
-        print('Publishing table')
-        publish_table(schema,
-                      publish_project,
-                      publish_dataset_id,
-                      publish_table_id,
-                      scratch_full_table_id)
+    # if 'publish_table' in steps:
+    #     print('Publishing table')
+    #     publish_table(schema,
+    #                   publish_project,
+    #                   publish_dataset_id,
+    #                   publish_table_id,
+    #                   scratch_full_table_id)
 
 if __name__ == '__main__':
     main(sys.argv)
