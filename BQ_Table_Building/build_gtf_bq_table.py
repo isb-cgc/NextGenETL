@@ -1,6 +1,8 @@
 import sys
+#from json import loads as json_loads
 from json import load as json_load
 import yaml
+#from google.cloud import storage
 from google.cloud import bigquery
 from os.path import expanduser
 import pandas as pd 
@@ -9,6 +11,7 @@ from alive_progress import alive_bar
 import io
 import gzip
 import csv
+#import pyarrow
 from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm
 
