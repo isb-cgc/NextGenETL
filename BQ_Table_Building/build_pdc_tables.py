@@ -1479,7 +1479,7 @@ def update_column_metadata(table_type, table_id):
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
-    console_out("Updating metadata for {}", (table_id,))
+    console_out("Updating metadata for {}\n", (table_id,))
     update_schema(table_id, descriptions)
 
 
@@ -1651,6 +1651,36 @@ def main(args):
     if 'build_api_file_metadata_table' in steps:
         build_table_from_jsonl("fileMetadata",
                                infer_schema=True)
+
+    if 'alter_api_file_metadata_table' in steps:
+        fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
+        fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
+        temp_table_id = fps_table_id + '_temp'
+
+        delete_bq_table(temp_table_id)
+        copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
+
+        query = """
+            WITH grouped_instruments AS (
+                SELECT file_id, 
+                    ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instrument
+                FROM `{0}` fps
+            GROUP BY file_id
+            )
+
+            SELECT g.file_id, f.analyte, f.experiment_type, g.instrument, 
+                f.study_run_metadata_submitter_id, f.study_run_metadata_id, f.plex_or_dataset_name,
+                f.fraction_number, f.aliquots
+            FROM grouped_instruments g
+            LEFT JOIN `{0}` f
+                ON g.file_id = f.file_id
+            """.format(fps_table_id)
+
+        load_table_from_query(
+            BQ_PARAMS,
+            fps_table_id,
+            query
+        )
 
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
