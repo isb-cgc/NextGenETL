@@ -1033,10 +1033,10 @@ def make_associated_entities_query():
 
 
 def make_combined_file_metadata_query():
-    file_metadata_table_name = BQ_PARAMS['FILE_PDC_METADATA_TABLE'] + '_' + BQ_PARAMS['RELEASE']
-    file_metadata_table_id = get_dev_table_id(file_metadata_table_name, is_metadata=True)
-    file_per_study_table_name = BQ_PARAMS['FILES_PER_STUDY_TABLE'] + '_' + BQ_PARAMS['RELEASE']
-    file_per_study_table_id = get_dev_table_id(file_per_study_table_name, is_metadata=True)
+    file_metadata_table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset="PDC_metadata")
+    file_per_study_table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+    file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset="PDC_metadata")
 
     return """
     SELECT distinct fps.file_id, fps.pdc_study_ids,
