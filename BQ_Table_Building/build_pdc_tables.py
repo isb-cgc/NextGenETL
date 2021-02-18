@@ -1658,13 +1658,13 @@ def main(args):
         table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         full_table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
-        update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
+        # update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'build_file_metadata_table' in steps:
         table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
         full_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
-        update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
+        # update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'update_file_metadata_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
