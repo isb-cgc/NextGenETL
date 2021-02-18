@@ -1700,7 +1700,6 @@ def main(args):
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
 
-
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
                                  request_function=make_cases_query)
@@ -1977,7 +1976,9 @@ def main(args):
 
             src_table_id = get_dev_table_id(table_name)
             vers_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
-            curr_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, table_name[:-7] + 'current')
+
+            current_table_name = table_name.replace(BQ_PARAMS["RELEASE"], "") + 'current'
+            curr_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, current_table_name)
 
             if exists_bq_table(src_table_id):
                 console_out("Publishing {}".format(vers_table_id))
@@ -1988,6 +1989,34 @@ def main(args):
                 update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
 
                 # todo -- next round -- how to change past version to archived, since it isn't version# - 1
+
+    if "publish_clinical_tables" in steps:
+        pass
+
+    if "publish_file_metadata_tables" in steps:
+        current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], 'current', include_release=False)
+
+        current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
+                                        BQ_PARAMS['META_DATASET'],
+                                        current_table_name)
+
+        versioned_table_name = src_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+
+        versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
+                                          BQ_PARAMS['META_DATASET'] + '_versioned',
+                                          versioned_table_name)
+
+        src_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                    BQ_PARAMS['META_DATASET'],
+                                    src_table_name)
+
+        if exists_bq_table(src_table_id):
+            console_out("Publishing {}".format(versioned_table_id))
+            copy_bq_table(BQ_PARAMS, src_table_id, versioned_table_id, replace_table=True)
+            console_out("Publishing {}".format(current_table_id))
+            copy_bq_table(BQ_PARAMS, src_table_id, current_table_id, replace_table=True)
+
+            update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
     print_elapsed_time_and_exit(start_time)
 
