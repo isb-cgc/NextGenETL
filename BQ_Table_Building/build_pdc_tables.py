@@ -1519,12 +1519,10 @@ def update_pdc_table_metadata(dataset, table_type=None):
 
 def publish_table(dataset, src_table_name):
     src_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, src_table_name)
+    versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', src_table_name)
 
     current_table_name = src_table_name.replace(BQ_PARAMS['RELEASE'], "current")
     current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, current_table_name)
-
-    versioned_table_name = src_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
-    versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', versioned_table_name)
 
     if exists_bq_table(src_table_id):
         print("Publishing {}".format(versioned_table_id))
