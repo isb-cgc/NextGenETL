@@ -2058,11 +2058,10 @@ def main(args):
 
     if "publish_file_metadata_tables" in steps:
         file_metadata_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
-        publish_table(dataset, file_metadata_table_name)
+        publish_table(BQ_PARAMS["META_DATASET"], file_metadata_table_name)
 
         mapping_table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-        publish_table(dataset, mapping_table_name)
-
+        publish_table(BQ_PARAMS["META_DATASET"], mapping_table_name)
 
     print_elapsed_time_and_exit(start_time)
 
