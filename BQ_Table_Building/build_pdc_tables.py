@@ -1559,7 +1559,6 @@ def main(args):
 
         delete_from_steps('delete_datasets', steps)  # allows for exit without building study lists if not used
 
-
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint='allPrograms',
                                  request_function=make_all_programs_query,
