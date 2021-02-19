@@ -1517,6 +1517,24 @@ def update_pdc_table_metadata(dataset, table_type=None):
             update_table_metadata(table_id, metadata)
 
 
+def publish_table(dataset, src_table_name):
+    src_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, src_table_name)
+
+    current_table_name = src_table_name.replace(BQ_PARAMS['RELEASE'], "current")
+    current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, current_table_name)
+
+    versioned_table_name = src_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+    versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', versioned_table_name)
+
+    if exists_bq_table(src_table_id):
+        print("Publishing {}".format(versioned_table_id))
+        copy_bq_table(BQ_PARAMS, src_table_id, versioned_table_id, replace_table=True)
+        print("Publishing {}".format(current_table_id))
+        copy_bq_table(BQ_PARAMS, src_table_id, current_table_id, replace_table=True)
+        print("Updating friendly name for {}\n".format(versioned_table_id))
+        update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
+
+
 def main(args):
     start_time = time.time()
     console_out("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -2039,29 +2057,12 @@ def main(args):
                 update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
     if "publish_file_metadata_tables" in steps:
-        current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], '_current', include_release=False)
+        file_metadata_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+        publish_table(dataset, file_metadata_table_name)
 
-        current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
-                                        BQ_PARAMS['META_DATASET'],
-                                        current_table_name)
+        mapping_table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        publish_table(dataset, mapping_table_name)
 
-        versioned_table_name = src_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
-
-        versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
-                                          BQ_PARAMS['META_DATASET'] + '_versioned',
-                                          versioned_table_name)
-
-        src_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                    BQ_PARAMS['META_DATASET'],
-                                    src_table_name)
-
-        if exists_bq_table(src_table_id):
-            console_out("Publishing {}".format(versioned_table_id))
-            copy_bq_table(BQ_PARAMS, src_table_id, versioned_table_id, replace_table=True)
-            console_out("Publishing {}".format(current_table_id))
-            copy_bq_table(BQ_PARAMS, src_table_id, current_table_id, replace_table=True)
-
-            update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
     print_elapsed_time_and_exit(start_time)
 
