@@ -1039,7 +1039,7 @@ def make_combined_file_metadata_query():
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset="PDC_metadata")
 
     return """
-    SELECT distinct fps.file_id, fps.pdc_study_ids,
+    SELECT distinct fps.file_id, fps.file_name, fps.pdc_study_ids,
         fm.study_run_metadata_id, fm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fm.fraction_number, fm.experiment_type, fm.plex_or_dataset_name, fm.analyte, fm.instrument, 
@@ -1551,6 +1551,14 @@ def main(args):
             console_out("Deleted table: {}", (fps_table_id,))
 
         delete_from_steps('delete_tables', steps)  # allows for exit without building study lists if not used
+
+    if 'delete_datasets' in steps:
+        for dataset in BQ_PARAMS['DELETE_DATASETS']:
+            delete_bq_dataset(dataset)
+            console_out("Deleted table: {}", (fps_table_id,))
+
+        delete_from_steps('delete_datasets', steps)  # allows for exit without building study lists if not used
+
 
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint='allPrograms',

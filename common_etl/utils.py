@@ -1032,6 +1032,10 @@ def delete_bq_table(table_id):
     client.delete_table(table_id, not_found_ok=True)
 
 
+def delete_bq_dataset(dataset_id):
+    client = bigquery.Client()
+    client.delete_table(dataset_id, delete_contents=True, not_found_ok=True)
+
 def exists_bq_table(table_id):
     """Determine whether bq_table exists.
 
