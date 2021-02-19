@@ -1827,11 +1827,12 @@ def main(args):
                 if max_diagnosis_count == 1 and diagnoses:
                     clinical_case_record.update(diagnoses[0])
                 elif max_diagnosis_count > 1 and diagnoses:
-                    clinical_diagnoses_record['case_id'] = clinical_case_record['case_id']
-                    clinical_diagnoses_record['case_submitter_id'] = clinical_case_record['case_submitter_id']
-                    clinical_diagnoses_record['project_submitter_id'] = clinical_case_record['project_submitter_id']
-                    clinical_diagnoses_record['diagnoses'] = diagnoses
-                    clinical_diagnoses_records.append(clinical_diagnoses_record)
+                    for diagnosis in diagnoses:
+                        clinical_diagnoses_record['case_id'] = clinical_case_record['case_id']
+                        clinical_diagnoses_record['case_submitter_id'] = clinical_case_record['case_submitter_id']
+                        clinical_diagnoses_record['project_submitter_id'] = clinical_case_record['project_submitter_id']
+                        clinical_diagnoses_record.update(diagnosis)
+                        clinical_diagnoses_records.append(clinical_diagnoses_record)
 
                 clinical_records.append(clinical_case_record)
 
