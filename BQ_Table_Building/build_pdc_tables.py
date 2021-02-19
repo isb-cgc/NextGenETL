@@ -2016,11 +2016,7 @@ def main(args):
 
             dataset_id = dataset_map[project_shortname]
 
-            current_table_name = "_".join(
-                [BQ_PARAMS['CLINICAL_TABLE'],
-                 project_shortname,
-                 BQ_PARAMS['DATA_SOURCE'],
-                 'current'])
+            current_table_name = table_name.replace(BQ_PARAMS['RELEASE'], '_current')
             current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
                                             dataset_id,
                                             current_table_name)
