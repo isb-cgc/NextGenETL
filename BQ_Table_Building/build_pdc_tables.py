@@ -1555,7 +1555,7 @@ def main(args):
     if 'delete_datasets' in steps:
         for dataset in BQ_PARAMS['DELETE_DATASETS']:
             delete_bq_dataset(dataset)
-            console_out("Deleted table: {}", (fps_table_id,))
+            print("Deleted dataset: {}".format(dataset))
 
         delete_from_steps('delete_datasets', steps)  # allows for exit without building study lists if not used
 
