@@ -2016,7 +2016,11 @@ def main(args):
 
             dataset_id = dataset_map[project_shortname]
 
-            current_table_name = "_".join([BQ_PARAMS['CLINICAL_TABLE'], project_shortname, 'current'])
+            current_table_name = "_".join(
+                [BQ_PARAMS['CLINICAL_TABLE'],
+                 project_shortname,
+                 BQ_PARAMS['DATA_SOURCE'],
+                 'current'])
             current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
                                             dataset_id,
                                             current_table_name)
@@ -2039,7 +2043,7 @@ def main(args):
                 update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
     if "publish_file_metadata_tables" in steps:
-        current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], '_pdc_current', include_release=False)
+        current_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'], '_current', include_release=False)
 
         current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
                                         BQ_PARAMS['META_DATASET'],
