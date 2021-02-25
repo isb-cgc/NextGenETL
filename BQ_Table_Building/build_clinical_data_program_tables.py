@@ -1041,7 +1041,7 @@ def make_biospecimen_stub_tables(program):
 
 
 def make_published_table_list():
-    old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE'] - 1))
+    old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_release = BQ_PARAMS['REL_PREFIX'] + BQ_PARAMS['RELEASE']
     old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
     new_tables = list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release)
