@@ -1435,7 +1435,13 @@ def main(args):
             console_out("{0} processed in {1}!\n", (program, format_seconds(prog_end)))
 
     if 'list_tables_for_publication':
-        print(build_publish_table_list())
+        print("Create schemas for: ")
+        for table_name in build_publish_table_list():
+            print(table_name)
+        print()
+
+    if 'validate_data' in steps:
+        compare_gdc_releases()
 
     if 'update_table_metadata' in steps:
         update_metadata()
@@ -1452,9 +1458,6 @@ def main(args):
 
             delete_bq_table(table_id)
             console_out("Deleted table: {}", (table_id,))
-
-    if 'validate_data' in steps:
-        compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
         publish_table_list = build_publish_table_list()
