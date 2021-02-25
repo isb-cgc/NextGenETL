@@ -1040,6 +1040,41 @@ def make_biospecimen_stub_tables(program):
 #    Script execution
 
 
+def make_published_table_list():
+    old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE'] - 1))
+    new_release = BQ_PARAMS['REL_PREFIX'] + BQ_PARAMS['RELEASE']
+    old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
+    new_tables = list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release)
+
+    publish_table_list = list()
+
+    for new_table_name in new_tables:
+        split_new_table = new_table_name.split('_')
+        split_new_table[0] = old_release
+        old_table_name = "_".join(split_new_table)
+        if old_table_name not in old_tables:
+            publish_table_list.append(new_table_name)
+        else:
+            old_table_id = get_working_table_id(BQ_PARAMS, old_table_name)
+            new_table_id = get_working_table_id(BQ_PARAMS, new_table_name)
+
+            res = get_query_results("""
+                SELECT count(*) as row_count
+                FROM `{}` old
+                FULL JOIN `{}` curr
+                    ON old.case_id = curr.case_id
+                WHERE old.case_id is null 
+                OR curr.case_id is null
+            """.format(old_table_id, new_table_id))
+
+            for row in res:
+                if row[0] > 0:
+                    publish_table_list.append(new_table_name)
+                break
+
+    print(publish_table_list)
+
+
 def create_tables(program, cases, schema, is_webapp=False):
     """
     Run the overall script which creates schemas, modifies data, prepares it for loading,
@@ -1408,11 +1443,14 @@ def main(args):
             delete_bq_table(table_id)
             console_out("Deleted table: {}", (table_id,))
 
-    if 'copy_tables_into_production' in steps:
-        copy_tables_into_public_project()
-
     if 'validate_data' in steps:
         compare_gdc_releases()
+
+    if 'test_create_publish_list' in steps:
+        make_published_table_list()
+
+    if 'copy_tables_into_production' in steps:
+        copy_tables_into_public_project()
 
     output_report(start, steps)
 

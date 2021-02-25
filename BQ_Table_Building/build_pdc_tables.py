@@ -1049,28 +1049,6 @@ def make_combined_file_metadata_query():
         ON fm.file_id = fps.file_id
     """.format(file_per_study_table_id, file_metadata_table_id)
 
-    '''
-    return """
-    SELECT distinct fps.file_id, fps.file_submitter_id, 
-        fps.pdc_study_id, stud.embargo_date, fps.study_name, fps.study_submitter_id, 
-        fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
-        fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
-        fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
-        fps.md5sum, fps.url, "open" AS `access`
-    FROM `{}` AS fps
-    FULL JOIN `{}` AS fpm
-        ON fpm.file_id = fps.file_id
-    JOIN `{}` AS stud
-        ON stud.pdc_study_id = fps.pdc_study_id
-    GROUP BY fps.file_id, fps.file_submitter_id, 
-        fps.pdc_study_id, stud.embargo_date, fps.study_name, fps.study_submitter_id, 
-        fpm.study_run_metadata_id, fpm.study_run_metadata_submitter_id,
-        fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
-        fpm.fraction_number, fpm.experiment_type, fpm.plex_or_dataset_name, fpm.analyte, fpm.instrument, 
-        fps.md5sum, fps.url
-    """.format(file_per_study_table_id, file_metadata_table_id)
-    '''
-
 
 def alter_files_per_study_json(files_per_study_obj_list):
     for files_per_study_obj in files_per_study_obj_list:
