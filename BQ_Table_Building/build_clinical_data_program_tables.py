@@ -1435,7 +1435,7 @@ def main(args):
             console_out("{0} processed in {1}!\n", (program, format_seconds(prog_end)))
 
     if 'list_tables_for_publication':
-        print(get_publish_table_ids())
+        print(build_publish_table_list())
 
     if 'update_table_metadata' in steps:
         update_metadata()
