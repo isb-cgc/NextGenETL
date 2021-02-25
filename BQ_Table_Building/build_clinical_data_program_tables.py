@@ -1049,6 +1049,9 @@ def make_published_table_list():
     publish_table_list = list()
 
     for new_table_name in new_tables:
+        if new_table_name == (new_release + '_' + BQ_PARAMS['MASTER_TABLE']):
+            continue
+
         split_new_table = new_table_name.split('_')
         split_new_table[0] = old_release
         old_table_name = "_".join(split_new_table)
