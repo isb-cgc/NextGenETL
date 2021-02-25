@@ -1435,7 +1435,7 @@ def main(args):
             console_out("{0} processed in {1}!\n", (program, format_seconds(prog_end)))
 
     if 'list_tables_for_publication':
-        print("Create schemas for: ")
+        print("Table changes detected--create schemas for: ")
         for table_name in build_publish_table_list():
             print(table_name)
         print()
