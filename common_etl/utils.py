@@ -315,6 +315,25 @@ def build_table_id(project, dataset, table):
     return '{}.{}.{}'.format(project, dataset, table)
 
 
+def get_publish_table_ids(bq_params, src_table_name):
+    split_table_name = src_table_name.split('_')
+    release = split_table_name.pop(0)
+    program = split_table_name.pop(0)
+    pub_table_name = '_'.join(split_table_name)
+
+    prod_project = bq_params['PROD_PROJECT']
+
+    curr_dataset = program
+    curr_table_name = "_".join([pub_table_name, bq_params['DATA_SOURCE'], 'current'])
+    curr_table_id = build_table_id(prod_project, curr_dataset, curr_table_name)
+
+    versioned_dataset = program + '_versioned'
+    versioned_table_name = "_".join([pub_table_name, bq_params['DATA_SOURCE'], release])
+    versioned_table_id = build_table_id(prod_project, versioned_dataset, versioned_table_name)
+
+    return curr_table_id, versioned_table_id
+
+'''
 def convert_json_to_table_id(bq_params, json_file):
     """Convert json file from BQEcosystem repo into component dataset and table names.
     Naming matches table ID of corresponding production BQ clinical tables.
@@ -324,8 +343,12 @@ def convert_json_to_table_id(bq_params, json_file):
     :return: names of datasets and tables for production current and versioned
     repositories
     """
-    split_json = json_file.split('.')
-    dest_table = "_".join(split_json[2].split('_')[:-1])
+    
+    if '.' in json_file:    
+        split_json = json_file.split('.')
+        dest_table = "_".join(split_json[2].split('_')[:-1])
+    else: 
+        dest_table = 
 
     dev_project = bq_params['DEV_PROJECT']
     prod_project = bq_params['PROD_PROJECT']
@@ -344,6 +367,7 @@ def convert_json_to_table_id(bq_params, json_file):
     vers_table_id = build_table_id(prod_project, versioned_dataset, vers_table)
 
     return src_table_id, curr_table_id, vers_table_id
+'''
 
 
 def get_biospecimen_table_id(bq_params, program):

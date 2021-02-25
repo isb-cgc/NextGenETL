@@ -976,16 +976,20 @@ def change_status_to_archived(table_id):
         print("Not writing archived label for table that didn't exist in a previous version.")
 
 
-def copy_tables_into_public_project():
+def copy_tables_into_public_project(publish_table_list):
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-    for metadata_file in get_metadata_files():
-        src_table_id, curr_table_id, vers_table_id = convert_json_to_table_id(BQ_PARAMS, metadata_file)
+    for table_name in publish_table_list:
+        src_table_id = get_working_table_id(BQ_PARAMS, table_name)
+        curr_table_id, vers_table_id = get_publish_table_ids(BQ_PARAMS, table_name)
 
-        if not exists_bq_table(src_table_id):
-            console_out('No table found for file (skipping): {0}', (metadata_file,))
-            continue
+        print("source: " + src_table_id)
+        print("current: " + curr_table_id)
+        print("versioned: " + vers_table_id)
+        print()
+
+        """
 
         console_out("Publishing {}".format(vers_table_id))
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
@@ -994,7 +998,7 @@ def copy_tables_into_public_project():
 
         update_friendly_name(BQ_PARAMS, vers_table_id)
         change_status_to_archived(vers_table_id)
-
+        """
 
 #    Webapp specific functions
 
@@ -1040,7 +1044,7 @@ def make_biospecimen_stub_tables(program):
 #    Script execution
 
 
-def make_published_table_list():
+def build_publish_table_list():
     old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_release = BQ_PARAMS['REL_PREFIX'] + BQ_PARAMS['RELEASE']
     old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
@@ -1075,7 +1079,7 @@ def make_published_table_list():
                     publish_table_list.append(new_table_name)
                 break
 
-    print(publish_table_list)
+    return publish_table_list
 
 
 def create_tables(program, cases, schema, is_webapp=False):
@@ -1449,11 +1453,9 @@ def main(args):
     if 'validate_data' in steps:
         compare_gdc_releases()
 
-    if 'test_create_publish_list' in steps:
-        make_published_table_list()
-
     if 'copy_tables_into_production' in steps:
-        copy_tables_into_public_project()
+        publish_table_list = build_publish_table_list()
+        copy_tables_into_public_project(publish_table_list)
 
     output_report(start, steps)
 
