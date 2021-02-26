@@ -13,7 +13,7 @@ import gzip
 import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
-from common_etl.support import confirm_google_vm
+from common_etl.support import confirm_google_vm, upload_to_bucket
 
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
@@ -121,20 +121,20 @@ from common_etl.support import confirm_google_vm
 #     print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
 
 
-def upload_to_staging_env(df, project, dataset_id, table_id):
-
-    client = bigquery.Client(project=project)
-    
-
-    full_table_id = f'{client.project}.{dataset_id}.{table_id}'
-    job_config = bigquery.LoadJobConfig(write_disposition='WRITE_TRUNCATE')
-    job = client.load_table_from_dataframe(
-        df, full_table_id, job_config=job_config
-    )
-    job.result()
-    
-    table = client.get_table(full_table_id) 
-    print(f'Loaded {table.num_rows} rows and {len(table.schema)} columns to {table_id}')
+# def upload_to_staging_env(df, project, dataset_id, table_id):
+#
+#     client = bigquery.Client(project=project)
+#
+#
+#     full_table_id = f'{client.project}.{dataset_id}.{table_id}'
+#     job_config = bigquery.LoadJobConfig(write_disposition='WRITE_TRUNCATE')
+#     job = client.load_table_from_dataframe(
+#         df, full_table_id, job_config=job_config
+#     )
+#     job.result()
+#
+#     table = client.get_table(full_table_id)
+#     print(f'Loaded {table.num_rows} rows and {len(table.schema)} columns to {table_id}')
 
 
 def split_version_ids(final_merged_csv):
@@ -410,6 +410,7 @@ def main(args):
     genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
     attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
     final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}"
+    final_tsv = f"{home}/gtf/{params['FINAL_TSV']}"
 
 
     # Staging table info for staging env
@@ -453,13 +454,14 @@ def main(args):
     if 'split_version_ids' in steps:
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
+        df.to_csv(params['FINAL_TSV'], index=False, sep='\t')
         
-    if 'upload_to_staging_env' in steps:
-        print('Uploading table to a staging environment')
-        upload_to_staging_env(df,
-                              staging_project,
-                              staging_dataset_id,
-                              staging_table_id)
+    # if 'upload_to_staging_env' in steps:
+    #     print('Uploading table to a staging environment')
+    #     upload_to_staging_env(df,
+    #                           staging_project,
+    #                           staging_dataset_id,
+    #                           staging_table_id)
     
     # if 'publish_table' in steps:
     #     print('Publishing table')
@@ -468,6 +470,206 @@ def main(args):
     #                   publish_dataset_id,
     #                   publish_table_id,
     #                   scratch_full_table_id)
+
+    #
+    # Schemas and table descriptions are maintained in the github repo:
+    #
+
+    if 'upload_to_bucket' in steps:
+        upload_to_bucket(params['WORKING_BUCKET'],
+                         final_tsv,
+                         params['FINAL_TSV'])
+
+    if 'create_bq_from_tsv' in steps:
+        for file_set in file_sets:
+            count_name, _ = next(iter(file_set.items()))
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob_sets[count_name])
+            hold_schema_list_for_count = hold_schema_list.format(count_name)
+            with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
+                typed_schema = json_loads(schema_hold_dict.read())
+            csv_to_bq_write_depo(typed_schema, bucket_src_url,
+                                 params['SCRATCH_DATASET'],
+                                 upload_table.format(count_name), params['BQ_AS_BATCH'], None)
+
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            return
+
+    for table in update_schema_tables:
+        if table == 'current':
+            use_schema = params['SCHEMA_FILE_NAME']
+            schema_release = 'current'
+        else:
+            use_schema = params['VER_SCHEMA_FILE_NAME']
+            schema_release = release
+
+        if 'process_git_schemas' in steps:
+            print('process_git_schema')
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
+
+        # Customize generic schema to this data program:
+
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
+            pn = params['PROGRAM']
+            dataset_tuple = (pn, pn.replace(".", "_"))
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = tag_pair[tag]
+                    use_pair = {}
+                    tag_map_list.append(use_pair)
+                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                        chunks = val.split('-', 1)
+                        if chunks[1] == 'programs':
+                            if val.find('~lcbqs-') == 0:
+                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                            else:
+                                rep_val = dataset_tuple[0]
+                        elif chunks[1] == 'builds':
+                            rep_val = params['BUILD']
+                        else:
+                            raise Exception()
+                        if val.find('~lc-') == 0:
+                            rep_val = rep_val.lower()
+                        use_pair[tag] = rep_val
+                    else:
+                        use_pair[tag] = val
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+
+            if not success:
+                print("replace_schema_tags failed")
+                return False
+
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format('current'))
+
+        success = publish_table(source_table, current_dest)
+
+        if not success:
+            print("create current table failed")
+            return
+
+    #
+    # The derived table we generate has no field descriptions. Add them from the github json files:
+    #
+    for table in update_schema_tables:
+        schema_release = 'current' if table == 'current' else release
+        if 'update_final_schema' in steps:
+            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release),
+                                    hold_schema_dict.format('counts'))
+            if not success:
+                print("Schema update failed")
+                return
+
+        #
+        # Add description and labels to the target table:
+        #
+
+        if 'add_table_description' in steps:
+            print('update_table_description')
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            success = install_labels_and_desc(params['SCRATCH_DATASET'], draft_table.format(schema_release),
+                                              full_file_prefix)
+            if not success:
+                print("update_table_description failed")
+                return
+
+    #
+    # compare and remove old current table
+    #
+
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              publication_table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               publication_table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                       "_".join([params['PROGRAM'],
+                                                 publication_table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
+
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+
+        num_rows = compare.total_rows
+
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+        if not compare:
+            print('compare_tables failed')
+            return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
+                                                   params['PUBLICATION_PROJECT'])
+                if not delete_table:
+                    print('delete table failed')
+                    return
+
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+        print('publish tables')
+        tables = ['versioned', 'current']
+
+        for table in tables:
+            if table == 'versioned':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format(release))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                                     publication_table.format(release))
+            elif table == 'current':
+                print(table)
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                                 draft_table.format('current'))
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     params['PUBLICATION_DATASET'],
+                                                     publication_table.format('current'))
+            success = publish_table(source_table, publication_dest)
+
+        if not success:
+            print("publish table failed")
+            return
 
 if __name__ == '__main__':
     main(sys.argv)
