@@ -1,5 +1,5 @@
 import sys
-#from json import loads as json_loads
+from json import loads as json_loads
 #from json import load as json_load
 import yaml
 #from google.cloud import storage
@@ -13,7 +13,7 @@ import gzip
 import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
-from common_etl.support import confirm_google_vm, upload_to_bucket
+from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo
 
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
@@ -411,6 +411,8 @@ def main(args):
     attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
     final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}"
     final_tsv = f"{home}/gtf/{params['FINAL_TSV']}"
+    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
+    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
 
     # Staging table info for staging env
@@ -480,16 +482,7 @@ def main(args):
                          final_tsv,
                          params['FINAL_TSV'])
 
-    if 'create_bq_from_tsv' in steps:
-        for file_set in file_sets:
-            count_name, _ = next(iter(file_set.items()))
-            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob_sets[count_name])
-            hold_schema_list_for_count = hold_schema_list.format(count_name)
-            with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
-                typed_schema = json_loads(schema_hold_dict.read())
-            csv_to_bq_write_depo(typed_schema, bucket_src_url,
-                                 params['SCRATCH_DATASET'],
-                                 upload_table.format(count_name), params['BQ_AS_BATCH'], None)
+
 
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
@@ -556,6 +549,14 @@ def main(args):
             if not success:
                 print("replace_schema_tags failed")
                 return False
+
+    if 'create_bq_from_tsv' in steps:
+        bucket_src_url = f"gs://{params['WORKING_BUCKET']}/{params['FINAL_TSV']}"
+        hold_schema_list_for_count = hold_schema_list
+        with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
+            typed_schema = json_loads(schema_hold_dict.read())
+        csv_to_bq_write_depo(typed_schema, bucket_src_url, params['SCRATCH_DATASET'],
+                             staging_table_id, params['BQ_AS_BATCH'], None)
 
     if 'create_current_table' in steps:
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
