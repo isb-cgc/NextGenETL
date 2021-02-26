@@ -15,7 +15,7 @@ import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
-                               generate_table_detail_files
+                               generate_table_detail_files, customize_labels_and_desc
 
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
@@ -375,9 +375,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None
+        return None, None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['update_schema_tables'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['update_schema_tables'], yaml_dict['schema_tags'], \
+           yaml_dict['steps']
 
 
 def main(args):
@@ -400,13 +401,16 @@ def main(args):
     print("job started")
 
     with open(args[1], mode='r') as yaml_file:
-        params, update_schema_tables, steps = load_config(yaml_file.read())
+        params, update_schema_tables, schema_tags, steps = load_config(yaml_file.read())
 
 
     if params is None:
         print("Bad YAML load")
         return
-    
+
+    # Which release is this workflow running on?
+    release = f"v{params['RELEASE']}"
+
     # Put csv files in a select folder 
     home = expanduser('~')
     genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
@@ -421,7 +425,9 @@ def main(args):
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
     staging_table_id = params['STAGING_TABLE_ID']
-    scratch_full_table_id = f'{staging_project}.{staging_dataset_id}.{staging_table_id}'
+    scratch_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_{release}'
+    scratch_full_table_id_current_ = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
+
     
     # Publish table info for production env 
     publish_project = params['PUBLISH_PROJECT']
@@ -429,8 +435,7 @@ def main(args):
     publish_table_id = params['PUBLISH_TABLE_ID']
     path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION']
 
-    # Which release is this workflow running on?
-    release = f"v{params['RELEASE']}"
+
 
 #    schema = schema_with_description(path_to_json_schema)
 
@@ -503,9 +508,11 @@ def main(args):
         if table == 'current':
             use_schema = params['SCHEMA_FILE_NAME']
             schema_release = 'current'
+            update_table = scratch_full_table_id_current
         else:
             use_schema = params['VER_SCHEMA_FILE_NAME']
             schema_release = release
+            update_table = scratch_full_table_id_versioned
 
         if 'process_git_schemas' in steps:
             print('process_git_schema')
@@ -546,7 +553,7 @@ def main(args):
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
