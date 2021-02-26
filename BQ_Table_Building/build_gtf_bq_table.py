@@ -2,6 +2,7 @@ import sys
 from json import loads as json_loads
 #from json import load as json_load
 import yaml
+from git import Repo
 #from google.cloud import storage
 from google.cloud import bigquery
 from os.path import expanduser
@@ -13,7 +14,8 @@ import gzip
 import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
-from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo
+from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
+                               generate_table_detail_files
 
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
@@ -373,9 +375,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None 
+        return None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['update_schema_tables'], yaml_dict['steps']
 
 
 def main(args):
@@ -398,7 +400,7 @@ def main(args):
     print("job started")
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, = load_config(yaml_file.read())
+        params, update_schema_tables, steps = load_config(yaml_file.read())
 
 
     if params is None:
@@ -426,6 +428,9 @@ def main(args):
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_table_id = params['PUBLISH_TABLE_ID']
     path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION']
+
+    # Which release is this workflow running on?
+    release = f"v{params['RELEASE']}"
 
 #    schema = schema_with_description(path_to_json_schema)
 
@@ -506,7 +511,7 @@ def main(args):
             print('process_git_schema')
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], staging_table_id)
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
