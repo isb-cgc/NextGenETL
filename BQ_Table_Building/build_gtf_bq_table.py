@@ -15,7 +15,7 @@ import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
-                               generate_table_detail_files, customize_labels_and_desc
+                               generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table
 
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
@@ -426,7 +426,7 @@ def main(args):
     staging_dataset_id = params['STAGING_DATASET_ID']
     staging_table_id = params['STAGING_TABLE_ID']
     scratch_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_{release}'
-    scratch_full_table_id_current_ = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
+    scratch_full_table_id_current = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
 
     
     # Publish table info for production env 
@@ -571,12 +571,8 @@ def main(args):
                              staging_table_id, params['BQ_AS_BATCH'], None)
 
     if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format(release))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format('current'))
 
-        success = publish_table(source_table, current_dest)
+        success = publish_table(scratch_full_table_id_versioned, scratch_full_table_id_current)
 
         if not success:
             print("create current table failed")
@@ -586,10 +582,10 @@ def main(args):
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
     for table in update_schema_tables:
-        schema_release = 'current' if table == 'current' else release
+        update_table = scratch_full_table_id_current if table == 'current' else scratch_full_table_id_versioned
         if 'update_final_schema' in steps:
-            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release),
-                                    hold_schema_dict.format('counts'))
+            success = update_schema(params['SCRATCH_DATASET'], update_table,
+                                    hold_schema_dict)
             if not success:
                 print("Schema update failed")
                 return
