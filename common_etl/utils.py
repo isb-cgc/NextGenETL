@@ -1350,13 +1350,13 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
         for label in labels_to_remove_list:
             if label in labels:
                 del labels[label]
-        print("Deleting label(s)--now: {}".format(table_id, labels))
+        print("Deleting label(s)--now: {}".format(labels))
     elif labels_to_remove_list and not isinstance(labels_to_remove_list, list):
         has_fatal_error("labels_to_remove_list not provided in correct format, should be a list.")
 
     if labels_to_add_dict and isinstance(labels_to_add_dict, dict):
         labels.update(labels_to_add_dict)
-        print("Adding/Updating label(s)--now: {}".format(table_id, labels))
+        print("Adding/Updating label(s)--now: {}".format(labels))
     elif labels_to_add_dict and not isinstance(labels_to_add_dict, dict):
         has_fatal_error("labels_to_add_dict not provided in correct format, should be a dict.")
 
