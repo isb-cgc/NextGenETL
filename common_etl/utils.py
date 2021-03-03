@@ -1342,14 +1342,15 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     client = bigquery.Client()
     table = get_bq_table_obj(table_id)
 
-    labels = table.labels
-
     print("Processing labels for {}".format(table_id))
+
+    labels = table.labels
 
     if labels_to_remove_list and isinstance(labels_to_remove_list, list):
         for label in labels_to_remove_list:
             if label in labels:
                 del labels[label]
+                table.labels[label] = None
         print("Deleting label(s)--now: {}".format(labels))
     elif labels_to_remove_list and not isinstance(labels_to_remove_list, list):
         has_fatal_error("labels_to_remove_list not provided in correct format, should be a list.")
