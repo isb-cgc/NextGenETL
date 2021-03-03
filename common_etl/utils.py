@@ -1344,17 +1344,19 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
 
     labels = table.labels
 
+    print("Processing labels for {}".format(table_id))
+
     if labels_to_remove_list and isinstance(labels_to_remove_list, list):
         for label in labels_to_remove_list:
             if label in labels:
                 del labels[label]
-        print("Deleting label(s) for {}. New label dict: {}".format(table_id, labels))
+        print("Deleting label(s)--now: {}".format(table_id, labels))
     elif labels_to_remove_list and not isinstance(labels_to_remove_list, list):
         has_fatal_error("labels_to_remove_list not provided in correct format, should be a list.")
 
     if labels_to_add_dict and isinstance(labels_to_add_dict, dict):
         labels.update(labels_to_add_dict)
-        print("Adding/Updating label(s) for {}. New label dict: {}".format(table_id, labels))
+        print("Adding/Updating label(s)--now: {}".format(table_id, labels))
     elif labels_to_add_dict and not isinstance(labels_to_add_dict, dict):
         has_fatal_error("labels_to_add_dict not provided in correct format, should be a dict.")
 
@@ -1362,6 +1364,7 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     client.update_table(table, ["labels"])
 
     assert table.labels == labels
+    print("Labels updated successfully!\n")
 
 
 def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
