@@ -1047,6 +1047,9 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
         has_fatal_error(err)
 
 
+
+
+
 def delete_bq_table(table_id):
     """Permanently delete BQ table located by table_id.
 
@@ -1059,6 +1062,7 @@ def delete_bq_table(table_id):
 def delete_bq_dataset(dataset_id):
     client = bigquery.Client()
     client.delete_dataset(dataset_id, delete_contents=True, not_found_ok=True)
+
 
 def exists_bq_table(table_id):
     """Determine whether bq_table exists.
@@ -1325,6 +1329,36 @@ def update_table_metadata(table_id, metadata):
     assert table.labels == metadata['labels']
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
+
+
+def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict=None):
+    """
+    # todo
+    :param table_id:
+    :param labels_to_remove_list:
+    :param labels_to_add_dict:
+    :return:
+    """
+    client = bigquery.Client()
+    table = get_bq_table_obj(table_id)
+
+    labels = table.labels
+
+    if labels_to_remove_list and isinstance(labels_to_remove_list, list):
+        for label in labels_to_remove_list:
+            if label in labels:
+                del labels[label]
+        print("Deleting label(s) for {}. New label dict: {}".format(table_id, labels))
+
+    if labels_to_add_dict and isinstance():
+        labels.update(labels_to_add_dict)
+        print("Adding/Updating label(s) for {}. New label dict: {}".format(table_id, labels))
+
+    table.labels = labels
+    client.update_table(table, ["labels"])
+
+    assert table.labels == labels
+    print("Labels successfully updated!")
 
 
 def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):

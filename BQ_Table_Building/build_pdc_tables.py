@@ -1537,6 +1537,23 @@ def main(args):
 
         delete_from_steps('delete_datasets', steps)  # allows for exit without building study lists if not used
 
+    if "update_table_labels" in steps:
+        table_labels = BQ_PARAMS['TABLE_LABEL_UPDATES']
+        for table_id in table_labels.keys():
+            if "remove" not in table_labels[table_id]:
+                labels_to_remove = None
+            else:
+                labels_to_remove = table_labels[table_id]["remove"]
+
+            if "add" not in table_labels[table_id]:
+                labels_to_add = None
+            else:
+                labels_to_add = table_labels[table_id]["add"]
+
+            update_table_labels(table_id, labels_to_remove, labels_to_add)
+
+        delete_from_steps('update_table_labels', steps)  # allows for exit without building study lists if not used
+
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint='allPrograms',
                                  request_function=make_all_programs_query,
