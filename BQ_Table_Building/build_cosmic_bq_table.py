@@ -375,6 +375,8 @@ def main(args):
                     typed_schema = json_loads(hold_schema_dict.read())
                 csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], file_name, params['BQ_AS_BATCH'])
 
+# todo: step to compare table to find duplicates and only keep one version
+
             if 'create_current_table' in steps:
                 print('create current tables')
                 source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
@@ -418,6 +420,12 @@ def main(args):
                         print("update_table_description failed")
                         return
 
+# todo: check if any of the tables have not been updated
+# todo: compare old current tables to the previous version, then delete the told current tables if they are they same
+# todo: publication step
+# todo: change the schema tag for the old versioned table to archive
+# todo: dump working tables
+# todo: archive files step
 
 if __name__ == "__main__":
     main(sys.argv)
