@@ -1078,6 +1078,51 @@ def make_combined_file_metadata_query():
     """.format(file_per_study_table_id, file_metadata_table_id)
 
 
+def modify_api_file_metadata_table_query(fm_table_id):
+    temp_table_id = fm_table_id + "_temp"
+
+    return """
+        WITH grouped_instruments AS (
+            SELECT file_id, 
+                ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instrument
+            FROM `{0}` fps
+        GROUP BY file_id
+        )
+
+        SELECT g.file_id, f.analyte, f.experiment_type, g.instrument, 
+            f.study_run_metadata_submitter_id, f.study_run_metadata_id, f.plex_or_dataset_name,
+            f.fraction_number, f.aliquots
+        FROM grouped_instruments g
+        LEFT JOIN `{0}` f
+            ON g.file_id = f.file_id
+        """.format(temp_table_id)
+
+
+def modify_per_study_file_table_query(fps_table_id):
+    temp_table_id = fps_table_id + "_temp"
+
+    study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
+    study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
+
+    return """
+        WITH grouped_study_ids AS (
+            SELECT fps.file_id, stud.embargo_date, 
+                ARRAY_TO_STRING(ARRAY_AGG(stud.pdc_study_id), ';') as pdc_study_ids
+            FROM `{0}` fps
+            JOIN `{1}` stud
+                ON fps.pdc_study_id = stud.pdc_study_id
+        GROUP BY fps.file_id, stud.embargo_date
+        )
+
+        SELECT distinct g.file_id, f.file_name, g.embargo_date, g.pdc_study_ids,
+            f.data_category, f.file_format, f.file_type, f.file_size, f.md5sum, 
+            SPLIT(f.url, '?')[OFFSET(0)] as url
+        FROM grouped_study_ids g
+        INNER JOIN `{0}` f
+            ON g.file_id = f.file_id
+        """.format(temp_table_id, study_table_id)
+
+
 def alter_files_per_study_json(files_per_study_obj_list):
     for files_per_study_obj in files_per_study_obj_list:
         signedUrl = files_per_study_obj.pop('signedUrl', None)
@@ -1471,12 +1516,6 @@ def make_biospecimen_per_study_query(pdc_study_id):
         primary_site 
         pool 
         taxon
-        externalReferences {{
-            external_reference_id
-            reference_resource_shortname
-            reference_resource_name
-            reference_entity_location
-        }}
     }}
     }}'''.format(pdc_study_id)
 
@@ -1486,43 +1525,28 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
+# todo remove?
 '''
-def make_unique_biospecimen_query(dup_table_id):
-    return """
-            SELECT DISTINCT * 
-            FROM `{}`
-            """.format(dup_table_id)
-'''
+def modify_biospecimen_table_query(temp_table_id):
+    study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
+    study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
-'''
-def make_biospec_query(bio_table_id, csa_table_id):
     return """
-    SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
-        FROM `{}` AS a
-        LEFT JOIN `{}` AS b
-        ON a.aliquot_id = b.aliquot_id
-        AND a.sample_id = b.sample_id
-        AND a.case_id = b.case_id
-        GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
-    """.format(bio_table_id, csa_table_id)
-'''
-
-'''
-def make_biospec_count_query(biospec_table_id, csa_table_id):
-    return """
-        SELECT bio_study_count, bio_case_count, bio_sample_count, bio_aliquot_count, csa_aliquot_run_count 
-        FROM ( 
-          SELECT COUNT(DISTINCT aliquot_run_metadata_id) AS csa_aliquot_run_count
-          FROM `{}`) 
-        AS csa, 
-        ( 
-          SELECT COUNT(DISTINCT case_id) AS bio_case_count,
-                 COUNT(DISTINCT study_id) AS bio_study_count,
-                 COUNT(DISTINCT sample_id) AS bio_sample_count,
-                 COUNT(DISTINCT aliquot_id) AS bio_aliquot_count
-          FROM `{}`) 
-        AS bio
-    """.format(csa_table_id, biospec_table_id)
+        WITH grouped_case_ids AS (
+            SELECT DISTINCT b.case_id, b.sample_id, b.aliquot_id,
+                ARRAY_TO_STRING(ARRAY_AGG(b.pdc_study_id), ';') AS pdc_study_ids,
+                s.program_id, s.project_id, s.embargo_date
+            FROM `{0}` b
+            INNER JOIN `{1}` s
+                ON b.pdc_study_id = s.pdc_study_id
+        )
+        
+        SELECT g.case_id, g.sample_id, g.aliquot_id, g.pdc_study_ids, g.program_id, g.project_id, g.embargo_date,
+            
+        FROM grouped_instruments g
+        LEFT JOIN `{0}` b
+            ON b.case_id = g.case_id    
+    """.format(temp_table_id, study_table_id)
 '''
 
 '''
@@ -1582,6 +1606,18 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                                              biospecimen['taxon']],
                                             null_marker=BQ_PARAMS['NULL_MARKER']))
 '''
+
+
+def create_modified_temp_table(table_id, query):
+    temp_table_id = table_id + '_temp'
+    delete_bq_table(temp_table_id)
+    copy_bq_table(BQ_PARAMS, table_id, temp_table_id)
+
+    load_table_from_query(
+        BQ_PARAMS,
+        table_id,
+        query
+    )
 
 
 def update_column_metadata(table_type, table_id):
@@ -1752,38 +1788,8 @@ def main(args):
     if 'alter_per_study_file_table' in steps:
         fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
         fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
-        temp_table_id = fps_table_id + '_temp'
 
-        study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
-        study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
-
-        delete_bq_table(temp_table_id)
-        copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
-        # delete_bq_table(fps_table_id)
-
-        query = """
-            WITH grouped_study_ids AS (
-                SELECT fps.file_id, stud.embargo_date, 
-                    ARRAY_TO_STRING(ARRAY_AGG(stud.pdc_study_id), ';') as pdc_study_ids
-                FROM `{0}` fps
-                JOIN `{1}` stud
-                    ON fps.pdc_study_id = stud.pdc_study_id
-            GROUP BY fps.file_id, stud.embargo_date
-            )
-    
-            SELECT distinct g.file_id, f.file_name, g.embargo_date, g.pdc_study_ids,
-                f.data_category, f.file_format, f.file_type, f.file_size, f.md5sum, 
-                SPLIT(f.url, '?')[OFFSET(0)] as url
-            FROM grouped_study_ids g
-            INNER JOIN `{0}` f
-                ON g.file_id = f.file_id
-            """.format(temp_table_id, study_table_id)
-
-        load_table_from_query(
-            BQ_PARAMS,
-            fps_table_id,
-            query
-        )
+        create_modified_temp_table(fps_table_id, modify_per_study_file_table_query(fps_table_id))
 
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids("filesPerStudy")
@@ -1793,36 +1799,11 @@ def main(args):
         build_table_from_jsonl("fileMetadata",
                                infer_schema=True)
 
-    # todo incorporate into function?
     if 'alter_api_file_metadata_table' in steps:
-        fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
-        fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
-        temp_table_id = fps_table_id + '_temp'
+        fm_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
+        fm_table_id = get_dev_table_id(fm_table_name, dataset="PDC_metadata")
 
-        delete_bq_table(temp_table_id)
-        copy_bq_table(BQ_PARAMS, fps_table_id, temp_table_id)
-
-        query = """
-            WITH grouped_instruments AS (
-                SELECT file_id, 
-                    ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instrument
-                FROM `{0}` fps
-            GROUP BY file_id
-            )
-
-            SELECT g.file_id, f.analyte, f.experiment_type, g.instrument, 
-                f.study_run_metadata_submitter_id, f.study_run_metadata_id, f.plex_or_dataset_name,
-                f.fraction_number, f.aliquots
-            FROM grouped_instruments g
-            LEFT JOIN `{0}` f
-                ON g.file_id = f.file_id
-            """.format(fps_table_id)
-
-        load_table_from_query(
-            BQ_PARAMS,
-            fps_table_id,
-            query
-        )
+        create_modified_temp_table(fm_table_id, modify_api_file_metadata_table_query(fm_table_id))
 
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
