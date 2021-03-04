@@ -285,7 +285,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
 def make_biospecimen_per_study_query(pdc_study_id):
     return '''
-    {{ biospecimenPerStudy( pdc_study_id: \"{}\") {{
+    {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
         aliquot_id 
         sample_id 
         case_id 
@@ -425,7 +425,7 @@ def make_gene_symbols_per_study_query(pdc_study_id):
 def make_gene_query(gene_name):
     return '''
     {{ 
-        geneSpectralCount(gene_name: \"{}\") {{
+        geneSpectralCount(gene_name: \"{}\" acceptDUA: true) {{
             gene_id
             gene_name
             NCBI_gene_id 
@@ -748,7 +748,7 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 # ***** QUANT DATA MATRIX FUNCTIONS
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
-    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\") }}'.format(study_submitter_id, data_type)
+    return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\" acceptDUA: true) }}'.format(study_submitter_id, data_type)
 
 
 def make_proteome_quant_table_query(study):
@@ -928,7 +928,7 @@ def make_all_programs_query():
 
 def make_study_query(pdc_study_id):
     return """{{ study 
-    (pdc_study_id: \"{}\") {{ 
+    (pdc_study_id: \"{}\" acceptDUA: true) {{ 
         study_name
         disease_type
         primary_site
@@ -992,7 +992,7 @@ def is_currently_embargoed(embargo_date):
 
 def make_files_per_study_query(study_id):
     return """
-    {{ filesPerStudy (pdc_study_id: \"{}\") {{
+    {{ filesPerStudy (pdc_study_id: \"{}\" acceptDUA: true) {{
             pdc_study_id 
             study_submitter_id
             study_name 
@@ -1022,7 +1022,7 @@ def make_file_id_query(table_id):
 
 def make_file_metadata_query(file_id):
     return """
-    {{ fileMetadata(file_id: \"{}\") {{
+    {{ fileMetadata(file_id: \"{}\" acceptDUA: true) {{
         file_id 
         file_name
         fraction_number 
@@ -1188,7 +1188,7 @@ def get_case_diagnoses():
 
 def make_cases_aliquots_query(offset, limit):
     return '''{{ 
-        paginatedCasesSamplesAliquots(offset:{0} limit:{1}) {{ 
+        paginatedCasesSamplesAliquots(offset:{0} limit:{1} acceptDUA: true) {{ 
             total casesSamplesAliquots {{
                 case_id 
                 case_submitter_id
@@ -1217,7 +1217,7 @@ def make_cases_aliquots_query(offset, limit):
 
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     return ''' {{ 
-        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2}) {{
+        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{
             total caseDiagnosesPerStudy {{
                 case_id
                 case_submitter_id
@@ -1295,7 +1295,7 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
 
 def make_cases_demographics_query(pdc_study_id, offset, limit):
     return """{{ 
-        paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2}) {{ 
+        paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{ 
             total caseDemographicsPerStudy {{ 
                 case_id 
                 case_submitter_id
