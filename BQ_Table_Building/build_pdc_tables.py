@@ -904,7 +904,7 @@ def change_study_name_to_table_name_format(study_name):
 
 def make_all_programs_query():
     return """{
-        allPrograms{
+        allPrograms (acceptDUA: true) {
             program_id
             program_submitter_id
             name
