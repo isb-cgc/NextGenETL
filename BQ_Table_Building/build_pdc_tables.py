@@ -1090,12 +1090,12 @@ def modify_api_file_metadata_table_query(fm_table_id):
     return """
         WITH grouped_instruments AS (
             SELECT file_id, 
-                ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instrument
+                ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instruments
             FROM `{0}` fps
         GROUP BY file_id
         )
 
-        SELECT g.file_id, f.analyte, f.experiment_type, g.instrument, 
+        SELECT g.file_id, f.analyte, f.experiment_type, g.instruments as instrument, 
             f.study_run_metadata_submitter_id, f.study_run_metadata_id, f.plex_or_dataset_name,
             f.fraction_number, f.aliquots
         FROM grouped_instruments g
@@ -1524,6 +1524,33 @@ def make_biospecimen_per_study_query(pdc_study_id):
         taxon
     }}
     }}'''.format(pdc_study_id)
+
+
+def create_case_metadata_table_query():
+    # todo hardcoded
+    return """
+            WITH grouped_pdc_study_ids AS (
+            SELECT case_id, 
+                ARRAY_TO_STRING(ARRAY_AGG(pdc_study_id), ';') as pdc_study_ids
+            FROM `isb-project-zero.PDC_metadata.biospecimen_V1_9` b
+            GROUP BY case_id
+        ),
+        cases AS (
+                SELECT b.case_id, b.case_submitter_id, s.embargo_date, s.project_id, b.project_name, s.pdc_study_id, s.program_id, 
+                b.primary_site, b.disease_type, b.taxon, b.case_status
+            FROM `isb-project-zero.PDC_metadata.biospecimen_V1_9` b
+            INNER JOIN `isb-project-zero.PDC_metadata.studies_V1_9` s
+                ON b.pdc_study_id = s.pdc_study_id
+            GROUP BY b.case_id, b.case_submitter_id, s.embargo_date, s.project_id, b.project_name, s.pdc_study_id, s.program_id, 
+                b.primary_site, b.disease_type, b.taxon, b.case_status
+            )
+        
+        SELECT DISTINCT c.case_id, c.case_submitter_id, c.embargo_date, g.pdc_study_ids, c.project_id, c.project_name, c.program_id, 
+            c.primary_site, c.disease_type, c.taxon, c.case_status
+        FROM cases c
+        INNER JOIN grouped_pdc_study_ids g
+            ON c.case_id = g.case_id
+    """.format()
 
 
 def create_case_aliquot_table_query():
