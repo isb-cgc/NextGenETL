@@ -1455,7 +1455,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
 def make_biospecimen_per_study_query(pdc_study_id):
     return '''
-    {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: {true}) {{
+    {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
         aliquot_id 
         sample_id 
         case_id 
