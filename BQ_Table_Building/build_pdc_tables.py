@@ -1073,11 +1073,11 @@ def make_combined_file_metadata_query():
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset="PDC_metadata")
 
     return """
-    SELECT distinct fps.file_id, fps.file_name, fps.pdc_study_ids,
+    SELECT distinct fps.file_id, fps.file_name, fps.embargo_date, fps.pdc_study_ids,
         fm.study_run_metadata_id, fm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fm.fraction_number, fm.experiment_type, fm.plex_or_dataset_name, fm.analyte, fm.instrument, 
-        fps.md5sum, fps.url, fps.embargo_date, "open" AS `access`
+        fps.md5sum, fps.url, "open" AS `access`
     FROM `{}` AS fps
     INNER JOIN `{}` AS fm
         ON fm.file_id = fps.file_id
