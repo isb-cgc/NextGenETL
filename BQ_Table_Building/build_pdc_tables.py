@@ -907,16 +907,19 @@ def make_all_programs_query():
         allPrograms{
             program_id
             program_submitter_id
+            name
             start_date
             end_date
             program_manager
             projects {
                 project_id
                 project_submitter_id
+                name
                 studies {
                     pdc_study_id
                     study_id
                     study_submitter_id
+                    submitter_id_name
                     analytical_fraction
                     experiment_type
                     acquisition_type
@@ -941,8 +944,10 @@ def alter_all_programs_json(all_programs_json_obj):
     temp_programs_json_obj_list = list()
 
     for program in all_programs_json_obj:
+        program['program_name'] = program.pop("name", None)
         projects = program.pop("projects", None)
         for project in projects:
+            project['project_name'] = project.pop("name", None)
             studies = project.pop("studies", None)
             for study in studies:
                 # grab a few add't fields from study endpoint
@@ -1520,6 +1525,19 @@ def make_biospecimen_per_study_query(pdc_study_id):
     }}'''.format(pdc_study_id)
 
 
+def create_case_aliquot_table_query():
+    biospec_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["biospecimenPerStudy"]["output_name"])
+    biospec_table_id = get_dev_table_id(biospec_table_name, dataset="PDC_metadata")
+
+    return """
+    SELECT aliquot_id, aliquot_submitter_id, sample_id, sample_submitter_id, case_id, case_submitter_id,
+        pool, sample_type, sample_status, aliquot_status
+    FROM `{}`
+    GROUP BY aliquot_id, aliquot_submitter_id, sample_id, sample_submitter_id, case_id, case_submitter_id,
+        pool, sample_type, sample_status, aliquot_status
+    """.format(biospec_table_id)
+
+
 def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
@@ -1548,6 +1566,8 @@ def modify_biospecimen_table_query(temp_table_id):
             ON b.case_id = g.case_id    
     """.format(temp_table_id, study_table_id)
 '''
+
+
 
 '''
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
