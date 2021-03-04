@@ -117,8 +117,12 @@ def print_elapsed_time_and_exit(start_time):
     exit()
 
 
-def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(),
-                             alter_json_function=None, ids=None, insert_id=False):
+def build_jsonl_from_pdc_api(endpoint,
+                             request_function,
+                             request_params=tuple(),
+                             alter_json_function=None,
+                             ids=None,
+                             insert_id=False):
     print("Sending {} API request: ".format(endpoint))
 
     if ids:
@@ -279,22 +283,43 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
 # ***** BIOSPECIMEN TABLE FUNCTIONS
 
-def make_biospecimen_per_study_query(study_id):
+def make_biospecimen_per_study_query(pdc_study_id):
     return '''
-    {{ biospecimenPerStudy( study_id: \"{}\") {{
-        aliquot_id sample_id case_id aliquot_submitter_id sample_submitter_id case_submitter_id 
-        aliquot_status case_status sample_status project_name sample_type disease_type primary_site pool taxon
+    {{ biospecimenPerStudy( pdc_study_id: \"{}\") {{
+        aliquot_id 
+        sample_id 
+        case_id 
+        aliquot_submitter_id 
+        sample_submitter_id 
+        case_submitter_id 
+        aliquot_status 
+        case_status 
+        sample_status 
+        project_name 
+        sample_type 
+        disease_type 
+        primary_site 
+        pool 
+        taxon
+        externalReferences {{
+            external_reference_id
+            reference_resource_shortname
+            reference_resource_name
+            reference_entity_location
+        }}
     }}
-    }}'''.format(study_id)
+    }}'''.format(pdc_study_id)
 
 
+'''
 def make_unique_biospecimen_query(dup_table_id):
     return """
             SELECT DISTINCT * 
             FROM `{}`
             """.format(dup_table_id)
+'''
 
-
+'''
 def make_biospec_query(bio_table_id, csa_table_id):
     return """
     SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
@@ -305,8 +330,9 @@ def make_biospec_query(bio_table_id, csa_table_id):
         AND a.case_id = b.case_id
         GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
     """.format(bio_table_id, csa_table_id)
+'''
 
-
+'''
 def make_biospec_count_query(biospec_table_id, csa_table_id):
     return """
         SELECT bio_study_count, bio_case_count, bio_sample_count, bio_aliquot_count, csa_aliquot_run_count 
@@ -322,8 +348,9 @@ def make_biospec_count_query(biospec_table_id, csa_table_id):
           FROM `{}`) 
         AS bio
     """.format(csa_table_id, biospec_table_id)
+'''
 
-
+'''
 def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
     console_out("Building biospecimen tsv!")
 
@@ -379,6 +406,7 @@ def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
                                              biospecimen['pool'],
                                              biospecimen['taxon']],
                                             null_marker=BQ_PARAMS['NULL_MARKER']))
+'''
 
 
 # ***** GENE TABLE FUNCTIONS
@@ -1106,7 +1134,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
     console_out("File PDC metadata jsonl file created in {0}!\n", (format_seconds(jsonl_end),))
 
 
-# ***** CASE METADATA / CLINICAL FUNCTIONS
+# ***** CASE CLINICAL FUNCTIONS
 
 def make_cases_query():
     return """{
@@ -1124,26 +1152,6 @@ def make_cases_query():
             }
         }
     }"""
-
-
-"""
-def alter_cases_json(case_json_obj_list):
-    for case in case_json_obj_list:
-        external_references = case.pop("externalReferences")
-
-        if len(external_references) > 1:
-            has_fatal_error("Cannot unnest external_references for case json obj, exiting.")
-        elif len(external_references) == 1:
-            if external_references[0]['reference_resource_shortname'] != "GDC":
-                print(external_references[0]['reference_resource_shortname'])
-            case.update(external_references[0])
-        else:
-            ref_keys_list = ["external_reference_id", "reference_resource_shortname",
-                             "reference_resource_name", "reference_entity_location"]
-
-            ref_dict = dict.fromkeys(ref_keys_list, None)
-            case.update(ref_dict)
-"""
 
 
 def get_cases(include_external_references=False):
@@ -1443,6 +1451,139 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     delete_bq_table(temp_table_id)
 
 
+# ***** BIOSPECIMEN TABLE FUNCTIONS
+
+def make_biospecimen_per_study_query(pdc_study_id):
+    return '''
+    {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: {true}) {{
+        aliquot_id 
+        sample_id 
+        case_id 
+        aliquot_submitter_id 
+        sample_submitter_id 
+        case_submitter_id 
+        aliquot_status 
+        case_status 
+        sample_status 
+        project_name 
+        sample_type 
+        disease_type 
+        primary_site 
+        pool 
+        taxon
+        externalReferences {{
+            external_reference_id
+            reference_resource_shortname
+            reference_resource_name
+            reference_entity_location
+        }}
+    }}
+    }}'''.format(pdc_study_id)
+
+
+def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
+    for case in json_obj_list:
+        case['pdc_study_id'] = pdc_study_id
+
+
+'''
+def make_unique_biospecimen_query(dup_table_id):
+    return """
+            SELECT DISTINCT * 
+            FROM `{}`
+            """.format(dup_table_id)
+'''
+
+'''
+def make_biospec_query(bio_table_id, csa_table_id):
+    return """
+    SELECT a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+        FROM `{}` AS a
+        LEFT JOIN `{}` AS b
+        ON a.aliquot_id = b.aliquot_id
+        AND a.sample_id = b.sample_id
+        AND a.case_id = b.case_id
+        GROUP BY a.case_id, a.study_id, a.sample_id, a.aliquot_id, b.aliquot_run_metadata_id
+    """.format(bio_table_id, csa_table_id)
+'''
+
+'''
+def make_biospec_count_query(biospec_table_id, csa_table_id):
+    return """
+        SELECT bio_study_count, bio_case_count, bio_sample_count, bio_aliquot_count, csa_aliquot_run_count 
+        FROM ( 
+          SELECT COUNT(DISTINCT aliquot_run_metadata_id) AS csa_aliquot_run_count
+          FROM `{}`) 
+        AS csa, 
+        ( 
+          SELECT COUNT(DISTINCT case_id) AS bio_case_count,
+                 COUNT(DISTINCT study_id) AS bio_study_count,
+                 COUNT(DISTINCT sample_id) AS bio_sample_count,
+                 COUNT(DISTINCT aliquot_id) AS bio_aliquot_count
+          FROM `{}`) 
+        AS bio
+    """.format(csa_table_id, biospec_table_id)
+'''
+
+'''
+def build_biospecimen_tsv(study_ids_list, biospecimen_tsv):
+    console_out("Building biospecimen tsv!")
+
+    print("{} studies total".format(len(study_ids_list)))
+
+    with open(biospecimen_tsv, 'w') as bio_fh:
+        bio_fh.write(create_tsv_row(['aliquot_id',
+                                     'sample_id',
+                                     'case_id',
+                                     'study_id',
+                                     'aliquot_submitter_id',
+                                     'sample_submitter_id',
+                                     'case_submitter_id',
+                                     'aliquot_status',
+                                     'case_status',
+                                     'sample_status',
+                                     'project_name',
+                                     'sample_type',
+                                     'disease_type',
+                                     'primary_site',
+                                     'pool',
+                                     'taxon'],
+                                    null_marker=BQ_PARAMS['NULL_MARKER']))
+
+        for study in study_ids_list:
+            json_res = get_graphql_api_response(API_PARAMS, make_biospecimen_per_study_query(study['study_id']))
+
+            aliquots_cnt = study['aliquots_count']
+            res_size = len(json_res['data']['biospecimenPerStudy'])
+
+            has_quant_tbl = has_quant_table(study['study_submitter_id'])
+
+            console_out("study_id: {}, study_submitter_id: {}, has_quant_table: {}, "
+                        "aliquots_count: {}, api result size: {}",
+                        (study['study_id'], study['study_submitter_id'], has_quant_tbl, aliquots_cnt, res_size))
+
+            for biospecimen in json_res['data']['biospecimenPerStudy']:
+                # create_tsv_row([], BQ_PARAMS['NULL_MARKER'])
+                bio_fh.write(create_tsv_row([biospecimen['aliquot_id'],
+                                             biospecimen['sample_id'],
+                                             biospecimen['case_id'],
+                                             study['study_id'],
+                                             biospecimen['aliquot_submitter_id'],
+                                             biospecimen['sample_submitter_id'],
+                                             biospecimen['case_submitter_id'],
+                                             biospecimen['aliquot_status'],
+                                             biospecimen['case_status'],
+                                             biospecimen['sample_status'],
+                                             biospecimen['project_name'],
+                                             biospecimen['sample_type'],
+                                             biospecimen['disease_type'],
+                                             biospecimen['primary_site'],
+                                             biospecimen['pool'],
+                                             biospecimen['taxon']],
+                                            null_marker=BQ_PARAMS['NULL_MARKER']))
+'''
+
+
 def update_column_metadata(table_type, table_id):
     dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
 
@@ -1523,6 +1664,8 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
+    # ** UTILITY STEPS **
+
     if 'delete_tables' in steps:
         for fps_table_id in BQ_PARAMS['DELETE_TABLES']:
             delete_bq_table(fps_table_id)
@@ -1553,6 +1696,8 @@ def main(args):
             update_table_labels(table_id, labels_to_remove, labels_to_add)
 
         delete_from_steps('update_table_labels', steps)  # allows for exit without building study lists if not used
+
+    # ** STUDY METADATA STEPS **
 
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint='allPrograms',
@@ -1592,30 +1737,7 @@ def main(args):
 
         all_pdc_study_ids = embargoed_pdc_study_ids + pdc_study_ids
 
-    if 'build_biospecimen_tsv' in steps:
-        # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
-
-        biospecimen_tsv_file = get_filename('tsv', BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
-        biospecimen_tsv_path = get_scratch_fp(BQ_PARAMS, biospecimen_tsv_file)
-        build_biospecimen_tsv(studies_list, biospecimen_tsv_path)
-        upload_to_bucket(BQ_PARAMS, biospecimen_tsv_path)
-
-    if 'build_biospecimen_table' in steps:
-        # *** NOTE: DATA MAY BE INCOMPLETE CURRENTLY in PDC API
-
-        build_table_from_tsv(BQ_PARAMS['DEV_PROJECT'],
-                             BQ_PARAMS['META_DATASET'],
-                             BQ_PARAMS['BIOSPECIMEN_TABLE'],
-                             'duplicates')
-
-        dup_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'], 'duplicates')
-        dup_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], dup_table_name)
-        final_table_name = get_table_name(BQ_PARAMS['BIOSPECIMEN_TABLE'])
-        final_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], final_table_name)
-        load_table_from_query(BQ_PARAMS, final_table_id, make_unique_biospecimen_query(dup_table_id))
-
-        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['META_DATASET'], final_table_name):
-            delete_bq_table(dup_table_id)
+    # ** FILE METADATA STEPS **
 
     if 'build_per_study_file_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="filesPerStudy",
@@ -1624,7 +1746,7 @@ def main(args):
                                  ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl("filesPerStudy",
+        build_table_from_jsonl(endpoint="filesPerStudy",
                                infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
@@ -1671,6 +1793,7 @@ def main(args):
         build_table_from_jsonl("fileMetadata",
                                infer_schema=True)
 
+    # todo incorporate into function?
     if 'alter_api_file_metadata_table' in steps:
         fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
         fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
@@ -1718,6 +1841,8 @@ def main(args):
     if 'update_file_metadata_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_METADATA'])
         update_pdc_table_metadata(BQ_PARAMS['META_DATASET'], BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+
+    # ** CASE CLINICAL STEPS **
 
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="allCases",
@@ -1874,6 +1999,23 @@ def main(args):
     if 'update_clinical_tables_metadata' in steps:
         update_pdc_table_metadata(BQ_PARAMS['CLINICAL_DATASET'], table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
+    # ** CASE METADATA STEPS **
+
+    if 'build_biospecimen_jsonl' in steps:
+        build_jsonl_from_pdc_api(endpoint="biospecimenPerStudy",
+                                 request_function=make_biospecimen_per_study_query,
+                                 alter_json_function=alter_biospecimen_per_study_obj,
+                                 ids=all_pdc_study_ids,
+                                 insert_id=True)
+
+    if 'build_biospecimen_table' in steps:
+        build_table_from_jsonl(endpoint="biospecimenPerStudy",
+                               infer_schema=True)
+
+    # todo merge PDC study ids for given case_id into single row, probably?
+
+    # ** QUANT DATA MATRIX STEPS **
+
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
             quant_tsv_file = get_filename('tsv', BQ_PARAMS['QUANT_DATA_TABLE'], study_id_dict['pdc_study_id'])
@@ -1983,6 +2125,8 @@ def main(args):
                 update_column_metadata(BQ_PARAMS['QUANT_DATA_TABLE'], final_table_id)
 
         update_pdc_table_metadata(BQ_PARAMS['DEV_DATASET'], table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
+
+    # ** PUBLISH STEPS **
 
     if "publish_proteome_tables" in steps:
         for study in get_proteome_studies(studies_list):
