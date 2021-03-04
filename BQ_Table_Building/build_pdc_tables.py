@@ -945,6 +945,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
     for program in all_programs_json_obj:
         program['program_name'] = program.pop("name", None)
+        print("Processing {}".format(program['program_name']))
         projects = program.pop("projects", None)
         for project in projects:
             project['project_name'] = project.pop("name", None)
