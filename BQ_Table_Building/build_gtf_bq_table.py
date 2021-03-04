@@ -4,7 +4,7 @@ from json import loads as json_loads
 import yaml
 from git import Repo
 #from google.cloud import storage
-from google.cloud import bigquery
+#from google.cloud import bigquery
 from os.path import expanduser
 import pandas as pd 
 import numpy as np
@@ -15,8 +15,11 @@ import csv
 #import pyarrow
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
-                               generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table
+                               generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
+                               install_labels_and_desc, compare_then_remove_table
 
+# todo
+# to remove
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
 #         @paramaters project, full_table_id
@@ -344,6 +347,8 @@ def count_number_of_lines(a_file):
     
     return number_of_lines
 
+# todo
+# to remove
 # def schema_with_description(path_to_json):
 #
 #     '''
@@ -433,11 +438,15 @@ def main(args):
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_table_id = params['PUBLISH_TABLE_ID']
-    path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION']
+    #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] #todo
 
 
 
-#    schema = schema_with_description(path_to_json_schema)
+#    schema = schema_with_description(path_to_json_schema) #todo
+
+    if 'download_files' in steps:
+        print('Downloading files from GENCODE ftp site')
+        #todo
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
@@ -467,7 +476,9 @@ def main(args):
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
         df.to_csv(params['FINAL_TSV'], index=False, sep='\t')
-        
+
+    # todo
+    # To remove
     # if 'upload_to_staging_env' in steps:
     #     print('Uploading table to a staging environment')
     #     upload_to_staging_env(df,
@@ -570,7 +581,7 @@ def main(args):
         csv_to_bq_write_depo(typed_schema, bucket_src_url, params['SCRATCH_DATASET'],
                              staging_table_id, params['BQ_AS_BATCH'], None)
 
-    if 'create_current_table' in steps:
+    if 'create_current_table' in steps: #todo
 
         success = publish_table(scratch_full_table_id_versioned, scratch_full_table_id_current)
 
@@ -581,7 +592,7 @@ def main(args):
     #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
-    for table in update_schema_tables:
+    for table in update_schema_tables: #todo
         update_table = scratch_full_table_id_current if table == 'current' else scratch_full_table_id_versioned
         if 'update_final_schema' in steps:
             success = update_schema(params['SCRATCH_DATASET'], update_table,
@@ -596,8 +607,8 @@ def main(args):
 
         if 'add_table_description' in steps:
             print('update_table_description')
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-            success = install_labels_and_desc(params['SCRATCH_DATASET'], draft_table.format(schema_release),
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
+            success = install_labels_and_desc(params['SCRATCH_DATASET'], update_table,
                                               full_file_prefix)
             if not success:
                 print("update_table_description failed")
@@ -608,54 +619,53 @@ def main(args):
     #
 
     # compare the two tables
-    if 'compare_remove_old_current' in steps:
-        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                              publication_table.format('current'))
-        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                               publication_table.format("".join(["r",
-                                                                                 str(params['PREVIOUS_RELEASE'])])))
-        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                       "_".join([params['PROGRAM'],
-                                                 publication_table.format("".join(["r",
-                                                                                   str(params['PREVIOUS_RELEASE'])])),
-                                                 'backup']))
+    if 'compare_remove_old_current' in steps: #todo
+        old_current_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_current"
+        previous_ver_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_{params['PREVIOUS_RELEASE']}"
+        table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
 
-        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+        # print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+        #
+        # compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        #
+        # num_rows = compare.total_rows
+        #
+        # if num_rows == 0:
+        #     print('the tables are the same')
+        # else:
+        #     print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+        #
+        # if not compare:
+        #     print('compare_tables failed')
+        #     return
+        # # move old table to a temporary location
+        # elif compare and num_rows == 0:
+        #     print('Move old table to temp location')
+        #     table_moved = publish_table(old_current_table, table_temp)
+        #
+        #     if not table_moved:
+        #         print('Old Table was not moved and will not be deleted')
+        #     # remove old table
+        #     elif table_moved:
+        #         print('Deleting old table: {}'.format(old_current_table))
+        #         delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
+        #                                            params['PUBLICATION_PROJECT'])
+        #         if not delete_table:
+        #             print('delete table failed')
+        #             return
 
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        success = compare_then_remove_table(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'],
+                                            params['PUBLICATION_DATASET'], params['PUBLICATION_PROJECT']) # todo
 
-        num_rows = compare.total_rows
-
-        if num_rows == 0:
-            print('the tables are the same')
-        else:
-            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-
-        if not compare:
-            print('compare_tables failed')
+        if not success:
+            print("delete table failed")
             return
-        # move old table to a temporary location
-        elif compare and num_rows == 0:
-            print('Move old table to temp location')
-            table_moved = publish_table(old_current_table, table_temp)
-
-            if not table_moved:
-                print('Old Table was not moved and will not be deleted')
-            # remove old table
-            elif table_moved:
-                print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
-                                                   params['PUBLICATION_PROJECT'])
-                if not delete_table:
-                    print('delete table failed')
-                    return
 
     #
     # publish table:
     #
 
-    if 'publish' in steps:
+    if 'publish' in steps: # todo
         print('publish tables')
         tables = ['versioned', 'current']
 
