@@ -61,25 +61,6 @@ def get_required_fields(api_params, fg):
     return None
 
 
-def get_column_order_one_fg(api_params, fg):
-    """Get field/column order list associated with given field group from yaml config.
-
-    :param api_params: api param object from yaml config
-    :param fg: field group for which to retrieve field/column order list
-    :return: field group's column order list
-    """
-    if fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error("'{}' not found in FIELD_CONFIG in yaml config".format(fg))
-
-    fg_params = api_params['FIELD_CONFIG'][fg]
-
-    if not fg_params or 'column_order' not in fg_params:
-        has_fatal_error("No order for field group {} in yaml.".format(fg), KeyError)
-
-    # return full field key, in order, for given field_grp
-    return [get_field_key(fg, field) for field in fg_params['column_order']]
-
-
 def get_excluded_field_groups(api_params):
     """Get a list of field groups (via yaml config) to exclude from the final tables.
     Currently used in order to exclude fgs that would otherwise create duplicate columns
@@ -170,26 +151,6 @@ def get_rel_prefix(bq_params):
     return rel_prefix
 
 
-def get_fg_prefix(api_params, fg):
-    """Get field group abbreviations from yaml config, used to create field prefixes
-    in order to prevent BQ column name duplication.
-
-    :param api_params: api param object from yaml config
-    :param fg: specific field group for which to retrieve prefix
-    :return: str containing the prefix designated in yaml config for given fg
-    """
-    if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
-        has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
-
-    elif fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
-
-    elif 'prefix' not in api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg), KeyError)
-
-    return api_params['FIELD_CONFIG'][fg]['prefix']
-
-
 def get_table_suffixes(api_params):
     """Get abbreviations for field groups as designated in yaml config.
 
@@ -202,15 +163,6 @@ def get_table_suffixes(api_params):
         suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
 
     return suffixes
-
-
-def build_master_table_name_from_params(bq_params):
-    """Get master table name from yaml config.
-
-    :param bq_params: bq param object from yaml config
-    :return: master table name
-    """
-    return "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
 
 
 #       GETTERS - MISC
@@ -333,6 +285,7 @@ def get_publish_table_ids(bq_params, src_table_name):
 
     return curr_table_id, versioned_table_id
 
+
 '''
 def convert_json_to_table_id(bq_params, json_file):
     """Convert json file from BQEcosystem repo into component dataset and table names.
@@ -392,7 +345,7 @@ def get_working_table_id(bq_params, table_name=None):
     :return: table id
     """
     if not table_name:
-        table_name = build_master_table_name_from_params(bq_params)
+        table_name = "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
 
     return build_table_id(bq_params["DEV_PROJECT"], bq_params["DEV_DATASET"], table_name)
 
@@ -554,7 +507,7 @@ def get_bq_name(api_params, field, is_webapp=False, arg_fg=None):
 
     # get id_key and prefix associated with this fg
     this_fg_id = get_fg_id_name(api_params, fg)
-    prefix = get_fg_prefix(api_params, fg)
+    prefix = api_params['FIELD_CONFIG'][fg]['prefix']
 
     # create map of {fg_names : id_keys}
     fg_to_id_key_map = get_fgs_and_id_keys(api_params)
@@ -609,68 +562,8 @@ def get_renamed_field_keys(api_params):
 #   I/O Getters
 
 
-def build_working_gs_uri(bq_params, filename):
-    """Builds an uri reference for file uploaded to Google storage bucket.
-
-    :param bq_params: bq param object from yaml config
-    :param filename: file uploaded to google storage bucket
-    :return: uri reference for google storage bucket file
-    """
-    return "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'],
-                                  bq_params['WORKING_BUCKET_DIR'],
-                                  filename)
-
-
-def construct_table_name(bq_params, program='', suffix='', is_webapp=False):
-    """
-    todo
-    :param bq_params:
-    :param program:
-    :param suffix:
-    :param is_webapp:
-    :return:
-    """
-    app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
-
-    name_list = [app_prefix,
-                 bq_params['REL_PREFIX'] + bq_params['RELEASE'],
-                 program,
-                 bq_params['MASTER_TABLE'],
-                 suffix]
-
-    file_name = [x for x in name_list if x]
-    return '_'.join(file_name)
-
-
-def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
-    """
-    todo
-    :param bq_params:
-    :param program:
-    :param suffix:
-    :param is_webapp:
-    :return:
-    """
-    file_name = construct_table_name(bq_params, program, suffix, is_webapp)
-
-    return file_name + '.jsonl'
-
-
-def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp=False):
-    """
-    todo
-    :param api_params:
-    :param bq_params:
-    :param program:
-    :param table:
-    :param is_webapp:
-    :return:
-    """
-    suffixes = get_table_suffixes(api_params)
-    suffix = suffixes[table]
-    program = program.replace('.', '_')
-
-    return build_jsonl_output_filename(bq_params, program, suffix, is_webapp=is_webapp)
+def build_jsonl_output_filename(bq_params):
+    return bq_params['REL_PREFIX'] + bq_params['RELEASE'] + "_" + bq_params['MASTER_TABLE'] + '.jsonl'
 
 
 def build_jsonl_name(api_params, bq_params, program, table, is_webapp=False):
@@ -971,6 +864,7 @@ def get_fgs_and_id_keys(api_params):
 def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
     """Copy an existing BQ table into a new location.
 
+    :param replace_table:
     :param bq_params: bq param object from yaml config
     :param src_table: Table to copy
     :param dest_table: Table to be created
@@ -989,7 +883,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
         console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
 
 
-def create_and_load_table(bq_params, jsonl_file, table_id, schema=None, infer_schema=False):
+def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -1009,7 +903,7 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None, infer_sc
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
-    gs_uri = build_working_gs_uri(bq_params, jsonl_file)
+    gs_uri = "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'], bq_params['WORKING_BUCKET_DIR'], jsonl_file)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
@@ -1036,7 +930,7 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
     job_config.skip_leading_rows = num_header_rows
     job_config.null_marker = null_marker
 
-    gs_uri = build_working_gs_uri(bq_params, tsv_file)
+    gs_uri = "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'], bq_params['WORKING_BUCKET_DIR'], tsv_file)
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
@@ -1045,9 +939,6 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
-
-
-
 
 
 def delete_bq_table(table_id):

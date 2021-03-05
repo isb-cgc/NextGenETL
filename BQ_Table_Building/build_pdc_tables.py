@@ -228,7 +228,7 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
         if not schema:
             has_fatal_error("No schema, exiting")
 
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema, infer_schema)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
     return table_id
 
@@ -246,7 +246,7 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     if not infer_schema and not schema:
         has_fatal_error("No schema found and infer_schema set to False, exiting")
 
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema, infer_schema=True)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
     if infer_schema and not schema:
         pass
@@ -1091,7 +1091,7 @@ def modify_api_file_metadata_table_query(fm_table_id):
         WITH grouped_instruments AS (
             SELECT file_id, 
                 ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instruments
-            FROM `{0}` fps
+            FROM `{0}`
         GROUP BY file_id
         )
 

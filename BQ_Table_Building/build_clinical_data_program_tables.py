@@ -337,7 +337,8 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
     for field_grp, depth in get_sorted_fg_depths(record_counts):
 
         # get ordered list for each field_grp
-        ordered_field_grp_field_keys = get_column_order_one_fg(API_PARAMS, field_grp)
+        fg_params = API_PARAMS['FIELD_CONFIG'][field_grp]
+        ordered_field_grp_field_keys = [get_field_key(field_grp, field) for field in fg_params['column_order']]
 
         # for a given field_grp, assign each field a global index; insert into
         # segregated column order dict (e.g. column_orders[field_grp][field] = idx)
@@ -984,12 +985,12 @@ def copy_tables_into_public_project(publish_table_list):
         src_table_id = get_working_table_id(BQ_PARAMS, table_name)
         curr_table_id, vers_table_id = get_publish_table_ids(BQ_PARAMS, table_name)
 
+        '''
         print("source: " + src_table_id)
         print("current: " + curr_table_id)
         print("versioned: " + vers_table_id)
         print()
-
-        """
+        '''
 
         console_out("Publishing {}".format(vers_table_id))
         copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
@@ -998,7 +999,7 @@ def copy_tables_into_public_project(publish_table_list):
 
         update_friendly_name(BQ_PARAMS, vers_table_id)
         change_status_to_archived(vers_table_id)
-        """
+
 
 #    Webapp specific functions
 
@@ -1036,7 +1037,11 @@ def make_biospecimen_stub_tables(program):
                 BQ_PARAMS['MASTER_TABLE'],
                 program)
 
-    table_id = get_biospecimen_table_id(BQ_PARAMS, program)
+    table_name = build_table_name([get_rel_prefix(BQ_PARAMS),
+                                   str(program),
+                                   BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+
+    table_id = get_webapp_table_id(BQ_PARAMS, table_name)
 
     load_table_from_query(BQ_PARAMS, table_id, query)
 
