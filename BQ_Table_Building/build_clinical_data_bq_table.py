@@ -50,7 +50,7 @@ def request_data_from_gdc_api(curr_index):
         request_params = {
             'from': curr_index,
             'size': API_PARAMS['BATCH_SIZE'],
-            'expand': ",".join(API_PARAMS['FIELD_GROUPS'])  # note: removed list wrapper
+            'expand': ",".join(API_PARAMS['EXPAND_FG_LIST'])  # note: removed list wrapper
         }
 
         # retrieve and parse a "page" (batch) of case objects
@@ -75,14 +75,44 @@ def request_data_from_gdc_api(curr_index):
     return None
 
 
+def add_case_fields_to_master_dict(master_dict, cases):
+    def add_case_field_to_master_dict(record, parent_fg_list):
+        if not record:
+            return
+
+        field_group_key = ".".join(parent_fg_list)
+
+        for exclude_field in API_PARAMS['EXCLUDE_FIELDS'][field_group_key]:
+            if exclude_field in record:
+                del record[exclude_field]
+
+        if isinstance(record, list):
+            for child_record in record:
+                add_case_field_to_master_dict(child_record, parent_fg_list)
+        elif isinstance(record, dict):
+            for key in record.keys():
+                if isinstance(record[key], dict):
+                    add_case_field_to_master_dict(record[key], parent_fg_list + [key])
+                elif isinstance(record[key], list) and isinstance(record[key][0], dict):
+                    add_case_field_to_master_dict(record[key], parent_fg_list + [key])
+                else:
+                    if field_group_key not in master_dict:
+                        master_dict[field_group_key] = dict()
+                    master_dict[field_group_key][key] = None
+
+    for case in cases:
+        add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
+
+
 def retrieve_and_save_case_records(local_path):
     """Retrieves case records from API and outputs them to a JSONL file, which is later
         used to populate the clinical data BQ table.
 
     :param local_path: absolute path to data output file
     """
+
     def add_missing_field_groups_to_case_json():
-        for field_group in API_PARAMS["FIELD_GROUPS"]:
+        for field_group in API_PARAMS["EXPAND_FG_LIST"]:
             split_field_group = field_group.split('.')
 
             if len(split_field_group) == 1:
@@ -135,13 +165,22 @@ def retrieve_and_save_case_records(local_path):
             case = paginated_cases.pop()
             # GDC api response only includes the fields and field groups with non-null data available
             # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-            add_missing_field_groups_to_case_json()
+            # add_missing_field_groups_to_case_json()
             jsonl_list.append(case)
 
         current_index += API_PARAMS['BATCH_SIZE']
 
         if response_json['pagination']['page'] == total_pages:
             break
+
+    master_dict = {
+        API_PARAMS['PARENT_FG']: dict()
+    }
+
+    add_case_fields_to_master_dict(master_dict, jsonl_list)
+
+    print(master_dict)
+    exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(jsonl_list), total_cases)
