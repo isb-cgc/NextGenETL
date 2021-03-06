@@ -133,6 +133,9 @@ def retrieve_and_save_case_records(scratch_fp):
             total_cases = response_json['pagination']['total']
             print("Total cases in {}: {}".format(get_rel_prefix(BQ_PARAMS), total_cases))
 
+        current_page = response_json['pagination']['page']
+        print("Printing page {}".format(current_page))
+
         paginated_cases = response_json['hits']
 
         assert len(paginated_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
@@ -148,9 +151,6 @@ def retrieve_and_save_case_records(scratch_fp):
 
         if response_json['pagination']['page'] == total_pages:
             break
-        else:
-            print("page")
-
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(jsonl_list), total_cases)
