@@ -97,7 +97,7 @@ def add_case_fields_to_master_dict(master_dict, cases):
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
                     if field_group_key not in master_dict:
-                        master_dict[field_group_key] = dict()
+                        master_dict[field_group_key] = set()
                     master_dict[field_group_key][key] = None
 
     for case in cases:
@@ -152,10 +152,10 @@ def retrieve_and_save_case_records(local_path):
             print("Total pages: {}".format(total_pages))
 
             total_cases = response_json['pagination']['total']
-            print("Total cases in {}: {}".format(get_rel_prefix(BQ_PARAMS), total_cases))
+            print("Total cases: {}".format(total_cases))
 
         current_page = response_json['pagination']['page']
-        print("Printing page {}".format(current_page))
+        print("Requesting page {}".format(current_page))
 
         paginated_cases = response_json['hits']
 
@@ -165,7 +165,6 @@ def retrieve_and_save_case_records(local_path):
             case = paginated_cases.pop()
             # GDC api response only includes the fields and field groups with non-null data available
             # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-            # add_missing_field_groups_to_case_json()
             jsonl_list.append(case)
 
         current_index += API_PARAMS['BATCH_SIZE']
