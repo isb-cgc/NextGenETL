@@ -22,12 +22,10 @@ SOFTWARE.
 
 import requests
 import time
-import json
 import os
 import sys
 
-from google.cloud import bigquery
-
+# todo infer
 from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
                               write_list_to_jsonl)
@@ -36,6 +34,8 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+
+# todo yaml config conformance test
 
 
 def request_data_from_gdc_api(curr_index):
@@ -97,11 +97,29 @@ def add_case_fields_to_master_dict(master_dict, cases):
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
                     if field_group_key not in master_dict:
-                        master_dict[field_group_key] = set()
-                    master_dict[field_group_key].add(key)
+                        master_dict[field_group_key] = dict()
+                    master_dict[field_group_key][key] = None
 
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
+
+
+def add_missing_fields_to_case_json(grouped_fields_dict, case):
+    for field_group in grouped_fields_dict:
+        # split field group into list and remove 'cases' prefix (here, 'cases' is just the parent level dict)
+        case_nested_keys = field_group.split(".")[1:]
+
+        for case_fg_key in case_nested_keys:
+            if case_fg_key not in case:
+                case[case_fg_key] = dict()
+            # traverse case until finding location
+            case = case[case_fg_key]
+
+        fields_for_this_fg = grouped_fields_dict[field_group]
+
+        for field in fields_for_this_fg.keys():
+            if field not in case:
+                case[field] = None
 
 
 def retrieve_and_save_case_records(local_path):
@@ -110,31 +128,9 @@ def retrieve_and_save_case_records(local_path):
 
     :param local_path: absolute path to data output file
     """
-
-    def add_missing_field_groups_to_case_json():
-        for field_group in API_PARAMS["EXPAND_FG_LIST"]:
-            split_field_group = field_group.split('.')
-
-            if len(split_field_group) == 1:
-                if field_group not in case:
-                    case[field_group] = list()
-            elif len(split_field_group) == 2:
-                parent_field_group = split_field_group[0]
-                child_field_group = split_field_group[1]
-                if parent_field_group not in case:
-                    case[parent_field_group] = list()
-                if child_field_group not in case[parent_field_group]:
-                    index = 0
-                    child_field_group_count = len(case[parent_field_group])
-
-                    while index < child_field_group_count:
-                        # might need to be list()
-                        case[parent_field_group][index][child_field_group] = None
-                        index += 1
-
     start_time = time.time()
 
-    jsonl_list = list()
+    cases_list = list()
     total_cases = None
     total_pages = None
     current_index = API_PARAMS['START_INDEX']
@@ -150,42 +146,42 @@ def retrieve_and_save_case_records(local_path):
         if not total_pages:
             total_pages = response_json['pagination']['pages']
             print("Total pages: {}".format(total_pages))
-
             total_cases = response_json['pagination']['total']
             print("Total cases: {}".format(total_cases))
 
         current_page = response_json['pagination']['page']
         print("Requesting page {}".format(current_page))
 
-        paginated_cases = response_json['hits']
+        response_cases = response_json['hits']
 
-        assert len(paginated_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+        assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
 
-        while len(paginated_cases) != 0:
-            case = paginated_cases.pop()
-            # GDC api response only includes the fields and field groups with non-null data available
-            # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-            jsonl_list.append(case)
-
+        # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
+        cases_list.update(response_cases)
         current_index += API_PARAMS['BATCH_SIZE']
 
         if response_json['pagination']['page'] == total_pages:
             break
 
-    master_dict = {
+    grouped_fields_dict = {
         API_PARAMS['PARENT_FG']: dict()
     }
 
-    add_case_fields_to_master_dict(master_dict, jsonl_list)
+    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
-    print(master_dict)
+    print(cases_list[0])
+
+    for case in cases_list:
+        add_missing_fields_to_case_json(grouped_fields_dict, case)
+
+    print(cases_list[0])
     exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
-        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(jsonl_list), total_cases)
-        assert total_cases == len(jsonl_list), err_str
+        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
+        assert total_cases == len(cases_list), err_str
 
-    write_list_to_jsonl(local_path, jsonl_list)
+    write_list_to_jsonl(local_path, cases_list)
 
     print("Output jsonl to {} in '{}' mode".format(local_path, BQ_PARAMS['IO_MODE']))
     extract_time = format_seconds(time.time() - start_time)
