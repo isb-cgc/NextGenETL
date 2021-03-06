@@ -148,8 +148,8 @@ def retrieve_and_save_case_records(scratch_fp):
         else:
             break
     if BQ_PARAMS['IO_MODE'] == 'w':
-        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases), total_cases)
-        assert total_cases == len(cases), err_str
+        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(jsonl_list), total_cases)
+        assert total_cases == len(jsonl_list), err_str
 
     write_list_to_jsonl(scratch_fp, jsonl_list)
 
