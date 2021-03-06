@@ -93,22 +93,22 @@ def retrieve_and_save_case_records(scratch_fp):
             split_field_group = field_group.split('.')
 
             if len(split_field_group) == 1:
-                if field_group not in case_copy:
-                    case_copy[field_group] = list()
+                if field_group not in case:
+                    case[field_group] = list()
             elif len(split_field_group) == 2:
                 parent_field_group = split_field_group[0]
                 child_field_group = split_field_group[1]
-                if parent_field_group not in case_copy:
-                    case_copy[parent_field_group] = list()
-                if child_field_group not in case_copy[parent_field_group]:
-                    case_copy[parent_field_group][child_field_group] = None
+                if parent_field_group not in case:
+                    case[parent_field_group] = list()
+                if child_field_group not in case[parent_field_group]:
+                    case[parent_field_group][child_field_group] = None
 
     start_time = time.time()
 
     print("Outputting json objects to {} in '{}' mode".format(scratch_fp, BQ_PARAMS['IO_MODE']))
 
     jsonl_list = list()
-    cases_count = None
+    total_cases = None
     total_pages = None
     current_index = API_PARAMS['START_INDEX']
 
@@ -126,12 +126,14 @@ def retrieve_and_save_case_records(scratch_fp):
             print("Total pages: {}".format(total_pages))
             print("Total cases in {}: {}".format(get_rel_prefix(BQ_PARAMS), total_cases))
 
-        for case in response_json['hits']:
+        cases = response_json['hits']
+
+        while len(cases) > 0:
+            case = cases.pop(0)
             # GDC api response only includes the fields and field groups with non-null data available
             # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-            case_copy = case.deepcopy()
             add_missing_field_groups_to_case_json()
-            jsonl_list.append(case_copy)
+            jsonl_list.append(case)
 
         curr_page = response_json['pagination']['page']
 
@@ -139,19 +141,19 @@ def retrieve_and_save_case_records(scratch_fp):
             current_index += API_PARAMS['BATCH_SIZE']
         else:
             break
+    if BQ_PARAMS['IO_MODE'] == 'w':
+        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases), total_cases)
+        assert total_cases == len(cases), err_str
 
     write_list_to_jsonl(scratch_fp, jsonl_list)
 
     # calculate processing time and file size
-    total_time = format_seconds(time.time() - start_time)
+    extract_time = format_seconds(time.time() - start_time)
     file_size = os.stat(scratch_fp).st_size / 1048576.0
 
-    print()
-    print("Clinical data retrieval complete!")
-    print("\t{} of {} cases retrieved".format(current_index, cases_count))
+    print("\nClinical data retrieval complete!")
     print("\t{:.2f} mb jsonl file size".format(file_size))
-    print("\t{:.1f} to query API and write to local jsonl file".format(total_time))
-    print()
+    print("\t{:.1f} to query API and write to local jsonl file\n".format(extract_time))
 
 
 ##################################################################################
