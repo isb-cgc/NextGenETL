@@ -434,21 +434,18 @@ def main(args):
 
     if 'build_bq_table' in steps:
         # Creates a BQ schema python object consisting of nested SchemaField objects
-        print('Creating BQ schema object!')
-        schema = create_bq_schema(scratch_fp)
+        # print('Creating BQ schema object!')
+        # schema = create_bq_schema(scratch_fp)
 
         # Creates and populates BQ table
-        if not schema:
-            has_fatal_error('Empty SchemaField object', UnboundLocalError)
+        # if not schema:
+        #     has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
 
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        print(schema)
-        exit()
-
-        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id)
 
         os.remove(scratch_fp)
 
