@@ -128,25 +128,30 @@ def retrieve_and_save_case_records(scratch_fp):
 
         if not total_pages:
             total_pages = response_json['pagination']['pages']
-            total_cases = response_json['pagination']['total']
             print("Total pages: {}".format(total_pages))
+
+            total_cases = response_json['pagination']['total']
             print("Total cases in {}: {}".format(get_rel_prefix(BQ_PARAMS), total_cases))
 
-        cases = response_json['hits']
+        paginated_cases = response_json['hits']
 
-        while len(cases) > 0:
-            case = cases.pop(0)
+        assert len(paginated_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+
+        while len(paginated_cases) != 0:
+            case = paginated_cases.pop()
             # GDC api response only includes the fields and field groups with non-null data available
             # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
             add_missing_field_groups_to_case_json()
             jsonl_list.append(case)
 
-        curr_page = response_json['pagination']['page']
+        current_index += API_PARAMS['BATCH_SIZE']
 
-        if curr_page > total_pages:
-            current_index += API_PARAMS['BATCH_SIZE']
-        else:
+        if response_json['pagination']['page'] == total_pages:
             break
+        else:
+            print("page")
+
+
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(jsonl_list), total_cases)
         assert total_cases == len(jsonl_list), err_str
