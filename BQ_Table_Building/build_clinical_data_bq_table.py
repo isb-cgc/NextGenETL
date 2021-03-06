@@ -101,7 +101,13 @@ def retrieve_and_save_case_records(scratch_fp):
                 if parent_field_group not in case:
                     case[parent_field_group] = list()
                 if child_field_group not in case[parent_field_group]:
-                    case[parent_field_group][child_field_group] = None
+                    index = 0
+                    child_field_group_count = len(case[parent_field_group])
+
+                    while index < child_field_group_count:
+                        # might need to be list()
+                        case[parent_field_group][index][child_field_group] = None
+                        index += 1
 
     start_time = time.time()
 
