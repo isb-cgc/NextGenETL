@@ -157,7 +157,7 @@ def retrieve_and_save_case_records(local_path):
         assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
 
         # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-        cases_list.update(response_cases)
+        cases_list += response_cases
         current_index += API_PARAMS['BATCH_SIZE']
 
         if response_json['pagination']['page'] == total_pages:
