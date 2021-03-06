@@ -29,7 +29,7 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
-                              upload_to_bucket, create_and_load_table, get_working_table_id)
+                              upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -429,6 +429,7 @@ def main(args):
         # Insert the generated jsonl file into google storage bucket, for later
         # ingestion by BQ
         print('Uploading jsonl file to cloud storage!')
+        # don't remove local file here, using it to create schema object in next step
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     if 'build_bq_table' in steps:
@@ -444,10 +445,15 @@ def main(args):
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
+        print(schema)
+        exit()
+
         create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
 
-    end = time.time() - start
-    print("Script executed in {0:.0f} seconds\n".format(end))
+        os.remove(scratch_fp)
+
+    end = format_seconds(time.time() - start)
+    print("Script executed in (} seconds\n".format(end))
 
 
 if __name__ == '__main__':
