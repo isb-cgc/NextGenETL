@@ -161,6 +161,7 @@ def build_jsonl_from_pdc_api(endpoint,
 
     jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+    # todo start writing line-by-line
     write_list_to_jsonl(local_filepath, joined_record_list)
 
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)

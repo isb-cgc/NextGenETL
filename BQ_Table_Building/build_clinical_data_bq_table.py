@@ -29,7 +29,8 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
-                              upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds)
+                              upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
+                              write_list_to_jsonl)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -87,87 +88,69 @@ def retrieve_and_save_case_records(scratch_fp):
 
     :param scratch_fp: absolute path to data output file
     """
+    def add_missing_field_groups_to_case_json():
+        for field_group in API_PARAMS["FIELD_GROUPS"]:
+            split_field_group = field_group.split('.')
 
-    def convert_dict_to_string(obj):
-        """Converts dict/list of primitives or strings to a comma-separated string. Used
-        to write data to file.
+            if len(split_field_group) == 1:
+                if field_group not in case_copy:
+                    case_copy[field_group] = list()
+            elif len(split_field_group) == 2:
+                parent_field_group = split_field_group[0]
+                child_field_group = split_field_group[1]
+                if parent_field_group not in case_copy:
+                    case_copy[parent_field_group] = list()
+                if child_field_group not in case_copy[parent_field_group]:
+                    case_copy[parent_field_group][child_field_group] = None
 
-        :param obj: object to converts
-        :return: modified object
-        """
-        if isinstance(obj, list):
-            if not isinstance(obj[0], dict):
-                str_list = ', '.join(obj)
-                obj = str_list
-            else:
-                for idx, value in enumerate(obj.copy()):
-                    obj[idx] = convert_dict_to_string(value)
-        elif isinstance(obj, dict):
-            for key in obj:
-                obj[key] = convert_dict_to_string(obj[key])
-        return obj
+    start_time = time.time()
 
-    start_time = time.time()  # for benchmarking
-    cases_count = 0
-    is_last_page = False
-    io_mode = BQ_PARAMS['IO_MODE']
+    print("Outputting json objects to {} in '{}' mode".format(scratch_fp, BQ_PARAMS['IO_MODE']))
 
-    with open(scratch_fp, io_mode) as jsonl_file:
-        print("Outputting json objects to {0} in {1} mode".format(scratch_fp, io_mode))
-        have_printed_totals = False
+    jsonl_list = list()
+    cases_count = None
+    total_pages = None
+    current_index = API_PARAMS['START_INDEX']
 
-        curr_index = API_PARAMS['START_INDEX']
-        while not is_last_page:
-            res = request_data_from_gdc_api(curr_index)
+    while True:
+        response = request_data_from_gdc_api(current_index)
+        response_json = response.json()['data']
 
-            res_json = res.json()['data']
-            cases_json = res_json['hits']
+        # If response doesn't contain pagination, indicates an invalid request.
+        if 'pagination' not in response_json:
+            has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
 
-            # If response doesn't contain pagination, indicates an invalid request.
-            if 'pagination' not in res_json:
-                has_fatal_error("'pagination' key not found in response json, exiting.",
-                                KeyError)
+        if not total_pages:
+            total_pages = response_json['pagination']['pages']
+            total_cases = response_json['pagination']['total']
+            print("Total pages: {}".format(total_pages))
+            print("Total cases in {}: {}".format(get_rel_prefix(BQ_PARAMS), total_cases))
 
-            batch_record_count = res_json['pagination']['count']
-            cases_count = res_json['pagination']['total']
+        for case in response_json['hits']:
+            # GDC api response only includes the fields and field groups with non-null data available
+            # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
+            case_copy = case.deepcopy()
+            add_missing_field_groups_to_case_json()
+            jsonl_list.append(case_copy)
 
-            if not have_printed_totals:
-                have_printed_totals = True
-                print("Total cases for r{0}: {1}".format
-                      (BQ_PARAMS['RELEASE'], cases_count))
-                print("Batch size: {0}".format(batch_record_count))
+        curr_page = response_json['pagination']['page']
 
-            for case in cases_json:
-                case_copy = case.copy()
+        if curr_page > total_pages:
+            current_index += API_PARAMS['BATCH_SIZE']
+        else:
+            break
 
-                for field in API_PARAMS['EXCLUDE_FIELDS']:
-                    if field in case_copy:
-                        case.pop(field)
-
-                no_list_value_case = convert_dict_to_string(case)
-                json.dump(obj=no_list_value_case, fp=jsonl_file)
-                jsonl_file.write('\n')
-
-            curr_page = res_json['pagination']['page']
-            last_page = res_json['pagination']['pages']
-
-            if curr_page == last_page:
-                is_last_page = True
-            elif API_PARAMS['MAX_PAGES'] and curr_page == API_PARAMS['MAX_PAGES']:
-                is_last_page = True
-
-            print("Inserted page {0} of {1} into jsonl file".format(curr_page, last_page))
-            curr_index += batch_record_count
+    write_list_to_jsonl(scratch_fp, jsonl_list)
 
     # calculate processing time and file size
-    total_time = time.time() - start_time
+    total_time = format_seconds(time.time() - start_time)
     file_size = os.stat(scratch_fp).st_size / 1048576.0
 
     print()
     print("Clinical data retrieval complete!")
-    print("\t{} of {} cases retrieved".format(curr_index, cases_count))
+    print("\t{} of {} cases retrieved".format(current_index, cases_count))
     print("\t{:.2f} mb jsonl file size".format(file_size))
-    print("\t{:.1f} sec to retrieve from GDC API output to jsonl file".format(total_time))
+    print("\t{:.1f} to query API and write to local jsonl file".format(total_time))
     print()
 
 
@@ -222,14 +205,8 @@ def create_field_records_dict(field_mappings, field_data_types):
     return schema_dict
 
 
+'''
 def generate_bq_schema(schema_dict, record_type, expand_fields_list):
-    """Generates BigQuery SchemaField list for insertion of case records.
-
-    :param schema_dict: dict of schema fields
-    :param record_type: type of field/field group
-    :param expand_fields_list: list of field groups included in API request
-    :return: list of SchemaFields for case record insertion
-    """
     # add fields to a list in order to generate a dict representing nested fields
     field_group_names = [record_type]
     nested_depth = 0
@@ -281,10 +258,10 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
                 if parent_name not in temp_schema_field_dict:
                     temp_schema_field_dict[parent_name] = list()
 
-                '''
+                """
                 NOTE: removed get_field_name() wrapper from name argument--that shouldn't be needed and is 
                 being relocated from utils.py to build_clinical_data_program_tables.py 
-                '''
+                """
                 schema_field = bigquery.SchemaField(name=field_group_name,
                                                     field_type='RECORD',
                                                     mode='REPEATED',
@@ -300,8 +277,9 @@ def generate_bq_schema(schema_dict, record_type, expand_fields_list):
         nested_depth -= 1
 
     return None
+'''
 
-
+'''
 def create_bq_schema(data_fp):
     """Generates two dicts (one using data type inference, one using _mapping API
     endpoint.) Compares values and builds a SchemaField object, used to
@@ -358,8 +336,7 @@ def create_bq_schema(data_fp):
         field_name = field_grp_prefix + field
         new_prefix = field_name + '.'
 
-        if isinstance(parent[field], list) \
-                and len(parent[field]) > 0 and isinstance(parent[field][0], dict):
+        if isinstance(parent[field], list) and len(parent[field]) > 0 and isinstance(parent[field][0], dict):
             for dict_item in parent[field]:
                 for dict_key in dict_item:
                     fields = collect_values(fields, dict_key, dict_item, new_prefix)
@@ -401,6 +378,7 @@ def create_bq_schema(data_fp):
     return generate_bq_schema(schema_dict,
                               record_type=endpoint_name,
                               expand_fields_list=",".join(API_PARAMS['FIELD_GROUPS']))  # note: removed list() wrapper
+'''
 
 
 def main(args):
