@@ -98,7 +98,7 @@ def add_case_fields_to_master_dict(master_dict, cases):
                 else:
                     if field_group_key not in master_dict:
                         master_dict[field_group_key] = set()
-                    master_dict[field_group_key][key] = None
+                    master_dict[field_group_key].add(key)
 
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
