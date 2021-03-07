@@ -178,6 +178,9 @@ def retrieve_and_save_case_records(local_path):
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
+    print(cases_list)
+    exit()
+
     for case in cases_list:
         add_missing_fields_to_case_json(grouped_fields_dict, case)
 
