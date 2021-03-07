@@ -103,7 +103,10 @@ def add_case_fields_to_master_dict(master_dict, cases):
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
-    print(master_dict)
+    # print(master_dict)
+
+    print(sorted(list(master_dict.keys())))
+
     exit()
 
 
