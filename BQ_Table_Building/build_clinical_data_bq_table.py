@@ -215,7 +215,7 @@ def retrieve_and_save_case_records(local_path):
 
     for case in cases_list:
         print("Size before: {}".format(len(case)))
-        temp_case = dummy_case.deepcopy()
+        temp_case = copy.deepcopy(dummy_case)
         temp_case.update(case.items())
         case = temp_case
 
