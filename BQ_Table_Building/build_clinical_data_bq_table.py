@@ -109,25 +109,31 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
     print(case)
 
     for field_group in grouped_fields_dict:
+        current_case_position = case
+
         # split field group into list and remove 'cases' prefix (here, 'cases' is just the parent level dict)
         case_nested_key = field_group.split(".")[1:]
 
-        current_case_position = case
-
         for case_fg_key in case_nested_key:
             if case_fg_key not in current_case_position:
-                current_case_position[case_fg_key] = dict()
+                if case_fg_key == 'demographic':
+                    current_case_position[case_fg_key] = grouped_fields_dict[field_group]
+                else:
+                    current_case_position[case_fg_key] = [grouped_fields_dict[field_group]]
 
+            current_case_position = current_case_position[case_fg_key]
+
+        """
         fields_for_this_fg = grouped_fields_dict[field_group]
 
         for field in fields_for_this_fg.keys():
             if field not in current_case_position:
                 current_case_position[field] = None
+        """
 
     print("after:")
     print(case)
     exit()
-
 
 
 def retrieve_and_save_case_records(local_path):
