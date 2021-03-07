@@ -200,7 +200,7 @@ def retrieve_and_save_case_records(local_path):
         cases_list += response_cases
         current_index += API_PARAMS['BATCH_SIZE']
 
-        if response_json['pagination']['page'] == 10:
+        if response_json['pagination']['page'] == 3:
             break
 
         # todo switch back
@@ -214,12 +214,14 @@ def retrieve_and_save_case_records(local_path):
     dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        print("Size before: {}".format(len(case)))
         temp_case = copy.deepcopy(dummy_case)
         temp_case.update(case.items())
-        case = temp_case
 
-        print("Size after: {}".format(len(case)))
+        if len(case) < len(temp_case):
+            print(temp_case)
+            exit()
+
+        case = temp_case
 
     exit()
 
