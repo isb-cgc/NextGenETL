@@ -201,7 +201,7 @@ def retrieve_and_save_case_records(local_path):
         cases_list += response_cases
         current_index += API_PARAMS['BATCH_SIZE']
 
-        if response_json['pagination']['page'] == 1:
+        if response_json['pagination']['page'] == 10:
             break
 
         # todo switch back
