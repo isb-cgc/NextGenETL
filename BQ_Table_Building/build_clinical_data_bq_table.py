@@ -162,6 +162,15 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 """
 
 
+def merge_dummy_case_with_case(dummy_case, case):
+    for field in dummy_case.keys():
+        if dummy_case[field] not in case:
+            case[field] = dummy_case[field]
+        elif isinstance(dummy_case[field], list):
+            for record in case[field]:
+                merge_dummy_case_with_case(dummy_case[0][field], record)
+
+
 def retrieve_and_save_case_records(local_path):
     """Retrieves case records from API and outputs them to a JSONL file, which is later
         used to populate the clinical data BQ table.
@@ -214,20 +223,10 @@ def retrieve_and_save_case_records(local_path):
     dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        temp_case = copy.deepcopy(dummy_case)
+        merge_dummy_case_with_case(dummy_case, case)
 
-        print(temp_case)
-
-        temp_case.update(case.items())
-
-        if len(case) + 1 == len(temp_case):
-            print(case)
-            print(temp_case)
-            exit()
-
-        case = temp_case
-
-    exit()
+        print(case)
+        exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
