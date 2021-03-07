@@ -118,7 +118,7 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
         fields_for_this_fg = grouped_fields_dict[field_group]
 
         print(case)
-        print(field)
+        print(fields_for_this_fg)
 
         for field in fields_for_this_fg.keys():
             if field not in case:
@@ -163,7 +163,7 @@ def retrieve_and_save_case_records(local_path):
         cases_list += response_cases
         current_index += API_PARAMS['BATCH_SIZE']
 
-        if response_json['pagination']['page'] == 3:
+        if response_json['pagination']['page'] == 1:
             break
 
         # todo switch back
