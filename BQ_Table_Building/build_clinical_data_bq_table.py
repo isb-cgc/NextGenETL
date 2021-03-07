@@ -217,7 +217,7 @@ def retrieve_and_save_case_records(local_path):
         temp_case = copy.deepcopy(dummy_case)
         temp_case.update(case.items())
 
-        if len(case) < len(temp_case):
+        if len(case) + 1 == len(temp_case):
             print(temp_case)
             exit()
 
