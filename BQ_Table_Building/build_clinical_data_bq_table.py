@@ -173,7 +173,7 @@ def merge_dummy_case_with_case(dummy_case, case):
                 for record in case[field]:
                     merge_dummy_case_with_case(dummy_case[field][0], record)
         else:
-            if dummy_case[field] not in case:
+            if field not in case:
                 case[field] = dummy_case[field]
 
 
