@@ -117,6 +117,9 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
         fields_for_this_fg = grouped_fields_dict[field_group]
 
+        print(case)
+        print(field)
+
         for field in fields_for_this_fg.keys():
             if field not in case:
                 case[field] = None
@@ -173,13 +176,8 @@ def retrieve_and_save_case_records(local_path):
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
-    print(cases_list[0])
-
     for case in cases_list:
         add_missing_fields_to_case_json(grouped_fields_dict, case)
-
-    print(cases_list[0])
-    exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
