@@ -107,16 +107,18 @@ def add_case_fields_to_master_dict(master_dict, cases):
 def add_missing_fields_to_case_json(grouped_fields_dict, case):
     for field_group in grouped_fields_dict:
         # split field group into list and remove 'cases' prefix (here, 'cases' is just the parent level dict)
-        case_nested_keys = field_group.split(".")[1:]
+        case_nested_key = field_group.split(".")[1:]
 
-        for case_fg_key in case_nested_keys:
+        for case_fg_key in case_nested_key:
+            print(case_fg_key)
+
             if case_fg_key not in case:
                 case[case_fg_key] = dict()
             # traverse case until finding location
             case = case[case_fg_key]
 
         fields_for_this_fg = grouped_fields_dict[field_group]
-
+        exit()
         print("case:")
         print(case)
         print("fields:")
