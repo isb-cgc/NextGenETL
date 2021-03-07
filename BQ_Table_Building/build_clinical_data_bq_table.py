@@ -181,8 +181,6 @@ def retrieve_and_save_case_records(local_path):
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        print(case)
-        exit()
         add_missing_fields_to_case_json(grouped_fields_dict, case)
 
     if BQ_PARAMS['IO_MODE'] == 'w':
