@@ -117,7 +117,9 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
         fields_for_this_fg = grouped_fields_dict[field_group]
 
+        print("case:")
         print(case)
+        print("fields:")
         print(fields_for_this_fg)
 
         for field in fields_for_this_fg.keys():
