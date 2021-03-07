@@ -103,6 +103,9 @@ def add_case_fields_to_master_dict(master_dict, cases):
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
+    print(master_dict)
+    exit()
+
 
 def add_missing_fields_to_case_json(grouped_fields_dict, case):
     print("before:")
@@ -115,11 +118,15 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
         case_nested_key = field_group.split(".")[1:]
 
         for case_fg_key in case_nested_key:
+            if isinstance(current_case_position, list):
+                for record in current_case_position:
+
+
             if case_fg_key not in current_case_position:
                 if case_fg_key == 'demographic':
                     current_case_position[case_fg_key] = grouped_fields_dict[field_group]
                 else:
-                    current_case_position[case_fg_key] = [grouped_fields_dict[field_group]]
+                        current_case_position[case_fg_key] = [grouped_fields_dict[field_group]]
 
             current_case_position = current_case_position[case_fg_key]
 
