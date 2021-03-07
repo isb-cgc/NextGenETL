@@ -119,7 +119,6 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
         for field in fields_for_this_fg.keys():
             if field not in case:
-                case.append()
                 case[field] = None
 
 
