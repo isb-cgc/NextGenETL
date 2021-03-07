@@ -108,9 +108,19 @@ def add_case_fields_to_master_dict(master_dict, cases):
     dummy_case = dict()
 
     for fg in fg_list:
-        print(fg)
+        split_fg_list = fg.split(".")[-1:]
 
+        if len(split_fg_list) == 0:
+            continue
+        elif len(split_fg_list) == 1:
+            if split_fg_list[0] == 'demographic':
+                dummy_case[split_fg_list[0]] = master_dict[fg]
+            else:
+                dummy_case[split_fg_list[0]] = [master_dict[fg]]
+        elif len(split_fg_list) == 2:
+            dummy_case[split_fg_list[0]][0][split_fg_list[1]] = [master_dict[fg]]
 
+    print(dummy_case)
 
     exit()
 
