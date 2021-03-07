@@ -169,11 +169,10 @@ def merge_dummy_case_with_case(dummy_case, case):
                 case[field] = dummy_case[field]
             else:
                 for record in case[field]:
-                    merge_dummy_case_with_case(dummy_case[0][field], record)
+                    merge_dummy_case_with_case(dummy_case[0], record)
         else:
             if dummy_case[field] not in case:
                 case[field] = dummy_case[field]
-
 
 
 def retrieve_and_save_case_records(local_path):
