@@ -24,6 +24,7 @@ import requests
 import time
 import os
 import sys
+import copy
 
 # todo infer
 from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
@@ -121,9 +122,7 @@ def add_case_fields_to_master_dict(master_dict, cases):
         elif len(split_fg_list) == 3:
             dummy_case[split_fg_list[1]][0][split_fg_list[2]] = [master_dict[fg]]
 
-    print(dummy_case)
-
-    exit()
+    return dummy_case
 
 
 def add_missing_fields_to_case_json(grouped_fields_dict, case):
@@ -212,10 +211,17 @@ def retrieve_and_save_case_records(local_path):
         API_PARAMS['PARENT_FG']: dict()
     }
 
-    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
+    dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        add_missing_fields_to_case_json(grouped_fields_dict, case)
+        print("Size before: {}".format(len(case)))
+        temp_case = dummy_case.deepcopy()
+        temp_case.update(case.items())
+        case = temp_case
+
+        print("Size after: {}".format(len(case)))
+
+    exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
