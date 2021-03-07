@@ -103,9 +103,14 @@ def add_case_fields_to_master_dict(master_dict, cases):
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
-    # print(master_dict)
+    fg_list = sorted(list(master_dict.keys()))
 
-    print(sorted(list(master_dict.keys())))
+    dummy_case = dict()
+
+    for fg in fg_list:
+        print(fg)
+
+
 
     exit()
 
