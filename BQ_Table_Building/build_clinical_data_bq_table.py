@@ -201,8 +201,6 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
             for key, val in case.items():
                 if not isinstance(val, list) and not isinstance(val, dict):
                     parent_fields[key] = normalize_value(val)
-                else:
-                    print("oops")
 
             temp_child_record = copy.deepcopy(fields_dict[fg])
             temp_child_record.update(parent_fields)
@@ -232,6 +230,8 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
                             parent_record[child_fg] = temp_child_records
 
     temp_case = dict()
+
+    print(case_items)
 
     for fg in case_items:
         split_fg = fg.split('.')
