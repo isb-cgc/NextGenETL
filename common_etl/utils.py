@@ -663,6 +663,10 @@ def check_value_type(value):
         val_is_int = True
         val_is_numeric = False
         '''
+    elif isinstance(value, str):
+        try:
+
+
 
     # todo add date/time/timestamp
     # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)

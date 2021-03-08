@@ -114,6 +114,8 @@ def extract_api_response_json(local_path):
 
             assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
 
+            json_str = json.dumps(response_cases)[1:-1]
+
             file_obj.write(json.dumps(response_cases))
 
             cases_list += response_cases
@@ -246,12 +248,10 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
     cases_list = list()
 
-    print("length of cases: {}".format(len(cases_json['cases'])))
-
     for cases_page in cases_json['cases']:
         cases_list = cases_list + cases_page
 
-    print("length of cases_list: {}".format(len(cases_list)))
+    print("Total cases in local json file: {}".format(len(cases_list)))
 
     grouped_fields_dict = {
         API_PARAMS['PARENT_FG']: dict()
@@ -262,8 +262,6 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for case in cases_list:
         add_missing_fields_to_case(grouped_fields_dict, case)
 
-        # todo uncomment
-        """
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
         assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
         assert len(case['follow_ups'][0]['molecular_tests'][0]) == \
@@ -273,7 +271,6 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
         assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
         assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
-        """
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
