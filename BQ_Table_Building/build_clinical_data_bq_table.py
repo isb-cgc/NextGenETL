@@ -94,7 +94,7 @@ def extract_api_response_json(local_path):
     local_json_path = local_path[:-1]
 
     with open(local_json_path, "w") as file_obj:
-        file_obj.write('[')
+        file_obj.write('{"cases": [')
 
         while True:
             response = request_data_from_gdc_api(current_index)
@@ -131,7 +131,7 @@ def extract_api_response_json(local_path):
             else:
                 file_obj.write(',')
 
-        file_obj.write(']')
+        file_obj.write(']}')
 
 
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
