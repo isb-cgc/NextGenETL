@@ -664,9 +664,8 @@ def check_value_type(value):
         val_is_numeric = False
         '''
     # elif isinstance(value, str):
+    regex_str = "[1-2]{3}[0-9]-[0-1][0-9]-[0-3][0-9](T| )[0-2][0-9]:[0-5][0-9]::[0-5][0-9].{5}[0-9]*[A-Za-z ]"
     #    try:
-
-
 
     # todo add date/time/timestamp
     # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)

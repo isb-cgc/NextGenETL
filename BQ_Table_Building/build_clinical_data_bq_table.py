@@ -305,6 +305,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
 
         assert_output_count("cases", temp_case, case_fgs_to_remove)
+        '''
         assert_output_count("cases.exposures", temp_case['exposures'][0])
         assert_output_count("cases.demographic", temp_case['demographic'])
         assert_output_count("cases.family_histories", temp_case['family_histories'][0])
@@ -314,8 +315,11 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert_output_count("cases.diagnoses.annotations", temp_case['diagnoses'][0]['annotations'][0])
         assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], follow_ups_fg_to_remove)
         assert_output_count("cases.follow_ups.molecular_tests", temp_case['follow_ups'][0]['molecular_tests'][0])
-
+        '''
         cases_list[index] = temp_case
+
+        if index % 1000 == 0:
+            print("Parsed {} cases".format(index))
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
