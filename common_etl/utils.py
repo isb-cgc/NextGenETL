@@ -663,8 +663,8 @@ def check_value_type(value):
         val_is_int = True
         val_is_numeric = False
         '''
-    elif isinstance(value, str):
-        try:
+    # elif isinstance(value, str):
+    #    try:
 
 
 
