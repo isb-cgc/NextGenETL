@@ -108,11 +108,13 @@ def add_case_fields_to_master_dict(master_dict, cases):
                         print("5")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
-                    if key == 'treatments':
-                        print("6")
                     if field_group_key not in master_dict:
+                        if key == 'treatments':
+                            print("7")
                         master_dict[field_group_key] = dict()
                     if not isinstance(record[key], list):
+                        if key == 'treatments':
+                            print("8")
                         master_dict[field_group_key][key] = None
 
     for case in cases:
