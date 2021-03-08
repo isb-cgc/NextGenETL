@@ -260,7 +260,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         """.format(case, temp_case, field_group, expected_cnt, actual_cnt, index)
 
         try:
-            assert actual_cnt == expected_cnt, err_str
+            assert actual_cnt == expected_cnt
         except AssertionError:
             expected_field_keys = set(grouped_fields_dict[field_group].keys())
             actual_field_keys = set(fields.keys())
@@ -268,8 +268,10 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             not_in_expected_keys = actual_field_keys - expected_field_keys
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
+            print(err_str)
             print("not_in_expected_keys: {}".format(not_in_expected_keys))
             print("not_in_actual_keys: {}".format(not_in_actual_keys))
+            exit()
 
     local_json_path = local_jsonl_path[:-1]
 
@@ -304,19 +306,12 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert_output_count("cases.exposures", temp_case['exposures'][0])
         assert_output_count("cases.demographic", temp_case['demographic'])
         assert_output_count("cases.family_histories", temp_case['family_histories'][0])
-
         assert_output_count("cases.project", temp_case['project'])
-
         assert_output_count("cases.diagnoses", temp_case['diagnoses'][0], -2)
-
         assert_output_count("cases.diagnoses.treatments", temp_case['diagnoses'][0]['treatments'][0])
-
         assert_output_count("cases.diagnoses.annotations", temp_case['diagnoses'][0]['annotations'][0])
-
         assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], -1)
-
         assert_output_count("cases.follow_ups.molecular_tests", temp_case['follow_ups'][0]['molecular_tests'][0])
-
 
         cases_list[index] = temp_case
 
