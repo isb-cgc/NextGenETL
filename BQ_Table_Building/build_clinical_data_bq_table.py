@@ -137,14 +137,15 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
 
         field_group_key = ".".join(parent_fg_list)
 
+        if field_group_key == 'cases.sample_ids' or field_group_key == 'cases.submitter_sample_ids':
+            print("foo!")
+
         for exclude_field in API_PARAMS['EXCLUDE_FIELDS'][field_group_key]:
             if exclude_field in record:
                 del record[exclude_field]
 
         if isinstance(record, list):
             if not isinstance(record[0], dict):
-                print("other kind of list")
-                print(field_group_key)
             for child_record in record:
                 add_case_field_to_master_dict(child_record, parent_fg_list)
         elif isinstance(record, dict):
