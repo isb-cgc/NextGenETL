@@ -365,137 +365,25 @@ def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
     return column_data_types
 
 
-"""
-def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
-    nested_schema_dict = {}
+def get_grouped_fields_dict(local_jsonl_path):
+    local_json_path = local_jsonl_path[:-1]
 
-    fg_list = API_PARAMS["EXPAND_FG_LIST"] + [API_PARAMS["PARENT_FG"]]
+    with open(local_json_path, 'r') as json_file:
+        cases_json = json.load(json_file)
 
-    for field_group in sorted(fg_list, reverse=True):
-        nested_fields_list = list()
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_group
-        for field_name in grouped_fields_dict[full_field_name].keys():
-            full_field_name = full_field_name + "." + field_name
+    cases_list = list()
 
-            nested_fields_list.append(
-                {
-                    "name": full_field_name,
-                    "type": column_data_types_dict[full_field_name],
-                    "mode": "NULLABLE",
-                    "description": ""
-                }
-            )
+    for cases_page in cases_json['cases']:
+        for case in cases_page:
+            cases_list.append(case)
 
-        nested_schema_dict[full_field_name] = nested_fields_list
+    grouped_fields_dict = {
+        API_PARAMS['PARENT_FG']: dict()
+    }
 
-    nested_fields_list = list()
+    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
-    for field_name in grouped_fields_dict[API_PARAMS["PARENT_FG"]]:
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_name
-
-        nested_fields_list.append(
-            {
-                "name": full_field_name,
-                "type": column_data_types_dict[full_field_name],
-                "mode": "NULLABLE",
-                "description": ""
-            }
-        )
-
-    nested_schema_dict[API_PARAMS["PARENT_FG"]] = nested_fields_list
-
-    repeated_schema_dict = dict()
-    schema = list()
-
-    for fg in sorted(nested_schema_dict.keys()):
-        split_fg = fg.split('.')
-
-        if len(split_fg) == 1:
-            schema = nested_schema_dict[fg]
-            continue
-
-        repeated_schema_dict[fg] = {
-            "name": split_fg[-1],
-            "type": "RECORD",
-            "mode": "REPEATED",
-            "fields": nested_schema_dict[fg]
-        }
-
-    sorted_fgs = sorted(repeated_schema_dict.keys(), reverse=True)
-
-    for column in sorted_fgs:
-        nested_schema_fields = repeated_schema_dict.pop(column)
-        split_column = column.split('.')
-        if len(split_column) == 3:
-            parent_column = ".".join(split_column[:-1])
-
-            repeated_schema_dict[parent_column]['fields'].append(nested_schema_fields)
-        elif len(split_column) == 2:
-            schema.append(nested_schema_fields)
-
-    return schema
-
-def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
-    def append_to_nested_schema_dict(full_field_name):
-        nested_fields_list.append(
-            {
-                "name": full_field_name,
-                "type": column_data_types_dict[full_field_name],
-                "mode": "NULLABLE",
-                "description": ""
-            }
-        )
-
-    nested_schema_dict = {}
-
-    for field_group in sorted(API_PARAMS["EXPAND_FG_LIST"], reverse=True):
-        nested_fields_list = list()
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_group
-        for field_name in grouped_fields_dict[full_field_name].keys():
-            full_field_name = full_field_name + "." + field_name
-            append_to_nested_schema_dict(full_field_name)
-
-        nested_schema_dict[full_field_name] = nested_fields_list
-
-    nested_fields_list = list()
-
-    for field_name in grouped_fields_dict[API_PARAMS["PARENT_FG"]]:
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_name
-        append_to_nested_schema_dict(full_field_name)
-
-    nested_schema_dict[API_PARAMS["PARENT_FG"]] = nested_fields_list
-
-    repeated_schema_dict = dict()
-    schema = list()
-
-    for fg in sorted(nested_schema_dict.keys()):
-        split_fg = fg.split('.')
-
-        if len(split_fg) == 1:
-            schema = nested_schema_dict[fg]
-            continue
-
-        repeated_schema_dict[fg] = {
-            "name": split_fg[-1],
-            "type": "RECORD",
-            "mode": "REPEATED",
-            "fields": nested_schema_dict[fg]
-        }
-
-    sorted_fgs = sorted(repeated_schema_dict.keys(), reverse=True)
-
-    for column in sorted_fgs:
-        nested_schema_fields = repeated_schema_dict.pop(column)
-        split_column = column.split('.')
-        if len(split_column) == 3:
-            parent_column = ".".join(split_column[:-1])
-
-            repeated_schema_dict[parent_column]['fields'].append(nested_schema_fields)
-        elif len(split_column) == 2:
-            schema.append(nested_schema_fields)
-
-    return schema
-"""
+    return grouped_fields_dict
 
 
 def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
@@ -545,7 +433,6 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
     for column in sorted_fgs:
         nested_schema_fields = repeated_schema_dict.pop(column)
         split_column = column.split('.')
-        print(split_column)
         if len(split_column) == 3:
             parent_column = ".".join(split_column[:-1])
 
@@ -554,26 +441,6 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
             schema.append(nested_schema_fields)
 
     return schema
-
-def get_grouped_fields_dict(local_jsonl_path):
-    local_json_path = local_jsonl_path[:-1]
-
-    with open(local_json_path, 'r') as json_file:
-        cases_json = json.load(json_file)
-
-    cases_list = list()
-
-    for cases_page in cases_json['cases']:
-        for case in cases_page:
-            cases_list.append(case)
-
-    grouped_fields_dict = {
-        API_PARAMS['PARENT_FG']: dict()
-    }
-
-    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
-
-    return grouped_fields_dict
 
 
 def main(args):

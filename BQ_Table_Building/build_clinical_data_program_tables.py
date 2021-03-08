@@ -28,7 +28,6 @@ import sys
 from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
 
-
 from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error, get_scratch_fp,
                               create_and_load_table, load_table_from_query, write_list_to_jsonl,
                               upload_to_bucket, exists_bq_table, get_working_table_id,
@@ -141,6 +140,7 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: bq column name for given field name
     """
+
     def get_fgs_and_id_keys(api_params):
         """ Create a dictionary of type { 'field_group' : 'id_key_field'}.
 
@@ -1348,6 +1348,7 @@ def copy_tables_into_public_project(publish_table_list):
     """Move production-ready bq tables onto the public-facing production server.
 
     """
+
     def get_publish_table_ids(bq_params, src_table_name):
         split_table_name = src_table_name.split('_')
         release = split_table_name.pop(0)
@@ -1425,6 +1426,77 @@ def make_biospecimen_stub_tables(program):
 
 
 #    Script execution
+
+def find_distinct_rows_in_old_new_table_query(old_table_id, new_table_id):
+    def unnest_first_tier_query(table_id, is_new):
+        version_suffix = "new" if is_new else "old"
+
+        return """
+            first_level_{0} AS (
+                SELECT {1}
+                FROM `{2}` c
+                JOIN UNNEST(diagnoses) AS diag,
+                UNNEST(demographic) AS demo,
+                UNNEST(family_histories) AS fam,
+                UNNEST(project) as proj,
+                UNNEST(exposures) as expose,
+                UNNEST(follow_ups) as follow
+            )
+        """.format(version_suffix, first_level_cols, table_id)
+
+    def unnest_second_tier_query(is_new):
+        version_suffix = "new" if is_new else "old"
+
+        return """
+            second_{0} AS (
+                SELECT f.* EXCEPT (annotations, treatments, molecular_tests), 
+                {1}
+                FROM first_level_{0}} f
+                JOIN UNNEST(annotations) as annot,
+                    UNNEST(treatments) as treatments,
+                    UNNEST(molecular_tests) as mol 
+                WHERE molecular_test_id is not null
+                ORDER BY f.case_id, f.diagnosis_id
+            )
+        """.format(version_suffix, second_level_cols)
+
+    first_level_cols = """
+        consent_type, case_id, c.primary_site, c.disease_type, c.state, c.submitter_id, days_to_lost_to_followup,
+        lost_to_followup, days_to_consent, c.created_datetime, index_date, c.updated_datetime,
+        diag.age_at_diagnosis, diag.ajcc_clinical_m, diag.ajcc_clinical_n, diag.ajcc_clinical_stage, diag.ajcc_clinical_t, diag.ajcc_pathologic_m, diag.ajcc_pathologic_n, diag.ajcc_pathologic_stage, diag.ajcc_pathologic_t, diag.ajcc_staging_system_edition, diag.anaplasia_present, diag.anaplasia_present_type, diag.ann_arbor_b_symptoms, diag.ann_arbor_clinical_stage, diag.ann_arbor_extranodal_involvement, diag.ann_arbor_pathologic_stage, diag.annotations, diag.best_overall_response, diag.breslow_thickness, diag.burkitt_lymphoma_clinical_variant, diag.child_pugh_classification, diag.circumferential_resection_margin, diag.classification_of_tumor, diag.cog_liver_stage, diag.cog_neuroblastoma_risk_group, diag.cog_renal_stage, diag.cog_rhabdomyosarcoma_risk_group, diag.created_datetime, diag.days_to_best_overall_response, diag.days_to_diagnosis, diag.days_to_last_follow_up, diag.days_to_last_known_disease_status, diag.days_to_recurrence, diag.diagnosis_id, diag.eln_risk_classification, diag.enneking_msts_grade, diag.enneking_msts_metastasis, diag.enneking_msts_stage, diag.enneking_msts_tumor_site, diag.esophageal_columnar_dysplasia_degree, diag.esophageal_columnar_metaplasia_present, diag.figo_stage, diag.figo_staging_edition_year, diag.first_symptom_prior_to_diagnosis, diag.gastric_esophageal_junction_involvement, diag.gleason_grade_group, diag.gleason_grade_tertiary, diag.gleason_patterns_percent, diag.goblet_cells_columnar_mucosa_present, diag.greatest_tumor_dimension, diag.gross_tumor_weight, diag.icd_10_code, diag.igcccg_stage, diag.inpc_grade, diag.inpc_histologic_group, diag.inrg_stage, diag.inss_stage, diag.international_prognostic_index, diag.irs_group, diag.irs_stage, diag.ishak_fibrosis_score, diag.iss_stage, diag.largest_extrapelvic_peritoneal_focus, diag.last_known_disease_status, diag.laterality, diag.lymph_node_involved_site, diag.lymph_nodes_positive, diag.lymph_nodes_tested, diag.lymphatic_invasion_present, diag.margin_distance, diag.margins_involved_site, diag.masaoka_stage, diag.medulloblastoma_molecular_classification, diag.metastasis_at_diagnosis, diag.metastasis_at_diagnosis_site, diag.method_of_diagnosis, diag.micropapillary_features, diag.mitosis_karyorrhexis_index, diag.mitotic_count, diag.morphology, diag.non_nodal_regional_disease, diag.non_nodal_tumor_deposits, diag.ovarian_specimen_status, diag.ovarian_surface_involvement, diag.papillary_renal_cell_type, diag.percent_tumor_invasion, diag.perineural_invasion_present, diag.peripancreatic_lymph_nodes_positive, diag.peripancreatic_lymph_nodes_tested, diag.peritoneal_fluid_cytological_status, diag.pregnant_at_diagnosis, diag.primary_diagnosis, diag.primary_gleason_grade, diag.prior_malignancy, diag.prior_treatment, diag.progression_or_recurrence, diag.residual_disease, diag.satellite_nodule_present, diag.secondary_gleason_grade, diag.site_of_resection_or_biopsy, diag.sites_of_involvement, diag.state, diag.supratentorial_localization, diag.synchronous_malignancy, diag.tissue_or_organ_of_origin, diag.transglottic_extension, diag.treatments, diag.tumor_confined_to_organ_of_origin, diag.tumor_depth, diag.tumor_focality, diag.tumor_grade, diag.tumor_largest_dimension_diameter, diag.tumor_regression_grade, diag.tumor_stage, diag.updated_datetime, diag.vascular_invasion_present, diag.vascular_invasion_type, diag.weiss_assessment_score, diag.who_cns_grade, diag.who_nte_grade, diag.wilms_tumor_histologic_subtype, diag.year_of_diagnosis,
+        demo.age_at_index, demo.age_is_obfuscated, demo.cause_of_death, demo.cause_of_death_source, demo.country_of_residence_at_enrollment, demo.created_datetime, demo.days_to_birth, demo.days_to_death, demo.demographic_id, demo.ethnicity, demo.gender, demo.occupation_duration_years, demo.premature_at_birth, demo.race, demo.state, demo.updated_datetime, demo.vital_status, demo.weeks_gestation_at_birth, demo.year_of_birth, demo.year_of_death,
+        fam.created_datetime, fam.family_history_id, fam.relationship_age_at_diagnosis, fam.relationship_gender, fam.relationship_primary_diagnosis, fam.relationship_type, fam.relative_with_cancer_history, fam.relatives_with_cancer_history_count, fam.state, fam.updated_datetime,
+        proj.name, proj.project_id,
+        expose.age_at_onset, expose.alcohol_days_per_week, expose.alcohol_drinks_per_day, expose.alcohol_history, expose.alcohol_intensity, expose.alcohol_type, expose.asbestos_exposure, expose.bmi, expose.cigarettes_per_day, expose.coal_dust_exposure, expose.created_datetime, expose.environmental_tobacco_smoke_exposure, expose.exposure_duration, expose.exposure_id, expose.exposure_type, expose.height, expose.marijuana_use_per_week, expose.pack_years_smoked, expose.radon_exposure, expose.respirable_crystalline_silica_exposure, expose.secondhand_smoke_as_child, expose.smokeless_tobacco_quit_age, expose.smoking_frequency, expose.state, expose.time_between_waking_and_first_smoke, expose.tobacco_smoking_onset_year, expose.tobacco_smoking_quit_year, expose.tobacco_smoking_status, expose.tobacco_use_per_day, expose.type_of_smoke_exposure, expose.type_of_tobacco_used, expose.updated_datetime, expose.weight, expose.years_smoked,
+        follow.adverse_event, follow.adverse_event_grade, follow.aids_risk_factors, follow.barretts_esophagus_goblet_cells_present, follow.bmi, follow.body_surface_area, follow.cause_of_response, follow.cd4_count, follow.cdc_hiv_risk_factors, follow.comorbidity, follow.comorbidity_method_of_diagnosis, follow.created_datetime, follow.days_to_adverse_event, follow.days_to_comorbidity, follow.days_to_follow_up, follow.days_to_imaging, follow.days_to_progression, follow.days_to_progression_free, follow.days_to_recurrence, follow.diabetes_treatment_type, follow.disease_response, follow.dlco_ref_predictive_percent, follow.ecog_performance_status, follow.evidence_of_recurrence_type, follow.fev1_fvc_post_bronch_percent, follow.fev1_fvc_pre_bronch_percent, follow.fev1_ref_post_bronch_percent, follow.fev1_ref_pre_bronch_percent, follow.follow_up_id, follow.haart_treatment_indicator, follow.height, follow.hepatitis_sustained_virological_response, follow.hiv_viral_load, follow.hormonal_contraceptive_type, follow.hormonal_contraceptive_use, follow.hormone_replacement_therapy_type, follow.hpv_positive_type, follow.hysterectomy_margins_involved, follow.hysterectomy_type, follow.imaging_result, follow.imaging_type, follow.immunosuppressive_treatment_type, follow.karnofsky_performance_status, follow.menopause_status, follow.molecular_tests, follow.nadir_cd4_count, follow.pancreatitis_onset_year, follow.pregnancy_outcome, follow.procedures_performed, follow.progression_or_recurrence, follow.progression_or_recurrence_anatomic_site, follow.progression_or_recurrence_type, follow.recist_targeted_regions_number, follow.recist_targeted_regions_sum, follow.reflux_treatment_type, follow.risk_factor, follow.risk_factor_treatment, follow.scan_tracer_used, follow.state, follow.updated_datetime, follow.viral_hepatitis_serologies, follow.weight
+    """
+
+    second_level_cols = """
+        annot.annotation_id, annot.case_id, annot.category, annot.classification, annot.created_datetime, annot.entity_id, annot.entity_type, annot.legacy_created_datetime, annot.legacy_updated_datetime, annot.notes, annot.state, annot.status, annot.updated_datetime, 
+        treatments.chemo_concurrent_to_radiation, treatments.created_datetime, treatments.days_to_treatment_end, treatments.days_to_treatment_start, treatments.initial_disease_status, treatments.number_of_cycles, treatments.reason_treatment_ended, treatments.regimen_or_line_of_therapy, treatments.state, treatments.therapeutic_agents, treatments.treatment_anatomic_site, treatments.treatment_arm, treatments.treatment_dose, treatments.treatment_dose_units, treatments.treatment_effect, treatments.treatment_effect_indicator, treatments.treatment_frequency, treatments.treatment_id, treatments.treatment_intent_type, treatments.treatment_or_therapy, treatments.treatment_outcome, treatments.treatment_type, treatments.updated_datetime, 
+        mol.aa_change, mol.antigen, mol.biospecimen_type, mol.blood_test_normal_range_lower, mol.blood_test_normal_range_upper, mol.cell_count, mol.chromosome, mol.clonality, mol.copy_number, mol.created_datetime, mol.cytoband, mol.exon, mol.gene_symbol, mol.histone_family, mol.histone_variant, mol.intron, mol.laboratory_test, mol.loci_abnormal_count, mol.loci_count, mol.locus, mol.mismatch_repair_mutation, mol.molecular_analysis_method, mol.molecular_consequence, mol.molecular_test_id, mol.pathogenicity, mol.ploidy, mol.second_exon, mol.second_gene_symbol, mol.specialized_molecular_test, mol.state, mol.test_analyte_type, mol.test_result, mol.test_units, mol.test_value, mol.transcript, mol.updated_datetime, mol.variant_origin, mol.variant_type, mol.zygosity
+    """
+
+    all_cols = first_level_cols + ', ' + second_level_cols
+    split_all_cols = all_cols.split(", ")
+
+    # old, new will give removed
+
+    first_new = unnest_first_tier_query(new_table_id, is_new=True)
+    second_new = unnest_second_tier_query(new_table_id, is_new=True)
+    first_old = unnest_first_tier_query(old_table_id, is_new=False)
+    second_old = unnest_second_tier_query(old_table_id, is_new=False)
+
+    return """
+        WITH {0}, 
+        {1},
+        {2},
+        {3}
+        
+        FROM second_{}
+        JOIN second_{}
+        USING ({})
+    """.format(first_new, second_new, first_old, second_old, 'new', 'old', split_all_cols)
 
 
 def build_publish_table_list():
@@ -1767,8 +1839,8 @@ def compare_gdc_releases():
             new_table_cnt = 0 if not row[3] else row[3]
 
             print("{}: {} table(s) in {}, {} table(s) in {}".format(program_name,
-                                                                          prev_table_cnt, old_rel,
-                                                                          new_table_cnt, new_rel))
+                                                                    prev_table_cnt, old_rel,
+                                                                    new_table_cnt, new_rel))
 
     print("\nAdded tables: ")
     added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
