@@ -103,19 +103,15 @@ def add_case_fields_to_master_dict(master_dict, cases):
                     if not isinstance(record[key], list):
                         master_dict[field_group_key][key] = None
 
-    treatment_iter_list = []
-
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
     for key in master_dict.keys():
         for field in master_dict[key].keys():
-            if master_dict[key][field]:
+            if isinstance(master_dict[key][field], list):
                 del master_dict[key][field]
 
     fg_list = sorted(list(master_dict.keys()))
-
-    print(fg_list)
 
     dummy_case = dict()
 
