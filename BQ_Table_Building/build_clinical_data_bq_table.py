@@ -257,8 +257,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             temp_case: {}\n\n
             {} expected count {} -> actual {} at index {}\n
         """.format(case, temp_case, field_group, expected_cnt, actual_cnt, index)
-        try:
-            assert actual_cnt == expected_cnt, err_str
+
+        assert actual_cnt == expected_cnt, err_str
 
     local_json_path = local_jsonl_path[:-1]
 
