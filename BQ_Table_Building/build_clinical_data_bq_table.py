@@ -77,7 +77,7 @@ def request_data_from_gdc_api(curr_index):
     return None
 
 
-def add_case_fields_to_master_dict(master_dict, cases):
+def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     def add_case_field_to_master_dict(record, parent_fg_list):
         if not record:
             return
@@ -98,23 +98,23 @@ def add_case_fields_to_master_dict(master_dict, cases):
                 elif isinstance(record[key], list) and isinstance(record[key][0], dict):
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
-                    if field_group_key not in master_dict:
-                        master_dict[field_group_key] = dict()
+                    if field_group_key not in grouped_fields_dict:
+                        grouped_fields_dict[field_group_key] = dict()
                     if not isinstance(record[key], list):
-                        master_dict[field_group_key][key] = None
+                        grouped_fields_dict[field_group_key][key] = None
 
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
-    for key in master_dict.keys():
+    for key in grouped_fields_dict.keys():
         print(key)
-        for field in master_dict[key].keys():
+        for field in grouped_fields_dict[key].keys():
             print("\t" + key)
-            if isinstance(master_dict[key][field], list):
+            if isinstance(grouped_fields_dict[key][field], list):
                 print("delete: {}".format(field))
-                master_dict[key].pop(field)
+                grouped_fields_dict[key].pop(field)
 
-    fg_list = sorted(list(master_dict.keys()))
+    fg_list = sorted(list(grouped_fields_dict.keys()))
 
     dummy_case = dict()
 
@@ -122,15 +122,15 @@ def add_case_fields_to_master_dict(master_dict, cases):
         split_fg_list = fg.split(".")
 
         if len(split_fg_list) == 1:
-            for field, value in master_dict[fg].items():
+            for field, value in grouped_fields_dict[fg].items():
                 dummy_case[field] = value
         elif len(split_fg_list) == 2:
             if split_fg_list[1] == 'demographic' or split_fg_list[1] == 'project':
-                dummy_case[split_fg_list[1]] = master_dict[fg]
+                dummy_case[split_fg_list[1]] = grouped_fields_dict[fg]
             else:
-                dummy_case[split_fg_list[1]] = [master_dict[fg]]
+                dummy_case[split_fg_list[1]] = [grouped_fields_dict[fg]]
         elif len(split_fg_list) == 3:
-            dummy_case[split_fg_list[1]][0][split_fg_list[2]] = [master_dict[fg]]
+            dummy_case[split_fg_list[1]][0][split_fg_list[2]] = [grouped_fields_dict[fg]]
 
     return dummy_case
 
@@ -177,8 +177,6 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 def merge_dummy_case_with_case(dummy_case, case):
     dummy_case.update(case)
     case = dummy_case
-    print("loop")
-    print(case)
 
     for key in dummy_case:
         if isinstance(dummy_case[key], list):
