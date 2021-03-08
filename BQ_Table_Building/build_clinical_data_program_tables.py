@@ -385,27 +385,28 @@ def find_program_structure(cases, is_webapp=False):
     this program's field groups.
     """
 
-    print(1)
     fgs = {}
     record_counts = {}
 
     for case in cases:
-        print(2)
         if case:
             examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
 
     for field_grp in fgs:
-        print(3)
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
             print("{0} not in metadata".format(field_grp))
             fgs.pop(field_grp)
             cases.pop(field_grp)
 
+    print(1)
+
     columns = flatten_tables(fgs, record_counts, is_webapp)
+    print(2)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     if is_webapp:
+        print(3)
         excluded_field_groups = API_PARAMS['FG_CONFIG']['excluded_fgs']
 
         for field_grp in record_counts.copy().keys():
