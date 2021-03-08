@@ -298,9 +298,6 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
-    print(grouped_fields_dict)
-    exit()
-
     with open(local_jsonl_path, 'w') as jsonl_file_obj:
         for index, case in enumerate(cases_list):
             case = add_missing_fields_and_normalize_case(grouped_fields_dict, cases_list[index])
