@@ -114,6 +114,8 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
                 print("delete: {}".format(field))
                 grouped_fields_dict[key].pop(field)
 
+    print(grouped_fields_dict)
+
     """
     fg_list = sorted(list(grouped_fields_dict.keys()))
 
