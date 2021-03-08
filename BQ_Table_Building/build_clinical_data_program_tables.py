@@ -67,7 +67,7 @@ def get_one_to_many_tables(record_counts):
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
-    table_keys = {API_PARAMS['FG_CONFIG']['base_fg']}
+    table_keys = {API_PARAMS['PARENT_FG']}
 
     for table in record_counts:
         if record_counts[table] > 1:
@@ -155,15 +155,13 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
 
         return id_key_dict
 
-    base_fg = API_PARAMS['FG_CONFIG']['base_fg']
-
     if arg_fg:
         # field group is specified as a function argument
         fg = arg_fg
         field_key = merge_fg_and_field(fg, field)
     elif len(field.split('.')) == 1:
         # no fg delimiter found in field string: cannot be a complete field key
-        fg = base_fg
+        fg = API_PARAMS['PARENT_FG']
         field_key = merge_fg_and_field(fg, field)
     else:
         # no fg argument, but field contains separator chars; extract the fg and name
@@ -185,7 +183,7 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
     # if fg has no prefix, or
     #    field is child of base_fg, or
     #    function called for webapp table building: do not add prefix
-    if fg == base_fg or is_webapp or not prefix:
+    if fg == API_PARAMS['PARENT_FG'] or is_webapp or not prefix:
         return field_name
 
     # if field is an id_key, but is not mapped to this fg: do not add prefix
@@ -251,7 +249,7 @@ def create_schema_dict(is_webapp=False):
 
     schema = dict()
 
-    parse_bq_schema_obj(schema, API_PARAMS['FG_CONFIG']['base_fg'], schema_list, is_webapp)
+    parse_bq_schema_obj(schema, API_PARAMS['PARENT_FG'], schema_list, is_webapp)
 
     return schema
 
@@ -398,7 +396,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, case, API_PARAMS['FG_CONFIG']['base_fg'])
+            examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
@@ -464,8 +462,8 @@ def get_field_group_id_key(field_group, is_webapp=False):
     """
 
     split_fg = field_group.split('.')
-    if split_fg[0] != API_PARAMS['FG_CONFIG']['base_fg']:
-        split_fg.insert(0, API_PARAMS['FG_CONFIG']['base_fg'])
+    if split_fg[0] != API_PARAMS['PARENT_FG']:
+        split_fg.insert(0, API_PARAMS['PARENT_FG'])
         field_group = ".".join(split_fg)
 
     if field_group not in API_PARAMS['FIELD_CONFIG']:
@@ -554,7 +552,7 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        source_table = get_full_table_name(program, API_PARAMS['FG_CONFIG']['base_fg'])
+        source_table = get_full_table_name(program, API_PARAMS['PARENT_FG'])
     else:
         bq_col_name = get_bq_name(column)
         source_table = get_full_table_name(program, parent_table)
@@ -679,7 +677,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
         parent_id_key = get_field_group_id_key(field_group_key, is_webapp)
 
         if is_webapp:
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['FG_CONFIG']['base_fg'], is_webapp)
+            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'], is_webapp)
 
             # append parent_id_key to field_grp column list and column order dict
             columns[field_grp].add(parent_id_key)
@@ -699,7 +697,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
                 insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, parent_id_key, program))
                 idx += 1
 
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['FG_CONFIG']['base_fg'])
+            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'])
 
             insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, base_field_grp_id_key, program))
             idx += 1
@@ -893,7 +891,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
     if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return
 
-    base_pid_name = get_fg_id_name(API_PARAMS['FG_CONFIG']['base_fg'], is_webapp)
+    base_pid_name = get_fg_id_name(API_PARAMS['PARENT_FG'], is_webapp)
 
     if isinstance(record, list):
         # flatten each record in field group list
@@ -956,8 +954,7 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    base_fg = API_PARAMS['FG_CONFIG']['base_fg']
-    get_field_group_id_key(base_fg, is_webapp)
+    get_field_group_id_key(API_PARAMS['PARENT_FG'], is_webapp)
 
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
@@ -968,12 +965,12 @@ def flatten_case(case, is_webapp):
                     case[new_name] = case[old_name]
                     case.pop(old_name)
 
-    base_id_name = get_fg_id_name(base_fg, is_webapp)
+    base_id_name = get_fg_id_name(API_PARAMS['PARENT_FG'], is_webapp)
 
     flat_case = dict()
 
     flatten_case_entry(record=case,
-                       fg=base_fg,
+                       fg=API_PARAMS['PARENT_FG'],
                        flat_case=flat_case,
                        case_id=case[base_id_name],
                        pid=case[base_id_name],
@@ -992,7 +989,7 @@ def flatten_case(case, is_webapp):
 
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
-        base_id_key = get_field_group_id_key(base_fg)
+        base_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'])
 
         # if case_id in renamed fields (it is), remove the grandparent addition of case_id to doubly nested tables--
         # naming would be incorrect, and it's unnecessary info for webapp tables.
@@ -1043,7 +1040,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
     flattened_field_grp_parents = dict()
 
     for field_grp in record_counts:
-        if field_grp == API_PARAMS['FG_CONFIG']['base_fg']:
+        if field_grp == API_PARAMS['PARENT_FG']:
             continue
         if record_counts[field_grp] == 1:
             if field_grp in flat_case:
@@ -1426,78 +1423,6 @@ def make_biospecimen_stub_tables(program):
 
 
 #    Script execution
-
-def find_distinct_rows_in_old_new_table_query(old_table_id, new_table_id):
-    def unnest_first_tier_query(table_id, is_new):
-        version_suffix = "new" if is_new else "old"
-
-        return """
-            first_level_{0} AS (
-                SELECT {1}
-                FROM `{2}` c
-                JOIN UNNEST(diagnoses) AS diag,
-                UNNEST(demographic) AS demo,
-                UNNEST(family_histories) AS fam,
-                UNNEST(project) as proj,
-                UNNEST(exposures) as expose,
-                UNNEST(follow_ups) as follow
-            )
-        """.format(version_suffix, first_level_cols, table_id)
-
-    def unnest_second_tier_query(is_new):
-        version_suffix = "new" if is_new else "old"
-
-        return """
-            second_{0} AS (
-                SELECT f.* EXCEPT (annotations, treatments, molecular_tests), 
-                {1}
-                FROM first_level_{0}} f
-                JOIN UNNEST(annotations) as annot,
-                    UNNEST(treatments) as treatments,
-                    UNNEST(molecular_tests) as mol 
-                WHERE molecular_test_id is not null
-                ORDER BY f.case_id, f.diagnosis_id
-            )
-        """.format(version_suffix, second_level_cols)
-
-    first_level_cols = """
-        consent_type, case_id, c.primary_site, c.disease_type, c.state, c.submitter_id, days_to_lost_to_followup,
-        lost_to_followup, days_to_consent, c.created_datetime, index_date, c.updated_datetime,
-        diag.age_at_diagnosis, diag.ajcc_clinical_m, diag.ajcc_clinical_n, diag.ajcc_clinical_stage, diag.ajcc_clinical_t, diag.ajcc_pathologic_m, diag.ajcc_pathologic_n, diag.ajcc_pathologic_stage, diag.ajcc_pathologic_t, diag.ajcc_staging_system_edition, diag.anaplasia_present, diag.anaplasia_present_type, diag.ann_arbor_b_symptoms, diag.ann_arbor_clinical_stage, diag.ann_arbor_extranodal_involvement, diag.ann_arbor_pathologic_stage, diag.annotations, diag.best_overall_response, diag.breslow_thickness, diag.burkitt_lymphoma_clinical_variant, diag.child_pugh_classification, diag.circumferential_resection_margin, diag.classification_of_tumor, diag.cog_liver_stage, diag.cog_neuroblastoma_risk_group, diag.cog_renal_stage, diag.cog_rhabdomyosarcoma_risk_group, diag.created_datetime, diag.days_to_best_overall_response, diag.days_to_diagnosis, diag.days_to_last_follow_up, diag.days_to_last_known_disease_status, diag.days_to_recurrence, diag.diagnosis_id, diag.eln_risk_classification, diag.enneking_msts_grade, diag.enneking_msts_metastasis, diag.enneking_msts_stage, diag.enneking_msts_tumor_site, diag.esophageal_columnar_dysplasia_degree, diag.esophageal_columnar_metaplasia_present, diag.figo_stage, diag.figo_staging_edition_year, diag.first_symptom_prior_to_diagnosis, diag.gastric_esophageal_junction_involvement, diag.gleason_grade_group, diag.gleason_grade_tertiary, diag.gleason_patterns_percent, diag.goblet_cells_columnar_mucosa_present, diag.greatest_tumor_dimension, diag.gross_tumor_weight, diag.icd_10_code, diag.igcccg_stage, diag.inpc_grade, diag.inpc_histologic_group, diag.inrg_stage, diag.inss_stage, diag.international_prognostic_index, diag.irs_group, diag.irs_stage, diag.ishak_fibrosis_score, diag.iss_stage, diag.largest_extrapelvic_peritoneal_focus, diag.last_known_disease_status, diag.laterality, diag.lymph_node_involved_site, diag.lymph_nodes_positive, diag.lymph_nodes_tested, diag.lymphatic_invasion_present, diag.margin_distance, diag.margins_involved_site, diag.masaoka_stage, diag.medulloblastoma_molecular_classification, diag.metastasis_at_diagnosis, diag.metastasis_at_diagnosis_site, diag.method_of_diagnosis, diag.micropapillary_features, diag.mitosis_karyorrhexis_index, diag.mitotic_count, diag.morphology, diag.non_nodal_regional_disease, diag.non_nodal_tumor_deposits, diag.ovarian_specimen_status, diag.ovarian_surface_involvement, diag.papillary_renal_cell_type, diag.percent_tumor_invasion, diag.perineural_invasion_present, diag.peripancreatic_lymph_nodes_positive, diag.peripancreatic_lymph_nodes_tested, diag.peritoneal_fluid_cytological_status, diag.pregnant_at_diagnosis, diag.primary_diagnosis, diag.primary_gleason_grade, diag.prior_malignancy, diag.prior_treatment, diag.progression_or_recurrence, diag.residual_disease, diag.satellite_nodule_present, diag.secondary_gleason_grade, diag.site_of_resection_or_biopsy, diag.sites_of_involvement, diag.state, diag.supratentorial_localization, diag.synchronous_malignancy, diag.tissue_or_organ_of_origin, diag.transglottic_extension, diag.treatments, diag.tumor_confined_to_organ_of_origin, diag.tumor_depth, diag.tumor_focality, diag.tumor_grade, diag.tumor_largest_dimension_diameter, diag.tumor_regression_grade, diag.tumor_stage, diag.updated_datetime, diag.vascular_invasion_present, diag.vascular_invasion_type, diag.weiss_assessment_score, diag.who_cns_grade, diag.who_nte_grade, diag.wilms_tumor_histologic_subtype, diag.year_of_diagnosis,
-        demo.age_at_index, demo.age_is_obfuscated, demo.cause_of_death, demo.cause_of_death_source, demo.country_of_residence_at_enrollment, demo.created_datetime, demo.days_to_birth, demo.days_to_death, demo.demographic_id, demo.ethnicity, demo.gender, demo.occupation_duration_years, demo.premature_at_birth, demo.race, demo.state, demo.updated_datetime, demo.vital_status, demo.weeks_gestation_at_birth, demo.year_of_birth, demo.year_of_death,
-        fam.created_datetime, fam.family_history_id, fam.relationship_age_at_diagnosis, fam.relationship_gender, fam.relationship_primary_diagnosis, fam.relationship_type, fam.relative_with_cancer_history, fam.relatives_with_cancer_history_count, fam.state, fam.updated_datetime,
-        proj.name, proj.project_id,
-        expose.age_at_onset, expose.alcohol_days_per_week, expose.alcohol_drinks_per_day, expose.alcohol_history, expose.alcohol_intensity, expose.alcohol_type, expose.asbestos_exposure, expose.bmi, expose.cigarettes_per_day, expose.coal_dust_exposure, expose.created_datetime, expose.environmental_tobacco_smoke_exposure, expose.exposure_duration, expose.exposure_id, expose.exposure_type, expose.height, expose.marijuana_use_per_week, expose.pack_years_smoked, expose.radon_exposure, expose.respirable_crystalline_silica_exposure, expose.secondhand_smoke_as_child, expose.smokeless_tobacco_quit_age, expose.smoking_frequency, expose.state, expose.time_between_waking_and_first_smoke, expose.tobacco_smoking_onset_year, expose.tobacco_smoking_quit_year, expose.tobacco_smoking_status, expose.tobacco_use_per_day, expose.type_of_smoke_exposure, expose.type_of_tobacco_used, expose.updated_datetime, expose.weight, expose.years_smoked,
-        follow.adverse_event, follow.adverse_event_grade, follow.aids_risk_factors, follow.barretts_esophagus_goblet_cells_present, follow.bmi, follow.body_surface_area, follow.cause_of_response, follow.cd4_count, follow.cdc_hiv_risk_factors, follow.comorbidity, follow.comorbidity_method_of_diagnosis, follow.created_datetime, follow.days_to_adverse_event, follow.days_to_comorbidity, follow.days_to_follow_up, follow.days_to_imaging, follow.days_to_progression, follow.days_to_progression_free, follow.days_to_recurrence, follow.diabetes_treatment_type, follow.disease_response, follow.dlco_ref_predictive_percent, follow.ecog_performance_status, follow.evidence_of_recurrence_type, follow.fev1_fvc_post_bronch_percent, follow.fev1_fvc_pre_bronch_percent, follow.fev1_ref_post_bronch_percent, follow.fev1_ref_pre_bronch_percent, follow.follow_up_id, follow.haart_treatment_indicator, follow.height, follow.hepatitis_sustained_virological_response, follow.hiv_viral_load, follow.hormonal_contraceptive_type, follow.hormonal_contraceptive_use, follow.hormone_replacement_therapy_type, follow.hpv_positive_type, follow.hysterectomy_margins_involved, follow.hysterectomy_type, follow.imaging_result, follow.imaging_type, follow.immunosuppressive_treatment_type, follow.karnofsky_performance_status, follow.menopause_status, follow.molecular_tests, follow.nadir_cd4_count, follow.pancreatitis_onset_year, follow.pregnancy_outcome, follow.procedures_performed, follow.progression_or_recurrence, follow.progression_or_recurrence_anatomic_site, follow.progression_or_recurrence_type, follow.recist_targeted_regions_number, follow.recist_targeted_regions_sum, follow.reflux_treatment_type, follow.risk_factor, follow.risk_factor_treatment, follow.scan_tracer_used, follow.state, follow.updated_datetime, follow.viral_hepatitis_serologies, follow.weight
-    """
-
-    second_level_cols = """
-        annot.annotation_id, annot.case_id, annot.category, annot.classification, annot.created_datetime, annot.entity_id, annot.entity_type, annot.legacy_created_datetime, annot.legacy_updated_datetime, annot.notes, annot.state, annot.status, annot.updated_datetime, 
-        treatments.chemo_concurrent_to_radiation, treatments.created_datetime, treatments.days_to_treatment_end, treatments.days_to_treatment_start, treatments.initial_disease_status, treatments.number_of_cycles, treatments.reason_treatment_ended, treatments.regimen_or_line_of_therapy, treatments.state, treatments.therapeutic_agents, treatments.treatment_anatomic_site, treatments.treatment_arm, treatments.treatment_dose, treatments.treatment_dose_units, treatments.treatment_effect, treatments.treatment_effect_indicator, treatments.treatment_frequency, treatments.treatment_id, treatments.treatment_intent_type, treatments.treatment_or_therapy, treatments.treatment_outcome, treatments.treatment_type, treatments.updated_datetime, 
-        mol.aa_change, mol.antigen, mol.biospecimen_type, mol.blood_test_normal_range_lower, mol.blood_test_normal_range_upper, mol.cell_count, mol.chromosome, mol.clonality, mol.copy_number, mol.created_datetime, mol.cytoband, mol.exon, mol.gene_symbol, mol.histone_family, mol.histone_variant, mol.intron, mol.laboratory_test, mol.loci_abnormal_count, mol.loci_count, mol.locus, mol.mismatch_repair_mutation, mol.molecular_analysis_method, mol.molecular_consequence, mol.molecular_test_id, mol.pathogenicity, mol.ploidy, mol.second_exon, mol.second_gene_symbol, mol.specialized_molecular_test, mol.state, mol.test_analyte_type, mol.test_result, mol.test_units, mol.test_value, mol.transcript, mol.updated_datetime, mol.variant_origin, mol.variant_type, mol.zygosity
-    """
-
-    all_cols = first_level_cols + ', ' + second_level_cols
-    split_all_cols = all_cols.split(", ")
-
-    # old, new will give removed
-
-    first_new = unnest_first_tier_query(new_table_id, is_new=True)
-    second_new = unnest_second_tier_query(new_table_id, is_new=True)
-    first_old = unnest_first_tier_query(old_table_id, is_new=False)
-    second_old = unnest_second_tier_query(old_table_id, is_new=False)
-
-    return """
-        WITH {0}, 
-        {1},
-        {2},
-        {3}
-        
-        FROM second_{}
-        JOIN second_{}
-        USING ({})
-    """.format(first_new, second_new, first_old, second_old, 'new', 'old', split_all_cols)
-
 
 def build_publish_table_list():
     old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
