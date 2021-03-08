@@ -90,36 +90,38 @@ def add_case_fields_to_master_dict(master_dict, cases):
 
         if isinstance(record, list):
             if field_group_key == 'treatments':
-                print("1")
+                treatment_iter_list.append("1")
             for child_record in record:
                 if field_group_key == 'treatments':
-                    print("2")
+                    treatment_iter_list.append("2")
                 add_case_field_to_master_dict(child_record, parent_fg_list)
         elif isinstance(record, dict):
             if field_group_key == 'treatments':
-                print("3")
+                treatment_iter_list.append("3")
             for key in record.keys():
                 if isinstance(record[key], dict):
                     if key == 'treatments':
-                        print("4")
+                        treatment_iter_list.append("4")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 elif isinstance(record[key], list) and isinstance(record[key][0], dict):
                     if key == 'treatments':
-                        print("5")
+                        treatment_iter_list.append("5")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
                     if field_group_key not in master_dict:
                         if key == 'treatments':
-                            print("7")
+                            treatment_iter_list.append("6")
                         master_dict[field_group_key] = dict()
                     if not isinstance(record[key], list):
                         if key == 'treatments':
-                            print("8")
+                            treatment_iter_list.append("7")
                         master_dict[field_group_key][key] = None
+
+    treatment_iter_list = []
 
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
-        print()
+    print(treatment_iter_list)
 
     fg_list = sorted(list(master_dict.keys()))
 
