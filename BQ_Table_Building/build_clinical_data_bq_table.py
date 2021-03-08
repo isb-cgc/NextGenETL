@@ -164,6 +164,7 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 def merge_dummy_case_with_case(dummy_case, case):
     if isinstance(dummy_case, dict):
+        print(case)
         case.update(dummy_case)
         for key in dummy_case.keys():
             if isinstance(dummy_case[key], list):
@@ -180,8 +181,8 @@ def merge_dummy_case_with_case(dummy_case, case):
                 if field not in case:
                     case[field] = dummy_case[field]
     else:
-        print(dummy_case)
-        print(case)
+        # print(dummy_case)
+        # print(case)
 
 
 def retrieve_and_save_case_records(local_path):
