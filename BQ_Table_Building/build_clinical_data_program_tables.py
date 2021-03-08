@@ -218,7 +218,7 @@ def parse_bq_schema_obj(schema, fg, schema_list=None, is_webapp=False):
                 schema[field_name]['mode'] = 'REQUIRED'
         else:
             # not a nested field entry--do we need to prefix the schema field name?
-            print(field_key)
+
             schema_field['name'] = get_bq_name(field_key, is_webapp)
             schema[field_key] = schema_field
 
@@ -239,8 +239,6 @@ def create_schema_dict(is_webapp=False):
         json_schema_field = schema_field.to_api_repr()
         print(json_schema_field)
         schema_list.append(schema_field.to_api_repr())
-
-    print(schema_list)
 
     schema = dict()
 
@@ -1411,9 +1409,6 @@ def build_biospecimen_stub_tables(program):
     main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
-
-    print(biospec_stub_table_query)
-    exit()
 
     biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
