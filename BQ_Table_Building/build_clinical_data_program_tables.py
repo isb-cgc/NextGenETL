@@ -1409,6 +1409,8 @@ def build_biospecimen_stub_tables(program):
     main_table = build_table_name([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
     main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
+    print(main_table_id)
+
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
     biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
@@ -1856,6 +1858,8 @@ def main(args):
     programs = sorted(programs)
 
     for orig_program in programs:
+
+
         prog_start = time.time()
         if (
                 'create_biospecimen_stub_tables' in steps or
