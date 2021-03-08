@@ -307,15 +307,12 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened table column dict.
     """
-    print(record_counts)
-    exit()
-    tables = get_one_to_many_tables(record_counts)
+    print(record_counts) # {fg: 1, fg.child: 1}
+    tables = get_one_to_many_tables(record_counts) # supplemental tables required
     table_columns = dict()
 
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups.keys()}
     excluded_fields = get_excluded_fields_all_fgs(field_groups, is_webapp)
-
-    print(sorted(field_grp_depths.items(), key=lambda i: i[1]))
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         print("{}: {} depth".format(field_grp, depth))
@@ -439,6 +436,15 @@ def find_program_structure(cases, is_webapp=False):
     return columns, record_counts
 
 
+def get_field_group(field_name):
+    """Gets parent field group (might not be the parent *table*, as the ancestor fg
+    could be flattened).
+    :param field_name: field name for which to retrieve ancestor field group
+    :return: ancestor field group
+    """
+    return ".".join(field_name.split('.')[:-1])
+
+
 def get_parent_fg(tables, field_name):
     """
     Get field's parent table name.
@@ -447,11 +453,11 @@ def get_parent_fg(tables, field_name):
     :return: parent table name
     """
     # remove field from period-delimited field group string
-    parent_table = ".".join(field_name.split('.')[:-1])
+    parent_table = get_field_group(field_name)
 
     while parent_table and parent_table not in tables:
         # remove field from period-delimited field group string
-        parent_table = ".".join(field_name.split('.')[:-1])
+        parent_table = get_field_group(parent_table)
 
     if parent_table:
         return parent_table
