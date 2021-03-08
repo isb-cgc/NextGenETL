@@ -319,10 +319,13 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         if depth > 3:
             print("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
 
+        print(0)
+
         if is_webapp and field_grp in excluded_fields:
+            print(1)
             continue
 
-        print(1)
+        print(2)
 
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
         print(6)
