@@ -738,6 +738,8 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         table_id_key = get_field_group_id_key(table, is_webapp)
 
+        print("{}".format(table))
+
         if table in columns:
             merge_dict_key = table
 
@@ -751,9 +753,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         if merge_dict_key not in merged_column_orders:
             merged_column_orders[merge_dict_key] = dict()
-
-        print("{}".format(table))
-        print("{}".format(merge_dict_key))
 
         merged_column_orders[merge_dict_key].update(column_orders[table])
 
@@ -1556,7 +1555,7 @@ def create_tables(program, cases, schema, is_webapp=False):
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
-    print("columns\n{} record counts: {}".format(columns, record_counts))
+    print("columns\n{} \nrecord counts: {}".format(columns, record_counts))
 
     # add the parent id to field group dicts that will create separate tables
     column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
