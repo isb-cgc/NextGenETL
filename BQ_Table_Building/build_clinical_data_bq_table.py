@@ -252,8 +252,6 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         for case in cases_page:
             cases_list.append(case)
 
-    print(cases_list[0].keys())
-
     print("Total cases in local json file: {}".format(len(cases_list)))
 
     grouped_fields_dict = {
@@ -266,6 +264,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
         case = cases_list[index]
+        print(case)
 
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
         assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
