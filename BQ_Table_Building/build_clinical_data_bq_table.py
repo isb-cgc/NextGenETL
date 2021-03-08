@@ -303,7 +303,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         for fg in field_groups_list:
             assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
 
-        assert_output_count("cases", temp_case, 5)
+        assert_output_count("cases", temp_case, 6)
         assert_output_count("cases.exposures", temp_case['exposures'][0])
         assert_output_count("cases.demographic", temp_case['demographic'])
         assert_output_count("cases.family_histories", temp_case['family_histories'][0])
