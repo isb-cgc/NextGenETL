@@ -106,17 +106,8 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
-    """
-    for key in grouped_fields_dict.keys():
-        print(key)
-        for field in grouped_fields_dict[key].keys():
-            print("\t" + field)
-            if isinstance(grouped_fields_dict[key][field], list):
-                print("delete: {}".format(field))
-                grouped_fields_dict[key].pop(field)
-    """
-    print(grouped_fields_dict)
 
+    # note something in this modifies grouped_fields_dict, fix if using
     """
     fg_list = sorted(list(grouped_fields_dict.keys()))
 
