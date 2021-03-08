@@ -166,8 +166,10 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 
 def merge_dummy_case_with_case(dummy_case, case):
+    if not isinstance(dummy_case, dict):
+        return
+
     for key in dummy_case.keys():
-        print(key)
         if isinstance(dummy_case[key], list):
             if key not in case:
                 case[key] = dummy_case[key]
@@ -175,10 +177,14 @@ def merge_dummy_case_with_case(dummy_case, case):
                 for record in case[key]:
                     merge_dummy_case_with_case(dummy_case[key][0], record)
         elif isinstance(dummy_case[key], dict):
-            if key not in case:
-                case[key] = dummy_case[key]
+            if key in case:
+                temp_dummy_case = copy.deepcopy(dummy_case[key])
+                temp_dummy_case.update(case[key])
+                case[key] = temp_dummy_case
+
+                merge_dummy_case_with_case(dummy_case[key], case[key])
+
             else:
-                dummy_case[key].update(case[key])
                 case[key] = dummy_case[key]
 
 
@@ -238,7 +244,6 @@ def retrieve_and_save_case_records(local_path):
         print(case)
         merge_dummy_case_with_case(temp_case, case)
         print(case)
-        exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
