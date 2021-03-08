@@ -337,6 +337,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
         print("{}: {} depth".format(field_grp, depth))
+    print(8)
 
     return table_columns
 
