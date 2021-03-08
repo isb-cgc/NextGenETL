@@ -244,6 +244,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     def output_count_err(field_group, expected_cnt, actual_cnt):
         print("expected {} count {} -> actual {}".format(field_group, expected_cnt, actual_cnt))
         print("case: {}".format(case))
+        print("temp_case: {}".format(temp_case))
 
     local_json_path = local_jsonl_path[:-1]
 
