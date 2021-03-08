@@ -250,7 +250,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         cases_json = json.load(json_file)
 
     cases_list = cases_json['cases']
-    print(isinstance(cases_list, list))
+    print(len(cases_list))
 
 
     # print(cases_list)
