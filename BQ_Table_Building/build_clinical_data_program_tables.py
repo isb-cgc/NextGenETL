@@ -236,6 +236,8 @@ def create_schema_dict(is_webapp=False):
     schema_list = []
 
     for schema_field in bq_table.schema:
+        json_schema_field = schema_field.to_api_repr()
+        print(json_schema_field)
         schema_list.append(schema_field.to_api_repr())
 
     print(schema_list)
