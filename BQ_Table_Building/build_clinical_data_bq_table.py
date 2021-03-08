@@ -249,7 +249,10 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     cases_list = list()
 
     for cases_page in cases_json['cases']:
-        cases_list = cases_list + cases_page
+        for case in cases_page:
+            cases_list.append(case)
+
+    print(cases_list[0].keys())
 
     print("Total cases in local json file: {}".format(len(cases_list)))
 
