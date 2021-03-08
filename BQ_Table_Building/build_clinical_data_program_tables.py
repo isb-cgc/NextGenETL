@@ -310,7 +310,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     tables = get_one_to_many_tables(record_counts)
     table_columns = dict()
 
-    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
+    field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups.keys()}
     excluded_fields = get_excluded_fields_all_fgs(field_groups, is_webapp)
 
     print(sorted(field_grp_depths.items(), key=lambda i: i[1]))
@@ -340,6 +340,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
         print("{}: {} depth".format(field_grp, depth))
+        print(8)
     print(8)
 
     return table_columns
