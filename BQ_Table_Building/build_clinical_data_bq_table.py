@@ -249,7 +249,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("temp_case: {}\n".format(temp_case))
     '''
 
-    def assert_output_count(field_group, fields, fgs_to_remove=set()):
+    def assert_output_count(field_group, fields, fgs_to_remove=None):
+        fgs_to_remove = set() if not fgs_to_remove else fgs_to_remove
         offset = len(fgs_to_remove)
         actual_cnt = len(fields) - offset
         expected_cnt = len(grouped_fields_dict[field_group])
@@ -259,8 +260,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         except AssertionError:
             expected_field_keys = set(grouped_fields_dict[field_group].keys())
             actual_field_keys = set(fields.keys())
-            actual_field_keys |= set(fgs_to_remove)
-
+            actual_field_keys |= fgs_to_remove
             not_in_expected_keys = actual_field_keys - expected_field_keys
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
