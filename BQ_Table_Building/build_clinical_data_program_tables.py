@@ -321,7 +321,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             continue
 
         print("field_groups[field_grp]: {}".format(field_groups[field_grp]))
-        print("field_grp".format(field_grp))
+        print("field_grp {}".format(field_grp))
 
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
 
