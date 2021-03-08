@@ -330,7 +330,7 @@ def main(args):
         # os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)
-    print("Script executed in {} seconds\n".format(end))
+    print("Script executed in {}\n".format(end))
 
 
 if __name__ == '__main__':
