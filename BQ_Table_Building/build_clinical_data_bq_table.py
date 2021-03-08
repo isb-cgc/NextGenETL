@@ -116,7 +116,7 @@ def add_case_fields_to_master_dict(master_dict, cases):
             for field, value in master_dict[fg].items():
                 dummy_case[field] = value
         elif len(split_fg_list) == 2:
-            if split_fg_list[1] == 'demographic':
+            if split_fg_list[1] == 'demographic' or split_fg_list[1] == 'project':
                 dummy_case[split_fg_list[1]] = master_dict[fg]
             else:
                 dummy_case[split_fg_list[1]] = [master_dict[fg]]
