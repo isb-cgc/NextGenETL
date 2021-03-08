@@ -269,7 +269,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         field_groups_list = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
 
         for fg in field_groups_list:
-            assert fg in temp_case, "{} field group not in case".format(fg)
+            assert fg in temp_case, "{} field group not in case for index {}".format(fg, index)
 
         diag_cnt = len(temp_case['diagnoses'][0]) + 2
         treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
