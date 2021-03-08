@@ -434,8 +434,10 @@ def get_parent_fg(tables, field_name):
     """
     # remove field from period-delimited field group string
     parent_table = get_field_group(field_name)
+    print("p1: {}".format(parent_table))
 
     while parent_table and parent_table not in tables:
+        print("p2: {}".format(parent_table))
         # remove field from period-delimited field group string
         parent_table = get_field_group(parent_table)
 
