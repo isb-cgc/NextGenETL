@@ -249,7 +249,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("temp_case: {}\n".format(temp_case))
     '''
 
-    def assert_output_count(field_group, fields, offset=0):
+    def assert_output_count(field_group, fields, fgs_to_remove=list()):
+        offset = len(fgs_to_remove)
         actual_cnt = len(fields) - offset
         expected_cnt = len(grouped_fields_dict[field_group])
 
@@ -265,6 +266,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             expected_field_keys = set(grouped_fields_dict[field_group].keys())
             actual_field_keys = set(fields.keys())
             not_in_expected_keys = actual_field_keys - expected_field_keys
+            not_in_expected_keys = not_in_expected_keys - fgs_to_remove
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
             print(err_str)
@@ -298,20 +300,22 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
         case = temp_case
 
-        field_groups_list = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
+        case_fgs_to_remove = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
+        diagnoses_fg_to_remove = ['annotations', 'treatments']
+        follow_ups_fg_to_remove = ['molecular_tests']
 
-        for fg in field_groups_list:
+        for fg in case_fgs_to_remove:
             assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
 
-        assert_output_count("cases", temp_case, 6)
+        assert_output_count("cases", temp_case, case_fgs_to_remove)
         assert_output_count("cases.exposures", temp_case['exposures'][0])
         assert_output_count("cases.demographic", temp_case['demographic'])
         assert_output_count("cases.family_histories", temp_case['family_histories'][0])
         assert_output_count("cases.project", temp_case['project'])
-        assert_output_count("cases.diagnoses", temp_case['diagnoses'][0], 2)
+        assert_output_count("cases.diagnoses", temp_case['diagnoses'][0], diagnoses_fg_to_remove)
         assert_output_count("cases.diagnoses.treatments", temp_case['diagnoses'][0]['treatments'][0])
         assert_output_count("cases.diagnoses.annotations", temp_case['diagnoses'][0]['annotations'][0])
-        assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], 1)
+        assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], follow_ups_fg_to_remove)
         assert_output_count("cases.follow_ups.molecular_tests", temp_case['follow_ups'][0]['molecular_tests'][0])
 
         cases_list[index] = temp_case
