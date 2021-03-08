@@ -288,6 +288,7 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
                 case['submitter_sample_ids'] = submitter_sample_ids
 
                 print(case)
+                exit()
 
             cases_list.append(case)
 
