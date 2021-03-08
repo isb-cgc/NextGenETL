@@ -28,9 +28,10 @@ import sys
 import copy
 
 # todo infer
-from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
+from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
-                              write_list_to_jsonl, write_line_to_jsonl)
+                              write_line_to_jsonl, normalize_value, check_value_type,
+                              resolve_type_conflicts)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -163,7 +164,7 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     print("Master field dict created!")
 
 
-def add_missing_fields_to_case(fields_dict, case):
+def add_missing_fields_and_normalize_case(fields_dict, case):
     case_items = dict()
 
     for key in fields_dict.keys():
@@ -174,6 +175,7 @@ def add_missing_fields_to_case(fields_dict, case):
                 case_items[key] = list()
 
     for fg in sorted(case_items.keys(), reverse=True):
+        temp_child_record = None
         split_fg = fg.split('.')
 
         if len(split_fg) == 2:
@@ -200,7 +202,7 @@ def add_missing_fields_to_case(fields_dict, case):
 
             for key, val in case.items():
                 if not isinstance(val, list) and not isinstance(val, dict):
-                    parent_fields[key] = val
+                    parent_fields[key] = normalize_value(val)
 
             temp_child_record = copy.deepcopy(fields_dict[fg])
             temp_child_record.update(parent_fields)
@@ -242,15 +244,7 @@ def add_missing_fields_to_case(fields_dict, case):
     return temp_case
 
 
-def generate_jsonl_from_modified_api_json(local_jsonl_path):
-    '''
-    def output_count_err(field_group, actual_cnt):
-        expected_cnt = len(grouped_fields_dict[field_group])
-        print("{} expected count {} -> actual {} at index {}".format(field_group, expected_cnt, actual_cnt, index))
-        print("case: {}".format(case))
-        print("temp_case: {}\n".format(temp_case))
-    '''
-
+def modify_response_json_and_output_jsonl(local_jsonl_path):
     def assert_output_count(field_group, fields, fgs_to_remove=None):
         fgs_to_remove = set() if not fgs_to_remove else fgs_to_remove
         offset = len(fgs_to_remove)
@@ -296,7 +290,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
     with open(local_jsonl_path, 'w') as jsonl_file_obj:
         for index, case in enumerate(cases_list):
-            case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
+            case = add_missing_fields_and_normalize_case(grouped_fields_dict, cases_list[index])
 
             case_fgs_to_remove = ('demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project')
             diagnoses_fg_to_remove = ('annotations', 'treatments')
@@ -324,6 +318,146 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     file_size = os.stat(local_jsonl_path).st_size / 1048576.0
     print("created jsonl! file size: {:.2f} mb".format(file_size))
 
+    return grouped_fields_dict
+
+
+def infer_types(record, fields_dict, types_dict, parent_fg_list):
+    field_group_key = ".".join(parent_fg_list)
+
+    if isinstance(record, list):
+        for child_record in record:
+            infer_types(child_record, fields_dict, types_dict, parent_fg_list)
+    elif isinstance(record, dict):
+        for key in record.keys():
+            if isinstance(record[key], dict):
+                infer_types(record[key], fields_dict, types_dict, parent_fg_list + [key])
+            elif isinstance(record[key], list) and isinstance(record[key][0], dict):
+                infer_types(record[key], fields_dict, types_dict, parent_fg_list + [key])
+            else:
+                if field_group_key not in fields_dict:
+                    fields_dict[field_group_key] = dict()
+                if not isinstance(record[key], list):
+                    field_key = field_group_key + '.' + key
+                    if field_key not in types_dict:
+                        types_dict[field_key] = set()
+                    value_type = check_value_type(record[key])
+                    if value_type:
+                        types_dict[field_key].add(value_type)
+
+
+def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
+    column_data_types = dict()
+
+    count = 1
+    with open(scratch_fp, 'r') as jsonl_file_obj:
+        json_str = jsonl_file_obj.readline()
+
+        while jsonl_file_obj and json_str:
+            case = json.loads(json_str)
+            infer_types(case, grouped_fields_dict, column_data_types, [API_PARAMS['PARENT_FG']])
+
+            json_str = jsonl_file_obj.readline()
+
+            if count % 1000 == 0:
+                print(count)
+            count += 1
+
+    resolve_type_conflicts(column_data_types)
+
+    return column_data_types
+
+
+def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
+    nested_schema_dict = {}
+
+    for field_group in sorted(API_PARAMS['EXPAND_FG_LIST'], reverse=True):
+        nested_fields_list = list()
+        full_field_group = API_PARAMS["PARENT_FG"] + "." + field_group
+        for field_name in grouped_fields_dict[full_field_group].keys():
+            full_field_name = full_field_group + "." + field_name
+            field_type = column_data_types_dict[full_field_name]
+
+            nested_fields_list.append(
+                {
+                    "name": field_name,
+                    "type": field_type,
+                    "mode": "NULLABLE",
+                    "description": ""
+                }
+            )
+
+        nested_schema_dict[full_field_group] = nested_fields_list
+
+    nested_fields_list = list()
+
+    for field_name in grouped_fields_dict[API_PARAMS["PARENT_FG"]]:
+        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_name
+        field_type = column_data_types_dict[full_field_name]
+
+        nested_fields_list.append(
+            {
+                "name": field_name,
+                "type": field_type,
+                "mode": "NULLABLE",
+                "description": ""
+            }
+        )
+
+    nested_schema_dict[API_PARAMS["PARENT_FG"]] = nested_fields_list
+
+    repeated_schema_dict = dict()
+    schema = list()
+
+    for fg in sorted(nested_schema_dict.keys()):
+        split_fg = fg.split('.')
+
+        if len(split_fg) == 1:
+            schema = nested_schema_dict[fg]
+            continue
+
+        repeated_schema_dict[fg] = {
+            "name": split_fg[-1],
+            "type": "RECORD",
+            "mode": "REPEATED",
+            "fields": nested_schema_dict[fg]
+        }
+
+    sorted_fgs = sorted(repeated_schema_dict.keys(), reverse=True)
+
+    for column in sorted_fgs:
+        nested_schema_fields = repeated_schema_dict.pop(column)
+        split_column = column.split('.')
+        if len(split_column) == 3:
+            parent_column = ".".join(split_column[:-1])
+
+            repeated_schema_dict[parent_column]['fields'].append(nested_schema_fields)
+        elif len(split_column) == 2:
+            schema.append(nested_schema_fields)
+
+    return schema
+
+
+def get_grouped_fields_dict(local_jsonl_path):
+    local_json_path = local_jsonl_path[:-1]
+
+    with open(local_json_path, 'r') as json_file:
+        cases_json = json.load(json_file)
+
+    cases_list = list()
+
+    for cases_page in cases_json['cases']:
+        for case in cases_page:
+            cases_list.append(case)
+
+    grouped_fields_dict = {
+        API_PARAMS['PARENT_FG']: dict()
+    }
+
+    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
+
+    return grouped_fields_dict
+
+
 def main(args):
     """Script execution function.
 
@@ -341,6 +475,8 @@ def main(args):
     jsonl_output_file = get_rel_prefix(BQ_PARAMS) + "_" + BQ_PARAMS['MASTER_TABLE'] + '.jsonl'
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
+    grouped_fields_dict = None
+
     if 'extract_api_response_json' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
@@ -348,7 +484,7 @@ def main(args):
 
     if 'generate_jsonl_from_modified_api_json' in steps:
         print('Generating master fields list and adding missing fields to cases!')
-        generate_jsonl_from_modified_api_json(scratch_fp)
+        grouped_fields_dict = modify_response_json_and_output_jsonl(scratch_fp)
 
     if 'upload_jsonl_to_cloud_storage' in steps:
         # Insert the generated jsonl file into google storage bucket, for later
@@ -358,11 +494,17 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     if 'build_bq_table' in steps:
+        if not grouped_fields_dict:
+            grouped_fields_dict = get_grouped_fields_dict(scratch_fp)
+
+        column_data_types_dict = create_column_data_type_dict(grouped_fields_dict, scratch_fp)
+        schema = generate_bq_schema(grouped_fields_dict, column_data_types_dict)
+
         print('Building BQ Table!')
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id)
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
         # os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)

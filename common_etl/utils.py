@@ -603,6 +603,17 @@ def download_from_bucket(bq_params, filename):
 #       ANALYZE DATA
 
 
+def normalize_value(value):
+    if value in ('NA', 'N/A', 'null', 'None', ''):
+        return None
+    if value in ('False', 'false', 'FALSE'):
+        return False
+    if value in ('True', 'true', 'TRUE'):
+        return True
+    else:
+        return value
+
+
 def check_value_type(value):
     """Checks value for type (possibilities are string, float and integers).
 
@@ -611,20 +622,23 @@ def check_value_type(value):
     """
     # if has leading zero, then should be considered a string, even if only
     # composed of digits
-    if value in ('NA', 'null', 'None', 'N/A') or not value:
-        return None
 
-    if value in ('True', 'False', 'true', 'false', 'TRUE', 'FALSE', True, False):
+    value = normalize_value(value)
+
+    if isinstance(value, bool):
         return "BOOLEAN"
-
+    if not value:
+        return None
+    if isinstance(value, int):
+        return "INTEGER"
+    if isinstance(value, float):
+        return "FLOAT"
     if isinstance(value, list):
         return "ARRAY"
-
     if isinstance(value, list):
         return "RECORD"
-
     # check to see if value is numeric, float or int
-    if '.' in value:
+    if '.' in value and ':' not in value:
         split_value = value.split('.')
         if len(split_value) == 2 and split_value[0].isdigit() and split_value[1].isdigit():
             # if in float form, but fraction is .0, .00, etc., then consider it an integer
@@ -632,36 +646,86 @@ def check_value_type(value):
                 return "FLOAT"
             else:
                 return "INTEGER"
-        else:
+        elif len(split_value) > 2:
             # contains more than one '.', therefore not a float or int
             return "STRING"
-    elif value.startswith("0"):
+    elif value.startswith("0") and ':' not in value:
         return "STRING"
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
     elif value.isdigit():
         return "INTEGER"
 
-    # elif isinstance(value, str):
-
-    # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
+    # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
     # BQ date format: 'YYYY-[M]M-[D]D'
-    date_re_str = "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9]"
+    date_re_str = "[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
+    date_pattern = re.compile(date_re_str)
+    if re.fullmatch(date_pattern, value):
+        return "DATE"
+
     # TIME: [H]H:[M]M:[S]S[.DDDDDD]
-    time_re_str = "(|[0-2])[0-9]:(|[0-5])[0-9]::[0-5][0-9].{6}[0-9]"
+    time_re_str = "([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
+    time_pattern = re.compile(time_re_str)
+
+    if re.fullmatch(time_pattern, value):
+        return "TIME"
+
     # TIMESTAMP: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
-    timestamp_re_str = date_re_str + '[( |T)' + time_re_str + ""
-    timestamp_re_str = "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9](|T)(|[0-2])[0-9]:(|[0-5])[0-9]::[0-5][0-9].{6}[0-9]*[ A-Za-z]"
+    timestamp_re_str = date_re_str + '( |T)' + time_re_str + "([ \-:A-Za-z0-9]*)"
     timestamp_pattern = re.compile(timestamp_re_str)
-    if timestamp_pattern.fullmatch(value):
+    if re.fullmatch(timestamp_pattern, value):
         return "TIMESTAMP"
 
-
-    # todo add date/time/timestamp
-    # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
-    # TIME: [H]H:[M]M:[S]S[.DDDDDD]
-
     return "STRING"
+
+
+# todo relocate
+def test_check_value_type():
+    value_type_dict = {
+        "000": "STRING",
+        "0.0": "INTEGER",
+        "0.001": "FLOAT",
+        "100": "INTEGER",
+        "Hi": "STRING",
+        "0.1.1": "STRING",
+        "1.1.1": "STRING",
+        "111-222": "STRING",
+        "2000-12-31": "DATE",
+        "2000-1-1": "DATE",
+        "2000-01-01": "DATE",
+        "9:03:22.0001": "TIME",
+        "09:03:22": "TIME",
+        "9:3:22": "TIME",
+        "2019-05-01T13:44:50.898263-05:00": "TIMESTAMP",
+        "2019-05-01 13:44:50.898263-05:00": "TIMESTAMP",
+        "2019-05-01T13:44:50.898263": "TIMESTAMP",
+        "2019-05-01 13:44:50.898263": "TIMESTAMP",
+        "2019-5-1T13:44:50.898263": "TIMESTAMP",
+        "True": "BOOLEAN",
+        "False": "BOOLEAN"
+    }
+
+    for value, expected_type in value_type_dict.items():
+        actual_type = check_value_type(value)
+
+        assert expected_type == actual_type, "Type mismatch for {}: expected {}, actual {}".format(value,
+                                                                                                   expected_type,
+                                                                                                   actual_type)
+
+    print("Types checked successfully!")
+
+
+def resolve_type_conflicts(types_dict):
+    for field, types_set in types_dict.items():
+        if len(types_set) == 1:
+            for col_type in types_set:
+                types_dict[field] = col_type
+        if len(types_set) == 0:
+            types_dict[field] = "STRING"
+        elif "STRING" in types_set:
+            types_dict[field] = "STRING"
+        elif "FLOAT" in types_set:
+            types_dict[field] = "FLOAT"
 
 
 def infer_data_types(flattened_json):
