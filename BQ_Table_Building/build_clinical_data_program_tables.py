@@ -238,6 +238,8 @@ def create_schema_dict(is_webapp=False):
     for schema_field in bq_table.schema:
         schema_list.append(schema_field.to_api_repr())
 
+    print(schema_list)
+
     schema = dict()
 
     parse_bq_schema_obj(schema, API_PARAMS['PARENT_FG'], schema_list, is_webapp)
