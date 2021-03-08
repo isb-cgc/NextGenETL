@@ -163,7 +163,12 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 
 def merge_dummy_case_with_case(dummy_case, case):
-    if isinstance(dummy_case, list) or isinstance(dummy_case, dict):
+    if isinstance(dummy_case, dict):
+        case.update(dummy_case)
+        for key in dummy_case.keys():
+            if isinstance(dummy_case[key], list):
+                merge_dummy_case_with_case(dummy_case[key][0], case[key])
+    elif isinstance(dummy_case, list):
         for field in dummy_case.keys():
             if isinstance(dummy_case[field], list):
                 if field not in case:
@@ -232,8 +237,6 @@ def retrieve_and_save_case_records(local_path):
 
     for case in cases_list:
         merge_dummy_case_with_case(dummy_case, case)
-
-        print(case)
         exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
