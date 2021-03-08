@@ -244,8 +244,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     def output_count_err(field_group, expected_cnt, actual_cnt):
         print("{} expected count {} -> actual {} at index {}".format(field_group, expected_cnt, actual_cnt, index))
         print("case: {}".format(case))
-        print("temp_case: {}".format(temp_case))
-        print()
+        print("temp_case: {}\n".format(temp_case))
 
     local_json_path = local_jsonl_path[:-1]
 
@@ -269,12 +268,12 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for index, case in enumerate(cases_list):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
-        print(temp_case)
+        case = temp_case
 
         field_groups_list = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
 
         for fg in field_groups_list:
-            assert fg in temp_case and temp_case[fg], "{} field group null for index {}".format(fg, index)
+            assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
 
         diag_cnt = len(temp_case['diagnoses'][0]) + 2
         treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
