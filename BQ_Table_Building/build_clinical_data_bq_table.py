@@ -322,7 +322,7 @@ def main(args):
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id)
-        os.remove(scratch_fp)
+        # os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)
     print("Script executed in {} seconds\n".format(end))
