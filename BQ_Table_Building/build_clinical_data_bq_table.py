@@ -166,7 +166,6 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 
 def merge_dummy_case_with_case(dummy_case, case):
-    # case.update(dummy_case)
     for key in dummy_case.keys():
         if isinstance(dummy_case[key], list):
             if key not in case:
@@ -178,8 +177,8 @@ def merge_dummy_case_with_case(dummy_case, case):
             if key not in case:
                 case[key] = dummy_case[key]
             else:
-                temp_case = dummy_case[key].update(case)
-                case = temp_case
+                dummy_case[key].update(case[key])
+                case[key] = dummy_case[key]
 
 
 def retrieve_and_save_case_records(local_path):
@@ -238,7 +237,6 @@ def retrieve_and_save_case_records(local_path):
         print(case)
         merge_dummy_case_with_case(temp_case, case)
         print(case)
-        exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
