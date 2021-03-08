@@ -241,6 +241,9 @@ def add_missing_fields_to_case(fields_dict, case):
 
 
 def generate_jsonl_from_modified_api_json(local_jsonl_path):
+    def output_assert_err_str(field_group, expected_cnt, actual_cnt):
+        print("expected {} count {} -> actual {}".format(field_group, expected_cnt, actual_cnt))
+
     local_json_path = local_jsonl_path[:-1]
 
     with open(local_json_path, 'r') as json_file:
@@ -269,19 +272,44 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("expected follow_ups count {} -> actual {}".format(len(grouped_fields_dict['cases.follow_ups']),
                                                                  len(case['follow_ups'][0])))
 
-        assert len(temp_case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
-        assert len(temp_case['diagnoses'][0]['annotations'][0]) == len(
-            grouped_fields_dict['cases.diagnoses.annotations'])
-        assert len(temp_case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses']) - 2
+        diag_cnt = len(temp_case['diagnoses'][0]) + 2
+        treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
+        annot_cnt = len(temp_case['diagnoses'][0]['annotations'][0])
+        expected_diag_cnt = len(grouped_fields_dict['cases.diagnoses'])
+        expected_treat_cnt = len(grouped_fields_dict['cases.diagnoses.treatments'])
+        expected_annot_cnt = len(grouped_fields_dict['cases.diagnoses.annotations'])
 
-        assert len(temp_case['follow_ups'][0]['molecular_tests'][0]) == \
-               len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
-        assert len(temp_case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups']) - 1
+        assert diag_cnt == expected_diag_cnt, output_assert_err_str("diagnoses", diag_cnt, expected_diag_cnt)
+        assert treat_cnt == expected_treat_cnt, output_assert_err_str("treatments", treat_cnt, expected_treat_cnt)
+        assert annot_cnt == expected_annot_cnt, output_assert_err_str("annotations", treat_cnt, expected_treat_cnt)
 
-        assert len(temp_case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
-        assert len(temp_case['demographic']) == len(grouped_fields_dict['cases.demographic'])
-        assert len(temp_case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
-        assert len(temp_case) == len(grouped_fields_dict['cases']) - 5
+        follow_cnt = len(temp_case['follow_ups'][0]) + 1
+        mol_tests_cnt = len(temp_case['follow_ups'][0]['molecular_tests'][0])
+        expected_follow_cnt = len(grouped_fields_dict['cases.follow_ups'])
+        expected_mol_tests_cnt = len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
+
+        assert follow_cnt == expected_follow_cnt, output_assert_err_str("follow_ups", follow_cnt, expected_follow_cnt)
+        assert mol_tests_cnt == expected_mol_tests_cnt, \
+            output_assert_err_str("molecular_tests", mol_tests_cnt, expected_mol_tests_cnt)
+
+        exp_cnt = len(temp_case['exposures'][0])
+        demo_cnt = len(temp_case['demographic'])
+        fam_hist_cnt = len(temp_case['family_histories'][0])
+        proj_cnt = len(temp_case['project'])
+        case_cnt = len(temp_case) + 5
+        expected_exp_cnt = len(grouped_fields_dict['cases.exposures'])
+        expected_demo_cnt = len(grouped_fields_dict['cases.demographic'])
+        expected_fam_hist_cnt = len(grouped_fields_dict['cases.family_histories'])
+        expected_proj_cnt = len(grouped_fields_dict['cases.project'])
+        expected_case_cnt = len(grouped_fields_dict['cases'])
+
+        assert exp_cnt == expected_exp_cnt, output_assert_err_str("exposures", exp_cnt, expected_exp_cnt)
+        assert demo_cnt == expected_demo_cnt, output_assert_err_str("demographic", demo_cnt, expected_demo_cnt)
+        assert fam_hist_cnt == expected_fam_hist_cnt, \
+            output_assert_err_str("family_histories", fam_hist_cnt, expected_fam_hist_cnt)
+        assert proj_cnt == expected_proj_cnt, output_assert_err_str("project", proj_cnt, expected_proj_cnt)
+        assert case_cnt == expected_case_cnt, output_assert_err_str("cases", case_cnt, expected_case_cnt)
+
 
         cases_list[index] = temp_case
 
