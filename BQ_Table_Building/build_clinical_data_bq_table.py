@@ -249,6 +249,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     with open(local_json_path, 'r') as json_file:
         cases_list = json.load(json_file)
 
+    print("length of cases_list: {}".format(len(cases_list)))
+
     grouped_fields_dict = {
         API_PARAMS['PARENT_FG']: dict()
     }
