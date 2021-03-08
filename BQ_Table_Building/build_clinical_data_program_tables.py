@@ -480,8 +480,8 @@ def get_field_group_id_key(field_group, is_webapp=False):
 
     split_fg = field_group.split('.')
 
-    if split_fg[0] != get_base_fg(API_PARAMS):
-        split_fg.insert(0, get_base_fg(API_PARAMS))
+    if split_fg[0] != API_PARAMS['PARENT_FG']:
+        split_fg.insert(0, API_PARAMS['PARENT_FG'])
         field_group = ".".join(split_fg)
 
     if field_group not in API_PARAMS['FIELD_CONFIG']:
@@ -491,15 +491,16 @@ def get_field_group_id_key(field_group, is_webapp=False):
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
-    fg_id_key = merge_fg_and_field(field_group, fg_id_name)
+    fg_id_key = '{}.{}'.format(field_group, fg_id_name)
 
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
-        if API_PARAMS['RENAMED_FIELDS'] and fg_id_key not in renamed_fields:
+        if renamed_fields and fg_id_key not in renamed_fields:
             return None
-        else:
-            return renamed_fields[fg_id_key]
+        return renamed_fields[fg_id_key]
+
+    return fg_id_key
 
 
 def get_sorted_fg_depths(record_counts, reverse=False):
