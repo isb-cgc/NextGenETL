@@ -89,21 +89,27 @@ def add_case_fields_to_master_dict(master_dict, cases):
                 del record[exclude_field]
 
         if isinstance(record, list):
-            print("1")
+            if field_group_key == 'treatments':
+                print("1")
             for child_record in record:
-                print("2")
+                if field_group_key == 'treatments':
+                    print("2")
                 add_case_field_to_master_dict(child_record, parent_fg_list)
         elif isinstance(record, dict):
-            print("3")
+            if field_group_key == 'treatments':
+                print("3")
             for key in record.keys():
                 if isinstance(record[key], dict):
-                    print("4")
+                    if key == 'treatments':
+                        print("4")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 elif isinstance(record[key], list) and isinstance(record[key][0], dict):
-                    print("5")
+                    if key == 'treatments':
+                        print("5")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
-                    print("6")
+                    if key == 'treatments':
+                        print("6")
                     if field_group_key not in master_dict:
                         master_dict[field_group_key] = dict()
                     if not isinstance(record[key], list):
