@@ -107,106 +107,84 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
 
-    # note something in this modifies grouped_fields_dict, fix if using
-    """
-    fg_list = sorted(list(grouped_fields_dict.keys()))
+def add_missing_fields_to_case(case, fields_dict):
+    case_items = dict()
 
-    dummy_case = dict()
-
-    for fg in fg_list:
-        split_fg_list = fg.split(".")
-
-        if len(split_fg_list) == 1:
-            for field, value in grouped_fields_dict[fg].items():
-                dummy_case[field] = value
-        elif len(split_fg_list) == 2:
-            if split_fg_list[1] == 'demographic' or split_fg_list[1] == 'project':
-                dummy_case[split_fg_list[1]] = grouped_fields_dict[fg]
+    for key in fields_dict.keys():
+        if len(key.split('.')) < 3:
+            if key == 'cases.project' or key == 'cases.demographic':
+                case_items[key] = dict()
             else:
-                dummy_case[split_fg_list[1]] = [grouped_fields_dict[fg]]
-        elif len(split_fg_list) == 3:
-            dummy_case[split_fg_list[1]][0][split_fg_list[2]] = [grouped_fields_dict[fg]]
+                case_items[key] = list()
 
-    return dummy_case
-    """
+    for fg in sorted(case_items.keys(), reverse=True):
+        split_fg = fg.split('.')
 
-def add_missing_fields_to_case_json(grouped_fields_dict, case):
-    print("before:")
-    print(case)
-
-    for field_group in grouped_fields_dict:
-        current_case_position = case
-
-        # split field group into list and remove 'cases' prefix (here, 'cases' is just the parent level dict)
-        case_nested_key = field_group.split(".")[1:]
-
-
-"""
-        for case_fg_key in case_nested_key:
-            if isinstance(current_case_position, list):
-                for record in current_case_position:
-
-
-            if case_fg_key not in current_case_position:
-                if case_fg_key == 'demographic':
-                    current_case_position[case_fg_key] = grouped_fields_dict[field_group]
+        if len(split_fg) == 2:
+            if split_fg[1] in case:
+                if isinstance(case_items[fg], list):
+                    child_records = []
+                    for record in case[split_fg[1]]:
+                        temp_child_record = copy.deepcopy(fields_dict[fg])
+                        temp_child_record.update(record)
+                        child_records.append(temp_child_record)
+                    case_items[fg] = child_records
                 else:
-                        current_case_position[case_fg_key] = [grouped_fields_dict[field_group]]
-
-            current_case_position = current_case_position[case_fg_key]
-
-        
-        fields_for_this_fg = grouped_fields_dict[field_group]
-
-        for field in fields_for_this_fg.keys():
-            if field not in current_case_position:
-                current_case_position[field] = None
-        
-
-    print("after:")
-    print(case)
-    exit()
-"""
-
-
-def merge_dummy_case_with_case(dummy_case, case):
-    dummy_case.update(case)
-    case = dummy_case
-
-    for key in dummy_case:
-        if isinstance(dummy_case[key], list):
-            if key not in case:
-                case[key] = dummy_case[key]
+                    temp_child_record = copy.deepcopy(fields_dict[fg])
+                    temp_child_record.update(case[split_fg[1]])
             else:
-                for index, record in enumerate(case[key]):
-                    temp_dummy_case_child = copy.deepcopy(dummy_case[key][0])
-                    temp_dummy_case_child.update(record)
-                    case[key][index] = temp_dummy_case_child
-                    merge_dummy_case_with_case(case[key][index], temp_dummy_case_child)
+                temp_child_record = copy.deepcopy(fields_dict[fg])
 
-
-'''
-def merge_dummy_case_with_case(dummy_case, case):
-    if not isinstance(dummy_case, dict):
-        return
-
-    for key in dummy_case.keys():
-        if isinstance(dummy_case[key], list):
-            if key not in case:
-                case[key] = dummy_case[key]
-                continue
-            for record in case[key]:
-                merge_dummy_case_with_case(dummy_case[key][0], record)
-        elif isinstance(dummy_case[key], dict):
-            if key not in case:
-                case[key] = dummy_case[key]
+            if isinstance(case_items[fg], list):
+                case_items[fg] = [temp_child_record]
             else:
-                temp_dummy_case = copy.deepcopy(dummy_case[key])
-                temp_dummy_case.update(case[key])
-                case[key] = temp_dummy_case
+                case_items[fg] = temp_child_record
+        elif len(split_fg) == 1:
+            parent_fields = {}
 
-            merge_dummy_case_with_case(dummy_case[key], case[key])
-'''
+            for key, val in case.items():
+                if not isinstance(val, list) and not isinstance(val, dict):
+                    parent_fields[key] = val
+
+            temp_child_record = copy.deepcopy(fields_dict[fg])
+            temp_child_record.update(parent_fields)
+            case_items[fg] = temp_child_record
+
+    for key in fields_dict:
+        split_key = key.split('.')
+        if len(split_key) == 3:
+            parent_fg = ".".join(split_key[:2])
+            child_fg = split_key[2]
+
+            for parent_record in case_items[parent_fg]:
+                temp_child_records = []
+
+                if child_fg not in parent_record or not parent_record[child_fg]:
+                    temp_child_record = copy.deepcopy(fields_dict[key])
+                    parent_record[child_fg] = [temp_child_record]
+                else:
+                    child_records = parent_record[child_fg]
+
+                    if child_records:
+                        for record in child_records:
+                            temp_child_record = copy.deepcopy(fields_dict[key])
+                            temp_child_record.update(record)
+                            temp_child_records.append(temp_child_record)
+
+                            parent_record[child_fg] = temp_child_records
+
+    temp_case = dict()
+
+    for fg in case_items:
+        split_fg = fg.split('.')
+        if len(split_fg) == 1:
+            temp_case.update(case_items[fg])
+        else:
+            case_fg = split_fg[1]
+            temp_case[case_fg] = case_items[fg]
+
+    return temp_case
+
 
 def retrieve_and_save_case_records(local_path):
     """Retrieves case records from API and outputs them to a JSONL file, which is later
@@ -246,10 +224,6 @@ def retrieve_and_save_case_records(local_path):
         cases_list += response_cases
         current_index += API_PARAMS['BATCH_SIZE']
 
-        if response_json['pagination']['page'] == 3:
-            break
-
-        # todo switch back
         if response_json['pagination']['page'] == total_pages:
             break
 
@@ -257,16 +231,20 @@ def retrieve_and_save_case_records(local_path):
         API_PARAMS['PARENT_FG']: dict()
     }
 
-    dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
-
-    print(grouped_fields_dict)
-    exit()
+    add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        temp_case = copy.deepcopy(dummy_case)
-        print(temp_case)
-        merge_dummy_case_with_case(temp_case, case)
-        exit()
+        case = add_missing_fields_to_case(grouped_fields_dict, case)
+
+        assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
+        assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
+        assert len(case['follow_ups'][0]['molecular_tests'][0]) == \
+               len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
+        assert len(case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups'])
+        assert len(case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses'])
+        assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
+        assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
+        assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
@@ -313,20 +291,11 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     if 'build_bq_table' in steps:
-        # Creates a BQ schema python object consisting of nested SchemaField objects
-        # print('Creating BQ schema object!')
-        # schema = create_bq_schema(scratch_fp)
-
-        # Creates and populates BQ table
-        # if not schema:
-        #     has_fatal_error('Empty SchemaField object', UnboundLocalError)
         print('Building BQ Table!')
-
         table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(BQ_PARAMS, table_name)
 
         create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id)
-
         os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)
