@@ -178,12 +178,14 @@ def merge_dummy_case_with_case(dummy_case, case):
                     merge_dummy_case_with_case(dummy_case[key][0], record)
         elif isinstance(dummy_case[key], dict):
             if key in case:
-                temp_dummy_case = copy.deepcopy(dummy_case[key])
-                temp_dummy_case.update(case[key])
-                case[key] = temp_dummy_case
-
-                merge_dummy_case_with_case(dummy_case[key], case[key])
-
+                if isinstance(case[key], list):
+                    for record in case[key]:
+                        merge_dummy_case_with_case(dummy_case[key][0], record)
+                elif isinstance(case[key], dict):
+                    temp_dummy_case = copy.deepcopy(dummy_case[key])
+                    temp_dummy_case.update(case[key])
+                    case[key] = temp_dummy_case
+                # merge_dummy_case_with_case(dummy_case[key], case[key])
             else:
                 case[key] = dummy_case[key]
 
