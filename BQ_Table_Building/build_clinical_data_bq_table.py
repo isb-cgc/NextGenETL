@@ -109,11 +109,12 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     for key in grouped_fields_dict.keys():
         print(key)
         for field in grouped_fields_dict[key].keys():
-            print("\t" + key)
+            print("\t" + field)
             if isinstance(grouped_fields_dict[key][field], list):
                 print("delete: {}".format(field))
                 grouped_fields_dict[key].pop(field)
 
+    """
     fg_list = sorted(list(grouped_fields_dict.keys()))
 
     dummy_case = dict()
@@ -133,7 +134,7 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
             dummy_case[split_fg_list[1]][0][split_fg_list[2]] = [grouped_fields_dict[fg]]
 
     return dummy_case
-
+    """
 
 def add_missing_fields_to_case_json(grouped_fields_dict, case):
     print("before:")
