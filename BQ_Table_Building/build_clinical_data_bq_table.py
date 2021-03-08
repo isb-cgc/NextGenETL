@@ -274,14 +274,16 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
         assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
+        assert len(case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses']) - 2
+
         assert len(case['follow_ups'][0]['molecular_tests'][0]) == \
                len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
-        assert len(case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups']) + 1
-        assert len(case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses']) + 2
+        assert len(case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups']) - 1
+
         assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
         assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
         assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
-        assert len(case) == len(grouped_fields_dict['cases'])
+        assert len(case) == len(grouped_fields_dict['cases']) - 5
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
