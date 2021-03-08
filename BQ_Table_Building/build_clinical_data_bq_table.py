@@ -169,6 +169,8 @@ def merge_dummy_case_with_case(dummy_case, case):
     if not isinstance(dummy_case, dict):
         return
 
+    print(case)
+
     for key in dummy_case.keys():
         if key not in case:
             case[key] = dummy_case[key]
