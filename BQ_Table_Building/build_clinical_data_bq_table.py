@@ -180,7 +180,7 @@ def merge_dummy_case_with_case(dummy_case, case):
             else:
                 if field not in case:
                     case[field] = dummy_case[field]
-    else:
+    # else:
         # print(dummy_case)
         # print(case)
 
