@@ -310,6 +310,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
 
+    print(field_grp_depths)
+
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
             print("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
@@ -328,8 +330,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             # field group can be flattened
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
+        print("{}: {} depth".format(field_grp, depth))
 
-    print(1)
     return table_columns
 
 
@@ -399,12 +401,11 @@ def find_program_structure(cases, is_webapp=False):
             cases.pop(field_grp)
 
     columns = flatten_tables(fgs, record_counts, is_webapp)
-    print(2)
+    print(columns)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
     if is_webapp:
-        print(3)
         excluded_field_groups = API_PARAMS['FG_CONFIG']['excluded_fgs']
 
         for field_grp in record_counts.copy().keys():
@@ -1533,7 +1534,6 @@ def create_tables(program, cases, schema, is_webapp=False):
     columns, record_counts = find_program_structure(cases, is_webapp)
 
     print("columns\n{} record counts: {}".format(columns, record_counts))
-
 
     # add the parent id to field group dicts that will create separate tables
     column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
