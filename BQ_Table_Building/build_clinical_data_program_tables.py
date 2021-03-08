@@ -1411,6 +1411,10 @@ def build_biospecimen_stub_tables(program):
     main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
+
+    print(biospec_stub_table_query)
+    exit()
+
     biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
