@@ -335,6 +335,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
         print(7)
 
+        print(table_columns)
+
         if field_grp in tables:
             print(10)
             table_columns[field_grp] = field_keys
