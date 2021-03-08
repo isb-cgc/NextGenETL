@@ -169,18 +169,14 @@ def merge_dummy_case_with_case(dummy_case, case):
     if not isinstance(dummy_case, dict):
         return
 
-    print(case)
-
     for key in dummy_case.keys():
         if key not in case:
             case[key] = dummy_case[key]
             continue
-
         if isinstance(dummy_case[key], list):
             for record in case[key]:
                 merge_dummy_case_with_case(dummy_case[key][0], record)
         elif isinstance(dummy_case[key], dict):
-
             temp_dummy_case = copy.deepcopy(dummy_case[key])
             temp_dummy_case.update(case[key])
             case[key] = temp_dummy_case
