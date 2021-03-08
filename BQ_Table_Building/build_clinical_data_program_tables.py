@@ -33,7 +33,7 @@ from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error
                               upload_to_bucket, exists_bq_table, get_working_table_id,
                               get_webapp_table_id, build_table_id, update_table_metadata, get_filepath,
                               update_schema, copy_bq_table, update_friendly_name, list_bq_tables, format_seconds,
-                              load_config, delete_bq_table)
+                              load_config, delete_bq_table, build_table_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -43,22 +43,25 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 #   Getter functions, employed for readability/consistency
 
 
+def make_program_list_query():
+    return """
+        SELECT DISTINCT(proj) 
+        FROM (
+            SELECT SPLIT((
+                SELECT project_id
+                FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
+            FROM `{}`
+        )
+        ORDER BY proj
+        """.format(get_working_table_id(BQ_PARAMS))
+
+
 def get_program_list():
     """Get list of the programs which have contributed data to GDC's research program.
 
     :return: list of research programs participating in GDC data sharing
     """
-    programs_query = ("""
-        SELECT DISTINCT(proj) 
-        FROM (
-            SELECT SPLIT(
-                (SELECT project_id
-                 FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-            FROM `{}`)
-        ORDER BY proj
-    """).format(get_working_table_id(BQ_PARAMS))
-
-    return {prog.proj for prog in get_query_results(programs_query)}
+    return {prog.proj for prog in get_query_results(make_program_list_query)}
 
 
 def get_one_to_many_tables(record_counts):
@@ -74,19 +77,6 @@ def get_one_to_many_tables(record_counts):
             table_keys.add(table)
 
     return table_keys
-
-
-def build_table_name(str_list):
-    """Constructs a table name (str) from list<str>.
-
-    :param str_list: a list<str> of table name segments
-    :return: composed table name string
-    """
-    table_name = "_".join(str_list)
-
-    # replace '.' with '_' so that the name is valid
-    # ('.' chars not allowed -- issue with BEATAML1.0, for instance)
-    return table_name.replace('.', '_')
 
 
 def get_full_table_name(program, table):
@@ -1380,46 +1370,46 @@ def copy_tables_into_public_project(publish_table_list):
 #    Webapp specific functions
 
 
-def make_biospecimen_stub_tables(program):
+def make_biospecimen_stub_table_query(main_table_id, program):
+    return """
+        SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        FROM (
+            SELECT program_name, project_short_name, case_gdc_id, case_barcode, 
+                SPLIT(sample_ids, ', ') as s_gdc_ids, 
+                SPLIT(submitter_sample_ids, ', ') as s_barcodes
+            FROM (
+                SELECT case_id as case_gdc_id, 
+                    submitter_id as case_barcode, 
+                    sample_ids, 
+                    submitter_sample_ids, 
+                    SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
+                    p.project_id as project_short_name
+                FROM `{0}`,
+                UNNEST(project) AS p
+            )
+        ), 
+        UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
+        UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
+        WHERE pos1 = pos2
+        AND program_name = '{1}'
+    """.format(main_table_id, program)
+
+
+def build_biospecimen_stub_tables(program):
     """
     Create one-to-many table referencing case_id (as case_gdc_id),
     submitter_id (as case_barcode), (sample_ids as sample_gdc_ids),
     and sample_submitter_id (as sample_barcode).
     :param program: the program from which the cases originate.
     """
-    query = ("""
-        SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-        FROM
-          (SELECT program_name, project_short_name, case_gdc_id, case_barcode, 
-            SPLIT(sample_ids, ', ') as s_gdc_ids, 
-            SPLIT(submitter_sample_ids, ', ') as s_barcodes
-            FROM
-                (SELECT case_id as case_gdc_id, 
-                    submitter_id as case_barcode, 
-                    sample_ids, 
-                    submitter_sample_ids, 
-                    SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
-                    p.project_id as project_short_name
-                FROM `{}.{}.{}{}_{}`,
-                UNNEST(project) AS p)), 
-        UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-        UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-        WHERE pos1 = pos2
-        AND program_name = '{}'
-    """).format(BQ_PARAMS['DEV_PROJECT'],
-                BQ_PARAMS['DEV_DATASET'],
-                BQ_PARAMS['REL_PREFIX'],
-                BQ_PARAMS['RELEASE'],
-                BQ_PARAMS['MASTER_TABLE'],
-                program)
+    main_table = build_table_name([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+    main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
-    table_name = build_table_name([get_rel_prefix(BQ_PARAMS),
-                                   str(program),
-                                   BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
+    biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
-    table_id = get_webapp_table_id(BQ_PARAMS, table_name)
-
-    load_table_from_query(BQ_PARAMS, table_id, query)
+    load_table_from_query(BQ_PARAMS, biospec_table_id, biospec_stub_table_query)
 
 
 #    Script execution
@@ -1872,7 +1862,7 @@ def main(args):
         if 'create_biospecimen_stub_tables' in steps:
             # these tables are used to populate the per-program clinical tables and the webapp tables
             print(" - Creating biospecimen stub tables!")
-            make_biospecimen_stub_tables(orig_program)
+            build_biospecimen_stub_tables(orig_program)
 
         if 'create_webapp_tables' in steps or 'create_and_load_tables' in steps:
             cases = get_cases_by_program(orig_program)

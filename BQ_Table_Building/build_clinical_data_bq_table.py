@@ -276,6 +276,9 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
 
     for cases_page in cases_json['cases']:
         for case in cases_page:
+            if 'sample_ids' in case:
+                print("case contains sample_ids: {}".format(case['sample_ids']))
+
             cases_list.append(case)
 
     print("Total cases in local json file: {}".format(len(cases_list)))
