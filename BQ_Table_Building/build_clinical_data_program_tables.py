@@ -70,7 +70,7 @@ def get_one_to_many_tables(record_counts):
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
-    table_keys = {API_PARAMS['PARENT_FG']}
+    table_keys = {get_base_fg(API_PARAMS)}
 
     for table in record_counts:
         if record_counts[table] > 1:
@@ -145,13 +145,15 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
 
         return id_key_dict
 
+    base_fg = get_base_fg(API_PARAMS)
+
     if arg_fg:
         # field group is specified as a function argument
         fg = arg_fg
         field_key = merge_fg_and_field(fg, field)
     elif len(field.split('.')) == 1:
         # no fg delimiter found in field string: cannot be a complete field key
-        fg = API_PARAMS['PARENT_FG']
+        fg = base_fg
         field_key = merge_fg_and_field(fg, field)
     else:
         # no fg argument, but field contains separator chars; extract the fg and name
@@ -173,7 +175,7 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
     # if fg has no prefix, or
     #    field is child of base_fg, or
     #    function called for webapp table building: do not add prefix
-    if fg == API_PARAMS['PARENT_FG'] or is_webapp or not prefix:
+    if fg == base_fg or is_webapp or not prefix:
         return field_name
 
     # if field is an id_key, but is not mapped to this fg: do not add prefix
@@ -242,7 +244,7 @@ def create_schema_dict(is_webapp=False):
 
     schema = dict()
 
-    parse_bq_schema_obj(schema, API_PARAMS['PARENT_FG'], schema_list, is_webapp)
+    parse_bq_schema_obj(schema, get_base_fg(API_PARAMS), schema_list, is_webapp)
 
     return schema
 
@@ -395,7 +397,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
+            examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
 
     print(fgs)
     print(record_counts)
@@ -443,6 +445,19 @@ def get_parent_fg(tables, field_name):
     return has_fatal_error("No parent fg found for {}".format(field_name))
 
 
+def get_base_fg(api_params):
+    """Get the first-level field group, of which all other field groups are descendents.
+    :param api_params: api param object from yaml config
+    :return: base field group name
+    """
+    if 'FG_CONFIG' not in api_params:
+        has_fatal_error("FG_CONFIG not set (in api_params) in YAML.", KeyError)
+    if 'base_fg' not in api_params['FG_CONFIG'] or not api_params['FG_CONFIG']['base_fg']:
+        has_fatal_error("base_fg not set (in api_params['FG_CONFIG']) in YAML.", KeyError)
+
+    return api_params['FG_CONFIG']['base_fg']
+
+
 def get_fg_id_name(field_group, is_webapp=False):
     """Retrieves the id key used to uniquely identify a table record.
 
@@ -463,8 +478,8 @@ def get_field_group_id_key(field_group, is_webapp=False):
     """
 
     split_fg = field_group.split('.')
-    if split_fg[0] != API_PARAMS['PARENT_FG']:
-        split_fg.insert(0, API_PARAMS['PARENT_FG'])
+    if split_fg[0] != get_base_fg(API_PARAMS):
+        split_fg.insert(0, get_base_fg(API_PARAMS))
 
     field_group = ".".join(split_fg)
 
@@ -553,7 +568,7 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        source_table = get_full_table_name(program, API_PARAMS['PARENT_FG'])
+        source_table = get_full_table_name(program, get_base_fg(API_PARAMS))
     else:
         bq_col_name = get_bq_name(column)
         source_table = get_full_table_name(program, parent_table)
@@ -678,7 +693,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
         parent_id_key = get_field_group_id_key(field_group_key, is_webapp)
 
         if is_webapp:
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'], is_webapp)
+            base_field_grp_id_key = get_field_group_id_key(get_base_fg(API_PARAMS), is_webapp)
 
             # append parent_id_key to field_grp column list and column order dict
             columns[field_grp].add(parent_id_key)
@@ -698,7 +713,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
                 insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, parent_id_key, program))
                 idx += 1
 
-            base_field_grp_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'])
+            base_field_grp_id_key = get_field_group_id_key(get_base_fg(API_PARAMS))
 
             insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, base_field_grp_id_key, program))
             idx += 1
@@ -892,7 +907,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
     if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return
 
-    base_pid_name = get_fg_id_name(API_PARAMS['PARENT_FG'], is_webapp)
+    base_pid_name = get_fg_id_name(get_base_fg(API_PARAMS), is_webapp)
 
     if isinstance(record, list):
         # flatten each record in field group list
@@ -955,7 +970,8 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    get_field_group_id_key(API_PARAMS['PARENT_FG'], is_webapp)
+    base_fg = get_base_fg(API_PARAMS)
+    get_field_group_id_key(base_fg, is_webapp)
 
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
@@ -966,12 +982,12 @@ def flatten_case(case, is_webapp):
                     case[new_name] = case[old_name]
                     case.pop(old_name)
 
-    base_id_name = get_fg_id_name(API_PARAMS['PARENT_FG'], is_webapp)
+    base_id_name = get_fg_id_name(base_fg, is_webapp)
 
     flat_case = dict()
 
     flatten_case_entry(record=case,
-                       fg=API_PARAMS['PARENT_FG'],
+                       fg=base_fg,
                        flat_case=flat_case,
                        case_id=case[base_id_name],
                        pid=case[base_id_name],
@@ -990,7 +1006,7 @@ def flatten_case(case, is_webapp):
 
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
-        base_id_key = get_field_group_id_key(API_PARAMS['PARENT_FG'])
+        base_id_key = get_field_group_id_key(base_fg)
 
         # if case_id in renamed fields (it is), remove the grandparent addition of case_id to doubly nested tables--
         # naming would be incorrect, and it's unnecessary info for webapp tables.
@@ -1041,7 +1057,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
     flattened_field_grp_parents = dict()
 
     for field_grp in record_counts:
-        if field_grp == API_PARAMS['PARENT_FG']:
+        if field_grp == get_base_fg(API_PARAMS):
             continue
         if record_counts[field_grp] == 1:
             if field_grp in flat_case:
