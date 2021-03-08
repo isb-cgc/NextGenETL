@@ -237,6 +237,7 @@ def retrieve_and_save_case_records(local_path):
 
     for case in cases_list:
         merge_dummy_case_with_case(dummy_case, case)
+        print(case)
         exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
