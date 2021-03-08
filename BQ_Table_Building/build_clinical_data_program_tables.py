@@ -336,8 +336,10 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         print(7)
 
         if field_grp in tables:
+            print(10)
             table_columns[field_grp] = field_keys
         else:
+            print(11)
             # field group can be flattened
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
