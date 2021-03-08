@@ -174,9 +174,8 @@ def merge_dummy_case_with_case(dummy_case, case):
             if key not in case:
                 case[key] = dummy_case[key]
                 continue
-
-            for i in range(0, len(case[key])):
-                merge_dummy_case_with_case(dummy_case[key][0], case[key][i])
+            for record in case[key]:
+                merge_dummy_case_with_case(dummy_case[key][0], record)
         elif isinstance(dummy_case[key], dict):
             if key not in case:
                 case[key] = dummy_case[key]
