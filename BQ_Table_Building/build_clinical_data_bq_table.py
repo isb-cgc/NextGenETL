@@ -281,10 +281,14 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
 
     for cases_page in cases_json['cases']:
         for case in cases_page:
-            if 'sample_ids' not in case:
-                print('no')
-            else:
-                print('yes')
+            if 'sample_ids' in case:
+                sample_ids = ", ".join(case['sample_ids'])
+                case['sample_ids'] = sample_ids
+                submitter_sample_ids = ", ".join(case['submitter_sample_ids'])
+                case['submitter_sample_ids'] = submitter_sample_ids
+
+                print(case)
+
             cases_list.append(case)
 
     print("Total cases in local json file: {}".format(len(cases_list)))
