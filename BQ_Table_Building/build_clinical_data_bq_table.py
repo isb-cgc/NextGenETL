@@ -246,7 +246,7 @@ def add_missing_fields_to_case(fields_dict, case):
 def generate_jsonl_from_modified_api_json(local_jsonl_path):
     local_json_path = local_jsonl_path[:-1]
 
-    with open(local_json_path, 'w') as json_file:
+    with open(local_json_path, 'r') as json_file:
         cases_list = json.load(json_file)
 
     grouped_fields_dict = {
