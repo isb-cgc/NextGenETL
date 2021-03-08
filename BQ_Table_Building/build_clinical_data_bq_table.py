@@ -109,7 +109,7 @@ def add_case_fields_to_master_dict(master_dict, cases):
     for key in master_dict.keys():
         for field in master_dict[key].keys():
             if isinstance(master_dict[key][field], list):
-                del master_dict[key][field]
+                master_dict[key].pop(field)
 
     fg_list = sorted(list(master_dict.keys()))
 
