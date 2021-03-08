@@ -266,9 +266,15 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for index, case in enumerate(cases_list):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
+        field_groups_list = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
+
+        for fg in field_groups_list:
+            assert fg in temp_case, "{} field group not in case".format(fg)
+
         diag_cnt = len(temp_case['diagnoses'][0]) + 2
         treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
         annot_cnt = len(temp_case['diagnoses'][0]['annotations'][0])
+
         expected_diag_cnt = len(grouped_fields_dict['cases.diagnoses'])
         expected_treat_cnt = len(grouped_fields_dict['cases.diagnoses.treatments'])
         expected_annot_cnt = len(grouped_fields_dict['cases.diagnoses.annotations'])
@@ -279,6 +285,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
         follow_cnt = len(temp_case['follow_ups'][0]) + 1
         mol_cnt = len(temp_case['follow_ups'][0]['molecular_tests'][0])
+
         expected_follow_cnt = len(grouped_fields_dict['cases.follow_ups'])
         expected_tests_cnt = len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
 
@@ -290,6 +297,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         fam_hist_cnt = len(temp_case['family_histories'][0])
         proj_cnt = len(temp_case['project'])
         case_cnt = len(temp_case) + 5
+
         expected_exp_cnt = len(grouped_fields_dict['cases.exposures'])
         expected_demo_cnt = len(grouped_fields_dict['cases.demographic'])
         expected_fam_cnt = len(grouped_fields_dict['cases.family_histories'])
