@@ -740,7 +740,8 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         table_id_key = get_field_group_id_key(table, is_webapp)
 
-        print("{}".format(table))
+        print("merge col orders table: {}".format(table))
+        print("merge col orders table_id_key: {}".format(table_id_key))
 
         if table in columns:
             merge_dict_key = table
