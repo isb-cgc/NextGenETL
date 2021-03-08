@@ -251,8 +251,6 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for cases_page in cases_json['cases']:
         cases_list = cases_list + cases_page
 
-    cases_list = cases_json['cases'][0]
-
     print("length of cases_list: {}".format(len(cases_list)))
 
     grouped_fields_dict = {
