@@ -384,14 +384,18 @@ def find_program_structure(cases, is_webapp=False):
     :return: dict of tables and columns, dict with maximum record count for
     this program's field groups.
     """
+
+    print(1)
     fgs = {}
     record_counts = {}
 
     for case in cases:
+        print(2)
         if case:
             examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
 
     for field_grp in fgs:
+        print(3)
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
             print("{0} not in metadata".format(field_grp))
             fgs.pop(field_grp)
