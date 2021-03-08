@@ -221,7 +221,9 @@ def parse_bq_schema_obj(schema, fg, schema_list=None, is_webapp=False):
 
             print(field_key)
 
-            schema_field['name'] = get_bq_name(field_key, is_webapp)
+            # schema_field['name'] = get_bq_name(field_key, is_webapp)
+            schema_field['name'] = field_key[-1]
+            print(schema_field)
             schema[field_key] = schema_field
 
 
