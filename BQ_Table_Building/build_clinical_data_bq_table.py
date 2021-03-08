@@ -240,6 +240,7 @@ def retrieve_and_save_case_records(local_path):
 
     for case in cases_list:
         temp_case = copy.deepcopy(dummy_case)
+        print(temp_case)
         print("pre-merge")
         print(case)
         merge_dummy_case_with_case(temp_case, case)
