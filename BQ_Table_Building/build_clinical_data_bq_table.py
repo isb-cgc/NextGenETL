@@ -281,14 +281,12 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
 
     for cases_page in cases_json['cases']:
         for case in cases_page:
+            # todo fix this sometime
             if 'sample_ids' in case:
                 sample_ids = ", ".join(case['sample_ids'])
                 case['sample_ids'] = sample_ids
                 submitter_sample_ids = ", ".join(case['submitter_sample_ids'])
                 case['submitter_sample_ids'] = submitter_sample_ids
-
-                print(case)
-                exit()
 
             cases_list.append(case)
 
@@ -299,6 +297,9 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
     }
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
+
+    print(grouped_fields_dict)
+    exit()
 
     with open(local_jsonl_path, 'w') as jsonl_file_obj:
         for index, case in enumerate(cases_list):
