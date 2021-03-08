@@ -241,7 +241,6 @@ def retrieve_and_save_case_records(local_path):
 
 
 def generate_jsonl_from_modified_api_json(local_jsonl_path):
-    cases_list = None
     local_json_path = local_jsonl_path[:-1]
 
     with open(local_json_path, 'w') as json_file:
@@ -266,19 +265,17 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
         assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
 
-    if BQ_PARAMS['IO_MODE'] == 'w':
-        err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
-        assert total_cases == len(cases_list), err_str
+    write_list_to_jsonl(local_jsonl_path, cases_list)
 
-    write_list_to_jsonl(local_path, cases_list)
-
-    print("Output jsonl to {} in '{}' mode".format(local_path, BQ_PARAMS['IO_MODE']))
+    '''
+    print("Output jsonl to {} in '{}' mode".format(local_jsonl_path, BQ_PARAMS['IO_MODE']))
     extract_time = format_seconds(time.time() - start_time)
     print()
     print("Clinical data retrieval complete!")
-    file_size = os.stat(local_path).st_size / 1048576.0
+    file_size = os.stat(local_jsonl_path).st_size / 1048576.0
     print("\t{:.2f} mb jsonl file size".format(file_size))
     print("\t{} to query API and write to local jsonl file\n".format(extract_time))
+    '''
 
 
 def main(args):
