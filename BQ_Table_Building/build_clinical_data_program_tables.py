@@ -307,7 +307,6 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened table column dict.
     """
-    print(record_counts) # {fg: 1, fg.child: 1}
     tables = get_one_to_many_tables(record_counts) # supplemental tables required
     table_columns = dict()
 
@@ -315,37 +314,21 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     excluded_fields = get_excluded_fields_all_fgs(field_groups, is_webapp)
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
-        print("{}: {} depth".format(field_grp, depth))
 
         if depth > 3:
             print("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
 
-        print(0)
-
         if is_webapp and field_grp in excluded_fields:
-            print(1)
             continue
 
-        print(2)
-
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
-        print(6)
-
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
-        print(7)
-
-        print(table_columns)
-
         if field_grp in tables:
-            print(10)
             table_columns[field_grp] = field_keys
         else:
-            print(11)
             # field group can be flattened
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
-        print(8)
-    print(9)
 
     return table_columns
 
@@ -419,6 +402,8 @@ def find_program_structure(cases, is_webapp=False):
             cases.pop(field_grp)
 
     columns = flatten_tables(fgs, record_counts, is_webapp)
+
+    print(columns)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -886,7 +871,6 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
     :return: Trimmed down record dict.
     """
     if isinstance(case, dict):
-        print(3)
         excluded_fields = {get_bq_name(field, is_webapp, field_grp)
                            for field in excluded}
 
@@ -897,10 +881,7 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
         return case
 
     if isinstance(case, set):
-        print(4)
         return {field for field in case if field not in excluded}
-
-    print(5)
 
     return [field for field in case if field not in excluded]
 
