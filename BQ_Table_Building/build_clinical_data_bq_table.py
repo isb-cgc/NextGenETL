@@ -36,6 +36,7 @@ BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
+
 # todo yaml config conformance test
 
 
@@ -134,6 +135,8 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
         # split field group into list and remove 'cases' prefix (here, 'cases' is just the parent level dict)
         case_nested_key = field_group.split(".")[1:]
+
+
 """
         for case_fg_key in case_nested_key:
             if isinstance(current_case_position, list):
@@ -168,7 +171,8 @@ def merge_dummy_case_with_case(dummy_case, case):
         case.update(dummy_case)
         for key in dummy_case.keys():
             if isinstance(dummy_case[key], list):
-                merge_dummy_case_with_case(dummy_case[key][0], case[key])
+                for record in case[key]:
+                    merge_dummy_case_with_case(dummy_case[key][0], record)
     elif isinstance(dummy_case, list):
         for field in dummy_case.keys():
             if isinstance(dummy_case[field], list):
@@ -181,8 +185,8 @@ def merge_dummy_case_with_case(dummy_case, case):
                 if field not in case:
                     case[field] = dummy_case[field]
     # else:
-        # print(dummy_case)
-        # print(case)
+    # print(dummy_case)
+    # print(case)
 
 
 def retrieve_and_save_case_records(local_path):
