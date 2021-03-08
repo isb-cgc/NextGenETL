@@ -311,7 +311,6 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
-        print(1)
         if depth > 3:
             print("\n[INFO] Caution, not confirmed to work with nested depth > 3\n")
 
@@ -319,9 +318,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
         if is_webapp and field_grp in excluded_fields:
             continue
-        print(2)
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
-        print(3)
+        print(field_groups[field_grp])
 
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
 
