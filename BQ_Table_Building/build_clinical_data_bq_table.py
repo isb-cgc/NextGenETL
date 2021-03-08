@@ -19,6 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import json
 
 import requests
 import time
@@ -199,33 +200,52 @@ def retrieve_and_save_case_records(local_path):
     total_pages = None
     current_index = API_PARAMS['START_INDEX']
 
-    while True:
-        response = request_data_from_gdc_api(current_index)
-        response_json = response.json()['data']
+    local_json_path = local_path[:-1]
 
-        # If response doesn't contain pagination, indicates an invalid request.
-        if 'pagination' not in response_json:
-            has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
+    with open(local_json_path, "w") as file_obj:
+        file_obj.write('[')
 
-        if not total_pages:
-            total_pages = response_json['pagination']['pages']
-            print("Total pages: {}".format(total_pages))
-            total_cases = response_json['pagination']['total']
-            print("Total cases: {}".format(total_cases))
+        while True:
+            response = request_data_from_gdc_api(current_index)
+            response_json = response.json()['data']
 
-        current_page = response_json['pagination']['page']
-        print("Fetching page {}".format(current_page))
+            # If response doesn't contain pagination, indicates an invalid request.
+            if 'pagination' not in response_json:
+                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
 
-        response_cases = response_json['hits']
+            if not total_pages:
+                total_pages = response_json['pagination']['pages']
+                print("Total pages: {}".format(total_pages))
+                total_cases = response_json['pagination']['total']
+                print("Total cases: {}".format(total_cases))
 
-        assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+            current_page = response_json['pagination']['page']
+            print("Fetching page {}".format(current_page))
 
-        # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-        cases_list += response_cases
-        current_index += API_PARAMS['BATCH_SIZE']
+            response_cases = response_json['hits']
 
-        if response_json['pagination']['page'] == total_pages:
-            break
+            assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+
+            # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
+
+            for case in response_cases:
+                json.dump(case, file_obj)
+
+            cases_list += response_cases
+            current_index += API_PARAMS['BATCH_SIZE']
+
+            if response_json['pagination']['page'] == total_pages:
+                break
+
+        file_obj.write(']')
+
+
+def generate_jsonl_from_modified_api_json(local_jsonl_path):
+    cases_list = None
+    local_json_path = local_jsonl_path[:-1]
+
+    with open(local_json_path, 'w') as json_file:
+        cases_list = json.load(json_file)
 
     grouped_fields_dict = {
         API_PARAMS['PARENT_FG']: dict()
@@ -282,6 +302,9 @@ def main(args):
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
         retrieve_and_save_case_records(scratch_fp)
+
+    if 'generate_jsonl_from_modified_api_json' in steps:
+        generate_jsonl_from_modified_api_json(scratch_fp)
 
     if 'upload_jsonl_to_cloud_storage' in steps:
         # Insert the generated jsonl file into google storage bucket, for later
