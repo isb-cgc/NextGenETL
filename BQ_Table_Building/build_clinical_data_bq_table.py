@@ -263,25 +263,27 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for index, case in enumerate(cases_list):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
-        cases_list[index] = temp_case
         print("expected diagnoses count {} -> actual {}".format(len(grouped_fields_dict['cases.diagnoses']),
-                                                          len(case['diagnoses'][0])))
+                                                                len(case['diagnoses'][0])))
 
         print("expected follow_ups count {} -> actual {}".format(len(grouped_fields_dict['cases.follow_ups']),
-                                                            len(case['follow_ups'][0])))
+                                                                 len(case['follow_ups'][0])))
 
-        assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
-        assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
-        assert len(case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses']) - 2
+        assert len(temp_case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
+        assert len(temp_case['diagnoses'][0]['annotations'][0]) == len(
+            grouped_fields_dict['cases.diagnoses.annotations'])
+        assert len(temp_case['diagnoses'][0]) == len(grouped_fields_dict['cases.diagnoses']) - 2
 
-        assert len(case['follow_ups'][0]['molecular_tests'][0]) == \
+        assert len(temp_case['follow_ups'][0]['molecular_tests'][0]) == \
                len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
-        assert len(case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups']) - 1
+        assert len(temp_case['follow_ups'][0]) == len(grouped_fields_dict['cases.follow_ups']) - 1
 
-        assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
-        assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
-        assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
-        assert len(case) == len(grouped_fields_dict['cases']) - 5
+        assert len(temp_case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
+        assert len(temp_case['demographic']) == len(grouped_fields_dict['cases.demographic'])
+        assert len(temp_case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
+        assert len(temp_case) == len(grouped_fields_dict['cases']) - 5
+
+        cases_list[index] = temp_case
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
