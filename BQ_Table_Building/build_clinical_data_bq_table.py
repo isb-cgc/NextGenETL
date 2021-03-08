@@ -264,6 +264,7 @@ def retrieve_and_save_case_records(local_path):
         merge_dummy_case_with_case(temp_case, case)
         print("merged")
         print(case)
+        exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
         err_str = "jsonl count ({}) not equal to total cases ({})".format(len(cases_list), total_cases)
