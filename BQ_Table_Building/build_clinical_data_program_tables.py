@@ -442,6 +442,8 @@ def get_fg_id_name(field_group, is_webapp=False):
     :return: str representing table key
     """
     fg_id_key = get_field_group_id_key(field_group, is_webapp)
+    print(fg_id_key)
+    exit()
 
     return get_field_name(fg_id_key)
 
