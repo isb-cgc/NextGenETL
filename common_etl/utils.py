@@ -627,8 +627,6 @@ def check_value_type(value):
 
     if isinstance(value, bool):
         return "BOOLEAN"
-    if not value:
-        return None
     if isinstance(value, int):
         return "INTEGER"
     if isinstance(value, float):
@@ -637,25 +635,25 @@ def check_value_type(value):
         return "ARRAY"
     if isinstance(value, list):
         return "RECORD"
+    if not value:
+        return None
     # check to see if value is numeric, float or int
+
     if '.' in value and ':' not in value:
         split_value = value.split('.')
-        if len(split_value) == 2 and split_value[0].isdigit() and split_value[1].isdigit():
-            # if in float form, but fraction is .0, .00, etc., then consider it an integer
-            if int(split_value[1]) != 0:
+        if len(split_value) == 2:
+            if split_value[0].isdigit() and split_value[1].isdigit():
+                # if in float form, but fraction is .0, .00, etc., then consider it an integer
+                if int(split_value[1]) == 0:
+                    return "INTEGER"
                 return "FLOAT"
-            else:
-                return "INTEGER"
-        elif len(split_value) > 2:
-            # contains more than one '.', therefore not a float or int
-            return "STRING"
-    elif value.startswith("0") and ':' not in value:
         return "STRING"
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
     elif value.isdigit():
         return "INTEGER"
-
+    elif value.startswith("0") and ':' not in value and '-' not in value:
+            return "STRING"
     # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
     # BQ date format: 'YYYY-[M]M-[D]D'
     date_re_str = "[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
