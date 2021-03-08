@@ -166,6 +166,24 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 
 def merge_dummy_case_with_case(dummy_case, case):
+    dummy_case.update(case)
+
+    case = dummy_case
+
+    for key in dummy_case:
+        if isinstance(dummy_case[key], list):
+            if key not in case:
+                case[key] = dummy_case[key]
+            else:
+                for index, record in enumerate(case[key]):
+                    temp_dummy_case_child = copy.deepcopy(dummy_case[key][0])
+                    temp_dummy_case_child.update(record)
+                    case[key][index] = temp_dummy_case_child
+                    merge_dummy_case_with_case(case[key][index], temp_dummy_case_child)
+
+
+'''
+def merge_dummy_case_with_case(dummy_case, case):
     if not isinstance(dummy_case, dict):
         return
 
@@ -185,7 +203,7 @@ def merge_dummy_case_with_case(dummy_case, case):
                 case[key] = temp_dummy_case
 
             merge_dummy_case_with_case(dummy_case[key], case[key])
-
+'''
 
 def retrieve_and_save_case_records(local_path):
     """Retrieves case records from API and outputs them to a JSONL file, which is later
