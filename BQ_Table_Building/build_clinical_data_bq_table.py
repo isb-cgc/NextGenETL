@@ -265,11 +265,11 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
             print("case: {}\n".format(case))
             print("error for {}".format(field_group))
-            print("expected count {} -> actual {} at index {}".format(expected_cnt, actual_cnt, index))
+            print("expected count {} -> actual {} at index {}\n".format(expected_cnt, actual_cnt, index))
             print("expected fields: {}".format(expected_field_keys))
-            print("actual fields: {}".format(actual_field_keys))
+            print("actual fields: {}\n".format(actual_field_keys))
             print("not_in_expected_keys: {}".format(not_in_expected_keys))
-            print("not_in_actual_keys: {}\n\n".format(not_in_actual_keys))
+            print("not_in_actual_keys: {}\n".format(not_in_actual_keys))
             exit()
 
     local_json_path = local_jsonl_path[:-1]
