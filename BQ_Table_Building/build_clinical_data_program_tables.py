@@ -218,6 +218,7 @@ def parse_bq_schema_obj(schema, fg, schema_list=None, is_webapp=False):
                 schema[field_name]['mode'] = 'REQUIRED'
         else:
             # not a nested field entry--do we need to prefix the schema field name?
+            print(field_key)
             schema_field['name'] = get_bq_name(field_key, is_webapp)
             schema[field_key] = schema_field
 
@@ -238,9 +239,6 @@ def create_schema_dict(is_webapp=False):
         schema_list.append(schema_field.to_api_repr())
 
     schema = dict()
-
-    print(schema_list)
-    exit()
 
     parse_bq_schema_obj(schema, API_PARAMS['PARENT_FG'], schema_list, is_webapp)
 
