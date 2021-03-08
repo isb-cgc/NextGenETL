@@ -484,21 +484,14 @@ def get_field_group_id_key(field_group, is_webapp=False):
         split_fg.insert(0, API_PARAMS['PARENT_FG'])
         field_group = ".".join(split_fg)
 
-    if field_group not in API_PARAMS['FIELD_CONFIG']:
-        print("field group {} not in API_PARAMS['FIELD_CONFIG']".format(field_group))
-        return None
-    if 'id_key' not in API_PARAMS['FIELD_CONFIG'][field_group]:
-        has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
-
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
+    print(fg_id_name)
+
     fg_id_key = '{}.{}'.format(field_group, fg_id_name)
 
     if is_webapp:
-        renamed_fields = API_PARAMS['RENAMED_FIELDS']
-
-        if renamed_fields and fg_id_key not in renamed_fields:
-            return None
-        return renamed_fields[fg_id_key]
+        if fg_id_key in API_PARAMS['RENAMED_FIELDS']:
+            return API_PARAMS['RENAMED_FIELDS'][fg_id_key]
 
     return fg_id_key
 
