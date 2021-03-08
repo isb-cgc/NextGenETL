@@ -322,12 +322,13 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         if is_webapp and field_grp in excluded_fields:
             continue
 
-        print("field_groups[field_grp]: {}".format(field_groups[field_grp]))
-        print("field_grp {}".format(field_grp))
+        print(1)
 
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
+        print(6)
 
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
+        print(7)
 
         if field_grp in tables:
             table_columns[field_grp] = field_keys
@@ -867,6 +868,7 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
     :return: Trimmed down record dict.
     """
     if isinstance(case, dict):
+        print(3)
         excluded_fields = {get_bq_name(field, is_webapp, field_grp)
                            for field in excluded}
 
@@ -877,7 +879,10 @@ def remove_excluded_fields(case, field_grp, excluded, is_webapp):
         return case
 
     if isinstance(case, set):
+        print(4)
         return {field for field in case if field not in excluded}
+
+    print(5)
 
     return [field for field in case if field not in excluded]
 
