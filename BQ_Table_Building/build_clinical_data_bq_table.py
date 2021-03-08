@@ -146,6 +146,7 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
 
         if isinstance(record, list):
             if not isinstance(record[0], dict):
+                print(record)
             for child_record in record:
                 add_case_field_to_master_dict(child_record, parent_fg_list)
         elif isinstance(record, dict):
