@@ -259,8 +259,9 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         except AssertionError:
             expected_field_keys = set(grouped_fields_dict[field_group].keys())
             actual_field_keys = set(fields.keys())
+            actual_field_keys |= set(fgs_to_remove)
 
-            not_in_expected_keys = actual_field_keys - (fgs_to_remove + expected_field_keys)
+            not_in_expected_keys = actual_field_keys - expected_field_keys
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
             print("case: {}\n".format(case))
