@@ -239,6 +239,9 @@ def create_schema_dict(is_webapp=False):
 
     schema = dict()
 
+    print(schema_list)
+    exit()
+
     parse_bq_schema_obj(schema, API_PARAMS['PARENT_FG'], schema_list, is_webapp)
 
     return schema
