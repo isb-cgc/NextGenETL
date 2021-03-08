@@ -84,10 +84,7 @@ def extract_api_response_json(local_path):
 
     :param local_path: absolute path to data output file
     """
-    start_time = time.time()
-
     cases_list = list()
-    total_cases = None
     total_pages = None
     current_index = API_PARAMS['START_INDEX']
 
@@ -122,16 +119,14 @@ def extract_api_response_json(local_path):
             cases_list += response_cases
             current_index += API_PARAMS['BATCH_SIZE']
 
-            if response_json['pagination']['page'] == 1:
-                break
-            # todo change back
-
             if response_json['pagination']['page'] == total_pages:
                 break
             else:
                 file_obj.write(',')
 
         file_obj.write(']}')
+
+    print("Wrote cases response to json file.")
 
 
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
@@ -330,7 +325,7 @@ def main(args):
         os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)
-    print("Script executed in (} seconds\n".format(end))
+    print("Script executed in {} seconds\n".format(end))
 
 
 if __name__ == '__main__':
