@@ -365,6 +365,7 @@ def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
     return column_data_types
 
 
+"""
 def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
     nested_schema_dict = {}
 
@@ -434,34 +435,8 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
 
     return schema
 
-
 def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
-    nested_schema_dict = {}
-
-    fg_list = API_PARAMS["EXPAND_FG_LIST"] + [API_PARAMS["PARENT_FG"]]
-
-    for field_group in sorted(API_PARAMS['EXPAND_FG_LIST'], reverse=True):
-        nested_fields_list = list()
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_group
-        for field_name in grouped_fields_dict[full_field_name].keys():
-            full_field_name = full_field_name + "." + field_name
-
-            nested_fields_list.append(
-                {
-                    "name": full_field_name,
-                    "type": column_data_types_dict[full_field_name],
-                    "mode": "NULLABLE",
-                    "description": ""
-                }
-            )
-
-        nested_schema_dict[full_field_name] = nested_fields_list
-
-    nested_fields_list = list()
-
-    for field_name in grouped_fields_dict[API_PARAMS["PARENT_FG"]]:
-        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_name
-
+    def append_to_nested_schema_dict(full_field_name):
         nested_fields_list.append(
             {
                 "name": full_field_name,
@@ -470,6 +445,23 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
                 "description": ""
             }
         )
+
+    nested_schema_dict = {}
+
+    for field_group in sorted(API_PARAMS["EXPAND_FG_LIST"], reverse=True):
+        nested_fields_list = list()
+        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_group
+        for field_name in grouped_fields_dict[full_field_name].keys():
+            full_field_name = full_field_name + "." + field_name
+            append_to_nested_schema_dict(full_field_name)
+
+        nested_schema_dict[full_field_name] = nested_fields_list
+
+    nested_fields_list = list()
+
+    for field_name in grouped_fields_dict[API_PARAMS["PARENT_FG"]]:
+        full_field_name = API_PARAMS["PARENT_FG"] + "." + field_name
+        append_to_nested_schema_dict(full_field_name)
 
     nested_schema_dict[API_PARAMS["PARENT_FG"]] = nested_fields_list
 
@@ -503,7 +495,65 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
             schema.append(nested_schema_fields)
 
     return schema
+"""
 
+
+def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
+    def append_to_nested_schema_dict():
+        fg_fields_list.append(
+            {
+                "name": full_field_name.split('.')[-1],
+                "type": column_data_types_dict[full_field_name],
+                "mode": "NULLABLE",
+                "description": ""
+            }
+        )
+
+    full_field_group_name_list = [API_PARAMS["PARENT_FG"] + "." + fg for fg in API_PARAMS["EXPAND_FG_LIST"]]
+    full_field_group_name_list.append(API_PARAMS["PARENT_FG"])
+
+    repeated_schema_dict = dict()
+    nested_schema_dict = dict()
+
+    for field_group in sorted(full_field_group_name_list, reverse=True):
+        fg_fields_list = list()
+
+        for field_name in grouped_fields_dict[field_group].keys():
+            full_field_name = field_group + "." + field_name
+            append_to_nested_schema_dict()
+
+        nested_schema_dict[field_group] = fg_fields_list
+
+    schema = list()
+
+    for fg in sorted(nested_schema_dict.keys()):
+        split_fg = fg.split('.')
+
+        if len(split_fg) == 1:
+            schema = nested_schema_dict[fg]
+            continue
+
+        repeated_schema_dict[fg] = {
+            "name": split_fg[-1],
+            "type": "RECORD",
+            "mode": "REPEATED",
+            "fields": nested_schema_dict[fg]
+        }
+
+    sorted_fgs = sorted(repeated_schema_dict.keys(), reverse=True)
+
+    for column in sorted_fgs:
+        nested_schema_fields = repeated_schema_dict.pop(column)
+        split_column = column.split('.')
+        print(split_column)
+        if len(split_column) == 3:
+            parent_column = ".".join(split_column[:-1])
+
+            repeated_schema_dict[parent_column]['fields'].append(nested_schema_fields)
+        elif len(split_column) == 2:
+            schema.append(nested_schema_fields)
+
+    return schema
 
 def get_grouped_fields_dict(local_jsonl_path):
     local_json_path = local_jsonl_path[:-1]

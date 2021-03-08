@@ -653,7 +653,7 @@ def check_value_type(value):
     elif value.isdigit():
         return "INTEGER"
     elif value.startswith("0") and ':' not in value and '-' not in value:
-            return "STRING"
+        return "STRING"
     # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
     # BQ date format: 'YYYY-[M]M-[D]D'
     date_re_str = "[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
@@ -677,7 +677,7 @@ def check_value_type(value):
     return "STRING"
 
 
-# todo relocate
+# todo relocate test
 def test_check_value_type():
     value_type_dict = {
         "000": "STRING",
@@ -706,9 +706,8 @@ def test_check_value_type():
     for value, expected_type in value_type_dict.items():
         actual_type = check_value_type(value)
 
-        assert expected_type == actual_type, "Type mismatch for {}: expected {}, actual {}".format(value,
-                                                                                                   expected_type,
-                                                                                                   actual_type)
+        assert expected_type == actual_type, \
+            "Type mismatch for {}: expected {}, actual {}".format(value, expected_type, actual_type)
 
     print("Types checked successfully!")
 
