@@ -266,8 +266,11 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         case = temp_case
         print(case)
 
-        print("expected field count {} -> actual {}".format(len(grouped_fields_dict['cases.diagnoses'])), len(case['diagnoses'][0]))
-        print("expected field count {} -> actual {}".format(len(grouped_fields_dict['cases.follow_ups'])), len(case['follow_ups'][0]))
+        print("expected field count {} -> actual {}".format(len(grouped_fields_dict['cases.diagnoses']),
+                                                          len(case['diagnoses'][0])))
+
+        print("expected field count {} -> actual {}".format(len(grouped_fields_dict['cases.follow_ups']),
+                                                            len(case['follow_ups'][0])))
 
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
         assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
