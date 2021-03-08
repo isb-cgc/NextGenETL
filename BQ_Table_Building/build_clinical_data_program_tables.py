@@ -311,8 +311,6 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
     excluded_fields = get_excluded_fields_all_fgs(field_groups, is_webapp)
 
-    print(excluded_fields)
-
     print(sorted(field_grp_depths.items(), key=lambda i: i[1]))
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
@@ -321,6 +319,10 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
         if is_webapp and field_grp in excluded_fields:
             continue
+
+        print("field_groups[field_grp]: {}".format(field_groups[field_grp]))
+        print("field_grp".format(field_grp))
+
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
 
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
