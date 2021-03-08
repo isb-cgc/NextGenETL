@@ -442,8 +442,6 @@ def get_fg_id_name(field_group, is_webapp=False):
     :return: str representing table key
     """
     fg_id_key = get_field_group_id_key(field_group, is_webapp)
-    print(field_group)
-    exit()
 
     return get_field_name(fg_id_key)
 
@@ -457,6 +455,7 @@ def get_field_group_id_key(field_group, is_webapp=False):
     """
 
     split_fg = field_group.split('.')
+    print(split_fg)
     if split_fg[0] != API_PARAMS['PARENT_FG']:
         split_fg.insert(0, API_PARAMS['PARENT_FG'])
         field_group = ".".join(split_fg)
