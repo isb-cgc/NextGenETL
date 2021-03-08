@@ -263,9 +263,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     for index, case in enumerate(cases_list):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
-        case = temp_case
-        print(case)
-
+        cases_list[index] = temp_case
         print("expected diagnoses count {} -> actual {}".format(len(grouped_fields_dict['cases.diagnoses']),
                                                           len(case['diagnoses'][0])))
 
