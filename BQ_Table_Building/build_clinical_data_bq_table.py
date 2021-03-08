@@ -261,9 +261,9 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for index, case in enumerate(cases_list):
-        add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
+        temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
-        case = cases_list[index]
+        case = temp_case
         print(case)
 
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
