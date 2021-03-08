@@ -643,21 +643,23 @@ def check_value_type(value):
         return "INTEGER"
 
     # elif isinstance(value, str):
-    date_re_str =  "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9]"
-    timestamp_re_str = "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9](|T)(|[0-2])[0-9]:(|[0-5])[0-9]::[0-5][0-9].{5}[0-9]*[ A-Za-z]"
+
+    # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
+    # BQ date format: 'YYYY-[M]M-[D]D'
+    date_re_str = "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9]"
+    # TIME: [H]H:[M]M:[S]S[.DDDDDD]
+    time_re_str = "(|[0-2])[0-9]:(|[0-5])[0-9]::[0-5][0-9].{6}[0-9]"
+    # TIMESTAMP: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+    timestamp_re_str = date_re_str + '[( |T)' + time_re_str + ""
+    timestamp_re_str = "[1-2]{3}[0-9]-(|[0-1])[0-9]-(|[0-3])[0-9](|T)(|[0-2])[0-9]:(|[0-5])[0-9]::[0-5][0-9].{6}[0-9]*[ A-Za-z]"
     timestamp_pattern = re.compile(timestamp_re_str)
     if timestamp_pattern.fullmatch(value):
         return "TIMESTAMP"
 
-    date_re_str = "[1-2]{3}[0-9]-[0-1][0-9]-[0-3][0-9]"
-
-    #    try:
 
     # todo add date/time/timestamp
     # BQ canonical formats: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
-    # DATE: 'YYYY-[M]M-[D]D'
     # TIME: [H]H:[M]M:[S]S[.DDDDDD]
-    # TIMESTAMP: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
 
     return "STRING"
 

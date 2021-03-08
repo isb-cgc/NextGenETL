@@ -305,16 +305,16 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             for fg in case_fgs_to_remove:
                 assert fg in case and case[fg], "{} field group null for index {}\n".format(fg, index)
 
-            # assert_output_count("cases", case, case_fgs_to_remove)
-            # assert_output_count("cases.exposures", case['exposures'][0])
+            assert_output_count("cases", case, case_fgs_to_remove)
+            assert_output_count("cases.exposures", case['exposures'][0])
             assert_output_count("cases.demographic", case['demographic'])
             assert_output_count("cases.family_histories", case['family_histories'][0])
             assert_output_count("cases.project", case['project'])
-            # assert_output_count("cases.diagnoses", case['diagnoses'][0], diagnoses_fg_to_remove)
-            # assert_output_count("cases.diagnoses.treatments", case['diagnoses'][0]['treatments'][0])
-            # assert_output_count("cases.diagnoses.annotations", case['diagnoses'][0]['annotations'][0])
-            # assert_output_count("cases.follow_ups", case['follow_ups'][0], follow_ups_fg_to_remove)
-            # assert_output_count("cases.follow_ups.molecular_tests", case['follow_ups'][0]['molecular_tests'][0])
+            assert_output_count("cases.diagnoses", case['diagnoses'][0], diagnoses_fg_to_remove)
+            assert_output_count("cases.diagnoses.treatments", case['diagnoses'][0]['treatments'][0])
+            assert_output_count("cases.diagnoses.annotations", case['diagnoses'][0]['annotations'][0])
+            assert_output_count("cases.follow_ups", case['follow_ups'][0], follow_ups_fg_to_remove)
+            assert_output_count("cases.follow_ups.molecular_tests", case['follow_ups'][0]['molecular_tests'][0])
 
             write_line_to_jsonl(jsonl_file_obj, case)
 
