@@ -300,36 +300,23 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         for fg in field_groups_list:
             assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
 
-        diag_cnt = len(temp_case['diagnoses'][0]) - 2
+        assert_output_count("cases", temp_case, -5)
+        assert_output_count("cases.exposures", temp_case['exposures'][0])
+        assert_output_count("cases.demographic", temp_case['demographic'])
+        assert_output_count("cases.family_histories", temp_case['family_histories'][0])
+
+        assert_output_count("cases.project", temp_case['project'])
+
         assert_output_count("cases.diagnoses", temp_case['diagnoses'][0], -2)
-        assert_output_count("cases.diagnoses", diag_cnt)
 
-        treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
-        assert_output_count("cases.diagnoses.treatments", treat_cnt)
+        assert_output_count("cases.diagnoses.treatments", temp_case['diagnoses'][0]['treatments'][0])
 
-        annot_cnt = len(temp_case['diagnoses'][0]['annotations'][0])
-        assert_output_count("cases.diagnoses.annotations", annot_cnt)
+        assert_output_count("cases.diagnoses.annotations", temp_case['diagnoses'][0]['annotations'][0])
 
-        follow_cnt = len(temp_case['follow_ups'][0]) - 1
-        assert_output_count("cases.follow_ups", follow_cnt)
+        assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], -1)
 
-        mol_cnt = len(temp_case['follow_ups'][0]['molecular_tests'][0])
-        assert_output_count("cases.follow_ups.molecular_tests", mol_cnt)
+        assert_output_count("cases.follow_ups.molecular_tests", temp_case['follow_ups'][0]['molecular_tests'][0])
 
-        exp_cnt = len(temp_case['exposures'][0])
-        assert_output_count("cases.exposures", exp_cnt)
-
-        demo_cnt = len(temp_case['demographic'])
-        assert_output_count("cases.demographic", demo_cnt)
-
-        fam_hist_cnt = len(temp_case['family_histories'][0])
-        assert_output_count("cases.family_histories", fam_hist_cnt)
-
-        proj_cnt = len(temp_case['project'])
-        assert_output_count("cases.project", proj_cnt)
-
-        case_cnt = len(temp_case) - 5
-        assert_output_count("cases", case_cnt)
 
         cases_list[index] = temp_case
 
