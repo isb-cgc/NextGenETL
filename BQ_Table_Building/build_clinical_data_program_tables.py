@@ -392,9 +392,6 @@ def find_program_structure(cases, is_webapp=False):
         if case:
             examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
 
-    print(fgs)
-    print(record_counts)
-
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
             print("{0} not in metadata".format(field_grp))
@@ -402,8 +399,6 @@ def find_program_structure(cases, is_webapp=False):
             cases.pop(field_grp)
 
     columns = flatten_tables(fgs, record_counts, is_webapp)
-
-    print(columns)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
@@ -756,6 +751,9 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
         if merge_dict_key not in merged_column_orders:
             merged_column_orders[merge_dict_key] = dict()
+
+        print("{}".format(table))
+        print("{}".format(merge_dict_key))
 
         merged_column_orders[merge_dict_key].update(column_orders[table])
 
