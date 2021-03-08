@@ -24,6 +24,7 @@ import json
 import os
 import sys
 import time
+import re
 
 import requests
 import yaml
@@ -110,6 +111,10 @@ def get_scratch_fp(bq_params, filename):
 
 #       FILESYSTEM HELPERS
 
+def write_line_to_jsonl(jsonl_file_obj, line):
+    jsonl_file_obj.write(json.dumps(obj=line))
+    jsonl_file_obj.write('\n')
+
 
 def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
     """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
@@ -119,14 +124,10 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
     :param mode: 'a' if appending to a file that's being built iteratively
                  'w' if file data is written in a single call to the function
                      (in which case any existing data is overwritten)"""
-
     with open(jsonl_fp, mode) as file_obj:
-        cnt = 0
-
         for line in json_obj_list:
             json.dump(obj=line, fp=file_obj)
             file_obj.write('\n')
-            cnt += 1
 
 
 #       REST API HELPERS (GDC, PDC, ETC)
@@ -615,6 +616,12 @@ def check_value_type(value):
     if value in ('True', 'False', 'true', 'false', 'TRUE', 'FALSE', True, False):
         return "BOOLEAN"
 
+    if isinstance(value, list):
+        return "ARRAY"
+
+    if isinstance(value, list):
+        return "RECORD"
+
     # check to see if value is numeric, float or int
     if '.' in value:
         split_value = value.split('.')
@@ -622,49 +629,24 @@ def check_value_type(value):
             # if in float form, but fraction is .0, .00, etc., then consider it an integer
             if int(split_value[1]) != 0:
                 return "FLOAT"
-                '''
-                val_is_float = True
-                val_is_int = False
-                val_is_numeric = False
-                '''
             else:
                 return "INTEGER"
-                '''
-                val_is_float = False
-                val_is_int = True
-                val_is_numeric = False
-                '''
         else:
             # contains more than one '.', therefore not a float or int
             return "STRING"
-            '''
-            val_is_float = False
-            val_is_int = False
-            val_is_numeric = False
-            '''
     elif value.startswith("0"):
         return "STRING"
-        '''
-        val_is_float = False
-        val_is_int = False
-        val_is_numeric = False
-        '''
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
-        '''
-        val_is_float = False
-        val_is_int = False
-        val_is_numeric = True
-        '''
     elif value.isdigit():
         return "INTEGER"
-        '''
-        val_is_float = False
-        val_is_int = True
-        val_is_numeric = False
-        '''
+
     # elif isinstance(value, str):
-    regex_str = "[1-2]{3}[0-9]-[0-1][0-9]-[0-3][0-9](T| )[0-2][0-9]:[0-5][0-9]::[0-5][0-9].{5}[0-9]*[A-Za-z ]"
+    timestamp_re_str = "[1-2]{3}[0-9]-[0-1][0-9]-[0-3][0-9](T| )[0-2][0-9]:[0-5][0-9]::[0-5][0-9].{5}[0-9]*[ A-Za-z]"
+    timestamp_pattern = re.compile(timestamp_re_str)
+    if timestamp_pattern.fullmatch(value):
+        return "TIMESTAMP"
+
     #    try:
 
     # todo add date/time/timestamp

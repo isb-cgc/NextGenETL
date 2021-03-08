@@ -30,7 +30,7 @@ import copy
 # todo infer
 from common_etl.utils import (has_fatal_error, infer_data_types, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
-                              write_list_to_jsonl)
+                              write_list_to_jsonl, write_line_to_jsonl)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -294,34 +294,34 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
-    for index, case in enumerate(cases_list):
-        temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
+    with open(local_jsonl_path, 'w') as jsonl_file_obj:
+        for index, case in enumerate(cases_list):
+            case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
-        case = temp_case
+            case_fgs_to_remove = ('demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project')
+            diagnoses_fg_to_remove = ('annotations', 'treatments')
+            follow_ups_fg_to_remove = ('molecular_tests',)
 
-        case_fgs_to_remove = ('demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project')
-        diagnoses_fg_to_remove = ('annotations', 'treatments')
-        follow_ups_fg_to_remove = ('molecular_tests',)
+            for fg in case_fgs_to_remove:
+                assert fg in case and case[fg], "{} field group null for index {}\n".format(fg, index)
 
-        for fg in case_fgs_to_remove:
-            assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
+            assert_output_count("cases", case, case_fgs_to_remove)
+            # assert_output_count("cases.exposures", case['exposures'][0])
+            # assert_output_count("cases.demographic", case['demographic'])
+            # assert_output_count("cases.family_histories", case['family_histories'][0])
+            # assert_output_count("cases.project", case['project'])
+            # assert_output_count("cases.diagnoses", case['diagnoses'][0], diagnoses_fg_to_remove)
+            # assert_output_count("cases.diagnoses.treatments", case['diagnoses'][0]['treatments'][0])
+            # assert_output_count("cases.diagnoses.annotations", case['diagnoses'][0]['annotations'][0])
+            # assert_output_count("cases.follow_ups", case['follow_ups'][0], follow_ups_fg_to_remove)
+            # assert_output_count("cases.follow_ups.molecular_tests", case['follow_ups'][0]['molecular_tests'][0])
 
-        # assert_output_count("cases", temp_case, case_fgs_to_remove)
-        assert_output_count("cases.exposures", temp_case['exposures'][0])
-        # assert_output_count("cases.demographic", temp_case['demographic'])
-        # assert_output_count("cases.family_histories", temp_case['family_histories'][0])
-        # assert_output_count("cases.project", temp_case['project'])
-        # assert_output_count("cases.diagnoses", temp_case['diagnoses'][0], diagnoses_fg_to_remove)
-        # assert_output_count("cases.diagnoses.treatments", temp_case['diagnoses'][0]['treatments'][0])
-        # assert_output_count("cases.diagnoses.annotations", temp_case['diagnoses'][0]['annotations'][0])
-        # assert_output_count("cases.follow_ups", temp_case['follow_ups'][0], follow_ups_fg_to_remove)
-        # assert_output_count("cases.follow_ups.molecular_tests", temp_case['follow_ups'][0]['molecular_tests'][0])
-        cases_list[index] = temp_case
+            write_line_to_jsonl(jsonl_file_obj, case)
 
-        if index % 1000 == 0:
-            print("Parsed {} cases".format(index))
+            if index % 1000 == 0:
+                print("{:6f} cases written".format(index))
 
-    write_list_to_jsonl(local_jsonl_path, cases_list)
+        # write_list_to_jsonl(local_jsonl_path, cases_list)
 
     '''
     print("Output jsonl to {} in '{}' mode".format(local_jsonl_path, BQ_PARAMS['IO_MODE']))
