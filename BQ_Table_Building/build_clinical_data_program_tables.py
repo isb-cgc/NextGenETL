@@ -442,7 +442,8 @@ def get_fg_id_name(field_group, is_webapp=False):
     :return: str representing table key
     """
     fg_id_key = get_field_group_id_key(field_group, is_webapp)
-
+    print("field_group {}".format("field_group"))
+    print("fg_id_key {}".format("fg_id_key"))
     return get_field_name(fg_id_key)
 
 
@@ -468,7 +469,6 @@ def get_field_group_id_key(field_group, is_webapp=False):
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
 
     fg_id_key = merge_fg_and_field(field_group, fg_id_name)
-    print(fg_id_key)
 
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
