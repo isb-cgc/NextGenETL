@@ -89,18 +89,25 @@ def add_case_fields_to_master_dict(master_dict, cases):
                 del record[exclude_field]
 
         if isinstance(record, list):
+            print("1")
             for child_record in record:
+                print("2")
                 add_case_field_to_master_dict(child_record, parent_fg_list)
         elif isinstance(record, dict):
+            print("3")
             for key in record.keys():
                 if isinstance(record[key], dict):
+                    print("4")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 elif isinstance(record[key], list) and isinstance(record[key][0], dict):
+                    print("5")
                     add_case_field_to_master_dict(record[key], parent_fg_list + [key])
                 else:
+                    print("6")
                     if field_group_key not in master_dict:
                         master_dict[field_group_key] = dict()
-                    master_dict[field_group_key][key] = None
+                    if not isinstance(record[key], list):
+                        master_dict[field_group_key][key] = None
 
     for case in cases:
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
@@ -259,7 +266,6 @@ def retrieve_and_save_case_records(local_path):
 
     print(grouped_fields_dict)
     exit()
-
 
     for case in cases_list:
         temp_case = copy.deepcopy(dummy_case)
