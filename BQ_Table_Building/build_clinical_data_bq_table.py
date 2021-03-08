@@ -249,7 +249,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("temp_case: {}\n".format(temp_case))
     '''
 
-    def assert_output_count(field_group, fields, offset):
+    def assert_output_count(field_group, fields, offset=0):
         actual_cnt = len(fields) - offset
         expected_cnt = len(grouped_fields_dict[field_group])
 
@@ -268,8 +268,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             not_in_expected_keys = actual_field_keys - expected_field_keys
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
-
-
+            print("not_in_expected_keys: {}".format(not_in_expected_keys))
+            print("not_in_actual_keys: {}".format(not_in_actual_keys))
 
     local_json_path = local_jsonl_path[:-1]
 
