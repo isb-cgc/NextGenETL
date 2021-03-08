@@ -180,6 +180,9 @@ def merge_dummy_case_with_case(dummy_case, case):
                     case[key] = dummy_case[key]
                 else:
                     case.update(dummy_case[key])
+            else:
+                if key not in case:
+                    case[key] = dummy_case[key]
     else:
         print("yo")
 
