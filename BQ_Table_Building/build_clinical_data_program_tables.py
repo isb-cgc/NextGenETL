@@ -397,6 +397,9 @@ def find_program_structure(cases, is_webapp=False):
         if case:
             examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
 
+        print(case)
+        exit()
+
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
             print("{0} not in metadata".format(field_grp))
@@ -404,7 +407,6 @@ def find_program_structure(cases, is_webapp=False):
             cases.pop(field_grp)
 
     columns = flatten_tables(fgs, record_counts, is_webapp)
-    print(columns)
 
     record_counts = {k: v for k, v in record_counts.items() if record_counts[k] > 0}
 
