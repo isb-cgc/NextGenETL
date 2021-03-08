@@ -249,7 +249,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("temp_case: {}\n".format(temp_case))
     '''
 
-    def assert_output_count(field_group, fields, fgs_to_remove=list()):
+    def assert_output_count(field_group, fields, fgs_to_remove=set()):
         offset = len(fgs_to_remove)
         actual_cnt = len(fields) - offset
         expected_cnt = len(grouped_fields_dict[field_group])
@@ -297,9 +297,9 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
 
         case = temp_case
 
-        case_fgs_to_remove = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
-        diagnoses_fg_to_remove = ['annotations', 'treatments']
-        follow_ups_fg_to_remove = ['molecular_tests']
+        case_fgs_to_remove = ('demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project')
+        diagnoses_fg_to_remove = ('annotations', 'treatments')
+        follow_ups_fg_to_remove = ('molecular_tests',)
 
         for fg in case_fgs_to_remove:
             assert fg in temp_case and temp_case[fg], "{} field group null for index {}\n".format(fg, index)
