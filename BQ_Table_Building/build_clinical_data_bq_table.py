@@ -78,6 +78,62 @@ def request_data_from_gdc_api(curr_index):
     return None
 
 
+def extract_api_response_json(local_path):
+    """Retrieves case records from API and outputs them to a JSONL file, which is later
+        used to populate the clinical data BQ table.
+
+    :param local_path: absolute path to data output file
+    """
+    start_time = time.time()
+
+    cases_list = list()
+    total_cases = None
+    total_pages = None
+    current_index = API_PARAMS['START_INDEX']
+
+    local_json_path = local_path[:-1]
+
+    with open(local_json_path, "w") as file_obj:
+        file_obj.write('[')
+
+        while True:
+            response = request_data_from_gdc_api(current_index)
+            response_json = response.json()['data']
+
+            # If response doesn't contain pagination, indicates an invalid request.
+            if 'pagination' not in response_json:
+                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
+
+            if not total_pages:
+                total_pages = response_json['pagination']['pages']
+                print("Total pages: {}".format(total_pages))
+                total_cases = response_json['pagination']['total']
+                print("Total cases: {}".format(total_cases))
+
+            current_page = response_json['pagination']['page']
+            print("Fetching page {}".format(current_page))
+
+            response_cases = response_json['hits']
+
+            assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+
+            file_obj.write(json.dumps(response_cases))
+
+            cases_list += response_cases
+            current_index += API_PARAMS['BATCH_SIZE']
+
+            if response_json['pagination']['page'] == 1:
+                break
+            # todo change back
+
+            if response_json['pagination']['page'] == total_pages:
+                break
+            else:
+                file_obj.write(',')
+
+        file_obj.write(']')
+
+
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     def add_case_field_to_master_dict(record, parent_fg_list):
         if not record:
@@ -187,59 +243,6 @@ def add_missing_fields_to_case(fields_dict, case):
     return temp_case
 
 
-def retrieve_and_save_case_records(local_path):
-    """Retrieves case records from API and outputs them to a JSONL file, which is later
-        used to populate the clinical data BQ table.
-
-    :param local_path: absolute path to data output file
-    """
-    start_time = time.time()
-
-    cases_list = list()
-    total_cases = None
-    total_pages = None
-    current_index = API_PARAMS['START_INDEX']
-
-    local_json_path = local_path[:-1]
-
-    with open(local_json_path, "w") as file_obj:
-        file_obj.write('[')
-
-        while True:
-            response = request_data_from_gdc_api(current_index)
-            response_json = response.json()['data']
-
-            # If response doesn't contain pagination, indicates an invalid request.
-            if 'pagination' not in response_json:
-                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
-
-            if not total_pages:
-                total_pages = response_json['pagination']['pages']
-                print("Total pages: {}".format(total_pages))
-                total_cases = response_json['pagination']['total']
-                print("Total cases: {}".format(total_cases))
-
-            current_page = response_json['pagination']['page']
-            print("Fetching page {}".format(current_page))
-
-            response_cases = response_json['hits']
-
-            assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
-
-            # todo (maybe): could just build program tables here--that'd save a lot of filtering in the other script
-
-            for case in response_cases:
-                json.dump(case, file_obj)
-
-            cases_list += response_cases
-            current_index += API_PARAMS['BATCH_SIZE']
-
-            if response_json['pagination']['page'] == total_pages:
-                break
-
-        file_obj.write(']')
-
-
 def generate_jsonl_from_modified_api_json(local_jsonl_path):
     local_json_path = local_jsonl_path[:-1]
 
@@ -253,8 +256,10 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
-        case = add_missing_fields_to_case(grouped_fields_dict, case)
+        add_missing_fields_to_case(grouped_fields_dict, case)
 
+        # todo uncomment
+        """
         assert len(case['diagnoses'][0]['treatments'][0]) == len(grouped_fields_dict['cases.diagnoses.treatments'])
         assert len(case['diagnoses'][0]['annotations'][0]) == len(grouped_fields_dict['cases.diagnoses.annotations'])
         assert len(case['follow_ups'][0]['molecular_tests'][0]) == \
@@ -264,6 +269,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
         assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
         assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
+        """
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
@@ -295,12 +301,13 @@ def main(args):
     jsonl_output_file = get_rel_prefix(BQ_PARAMS) + "_" + BQ_PARAMS['MASTER_TABLE'] + '.jsonl'
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
-    if 'retrieve_cases_and_write_to_jsonl' in steps:
+    if 'extract_api_response_json' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
         print('Starting GDC API calls!')
-        retrieve_and_save_case_records(scratch_fp)
+        extract_api_response_json(scratch_fp)
 
     if 'generate_jsonl_from_modified_api_json' in steps:
+        print('Generating master fields list and adding missing fields to cases!')
         generate_jsonl_from_modified_api_json(scratch_fp)
 
     if 'upload_jsonl_to_cloud_storage' in steps:
