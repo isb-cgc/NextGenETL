@@ -253,13 +253,12 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         expected_cnt = len(grouped_fields_dict[field_group])
 
         err_str = """
-        case: {}\n
-        temp_case: {}\n\n
-        {} expected count {} -> actual {} at index {}\n
+            case: {}\n
+            temp_case: {}\n\n
+            {} expected count {} -> actual {} at index {}\n
         """.format(case, temp_case, field_group, expected_cnt, actual_cnt, index)
-        
-        assert actual_cnt == expected_cnt, err_str
-        
+        try:
+            assert actual_cnt == expected_cnt, err_str
 
     local_json_path = local_jsonl_path[:-1]
 
@@ -279,6 +278,9 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     }
 
     add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
+
+    print(grouped_fields_dict)
+    exit()
 
     for index, case in enumerate(cases_list):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
