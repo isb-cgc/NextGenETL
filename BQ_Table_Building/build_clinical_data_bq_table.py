@@ -178,7 +178,8 @@ def merge_dummy_case_with_case(dummy_case, case):
             if key not in case:
                 case[key] = dummy_case[key]
             else:
-                case.update(dummy_case[key])
+                temp_case = dummy_case[key].update(case)
+                case = temp_case
 
 
 def retrieve_and_save_case_records(local_path):
@@ -233,8 +234,9 @@ def retrieve_and_save_case_records(local_path):
     dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
+        temp_case = case.deepcopy(dummy_case)
         print(case)
-        merge_dummy_case_with_case(dummy_case, case)
+        merge_dummy_case_with_case(temp_case, case)
         print(case)
         exit()
 
