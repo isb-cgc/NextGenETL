@@ -268,7 +268,6 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         temp_case = add_missing_fields_to_case(grouped_fields_dict, cases_list[index])
 
         print(temp_case)
-        exit()
 
         field_groups_list = ['demographic', 'diagnoses', 'exposures', 'family_histories', 'follow_ups', 'project']
 
