@@ -455,7 +455,6 @@ def get_field_group_id_key(field_group, is_webapp=False):
     """
 
     split_fg = field_group.split('.')
-    print(split_fg)
     if split_fg[0] != API_PARAMS['PARENT_FG']:
         split_fg.insert(0, API_PARAMS['PARENT_FG'])
         field_group = ".".join(split_fg)
@@ -469,6 +468,7 @@ def get_field_group_id_key(field_group, is_webapp=False):
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
 
     fg_id_key = merge_fg_and_field(field_group, fg_id_name)
+    print(fg_id_key)
 
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
