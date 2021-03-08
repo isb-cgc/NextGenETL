@@ -178,8 +178,8 @@ def merge_dummy_case_with_case(dummy_case, case):
             if key == "treatments":
                 print("foo")
 
-            for record in case[key]:
-                merge_dummy_case_with_case(dummy_case[key][0], record)
+            for i in range(len(case[key])):
+                merge_dummy_case_with_case(dummy_case[key][0], case[key][i])
         elif isinstance(dummy_case[key], dict):
             if key == "treatments":
                 print("bar")
