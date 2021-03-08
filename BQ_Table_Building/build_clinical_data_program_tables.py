@@ -442,8 +442,6 @@ def get_fg_id_name(field_group, is_webapp=False):
     :return: str representing table key
     """
     fg_id_key = get_field_group_id_key(field_group, is_webapp)
-    print("field_group {}".format(field_group))
-    print("fg_id_key {}".format(fg_id_key))
     return get_field_name(fg_id_key)
 
 
@@ -458,7 +456,8 @@ def get_field_group_id_key(field_group, is_webapp=False):
     split_fg = field_group.split('.')
     if split_fg[0] != API_PARAMS['PARENT_FG']:
         split_fg.insert(0, API_PARAMS['PARENT_FG'])
-        field_group = ".".join(split_fg)
+
+    field_group = ".".join(split_fg)
 
     if field_group not in API_PARAMS['FIELD_CONFIG']:
         print("field group {} not in API_PARAMS['FIELD_CONFIG']".format(field_group))
@@ -1409,8 +1408,6 @@ def build_biospecimen_stub_tables(program):
     main_table = build_table_name([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
     main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
-    print(main_table_id)
-
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
     biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
@@ -1858,8 +1855,6 @@ def main(args):
     programs = sorted(programs)
 
     for orig_program in programs:
-
-
         prog_start = time.time()
         if (
                 'create_biospecimen_stub_tables' in steps or
