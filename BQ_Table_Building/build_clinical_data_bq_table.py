@@ -233,6 +233,7 @@ def retrieve_and_save_case_records(local_path):
     dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
     for case in cases_list:
+        print(case)
         merge_dummy_case_with_case(dummy_case, case)
         print(case)
         exit()
