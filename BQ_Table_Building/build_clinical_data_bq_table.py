@@ -107,7 +107,7 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
 
-def add_missing_fields_to_case(case, fields_dict):
+def add_missing_fields_to_case(fields_dict, case):
     case_items = dict()
 
     for key in fields_dict.keys():
