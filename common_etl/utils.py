@@ -109,11 +109,15 @@ def get_scratch_fp(bq_params, filename):
     return get_filepath(bq_params['SCRATCH_DIR'], filename)
 
 
+def bq_json_converter(obj):
+    if isinstance(obj, datetime.datetime()):
+        return obj.__str__()
+
 #       FILESYSTEM HELPERS
 
 # todo can this be used in write_list_to_jsonl?
 def write_line_to_jsonl(jsonl_file_obj, line):
-    jsonl_file_obj.write(json.dumps(obj=line))
+    jsonl_file_obj.write(json.dumps(obj=line, default=bq_json_converter()))
     jsonl_file_obj.write('\n')
 
 
@@ -127,7 +131,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
                      (in which case any existing data is overwritten)"""
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
-            json.dump(obj=line, fp=file_obj)
+            json.dump(obj=line, fp=file_obj, default=bq_json_converter())
             file_obj.write('\n')
 
 

@@ -239,7 +239,6 @@ def create_schema_dict(is_webapp=False):
 
     for schema_field in bq_table.schema:
         json_schema_field = schema_field.to_api_repr()
-        print(json_schema_field)
         schema_list.append(schema_field.to_api_repr())
 
     schema = dict()
@@ -434,10 +433,8 @@ def get_parent_fg(tables, field_name):
     """
     # remove field from period-delimited field group string
     parent_table = get_field_group(field_name)
-    print("p1: {}".format(parent_table))
 
     while parent_table and parent_table not in tables:
-        print("p2: {}".format(parent_table))
         # remove field from period-delimited field group string
         parent_table = get_field_group(parent_table)
 
@@ -485,7 +482,6 @@ def get_field_group_id_key(field_group, is_webapp=False):
         field_group = ".".join(split_fg)
 
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
-    print(fg_id_name)
 
     fg_id_key = '{}.{}'.format(field_group, fg_id_name)
 
@@ -733,9 +729,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
         table_id_key = get_field_group_id_key(table, is_webapp)
-
-        print("merge col orders table: {}".format(table))
-        print("merge col orders table_id_key: {}".format(table_id_key))
 
         if table in columns:
             merge_dict_key = table
@@ -1542,8 +1535,6 @@ def create_tables(program, cases, schema, is_webapp=False):
 
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
-
-    print("columns\n{} \nrecord counts: {}".format(columns, record_counts))
 
     # add the parent id to field group dicts that will create separate tables
     column_orders = add_ref_columns(columns, record_counts, schema, program, is_webapp)
