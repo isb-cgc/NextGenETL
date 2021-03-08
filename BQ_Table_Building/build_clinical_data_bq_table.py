@@ -247,7 +247,9 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
     local_json_path = local_jsonl_path[:-1]
 
     with open(local_json_path, 'r') as json_file:
-        cases_list = json.load(json_file)
+        cases_json = json.load(json_file)
+
+    cases_list = cases_json['cases']
 
     print("length of cases_list: {}".format(len(cases_list)))
 
