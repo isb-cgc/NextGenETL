@@ -247,6 +247,18 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         print("case: {}".format(case))
         print("temp_case: {}\n".format(temp_case))
 
+    def assert_output_count(field_group, actual_cnt):
+        expected_cnt = len(grouped_fields_dict[field_group])
+
+        err_str = """
+        {} expected count {} -> actual {} at index {}
+        case: {}\n
+        temp_case: {}\n
+        """.format(field_group, expected_cnt, actual_cnt, index, case, temp_case)
+        
+        assert diag_cnt == expected_diag_cnt, err_str
+        
+
     local_json_path = local_jsonl_path[:-1]
 
     with open(local_json_path, 'r') as json_file:
@@ -280,22 +292,15 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         treat_cnt = len(temp_case['diagnoses'][0]['treatments'][0])
         annot_cnt = len(temp_case['diagnoses'][0]['annotations'][0])
 
-        expected_diag_cnt = len(grouped_fields_dict['cases.diagnoses'])
-        expected_treat_cnt = len(grouped_fields_dict['cases.diagnoses.treatments'])
-        expected_annot_cnt = len(grouped_fields_dict['cases.diagnoses.annotations'])
-
-        assert diag_cnt == expected_diag_cnt, output_count_err("diagnoses", diag_cnt)
-        assert treat_cnt == expected_treat_cnt, output_count_err("treatments", treat_cnt)
-        assert annot_cnt == expected_annot_cnt, output_count_err("annotations", treat_cnt)
+        assert_output_count("cases.diagnoses", diag_cnt)
+        assert_output_count("cases.treatments", treat_cnt)
+        assert_output_count("cases.annotations", annot_cnt)
 
         follow_cnt = len(temp_case['follow_ups'][0]) - 1
         mol_cnt = len(temp_case['follow_ups'][0]['molecular_tests'][0])
 
-        expected_follow_cnt = len(grouped_fields_dict['cases.follow_ups'])
-        expected_tests_cnt = len(grouped_fields_dict['cases.follow_ups.molecular_tests'])
-
-        assert follow_cnt == expected_follow_cnt, output_count_err("follow_ups", follow_cnt)
-        assert mol_cnt == expected_tests_cnt, output_count_err("molecular_tests", mol_cnt)
+        assert_output_count("cases.follow_ups", follow_cnt)
+        assert_output_count("cases.molecular_tests", mol_cnt)
 
         exp_cnt = len(temp_case['exposures'][0])
         demo_cnt = len(temp_case['demographic'])
@@ -303,17 +308,11 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         proj_cnt = len(temp_case['project'])
         case_cnt = len(temp_case) - 5
 
-        expected_exp_cnt = len(grouped_fields_dict['cases.exposures'])
-        expected_demo_cnt = len(grouped_fields_dict['cases.demographic'])
-        expected_fam_cnt = len(grouped_fields_dict['cases.family_histories'])
-        expected_proj_cnt = len(grouped_fields_dict['cases.project'])
-        expected_case_cnt = len(grouped_fields_dict['cases'])
-
-        assert exp_cnt == expected_exp_cnt, output_count_err("cases.exposures", exp_cnt)
-        assert demo_cnt == expected_demo_cnt, output_count_err("cases.demographic", demo_cnt)
-        assert fam_hist_cnt == expected_fam_cnt, output_count_err("cases.family_histories", fam_hist_cnt)
-        assert proj_cnt == expected_proj_cnt, output_count_err("cases.project", proj_cnt)
-        assert case_cnt == expected_case_cnt, output_count_err("cases", case_cnt)
+        assert_output_count("cases.exposures", exp_cnt)
+        assert_output_count("cases.demographic", demo_cnt)
+        assert_output_count("cases.family_histories", fam_hist_cnt)
+        assert_output_count("cases.project", proj_cnt)
+        assert_output_count("cases", case_cnt)
 
         cases_list[index] = temp_case
 
