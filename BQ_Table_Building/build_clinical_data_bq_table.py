@@ -254,22 +254,18 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         actual_cnt = len(fields) - offset
         expected_cnt = len(grouped_fields_dict[field_group])
 
-        err_str = """
-            case: {}\n
-            temp_case: {}\n
-            {} expected count {} -> actual {} at index {}\n
-        """.format(case, temp_case, field_group, expected_cnt, actual_cnt, index)
-
         try:
             assert actual_cnt == expected_cnt
         except AssertionError:
             expected_field_keys = set(grouped_fields_dict[field_group].keys())
             actual_field_keys = set(fields.keys())
-            not_in_expected_keys = actual_field_keys - expected_field_keys
-            not_in_expected_keys = not_in_expected_keys - fgs_to_remove
+
+            not_in_expected_keys = actual_field_keys - (fgs_to_remove + expected_field_keys)
             not_in_actual_keys = expected_field_keys - actual_field_keys
 
-            print(err_str)
+            print("case: {}\n".format(case))
+            print("error for {}".format(field_group))
+            print("expected count {} -> actual {} at index {}".format(expected_cnt, actual_cnt, index))
             print("expected fields: {}".format(expected_field_keys))
             print("actual fields: {}".format(actual_field_keys))
             print("not_in_expected_keys: {}".format(not_in_expected_keys))
