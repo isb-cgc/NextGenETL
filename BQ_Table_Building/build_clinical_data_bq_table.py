@@ -107,8 +107,11 @@ def add_case_fields_to_master_dict(master_dict, cases):
         add_case_field_to_master_dict(case, [API_PARAMS['PARENT_FG']])
 
     for key in master_dict.keys():
+        print(key)
         for field in master_dict[key].keys():
+            print("\t" + key)
             if isinstance(master_dict[key][field], list):
+                print("delete: {}".format(field))
                 master_dict[key].pop(field)
 
     fg_list = sorted(list(master_dict.keys()))
