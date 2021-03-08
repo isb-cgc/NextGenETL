@@ -397,8 +397,8 @@ def find_program_structure(cases, is_webapp=False):
         if case:
             examine_case(fgs, record_counts, case, API_PARAMS['PARENT_FG'])
 
-        print(case)
-        exit()
+    print(fgs)
+    print(record_counts)
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
@@ -1866,11 +1866,9 @@ def main(args):
 
     for orig_program in programs:
         prog_start = time.time()
-        if (
-                'create_biospecimen_stub_tables' in steps or
+        if ('create_biospecimen_stub_tables' in steps or
                 'create_webapp_tables' in steps or
-                'create_and_load_tables' in steps
-        ):
+                'create_and_load_tables' in steps):
             print("\nRunning script for program: {0}...".format(orig_program))
 
         if 'create_biospecimen_stub_tables' in steps:
