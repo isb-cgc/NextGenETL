@@ -234,8 +234,6 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
 
     temp_case = dict()
 
-    print(case_items)
-
     for fg in case_items:
         split_fg = fg.split('.')
         if len(split_fg) == 1:
