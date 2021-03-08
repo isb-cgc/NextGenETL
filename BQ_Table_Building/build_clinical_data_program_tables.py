@@ -219,6 +219,8 @@ def parse_bq_schema_obj(schema, fg, schema_list=None, is_webapp=False):
         else:
             # not a nested field entry--do we need to prefix the schema field name?
 
+            print(field_key)
+
             schema_field['name'] = get_bq_name(field_key, is_webapp)
             schema[field_key] = schema_field
 
@@ -466,7 +468,6 @@ def get_field_group_id_key(field_group, is_webapp=False):
         has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
 
     fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
-
     fg_id_key = merge_fg_and_field(field_group, fg_id_name)
 
     if is_webapp:
