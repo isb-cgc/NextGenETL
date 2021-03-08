@@ -166,25 +166,19 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 
 def merge_dummy_case_with_case(dummy_case, case):
-    if isinstance(dummy_case, dict):
-        # case.update(dummy_case)
-        for key in dummy_case.keys():
-            if isinstance(dummy_case[key], list):
-                if key not in case:
-                    case[key] = dummy_case[key]
-                else:
-                    for record in case[key]:
-                        merge_dummy_case_with_case(dummy_case[key][0], record)
-            elif isinstance(dummy_case[key], dict):
-                if key not in case:
-                    case[key] = dummy_case[key]
-                else:
-                    case.update(dummy_case[key])
+    # case.update(dummy_case)
+    for key in dummy_case.keys():
+        if isinstance(dummy_case[key], list):
+            if key not in case:
+                case[key] = dummy_case[key]
             else:
-                if key not in case:
-                    case[key] = dummy_case[key]
-    else:
-        print("yo")
+                for record in case[key]:
+                    merge_dummy_case_with_case(dummy_case[key][0], record)
+        elif isinstance(dummy_case[key], dict):
+            if key not in case:
+                case[key] = dummy_case[key]
+            else:
+                case.update(dummy_case[key])
 
 
 def retrieve_and_save_case_records(local_path):
