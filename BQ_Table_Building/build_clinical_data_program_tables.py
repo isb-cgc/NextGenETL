@@ -319,7 +319,6 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
         if is_webapp and field_grp in excluded_fields:
             continue
         field_groups[field_grp] = remove_excluded_fields(field_groups[field_grp], field_grp, excluded_fields, is_webapp)
-        print(field_groups[field_grp])
 
         field_keys = {merge_fg_and_field(field_grp, field) for field in field_groups[field_grp]}
 
@@ -330,6 +329,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
             parent_table = get_parent_fg(tables, field_grp)
             table_columns[parent_table] |= field_keys
 
+    print(1)
     return table_columns
 
 
