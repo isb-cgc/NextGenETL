@@ -167,6 +167,7 @@ def add_missing_fields_to_case_json(grouped_fields_dict, case):
 
 def merge_dummy_case_with_case(dummy_case, case):
     for key in dummy_case.keys():
+        print(key)
         if isinstance(dummy_case[key], list):
             if key not in case:
                 case[key] = dummy_case[key]
