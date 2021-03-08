@@ -307,6 +307,8 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened table column dict.
     """
+    print(record_counts)
+    exit()
     tables = get_one_to_many_tables(record_counts)
     table_columns = dict()
 
