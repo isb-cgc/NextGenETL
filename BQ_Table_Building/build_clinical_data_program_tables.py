@@ -1530,6 +1530,8 @@ def create_tables(program, cases, schema, is_webapp=False):
     else:
         print(" - Creating public BQ table(s).")
 
+    print(schema)
+
     # derive the program's table structure by analyzing its case records
     columns, record_counts = find_program_structure(cases, is_webapp)
 
