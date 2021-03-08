@@ -115,8 +115,6 @@ def extract_api_response_json(local_path):
 
             assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
 
-            json_str = json.dumps(response_cases)[1:-1]
-
             file_obj.write(json.dumps(response_cases))
 
             cases_list += response_cases
