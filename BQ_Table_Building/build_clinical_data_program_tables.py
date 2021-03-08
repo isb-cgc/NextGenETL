@@ -310,7 +310,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
 
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups}
 
-    print(field_grp_depths)
+    print(sorted(field_grp_depths.items(), key=lambda i: i[1]))
 
     for field_grp, depth in sorted(field_grp_depths.items(), key=lambda i: i[1]):
         if depth > 3:
