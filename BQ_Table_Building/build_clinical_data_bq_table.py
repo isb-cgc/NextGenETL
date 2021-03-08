@@ -271,6 +271,7 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
         assert len(case['exposures'][0]) == len(grouped_fields_dict['cases.exposures'])
         assert len(case['demographic']) == len(grouped_fields_dict['cases.demographic'])
         assert len(case['family_histories'][0]) == len(grouped_fields_dict['cases.family_histories'])
+        assert len(case) == len(grouped_fields_dict['cases'])
 
     write_list_to_jsonl(local_jsonl_path, cases_list)
 
