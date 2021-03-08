@@ -257,14 +257,14 @@ def retrieve_and_save_case_records(local_path):
 
     dummy_case = add_case_fields_to_master_dict(grouped_fields_dict, cases_list)
 
+    print(grouped_fields_dict)
+    exit()
+
+
     for case in cases_list:
         temp_case = copy.deepcopy(dummy_case)
         print(temp_case)
-        print("pre-merge")
-        print(case)
         merge_dummy_case_with_case(temp_case, case)
-        print("merged")
-        print(case)
         exit()
 
     if BQ_PARAMS['IO_MODE'] == 'w':
