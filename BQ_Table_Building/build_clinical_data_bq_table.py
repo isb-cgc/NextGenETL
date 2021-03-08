@@ -176,13 +176,7 @@ def merge_dummy_case_with_case(dummy_case, case):
                 continue
 
             for i in range(0, len(case[key])):
-                try:
-                    merge_dummy_case_with_case(dummy_case[key][0], case[key][i])
-                except:
-                    print(key)
-                    print(case[key])
-                    print(dummy_case[key])
-                    exit()
+                merge_dummy_case_with_case(dummy_case[key][0], case[key][i])
         elif isinstance(dummy_case[key], dict):
             if key not in case:
                 case[key] = dummy_case[key]
