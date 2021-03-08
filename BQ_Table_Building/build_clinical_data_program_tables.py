@@ -61,7 +61,7 @@ def get_program_list():
 
     :return: list of research programs participating in GDC data sharing
     """
-    return {prog.proj for prog in get_query_results(make_program_list_query)}
+    return {prog.proj for prog in get_query_results(make_program_list_query())}
 
 
 def get_one_to_many_tables(record_counts):
