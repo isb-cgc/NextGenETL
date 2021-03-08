@@ -305,8 +305,8 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             for fg in case_fgs_to_remove:
                 assert fg in case and case[fg], "{} field group null for index {}\n".format(fg, index)
 
-            assert_output_count("cases", case, case_fgs_to_remove)
-            # assert_output_count("cases.exposures", case['exposures'][0])
+            # assert_output_count("cases", case, case_fgs_to_remove)
+            assert_output_count("cases.exposures", case['exposures'][0])
             # assert_output_count("cases.demographic", case['demographic'])
             # assert_output_count("cases.family_histories", case['family_histories'][0])
             # assert_output_count("cases.project", case['project'])
@@ -319,20 +319,10 @@ def generate_jsonl_from_modified_api_json(local_jsonl_path):
             write_line_to_jsonl(jsonl_file_obj, case)
 
             if index % 1000 == 0:
-                print("{:6f} cases written".format(index))
+                print("{:6d} cases written".format(index))
 
-        # write_list_to_jsonl(local_jsonl_path, cases_list)
-
-    '''
-    print("Output jsonl to {} in '{}' mode".format(local_jsonl_path, BQ_PARAMS['IO_MODE']))
-    extract_time = format_seconds(time.time() - start_time)
-    print()
-    print("Clinical data retrieval complete!")
     file_size = os.stat(local_jsonl_path).st_size / 1048576.0
-    print("\t{:.2f} mb jsonl file size".format(file_size))
-    print("\t{} to query API and write to local jsonl file\n".format(extract_time))
-    '''
-
+    print("created jsonl! file size: {:.2f} mb".format(file_size))
 
 def main(args):
     """Script execution function.

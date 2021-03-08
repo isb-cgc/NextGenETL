@@ -111,6 +111,7 @@ def get_scratch_fp(bq_params, filename):
 
 #       FILESYSTEM HELPERS
 
+# todo can this be used in write_list_to_jsonl?
 def write_line_to_jsonl(jsonl_file_obj, line):
     jsonl_file_obj.write(json.dumps(obj=line))
     jsonl_file_obj.write('\n')
