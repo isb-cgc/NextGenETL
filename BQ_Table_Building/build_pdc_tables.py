@@ -239,18 +239,14 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
-    print(0)
-
     if infer_schema:
         create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
     if not infer_schema and not schema:
-        print(2)
         schema_filename = infer_schema_file_location_by_table_id(table_id)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
         if not schema:
-            print(3)
             has_fatal_error("No schema, exiting")
 
         create_and_load_table(BQ_PARAMS, filename, table_id, schema)
@@ -1734,7 +1730,7 @@ def update_column_metadata(table_type, table_id):
     :param table_id:
     :return:
     """
-    file_path = [BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']]
+    file_path = "/".join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
     field_desc_file_name = get_schema_filename(table_type, BQ_PARAMS['FIELD_DESC_FILE_SUFFIX']) + '.json'
     field_desc_fp = get_filepath(file_path, field_desc_file_name)
 
