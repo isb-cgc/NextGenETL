@@ -1026,6 +1026,7 @@ def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
             return idx
         idx += 1
 
+    print("is_webapp: {}".format(is_webapp))
     print(flat_case)
     return has_fatal_error("id {} not found by get_record_idx.".format(record_id))
 
