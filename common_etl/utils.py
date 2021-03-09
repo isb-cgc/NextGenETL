@@ -402,7 +402,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
-    print(" done. {0} rows inserted.\n".format(table.num_rows))
+    print(" done. {0} rows inserted.".format(table.num_rows))
 
 
 def await_job(bq_params, client, bq_job):
