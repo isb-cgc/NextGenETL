@@ -604,10 +604,10 @@ def main(args):
         # Add description and labels to the target table:
         #
 
-        if 'add_table_description' in steps: # todo
+        if 'add_table_description' in steps:
             print('update_table_description')
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
-            success = install_labels_and_desc(params['SCRATCH_DATASET'], update_table,
+            success = install_labels_and_desc(params['STAGING_DATASET_ID'], update_table,
                                               full_file_prefix)
             if not success:
                 print("update_table_description failed")
@@ -618,7 +618,7 @@ def main(args):
     #
 
     # compare the two tables
-    if 'compare_remove_old_current' in steps: # todo
+    if 'compare_remove_old_current' in steps:  # todo
         old_current_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_current"
         previous_ver_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_{params['PREVIOUS_RELEASE']}"
         table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
