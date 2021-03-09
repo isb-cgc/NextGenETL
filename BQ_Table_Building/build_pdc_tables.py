@@ -58,7 +58,7 @@ def get_filename(file_extension, prefix, suffix=None, include_release=True, rele
     :param release:
     :return:
     """
-    filename = construct_table_name(prefix, suffix, include_release, release)
+    filename = construct_table_name(BQ_PARAMS, prefix, suffix, include_release, release=release)
     return "{}.{}".format(filename, file_extension)
 
 
@@ -323,7 +323,7 @@ def make_gene_symbols_per_study_query(pdc_study_id):
     :return:
     """
     # todo make function to build these names
-    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, release=BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name)
 
     return """
@@ -376,7 +376,7 @@ def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
     :param gene_symbol_set:
     :return:
     """
-    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, release=BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
     if exists_bq_table(table_id):
@@ -397,7 +397,7 @@ def build_gene_symbol_list(studies_list):
 
     for study in studies_list:
         table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'],
-                                          BQ_PARAMS['RELEASE'])
+                                          release=BQ_PARAMS['RELEASE'])
         table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
         if exists_bq_table(table_id):
@@ -873,7 +873,7 @@ def get_quant_table_name(study, is_final=True):
 
     if not is_final:
         return construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'],
-                                    BQ_PARAMS['RELEASE'])
+                                    release=BQ_PARAMS['RELEASE'])
     else:
         study_name = study['study_name']
         study_name = study_name.replace(analytical_fraction, "")
@@ -1279,7 +1279,7 @@ def make_cases_query():
     :return:
     """
     return """{
-        allCases ( acceptDUA: true) {
+        allCases (acceptDUA: true) {
             case_id 
             case_submitter_id 
             project_submitter_id 
