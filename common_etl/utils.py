@@ -113,6 +113,11 @@ def get_scratch_fp(bq_params, filename):
 def bq_json_converter(obj):
     if isinstance(obj, datetime.datetime):
         return str(obj)
+    if isinstance(obj, datetime.date):
+        return str(obj)
+    if isinstance(obj, datetime.time):
+        return str(obj)
+
 
 #       FILESYSTEM HELPERS
 
