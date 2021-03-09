@@ -311,7 +311,6 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
 
     print(5)
 
-
     if schema:
         job_config.schema = schema
     else:

@@ -69,7 +69,7 @@ def get_dev_table_id(table_name, dataset=None):
     :param dataset:
     :return:
     """
-    project= BQ_PARAMS['DEV_PROJECT']
+    project = BQ_PARAMS['DEV_PROJECT']
     if not dataset:
         dataset = BQ_PARAMS['DEV_DATASET']
 
@@ -120,7 +120,8 @@ def delete_from_steps(step, steps):
     steps.pop(delete_idx)
 
 
-def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None, ids=None, insert_id=False):
+def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None,
+                             ids=None, insert_id=False):
     """
     todo
     :param endpoint:
@@ -332,7 +333,8 @@ def make_gene_symbols_per_study_query(pdc_study_id):
     :return:
     """
     # todo make function to build these names
-    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, release=BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id,
+                                      release=BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name)
 
     return """
@@ -385,7 +387,8 @@ def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
     :param gene_symbol_set:
     :return:
     """
-    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, release=BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id,
+                                      release=BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
     if exists_bq_table(table_id):
