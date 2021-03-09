@@ -798,20 +798,20 @@ def check_value_type(value):
         return "STRING"
     # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
     # BQ date format: 'YYYY-[M]M-[D]D'
-    date_re_str = "[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
+    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
     date_pattern = re.compile(date_re_str)
     if re.fullmatch(date_pattern, value):
         return "DATE"
 
     # TIME: [H]H:[M]M:[S]S[.DDDDDD]
-    time_re_str = "([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
+    time_re_str = r"([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
     time_pattern = re.compile(time_re_str)
 
     if re.fullmatch(time_pattern, value):
         return "TIME"
 
     # TIMESTAMP: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
-    timestamp_re_str = date_re_str + '( |T)' + time_re_str + "([ \-:A-Za-z0-9]*)"
+    timestamp_re_str = date_re_str + r'( |T)' + time_re_str + r"([ \-:A-Za-z0-9]*)"
     timestamp_pattern = re.compile(timestamp_re_str)
     if re.fullmatch(timestamp_pattern, value):
         return "TIMESTAMP"

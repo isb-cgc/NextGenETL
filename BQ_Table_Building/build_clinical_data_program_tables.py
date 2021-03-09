@@ -1681,7 +1681,7 @@ def make_tables_diff_query(old_rel, new_rel):
           WHERE program != 'clinical'
           GROUP BY program
         ),
-        new_table_cnts AS (
+        new_table_counts AS (
           SELECT program, COUNT(program) AS num_tables 
           FROM (
             SELECT els[OFFSET(1)] AS program

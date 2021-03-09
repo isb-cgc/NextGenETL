@@ -1966,7 +1966,8 @@ def main(args):
                                  insert_id=True)
 
     if 'build_case_demographics_table' in steps:
-        build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
+        print("HI")
+        build_table_from_jsonl(endpoint='paginatedCaseDemographicsPerStudy', infer_schema=True)
 
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         # get unique project_submitter_ids from studies_list
