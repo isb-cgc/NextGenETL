@@ -1743,8 +1743,8 @@ def update_pdc_table_metadata(dataset, table_type=None):
     :param table_type:
     :return:
     """
-    fp_list = [BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]]
-    metadata_fp = get_filepath("/".join(fp_list))
+    fp = "/".join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
+    metadata_fp = get_filepath(fp)
     metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
     filtered_metadata_files = list()
