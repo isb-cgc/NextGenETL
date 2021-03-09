@@ -2269,5 +2269,6 @@ def main(args):
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
 
-    if __name__ == '__main__':
-        main(sys.argv)
+
+if __name__ == '__main__':
+    main(sys.argv)
