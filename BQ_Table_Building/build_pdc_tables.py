@@ -33,11 +33,12 @@ from datetime import date
 from google.cloud import storage, bigquery
 
 from common_etl.utils import (get_filepath, get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp,
-                              upload_to_bucket, get_graphql_api_response, has_fatal_error, from_schema_file_to_obj,
-                              create_and_load_tsv_table, create_and_load_table, create_tsv_row, load_table_from_query,
-                              delete_bq_table, copy_bq_table, exists_bq_table, update_schema, update_table_metadata,
-                              delete_bq_dataset, load_config, update_table_labels, list_bq_tables, publish_table,
-                              construct_table_name)
+                              upload_to_bucket, get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
+                              create_and_load_table_from_tsv, create_and_load_table, create_tsv_row,
+                              load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
+                              update_schema, update_table_metadata, delete_bq_dataset, load_config,
+                              update_table_labels, list_bq_tables, publish_table, build_table_id,
+                              construct_table_name, get_rel_prefix, build_table_name_from_list)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -47,43 +48,42 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 # ***** FUNCTIONS USED BY MULTIPLE PROCESSES
 
 
-def has_table(project, dataset, table_name):
-    query = """
-    SELECT COUNT(1) AS has_table
-    FROM `{}.{}.__TABLES_SUMMARY__`
-    WHERE table_id = '{}'
-    """.format(project, dataset, table_name)
-
-    res = get_query_results(query)
-
-    for row in res:
-        has_table_res = row['has_table']
-        return bool(has_table_res)
-
-
 def get_filename(file_extension, prefix, suffix=None, include_release=True, release=None):
+    """
+    todo
+    :param file_extension:
+    :param prefix:
+    :param suffix:
+    :param include_release:
+    :param release:
+    :return:
+    """
     filename = construct_table_name(prefix, suffix, include_release, release)
     return "{}.{}".format(filename, file_extension)
 
 
-def get_table_id(project: object, dataset: object, table_name: object) -> object:
-    return "{}.{}.{}".format(project, dataset, table_name)
-
-
-# todo this could be reworked to only have two params, eliminating is_metadata
-def get_dev_table_id(table_name, is_metadata=False, dataset=None):
+def get_dev_table_id(table_name, dataset=None):
+    """
+    todo
+    :param table_name:
+    :param dataset:
+    :return:
+    """
     if not dataset:
-        if is_metadata:
-            dataset = BQ_PARAMS['META_DATASET']
-        else:
-            dataset = BQ_PARAMS['DEV_DATASET']
-
-    return get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
+        dataset = BQ_PARAMS['DEV_DATASET']
+    return "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
 
 
-def get_records(endpoint, select_statement, dataset):
-    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(table_name, dataset)
+def get_records(graphql_endpoint, select_statement, dataset):
+    """
+    todo
+    :param endpoint:
+    :param select_statement:
+    :param dataset:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+    table_id = get_dev_table_id(table_name, dataset=dataset)
 
     query = select_statement
     query += " FROM `{}`".format(table_id)
@@ -97,40 +97,49 @@ def get_records(endpoint, select_statement, dataset):
 
 
 def infer_schema_file_location_by_table_id(table_id):
-    filepath = "/".join(table_id.split('.'))
-    filepath += ".json"
+    """
+    todo
+    :param table_id:
+    :return:
+    """
+    split_table_id = table_id.split('.')
+    filepath = "/".join(split_table_id) + ".json"
     return filepath
 
 
 def delete_from_steps(step, steps):
+    """
+    todo
+    :param step:
+    :param steps:
+    :return:
+    """
     delete_idx = steps.index(step)
     steps.pop(delete_idx)
 
 
-def print_elapsed_time_and_exit(start_time):
-    end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
-    exit()
-
-
-def build_jsonl_from_pdc_api(endpoint,
-                             request_function,
-                             request_params=tuple(),
-                             alter_json_function=None,
-                             ids=None,
-                             insert_id=False):
-    print("Sending {} API request: ".format(endpoint))
+def build_jsonl_from_pdc_api(request_function, request_params=tuple(), alter_json=None, ids=None, insert_id=False):
+    """
+    todo
+    :param request_function:
+    :param request_params:
+    :param alter_json:
+    :param ids:
+    :param insert_id:
+    :return:
+    """
+    print("Sending {} API request: ".format(API_PARAMS['ENDPOINT']))
 
     if ids:
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
-            combined_request_parameters = request_params + (id_entry,)
-            record_list = request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
+            merged_request_params = request_params + (id_entry,)
+            record_list = request_data_from_pdc_api(API_PARAMS['ENDPOINT'], request_function, merged_request_params)
 
-            if alter_json_function and insert_id:
-                alter_json_function(record_list, id_entry)
-            elif alter_json_function:
-                alter_json_function(record_list)
+            if alter_json and insert_id:
+                alter_json(record_list, id_entry)
+            elif alter_json:
+                alter_json(record_list)
 
             joined_record_list += record_list
 
@@ -140,28 +149,38 @@ def build_jsonl_from_pdc_api(endpoint,
                 print(" - {} records appended.".format(len(joined_record_list)))
 
     else:
-        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
+        joined_record_list = request_data_from_pdc_api(API_PARAMS['ENDPOINT'], request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
 
-        if alter_json_function:
-            alter_json_function(joined_record_list)
+        if alter_json:
+            alter_json(joined_record_list)
 
-    jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][API_PARAMS['ENDPOINT']]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
-    # todo start writing line-by-line
     write_list_to_jsonl(local_filepath, joined_record_list)
 
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
 
-def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
-    is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
-    payload_key = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['payload_key']
+def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_parameters=None):
+    """
+    todo
+    :param graphql_endpoint:
+    :param request_body_function:
+    :param request_parameters:
+    :return:
+    """
+    is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['is_paginated']
+    payload_key = API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['payload_key']
 
     def append_api_response_data():
+        """
+    todo
+    :return:
+        """
         api_response = get_graphql_api_response(API_PARAMS, graphql_request_body)
 
-        response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
+        response_body = api_response['data'] if not is_paginated else api_response['data'][graphql_endpoint]
 
         for record in response_body[payload_key]:
             record_list.append(record)
@@ -190,7 +209,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
         total_pages = append_api_response_data()
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
-        if 'Study' not in endpoint:
+        if 'Study' not in graphql_endpoint:
             print(" - Appended page {} of {}".format(page, total_pages))
 
         if not total_pages:
@@ -203,7 +222,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
             paginated_request_params = request_parameters + (offset, limit)
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data()
-            if 'Study' not in endpoint:
+            if 'Study' not in graphql_endpoint:
                 print(" - Appended page {} of {}".format(page, total_pages))
 
             if new_total_pages != total_pages:
@@ -213,14 +232,22 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
 
 def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, schema=None):
-    table_name = construct_table_name(table_prefix)
+    """
+    todo
+    :param table_prefix:
+    :param filename:
+    :param infer_schema:
+    :param schema:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
 
     if not infer_schema and not schema:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
         if not schema:
             has_fatal_error("No schema, exiting")
@@ -230,15 +257,29 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     return table_id
 
 
-def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
-    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(table_name, is_metadata)
+def build_table_from_jsonl(graphql_endpoint, is_metadata=True, infer_schema=False):
+    """
+    todo
+    :param graphql_endpoint:
+    :param is_metadata:
+    :param infer_schema:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+
+    # todo fix
+    if is_metadata:
+        dataset = BQ_PARAMS['META_DATASET']
+    else:
+        dataset = BQ_PARAMS['DEV_DATASET']
+
+    table_id = get_dev_table_id(table_name, dataset=dataset)
 
     print("Creating {}:".format(table_id))
     schema_filename = infer_schema_file_location_by_table_id(table_id)
 
-    schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+    schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
     if not infer_schema and not schema:
         has_fatal_error("No schema found and infer_schema set to False, exiting")
@@ -251,19 +292,29 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
+    """
+    todo
+    :param project:
+    :param dataset:
+    :param table_prefix:
+    :param table_suffix:
+    :param backup_table_suffix:
+    :return:
+    """
     build_start = time.time()
 
-    table_name = construct_table_name(table_prefix, table_suffix)
-    table_id = get_table_id(project, dataset, table_name)
+    table_name = construct_table_name(BQ_PARAMS, table_prefix, table_suffix)
+    table_id = build_table_id(project, dataset, table_name)
+
     schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-    schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+    schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
     if not schema and backup_table_suffix:
         print("No schema file found for {}, trying backup ({})".format(table_suffix, backup_table_suffix))
-        table_name = construct_table_name(table_prefix, backup_table_suffix)
-        table_id = get_table_id(project, dataset, table_name)
+        table_name = construct_table_name(BQ_PARAMS, table_prefix, backup_table_suffix)
+        table_id = build_table_id(project, dataset, table_name)
         schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
     # still no schema? return
     if not schema:
@@ -272,7 +323,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
     print("\nBuilding {0}... ".format(table_id))
     tsv_name = get_filename('tsv', table_prefix, table_suffix)
-    create_and_load_tsv_table(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
+    create_and_load_table_from_tsv(BQ_PARAMS, tsv_name, schema, table_id, BQ_PARAMS['NULL_MARKER'])
 
     build_end = time.time() - build_start
     print("Table built in {0}!\n".format(format_seconds(build_end)))
@@ -281,8 +332,13 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 # ***** GENE TABLE FUNCTIONS
 
 def make_gene_symbols_per_study_query(pdc_study_id):
+    """
+    todo
+    :param pdc_study_id:
+    :return:
+    """
     # todo make function to build these names
-    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name)
 
     return """
@@ -292,6 +348,11 @@ def make_gene_symbols_per_study_query(pdc_study_id):
 
 
 def make_gene_query(gene_name):
+    """
+    todo
+    :param gene_name:
+    :return:
+    """
     return '''
     {{ 
         geneSpectralCount(gene_name: \"{}\" acceptDUA: true) {{
@@ -311,8 +372,12 @@ def make_gene_query(gene_name):
 
 
 def make_swissprot_query():
-    table_name = construct_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-    swissprot_table_id = get_dev_table_id(table_name, is_metadata=True)
+    """
+    todo
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+    swissprot_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
     return """
     SELECT swissprot_id 
     FROM `{}`
@@ -320,7 +385,13 @@ def make_swissprot_query():
 
 
 def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
-    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    """
+    todo
+    :param pdc_study_id:
+    :param gene_symbol_set:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
     if exists_bq_table(table_id):
@@ -331,12 +402,18 @@ def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
 
 
 def build_gene_symbol_list(studies_list):
+    """
+    todo
+    :param studies_list:
+    :return:
+    """
     print("Building gene symbol tsv!")
     gene_symbol_set = set()
 
     for study in studies_list:
-        table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
-        table_id = get_dev_table_id(table_name, BQ_PARAMS['DEV_DATASET'])
+        table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'],
+                                          BQ_PARAMS['RELEASE'])
+        table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
         if exists_bq_table(table_id):
             add_gene_symbols_per_study(study['pdc_study_id'], gene_symbol_set)
@@ -349,6 +426,13 @@ def build_gene_symbol_list(studies_list):
 
 
 def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
+    """
+    todo
+    :param gene_symbol_list:
+    :param gene_tsv:
+    :param append:
+    :return:
+    """
     compare_uniprot_ids = cmp_to_key(sort_uniprot_by_age)
     swissprot_set = {row[0] for row in get_query_results(make_swissprot_query())}
 
@@ -462,6 +546,13 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
 
 
 def download_from_uniprot_ftp(local_file, server_fp, type_str):
+    """
+    todo
+    :param local_file:
+    :param server_fp:
+    :param type_str:
+    :return:
+    """
     print("Creating {} tsv... ".format(type_str), end="")
 
     gz_destination_file = server_fp.split('/')[-1]
@@ -489,6 +580,11 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
 
 
 def is_uniprot_accession_number(id_str):
+    """
+    todo
+    :param id_str:
+    :return:
+    """
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
     def is_alphanumeric(char):
         if char.isdigit() or char.isalpha():
@@ -583,6 +679,11 @@ def sort_uniprot_by_age(a, b):
 
 
 def filter_uniprot_accession_nums(proteins_str):
+    """
+    todo
+    :param proteins_str:
+    :return:
+    """
     uniprot_list = []
 
     split_protein_list = proteins_str.split(';')
@@ -601,6 +702,12 @@ def filter_uniprot_accession_nums(proteins_str):
 
 
 def filter_swissprot_accession_nums(proteins, swissprot_set):
+    """
+    todo
+    :param proteins:
+    :param swissprot_set:
+    :return:
+    """
     protein_list = proteins.split(";")
 
     swissprot_count = 0
@@ -619,19 +726,30 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 # ***** QUANT DATA MATRIX FUNCTIONS
 
 def make_quant_data_matrix_query(study_submitter_id, data_type):
+    """
+    todo
+    :param study_submitter_id:
+    :param data_type:
+    :return:
+    """
     return '{{ quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\" acceptDUA: true) }}'.format(
         study_submitter_id, data_type)
 
 
 def make_proteome_quant_table_query(study):
+    """
+    todo
+    :param study:
+    :return:
+    """
     quant_table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], study, BQ_PARAMS['RELEASE'])
     quant_table_id = get_dev_table_id(quant_table_name)
 
     case_aliquot_table_name = '{}_{}'.format(BQ_PARAMS['CASE_ALIQUOT_TABLE'], BQ_PARAMS['RELEASE'])
-    case_aliquot_table_id = get_dev_table_id(case_aliquot_table_name, is_metadata=True)
+    case_aliquot_table_id = get_dev_table_id(case_aliquot_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     gene_table_name = '{}_{}'.format(BQ_PARAMS['GENE_TABLE'], BQ_PARAMS['RELEASE'])
-    gene_table_id = get_dev_table_id(gene_table_name, is_metadata=True)
+    gene_table_id = get_dev_table_id(gene_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     return """
     WITH csa_mapping AS (SELECT case_id, s.sample_id, a.aliquot_id, arm.aliquot_run_metadata_id
@@ -652,6 +770,13 @@ def make_proteome_quant_table_query(study):
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp):
+    """
+    todo
+    :param study_id_dict:
+    :param data_type:
+    :param tsv_fp:
+    :return:
+    """
     study_submitter_id = study_id_dict['study_submitter_id']
     study_name = study_id_dict['study_name']
     lines_written = 0
@@ -711,6 +836,10 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
 
 
 def get_quant_files():
+    """
+    todo
+    :return:
+    """
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(BQ_PARAMS['WORKING_BUCKET'], prefix=BQ_PARAMS['WORKING_BUCKET_DIR'])
     files = set()
@@ -723,12 +852,22 @@ def get_quant_files():
 
 
 def has_quant_table(study_submitter_id):
-    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
-    table_id = get_dev_table_id(table_name, BQ_PARAMS['DEV_DATASET'])
+    """
+    todo
+    :param study_submitter_id:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
     return exists_bq_table(table_id)
 
 
 def get_proteome_studies(studies_list):
+    """
+    todo
+    :param studies_list:
+    :return:
+    """
     proteome_studies_list = list()
 
     for study in studies_list:
@@ -739,10 +878,17 @@ def get_proteome_studies(studies_list):
 
 
 def get_quant_table_name(study, is_final=True):
+    """
+    todo
+    :param study:
+    :param is_final:
+    :return:
+    """
     analytical_fraction = study['analytical_fraction']
 
     if not is_final:
-        return construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+        return construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'],
+                                    BQ_PARAMS['RELEASE'])
     else:
         study_name = study['study_name']
         study_name = study_name.replace(analytical_fraction, "")
@@ -755,6 +901,11 @@ def get_quant_table_name(study, is_final=True):
 
 
 def change_study_name_to_table_name_format(study_name):
+    """
+    todo
+    :param study_name:
+    :return:
+    """
     study_name = re.sub('[^0-9a-zA-Z_]+', '_', study_name)
 
     study_name_list = study_name.split(" ")
@@ -772,6 +923,10 @@ def change_study_name_to_table_name_format(study_name):
 # ***** STUDY TABLE CREATION FUNCTIONS
 
 def make_all_programs_query():
+    """
+    todo
+    :return:
+    """
     return """{
         allPrograms (acceptDUA: true) {
             program_id
@@ -799,6 +954,11 @@ def make_all_programs_query():
 
 
 def make_study_query(pdc_study_id):
+    """
+    todo
+    :param pdc_study_id:
+    :return:
+    """
     return """{{ study 
     (pdc_study_id: \"{}\" acceptDUA: true) {{ 
         study_name
@@ -810,6 +970,11 @@ def make_study_query(pdc_study_id):
 
 
 def alter_all_programs_json(all_programs_json_obj):
+    """
+    todo
+    :param all_programs_json_obj:
+    :return:
+    """
     temp_programs_json_obj_list = list()
 
     for program in all_programs_json_obj:
@@ -839,8 +1004,13 @@ def alter_all_programs_json(all_programs_json_obj):
 
 
 def retrieve_all_studies_query(output_name):
-    table_name = construct_table_name(output_name)
-    table_id = get_dev_table_id(table_name, is_metadata=True)
+    """
+    todo
+    :param output_name:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, output_name)
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     return """
     SELECT pdc_study_id, study_name, embargo_date, project_submitter_id, analytical_fraction
@@ -849,6 +1019,11 @@ def retrieve_all_studies_query(output_name):
 
 
 def print_embargoed_studies(excluded_studies_list):
+    """
+    todo
+    :param excluded_studies_list:
+    :return:
+    """
     print("\nStudies excluded due to data embargo:")
 
     for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
@@ -857,7 +1032,12 @@ def print_embargoed_studies(excluded_studies_list):
     print()
 
 
-def is_currently_embargoed(embargo_date):
+def is_under_embargo(embargo_date):
+    """
+    todo
+    :param embargo_date:
+    :return:
+    """
     if not embargo_date or embargo_date < date.today():
         return False
     return True
@@ -866,6 +1046,11 @@ def is_currently_embargoed(embargo_date):
 # ***** FILE METADATA FUNCTIONS
 
 def make_files_per_study_query(study_id):
+    """
+    todo
+    :param study_id:
+    :return:
+    """
     return """
     {{ filesPerStudy (pdc_study_id: \"{}\" acceptDUA: true) {{
             pdc_study_id 
@@ -888,6 +1073,11 @@ def make_files_per_study_query(study_id):
 
 
 def make_file_id_query(table_id):
+    """
+    todo
+    :param table_id:
+    :return:
+    """
     return """
     SELECT file_id
     FROM `{}`
@@ -896,6 +1086,11 @@ def make_file_id_query(table_id):
 
 
 def make_file_metadata_query(file_id):
+    """
+    todo
+    :param file_id:
+    :return:
+    """
     return """
     {{ fileMetadata(file_id: \"{}\" acceptDUA: true) {{
         file_id 
@@ -921,8 +1116,12 @@ def make_file_metadata_query(file_id):
 
 
 def make_associated_entities_query():
-    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
-    table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
+    """
+    todo
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     return """SELECT file_id, 
     aliq.case_id as case_id, 
@@ -936,10 +1135,17 @@ def make_associated_entities_query():
 
 
 def make_combined_file_metadata_query():
-    file_metadata_table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
-    file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset="PDC_metadata")
-    file_per_study_table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
-    file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset="PDC_metadata")
+    """
+    todo
+    :return:
+    """
+    file_metadata_output_name = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name']
+    file_metadata_table_name = construct_table_name(BQ_PARAMS, file_metadata_output_name)
+    file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset=BQ_PARAMS['META_DATASET'])
+
+    file_per_study_output_name = API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
+    file_per_study_table_name = construct_table_name(BQ_PARAMS, file_per_study_output_name)
+    file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     return """
     SELECT distinct fps.file_id, fps.file_name, fps.embargo_date, fps.pdc_study_ids,
@@ -954,6 +1160,11 @@ def make_combined_file_metadata_query():
 
 
 def modify_api_file_metadata_table_query(fm_table_id):
+    """
+    todo
+    :param fm_table_id:
+    :return:
+    """
     temp_table_id = fm_table_id + "_temp"
 
     return """
@@ -974,9 +1185,14 @@ def modify_api_file_metadata_table_query(fm_table_id):
 
 
 def modify_per_study_file_table_query(fps_table_id):
+    """
+    todo
+    :param fps_table_id:
+    :return:
+    """
     temp_table_id = fps_table_id + "_temp"
 
-    study_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
+    study_table_name = construct_table_name(BQ_PARAMS, API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
     study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
     return """
@@ -999,6 +1215,11 @@ def modify_per_study_file_table_query(fps_table_id):
 
 
 def alter_files_per_study_json(files_per_study_obj_list):
+    """
+    todo
+    :param files_per_study_obj_list:
+    :return:
+    """
     for files_per_study_obj in files_per_study_obj_list:
         signed_url = files_per_study_obj.pop('signedUrl', None)
         url = signed_url.pop('url', None)
@@ -1009,13 +1230,23 @@ def alter_files_per_study_json(files_per_study_obj_list):
         files_per_study_obj['url'] = url
 
 
-def get_file_ids(endpoint):
-    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(table_name, is_metadata=True)
+def get_file_ids(graphql_endpoint):
+    """
+    todo
+    :param graphql_endpoint:
+    :return:
+    """
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
     return get_query_results(make_file_id_query(table_id))  # todo fix back
 
 
 def build_file_pdc_metadata_jsonl(file_ids):
+    """
+    todo
+    :param file_ids:
+    :return:
+    """
     jsonl_start = time.time()
     file_metadata_list = []
 
@@ -1058,6 +1289,10 @@ def build_file_pdc_metadata_jsonl(file_ids):
 # ***** CASE CLINICAL FUNCTIONS
 
 def make_cases_query():
+    """
+    todo
+    :return:
+    """
     return """{
         allCases {
             case_id 
@@ -1076,16 +1311,24 @@ def make_cases_query():
 
 
 def get_cases():
-    endpoint = 'allCases'
+    """
+    todo
+    :return:
+    """
+    graphql_endpoint = 'allCases'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     select_statement = "SELECT case_id, case_submitter_id, project_submitter_id, primary_site, disease_type"
 
-    return get_records(endpoint, select_statement, dataset)
+    return get_records(graphql_endpoint, select_statement, dataset)
 
 
 def get_case_demographics():
-    endpoint = 'paginatedCaseDemographicsPerStudy'
+    """
+    todo
+    :return:
+    """
+    graphql_endpoint = 'paginatedCaseDemographicsPerStudy'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     select_statement = """
@@ -1093,18 +1336,28 @@ def get_case_demographics():
         days_to_birth, days_to_death, year_of_birth, year_of_death, vital_status, cause_of_death
         """
 
-    return get_records(endpoint, select_statement, dataset)
+    return get_records(graphql_endpoint, select_statement, dataset)
 
 
 def get_case_diagnoses():
-    endpoint = 'paginatedCaseDiagnosesPerStudy'
+    """
+    todo
+    :return:
+    """
+    graphql_endpoint = 'paginatedCaseDiagnosesPerStudy'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
     select_statement = "SELECT case_id, case_submitter_id, diagnoses"
 
-    return get_records(endpoint, select_statement, dataset)
+    return get_records(graphql_endpoint, select_statement, dataset)
 
 
 def make_cases_aliquots_query(offset, limit):
+    """
+    todo
+    :param offset:
+    :param limit:
+    :return:
+    """
     return '''{{ 
         paginatedCasesSamplesAliquots(offset:{0} limit:{1} acceptDUA: true) {{ 
             total casesSamplesAliquots {{
@@ -1134,6 +1387,13 @@ def make_cases_aliquots_query(offset, limit):
 
 
 def make_cases_diagnoses_query(pdc_study_id, offset, limit):
+    """
+    todo
+    :param pdc_study_id:
+    :param offset:
+    :param limit:
+    :return:
+    """
     return ''' {{ 
         paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{
             total caseDiagnosesPerStudy {{
@@ -1212,6 +1472,13 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
 
 
 def make_cases_demographics_query(pdc_study_id, offset, limit):
+    """
+    todo
+    :param pdc_study_id:
+    :param offset:
+    :param limit:
+    :return:
+    """
     return """{{ 
         paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{ 
             total caseDemographicsPerStudy {{ 
@@ -1244,6 +1511,12 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
 
 
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
+    """
+    todo
+    :param json_obj_list:
+    :param pdc_study_id:
+    :return:
+    """
     for case in json_obj_list:
 
         demographics = case.pop("demographics")
@@ -1265,11 +1538,22 @@ def alter_case_demographics_json(json_obj_list, pdc_study_id):
 
 
 def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
+    """
+    todo
+    :param json_obj_list:
+    :param pdc_study_id:
+    :return:
+    """
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
 
 
 def get_cases_by_project_submitter(studies_list):
+    """
+    todo
+    :param studies_list:
+    :return:
+    """
     # get unique project_submitter_ids from studies_list
     cases_by_project_submitter = dict()
 
@@ -1286,6 +1570,11 @@ def get_cases_by_project_submitter(studies_list):
 
 
 def remove_null_values(json_obj_list):
+    """
+    todo
+    :param json_obj_list:
+    :return:
+    """
     for obj in json_obj_list:
         obj_keys = list(obj.keys())
 
@@ -1297,6 +1586,14 @@ def remove_null_values(json_obj_list):
 
 
 def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False, infer_schema=False):
+    """
+    todo
+    :param records:
+    :param project_name:
+    :param is_diagnoses:
+    :param infer_schema:
+    :return:
+    """
     clinical_type = "clinical" if not is_diagnoses else "clinical_diagnoses"
 
     remove_null_values(records)
@@ -1311,13 +1608,20 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
 
 def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
+    """
+    todo
+    :param temp_table_id:
+    :param project_name:
+    :param clinical_type:
+    :return:
+    """
     client = bigquery.Client()
     temp_table = client.get_table(temp_table_id)
     table_schema = temp_table.schema
 
     shortened_project_name = BQ_PARAMS["PROJECT_ABBREVIATION_MAP"][project_name]
     table_prefix = "_".join([clinical_type, shortened_project_name, BQ_PARAMS['DATA_SOURCE']])
-    table_name = construct_table_name(table_prefix)
+    table_name = construct_table_name(BQ_PARAMS, table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     fields = {
@@ -1373,6 +1677,11 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 # ***** BIOSPECIMEN TABLE FUNCTIONS
 
 def make_biospecimen_per_study_query(pdc_study_id):
+    """
+    todo
+    :param pdc_study_id:
+    :return:
+    """
     return '''
         {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
             aliquot_id 
@@ -1394,48 +1703,13 @@ def make_biospecimen_per_study_query(pdc_study_id):
     }}'''.format(pdc_study_id)
 
 
-def create_case_metadata_table_query():
-    # todo hardcoded
-    return """
-        WITH grouped_pdc_study_ids AS (
-            SELECT case_id, 
-                ARRAY_TO_STRING(ARRAY_AGG(pdc_study_id), ';') as pdc_study_ids
-            FROM `isb-project-zero.PDC_metadata.biospecimen_V1_9` b
-            GROUP BY case_id
-        ),
-        
-        cases AS (
-            SELECT b.case_id, b.case_submitter_id, s.embargo_date, s.project_id, b.project_name, s.pdc_study_id, 
-                s.program_id, b.primary_site, b.disease_type, b.taxon, b.case_status
-            FROM `isb-project-zero.PDC_metadata.biospecimen_V1_9` b
-            INNER JOIN `isb-project-zero.PDC_metadata.studies_V1_9` s
-                ON b.pdc_study_id = s.pdc_study_id
-            GROUP BY b.case_id, b.case_submitter_id, s.embargo_date, s.project_id, b.project_name, s.pdc_study_id, 
-                s.program_id, b.primary_site, b.disease_type, b.taxon, b.case_status
-        )
-        
-        SELECT DISTINCT c.case_id, c.case_submitter_id, c.embargo_date, g.pdc_study_ids, c.project_id, c.project_name, 
-            c.program_id, c.primary_site, c.disease_type, c.taxon, c.case_status
-        FROM cases c
-        INNER JOIN grouped_pdc_study_ids g
-            ON c.case_id = g.case_id
-    """.format()
-
-
-def create_case_aliquot_table_query():
-    biospec_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["biospecimenPerStudy"]["output_name"])
-    biospec_table_id = get_dev_table_id(biospec_table_name, dataset="PDC_metadata")
-
-    return """
-    SELECT aliquot_id, aliquot_submitter_id, sample_id, sample_submitter_id, case_id, case_submitter_id,
-        pool, sample_type, sample_status, aliquot_status
-    FROM `{}`
-    GROUP BY aliquot_id, aliquot_submitter_id, sample_id, sample_submitter_id, case_id, case_submitter_id,
-        pool, sample_type, sample_status, aliquot_status
-    """.format(biospec_table_id)
-
-
 def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
+    """
+    todo
+    :param json_obj_list:
+    :param pdc_study_id:
+    :return:
+    """
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
 
@@ -1444,63 +1718,84 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
 
 
 def create_modified_temp_table(table_id, query):
+    """
+    todo
+    :param table_id:
+    :param query:
+    :return:
+    """
     temp_table_id = table_id + '_temp'
     delete_bq_table(temp_table_id)
     copy_bq_table(BQ_PARAMS, table_id, temp_table_id)
+    load_table_from_query(BQ_PARAMS, table_id, query)
 
-    load_table_from_query(
-        BQ_PARAMS,
-        table_id,
-        query
-    )
+
+def get_schema_filename(data_type, suffix=None):
+    """
+    todo
+    :param data_type:
+    :param suffix:
+    :return:
+    """
+    source = BQ_PARAMS["DATA_SOURCE"]
+    file_list = [source, data_type]
+
+    if suffix:
+        file_list.append(suffix)
+    file_list.append(get_rel_prefix(BQ_PARAMS))
+
+    return build_table_name_from_list(file_list)
 
 
 def update_column_metadata(table_type, table_id):
-    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+    """
+    todo
+    :param table_type:
+    :param table_id:
+    :return:
+    """
+    file_path = [BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']]
+    field_desc_file_name = get_schema_filename(table_type, BQ_PARAMS['FIELD_DESC_FILE_SUFFIX']) + '.json'
+    field_desc_fp = get_filepath(file_path, field_desc_file_name)
 
-    descriptions_file_name = "_".join([BQ_PARAMS['DATA_SOURCE'],
-                                       table_type,
-                                       BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'],
-                                       BQ_PARAMS['RELEASE']
-                                       ])
-
-    fields_file = "{}.json".format(descriptions_file_name)
-    field_desc_fp = get_filepath(dir_path, fields_file)
-
+    if not os.path.exists(field_desc_fp):
+        has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
-
-    print("Updating metadata for {}\n".format(table_id))
-    update_schema(table_id, descriptions)
+        print("Updating metadata for {}\n".format(table_id))
+        update_schema(table_id, descriptions)
 
 
 def update_pdc_table_metadata(dataset, table_type=None):
-    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
-    metadata_fp = get_filepath(rel_path)
+    """
+    todo
+    :param dataset:
+    :param table_type:
+    :return:
+    """
+    fp_list = [BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]]
+    metadata_fp = get_filepath(fp_list)
     metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
     filtered_metadata_files = list()
 
-    if table_type:
-        for metadata_file in metadata_files:
-            if str(table_type) in str(metadata_file):
-                filtered_metadata_files.append(metadata_file)
-    else:
+    if not table_type:
         filtered_metadata_files = metadata_files
+    else:
+        for metadata_file in metadata_files:
+            if table_type in str(metadata_file):
+                filtered_metadata_files.append(metadata_file)
 
     print("Updating table metadata:")
-
-    for json_file in filtered_metadata_files:
-        table_name = json_file.split('.')[-2]
-        table_id = get_dev_table_id(table_name, dataset=dataset)
+    for table_metadata_json_file in filtered_metadata_files:
+        table_id = get_dev_table_id(table_metadata_json_file.split('.')[-2], dataset=dataset)
 
         if not exists_bq_table(table_id):
             print("skipping {} (no bq table found)".format(table_id))
             continue
-        else:
-            print("- {}".format(table_id))
 
-        json_fp = metadata_fp + '/' + json_file
+        print("- {}".format(table_id))
+        json_fp = get_filepath(metadata_fp, table_metadata_json_file)
 
         with open(json_fp) as json_file_output:
             metadata = json.load(json_file_output)
@@ -1555,15 +1850,12 @@ def main(args):
     # ** STUDY METADATA STEPS **
 
     if 'build_studies_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint='allPrograms',
-                                 request_function=make_all_programs_query,
-                                 alter_json_function=alter_all_programs_json)
+        build_jsonl_from_pdc_api(request_function=make_all_programs_query, alter_json=alter_all_programs_json)
 
         delete_from_steps('build_studies_jsonl', steps)  # allows for exit without building study lists if not used
 
     if 'build_studies_table' in steps:
-        build_table_from_jsonl(endpoint='allPrograms',
-                               infer_schema=True)
+        build_table_from_jsonl(graphql_endpoint='allPrograms', infer_schema=True)
 
         delete_from_steps('build_studies_table', steps)  # allows for exit without building study lists if not used
 
@@ -1577,7 +1869,7 @@ def main(args):
         studies_output_name = API_PARAMS['ENDPOINT_SETTINGS']['allPrograms']['output_name']
 
         for study in get_query_results(retrieve_all_studies_query(studies_output_name)):
-            if is_currently_embargoed(study['embargo_date']):
+            if is_under_embargo(study['embargo_date']):
                 embargoed_studies_list.append(dict(study.items()))
             else:
                 studies_list.append(dict(study.items()))
@@ -1600,18 +1892,16 @@ def main(args):
     # ** FILE METADATA STEPS **
 
     if 'build_per_study_file_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="filesPerStudy",
-                                 request_function=make_files_per_study_query,
-                                 alter_json_function=alter_files_per_study_json,
-                                 ids=all_pdc_study_ids)
+        build_jsonl_from_pdc_api(request_function=make_files_per_study_query,
+                                 alter_json=alter_files_per_study_json, ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(endpoint="filesPerStudy",
-                               infer_schema=True)
+        build_table_from_jsonl(graphql_endpoint="filesPerStudy", infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
-        fps_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
-        fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
+        fps_table_name = construct_table_name(BQ_PARAMS,
+                                              API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
+        fps_table_id = get_dev_table_id(fps_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
         create_modified_temp_table(fps_table_id, modify_per_study_file_table_query(fps_table_id))
 
@@ -1620,25 +1910,24 @@ def main(args):
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_api_file_metadata_table' in steps:
-        build_table_from_jsonl("fileMetadata",
-                               infer_schema=True)
+        build_table_from_jsonl("fileMetadata", infer_schema=True)
 
     if 'alter_api_file_metadata_table' in steps:
-        fm_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
-        fm_table_id = get_dev_table_id(fm_table_name, dataset="PDC_metadata")
+        fm_table_name = construct_table_name(BQ_PARAMS, API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
+        fm_table_id = get_dev_table_id(fm_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
         create_modified_temp_table(fm_table_id, modify_api_file_metadata_table_query(fm_table_id))
 
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
         # or it'll have an aliquot id. If this ever changes, we'll need to adjust, but not expected that it will.
-        table_name = construct_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-        full_table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
+        table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        full_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'build_file_metadata_table' in steps:
-        table_name = construct_table_name(BQ_PARAMS['FILE_METADATA'])
+        table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['FILE_METADATA'])
         full_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
@@ -1650,36 +1939,27 @@ def main(args):
     # ** CASE CLINICAL STEPS **
 
     if 'build_cases_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="allCases",
-                                 request_function=make_cases_query)
+        build_jsonl_from_pdc_api(request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl("allCases", infer_schema=True)
 
     if 'build_cases_aliquots_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
-                                 request_function=make_cases_aliquots_query)
+        build_jsonl_from_pdc_api(request_function=make_cases_aliquots_query)
 
     if 'build_cases_aliquots_table' in steps:
         build_table_from_jsonl("paginatedCasesSamplesAliquots")
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
-                                 request_function=make_cases_diagnoses_query,
-                                 alter_json_function=alter_case_diagnoses_json,
-                                 ids=pdc_study_ids,
-                                 insert_id=True)
+        build_jsonl_from_pdc_api(request_function=make_cases_diagnoses_query,
+                                 alter_json=alter_case_diagnoses_json, ids=pdc_study_ids, insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
-        build_table_from_jsonl(endpoint='paginatedCaseDiagnosesPerStudy',
-                               infer_schema=True)
+        build_table_from_jsonl(graphql_endpoint='paginatedCaseDiagnosesPerStudy', infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
-                                 request_function=make_cases_demographics_query,
-                                 alter_json_function=alter_case_demographics_json,
-                                 ids=pdc_study_ids,
-                                 insert_id=True)
+        build_jsonl_from_pdc_api(request_function=make_cases_demographics_query,
+                                 alter_json=alter_case_demographics_json, ids=pdc_study_ids, insert_id=True)
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
@@ -1690,9 +1970,7 @@ def main(args):
 
         # get all case records, append to list for its project submitter id
         for case in get_cases():
-            if not case:
-                continue
-            if 'project_submitter_id' not in case:
+            if not case or 'project_submitter_id' not in case:
                 continue
 
             project_submitter_id = case['project_submitter_id']
@@ -1807,14 +2085,12 @@ def main(args):
     # ** CASE METADATA STEPS **
 
     if 'build_biospecimen_jsonl' in steps:
-        build_jsonl_from_pdc_api(endpoint="biospecimenPerStudy",
-                                 request_function=make_biospecimen_per_study_query,
-                                 alter_json_function=alter_biospecimen_per_study_obj,
-                                 ids=all_pdc_study_ids,
+        build_jsonl_from_pdc_api(request_function=make_biospecimen_per_study_query,
+                                 alter_json=alter_biospecimen_per_study_obj, ids=all_pdc_study_ids,
                                  insert_id=True)
 
     if 'build_biospecimen_table' in steps:
-        build_table_from_jsonl(endpoint="biospecimenPerStudy",
+        build_table_from_jsonl(graphql_endpoint="biospecimenPerStudy",
                                infer_schema=True)
 
     # todo merge PDC study ids for given case_id into single row, probably?
@@ -1861,28 +2137,34 @@ def main(args):
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
         split_file = gz_file_name.split('.')
 
-        mapping_table = construct_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        fps_table_id = get_dev_table_id(mapping_table, is_metadata=True)
+        mapping_table = construct_table_name(BQ_PARAMS, BQ_PARAMS['UNIPROT_MAPPING_TABLE'],
+                                             release=BQ_PARAMS['UNIPROT_RELEASE'])
+        fps_table_id = get_dev_table_id(mapping_table, dataset=BQ_PARAMS['META_DATASET'])
 
         print("\nBuilding {0}... ".format(fps_table_id))
-        schema_filename = "/".join(fps_table_id.split(".")) + '.json'
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+
+        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        schema_filename = fps_schema_file + '.json'
+        schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
+
         data_file = split_file[0] + '_' + BQ_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
-        null = BQ_PARAMS['NULL_MARKER']
-        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, fps_table_id, null_marker=null, num_header_rows=0)
+
+        create_and_load_table_from_tsv(BQ_PARAMS, data_file, schema, fps_table_id,
+                                       BQ_PARAMS['NULL_MARKER'], num_header_rows=0)
         print("Uniprot table built!")
 
     if 'build_swissprot_table' in steps:
-        table_name = construct_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
-        fps_table_id = get_dev_table_id(table_name, is_metadata=True)
+        table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        fps_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
 
-        print("Building {0}... ", (fps_table_id,))
-        schema_filename = "/".join(fps_table_id.split(".")) + '.json'
-        schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
+        print("Building {0}... ".format(fps_table_id))
+        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        schema_filename = fps_schema_file + '.json'
+        schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
         data_file = table_name + API_PARAMS['UNIPROT_FILE_EXT']
-        null = BQ_PARAMS['NULL_MARKER']
-        create_and_load_tsv_table(BQ_PARAMS, data_file, schema, fps_table_id, null_marker=null, num_header_rows=0)
+        create_and_load_table_from_tsv(BQ_PARAMS, data_file, schema, fps_table_id,
+                                       BQ_PARAMS['NULL_MARKER'], num_header_rows=0)
         print("Swiss-prot table built!")
 
     if 'build_gene_tsv' in steps:
@@ -1924,7 +2206,7 @@ def main(args):
             pdc_study_id = study['pdc_study_id']
             raw_table_name = get_quant_table_name(study, is_final=False)
 
-            if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], raw_table_name):
+            if exists_bq_table(get_dev_table_id(raw_table_name, dataset=BQ_PARAMS['DEV_DATASET'])):
                 final_table_name = get_quant_table_name(study)
                 final_table_id = get_dev_table_id(final_table_name)
 
@@ -1976,15 +2258,16 @@ def main(args):
             publish_table(BQ_PARAMS, public_dataset, source_table_id, overwrite=True)
 
     if "publish_file_metadata_tables" in steps:
-        file_metadata_table_name = construct_table_name(BQ_PARAMS['FILE_METADATA'])
+        file_metadata_table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['FILE_METADATA'])
         file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset=BQ_PARAMS['META_DATASET'])
         publish_table(BQ_PARAMS, BQ_PARAMS['FILE_METADATA'], file_metadata_table_id, overwrite=True)
 
-        mapping_table_name = construct_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        mapping_table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         mapping_table_id = get_dev_table_id(mapping_table_name, dataset=BQ_PARAMS['META_DATASET'])
         publish_table(BQ_PARAMS, BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'], mapping_table_id, overwrite=True)
 
-    print_elapsed_time_and_exit(start_time)
+    end = time.time() - start_time
+    print("Finished program execution in {}!\n".format(format_seconds(end)))
 
     if __name__ == '__main__':
         main(sys.argv)

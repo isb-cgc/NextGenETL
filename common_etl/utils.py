@@ -33,7 +33,94 @@ from google.api_core.exceptions import NotFound
 from google.cloud import bigquery, storage, exceptions
 
 
-#   TABLE FUNCTIONS
+#    FILESYSTEM HELPERS
+
+
+def get_filepath(dir_path, filename=None):
+    """Get file path for location on VM.
+
+    :param dir_path: directory portion of the filepath (starting at user home dir)
+    :param filename: name of the file
+    :return: full path to file
+    """
+    join_list = [os.path.expanduser('~'), dir_path]
+
+    if filename:
+        join_list.append(filename)
+
+    return '/'.join(join_list)
+
+
+def get_scratch_fp(bq_params, filename):
+    """Construct filepath for VM output file.
+
+    :param filename: name of the file
+    :param bq_params: bq param object from yaml config
+    :return: output filepath for VM
+    """
+    return get_filepath(bq_params['SCRATCH_DIR'], filename)
+
+
+def json_datetime_to_str_converter(obj):
+    """
+    todo
+    :param obj:
+    :return:
+    """
+    if isinstance(obj, datetime.datetime):
+        return str(obj)
+    if isinstance(obj, datetime.date):
+        return str(obj)
+    if isinstance(obj, datetime.time):
+        return str(obj)
+
+
+def write_line_to_jsonl(jsonl_file_obj, line):
+    """
+    todo
+    :param jsonl_file_obj:
+    :param line:
+    :return:
+    """
+    jsonl_file_obj.write(json.dumps(obj=line, default=json_datetime_to_str_converter))
+    jsonl_file_obj.write('\n')
+
+
+def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
+    """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
+
+    :param jsonl_fp: filepath of jsonl file to write
+    :param json_obj_list: list<dict> object
+    :param mode: 'a' if appending to a file that's being built iteratively
+                 'w' if file data is written in a single call to the function
+                     (in which case any existing data is overwritten)"""
+    with open(jsonl_fp, mode) as file_obj:
+        for line in json_obj_list:
+            json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
+            file_obj.write('\n')
+
+
+def create_tsv_row(row_list, null_marker="None"):
+    """
+    todo
+    :param row_list:
+    :param null_marker:
+    :return:
+    """
+    print_str = ''
+    last_idx = len(row_list) - 1
+
+    for i, column in enumerate(row_list):
+        if not column:
+            column = null_marker
+
+        delimiter = "\t" if i < last_idx else "\n"
+        print_str += column + delimiter
+
+    return print_str
+
+
+#    BIGQUERY API HELPERS
 
 def build_table_name_from_list(str_list):
     """Constructs a table name (str) from list<str>.
@@ -45,10 +132,19 @@ def build_table_name_from_list(str_list):
 
     # replace '.' with '_' so that the name is valid
     # ('.' chars not allowed -- issue with BEATAML1.0, for instance)
-    return table_name.replace('.', '_')
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
 def construct_table_name(bq_params, prefix, suffix=None, include_release=True, release=None):
+    """
+    todo
+    :param bq_params:
+    :param prefix:
+    :param suffix:
+    :param include_release:
+    :param release:
+    :return:
+    """
     table_name = prefix
 
     if suffix:
@@ -96,106 +192,50 @@ def get_webapp_table_id(bq_params, table_name):
     return build_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
 
 
-#    FILESYSTEM HELPERS
+def exists_bq_table(table_id):
+    """Determine whether bq_table exists.
 
-
-def get_filepath(dir_path, filename=None):
-    """Get file path for location on VM.
-
-    :param dir_path: directory portion of the filepath (starting at user home dir)
-    :param filename: name of the file
-    :return: full path to file
+    :param table_id: table id in standard SQL format
+    :return: True if exists, False otherwise
     """
-    join_list = [os.path.expanduser('~'), dir_path]
+    client = bigquery.Client()
 
-    if filename:
-        join_list.append(filename)
+    try:
+        client.get_table(table_id)
+    except NotFound:
+        return False
+    return True
 
-    return '/'.join(join_list)
 
-
-def get_scratch_fp(bq_params, filename):
-    """Construct filepath for VM output file.
-
-    :param filename: name of the file
-    :param bq_params: bq param object from yaml config
-    :return: output filepath for VM
+def list_bq_tables(dataset_id, release=None):
     """
-    return get_filepath(bq_params['SCRATCH_DIR'], filename)
+    todo
+    :param dataset_id:
+    :param release:
+    :return:
+    """
+    table_list = list()
+    client = bigquery.Client()
+    tables = client.list_tables(dataset_id)
+
+    for table in tables:
+        if not release or release in table.table_id:
+            table_list.append(table.table_id)
+
+    return table_list
 
 
-def bq_json_converter(obj):
-    if isinstance(obj, datetime.datetime):
-        return str(obj)
-    if isinstance(obj, datetime.date):
-        return str(obj)
-    if isinstance(obj, datetime.time):
-        return str(obj)
+def get_bq_table_obj(table_id):
+    """Get the bq table referenced by table_id.
 
+    :param table_id: table id in standard SQL format
+    :return: bq Table object
+    """
+    if not exists_bq_table(table_id):
+        return None
 
-# todo can this be used in write_list_to_jsonl?
-def write_line_to_jsonl(jsonl_file_obj, line):
-    jsonl_file_obj.write(json.dumps(obj=line, default=bq_json_converter))
-    jsonl_file_obj.write('\n')
-
-
-def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
-    """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
-
-    :param jsonl_fp: filepath of jsonl file to write
-    :param json_obj_list: list<dict> object
-    :param mode: 'a' if appending to a file that's being built iteratively
-                 'w' if file data is written in a single call to the function
-                     (in which case any existing data is overwritten)"""
-    with open(jsonl_fp, mode) as file_obj:
-        for line in json_obj_list:
-            json.dump(obj=line, fp=file_obj, default=bq_json_converter)
-            file_obj.write('\n')
-
-
-#       REST API HELPERS (GDC, PDC, ETC)
-
-def get_graphql_api_response(api_params, query, fail_on_error=True):
-    max_retries = 4
-
-    headers = {'Content-Type': 'application/json'}
-    endpoint = api_params['ENDPOINT']
-
-    if not query:
-        has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
-
-    req_body = {'query': query}
-    api_res = requests.post(endpoint, headers=headers, json=req_body)
-    tries = 0
-
-    while not api_res.ok and tries < max_retries:
-        if api_res.status_code == 400:
-            # don't try again!
-            has_fatal_error("Response status code {}:\n{}.\nRequest body:\n{}".
-                            format(api_res.status_code, api_res.reason, req_body))
-
-        print("Response code {}: {}".format(api_res.status_code, api_res.reason))
-        print("Retry {} of {}...".format(tries, max_retries))
-        time.sleep(3)
-
-        api_res = requests.post(endpoint, headers=headers, json=req_body)
-
-        tries += 1
-
-    if tries > max_retries:
-        # give up!
-        api_res.raise_for_status()
-
-    json_res = api_res.json()
-
-    if 'errors' in json_res and json_res['errors']:
-        if fail_on_error:
-            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
-
-    return json_res
-
-
-#       BIGQUERY API HELPERS
+    client = bigquery.Client()
+    return client.get_table(table_id)
 
 
 def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
@@ -218,6 +258,44 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
     if await_job(bq_params, client, bq_job):
         print("Successfully copied table:")
         print("src: {}\n dest: {}\n".format(src_table, dest_table))
+
+
+def delete_bq_table(table_id):
+    """Permanently delete BQ table located by table_id.
+
+    :param table_id: table id in standard SQL format
+    """
+    client = bigquery.Client()
+    client.delete_table(table_id, not_found_ok=True)
+
+
+def delete_bq_dataset(dataset_id):
+    """
+    todo
+    :param dataset_id:
+    :return:
+    """
+    client = bigquery.Client()
+    client.delete_dataset(dataset_id, delete_contents=True, not_found_ok=True)
+
+
+def load_table_from_query(bq_params, table_id, query):
+    """Create a new BQ table from the returned results of querying an existing BQ table.
+
+    :param bq_params: bq params from yaml config file
+    :param table_id: table id in standard SQL format
+    :param query: query which returns data to populate a new BQ table.
+    """
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig(destination=table_id)
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    try:
+        query_job = client.query(query, job_config=job_config)
+        print(' - Inserting into {0}... '.format(table_id), end="")
+        await_insert_job(bq_params, client, table_id, query_job)
+    except TypeError as err:
+        has_fatal_error(err)
 
 
 def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
@@ -250,7 +328,7 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
         has_fatal_error(err)
 
 
-def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
+def create_and_load_table_from_tsv(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
     """Creates BQ table and inserts case data from jsonl file.
 
     :param num_header_rows:
@@ -278,79 +356,6 @@ def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
-
-
-def delete_bq_table(table_id):
-    """Permanently delete BQ table located by table_id.
-
-    :param table_id: table id in standard SQL format
-    """
-    client = bigquery.Client()
-    client.delete_table(table_id, not_found_ok=True)
-
-
-def delete_bq_dataset(dataset_id):
-    client = bigquery.Client()
-    client.delete_dataset(dataset_id, delete_contents=True, not_found_ok=True)
-
-
-def exists_bq_table(table_id):
-    """Determine whether bq_table exists.
-
-    :param table_id: table id in standard SQL format
-    :return: True if exists, False otherwise
-    """
-    client = bigquery.Client()
-
-    try:
-        client.get_table(table_id)
-    except NotFound:
-        return False
-    return True
-
-
-def list_bq_tables(dataset_id, release=None):
-    table_list = list()
-    client = bigquery.Client()
-    tables = client.list_tables(dataset_id)
-
-    for table in tables:
-        if not release or release in table.table_id:
-            table_list.append(table.table_id)
-
-    return table_list
-
-
-def load_table_from_query(bq_params, table_id, query):
-    """Create a new BQ table from the returned results of querying an existing BQ table.
-
-    :param bq_params: bq params from yaml config file
-    :param table_id: table id in standard SQL format
-    :param query: query which returns data to populate a new BQ table.
-    """
-    client = bigquery.Client()
-    job_config = bigquery.QueryJobConfig(destination=table_id)
-    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-
-    try:
-        query_job = client.query(query, job_config=job_config)
-        print(' - Inserting into {0}... '.format(table_id), end="")
-        await_insert_job(bq_params, client, table_id, query_job)
-    except TypeError as err:
-        has_fatal_error(err)
-
-
-def get_bq_table_obj(table_id):
-    """Get the bq table referenced by table_id.
-
-    :param table_id: table id in standard SQL format
-    :return: bq Table object
-    """
-    if not exists_bq_table(table_id):
-        return None
-
-    client = bigquery.Client()
-    return client.get_table(table_id)
 
 
 def get_query_results(query):
@@ -426,8 +431,55 @@ def await_job(bq_params, client, bq_job):
         has_fatal_error("While running BQ job: {}\n{}".format(err_res, errs))
 
 
-# todo could this be reused for GDC?
-def from_schema_file_to_obj(bq_params, filename):
+def get_graphql_api_response(api_params, query, fail_on_error=True):
+    """
+    todo
+    :param api_params:
+    :param query:
+    :param fail_on_error:
+    :return:
+    """
+    max_retries = 4
+
+    headers = {'Content-Type': 'application/json'}
+    endpoint = api_params['ENDPOINT']
+
+    if not query:
+        has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
+
+    req_body = {'query': query}
+    api_res = requests.post(endpoint, headers=headers, json=req_body)
+    tries = 0
+
+    while not api_res.ok and tries < max_retries:
+        if api_res.status_code == 400:
+            # don't try again!
+            has_fatal_error("Response status code {}:\n{}.\nRequest body:\n{}".
+                            format(api_res.status_code, api_res.reason, req_body))
+
+        print("Response code {}: {}".format(api_res.status_code, api_res.reason))
+        print("Retry {} of {}...".format(tries, max_retries))
+        time.sleep(3)
+
+        api_res = requests.post(endpoint, headers=headers, json=req_body)
+
+        tries += 1
+
+    if tries > max_retries:
+        # give up!
+        api_res.raise_for_status()
+
+    json_res = api_res.json()
+
+    if 'errors' in json_res and json_res['errors']:
+        if fail_on_error:
+            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
+
+    return json_res
+
+
+def load_bq_schema_from_json(bq_params, filename):
+    # todo could this be reused for GDC?
     """
     Open table schema file and convert to python dict, in order to pass the data to
     BigQuery for table insertion.
@@ -440,45 +492,62 @@ def from_schema_file_to_obj(bq_params, filename):
     fp = get_filepath(bq_params['BQ_REPO'] + "/" + bq_params['SCHEMA_DIR'], filename)
 
     if not os.path.exists(fp):
-        return None
+        has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
 
     with open(fp, 'r') as schema_file:
         schema_file = json.load(schema_file)
-        schema = schema_file['schema']['fields']
-
-        return schema
-
-
-def to_bq_schema_obj(schema_field_dict):
-    """Convert schema entry dict to SchemaField object.
-
-    :param schema_field_dict: dict containing schema field keys
-    (name, field_type, mode, fields, description)
-    :return: bigquery.SchemaField object
-    """
-    return bigquery.SchemaField.from_api_repr(schema_field_dict)
-
-
-def get_publish_table_ids(bq_params, public_dataset, src_table_id):
-    split_table_id = src_table_id.split('.')
-    split_table_name = split_table_id[-1].split('_')
-
-    release = split_table_name.pop(0)
-
-    program_or_dataset_type = '_'.join(split_table_name)
-
-    curr_table_name = "_".join([program_or_dataset_type, bq_params['DATA_SOURCE'], 'current'])
-    current_table_id = build_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
-
-    versioned_dataset = public_dataset + '_versioned'
-    versioned_table_name = "_".join([program_or_dataset_type, bq_params['DATA_SOURCE'], release])
-    versioned_table_id = build_table_id(bq_params['PROD_PROJECT'], versioned_dataset, versioned_table_name)
-
-    return current_table_id, versioned_table_id
+        return schema_file['schema']['fields']
 
 
 def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
-    current_table_id, versioned_table_id = get_publish_table_ids(bq_params, public_dataset, source_table_id)
+    """
+    todo
+    :param bq_params:
+    :param public_dataset:
+    :param source_table_id:
+    :param overwrite:
+    :return:
+    """
+    def get_publish_table_ids():
+        """
+        todo
+        :return:
+        """
+        rel_prefix = get_rel_prefix(bq_params)
+        data_source = bq_params['DATA_SOURCE']
+
+        split_table_id = source_table_id.split('.')
+        dataset_type = split_table_id[-1]
+        dataset_type.replace(rel_prefix, '').strip('_')
+
+        curr_table_name = build_table_name_from_list([dataset_type, data_source, 'current'])
+        curr_table_id = build_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
+        vers_table_name = build_table_name_from_list([dataset_type, data_source, rel_prefix])
+        vers_table_id = build_table_id(bq_params['PROD_PROJECT'], public_dataset + '_versioned', vers_table_name)
+        return curr_table_id, vers_table_id
+
+    def change_status_to_archived():
+        """
+        todo
+        :return:
+        """
+        client = bigquery.Client()
+        current_release_tag = get_rel_prefix(bq_params)
+
+        stripped_table_id = source_table_id.replace(current_release_tag, "")
+        previous_release_tag = get_rel_prefix(bq_params, return_last_version=True)
+        prev_table_id = stripped_table_id + previous_release_tag
+
+        try:
+            prev_table = client.get_table(prev_table_id)
+            prev_table.labels['status'] = 'archived'
+            print("labels: {}".format(prev_table.labels))
+            client.update_table(prev_table, ["labels"])
+            assert prev_table.labels['status'] == 'archived'
+        except NotFound:
+            print("Couldn't find a table to archive. Might be that this is the first table release?")
+
+    current_table_id, versioned_table_id = get_publish_table_ids()
 
     if exists_bq_table(source_table_id):
         print("Publishing {}".format(versioned_table_id))
@@ -491,26 +560,7 @@ def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
         is_gdc = True if bq_params['DATA_SOURCE'] == 'gdc' else False
         update_friendly_name(bq_params, versioned_table_id, is_gdc)
 
-        change_status_to_archived(bq_params, source_table_id)
-        
-
-def change_status_to_archived(bq_params, table_id):
-    client = bigquery.Client()
-    current_release_tag = get_rel_prefix(bq_params)
-
-    stripped_table_id = table_id.replace(current_release_tag, "")
-    previous_release_tag = get_rel_prefix(bq_params, previous_version=True)
-    prev_table_id = stripped_table_id + previous_release_tag
-
-    try:
-        prev_table = client.get_table(prev_table_id)
-        prev_table.labels['status'] = 'archived'
-        print("labels: {}".format(prev_table.labels))
-        client.update_table(prev_table, ["labels"])
-
-        assert prev_table.labels['status'] == 'archived'
-    except NotFound:
-        print("Not writing archived label for table that didn't exist in a previous version.")
+        change_status_to_archived()
 
 
 def update_table_metadata(table_id, metadata):
@@ -626,7 +676,7 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-#       (NON-BQ) GOOGLE CLOUD API HELPERS
+#    GOOGLE CLOUD STORAGE HELPERS
 
 
 def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
@@ -666,6 +716,12 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
 
 # not currently used, but leaving it so I don't have to re-write it down the road
 def download_from_bucket(bq_params, filename):
+    """
+    todo
+    :param bq_params:
+    :param filename:
+    :return:
+    """
     storage_client = storage.Client(project="")
     blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], filename)
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
@@ -676,10 +732,15 @@ def download_from_bucket(bq_params, filename):
         blob.download_to_file(file_obj)
 
 
-#       ANALYZE DATA
+#    ANALYZE DATA
 
 
 def normalize_value(value):
+    """
+    todo
+    :param value:
+    :return:
+    """
     if value in ('NA', 'N/A', 'null', 'None', ''):
         return None
     if value in ('False', 'false', 'FALSE'):
@@ -753,8 +814,13 @@ def check_value_type(value):
     return "STRING"
 
 
-# todo relocate test
 def test_check_value_type():
+    """
+    todo
+    :return:
+    """
+    # todo relocate test
+
     value_type_dict = {
         "000": "STRING",
         "0.0": "INTEGER",
@@ -789,6 +855,11 @@ def test_check_value_type():
 
 
 def resolve_type_conflicts(types_dict):
+    """
+    todo
+    :param types_dict:
+    :return:
+    """
     for field, types_set in types_dict.items():
         if len(types_set) == 1:
             for col_type in types_set:
@@ -867,6 +938,11 @@ def get_rel_prefix(bq_params, return_last_version=False, version=None):
 
 
 def format_seconds(seconds):
+    """
+    todo
+    :param seconds:
+    :return:
+    """
     if seconds > 3600:
         return time.strftime("%-H hours, %-M minutes, %-S seconds", time.gmtime(seconds))
     if seconds > 60:
@@ -878,6 +954,7 @@ def format_seconds(seconds):
 def load_config(args, yaml_dict_keys, validate_config=None):
     """Opens yaml file and retrieves configuration parameters.
 
+    :param validate_config:
     :param args: args param from python bash cli
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
     top-level dict keys
@@ -933,15 +1010,3 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def create_tsv_row(row_list, null_marker="None"):
-    print_str = ''
-    last_idx = len(row_list) - 1
-
-    for i, column in enumerate(row_list):
-        if not column:
-            column = null_marker
-
-        delimiter = "\t" if i < last_idx else "\n"
-        print_str += column + delimiter
-
-    return print_str

@@ -33,7 +33,8 @@ from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error
                               upload_to_bucket, exists_bq_table, get_working_table_id,
                               get_webapp_table_id, build_table_id, update_table_metadata, get_filepath,
                               update_schema, list_bq_tables, format_seconds,
-                              load_config, delete_bq_table, build_table_name_from_list, publish_table)
+                              load_config, delete_bq_table, build_table_name_from_list, publish_table,
+                              construct_table_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -44,6 +45,10 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def make_program_list_query():
+    """
+    todo
+    :return:
+    """
     return """
         SELECT DISTINCT(proj) 
         FROM (
@@ -70,7 +75,7 @@ def get_one_to_many_tables(record_counts):
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
-    table_keys = {get_base_fg(API_PARAMS)}
+    table_keys = {get_base_fg()}
 
     for table in record_counts:
         if record_counts[table] > 1:
@@ -86,8 +91,7 @@ def get_full_table_name(program, table):
     :param table: Name of desired table
     :return: String representing table name used by BQ.
     """
-    gdc_rel = get_rel_prefix(BQ_PARAMS)
-    table_name = [gdc_rel, program, BQ_PARAMS['MASTER_TABLE']]
+    table_name = [get_rel_prefix(BQ_PARAMS), program, BQ_PARAMS['MASTER_TABLE']]
 
     # if one-to-many table, append suffix
     suffixes = get_table_suffixes()
@@ -108,17 +112,13 @@ def build_jsonl_name(program, table, is_webapp=False):
     :return: jsonl file name
     """
     app_prefix = BQ_PARAMS['APP_JSONL_PREFIX'] if is_webapp else ''
-    gdc_rel = get_rel_prefix(BQ_PARAMS)
-    program = program.replace('.', '_')
-    base_name = BQ_PARAMS['MASTER_TABLE']
+    program = construct_table_name(BQ_PARAMS, program)
     suffix = get_table_suffixes()[table]
-
-    name_list = [app_prefix, gdc_rel, program, base_name, suffix]
+    name_list = [app_prefix, get_rel_prefix(BQ_PARAMS), program, BQ_PARAMS['MASTER_TABLE'], suffix]
 
     # remove any blank values in list
     filtered_name_list = [x for x in name_list if x]
     file_name = '_'.join(filtered_name_list)
-
     return file_name + '.jsonl'
 
 
@@ -131,21 +131,20 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
     :return: bq column name for given field name
     """
 
-    def get_fgs_and_id_keys(api_params):
+    def get_fgs_and_id_keys():
         """ Create a dictionary of type { 'field_group' : 'id_key_field'}.
 
-        :param api_params: api param object from yaml config
         :return: mapping dict, field group -> id_key_field
         """
         id_key_dict = dict()
-        fg_config_entries = api_params['FIELD_CONFIG']
+        fg_config_entries = API_PARAMS['FIELD_CONFIG']
 
         for _fg in fg_config_entries:
             id_key_dict[_fg] = fg_config_entries[_fg]['id_key']
 
         return id_key_dict
 
-    base_fg = get_base_fg(API_PARAMS)
+    base_fg = get_base_fg()
 
     if arg_fg:
         # field group is specified as a function argument
@@ -166,11 +165,11 @@ def get_bq_name(field, is_webapp=False, arg_fg=None):
     field_name = get_field_name(field_key)
 
     # get id_key and prefix associated with this fg
-    this_fg_id = get_fg_id_name(fg)
+    this_fg_id = get_field_group_id_key_name(fg)
     prefix = API_PARAMS['FIELD_CONFIG'][fg]['prefix']
 
     # create map of {fg_names : id_keys}
-    fg_to_id_key_map = get_fgs_and_id_keys(API_PARAMS)
+    fg_to_id_key_map = get_fgs_and_id_keys()
 
     # if fg has no prefix, or
     #    field is child of base_fg, or
@@ -242,7 +241,7 @@ def create_schema_dict(is_webapp=False):
 
     schema = dict()
 
-    parse_bq_schema_obj(schema, get_base_fg(API_PARAMS), schema_list, is_webapp)
+    parse_bq_schema_obj(schema, get_base_fg(), schema_list, is_webapp)
 
     return schema
 
@@ -388,7 +387,7 @@ def find_program_structure(cases, is_webapp=False):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, case, get_base_fg(API_PARAMS))
+            examine_case(fgs, record_counts, case, get_base_fg())
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
@@ -414,15 +413,6 @@ def find_program_structure(cases, is_webapp=False):
     return columns, record_counts
 
 
-def get_field_group(field_name):
-    """Gets parent field group (might not be the parent *table*, as the ancestor fg
-    could be flattened).
-    :param field_name: field name for which to retrieve ancestor field group
-    :return: ancestor field group
-    """
-    return ".".join(field_name.split('.')[:-1])
-
-
 def get_parent_fg(tables, field_name):
     """
     Get field's parent table name.
@@ -431,76 +421,22 @@ def get_parent_fg(tables, field_name):
     :return: parent table name
     """
     # remove field from period-delimited field group string
-    parent_table = get_field_group(field_name)
+    parent_table = ".".join(field_name.split('.')[:-1])
 
     while parent_table and parent_table not in tables:
         # remove field from period-delimited field group string
-        parent_table = get_field_group(parent_table)
+        parent_table = ".".join(parent_table.split('.')[:-1])
 
-    if parent_table:
-        return parent_table
-    return has_fatal_error("No parent fg found for {}".format(field_name))
+    if not parent_table:
+        has_fatal_error("No parent fg found for {}".format(field_name))
+    return parent_table
 
 
-def get_base_fg(api_params):
+def get_base_fg():
     """Get the first-level field group, of which all other field groups are descendents.
-    :param api_params: api param object from yaml config
     :return: base field group name
     """
-    if 'FG_CONFIG' not in api_params:
-        has_fatal_error("FG_CONFIG not set (in api_params) in YAML.", KeyError)
-    if 'base_fg' not in api_params['FG_CONFIG'] or not api_params['FG_CONFIG']['base_fg']:
-        has_fatal_error("base_fg not set (in api_params['FG_CONFIG']) in YAML.", KeyError)
-
-    return api_params['FG_CONFIG']['base_fg']
-
-
-def get_fg_id_name(field_group, is_webapp=False):
-    """Retrieves the id key used to uniquely identify a table record.
-
-    :param field_group: table for which to determine the id key
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: str representing table key
-    """
-    fg_id_key = get_field_group_id_key(field_group, is_webapp)
-    return get_field_name(fg_id_key)
-
-
-def get_field_group_id_key(field_group, is_webapp=False):
-    """Retrieves the id key used to uniquely identify a table record.
-
-    :param field_group: table for which to determine the id key
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: str representing table key
-    """
-
-    split_fg = field_group.split('.')
-
-    if split_fg[0] != API_PARAMS['PARENT_FG']:
-        split_fg.insert(0, API_PARAMS['PARENT_FG'])
-        field_group = ".".join(split_fg)
-
-    fg_id_name = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
-
-    fg_id_key = '{}.{}'.format(field_group, fg_id_name)
-
-    if is_webapp:
-        if fg_id_key in API_PARAMS['RENAMED_FIELDS']:
-            return API_PARAMS['RENAMED_FIELDS'][fg_id_key]
-
-    return fg_id_key
-
-
-def get_sorted_fg_depths(record_counts, reverse=False):
-    """Returns a sorted dict of field groups: depths.
-
-    :param record_counts: dict containing field groups and associated record counts
-    :param reverse: if True, sort in DESC order, otherwise sort in ASC order
-    :return: tuples composed of field group names and record counts
-    """
-    table_depths = {table: len(table.split('.')) for table in record_counts}
-
-    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
+    return API_PARAMS['FG_CONFIG']['base_fg']
 
 
 def get_field_name(field_col_key):
@@ -517,6 +453,17 @@ def get_field_name(field_col_key):
     return field_col_key.split(split_char)[-1]
 
 
+def get_field_group_id_key_name(field_group, is_webapp=False):
+    """Retrieves the id key used to uniquely identify a table record.
+
+    :param field_group: table for which to determine the id key
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return: str representing table key
+    """
+    fg_id_key = get_long_field_group_id_key(field_group, is_webapp)
+    return get_field_name(fg_id_key)
+
+
 def merge_fg_and_field(field_group, field):
     """Get full field key ("{field_group}.{field_name}"}.
 
@@ -525,6 +472,38 @@ def merge_fg_and_field(field_group, field):
     :return: full field key string
     """
     return '{}.{}'.format(field_group, field)
+
+
+def get_long_field_group_id_key(field_group, is_webapp=False):
+    """Retrieves the id key used to uniquely identify a table record.
+
+    :param field_group: table for which to determine the id key
+    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    :return: str representing table key
+    """
+    split_fg = field_group.split('.')
+
+    if split_fg[0] != API_PARAMS['PARENT_FG']:
+        split_fg.insert(0, API_PARAMS['PARENT_FG'])
+        field_group = ".".join(split_fg)
+
+    long_fg_id_key = merge_fg_and_field(field_group, API_PARAMS['FIELD_CONFIG'][field_group]['id_key'])
+
+    if is_webapp and long_fg_id_key in API_PARAMS['RENAMED_FIELDS']:
+        return API_PARAMS['RENAMED_FIELDS'][long_fg_id_key]
+    return long_fg_id_key
+
+
+def get_sorted_fg_depths(record_counts, reverse=False):
+    """Returns a sorted dict of field groups: depths.
+
+    :param record_counts: dict containing field groups and associated record counts
+    :param reverse: if True, sort in DESC order, otherwise sort in ASC order
+    :return: tuples composed of field group names and record counts
+    """
+    table_depths = {table: len(table.split('.')) for table in record_counts}
+
+    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
 
 
 #   Schema creation
@@ -537,7 +516,7 @@ def get_count_column_index(table_name, column_order_dict):
     :param column_order_dict: dict containing column indexes
     :return: count column start idx position
     """
-    table_id_key = get_fg_id_name(table_name)
+    table_id_key = get_field_group_id_key_name(table_name)
     id_column_index = column_order_dict[table_name + '.' + table_id_key]
 
     field_groups = API_PARAMS['FG_CONFIG']['order']
@@ -558,7 +537,7 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        source_table = get_full_table_name(program, get_base_fg(API_PARAMS))
+        source_table = get_full_table_name(program, get_base_fg())
     else:
         bq_col_name = get_bq_name(column)
         source_table = get_full_table_name(program, parent_table)
@@ -670,7 +649,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
             continue
 
         # get id key for current field group, and its index position
-        table_id_key = get_field_group_id_key(field_grp)
+        table_id_key = get_long_field_group_id_key(field_grp)
         id_idx = column_orders[field_grp][table_id_key]
 
         # get parent id key, append to column order dict of child field group, increment
@@ -680,10 +659,10 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
         # remove field from period-delimited field group string
         field_group_key = ".".join(field_grp.split('.')[:-1])
 
-        parent_id_key = get_field_group_id_key(field_group_key, is_webapp)
+        parent_id_key = get_long_field_group_id_key(field_group_key, is_webapp)
 
         if is_webapp:
-            base_field_grp_id_key = get_field_group_id_key(get_base_fg(API_PARAMS), is_webapp)
+            base_field_grp_id_key = get_long_field_group_id_key(get_base_fg(), is_webapp)
 
             # append parent_id_key to field_grp column list and column order dict
             columns[field_grp].add(parent_id_key)
@@ -703,7 +682,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None, is_webapp
                 insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, parent_id_key, program))
                 idx += 1
 
-            base_field_grp_id_key = get_field_group_id_key(get_base_fg(API_PARAMS))
+            base_field_grp_id_key = get_long_field_group_id_key(get_base_fg())
 
             insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, base_field_grp_id_key, program))
             idx += 1
@@ -727,7 +706,7 @@ def merge_column_orders(schema, columns, record_counts, column_orders, is_webapp
 
     for table, depth in get_sorted_fg_depths(record_counts, reverse=True):
 
-        table_id_key = get_field_group_id_key(table, is_webapp)
+        table_id_key = get_long_field_group_id_key(table, is_webapp)
 
         if table in columns:
             merge_dict_key = table
@@ -897,7 +876,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
     if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return
 
-    base_pid_name = get_fg_id_name(get_base_fg(API_PARAMS), is_webapp)
+    base_pid_name = get_field_group_id_key_name(get_base_fg(), is_webapp)
 
     if isinstance(record, list):
         # flatten each record in field group list
@@ -907,7 +886,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
     else:
         row = dict()
 
-        fg_id_name = get_fg_id_name(fg, is_webapp)
+        fg_id_name = get_field_group_id_key_name(fg, is_webapp)
 
         for field, columns in record.items():
             # if list, possibly more than one entry, recurse over list
@@ -962,8 +941,8 @@ def flatten_case(case, is_webapp):
     :return: flattened case dict
     """
 
-    base_fg = get_base_fg(API_PARAMS)
-    get_field_group_id_key(base_fg, is_webapp)
+    base_fg = get_base_fg()
+    get_long_field_group_id_key(base_fg, is_webapp)
 
     if is_webapp:
         for old_key, new_key in API_PARAMS['RENAMED_FIELDS'].items():
@@ -974,7 +953,7 @@ def flatten_case(case, is_webapp):
                     case[new_name] = case[old_name]
                     case.pop(old_name)
 
-    base_id_name = get_fg_id_name(base_fg, is_webapp)
+    base_id_name = get_field_group_id_key_name(base_fg, is_webapp)
 
     flat_case = dict()
 
@@ -989,7 +968,7 @@ def flatten_case(case, is_webapp):
     if is_webapp:
         renamed_fields = API_PARAMS['RENAMED_FIELDS']
 
-        base_id_key = get_field_group_id_key(base_fg)
+        base_id_key = get_long_field_group_id_key(base_fg)
 
         # if case_id in renamed fields (it is), remove the grandparent addition of case_id to doubly nested tables--
         # naming would be incorrect, and it's unnecessary info for webapp tables.
@@ -1015,7 +994,7 @@ def get_record_idx(flat_case, field_grp, record_id, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: position index of record in field group's record list
     """
-    field_grp_id_name = get_fg_id_name(field_grp, is_webapp)
+    field_grp_id_name = get_field_group_id_key_name(field_grp, is_webapp)
     field_grp_id_key = get_bq_name(field_grp_id_name, is_webapp, field_grp)
     idx = 0
 
@@ -1042,7 +1021,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
     flattened_field_grp_parents = dict()
 
     for field_grp in record_counts:
-        if field_grp == get_base_fg(API_PARAMS):
+        if field_grp == get_base_fg():
             continue
         if record_counts[field_grp] == 1:
             if field_grp in flat_case:
@@ -1050,7 +1029,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
                 flattened_field_grp_parents[field_grp] = get_parent_fg(tables, field_grp)
 
     for field_grp, parent in flattened_field_grp_parents.items():
-        field_grp_id_name = get_fg_id_name(parent, is_webapp)
+        field_grp_id_name = get_field_group_id_key_name(parent, is_webapp)
         bq_parent_id_key = get_bq_name(field_grp_id_name, is_webapp, parent)
 
         for record in flat_case[field_grp]:
@@ -1075,7 +1054,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
 
     for field_grp in record_count_dict:
         parent_field_grp = get_parent_fg(tables, field_grp)
-        field_grp_id_name = get_fg_id_name(parent_field_grp, is_webapp)
+        field_grp_id_name = get_field_group_id_key_name(parent_field_grp, is_webapp)
         parent_id_key = get_bq_name(field_grp_id_name, is_webapp, parent_field_grp)
 
         # initialize record counts for parent id
@@ -1328,6 +1307,11 @@ def update_clin_schema():
 
 
 def change_status_to_archived(table_id):
+    """
+    todo
+    :param table_id:
+    :return:
+    """
     client = bigquery.Client()
     current_release_tag = get_rel_prefix(BQ_PARAMS)
     stripped_table_id = table_id.replace(current_release_tag, "")
@@ -1362,6 +1346,12 @@ def copy_tables_into_public_project(publish_table_list):
 
 
 def make_biospecimen_stub_table_query(main_table_id, program):
+    """
+    todo
+    :param main_table_id:
+    :param program:
+    :return:
+    """
     return """
         SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
         FROM (
@@ -1398,7 +1388,8 @@ def build_biospecimen_stub_tables(program):
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
-    biospec_table_name = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    bio_spec_table_name_list = [get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
+    biospec_table_name = build_table_name_from_list(bio_spec_table_name_list)
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
     load_table_from_query(BQ_PARAMS, biospec_table_id, biospec_stub_table_query)
@@ -1407,6 +1398,12 @@ def build_biospecimen_stub_tables(program):
 #    Script execution
 
 def make_publish_table_list_query(old_table_id, new_table_id):
+    """
+    todo
+    :param old_table_id:
+    :param new_table_id:
+    :return:
+    """
     return """
         SELECT count(*) as row_count
         FROM `{}` old
@@ -1418,6 +1415,10 @@ def make_publish_table_list_query(old_table_id, new_table_id):
 
 
 def build_publish_table_list():
+    """
+    todo
+    :return:
+    """
     old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_release = BQ_PARAMS['REL_PREFIX'] + BQ_PARAMS['RELEASE']
     old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
@@ -1546,6 +1547,12 @@ def create_tables(program, cases, schema, is_webapp=False):
 
 
 def make_release_fields_comparison_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         SELECT table_name AS release, field_path AS field
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
@@ -1560,6 +1567,12 @@ def make_release_fields_comparison_query(old_rel, new_rel):
 
 
 def find_release_changed_data_types_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
@@ -1571,6 +1584,13 @@ def find_release_changed_data_types_query(old_rel, new_rel):
 
 
 def make_field_diff_query(old_rel, new_rel, removed_fields):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :param removed_fields:
+    :return:
+    """
     check_rel = old_rel if removed_fields else new_rel
 
     return """
@@ -1588,6 +1608,12 @@ def make_field_diff_query(old_rel, new_rel, removed_fields):
 
 
 def make_datatype_diff_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         WITH data_types as (SELECT field_path, data_type
           FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
@@ -1602,6 +1628,12 @@ def make_datatype_diff_query(old_rel, new_rel):
 
 
 def make_removed_case_ids_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         SELECT case_id, project.project_id
         FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
@@ -1613,6 +1645,12 @@ def make_removed_case_ids_query(old_rel, new_rel):
 
 
 def make_added_case_ids_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         SELECT project.project_id, count(case_id) as new_case_cnt
         FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
@@ -1625,8 +1663,14 @@ def make_added_case_ids_query(old_rel, new_rel):
 
 
 def make_tables_diff_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
-        WITH old_table_cnts AS (
+        WITH old_table_counts AS (
           SELECT program, COUNT(program) AS num_tables 
           FROM (
             SELECT els[OFFSET(1)] AS program
@@ -1654,7 +1698,7 @@ def make_tables_diff_query(old_rel, new_rel):
                 o.num_tables AS prev_table_cnt, 
                 n.num_tables AS new_table_cnt
         FROM new_table_cnts n
-        FULL OUTER JOIN old_table_cnts o
+        FULL OUTER JOIN old_table_counts o
           ON o.program = n.program
         WHERE o.num_tables != n.num_tables
           OR o.num_tables IS NULL or n.num_tables IS NULL
@@ -1663,6 +1707,12 @@ def make_tables_diff_query(old_rel, new_rel):
 
 
 def make_new_table_list_query(old_rel, new_rel):
+    """
+    todo
+    :param old_rel:
+    :param new_rel:
+    :return:
+    """
     return """
         WITH old_tables AS (
           SELECT table_name
@@ -1682,6 +1732,10 @@ def make_new_table_list_query(old_rel, new_rel):
 
 
 def compare_gdc_releases():
+    """
+    todo
+    :return:
+    """
     old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(BQ_PARAMS)
 
@@ -1805,7 +1859,8 @@ def get_cases_by_program(program):
 
     cases = []
 
-    sample_table_name = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    sample_table_name_list = [get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
+    sample_table_name = build_table_name_from_list(sample_table_name_list)
     sample_table_id = build_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
 
     query = """
@@ -1826,6 +1881,11 @@ def get_cases_by_program(program):
 
 
 def validate_config(yaml_output_tuple):
+    """
+    todo
+    :param yaml_output_tuple:
+    :return:
+    """
     api_param_field_dict = {
         "ENDPOINT": [str],
         "BATCH_SIZE": [int],
@@ -1856,14 +1916,14 @@ def validate_config(yaml_output_tuple):
         has_fatal_error("No script processing 'steps' found in YAML config, exiting.")
 
     for api_param in api_param_field_dict.keys():
-        if not api_param in api_params:
+        if api_param not in api_params:
             has_fatal_error("Missing 'api_params: {}' in YAML config, exiting".format(api_param))
         param_type = type(api_params[api_params])
         if param_type not in api_param_field_dict[api_param]:
             has_fatal_error("Invalid type for 'api_params: {}' in YAML config, exiting".format(api_param))
 
     for bq_param in bq_param_field_dict.keys():
-        if not bq_param in bq_params:
+        if bq_param not in bq_params:
             has_fatal_error("Missing 'bq_params: {}' in YAML config, exiting".format(bq_param))
         param_type = type(bq_params[bq_params])
         if param_type not in bq_param_field_dict[bq_param]:

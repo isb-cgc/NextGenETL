@@ -131,7 +131,19 @@ def extract_api_response_json(local_path):
 
 
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
+    """
+    todo
+    :param grouped_fields_dict:
+    :param cases:
+    :return:
+    """
     def add_case_field_to_master_dict(record, parent_fg_list):
+        """
+        todo
+        :param record:
+        :param parent_fg_list:
+        :return:
+        """
         if not record:
             return
 
@@ -168,6 +180,12 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
 
 
 def add_missing_fields_and_normalize_case(fields_dict, case):
+    """
+    todo
+    :param fields_dict:
+    :param case:
+    :return:
+    """
     case_items = dict()
 
     for key in fields_dict.keys():
@@ -248,7 +266,19 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
 
 
 def modify_response_json_and_output_jsonl(local_jsonl_path):
+    """
+    todo
+    :param local_jsonl_path:
+    :return:
+    """
     def assert_output_count(field_group, fields, fgs_to_remove=None):
+        """
+        todo
+        :param field_group:
+        :param fields:
+        :param fgs_to_remove:
+        :return:
+        """
         fgs_to_remove = set() if not fgs_to_remove else fgs_to_remove
         offset = len(fgs_to_remove)
         actual_cnt = len(fields) - offset
@@ -332,6 +362,14 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
 
 
 def infer_types(record, fields_dict, types_dict, parent_fg_list):
+    """
+    todo
+    :param record:
+    :param fields_dict:
+    :param types_dict:
+    :param parent_fg_list:
+    :return:
+    """
     field_group_key = ".".join(parent_fg_list)
 
     if isinstance(record, list):
@@ -356,6 +394,12 @@ def infer_types(record, fields_dict, types_dict, parent_fg_list):
 
 
 def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
+    """
+    todo
+    :param grouped_fields_dict:
+    :param scratch_fp:
+    :return:
+    """
     column_data_types = dict()
 
     count = 1
@@ -378,6 +422,11 @@ def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
 
 
 def get_grouped_fields_dict(local_jsonl_path):
+    """
+    todo
+    :param local_jsonl_path:
+    :return:
+    """
     local_json_path = local_jsonl_path[:-1]
 
     with open(local_json_path, 'r') as json_file:
@@ -399,6 +448,10 @@ def get_grouped_fields_dict(local_jsonl_path):
 
 
 def create_field_mapping_dict():
+    """
+    todo
+    :return:
+    """
     res = requests.get(API_PARAMS['ENDPOINT'] + '/_mapping')
 
     # return response body if request was successful
@@ -410,7 +463,17 @@ def create_field_mapping_dict():
 
 
 def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
+    """
+    todo
+    :param grouped_fields_dict:
+    :param column_data_types_dict:
+    :return:
+    """
     def append_to_nested_schema_dict():
+        """
+        todo
+        :return:
+        """
         fg_fields_list.append(
             {
                 "name": full_field_name.split('.')[-1],
