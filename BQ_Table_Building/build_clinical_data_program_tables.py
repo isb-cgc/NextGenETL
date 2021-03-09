@@ -950,7 +950,10 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
                     if row_field in excluded or not row[row_field]:
                         row.pop(row_field)
 
-        flat_case[fg].append(row)
+        if API_PARAMS['FG_CONFIGS'][fg]['id_key'] not in row:
+            print("{}: {}\nrow:\n{}\n,".format(API_PARAMS['FG_CONFIGS'][fg]['id_key'], fg, row))
+        else:
+            flat_case[fg].append(row)
 
 
 def flatten_case(case, is_webapp):
