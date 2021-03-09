@@ -103,7 +103,7 @@ def infer_schema_file_location_by_table_id(table_id):
     :return:
     """
     split_table_id = table_id.split('.')
-    filepath = "/".join(split_table_id) + ".json"
+    filepath = ".".join(split_table_id) + ".json"
     return filepath
 
 
