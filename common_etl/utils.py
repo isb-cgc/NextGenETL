@@ -309,8 +309,6 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
 
-    print(5)
-
     if schema:
         job_config.schema = schema
     else:
@@ -366,7 +364,6 @@ def get_query_results(query):
     :param query: query string
     :return: result object
     """
-    print(query)
     client = bigquery.Client()
     query_job = client.query(query)
     return query_job.result()
@@ -494,8 +491,6 @@ def load_bq_schema_from_json(bq_params, filename):
 
     fp = get_filepath(bq_params['BQ_REPO'] + "/" + bq_params['SCHEMA_DIR'], filename)
 
-    print(fp)
-
     if not os.path.exists(fp):
         has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
 
@@ -546,7 +541,6 @@ def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
         try:
             prev_table = client.get_table(prev_table_id)
             prev_table.labels['status'] = 'archived'
-            print("labels: {}".format(prev_table.labels))
             client.update_table(prev_table, ["labels"])
             assert prev_table.labels['status'] == 'archived'
         except NotFound:
