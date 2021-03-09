@@ -1812,7 +1812,7 @@ def main(args):
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(str(err), ValueError)
+        has_fatal_error(err, ValueError)
 
     # ** UTILITY STEPS **
 
