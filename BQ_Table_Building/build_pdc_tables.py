@@ -263,7 +263,7 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
 
     print("Creating {}:".format(table_id))
 
-    if infer_schema:
+    if not infer_schema:
         pass
 
         schema_filename = infer_schema_file_location_by_table_id(table_id)
