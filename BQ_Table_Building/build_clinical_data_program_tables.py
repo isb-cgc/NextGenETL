@@ -1056,6 +1056,7 @@ def merge_single_entry_fgs(flat_case, record_counts, is_webapp=False):
 
         for record in flat_case[field_grp]:
             parent_id = record[bq_parent_id_key]
+            print(1)
             parent_idx = get_record_idx(flat_case, parent, parent_id, is_webapp)
             flat_case[parent][parent_idx].update(record)
         flat_case.pop(field_grp)
@@ -1103,6 +1104,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         count_name = get_bq_name('count', is_webapp, field_grp)
 
         for parent_id, count in parent_ids.items():
+            print(2)
             p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id, is_webapp)
             flat_case[parent_field_grp][p_key_idx][count_name] = count
 
