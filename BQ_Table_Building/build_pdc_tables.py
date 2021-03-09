@@ -238,6 +238,7 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
+    print(0)
 
     if infer_schema:
         print(1)
