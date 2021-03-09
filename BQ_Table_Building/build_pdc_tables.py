@@ -242,7 +242,6 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     print(0)
 
     if infer_schema:
-        print(1)
         create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
     if not infer_schema and not schema:
@@ -259,35 +258,22 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     return table_id
 
 
-def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
-    print(11)
+def build_table_from_jsonl(endpoint, infer_schema=False):
     table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    print(12)
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-
-    # todo fix
-    if is_metadata:
-        print(12)
-        dataset = BQ_PARAMS['META_DATASET']
-    else:
-        print(13)
-        dataset = BQ_PARAMS['DEV_DATASET']
-
-    print(14)
-    table_id = get_dev_table_id(table_name, dataset=dataset)
-
+    table_id = get_dev_table_id(table_name)
     print("Creating {}:".format(table_id))
 
     if infer_schema:
-        create_and_load_table(BQ_PARAMS, filename, table_id)
+        schema = None
     else:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
-        if not infer_schema and not schema:
+        if not schema:
             has_fatal_error("No schema found and infer_schema set to False, exiting")
 
-        create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
@@ -337,8 +323,8 @@ def make_gene_symbols_per_study_query(pdc_study_id):
     :return:
     """
     # todo make function to build these names
-    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id,
-                                      release=BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS, BQ_PARAMS['QUANT_DATA_TABLE'],
+                                      pdc_study_id, release=BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name)
 
     return """
@@ -586,6 +572,7 @@ def is_uniprot_accession_number(id_str):
     :param id_str:
     :return:
     """
+
     # based on format specified at https://web.expasy.org/docs/userman.html#AC_line
     def is_alphanumeric(char):
         if char.isdigit() or char.isalpha():
@@ -1850,8 +1837,7 @@ def main(args):
         delete_from_steps('build_studies_jsonl', steps)  # allows for exit without building study lists if not used
 
     if 'build_studies_table' in steps:
-        build_table_from_jsonl(endpoint='allPrograms',
-                               infer_schema=True)
+        build_table_from_jsonl(endpoint='allPrograms', infer_schema=True)
 
         delete_from_steps('build_studies_table', steps)  # allows for exit without building study lists if not used
 
@@ -1894,8 +1880,7 @@ def main(args):
                                  ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(endpoint="filesPerStudy",
-                               infer_schema=True)
+        build_table_from_jsonl(endpoint="filesPerStudy", infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
         fps_table_name = construct_table_name(BQ_PARAMS,
@@ -1959,8 +1944,7 @@ def main(args):
                                  insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
-        build_table_from_jsonl(endpoint='paginatedCaseDiagnosesPerStudy',
-                               infer_schema=True)
+        build_table_from_jsonl(endpoint='paginatedCaseDiagnosesPerStudy', infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
@@ -1970,8 +1954,7 @@ def main(args):
                                  insert_id=True)
 
     if 'build_case_demographics_table' in steps:
-        build_table_from_jsonl(endpoint='paginatedCaseDemographicsPerStudy',
-                               infer_schema=True)
+        build_table_from_jsonl(endpoint='paginatedCaseDemographicsPerStudy', infer_schema=True)
 
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         # get unique project_submitter_ids from studies_list
@@ -2103,8 +2086,7 @@ def main(args):
                                  insert_id=True)
 
     if 'build_biospecimen_table' in steps:
-        build_table_from_jsonl(endpoint="biospecimenPerStudy",
-                               infer_schema=True)
+        build_table_from_jsonl(endpoint="biospecimenPerStudy", infer_schema=True)
 
     # todo merge PDC study ids for given case_id into single row, probably?
 
