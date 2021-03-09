@@ -1929,7 +1929,7 @@ def main(args):
                                  request_function=make_cases_aliquots_query)
 
     if 'build_cases_aliquots_table' in steps:
-        build_table_from_jsonl("paginatedCasesSamplesAliquots")
+        build_table_from_jsonl("paginatedCasesSamplesAliquots", infer_schema=True)
 
     if 'build_case_diagnoses_jsonl' in steps:
         build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
