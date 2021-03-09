@@ -35,7 +35,7 @@ from google.cloud import bigquery, storage, exceptions
 
 #   TABLE FUNCTIONS
 
-def build_table_name(str_list):
+def build_table_name_from_list(str_list):
     """Constructs a table name (str) from list<str>.
 
     :param str_list: a list<str> of table name segments
@@ -46,6 +46,20 @@ def build_table_name(str_list):
     # replace '.' with '_' so that the name is valid
     # ('.' chars not allowed -- issue with BEATAML1.0, for instance)
     return table_name.replace('.', '_')
+
+
+def construct_table_name(bq_params, prefix, suffix=None, include_release=True, release=None):
+    table_name = prefix
+
+    if suffix:
+        table_name += '_' + suffix
+
+    if release:
+        table_name += '_' + release
+    elif include_release:
+        table_name += '_' + bq_params['RELEASE']
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
 def build_table_id(project, dataset, table):
@@ -82,7 +96,7 @@ def get_webapp_table_id(bq_params, table_name):
     return build_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
 
 
-#   I/O Getters
+#    FILESYSTEM HELPERS
 
 
 def get_filepath(dir_path, filename=None):
@@ -117,9 +131,6 @@ def bq_json_converter(obj):
         return str(obj)
     if isinstance(obj, datetime.time):
         return str(obj)
-
-
-#       FILESYSTEM HELPERS
 
 
 # todo can this be used in write_list_to_jsonl?
@@ -448,6 +459,60 @@ def to_bq_schema_obj(schema_field_dict):
     return bigquery.SchemaField.from_api_repr(schema_field_dict)
 
 
+def get_publish_table_ids(bq_params, public_dataset, src_table_id):
+    split_table_id = src_table_id.split('.')
+    split_table_name = split_table_id[-1].split('_')
+
+    release = split_table_name.pop(0)
+
+    program_or_dataset_type = '_'.join(split_table_name)
+
+    curr_table_name = "_".join([program_or_dataset_type, bq_params['DATA_SOURCE'], 'current'])
+    current_table_id = build_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
+
+    versioned_dataset = public_dataset + '_versioned'
+    versioned_table_name = "_".join([program_or_dataset_type, bq_params['DATA_SOURCE'], release])
+    versioned_table_id = build_table_id(bq_params['PROD_PROJECT'], versioned_dataset, versioned_table_name)
+
+    return current_table_id, versioned_table_id
+
+
+def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
+    current_table_id, versioned_table_id = get_publish_table_ids(bq_params, public_dataset, source_table_id)
+
+    if exists_bq_table(source_table_id):
+        print("Publishing {}".format(versioned_table_id))
+        copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
+
+        print("Publishing {}".format(current_table_id))
+        copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
+
+        print("Updating friendly name for {}\n".format(versioned_table_id))
+        is_gdc = True if bq_params['DATA_SOURCE'] == 'gdc' else False
+        update_friendly_name(bq_params, versioned_table_id, is_gdc)
+
+        change_status_to_archived(bq_params, source_table_id)
+        
+
+def change_status_to_archived(bq_params, table_id):
+    client = bigquery.Client()
+    current_release_tag = get_rel_prefix(bq_params)
+
+    stripped_table_id = table_id.replace(current_release_tag, "")
+    previous_release_tag = get_rel_prefix(bq_params, previous_version=True)
+    prev_table_id = stripped_table_id + previous_release_tag
+
+    try:
+        prev_table = client.get_table(prev_table_id)
+        prev_table.labels['status'] = 'archived'
+        print("labels: {}".format(prev_table.labels))
+        client.update_table(prev_table, ["labels"])
+
+        assert prev_table.labels['status'] == 'archived'
+    except NotFound:
+        print("Not writing archived label for table that didn't exist in a previous version.")
+
+
 def update_table_metadata(table_id, metadata):
     """Modify an existing BQ table with additional metadata.
 
@@ -770,9 +835,11 @@ def infer_data_types(flattened_json):
 #       MISC UTILITIES
 
 
-def get_rel_prefix(bq_params):
+def get_rel_prefix(bq_params, return_last_version=False, version=None):
     """Get current release number/date (set in yaml config).
-
+    todo
+    :param version:
+    :param return_last_version:
     :param bq_params: bq param object from yaml config
     :return: release abbreviation
     """
@@ -780,8 +847,21 @@ def get_rel_prefix(bq_params):
 
     if 'REL_PREFIX' in bq_params and bq_params['REL_PREFIX']:
         rel_prefix += bq_params['REL_PREFIX']
+
+    if version:
+        rel_prefix += version
+        return rel_prefix
+
     if 'RELEASE' in bq_params and bq_params['RELEASE']:
-        rel_prefix += bq_params['RELEASE']
+        rel_number = bq_params['RELEASE']
+
+        if return_last_version:
+            if bq_params['DATA_SOURCE'] == 'gdc':
+                rel_number -= 1
+            elif bq_params['DATA_SOURCE'] == 'pdc':
+                rel_number = bq_params['PREV_RELEASE']
+
+        rel_prefix += rel_number
 
     return rel_prefix
 

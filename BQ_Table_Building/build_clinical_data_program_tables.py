@@ -32,8 +32,8 @@ from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error
                               create_and_load_table, load_table_from_query, write_list_to_jsonl,
                               upload_to_bucket, exists_bq_table, get_working_table_id,
                               get_webapp_table_id, build_table_id, update_table_metadata, get_filepath,
-                              update_schema, copy_bq_table, update_friendly_name, list_bq_tables, format_seconds,
-                              load_config, delete_bq_table, build_table_name)
+                              update_schema, list_bq_tables, format_seconds,
+                              load_config, delete_bq_table, build_table_name_from_list, publish_table)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -96,7 +96,7 @@ def get_full_table_name(program, table):
     if suffix:
         table_name.append(suffix)
 
-    return build_table_name(table_name)
+    return build_table_name_from_list(table_name)
 
 
 def build_jsonl_name(program, table, is_webapp=False):
@@ -305,7 +305,7 @@ def flatten_tables(field_groups, record_counts, is_webapp=False):
     :param is_webapp: is script currently running the 'create_webapp_tables' step?
     :return: flattened table column dict.
     """
-    tables = get_one_to_many_tables(record_counts) # supplemental tables required
+    tables = get_one_to_many_tables(record_counts)  # supplemental tables required
     table_columns = dict()
 
     field_grp_depths = {field_grp: len(field_grp.split('.')) for field_grp in field_groups.keys()}
@@ -1349,36 +1349,13 @@ def copy_tables_into_public_project(publish_table_list):
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-
-    def get_publish_table_ids(bq_params, src_table_name):
-        split_table_name = src_table_name.split('_')
-        release = split_table_name.pop(0)
-        program = split_table_name.pop(0)
-        pub_table_name = '_'.join(split_table_name)
-
-        prod_project = bq_params['PROD_PROJECT']
-
-        curr_dataset = program
-        curr_table_name = "_".join([pub_table_name, bq_params['DATA_SOURCE'], 'current'])
-        current_table_id = build_table_id(prod_project, curr_dataset, curr_table_name)
-
-        versioned_dataset = program + '_versioned'
-        versioned_table_name = "_".join([pub_table_name, bq_params['DATA_SOURCE'], release])
-        versioned_table_id = build_table_id(prod_project, versioned_dataset, versioned_table_name)
-
-        return current_table_id, versioned_table_id
-
     for table_name in publish_table_list:
+        split_table_name = table_name.split('_')
+        split_table_name.pop(0)
+        public_dataset = split_table_name.pop(0)
         src_table_id = get_working_table_id(BQ_PARAMS, table_name)
-        curr_table_id, vers_table_id = get_publish_table_ids(BQ_PARAMS, table_name)
 
-        print("Publishing {}".format(vers_table_id))
-        copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
-        print("Publishing {}".format(curr_table_id))
-        copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
-
-        update_friendly_name(BQ_PARAMS, vers_table_id)
-        change_status_to_archived(vers_table_id)
+        publish_table(BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
 
 #    Webapp specific functions
@@ -1416,18 +1393,29 @@ def build_biospecimen_stub_tables(program):
     and sample_submitter_id (as sample_barcode).
     :param program: the program from which the cases originate.
     """
-    main_table = build_table_name([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+    main_table = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
     main_table_id = get_working_table_id(BQ_PARAMS, main_table)
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
-    biospec_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    biospec_table_name = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
     load_table_from_query(BQ_PARAMS, biospec_table_id, biospec_stub_table_query)
 
 
 #    Script execution
+
+def make_publish_table_list_query(old_table_id, new_table_id):
+    return """
+        SELECT count(*) as row_count
+        FROM `{}` old
+        FULL JOIN `{}` curr
+            ON old.case_id = curr.case_id
+        WHERE old.case_id is null 
+        OR curr.case_id is null
+    """.format(old_table_id, new_table_id)
+
 
 def build_publish_table_list():
     old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
@@ -1450,14 +1438,7 @@ def build_publish_table_list():
             old_table_id = get_working_table_id(BQ_PARAMS, old_table_name)
             new_table_id = get_working_table_id(BQ_PARAMS, new_table_name)
 
-            res = get_query_results("""
-                SELECT count(*) as row_count
-                FROM `{}` old
-                FULL JOIN `{}` curr
-                    ON old.case_id = curr.case_id
-                WHERE old.case_id is null 
-                OR curr.case_id is null
-            """.format(old_table_id, new_table_id))
+            res = get_query_results(make_publish_table_list_query(old_table_id, new_table_id))
 
             for row in res:
                 if row[0] > 0:
@@ -1824,7 +1805,7 @@ def get_cases_by_program(program):
 
     cases = []
 
-    sample_table_name = build_table_name([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
+    sample_table_name = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']])
     sample_table_id = build_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
 
     query = """
@@ -1842,6 +1823,51 @@ def get_cases_by_program(program):
         cases.append(case_items)
 
     return cases
+
+
+def validate_config(yaml_output_tuple):
+    api_param_field_dict = {
+        "ENDPOINT": [str],
+        "BATCH_SIZE": [int],
+        'START_INDEX': [int],
+        'PARENT_FG': [str],
+        'EXPAND_FG_LIST': [list, None],
+        'EXCLUDE_FIELDS': [dict, None]
+    }
+
+    bq_param_field_dict = {
+        'SCRATCH_DIR': [str],
+        'IO_MODE': [str],
+        'WORKING_BUCKET': [str],
+        'WORKING_BUCKET_DIR': [str],
+        'MASTER_TABLE': [str],
+        'REL_PREFIX': [str, None],
+        'RELEASE': [str],
+        'LOCATION': [str, None],
+        'DEV_PROJECT': [str],
+        'DEV_DATASET': [str]
+    }
+
+    api_params, bq_params, steps = yaml_output_tuple
+
+    active_steps = len(steps)
+
+    if not active_steps:
+        has_fatal_error("No script processing 'steps' found in YAML config, exiting.")
+
+    for api_param in api_param_field_dict.keys():
+        if not api_param in api_params:
+            has_fatal_error("Missing 'api_params: {}' in YAML config, exiting".format(api_param))
+        param_type = type(api_params[api_params])
+        if param_type not in api_param_field_dict[api_param]:
+            has_fatal_error("Invalid type for 'api_params: {}' in YAML config, exiting".format(api_param))
+
+    for bq_param in bq_param_field_dict.keys():
+        if not bq_param in bq_params:
+            has_fatal_error("Missing 'bq_params: {}' in YAML config, exiting".format(bq_param))
+        param_type = type(bq_params[bq_params])
+        if param_type not in bq_param_field_dict[bq_param]:
+            has_fatal_error("Invalid type for 'bq_params: {}' in YAML config, exiting".format(bq_param))
 
 
 def main(args):

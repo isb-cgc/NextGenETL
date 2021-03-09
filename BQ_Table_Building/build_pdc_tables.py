@@ -36,7 +36,8 @@ from common_etl.utils import (get_filepath, get_query_results, format_seconds, w
                               upload_to_bucket, get_graphql_api_response, has_fatal_error, from_schema_file_to_obj,
                               create_and_load_tsv_table, create_and_load_table, create_tsv_row, load_table_from_query,
                               delete_bq_table, copy_bq_table, exists_bq_table, update_schema, update_table_metadata,
-                              update_friendly_name, delete_bq_dataset, load_config, update_table_labels, list_bq_tables)
+                              delete_bq_dataset, load_config, update_table_labels, list_bq_tables, publish_table,
+                              construct_table_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -60,26 +61,12 @@ def has_table(project, dataset, table_name):
         return bool(has_table_res)
 
 
-def get_table_name(prefix, suffix=None, include_release=True, release=None):
-    table_name = prefix
-
-    if suffix:
-        table_name += '_' + suffix
-
-    if include_release and not release:
-        table_name += '_' + BQ_PARAMS['RELEASE']
-    elif release:
-        table_name += '_' + release
-
-    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
-
-
 def get_filename(file_extension, prefix, suffix=None, include_release=True, release=None):
-    filename = get_table_name(prefix, suffix, include_release, release)
+    filename = construct_table_name(prefix, suffix, include_release, release)
     return "{}.{}".format(filename, file_extension)
 
 
-def get_table_id(project, dataset, table_name):
+def get_table_id(project: object, dataset: object, table_name: object) -> object:
     return "{}.{}.{}".format(project, dataset, table_name)
 
 
@@ -95,7 +82,7 @@ def get_dev_table_id(table_name, is_metadata=False, dataset=None):
 
 
 def get_records(endpoint, select_statement, dataset):
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, dataset)
 
     query = select_statement
@@ -226,7 +213,7 @@ def request_data_from_pdc_api(endpoint, request_body_function, request_parameter
 
 
 def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, schema=None):
-    table_name = get_table_name(table_prefix)
+    table_name = construct_table_name(table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     print("Creating {}:".format(table_id))
@@ -244,7 +231,7 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
 
 
 def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata)
 
@@ -266,14 +253,14 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
     build_start = time.time()
 
-    table_name = get_table_name(table_prefix, table_suffix)
+    table_name = construct_table_name(table_prefix, table_suffix)
     table_id = get_table_id(project, dataset, table_name)
     schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
 
     if not schema and backup_table_suffix:
         print("No schema file found for {}, trying backup ({})".format(table_suffix, backup_table_suffix))
-        table_name = get_table_name(table_prefix, backup_table_suffix)
+        table_name = construct_table_name(table_prefix, backup_table_suffix)
         table_id = get_table_id(project, dataset, table_name)
         schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
         schema = from_schema_file_to_obj(BQ_PARAMS, schema_filename)
@@ -295,7 +282,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
 
 def make_gene_symbols_per_study_query(pdc_study_id):
     # todo make function to build these names
-    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
     table_id = get_dev_table_id(table_name)
 
     return """
@@ -324,7 +311,7 @@ def make_gene_query(gene_name):
 
 
 def make_swissprot_query():
-    table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
     swissprot_table_id = get_dev_table_id(table_name, is_metadata=True)
     return """
     SELECT swissprot_id 
@@ -333,9 +320,10 @@ def make_swissprot_query():
 
 
 def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
-    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], pdc_study_id, BQ_PARAMS['RELEASE'])
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['DEV_DATASET'])
 
-    if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name):
+    if exists_bq_table(table_id):
         results = get_query_results(make_gene_symbols_per_study_query(pdc_study_id))
 
         for row in results:
@@ -347,9 +335,10 @@ def build_gene_symbol_list(studies_list):
     gene_symbol_set = set()
 
     for study in studies_list:
-        table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+        table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+        table_id = get_dev_table_id(table_name, BQ_PARAMS['DEV_DATASET'])
 
-        if has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name):
+        if exists_bq_table(table_id):
             add_gene_symbols_per_study(study['pdc_study_id'], gene_symbol_set)
             print("- Added {}, current count: {}".format(study['pdc_study_id'], len(gene_symbol_set)))
         else:
@@ -734,8 +723,9 @@ def get_quant_files():
 
 
 def has_quant_table(study_submitter_id):
-    table_name = get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
-    return has_table(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
+    table_name = construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study_submitter_id)
+    table_id = get_dev_table_id(table_name, BQ_PARAMS['DEV_DATASET'])
+    return exists_bq_table(table_id)
 
 
 def get_proteome_studies(studies_list):
@@ -752,23 +742,20 @@ def get_quant_table_name(study, is_final=True):
     analytical_fraction = study['analytical_fraction']
 
     if not is_final:
-        return get_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
+        return construct_table_name(BQ_PARAMS['QUANT_DATA_TABLE'], study['pdc_study_id'], BQ_PARAMS['RELEASE'])
     else:
         study_name = study['study_name']
         study_name = study_name.replace(analytical_fraction, "")
-        study_name = change_study_name_to_table_name_format(study_name)
 
         return "_".join([BQ_PARAMS['QUANT_DATA_TABLE'],
                          analytical_fraction.lower(),
-                         study_name,
+                         change_study_name_to_table_name_format(study_name),
                          BQ_PARAMS['DATA_SOURCE'],
                          BQ_PARAMS['RELEASE']])
 
 
 def change_study_name_to_table_name_format(study_name):
-    study_name = study_name.replace("-", " ")
-    study_name = study_name.replace("   ", " ")
-    study_name = study_name.replace("  ", " ")
+    study_name = re.sub('[^0-9a-zA-Z_]+', '_', study_name)
 
     study_name_list = study_name.split(" ")
     new_study_name_list = list()
@@ -776,7 +763,6 @@ def change_study_name_to_table_name_format(study_name):
     for name in study_name_list:
         if not name.isupper():
             name = name.lower()
-
         if name:
             new_study_name_list.append(name)
 
@@ -853,7 +839,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
 
 def retrieve_all_studies_query(output_name):
-    table_name = get_table_name(output_name)
+    table_name = construct_table_name(output_name)
     table_id = get_dev_table_id(table_name, is_metadata=True)
 
     return """
@@ -935,7 +921,7 @@ def make_file_metadata_query(file_id):
 
 
 def make_associated_entities_query():
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
     table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
 
     return """SELECT file_id, 
@@ -950,9 +936,9 @@ def make_associated_entities_query():
 
 
 def make_combined_file_metadata_query():
-    file_metadata_table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    file_metadata_table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
     file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset="PDC_metadata")
-    file_per_study_table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+    file_per_study_table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
     file_per_study_table_id = get_dev_table_id(file_per_study_table_name, dataset="PDC_metadata")
 
     return """
@@ -990,7 +976,7 @@ def modify_api_file_metadata_table_query(fm_table_id):
 def modify_per_study_file_table_query(fps_table_id):
     temp_table_id = fps_table_id + "_temp"
 
-    study_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
+    study_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["allPrograms"]["output_name"])
     study_table_id = get_dev_table_id(study_table_name, dataset="PDC_metadata")
 
     return """
@@ -1024,7 +1010,7 @@ def alter_files_per_study_json(files_per_study_obj_list):
 
 
 def get_file_ids(endpoint):
-    table_name = get_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    table_name = construct_table_name(API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, is_metadata=True)
     return get_query_results(make_file_id_query(table_id))  # todo fix back
 
@@ -1331,7 +1317,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     shortened_project_name = BQ_PARAMS["PROJECT_ABBREVIATION_MAP"][project_name]
     table_prefix = "_".join([clinical_type, shortened_project_name, BQ_PARAMS['DATA_SOURCE']])
-    table_name = get_table_name(table_prefix)
+    table_name = construct_table_name(table_prefix)
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
     fields = {
@@ -1437,7 +1423,7 @@ def create_case_metadata_table_query():
 
 
 def create_case_aliquot_table_query():
-    biospec_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["biospecimenPerStudy"]["output_name"])
+    biospec_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["biospecimenPerStudy"]["output_name"])
     biospec_table_id = get_dev_table_id(biospec_table_name, dataset="PDC_metadata")
 
     return """
@@ -1519,22 +1505,6 @@ def update_pdc_table_metadata(dataset, table_type=None):
         with open(json_fp) as json_file_output:
             metadata = json.load(json_file_output)
             update_table_metadata(table_id, metadata)
-
-
-def publish_table(dataset, src_table_name):
-    src_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'], dataset, src_table_name)
-    versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', src_table_name)
-
-    current_table_name = src_table_name.replace(BQ_PARAMS['RELEASE'], "current")
-    current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, current_table_name)
-
-    if exists_bq_table(src_table_id):
-        print("Publishing {}".format(versioned_table_id))
-        copy_bq_table(BQ_PARAMS, src_table_id, versioned_table_id, replace_table=True)
-        print("Publishing {}".format(current_table_id))
-        copy_bq_table(BQ_PARAMS, src_table_id, current_table_id, replace_table=True)
-        print("Updating friendly name for {}\n".format(versioned_table_id))
-        update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
 
 
 def main(args):
@@ -1640,7 +1610,7 @@ def main(args):
                                infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
-        fps_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
+        fps_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
         fps_table_id = get_dev_table_id(fps_table_name, dataset="PDC_metadata")
 
         create_modified_temp_table(fps_table_id, modify_per_study_file_table_query(fps_table_id))
@@ -1654,7 +1624,7 @@ def main(args):
                                infer_schema=True)
 
     if 'alter_api_file_metadata_table' in steps:
-        fm_table_name = get_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
+        fm_table_name = construct_table_name(API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
         fm_table_id = get_dev_table_id(fm_table_name, dataset="PDC_metadata")
 
         create_modified_temp_table(fm_table_id, modify_api_file_metadata_table_query(fm_table_id))
@@ -1662,13 +1632,13 @@ def main(args):
     if 'build_file_associated_entries_table' in steps:
         # Note, this assumes aliquot id will exist, because that's true. This will either be null,
         # or it'll have an aliquot id. If this ever changes, we'll need to adjust, but not expected that it will.
-        table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        table_name = construct_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         full_table_id = get_dev_table_id(table_name, dataset="PDC_metadata")
         load_table_from_query(BQ_PARAMS, full_table_id, make_associated_entities_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
 
     if 'build_file_metadata_table' in steps:
-        table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
+        table_name = construct_table_name(BQ_PARAMS['FILE_METADATA'])
         full_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
         load_table_from_query(BQ_PARAMS, full_table_id, make_combined_file_metadata_query())
         update_column_metadata(BQ_PARAMS['FILE_METADATA'], full_table_id)
@@ -1891,7 +1861,7 @@ def main(args):
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
         split_file = gz_file_name.split('.')
 
-        mapping_table = get_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        mapping_table = construct_table_name(BQ_PARAMS['UNIPROT_MAPPING_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
         fps_table_id = get_dev_table_id(mapping_table, is_metadata=True)
 
         print("\nBuilding {0}... ".format(fps_table_id))
@@ -1903,7 +1873,7 @@ def main(args):
         print("Uniprot table built!")
 
     if 'build_swissprot_table' in steps:
-        table_name = get_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
+        table_name = construct_table_name(BQ_PARAMS['SWISSPROT_TABLE'], release=BQ_PARAMS['UNIPROT_RELEASE'])
         fps_table_id = get_dev_table_id(table_name, is_metadata=True)
 
         print("Building {0}... ", (fps_table_id,))
@@ -1972,28 +1942,14 @@ def main(args):
             project_submitter_id = study['project_submitter_id']
 
             if project_submitter_id not in BQ_PARAMS['PROD_DATASET_MAP']:
-                continue
+                has_fatal_error("{} metadata missing from PROD_DATASET_MAP".format(project_submitter_id))
 
-            dataset = BQ_PARAMS['PROD_DATASET_MAP'][project_submitter_id]
+            public_dataset = BQ_PARAMS['PROD_DATASET_MAP'][project_submitter_id]
+            source_table_id = get_dev_table_id(table_name)
 
-            src_table_id = get_dev_table_id(table_name)
-            vers_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset + '_versioned', table_name)
-
-            current_table_name = table_name.replace(BQ_PARAMS["RELEASE"], "") + 'current'
-            curr_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'], dataset, current_table_name)
-
-            if exists_bq_table(src_table_id):
-                print("Publishing {}".format(vers_table_id))
-                copy_bq_table(BQ_PARAMS, src_table_id, vers_table_id, replace_table=True)
-                print("Publishing {}".format(curr_table_id))
-                copy_bq_table(BQ_PARAMS, src_table_id, curr_table_id, replace_table=True)
-
-                update_friendly_name(BQ_PARAMS, vers_table_id, is_gdc=False)
-
-                # todo -- next round -- how to change past version to archived, since it isn't version# - 1
+            publish_table(BQ_PARAMS, public_dataset, source_table_id, overwrite=True)
 
     if "publish_clinical_tables" in steps:
-
         # create dict of project shortnames and the dataset they belong to
         dataset_map = dict()
 
@@ -2014,39 +1970,21 @@ def main(args):
                 if rem_str in project_shortname:
                     project_shortname = project_shortname.replace(rem_str, '')
 
-            dataset_id = dataset_map[project_shortname]
+            public_dataset = dataset_map[project_shortname]
+            source_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
 
-            current_table_name = table_name.replace(BQ_PARAMS['RELEASE'], 'current')
-            current_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
-                                            dataset_id,
-                                            current_table_name)
-
-            versioned_table_id = get_table_id(BQ_PARAMS['PROD_PROJECT'],
-                                              dataset_id + '_versioned',
-                                              table_name)
-
-            source_table_id = get_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                           BQ_PARAMS['CLINICAL_DATASET'],
-                                           table_name)
-
-            if exists_bq_table(source_table_id):
-                print("Publishing {}".format(versioned_table_id))
-                copy_bq_table(BQ_PARAMS, source_table_id, versioned_table_id, replace_table=True)
-
-                print("Publishing {}".format(current_table_id))
-                copy_bq_table(BQ_PARAMS, source_table_id, current_table_id, replace_table=True)
-
-                update_friendly_name(BQ_PARAMS, versioned_table_id, is_gdc=False)
+            publish_table(BQ_PARAMS, public_dataset, source_table_id, overwrite=True)
 
     if "publish_file_metadata_tables" in steps:
-        file_metadata_table_name = get_table_name(BQ_PARAMS['FILE_METADATA'])
-        publish_table(BQ_PARAMS["META_DATASET"], file_metadata_table_name)
+        file_metadata_table_name = construct_table_name(BQ_PARAMS['FILE_METADATA'])
+        file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset=BQ_PARAMS['META_DATASET'])
+        publish_table(BQ_PARAMS, BQ_PARAMS['FILE_METADATA'], file_metadata_table_id, overwrite=True)
 
-        mapping_table_name = get_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-        publish_table(BQ_PARAMS["META_DATASET"], mapping_table_name)
+        mapping_table_name = construct_table_name(BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        mapping_table_id = get_dev_table_id(mapping_table_name, dataset=BQ_PARAMS['META_DATASET'])
+        publish_table(BQ_PARAMS, BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'], mapping_table_id, overwrite=True)
 
     print_elapsed_time_and_exit(start_time)
 
-
-if __name__ == '__main__':
-    main(sys.argv)
+    if __name__ == '__main__':
+        main(sys.argv)
