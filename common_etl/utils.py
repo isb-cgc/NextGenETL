@@ -491,6 +491,8 @@ def load_bq_schema_from_json(bq_params, filename):
 
     fp = get_filepath(bq_params['BQ_REPO'] + "/" + bq_params['SCHEMA_DIR'], filename)
 
+    print(fp)
+
     if not os.path.exists(fp):
         has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
 
