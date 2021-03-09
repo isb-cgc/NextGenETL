@@ -238,7 +238,6 @@ def create_schema_dict(is_webapp=False):
     schema_list = []
 
     for schema_field in bq_table.schema:
-        json_schema_field = schema_field.to_api_repr()
         schema_list.append(schema_field.to_api_repr())
 
     schema = dict()
@@ -950,8 +949,8 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name, is_webapp)
                     if row_field in excluded or not row[row_field]:
                         row.pop(row_field)
 
-        if API_PARAMS['FG_CONFIGS'][fg]['id_key'] not in row:
-            print("{}: {}\nrow:\n{}\n,".format(API_PARAMS['FG_CONFIGS'][fg]['id_key'], fg, row))
+        if API_PARAMS['FG_CONFIG'][fg]['id_key'] not in row:
+            print("{}: {}\nrow:\n{}\n,".format(API_PARAMS['FG_CONFIG'][fg]['id_key'], fg, row))
         else:
             flat_case[fg].append(row)
 
