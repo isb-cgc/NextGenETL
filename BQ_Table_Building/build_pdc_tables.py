@@ -260,24 +260,28 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
 
 
 def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
+    print(11)
     table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    print(12)
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
 
     # todo fix
     if is_metadata:
+        print(12)
         dataset = BQ_PARAMS['META_DATASET']
     else:
+        print(13)
         dataset = BQ_PARAMS['DEV_DATASET']
 
+    print(14)
     table_id = get_dev_table_id(table_name, dataset=dataset)
 
     print("Creating {}:".format(table_id))
 
-    if not infer_schema:
-        pass
-
+    if infer_schema:
+        create_and_load_table(BQ_PARAMS, filename, table_id)
+    else:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
-
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
         if not infer_schema and not schema:
@@ -1966,8 +1970,8 @@ def main(args):
                                  insert_id=True)
 
     if 'build_case_demographics_table' in steps:
-        print("HI")
-        build_table_from_jsonl(endpoint='paginatedCaseDemographicsPerStudy', infer_schema=True)
+        build_table_from_jsonl(endpoint='paginatedCaseDemographicsPerStudy',
+                               infer_schema=True)
 
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         # get unique project_submitter_ids from studies_list
