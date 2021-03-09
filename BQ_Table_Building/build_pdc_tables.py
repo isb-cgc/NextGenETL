@@ -261,7 +261,7 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
 def build_table_from_jsonl(endpoint, infer_schema=False):
     table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(table_name)
+    table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['CLINICAL_DATASET'])
     print("Creating {}:".format(table_id))
 
     if infer_schema:
