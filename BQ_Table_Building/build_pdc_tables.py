@@ -1743,7 +1743,8 @@ def update_pdc_table_metadata(dataset, table_type=None):
     :param table_type:
     :return:
     """
-    metadata_fp = "/".join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]])
+    fp_list = [BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], BQ_PARAMS["RELEASE"]]
+    metadata_fp = get_filepath("/".join(fp_list))
     metadata_files = [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
 
     filtered_metadata_files = list()
@@ -1764,7 +1765,7 @@ def update_pdc_table_metadata(dataset, table_type=None):
             continue
 
         print("- {}".format(table_id))
-        json_fp = get_filepath(metadata_fp, table_metadata_json_file)
+        json_fp = "/".join([metadata_fp, table_metadata_json_file])
 
         with open(json_fp) as json_file_output:
             metadata = json.load(json_file_output)
