@@ -437,6 +437,8 @@ def main(args):
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_table_id = params['PUBLISH_TABLE_ID']
+    publish_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_{release}'
+    publish_full_table_id_current = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
     #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
 
 
@@ -664,26 +666,17 @@ def main(args):
     # publish table:
     #
 
-    if 'publish' in steps: # todo
+    if 'publish' in steps:
         print('publish tables')
         tables = ['versioned', 'current']
 
         for table in tables:
             if table == 'versioned':
                 print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                                 draft_table.format(release))
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                                     publication_table.format(release))
+                success = publish_table(scratch_full_table_id_versioned, publish_full_table_id_versioned)
             elif table == 'current':
                 print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                                 draft_table.format('current'))
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     params['PUBLICATION_DATASET'],
-                                                     publication_table.format('current'))
-            success = publish_table(source_table, publication_dest)
+                success = publish_table(scratch_full_table_id_current, publish_full_table_id_current)
 
         if not success:
             print("publish table failed")
