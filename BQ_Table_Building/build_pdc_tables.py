@@ -1279,7 +1279,7 @@ def make_cases_query():
     :return:
     """
     return """{
-        allCases {
+        allCases ( acceptDUA: true) {
             case_id 
             case_submitter_id 
             project_submitter_id 
