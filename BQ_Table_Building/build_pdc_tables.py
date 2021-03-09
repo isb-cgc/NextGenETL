@@ -2018,8 +2018,6 @@ def main(args):
 
         print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
-        print(2)
-
         for project_name, project_dict in cases_by_project_submitter.items():
             record_count = len(project_dict['cases'])
             max_diagnosis_count = project_dict['max_diagnosis_count']
@@ -2033,7 +2031,6 @@ def main(args):
             # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
             # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
             cases = project_dict['cases']
-            print(3)
             for case in cases:
                 if 'case_id' not in case:
                     continue
@@ -2054,8 +2051,6 @@ def main(args):
                         clinical_diagnoses_records.append(clinical_diagnoses_record)
 
                 clinical_records.append(clinical_case_record)
-
-            print(4)
 
             if clinical_records:
                 temp_clinical_table_id = remove_nulls_and_create_temp_table(clinical_records,
