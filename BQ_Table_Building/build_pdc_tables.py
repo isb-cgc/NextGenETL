@@ -1567,17 +1567,11 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     :return:
     """
     clinical_type = "clinical" if not is_diagnoses else "clinical_diagnoses"
-    print('a')
-
     remove_null_values(records)
-    print('b')
-
     clinical_jsonl_filename = get_filename('jsonl', project_name, clinical_type)
     local_clinical_filepath = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
     write_list_to_jsonl(local_clinical_filepath, records)
-    print('c')
     upload_to_bucket(BQ_PARAMS, local_clinical_filepath, delete_local=True)
-    print('d')
 
     clinical_table_prefix = "temp_" + project_name + "_" + clinical_type
     return build_clinical_table_from_jsonl(clinical_table_prefix, clinical_jsonl_filename, infer_schema)
