@@ -262,18 +262,18 @@ def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
     table_id = get_dev_table_id(table_name, dataset=dataset)
 
     print("Creating {}:".format(table_id))
-    schema_filename = infer_schema_file_location_by_table_id(table_id)
 
-    schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
-
-    if not infer_schema and not schema:
-        has_fatal_error("No schema found and infer_schema set to False, exiting")
-
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
-
-    if infer_schema and not schema:
+    if infer_schema:
         pass
-        # todo add schema verification
+
+        schema_filename = infer_schema_file_location_by_table_id(table_id)
+
+        schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
+
+        if not infer_schema and not schema:
+            has_fatal_error("No schema found and infer_schema set to False, exiting")
+
+        create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
 
 def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, backup_table_suffix=None):
