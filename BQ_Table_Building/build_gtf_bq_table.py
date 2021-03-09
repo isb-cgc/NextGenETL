@@ -12,14 +12,14 @@ from alive_progress import alive_bar
 import io
 import gzip
 import csv
+import wget
 #import pyarrow
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
                                install_labels_and_desc, compare_then_remove_table
 
-# todo
-# to remove
+# todo to remove
 # def add_labels_and_descriptions(project, full_table_id):
 #     '''
 #         @paramaters project, full_table_id
@@ -146,14 +146,14 @@ def split_version_ids(final_merged_csv):
 
     df = pd.read_csv(final_merged_csv)
     df = df.drop(['attribute'], axis=1)
-    
-    columns_to_split = ['gene_id',
-                        'transcript_id',
-                        'exon_id',
-                        'ccds_id',
-                        'protein_id',
-                        'hava_gene',
-                        'havana_transcript']
+
+    # columns_to_split = ['gene_id',
+    #                     'transcript_id',
+    #                     'exon_id',
+    #                     'ccds_id',
+    #                     'protein_id',
+    #                     'hava_gene',
+    #                     'havana_transcript']
 
     gene_id_v = []
     transcript_id_v = []
@@ -445,9 +445,10 @@ def main(args):
 
 #    schema = schema_with_description(path_to_json_schema) # todo to remove
 
-    if 'download_files' in steps:
+    if 'download_file' in steps:
+        # Download gtf file from FTP site and save it to the VM
         print('Downloading files from GENCODE ftp site')
-        #todo
+        wget(params['FTP_URL'], params['FILE_PATH'])
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
@@ -681,6 +682,10 @@ def main(args):
         if not success:
             print("publish table failed")
             return
+
+# todo archive step
+
+# todo remove temp tables step
 
 if __name__ == '__main__':
     main(sys.argv)
