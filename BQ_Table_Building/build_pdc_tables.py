@@ -239,6 +239,9 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
 
     print("Creating {}:".format(table_id))
 
+    if infer_schema:
+        create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+
     if not infer_schema and not schema:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
@@ -246,7 +249,7 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
         if not schema:
             has_fatal_error("No schema, exiting")
 
-    create_and_load_table(BQ_PARAMS, filename, table_id, schema)
+        create_and_load_table(BQ_PARAMS, filename, table_id, schema)
 
     return table_id
 
