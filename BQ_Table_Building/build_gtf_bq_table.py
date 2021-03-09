@@ -347,8 +347,7 @@ def count_number_of_lines(a_file):
     
     return number_of_lines
 
-# todo
-# to remove
+# todo to remove
 # def schema_with_description(path_to_json):
 #
 #     '''
@@ -438,11 +437,11 @@ def main(args):
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_table_id = params['PUBLISH_TABLE_ID']
-    #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] #todo
+    #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
 
 
 
-#    schema = schema_with_description(path_to_json_schema) #todo
+#    schema = schema_with_description(path_to_json_schema) # todo to remove
 
     if 'download_files' in steps:
         print('Downloading files from GENCODE ftp site')
@@ -581,7 +580,7 @@ def main(args):
         csv_to_bq_write_depo(typed_schema, bucket_src_url, params['SCRATCH_DATASET'],
                              staging_table_id, params['BQ_AS_BATCH'], None)
 
-    if 'create_current_table' in steps: #todo
+    if 'create_current_table' in steps:
 
         success = publish_table(scratch_full_table_id_versioned, scratch_full_table_id_current)
 
@@ -592,10 +591,10 @@ def main(args):
     #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
-    for table in update_schema_tables: #todo
+    for table in update_schema_tables:
         update_table = scratch_full_table_id_current if table == 'current' else scratch_full_table_id_versioned
         if 'update_final_schema' in steps:
-            success = update_schema(params['SCRATCH_DATASET'], update_table,
+            success = update_schema(params['STAGING_DATASET_ID'], update_table,
                                     hold_schema_dict)
             if not success:
                 print("Schema update failed")
@@ -605,7 +604,7 @@ def main(args):
         # Add description and labels to the target table:
         #
 
-        if 'add_table_description' in steps:
+        if 'add_table_description' in steps: # todo
             print('update_table_description')
             full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
             success = install_labels_and_desc(params['SCRATCH_DATASET'], update_table,
@@ -619,7 +618,7 @@ def main(args):
     #
 
     # compare the two tables
-    if 'compare_remove_old_current' in steps: #todo
+    if 'compare_remove_old_current' in steps: # todo
         old_current_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_current"
         previous_ver_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_{params['PREVIOUS_RELEASE']}"
         table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
