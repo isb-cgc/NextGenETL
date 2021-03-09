@@ -74,7 +74,7 @@ def get_dev_table_id(table_name, dataset=None):
     return "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
 
 
-def get_records(graphql_endpoint, select_statement, dataset):
+def get_records(endpoint, select_statement, dataset):
     """
     todo
     :param endpoint:
@@ -82,7 +82,7 @@ def get_records(graphql_endpoint, select_statement, dataset):
     :param dataset:
     :return:
     """
-    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, dataset=dataset)
 
     query = select_statement
@@ -118,28 +118,28 @@ def delete_from_steps(step, steps):
     steps.pop(delete_idx)
 
 
-def build_jsonl_from_pdc_api(request_function, request_params=tuple(), alter_json=None, ids=None, insert_id=False):
+def build_jsonl_from_pdc_api(endpoint, request_function, request_params=tuple(), alter_json_function=None, ids=None, insert_id=False):
     """
     todo
+    :param endpoint:
     :param request_function:
     :param request_params:
-    :param alter_json:
+    :param alter_json_function:
     :param ids:
     :param insert_id:
     :return:
     """
-    print("Sending {} API request: ".format(API_PARAMS['ENDPOINT']))
-
+    print("Sending {} API request: ".format(endpoint))
     if ids:
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
-            merged_request_params = request_params + (id_entry,)
-            record_list = request_data_from_pdc_api(API_PARAMS['ENDPOINT'], request_function, merged_request_params)
+            combined_request_parameters = request_params + (id_entry,)
+            record_list = request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
 
-            if alter_json and insert_id:
-                alter_json(record_list, id_entry)
-            elif alter_json:
-                alter_json(record_list)
+            if alter_json_function and insert_id:
+                alter_json_function(record_list, id_entry)
+            elif alter_json_function:
+                alter_json_function(record_list)
 
             joined_record_list += record_list
 
@@ -147,31 +147,23 @@ def build_jsonl_from_pdc_api(request_function, request_params=tuple(), alter_jso
                 print(" - {:6d} current records (added {})".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print(" - {} records appended.".format(len(joined_record_list)))
-
     else:
-        joined_record_list = request_data_from_pdc_api(API_PARAMS['ENDPOINT'], request_function, request_params)
+        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
 
-        if alter_json:
-            alter_json(joined_record_list)
+        if alter_json_function:
+            alter_json_function(joined_record_list)
 
-    jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][API_PARAMS['ENDPOINT']]['output_name'])
+    jsonl_filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
-    write_list_to_jsonl(local_filepath, joined_record_list)
 
+    write_list_to_jsonl(local_filepath, joined_record_list)
     upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
 
-def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_parameters=None):
-    """
-    todo
-    :param graphql_endpoint:
-    :param request_body_function:
-    :param request_parameters:
-    :return:
-    """
-    is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['is_paginated']
-    payload_key = API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['payload_key']
+def request_data_from_pdc_api(endpoint, request_body_function, request_parameters=None):
+    is_paginated = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
+    payload_key = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
     def append_api_response_data():
         """
@@ -180,7 +172,7 @@ def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_p
         """
         api_response = get_graphql_api_response(API_PARAMS, graphql_request_body)
 
-        response_body = api_response['data'] if not is_paginated else api_response['data'][graphql_endpoint]
+        response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
 
         for record in response_body[payload_key]:
             record_list.append(record)
@@ -209,7 +201,7 @@ def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_p
         total_pages = append_api_response_data()
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
-        if 'Study' not in graphql_endpoint:
+        if 'Study' not in endpoint:
             print(" - Appended page {} of {}".format(page, total_pages))
 
         if not total_pages:
@@ -222,7 +214,7 @@ def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_p
             paginated_request_params = request_parameters + (offset, limit)
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data()
-            if 'Study' not in graphql_endpoint:
+            if 'Study' not in endpoint:
                 print(" - Appended page {} of {}".format(page, total_pages))
 
             if new_total_pages != total_pages:
@@ -257,16 +249,9 @@ def build_clinical_table_from_jsonl(table_prefix, filename, infer_schema=False, 
     return table_id
 
 
-def build_table_from_jsonl(graphql_endpoint, is_metadata=True, infer_schema=False):
-    """
-    todo
-    :param graphql_endpoint:
-    :param is_metadata:
-    :param infer_schema:
-    :return:
-    """
-    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
-    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+def build_table_from_jsonl(endpoint, is_metadata=True, infer_schema=False):
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    filename = get_filename('jsonl', API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
 
     # todo fix
     if is_metadata:
@@ -1230,13 +1215,13 @@ def alter_files_per_study_json(files_per_study_obj_list):
         files_per_study_obj['url'] = url
 
 
-def get_file_ids(graphql_endpoint):
+def get_file_ids(endpoint):
     """
     todo
-    :param graphql_endpoint:
+    :param endpoint:
     :return:
     """
-    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][graphql_endpoint]['output_name'])
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
     return get_query_results(make_file_id_query(table_id))  # todo fix back
 
@@ -1311,24 +1296,16 @@ def make_cases_query():
 
 
 def get_cases():
-    """
-    todo
-    :return:
-    """
-    graphql_endpoint = 'allCases'
+    endpoint = 'allCases'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     select_statement = "SELECT case_id, case_submitter_id, project_submitter_id, primary_site, disease_type"
 
-    return get_records(graphql_endpoint, select_statement, dataset)
+    return get_records(endpoint, select_statement, dataset)
 
 
 def get_case_demographics():
-    """
-    todo
-    :return:
-    """
-    graphql_endpoint = 'paginatedCaseDemographicsPerStudy'
+    endpoint = 'paginatedCaseDemographicsPerStudy'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
 
     select_statement = """
@@ -1336,19 +1313,15 @@ def get_case_demographics():
         days_to_birth, days_to_death, year_of_birth, year_of_death, vital_status, cause_of_death
         """
 
-    return get_records(graphql_endpoint, select_statement, dataset)
+    return get_records(endpoint, select_statement, dataset)
 
 
 def get_case_diagnoses():
-    """
-    todo
-    :return:
-    """
-    graphql_endpoint = 'paginatedCaseDiagnosesPerStudy'
+    endpoint = 'paginatedCaseDiagnosesPerStudy'
     dataset = BQ_PARAMS['CLINICAL_DATASET']
     select_statement = "SELECT case_id, case_submitter_id, diagnoses"
 
-    return get_records(graphql_endpoint, select_statement, dataset)
+    return get_records(endpoint, select_statement, dataset)
 
 
 def make_cases_aliquots_query(offset, limit):
@@ -1850,12 +1823,15 @@ def main(args):
     # ** STUDY METADATA STEPS **
 
     if 'build_studies_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_all_programs_query, alter_json=alter_all_programs_json)
+        build_jsonl_from_pdc_api(endpoint='allPrograms',
+                                 request_function=make_all_programs_query,
+                                 alter_json_function=alter_all_programs_json)
 
         delete_from_steps('build_studies_jsonl', steps)  # allows for exit without building study lists if not used
 
     if 'build_studies_table' in steps:
-        build_table_from_jsonl(graphql_endpoint='allPrograms', infer_schema=True)
+        build_table_from_jsonl(endpoint='allPrograms',
+                               infer_schema=True)
 
         delete_from_steps('build_studies_table', steps)  # allows for exit without building study lists if not used
 
@@ -1892,11 +1868,14 @@ def main(args):
     # ** FILE METADATA STEPS **
 
     if 'build_per_study_file_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_files_per_study_query,
-                                 alter_json=alter_files_per_study_json, ids=all_pdc_study_ids)
+        build_jsonl_from_pdc_api(endpoint="filesPerStudy",
+                                 request_function=make_files_per_study_query,
+                                 alter_json_function=alter_files_per_study_json,
+                                 ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        build_table_from_jsonl(graphql_endpoint="filesPerStudy", infer_schema=True)
+        build_table_from_jsonl(endpoint="filesPerStudy",
+                               infer_schema=True)
 
     if 'alter_per_study_file_table' in steps:
         fps_table_name = construct_table_name(BQ_PARAMS,
@@ -1939,27 +1918,36 @@ def main(args):
     # ** CASE CLINICAL STEPS **
 
     if 'build_cases_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_cases_query)
+        build_jsonl_from_pdc_api(endpoint="allCases",
+                                 request_function=make_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl("allCases", infer_schema=True)
 
     if 'build_cases_aliquots_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_cases_aliquots_query)
+        build_jsonl_from_pdc_api(endpoint="paginatedCasesSamplesAliquots",
+                                 request_function=make_cases_aliquots_query)
 
     if 'build_cases_aliquots_table' in steps:
         build_table_from_jsonl("paginatedCasesSamplesAliquots")
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_cases_diagnoses_query,
-                                 alter_json=alter_case_diagnoses_json, ids=pdc_study_ids, insert_id=True)
+        build_jsonl_from_pdc_api(endpoint="paginatedCaseDiagnosesPerStudy",
+                                 request_function=make_cases_diagnoses_query,
+                                 alter_json_function=alter_case_diagnoses_json,
+                                 ids=pdc_study_ids,
+                                 insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
-        build_table_from_jsonl(graphql_endpoint='paginatedCaseDiagnosesPerStudy', infer_schema=True)
+        build_table_from_jsonl(endpoint='paginatedCaseDiagnosesPerStudy',
+                               infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_cases_demographics_query,
-                                 alter_json=alter_case_demographics_json, ids=pdc_study_ids, insert_id=True)
+        build_jsonl_from_pdc_api(endpoint="paginatedCaseDemographicsPerStudy",
+                                 request_function=make_cases_demographics_query,
+                                 alter_json_function=alter_case_demographics_json,
+                                 ids=pdc_study_ids,
+                                 insert_id=True)
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl('paginatedCaseDemographicsPerStudy', infer_schema=True)
@@ -1970,7 +1958,9 @@ def main(args):
 
         # get all case records, append to list for its project submitter id
         for case in get_cases():
-            if not case or 'project_submitter_id' not in case:
+            if not case:
+                continue
+            if 'project_submitter_id' not in case:
                 continue
 
             project_submitter_id = case['project_submitter_id']
@@ -2085,12 +2075,14 @@ def main(args):
     # ** CASE METADATA STEPS **
 
     if 'build_biospecimen_jsonl' in steps:
-        build_jsonl_from_pdc_api(request_function=make_biospecimen_per_study_query,
-                                 alter_json=alter_biospecimen_per_study_obj, ids=all_pdc_study_ids,
+        build_jsonl_from_pdc_api(endpoint="biospecimenPerStudy",
+                                 request_function=make_biospecimen_per_study_query,
+                                 alter_json_function=alter_biospecimen_per_study_obj,
+                                 ids=all_pdc_study_ids,
                                  insert_id=True)
 
     if 'build_biospecimen_table' in steps:
-        build_table_from_jsonl(graphql_endpoint="biospecimenPerStudy",
+        build_table_from_jsonl(endpoint="biospecimenPerStudy",
                                infer_schema=True)
 
     # todo merge PDC study ids for given case_id into single row, probably?
