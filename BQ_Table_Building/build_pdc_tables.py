@@ -175,8 +175,8 @@ def request_data_from_pdc_api(graphql_endpoint, request_body_function, request_p
 
     def append_api_response_data():
         """
-    todo
-    :return:
+        todo
+        :return:
         """
         api_response = get_graphql_api_response(API_PARAMS, graphql_request_body)
 
