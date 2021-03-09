@@ -69,9 +69,11 @@ def get_dev_table_id(table_name, dataset=None):
     :param dataset:
     :return:
     """
+    project= BQ_PARAMS['DEV_PROJECT']
     if not dataset:
         dataset = BQ_PARAMS['DEV_DATASET']
-    return "{}.{}.{}".format(BQ_PARAMS['DEV_PROJECT'], dataset, table_name)
+
+    return "{}.{}.{}".format(project, dataset, table_name)
 
 
 def get_records(endpoint, select_statement, dataset):

@@ -364,6 +364,7 @@ def get_query_results(query):
     :param query: query string
     :return: result object
     """
+    print(query)
     client = bigquery.Client()
     query_job = client.query(query)
     return query_job.result()
