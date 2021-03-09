@@ -7,11 +7,19 @@ version: 3
 
 api_params:
   # GDC API endpoint for retrieval of cases dataset
-  # ENDPOINT: 'https://api.gdc.cancer.gov/cases'
   ENDPOINT: https://api.gdc.cancer.gov/cases
 
+  # How many case records to retrieve per GDC API call. Larger batch sizes are more
+  # likely to fail before completion, seems to work consistently at 2500
+  BATCH_SIZE: 1000
+
+  # Start index for retrieving case records
+  START_INDEX: 0
+
   # List of 'expand' field groups to include in the clinical data bq table
-  EXPAND_FIELD_GROUPS:
+  PARENT_FG: cases
+
+  EXPAND_FG_LIST:
     - demographic
     - diagnoses
     - diagnoses.treatments
@@ -22,34 +30,51 @@ api_params:
     - follow_ups.molecular_tests
     - project
 
-  # fields that aren't desired for bq. Example:
   EXCLUDE_FIELDS:
-    - aliquot_ids
-    - analyte_ids
-    - case_autocomplete
-    - diagnosis_ids
-    - id
-    - portion_ids
-    - slide_ids
-    - submitter_aliquot_ids
-    - submitter_analyte_ids
-    - submitter_diagnosis_ids
-    - submitter_portion_ids
-    - submitter_slide_ids
+    cases: # GDC expand field group name
+      - aliquot_ids
+      - analyte_ids
+      - case_autocomplete
+      - diagnosis_ids
+      - id
+      - portion_ids
+      - slide_ids
+      - submitter_aliquot_ids
+      - submitter_analyte_ids
+      - submitter_diagnosis_ids
+      - submitter_portion_ids
+      - submitter_slide_ids
+    cases.demographic:
+      - submitter_id
+    cases.diagnoses:
+      - submitter_id
+    cases.diagnoses.annotations:
+      - submitter_id
+      - case_submitter_id
+      - entity_submitter_id
+    cases.diagnoses.treatments:
+      - submitter_id
+    cases.exposures:
+      - submitter_id
+    cases.family_histories:
+      - submitter_id
+    cases.follow_ups:
+      - submitter_id
+    cases.follow_ups.molecular_tests:
+      - submitter_id
+    cases.project:
+      - released
+      - primary_site
+      - state
+      - disease_type
+      - releasable
+      - intended_release_date
+      - dbgap_accession_number
 
-  # How many case records to retrieve per GDC API call. Larger batch sizes are more
-  # likely to fail before completion, seems to work consistently at 2500
-  BATCH_SIZE: 2500
-
-  # Start index for retrieving case records
-  START_INDEX: 0
-
-  # Number of pages to write into json file (0 == all pages after start index)
-  MAX_PAGES: 0
-
-  # 'a' if appending to existing cases json (for continuation of interrupted file build)
-  # 'w' if creating or overwriting existing CASES_JSON_FILE (default)
-  IO_MODE: 'w'
+bq_params:
+  ##
+  #  File Locations, GDC Release, Naming Conventions
+  ##
 
   # Directory to which to write the cases clinical data json file
   SCRATCH_DIR: scratch
@@ -57,45 +82,48 @@ api_params:
   # File to which to write the cases clinical data json file
   DATA_OUTPUT_FILE: clinical_data.jsonl
 
-  # most recent GDC release number
-  # (NOTE: pulls data from the current release regardless of value here, not currently
-  # possible to specify a release number when making API calls.)
-  GDC_RELEASE: rel25
-
-  REL_PREFIX: 'r'
-
-
-bq_params:
-  # What project are we in:
-  WORKING_PROJECT: isb-project-zero
-
-  # Where is the BQ table dataset:
-  TARGET_DATASET: your_bq_dataset_name_in_working_project
-
-  # Reference Dataset
-  METADATA_DATASET: GDC_Clinical_Data
+  # 'a' if appending to existing cases json (for continuation of interrupted file build).
+  # 'w' if creating or overwriting existing CASES_JSON_FILE.
+  IO_MODE: 'w'
 
   # What bucket is going to get the text file heading to BQ?
   WORKING_BUCKET: next-gen-etl-scratch
 
   # What is the file path to the text file in the bucket:
-  WORKING_BUCKET_DIR: law # DO NOT HAVE A LEADING /
+  WORKING_BUCKET_DIR: law
 
   # name for master table (will be prefixed with GDC_RELEASE value)
   MASTER_TABLE: clinical
 
-  # Component of table name, differentiates that this is a clinical data table
-  # base program table name form: GDC_RELEASE + '_' + TABLE_PREFIX  + '_' + program_name
-  TABLE_PREFIX: clin
+  # in case we switch back to relXX from rXX
+  REL_PREFIX: 'r'
 
-# Note that although the steps are given in the actual order here as
-# a list, changing the order here does not change the order of execution, which is fixed.
+  # most recent GDC release number
+  # (NOTE: pulls data from the current release regardless of value here, not currently
+  # possible to specify a release number when making API calls.)
+  RELEASE: '28'
+
+  LOCATION: US
+
+  ##
+  #  BigQuery API
+  ##
+
+  # What project are we in:
+  DEV_PROJECT: isb-project-zero
+
+  # Where is the BQ table dataset:
+  DEV_DATASET: GDC_Clinical_Data
+
+  # Note that although the steps are given in the actual order here as
+  # a list, changing the order here does not change the order of execution, which is fixed.
+
 steps:
+  #- extract_api_response_json
 
-  # Get the manifest from the source data node:
-  # - retrieve_cases_and_write_to_jsonl
+  - generate_jsonl_from_modified_api_json
 
-  # - upload_jsonl_to_cloud_storage
+  - upload_jsonl_to_cloud_storage
 
-  # Build BQ Table
+  # Get the table schema/description/tags pulled from git (?) and build BQ Table
   - build_bq_table

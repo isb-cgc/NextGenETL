@@ -454,6 +454,34 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
 
     return schema
 
+def validate_config(yaml_output_tuple):
+    try:
+        api_param_field_dict = {
+            "ENDPOINT": [str],
+            "BATCH_SIZE": [int],
+            'START_INDEX': [int],
+            'PARENT_FG': [str],
+            'EXPAND_FG_LIST': [list, None],
+            'EXCLUDE_FIELDS': [dict, None]
+        }
+
+        bq_param_field_dict = {
+            'SCRATCH_DIR': [str],
+            'DATA_OUTPUT_FILE': [str],
+            'IO_MODE': [str],
+            'WORKING_BUCKET': '',
+            'WORKING_BUCKET_DIR': '',
+            'MASTER_TABLE': '',
+            'REL_PREFIX': '',
+            'RELEASE': '',
+            'LOCATION': '',
+            'DEV_PROJECT': '',
+            'DEV_DATASET': '',
+        }
+        api_params, bq_params, steps = yaml_output_tuple
+
+
+
 
 def main(args):
     """Script execution function.

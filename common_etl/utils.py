@@ -795,7 +795,7 @@ def format_seconds(seconds):
     return time.strftime("%-S seconds", time.gmtime(seconds))
 
 
-def load_config(args, yaml_dict_keys):
+def load_config(args, yaml_dict_keys, validate_config=None):
     """Opens yaml file and retrieves configuration parameters.
 
     :param args: args param from python bash cli
@@ -822,6 +822,9 @@ def load_config(args, yaml_dict_keys):
         # Dynamically generate a list of dictionaries for the return statement,
         # since tuples are immutable
         return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
+
+        if validate_config:
+            validate_config(tuple(return_dicts))
 
         return tuple(return_dicts)
 
