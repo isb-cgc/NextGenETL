@@ -618,7 +618,7 @@ def main(args):
     #
 
     # compare the two tables
-    if 'compare_remove_old_current' in steps:  # todo
+    if 'compare_remove_old_current' in steps:
         old_current_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_current"
         previous_ver_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_{params['PREVIOUS_RELEASE']}"
         table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
@@ -654,7 +654,7 @@ def main(args):
         #             return
 
         success = compare_then_remove_table(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'],
-                                            params['PUBLICATION_DATASET'], params['PUBLICATION_PROJECT']) # todo
+                                            params['PUBLISH_DATASET_ID'], params['PUBLISH_PROJECT'])
 
         if not success:
             print("delete table failed")
