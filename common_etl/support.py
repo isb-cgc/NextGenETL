@@ -1447,49 +1447,6 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
 
 '''
 ----------------------------------------------------------------------------------------------
-Compares two tables to confirm that there is a identical versioned table to be deleted before deleting said table. After
-the table has been confirmed there is a versioned table, a backup is created and the table is deleted. 
-'''
-# todo
-# finish updating the function
-def compare_then_remove_table(table_to_be_deleted, previous_versioned_table, backup_table_name, batch,
-                              project, dataset):
-    try:
-        compare = compare_two_tables(table_to_be_deleted, previous_versioned_table, batch)
-
-        num_rows = compare.total_rows
-
-        if num_rows == 0:
-            print('the tables are the same')
-        else:
-            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-
-        if not compare:
-            print('compare_tables failed')
-        # move old table to a temporary location
-        elif compare and num_rows == 0:
-            print('Move old table to temp location')
-            table_moved = publish_table(table_to_be_deleted, backup_table_name)
-
-            if not table_moved:
-                print('Old Table was not moved and will not be deleted')
-            # remove old table
-            elif table_moved:
-                print('Deleting old table: {}'.format(table_to_be_deleted))
-                delete_table = delete_table_bq_job(dataset, table_to_be_deleted,
-                                                   project)
-                if not delete_table:
-                    print('delete table failed')
-
-    except Exception as ex:
-        print(ex)
-        return False
-
-    return True
-
-
-'''
-----------------------------------------------------------------------------------------------
 Publish a table by copying it.
 Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 '''

@@ -17,7 +17,7 @@ import wget
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
-                               install_labels_and_desc, compare_then_remove_table
+                               install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag
 
 # todo to remove
 # def add_labels_and_descriptions(project, full_table_id):
@@ -413,32 +413,35 @@ def main(args):
         return
 
     # Which release is this workflow running on?
-    release = f"v{params['RELEASE']}"
+    release = f"v{params['RELEASE']}"  # todo remove?
 
     # Put csv files in a select folder 
     home = expanduser('~')
+    raw_gtf_file = f"{home}/gtf/params['FILE_PATH']"
     genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
     attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
-    final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}"
+    final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}_v{params['RELEASE']}.csv"
     final_tsv = f"{home}/gtf/{params['FINAL_TSV']}"
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
+    # Base table name
+    base_table_name = f'annotation_gtf_hg38'
 
     # Staging table info for staging env
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
-    staging_table_id = params['STAGING_TABLE_ID']
-    scratch_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_{release}'
-    scratch_full_table_id_current = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
+    scratch_full_table_id_versioned = \
+        f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_v{params["RELEASE"]}'
+    scratch_full_table_id_current = \
+        f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_current'
 
-    
-    # Publish table info for production env 
+    # Publish table info for production env
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
-    publish_table_id = params['PUBLISH_TABLE_ID']
-    publish_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_{release}'
-    publish_full_table_id_current = f'{staging_project}.{staging_dataset_id}.{staging_table_id}_current'
+    publish_full_table_id_versioned = \
+        f'{publish_dataset_id}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
+    publish_full_table_id_current = f'{publish_project}.{publish_dataset_id}.{base_table_name}_current'
     #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
 
 
@@ -448,15 +451,16 @@ def main(args):
     if 'download_file' in steps:
         # Download gtf file from FTP site and save it to the VM
         print('Downloading files from GENCODE ftp site')
-        wget(params['FTP_URL'], params['FILE_PATH'])
+
+        wget.download(params['FTP_URL'], raw_gtf_file)
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
-        number_of_lines = count_number_of_lines(params['FILE_PATH'])
+        number_of_lines = count_number_of_lines(raw_gtf_file)
 
     if 'parse_genomic_features_file' in steps:
         print('Processing Genomic File')
-        with gzip.open(params['FILE_PATH'], 'rb') as zipped_file:
+        with gzip.open(raw_gtf_file, 'rb') as zipped_file:
             unzipped_file = zipped_file.readlines()
             parse_genomic_features_file(unzipped_file,
                                         genomic_feature_file_csv)
@@ -479,8 +483,7 @@ def main(args):
         df = split_version_ids(final_merged_csv)
         df.to_csv(params['FINAL_TSV'], index=False, sep='\t')
 
-    # todo
-    # To remove
+    # todo to remove
     # if 'upload_to_staging_env' in steps:
     #     print('Uploading table to a staging environment')
     #     upload_to_staging_env(df,
@@ -520,18 +523,16 @@ def main(args):
     for table in update_schema_tables:
         if table == 'current':
             use_schema = params['SCHEMA_FILE_NAME']
-            schema_release = 'current'
             update_table = scratch_full_table_id_current
         else:
             use_schema = params['VER_SCHEMA_FILE_NAME']
-            schema_release = release
             update_table = scratch_full_table_id_versioned
 
         if 'process_git_schemas' in steps:
             print('process_git_schema')
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], staging_table_id)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_table_name)
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -581,7 +582,7 @@ def main(args):
         with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq_write_depo(typed_schema, bucket_src_url, params['SCRATCH_DATASET'],
-                             staging_table_id, params['BQ_AS_BATCH'], None)
+                             base_table_name, params['BQ_AS_BATCH'], None)
 
     if 'create_current_table' in steps:
 
@@ -622,46 +623,43 @@ def main(args):
 
     # compare the two tables
     if 'compare_remove_old_current' in steps:
-        old_current_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_current"
-        previous_ver_table = f"{publish_project}.{publish_dataset_id}.{publish_table_id}_{params['PREVIOUS_RELEASE']}"
+
+        '''
+        Compares two tables to confirm that there is a identical versioned table to be deleted before deleting said 
+        table. After the table has been confirmed there is a versioned table, a backup is created and the table is deleted. 
+        '''
+        old_current_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_current"
+        previous_ver_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_{params['PREVIOUS_RELEASE']}"
         table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
 
-        # print('Compare {} to {}'.format(old_current_table, previous_ver_table))
-        #
-        # compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-        #
-        # num_rows = compare.total_rows
-        #
-        # if num_rows == 0:
-        #     print('the tables are the same')
-        # else:
-        #     print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-        #
-        # if not compare:
-        #     print('compare_tables failed')
-        #     return
-        # # move old table to a temporary location
-        # elif compare and num_rows == 0:
-        #     print('Move old table to temp location')
-        #     table_moved = publish_table(old_current_table, table_temp)
-        #
-        #     if not table_moved:
-        #         print('Old Table was not moved and will not be deleted')
-        #     # remove old table
-        #     elif table_moved:
-        #         print('Deleting old table: {}'.format(old_current_table))
-        #         delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
-        #                                            params['PUBLICATION_PROJECT'])
-        #         if not delete_table:
-        #             print('delete table failed')
-        #             return
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-        success = compare_then_remove_table(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'],
-                                            params['PUBLISH_DATASET_ID'], params['PUBLISH_PROJECT'])
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
 
-        if not success:
-            print("delete table failed")
+        num_rows = compare.total_rows
+
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+        if not compare:
+            print('compare_tables failed')
             return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(publish_dataset_id, old_current_table, publish_project)
+                if not delete_table:
+                    print('delete table failed')
+                    return
 
     #
     # publish table:
@@ -681,6 +679,19 @@ def main(args):
 
         if not success:
             print("publish table failed")
+            return
+
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+
+
+        success = update_status_tag(f"{publish_dataset_id}_versioned",
+                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    'archived', params['PUBLICATION_PROJECT'])
+
+        if not success:
+            print("update status tag table failed")
             return
 
 # todo archive step
