@@ -692,7 +692,7 @@ def main(args):
             print("update status tag table failed")
             return
 
-    if 'archive' in steps:  #todo update
+    if 'archive' in steps:
 
         print('archive files from VM')
         archive_file_prefix = f"{date.today()}_{publish_dataset_id}"
