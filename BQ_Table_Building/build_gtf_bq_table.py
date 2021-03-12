@@ -428,20 +428,19 @@ def main(args):
     # Base table name
     base_table_name = f'annotation_gtf_hg38'
 
-    # Staging table info for staging env
+    # BigQuery table variables
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
     scratch_full_table_id_versioned = \
         f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_v{params["RELEASE"]}'
     scratch_full_table_id_current = \
         f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_current'
-
-    # Publish table info for production env
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_full_table_id_versioned = \
         f'{publish_dataset_id}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
     publish_full_table_id_current = f'{publish_project}.{publish_dataset_id}.{base_table_name}_current'
+    previous_ver_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_{params['PREVIOUS_RELEASE']}"
     #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
 
 
@@ -543,7 +542,7 @@ def main(args):
 
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
-            pn = params['PROGRAM']
+            pn = params['PROGRAM']  # todo update to proper params
             dataset_tuple = (pn, pn.replace(".", "_"))
             tag_map_list = []
             for tag_pair in schema_tags:
@@ -575,6 +574,8 @@ def main(args):
             if not success:
                 print("replace_schema_tags failed")
                 return False
+
+    # todo add analyze schema step
 
     if 'create_bq_from_tsv' in steps:
         bucket_src_url = f"gs://{params['WORKING_BUCKET']}/{params['FINAL_TSV']}"
@@ -629,7 +630,6 @@ def main(args):
         table. After the table has been confirmed there is a versioned table, a backup is created and the table is deleted. 
         '''
         old_current_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_current"
-        previous_ver_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_{params['PREVIOUS_RELEASE']}"
         table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
@@ -681,13 +681,9 @@ def main(args):
             print("publish table failed")
             return
 
-
     if 'update_status_tag' in steps:
         print('Update previous table')
-
-
-        success = update_status_tag(f"{publish_dataset_id}_versioned",
-                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+        success = update_status_tag(f"{publish_dataset_id}_versioned", previous_ver_table,
                                     'archived', params['PUBLICATION_PROJECT'])
 
         if not success:
