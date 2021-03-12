@@ -13,6 +13,8 @@ import io
 import gzip
 import csv
 import wget
+from datetime import date
+import re
 #import pyarrow
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
@@ -690,9 +692,17 @@ def main(args):
             print("update status tag table failed")
             return
 
-# todo archive step
+    if 'archive' in steps:  #todo update
 
-# todo remove temp tables step
+        print('archive files from VM')
+        archive_file_prefix = f"{date.today()}_{publish_dataset_id}"
+        if params['ARCHIVE_YAML']:
+            yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
+            archive_yaml = \
+                f"{params['ARCHIVE_BUCKET_DIR']}/{params['ARCHIVE_CONFIG']}/{archive_file_prefix}_{yaml_file.group(1)}"
+            upload_to_bucket(params['ARCHIVE_BUCKET'],
+                             archive_yaml,
+                             args[1])
 
 if __name__ == '__main__':
     main(sys.argv)
