@@ -695,6 +695,7 @@ def main(args):
     if 'archive' in steps:
 
         print('archive files from VM')
+        # Archive yaml file
         archive_file_prefix = f"{date.today()}_{publish_dataset_id}"
         if params['ARCHIVE_YAML']:
             yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
@@ -703,6 +704,8 @@ def main(args):
             upload_to_bucket(params['ARCHIVE_BUCKET'],
                              archive_yaml,
                              args[1])
+        # Archive raw gtf file
+        upload_to_bucket(raw_gtf_file)
 
 if __name__ == '__main__':
     main(sys.argv)
