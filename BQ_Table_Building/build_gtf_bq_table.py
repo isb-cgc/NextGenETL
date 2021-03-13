@@ -19,7 +19,8 @@ import re
 #from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
-                               install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag
+                               install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag, \
+                               build_combined_schema
 
 # todo to remove
 # def add_labels_and_descriptions(project, full_table_id):
@@ -415,11 +416,11 @@ def main(args):
         return
 
     # Which release is this workflow running on?
-    release = f"v{params['RELEASE']}"  # todo remove?
+    #release = f"v{params['RELEASE']}"  # todo remove?
 
-    # Put csv files in a select folder 
+    # Create file variables
     home = expanduser('~')
-    raw_gtf_file = f"{home}/gtf/params['FILE_PATH']"
+    raw_gtf_file = f"{home}/gtf/gencode.{params['RELEASE']}.annotation.gtf.gz"
     genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
     attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
     final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}_v{params['RELEASE']}.csv"
@@ -509,8 +510,6 @@ def main(args):
                          final_tsv,
                          params['FINAL_TSV'])
 
-
-
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
         try:
@@ -577,7 +576,18 @@ def main(args):
                 print("replace_schema_tags failed")
                 return False
 
-    # todo add analyze schema step
+    if 'combined_schema' in steps:
+        # Create a list of tuples with name and type from schema files
+        with open("{}_schema.json".format(full_file_prefix), mode='r') as schema_file:
+            schema = json_loads(schema_file.read())
+        typing_tups = []
+        for field in schema:
+            tup = (field['name'], field['type'])
+            typing_tups.append(tup)
+        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+        build_combined_schema(None, schema_dict_loc,
+                              typing_tups, hold_schema_list,
+                              hold_schema_dict)
 
     if 'create_bq_from_tsv' in steps:
         bucket_src_url = f"gs://{params['WORKING_BUCKET']}/{params['FINAL_TSV']}"
