@@ -1098,11 +1098,11 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
-def update_status_tag(target_dataset, dest_table, status):
+def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     table.labels = {"status": status}
@@ -1130,8 +1130,9 @@ def bq_table_is_empty(target_dataset, dest_table):
     table = client.get_table(table_ref)
     return table.num_rows == 0
 
-def delete_table_bq_job(target_dataset, delete_table):
-    client = bigquery.Client()
+def delete_table_bq_job(target_dataset, delete_table, project = None):
+
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(delete_table)
     try:
         client.delete_table(table_ref)
@@ -1143,7 +1144,6 @@ def delete_table_bq_job(target_dataset, delete_table):
         return False
 
     return True
-
 
 def confirm_google_vm():
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"

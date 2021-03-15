@@ -19,15 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import sys
-import time
-import os
-import json
-import requests
-from common_etl.utils import (
-    infer_data_types, load_config, generate_bq_schema, collect_values,
-    create_mapping_dict, create_and_load_table, convert_dict_to_string,
-    has_fatal_error, get_scratch_dir, upload_to_bucket, get_gdc_rel)
+from common_etl.utils import *
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -35,30 +27,16 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-####
+##################################################################################
 #
-# Getter functions, employed for readability/consistency
+#   API calls and data normalization (for BQ table insert)
 #
-##
-def get_expand_groups():
-    """
-    Get expand field groups from yaml config
-    :return: list of expand field groups.
-    """
-    if 'EXPAND_FIELD_GROUPS' not in API_PARAMS:
-        has_fatal_error('EXPAND_FIELD_GROUPS not in api_params (check yaml config file)')
-
-    return ",".join(API_PARAMS['EXPAND_FIELD_GROUPS'])
+##################################################################################
 
 
-####
-#
-# Functions which retrieve and save GDC data in preparation for inserting into BQ tables
-#
-##
 def request_data_from_gdc_api(curr_index):
-    """
-    Make a POST API request and return response (if valid).
+    """ Make a POST API request and return response (if valid).
+
     :param curr_index: current API poll start position
     :return: response object
     """
@@ -68,7 +46,7 @@ def request_data_from_gdc_api(curr_index):
         request_params = {
             'from': curr_index,
             'size': API_PARAMS['BATCH_SIZE'],
-            'expand': get_expand_groups()
+            'expand': get_field_groups(API_PARAMS)
         }
 
         # retrieve and parse a "page" (batch) of case objects
@@ -83,7 +61,7 @@ def request_data_from_gdc_api(curr_index):
         restart_idx = curr_index
         err_list.append('API request returned status code {}.'.format(res.status_code))
 
-        if API_PARAMS['IO_MODE'] == 'a':
+        if BQ_PARAMS['IO_MODE'] == 'a':
             err_list.append('Script is being run in "append" mode. To resume, set '
                             'START_INDEX = {} in yaml config.'.format(restart_idx))
     except requests.exceptions.MissingSchema as err:
@@ -93,17 +71,22 @@ def request_data_from_gdc_api(curr_index):
     return None
 
 
-def retrieve_and_save_case_records(data_fp):
-    """
-    Retrieves case records from API and outputs them to a JSONL file, which is later
-    used to populate the clinical data BQ table.
-    :param data_fp: absolute path to data output file
+def retrieve_and_save_case_records(scratch_fp):
+    """Retrieves case records from API and outputs them to a JSONL file, which is later
+        used to populate the clinical data BQ table.
+
+    :param scratch_fp: absolute path to data output file
     """
     start_time = time.time()  # for benchmarking
-    total_cases_count = 0
+    cases_count = 0
     is_last_page = False
+    io_mode = BQ_PARAMS['IO_MODE']
 
-    with open(data_fp, API_PARAMS['IO_MODE']) as json_output_file:
+    with open(scratch_fp, io_mode) as jsonl_file:
+        console_out("Outputting json objects to {0} in {1} mode",
+                    (scratch_fp, io_mode))
+        have_printed_totals = False
+
         curr_index = API_PARAMS['START_INDEX']
         while not is_last_page:
             res = request_data_from_gdc_api(curr_index)
@@ -117,60 +100,63 @@ def retrieve_and_save_case_records(data_fp):
                                 KeyError)
 
             batch_record_count = res_json['pagination']['count']
-            total_cases_count = res_json['pagination']['total']
-            curr_page = res_json['pagination']['page']
-            last_page = res_json['pagination']['pages']
+            cases_count = res_json['pagination']['total']
+
+            if not have_printed_totals:
+                have_printed_totals = True
+                console_out("Total cases for r{0}: {1}",
+                            (BQ_PARAMS['RELEASE'], cases_count))
+                console_out("Batch size: {0}", (batch_record_count,))
 
             for case in cases_json:
-                if 'days_to_index' in case:
-                    print("Found days_to_index!\n{}".format(case))
                 case_copy = case.copy()
+
                 for field in API_PARAMS['EXCLUDE_FIELDS']:
                     if field in case_copy:
                         case.pop(field)
 
                 no_list_value_case = convert_dict_to_string(case)
-                # writing in jsonlines format, as required by BQ
-                json.dump(obj=no_list_value_case, fp=json_output_file)
-                json_output_file.write('\n')
+                json.dump(obj=no_list_value_case, fp=jsonl_file)
+                jsonl_file.write('\n')
 
-            if curr_page == last_page or (API_PARAMS['MAX_PAGES'] and
-                                          curr_page == API_PARAMS['MAX_PAGES']):
+            curr_page = res_json['pagination']['page']
+            last_page = res_json['pagination']['pages']
+
+            if curr_page == last_page:
+                is_last_page = True
+            elif API_PARAMS['MAX_PAGES'] and curr_page == API_PARAMS['MAX_PAGES']:
                 is_last_page = True
 
-            print("Inserted page {} of {} ({} records) into jsonlines file"
-                  .format(curr_page, last_page, batch_record_count))
+            console_out("Inserted page {0} of {1} into jsonl file",
+                        (curr_page, last_page))
             curr_index += batch_record_count
 
     # calculate processing time and file size
     total_time = time.time() - start_time
-    file_size = os.stat(data_fp).st_size / 1048576.0
+    file_size = os.stat(scratch_fp).st_size / 1048576.0
 
-    print("\nClinical data retrieval complete!"
-          "\n\t{} of {} cases retrieved"
-          "\n\t{:.2f} mb jsonl file size"
-          "\n\t{:.1f} sec to retrieve from GDC API output to jsonl file\n".
-          format(curr_index, total_cases_count, file_size, total_time))
-
-    # Insert the generated jsonl file into google storage bucket, for later
-    # ingestion by BQ
-    upload_to_bucket(BQ_PARAMS, API_PARAMS, API_PARAMS['DATA_OUTPUT_FILE'])
+    console_out("\nClinical data retrieval complete!"
+                      "\n\t{0} of {1} cases retrieved"
+                      "\n\t{2:.2f} mb jsonl file size"
+                      "\n\t{3:.1f} sec to retrieve from GDC API output to jsonl file\n",
+                (curr_index, cases_count, file_size, total_time))
 
 
-####
+##################################################################################
 #
-# Functions which create table schemas and insert cases into bq
+#   BQ table creation and data insertion
 #
-##
+##################################################################################
+
+
 def create_field_records_dict(field_mappings, field_data_types):
-    """
-    Generate flat dict containing schema object with fields 'name', 'type', 'description'
+    """ Generate schema dict composed of schema field dicts.
+
     :param field_mappings: dict of {fields: schema entry dicts}
     :param field_data_types: dict of {fields: data types}
     :return: SchemaField object dict
     """
     # this could use BQ Python API built-in method
-
     schema_dict = {}
 
     for field in field_data_types:
@@ -194,8 +180,8 @@ def create_field_records_dict(field_mappings, field_data_types):
             # this could happen in the case where a field was added to the
             # cases endpoint with only null values,
             # and no entry for the field exists in mapping
-            print(
-                "[INFO] Not adding field {} because no type found".format(field))
+            console_out(
+                "[INFO] Not adding field {0} because no type found", (field,))
             continue
 
         # this is the format for bq schema json object entries
@@ -209,9 +195,10 @@ def create_field_records_dict(field_mappings, field_data_types):
 
 
 def create_bq_schema(data_fp):
-    """
-    Generates two dicts (one using data type inference, one using _mapping API endpoint.)
-    Compares values and builds a SchemaField object, used to initialize the bq table.
+    """Generates two dicts (one using data type inference, one using _mapping API
+    endpoint.) Compares values and builds a SchemaField object, used to
+    initialize the bq table.
+
     :param data_fp: path to API data output file (jsonl format)
     """
     # generate dict containing field mapping results
@@ -234,58 +221,54 @@ def create_bq_schema(data_fp):
 
     return generate_bq_schema(schema_dict,
                               record_type=endpoint_name,
-                              expand_fields_list=get_expand_groups())
+                              expand_fields_list=get_field_groups(API_PARAMS))
 
 
 def main(args):
-    """
-    Script execution function.
+    """Script execution function.
+
     :param args: command-line arguments
     """
     start = time.time()
     steps = []
 
-    if len(args) != 2:
-        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error("{}".format(err), ValueError)
 
-    # Load the YAML config file
-    with open(args[1], mode='r') as yaml_file:
-        try:
-            global API_PARAMS, BQ_PARAMS
-            API_PARAMS, BQ_PARAMS, steps = load_config(yaml_file, YAML_HEADERS)
-        except ValueError as err:
-            has_fatal_error("{}".format(err), ValueError)
+    jsonl_output_file = build_jsonl_output_filename(BQ_PARAMS)
+    scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
-    scratch_path = get_scratch_dir(API_PARAMS)
-    output_fp = scratch_path + '/' + API_PARAMS['DATA_OUTPUT_FILE']
-    schema = None
-
-    if 'retrieve_and_output_cases' in steps:
+    if 'retrieve_cases_and_write_to_jsonl' in steps:
         # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
-        print('Starting GDC API calls!')
-        retrieve_and_save_case_records(output_fp)
+        console_out('Starting GDC API calls!')
+        retrieve_and_save_case_records(scratch_fp)
 
-    if 'create_bq_schema_obj' in steps:
-        # Creates a BQ schema python object consisting of nested SchemaField objects
-        print('Creating BQ schema object!')
-        schema = create_bq_schema(output_fp)
+    if 'upload_jsonl_to_cloud_storage' in steps:
+        # Insert the generated jsonl file into google storage bucket, for later
+        # ingestion by BQ
+        console_out('Uploading jsonl file to cloud storage!')
+        upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     if 'build_bq_table' in steps:
+        # Creates a BQ schema python object consisting of nested SchemaField objects
+        console_out('Creating BQ schema object!')
+        schema = create_bq_schema(scratch_fp)
+
         # Creates and populates BQ table
         if not schema:
             has_fatal_error('Empty SchemaField object', UnboundLocalError)
-        print('Building BQ Table!')
+        console_out('Building BQ Table!')
 
-        table_name = get_gdc_rel(API_PARAMS) + '_' + BQ_PARAMS['MASTER_TABLE']
+        table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+        table_id = get_working_table_id(BQ_PARAMS, table_name)
 
-        # don't want the entire fp for 2nd param, just the file name
-        create_and_load_table(bq_params=BQ_PARAMS,
-                              jsonl_rows_file=API_PARAMS['DATA_OUTPUT_FILE'],
-                              schema=schema,
-                              table_name=table_name)
+        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
 
     end = time.time() - start
-    print("Script executed in {:.0f} seconds\n".format(end))
+    console_out("Script executed in {0:.0f} seconds\n", (end,))
 
 
 if __name__ == '__main__':

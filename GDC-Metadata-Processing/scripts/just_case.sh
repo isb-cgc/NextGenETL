@@ -27,8 +27,10 @@ SCRATCHDIR=$4
 #
 # Formerly, cut lists were hand-curated. Now they are calculated and provided as arguments:
 #
-
+echo "cut lists"
+echo "current cut = "$5
 CURRENT_CUT=$5
+echo "legacy cut = "$6
 LEGACY_CUT=$6
 
 #
@@ -37,32 +39,33 @@ LEGACY_CUT=$6
 
 CURRENT_COUNT_COL=$7
 LEGACY_COUNT_COL=$8
+IGNORE_COLUMN=$9
 
 echo " "
 echo " ************************************* "
 echo " looking at the CASE DATA tables ... "
 echo " "
 
-f1=../${RELNAME}-current/caseData.bq.$r1.tsv
-f2=../${RELNAME}-legacy/caseData.bq.$r2.tsv
+CURR_CASE_DATA=../${RELNAME}-current/caseData.bq.$r1.tsv
+LEG_CASE_DATA=../${RELNAME}-legacy/caseData.bq.$r2.tsv
 
 #
 # Output line counts for the two caseData files:
 #
 
-echo $f1
-wc -l $f1
-echo $f2
-wc -l $f2
+echo ${CURR_CASE_DATA}
+wc -l ${CURR_CASE_DATA}
+echo ${LEG_CASE_DATA}
+wc -l ${LEG_CASE_DATA}
 
-# f1 cut into f3 (current)
-# f2 cut into f4 (legacy)
+# full current table cut into reduced table
+# full legacy table cut into reduced table
 
-f3=caseData.merge.t0
-f4=caseData.merge.t1
-f5=caseData.merge.t2
+CURR_REDUCED=caseData.merge.t0 # used to be $f3
+LEG_REDUCED=caseData.merge.t1 # used to be $f4
+LEG_ONLY_REDUCED=caseData.merge.t2 # used to be $f5
 
-rm -fr $f3 $f4 $f5
+rm -fr ${CURR_REDUCED} ${LEG_REDUCED} ${LEG_ONLY_REDUCED}
 
 # WJRL 11/10/19: This former legacy manual curation of fields is now being done automatically:
 #
@@ -131,12 +134,12 @@ rm -fr $f3 $f4 $f5
 #sort $f1 | grep -v 'dbName' | cut -f2,5,6,7,8,9,10,29 >& $f3
 #sort $f2 | grep -v 'dbName' | cut -f2,5,6,7,8,9,10,28 >& $f4
 
-sort $f1 | grep -v 'dbName' | cut -f${CURRENT_CUT} >& $f3
-sort $f2 | grep -v 'dbName' | cut -f${LEGACY_CUT} >& $f4
+sort ${CURR_CASE_DATA} | grep -v 'dbName' | cut -f${CURRENT_CUT} >& ${CURR_REDUCED}
+sort ${LEG_CASE_DATA} | grep -v 'dbName' | cut -f${LEGACY_CUT} >& ${LEG_REDUCED}
 
 
-wc -l $f3
-wc -l $f4
+wc -l ${CURR_REDUCED}
+wc -l ${LEG_REDUCED}
 
 
 #
@@ -144,8 +147,8 @@ wc -l $f4
 #
 
 rm -fr *.xxx
-cut -f1 $f3 | sort | uniq | grep -v "file_id" >& active.ids.xxx
-cut -f1 $f4 | sort | uniq | grep -v "file_id" >& legacy.ids.xxx
+cut -f1 ${CURR_REDUCED} | sort | uniq | grep -v "file_id" >& active.ids.xxx
+cut -f1 ${LEG_REDUCED} | sort | uniq | grep -v "file_id" >& legacy.ids.xxx
 
 #
 # Create the list of legacy case IDs that are in active collection. Then create the list of case IDs that are only in legacy
@@ -165,20 +168,20 @@ wc -l *.xxx
 # Create a table of data rows for data only in legacy (going into $f5 caseData.merge.t2) and output count
 for u in `cat only_in_legacy.xxx`
     do
-        grep $u $f4 >> $f5
+        grep $u ${LEG_REDUCED} >> ${LEG_ONLY_REDUCED}
     done
 echo " after checking only_in_legacy ... "
-wc -l $f5
+wc -l ${LEG_ONLY_REDUCED}
 
 # Then glue in all the active cases to (also going into $f5), then output count:
 for u in `cat active.ids.xxx`
     do
-        grep $u $f3 >> $f5
+        grep $u ${CURR_REDUCED} >> ${LEG_ONLY_REDUCED}
     done
 
 echo " after adding in active ids ... "
 echo " number of cases in f5 file "
-wc -l $f5
+wc -l ${LEG_ONLY_REDUCED}
 
 #
 # This loop is building the *legacy* file count. It takes the last field (summary file count) out of the original legacy table.
@@ -187,11 +190,10 @@ wc -l $f5
 # Remember f2 is legacy:
 rm -fr filecountcol.leg.tmp
 touch filecountcol.leg.tmp
-for a in `cut -f1 $f5`
+for a in `cut -f1 ${LEG_ONLY_REDUCED}`
     do
         # n=`grep $a $f2 | cut -f30`  Now an argument
-        n=`grep $a $f2 | cut -f${LEGACY_COUNT_COL}`
-        ## echo $n
+        n=`grep $a ${LEG_CASE_DATA} | cut -f${LEGACY_COUNT_COL}`
         if [ -z "$n" ]
             then
                 ## echo " is blank ... putting in a 0 "
@@ -207,10 +209,10 @@ wc -l filecountcol.leg.tmp
 # Remember f1 is current:
 rm -fr filecountcol.act.tmp
 touch filecountcol.act.tmp
-for a in `cut -f1 $f5`
+for a in `cut -f1 ${LEG_ONLY_REDUCED}`
     do
         # n=`grep $a $f1 | cut -f31` Now an argument
-        n=`grep $a $f1 | cut -f${CURRENT_COUNT_COL}`
+        n=`grep $a ${CURR_CASE_DATA} | cut -f${CURRENT_COUNT_COL}`
         ## echo $n
         if [ -z "$n" ]
             then
@@ -221,22 +223,20 @@ for a in `cut -f1 $f5`
                 echo $n >> filecountcol.act.tmp
             fi
     done
+
 echo filecountcol.act.tmp
 wc -l filecountcol.act.tmp
 
 rm -fr aa bb cc
 
-paste $f5 filecountcol.leg.tmp filecountcol.act.tmp >& aa
+paste ${LEG_ONLY_REDUCED} filecountcol.leg.tmp filecountcol.act.tmp >& aa
 wc -l aa
 ../scripts/good_look.sh aa ${SCRATCHDIR}
 
-###### rm -fr $f3 $f4 $f5
-
-## start the 'bb' file with the header row ...
-cp ../textFiles/just_case.header.KEEP bb
-
+## start the 'bb' file with the header row ... 
+header=$(head -1 ${LEG_CASE_DATA} | cut -f${LEGACY_CUT})" legacy_file_count active_file_count" 
+echo $header | tr " " "\t" > bb 
 cat aa >> bb
+
 ../scripts/good_look.sh bb ${SCRATCHDIR}
-
 cp bb caseData.merge.t1
-

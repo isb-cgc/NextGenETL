@@ -93,7 +93,7 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             do_batch, shadow_prefix, skip_datasets, view_friendly_names, do_tables):
+                             do_batch, shadow_prefix, skip_datasets, do_tables):
 
     dataset_list = source_client.list_datasets()
 
@@ -128,7 +128,7 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 print(table_id)
 
                 #
-                # Make a completely new copy of the source schema. Do we have to? Probably not. Pananoid.
+                # Make a completely new copy of the source schema. Do we have to? Probably not. Paranoid.
                 #
                 targ_schema = []
                 for sf in tbl_obj.schema:
@@ -150,7 +150,8 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                 else:
                     targ_table = bigquery.Table(table_id)
 
-                targ_table.friendlyName = tbl_obj.friendly_name
+                targ_table.friendly_name = tbl_obj.friendly_name
+                print("Table {} FN: {}".format(table_id, tbl_obj.friendly_name))
                 targ_table.description = tbl_obj.description
 
                 if tbl_obj.labels is not None:
@@ -166,26 +167,16 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
                     targ_table.view_query = use_query
 
                     #
-                    # "Number of rows" in a shadow empty table is provided through a private tag label. Same
-                    # with friendly name:
+                    # "Number of rows" in a shadow empty table is provided through a private tag label.
                     #
 
                     num_row_tag = "{}_{}".format(shadow_prefix, "num_rows")
                     targ_table.labels[num_row_tag] = use_row_count
-                    friendly_name_tag = "{}_{}".format(shadow_prefix, "friendly_name")
-                    friendly_name_key = "{}.{}".format(dataset.dataset_id, tbl.table_id)
-                    for adict in view_friendly_names:
-                        view_id, friendly = next(iter(adict.items()))
-                        if view_id == friendly_name_key:
-                            use_name = friendly
-                            break
-
-                    targ_table.labels[friendly_name_tag] = use_name
 
                 shadow_table = shadow_client.create_table(targ_table)
 
                 #
-                # If we created a view, update the schema after creation:
+                # If we created a view, update the schema after creation.
                 #
 
                 if use_query is not None:
@@ -194,6 +185,28 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
     return True
 
+
+'''
+----------------------------------------------------------------------------------------------
+Friendly names for views to not appear in the console. Dump them out to check what is there
+'''
+
+def dumpViewFriendlyNames(source_client, source_project, skip_datasets):
+
+    dataset_list = source_client.list_datasets()
+
+    for dataset in dataset_list:
+        # Some datasets (security logs) should be ignored outright:
+        if dataset.dataset_id in skip_datasets:
+            continue
+        table_list = list(source_client.list_tables(dataset.dataset_id))
+        for tbl in table_list:
+            tbl_obj = source_client.get_table(tbl)
+            if tbl_obj.view_query is not None:
+                src_tab_id = '{}.{}.{}'.format(source_project, dataset.dataset_id, tbl.table_id)
+                print("View: {} Friendly Name: {}".format(src_tab_id, tbl_obj.friendly_name))
+
+    return True
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -268,10 +281,15 @@ def main(args):
     skip_tables = params['SKIP_TABLES']
     shadow_prefix = params['PRIVATE_METADATA_PREFIX']
     skip_datasets = params['SKIP_DATASETS']
-    view_friendly_names = params['VIEW_FRIENDLY_NAMES']
 
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
+
+    if 'show_friendly_names' in steps:
+        success = dumpViewFriendlyNames(source_client, source_project, skip_datasets)
+        if not success:
+            print("show_friendly_names failed")
+            return
 
     if 'clean_shadow' in steps:
         success = clean_shadow_project(shadow_client, shadow_project)
@@ -299,8 +317,7 @@ def main(args):
     if 'create_all_shadow_tables' in steps:
         # Create just tables:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets,
-                                           view_friendly_names, True)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, True)
         if not success:
             print("create_all_shadow_tables failed")
             return
@@ -308,8 +325,7 @@ def main(args):
     if 'create_all_shadow_views' in steps:
         # Create just views:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets,
-                                           view_friendly_names, False)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, False)
         if not success:
             print("create_all_shadow_views failed")
             return
