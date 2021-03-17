@@ -101,6 +101,9 @@ def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table
 '''
 def merge_bq_sql(cnv_table, aliquot_table):
 
+    # todo add primary site
+    # todo may need to join on sample_id also
+
     return '''
         WITH
             a1 AS (SELECT DISTINCT GDC_Aliquot
@@ -173,6 +176,14 @@ def main(args):
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
+    # todo bq variables
+
+    upload_table = f"params['PROGRAM']_params['DATA_TYPE']"
+    manifest_table = f"params['PROGRAM']_params['DATA_TYPE']_manifest"
+    pull_list_table = f"params['PROGRAM']_params['DATA_TYPE']_pull_list"
+    draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
@@ -188,7 +199,7 @@ def main(args):
 
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                               params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
+                                               manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
                                                params['BQ_AS_BATCH'])
         if not manifest_success:
@@ -216,7 +227,7 @@ def main(args):
 
         if not success:
             print("Build pull list failed")
-            return;
+            return
     #
     # Now hitting GDC cloud buckets. Get the files in the pull list:
     #
@@ -256,6 +267,7 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
+    # todo schema steps run over both current and versioned tables
     if 'process_git_schemas' in steps:
         print('process_git_schema')
         # Where do we dump the schema git repository?
@@ -266,6 +278,8 @@ def main(args):
         if not success:
             print("process_git_schemas failed")
             return
+
+    # todo replace_schema_tag step
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
@@ -298,11 +312,17 @@ def main(args):
         if not success:
             print("Join job failed")
 
+    # todo create a current table step
+
+    # todo check that table is new step
+
     #
     # Update the per-field descriptions:
     #
 
-    if 'update_field_descriptions' in steps:
+    # todo: do this by current & versioned
+
+    if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
         print('update_field_descriptions')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
@@ -333,6 +353,10 @@ def main(args):
     # publish table:
     #
 
+    # todo: do publish steps per current/versioned table
+
+    # todo: add remove old current table step
+
     if 'publish' in steps:
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
@@ -346,6 +370,8 @@ def main(args):
             print("publish table failed")
             return
 
+    # todo add update_status_tag step
+
     #
     # Clear out working temp tables:
     #
@@ -355,6 +381,8 @@ def main(args):
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
             delete_table_bq_job(params['TARGET_DATASET'], table)
+
+    # todo add archive tables step
 
     print('job completed')
 
