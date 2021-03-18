@@ -274,7 +274,6 @@ def get_file_ids():
 
     for old_file in old_file_ids:
         file_id = old_file['file_id']
-        print(file_id)
         old_file_id_set.add(file_id)
 
     for curr_file in curr_file_ids:
