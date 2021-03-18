@@ -346,9 +346,6 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
         file_metadata_list.append(file_dict)
 
-    print(file_metadata_list[-1])
-    exit()
-
     file_metadata_jsonl_file = get_filename(API_PARAMS,
                                             file_extension='jsonl',
                                             prefix=API_PARAMS['ENDPOINT_SETTINGS']['filesMetadata']['output_name'])
