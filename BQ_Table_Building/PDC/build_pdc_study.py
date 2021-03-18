@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from common_etl.utils import (format_seconds,get_graphql_api_response, has_fatal_error, load_config)
+from common_etl.utils import (format_seconds,get_graphql_api_response, has_fatal_error, load_config, pprinter)
 from common_etl.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl)
 
 
@@ -123,7 +123,9 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    print(steps)
+    pprinter(API_PARAMS)
+
+    pprinter(BQ_PARAMS)
 
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,

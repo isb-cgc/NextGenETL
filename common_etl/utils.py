@@ -22,6 +22,7 @@ SOFTWARE.
 import io
 import json
 import os
+import pprint
 import sys
 import time
 import re
@@ -1039,3 +1040,9 @@ def has_fatal_error(err, exception=None):
         raise exception
 
     sys.exit(1)
+
+
+def pprinter(print_str):
+    pp = pprint.PrettyPrinter(indent=4)
+
+    pp.pprint(print_str)
