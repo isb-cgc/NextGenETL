@@ -340,10 +340,11 @@ def build_file_pdc_metadata_jsonl(file_ids):
     """
 
     old_file_metadata = get_previous_version_file_metadata()
-    print(old_file_metadata)
-    exit()
 
     for file in old_file_metadata:
+        print(file)
+        exit()
+
         file_metadata_list.append(file)
 
     file_metadata_jsonl_file = get_filename(API_PARAMS,
