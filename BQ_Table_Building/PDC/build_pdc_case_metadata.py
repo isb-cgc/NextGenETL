@@ -69,6 +69,42 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
+'''
+def make_cases_aliquots_query(offset, limit):
+    """
+    Creates a graphQL string for querying the PDC API's paginatedCasesSamplesAliquots endpoint.
+    :param offset: starting index for which to return records
+    :param limit: maximum number of records to return
+    :return: GraphQL query string
+    """
+    return """{{ 
+        paginatedCasesSamplesAliquots(offset:{0} limit:{1} acceptDUA: true) {{ 
+            total casesSamplesAliquots {{
+                case_id 
+                case_submitter_id
+                samples {{
+                    sample_id 
+                    aliquots {{ 
+                        aliquot_id 
+                        aliquot_submitter_id
+                        aliquot_run_metadata {{ 
+                            aliquot_run_metadata_id
+                        }}
+                    }}
+                }}
+            }}
+            pagination {{ 
+                count 
+                from 
+                page 
+                total 
+                pages 
+                size 
+            }}
+        }}
+    }}""".format(offset, limit)
+'''
+
 def main(args):
     start_time = time.time()
     print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
