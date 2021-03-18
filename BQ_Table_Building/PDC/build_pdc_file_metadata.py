@@ -311,8 +311,8 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
     print("Getting {} new files".format(len(file_ids)))
 
-    for count, row in enumerate(file_ids):
-        file_id = row['file_id']
+    for count, file_id in enumerate(file_ids):
+
         file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
         if 'data' not in file_metadata_res:
