@@ -981,7 +981,7 @@ def load_config(args, yaml_dict_keys, validate_config=None):
 
             # Dynamically generate a list of dictionaries for the return statement,
             # since tuples are immutable
-            return [yaml_dict[key] for key in yaml_dict_keys]
+            return {key:yaml_dict[key] for key in yaml_dict_keys}
 
     if len(args) < 2 or len(args) > 3:
         has_fatal_error("")
