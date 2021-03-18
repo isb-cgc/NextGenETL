@@ -261,7 +261,7 @@ def get_file_ids():
 
     fm_table_name = construct_table_name(API_PARAMS,
                                          prefix=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'],
-                                         release=BQ_PARAMS['PREV_RELEASE'])
+                                         release=API_PARAMS['PREV_RELEASE'])
 
     fm_table_id = get_dev_table_id(BQ_PARAMS,
                                    dataset=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset'],
@@ -278,7 +278,7 @@ def get_previous_version_file_metadata():
     prefix = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name']
     dataset = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset']
 
-    table_name = construct_table_name(API_PARAMS, prefix, release=BQ_PARAMS['PREV_RELEASE'])
+    table_name = construct_table_name(API_PARAMS, prefix, release=API_PARAMS['PREV_RELEASE'])
     table_id = get_dev_table_id(BQ_PARAMS, dataset=dataset, table_name=table_name)
 
     query = """
