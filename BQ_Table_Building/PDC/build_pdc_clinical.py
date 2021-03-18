@@ -441,8 +441,6 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
             column_position = BQ_PARAMS['COLUMN_ORDER'].index(schema_field.name)
             fields["parent_level"].append((schema_field.name, column_position))
 
-    fields.pop("parent_level")
-
     load_table_from_query(BQ_PARAMS,
                           table_id=clinical_project_table_id,
                           query=make_ordered_clinical_table_query(fields))
