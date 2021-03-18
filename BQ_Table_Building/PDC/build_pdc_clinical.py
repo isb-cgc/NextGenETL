@@ -79,7 +79,7 @@ def get_case_demographics():
     :return: paginatedCaseDemographicsPerStudy response records
     """
     endpoint = 'paginatedCaseDemographicsPerStudy'
-    dataset = BQ_PARAMS['CLINICAL_DATASET']
+    dataset = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['dataset']
 
     select_statement = """
         SELECT demographic_id, demographic_submitter_id, case_id, case_submitter_id, gender, ethnicity, race, 
@@ -95,7 +95,7 @@ def get_case_diagnoses():
     :return: paginatedCaseDiagnosesPerStudy response records
     """
     endpoint = 'paginatedCaseDiagnosesPerStudy'
-    dataset = BQ_PARAMS['CLINICAL_DATASET']
+    dataset = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['dataset']
     select_statement = "SELECT case_id, case_submitter_id, diagnoses"
 
     return get_records(API_PARAMS, BQ_PARAMS, endpoint, select_statement, dataset)
@@ -396,7 +396,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
         return subqueries
 
-    def make_ordered_clinical_table_query():
+    def make_ordered_clinical_table_query(fields):
         """
         Sort list by index, output list of column names for use in sql query
         """
@@ -445,7 +445,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     load_table_from_query(BQ_PARAMS,
                           table_id=clinical_project_table_id,
-                          query=make_ordered_clinical_table_query())
+                          query=make_ordered_clinical_table_query(fields))
 
     update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=clinical_project_table_id)
     delete_bq_table(temp_table_id)
@@ -774,7 +774,7 @@ def main(args):
         append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, demographics_by_case)
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
-        build_per_project_clinical_tables(cases_by_project)
+        create_per_project_case_clinical_tables(cases_by_project)
 
     if 'update_clinical_tables_metadata' in steps:
         update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CLINICAL_TABLE'])
