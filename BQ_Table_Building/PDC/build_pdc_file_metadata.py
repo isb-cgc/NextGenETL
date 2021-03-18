@@ -333,7 +333,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
             count += 1
 
             if count % 50 == 0:
-                print("{} of {} files retrieved".format(count, file_ids.total_rows))
+                print("{} of {} files retrieved".format(count, len(file_ids)))
 
     old_file_metadata = get_previous_version_file_metadata()
 
