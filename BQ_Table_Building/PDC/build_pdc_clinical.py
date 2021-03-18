@@ -520,65 +520,6 @@ def get_cases_by_project_submitter(studies_list):
     return cases_by_project_submitter
 
 
-def create_per_project_case_clinical_tables(case_list_by_project):
-    """
-    Create case clinical tables on per-project basis
-    :param case_list_by_project: dictionary of case lists, with project submitter id as key
-    """
-    for project_name, project_dict in case_list_by_project.items():
-        record_count = len(project_dict['cases'])
-        max_diagnosis_count = project_dict['max_diagnosis_count']
-
-        print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
-
-        clinical_records = []
-        clinical_diagnoses_records = []
-
-        # iterate over now-populated project dicts
-        # - if max diagnosis record length is 1, create single PROJECT_clinical_pdc_current table
-        # - else create a PROJECT_clinical_pdc_current table and a PROJECT_clinical_diagnoses_pdc_current table
-        cases = project_dict['cases']
-        for case in cases:
-            if 'case_id' not in case:
-                continue
-            clinical_case_record = case
-            clinical_diagnoses_record = dict()
-            diagnoses = case.pop('diagnoses') if 'diagnoses' in case else None
-
-            if not clinical_case_record or max_diagnosis_count == 0:
-                continue
-            if max_diagnosis_count == 1 and diagnoses:
-                clinical_case_record.update(diagnoses[0])
-            elif max_diagnosis_count > 1 and diagnoses:
-                for diagnosis in diagnoses:
-                    clinical_diagnoses_record['case_id'] = clinical_case_record['case_id']
-                    clinical_diagnoses_record['case_submitter_id'] = clinical_case_record['case_submitter_id']
-                    clinical_diagnoses_record['project_submitter_id'] = clinical_case_record['project_submitter_id']
-                    clinical_diagnoses_record.update(diagnosis)
-                    clinical_diagnoses_records.append(clinical_diagnoses_record)
-
-            clinical_records.append(clinical_case_record)
-
-        if clinical_records:
-            temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
-                                                                        project_name=project_name,
-                                                                        infer_schema=True)
-
-            create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
-
-        if clinical_diagnoses_records:
-            temp_diagnoses_table_id = remove_nulls_and_create_temp_table(records=clinical_diagnoses_records,
-                                                                         project_name=project_name,
-                                                                         is_diagnoses=True,
-                                                                         infer_schema=True)
-
-            create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
-
-
 def get_diagnosis_demographic_records_by_case():
     """
     Retrieve diagnoses and demographic records for each case
@@ -774,7 +715,7 @@ def main(args):
         append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, demographics_by_case)
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
-        create_per_project_case_clinical_tables(cases_by_project)
+        build_per_project_clinical_tables(cases_by_project)
 
     if 'update_clinical_tables_metadata' in steps:
         update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CLINICAL_TABLE'])
