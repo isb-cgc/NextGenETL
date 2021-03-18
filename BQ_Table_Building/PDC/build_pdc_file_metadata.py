@@ -356,9 +356,6 @@ def build_file_pdc_metadata_jsonl(file_ids):
     record_with_aliquots = file_metadata_list.pop(record_with_aliquots_idx)
     file_metadata_list.insert(0, record_with_aliquots)
 
-    print(file_metadata_list[0])
-    exit()
-
     file_metadata_jsonl_file = get_filename(API_PARAMS,
                                             file_extension='jsonl',
                                             prefix=API_PARAMS['ENDPOINT_SETTINGS']['filesMetadata']['output_name'])
