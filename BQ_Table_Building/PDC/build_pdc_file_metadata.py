@@ -269,8 +269,8 @@ def get_file_ids():
 
     old_file_ids = get_query_results(make_file_id_query(fm_table_id))
 
-    old_file_id_set = {fid for fid in old_file_ids}
-    curr_file_id_set = {fid for fid in curr_file_ids}
+    old_file_id_set = {fid['file_id'] for fid in old_file_ids}
+    curr_file_id_set = {fid['file_id'] for fid in curr_file_ids}
 
     new_file_ids = curr_file_id_set - old_file_id_set
 
