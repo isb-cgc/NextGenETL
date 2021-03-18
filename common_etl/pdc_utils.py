@@ -173,13 +173,10 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
-        client = bigquery.Client()
-
-        print(client.schema_from_json(schema_json_file))
-        exit()
+    upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
-def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False):
+def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, schema=None):
     """
     Build BQ table from jsonl file.
     :param api_params: API params from YAML config

@@ -19,13 +19,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import json
 import time
 import sys
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, load_table_from_query, load_config,
-                              publish_table, construct_table_name)
+                              publish_table, construct_table_name, download_from_bucket)
 
 from common_etl.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename,
                                   get_dev_table_id, create_modified_temp_table, update_column_metadata,
@@ -384,11 +384,24 @@ def main(args):
 
     if 'build_per_study_file_jsonl' in steps:
         build_jsonl_from_pdc_api(API_PARAMS,
-                                 BQ_PARAMS,
-                                 endpoint="filesPerStudy",
-                                 request_function=make_files_per_study_query,
-                                 alter_json_function=alter_files_per_study_json,
-                                 ids=all_pdc_study_ids)
+                                             BQ_PARAMS,
+                                             endpoint="filesPerStudy",
+                                             request_function=make_files_per_study_query,
+                                             alter_json_function=alter_files_per_study_json,
+                                             ids=all_pdc_study_ids)
+
+        schema_filename = get_filename(API_PARAMS,
+                                       file_extension='jsonl',
+                                       prefix="schema",
+                                       suffix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+
+        download_from_bucket(BQ_PARAMS, schema_filename)
+        scratch_fp = get_scratch_fp(BQ_PARAMS, schema_filename)
+
+        with open(scratch_fp, "r") as schema_json:
+            schema_obj = json.load(schema_json)
+
+        print(schema_obj)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(API_PARAMS,
