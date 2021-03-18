@@ -543,7 +543,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error("{}".format(err), ValueError)
 
-    jsonl_output_file = get_rel_prefix(BQ_PARAMS) + "_" + BQ_PARAMS['MASTER_TABLE'] + '.jsonl'
+    jsonl_output_file = get_rel_prefix(API_PARAMS) + "_" + BQ_PARAMS['MASTER_TABLE'] + '.jsonl'
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
     grouped_fields_dict = None
@@ -572,8 +572,8 @@ def main(args):
         schema = generate_bq_schema(grouped_fields_dict, column_data_types_dict)
 
         print('Building BQ Table!')
-        table_name = "_".join([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-        table_id = get_working_table_id(BQ_PARAMS, table_name)
+        table_name = "_".join([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+        table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
         create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
         # os.remove(scratch_fp)

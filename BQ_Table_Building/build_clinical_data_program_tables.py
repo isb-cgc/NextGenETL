@@ -58,7 +58,7 @@ def make_program_list_query():
             FROM `{}`
         )
         ORDER BY proj
-        """.format(get_working_table_id(BQ_PARAMS))
+        """.format(get_working_table_id(API_PARAMS, BQ_PARAMS))
 
 
 def get_program_list():
@@ -91,7 +91,7 @@ def get_full_table_name(program, table):
     :param table: Name of desired table
     :return: String representing table name used by BQ.
     """
-    table_name = [get_rel_prefix(BQ_PARAMS), program, BQ_PARAMS['MASTER_TABLE']]
+    table_name = [get_rel_prefix(API_PARAMS), program, BQ_PARAMS['MASTER_TABLE']]
 
     # if one-to-many table, append suffix
     suffixes = get_table_suffixes()
@@ -112,9 +112,9 @@ def build_jsonl_name(program, table, is_webapp=False):
     :return: jsonl file name
     """
     app_prefix = BQ_PARAMS['APP_JSONL_PREFIX'] if is_webapp else ''
-    program = construct_table_name(BQ_PARAMS, program)
+    program = construct_table_name(API_PARAMS, program)
     suffix = get_table_suffixes()[table]
-    name_list = [app_prefix, get_rel_prefix(BQ_PARAMS), program, BQ_PARAMS['MASTER_TABLE'], suffix]
+    name_list = [app_prefix, get_rel_prefix(API_PARAMS), program, BQ_PARAMS['MASTER_TABLE'], suffix]
 
     # remove any blank values in list
     filtered_name_list = [x for x in name_list if x]
@@ -232,7 +232,7 @@ def create_schema_dict(is_webapp=False):
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
     """
     client = bigquery.Client()
-    bq_table = client.get_table(get_working_table_id(BQ_PARAMS))
+    bq_table = client.get_table(get_working_table_id(API_PARAMS, BQ_PARAMS))
 
     schema_list = []
 
@@ -1059,8 +1059,11 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
 
         # initialize record counts for parent id
         if parent_field_grp in flat_case:
+
+            last_parent_record_id_key = None
+
             for parent_record in flat_case[parent_field_grp]:
-                parent_id = parent_record[parent_id_key]
+                parent_id = last_parent_record_id_key = parent_record[parent_id_key]
                 record_count_dict[field_grp][parent_id] = 0
 
             # count child records
@@ -1069,10 +1072,7 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
                     if parent_id_key in record:
                         parent_id = record[parent_id_key]
                     else:
-                        # todo this is weird, but I'm hesitant to mess with it.
-                        #  I can probably revisit flatten case functionality entirely, I found a better method
-                        #  for this for PDC
-                        parent_id = parent_record[parent_id_key]
+                        parent_id = last_parent_record_id_key
 
                     record_count_dict[field_grp][parent_id] += 1
 
@@ -1082,7 +1082,6 @@ def get_record_counts(flat_case, record_counts, is_webapp=False):
         count_name = get_bq_name('count', is_webapp, field_grp)
 
         for parent_id, count in parent_ids.items():
-            print(2)
             p_key_idx = get_record_idx(flat_case, parent_field_grp, parent_id, is_webapp)
             flat_case[parent_field_grp][p_key_idx][count_name] = count
 
@@ -1219,7 +1218,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         if is_webapp:
             table_id = get_webapp_table_id(BQ_PARAMS, table_name)
         else:
-            table_id = get_working_table_id(BQ_PARAMS, table_name)
+            table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
         create_and_load_table(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
 
@@ -1229,7 +1228,7 @@ def get_metadata_files():
 
     :return: list of filenames
     """
-    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
+    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(API_PARAMS)])
     metadata_fp = get_filepath(rel_path)
 
     return [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
@@ -1248,11 +1247,11 @@ def make_and_check_metadata_table_id(json_file):
         program_name = split_name[1]
         split_table = split_name[2].split('_')
         program_table_name = '_'.join(split_table[:-2])
-        rel = get_rel_prefix(BQ_PARAMS)
+        rel = get_rel_prefix(API_PARAMS)
         return '_'.join([rel, program_name, program_table_name])
 
     table_name = convert_json_to_table_name()
-    table_id = get_working_table_id(BQ_PARAMS, table_name)
+    table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
     if not exists_bq_table(table_id):
         print('\t\t- skipping -- no table found for file: {}'.format(json_file))
@@ -1275,7 +1274,7 @@ def update_metadata():
         if not table_id:
             continue
 
-        metadata_dir = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(BQ_PARAMS)])
+        metadata_dir = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(API_PARAMS)])
         metadata_fp = get_filepath(metadata_dir, json_file)
 
         with open(metadata_fp) as json_file_output:
@@ -1291,7 +1290,7 @@ def update_clin_schema():
     print("\nUpdating schemas (field descriptions)!")
 
     dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(BQ_PARAMS))
+    fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(API_PARAMS))
     field_desc_fp = get_filepath(dir_path, fields_file)
 
     with open(field_desc_fp) as field_output:
@@ -1313,9 +1312,9 @@ def change_status_to_archived(table_id):
     :return:
     """
     client = bigquery.Client()
-    current_release_tag = get_rel_prefix(BQ_PARAMS)
+    current_release_tag = get_rel_prefix(API_PARAMS)
     stripped_table_id = table_id.replace(current_release_tag, "")
-    previous_release_tag = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
+    previous_release_tag = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
     prev_table_id = stripped_table_id + previous_release_tag
 
     try:
@@ -1337,9 +1336,9 @@ def copy_tables_into_public_project(publish_table_list):
         split_table_name = table_name.split('_')
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
-        src_table_id = get_working_table_id(BQ_PARAMS, table_name)
+        src_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
-        publish_table(BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
+        publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
 
 #    Webapp specific functions
@@ -1383,12 +1382,12 @@ def build_biospecimen_stub_tables(program):
     and sample_submitter_id (as sample_barcode).
     :param program: the program from which the cases originate.
     """
-    main_table = build_table_name_from_list([get_rel_prefix(BQ_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-    main_table_id = get_working_table_id(BQ_PARAMS, main_table)
+    main_table = build_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+    main_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, main_table)
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
-    bio_spec_table_name_list = [get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
+    bio_spec_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
     biospec_table_name = build_table_name_from_list(bio_spec_table_name_list)
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
@@ -1419,8 +1418,8 @@ def build_publish_table_list():
     todo
     :return:
     """
-    old_release = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
-    new_release = BQ_PARAMS['REL_PREFIX'] + BQ_PARAMS['RELEASE']
+    old_release = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
+    new_release = API_PARAMS['REL_PREFIX'] + API_PARAMS['RELEASE']
     old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
     new_tables = list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release)
 
@@ -1436,8 +1435,8 @@ def build_publish_table_list():
         if old_table_name not in old_tables:
             publish_table_list.append(new_table_name)
         else:
-            old_table_id = get_working_table_id(BQ_PARAMS, old_table_name)
-            new_table_id = get_working_table_id(BQ_PARAMS, new_table_name)
+            old_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, old_table_name)
+            new_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, new_table_name)
 
             res = get_query_results(make_publish_table_list_query(old_table_id, new_table_id))
 
@@ -1697,7 +1696,7 @@ def make_tables_diff_query(old_rel, new_rel):
                 n.program AS new_rel_program_name, 
                 o.num_tables AS prev_table_cnt, 
                 n.num_tables AS new_table_cnt
-        FROM new_table_cnts n
+        FROM new_table_counts n
         FULL OUTER JOIN old_table_counts o
           ON o.program = n.program
         WHERE o.num_tables != n.num_tables
@@ -1736,8 +1735,8 @@ def compare_gdc_releases():
     todo
     :return:
     """
-    old_rel = BQ_PARAMS['REL_PREFIX'] + str(int(BQ_PARAMS['RELEASE']) - 1)
-    new_rel = get_rel_prefix(BQ_PARAMS)
+    old_rel = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
+    new_rel = get_rel_prefix(API_PARAMS)
 
     print("\n\n*** {} -> {} GDC Clinical Data Comparison Report ***".format(old_rel, new_rel))
 
@@ -1859,7 +1858,7 @@ def get_cases_by_program(program):
 
     cases = []
 
-    sample_table_name_list = [get_rel_prefix(BQ_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
+    sample_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
     sample_table_name = build_table_name_from_list(sample_table_name_list)
     sample_table_id = build_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
 
@@ -1870,7 +1869,7 @@ def get_cases_by_program(program):
             SELECT DISTINCT(case_gdc_id) 
             FROM `{}`
             WHERE program_name = '{}')
-    """.format(get_working_table_id(BQ_PARAMS), sample_table_id, program)
+    """.format(get_working_table_id(API_PARAMS, BQ_PARAMS), sample_table_id, program)
 
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())
@@ -1887,8 +1886,10 @@ def validate_config(yaml_output_tuple):
     :return:
     """
     api_param_field_dict = {
-        "ENDPOINT": [str],
-        "BATCH_SIZE": [int],
+        'ENDPOINT': [str],
+        'REL_PREFIX': [str, None],
+        'RELEASE': [str],
+        'BATCH_SIZE': [int],
         'START_INDEX': [int],
         'PARENT_FG': [str],
         'EXPAND_FG_LIST': [list, None],
@@ -1901,8 +1902,6 @@ def validate_config(yaml_output_tuple):
         'WORKING_BUCKET': [str],
         'WORKING_BUCKET_DIR': [str],
         'MASTER_TABLE': [str],
-        'REL_PREFIX': [str, None],
-        'RELEASE': [str],
         'LOCATION': [str, None],
         'DEV_PROJECT': [str],
         'DEV_DATASET': [str]

@@ -135,10 +135,10 @@ def build_table_name_from_list(str_list):
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
-def construct_table_name(bq_params, prefix, suffix=None, include_release=True, release=None):
+def construct_table_name(api_params, prefix, suffix=None, include_release=True, release=None):
     """
     todo
-    :param bq_params:
+    :param api_params:
     :param prefix:
     :param suffix:
     :param include_release:
@@ -153,7 +153,7 @@ def construct_table_name(bq_params, prefix, suffix=None, include_release=True, r
     if release:
         table_name += '_' + release
     elif include_release:
-        table_name += '_' + bq_params['RELEASE']
+        table_name += '_' + api_params['RELEASE']
 
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
@@ -169,15 +169,16 @@ def build_table_id(project, dataset, table):
     return '{}.{}.{}'.format(project, dataset, table)
 
 
-def get_working_table_id(bq_params, table_name=None):
+def get_working_table_id(api_params, bq_params, table_name=None):
     """Get table id for development version of the db table.
 
+    :param api_params: todo
     :param bq_params: bq param object from yaml config
     :param table_name: name of the bq table
     :return: table id
     """
     if not table_name:
-        table_name = "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
+        table_name = "_".join([get_rel_prefix(api_params), bq_params['MASTER_TABLE']])
 
     return build_table_id(bq_params["DEV_PROJECT"], bq_params["DEV_DATASET"], table_name)
 
@@ -328,15 +329,14 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
         has_fatal_error(err)
 
 
-def create_and_load_table_from_tsv(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
+def create_and_load_table_from_tsv(bq_params, tsv_file, schema, table_id, num_header_rows=1):
     """Creates BQ table and inserts case data from jsonl file.
 
-    :param num_header_rows:
-    :param null_marker:
     :param bq_params: bq param obj from yaml config
     :param tsv_file: file containing case records in tsv format
     :param schema: list of SchemaFields representing desired BQ table schema
     :param table_id: id of table to create
+    :param num_header_rows: todo
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
@@ -345,7 +345,7 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, schema, table_id, null_m
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
     job_config.skip_leading_rows = num_header_rows
-    job_config.null_marker = null_marker
+    job_config.null_marker = "None"
 
     gs_uri = "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'], bq_params['WORKING_BUCKET_DIR'], tsv_file)
 
@@ -496,12 +496,20 @@ def load_bq_schema_from_json(bq_params, filename):
 
     with open(fp, 'r') as schema_file:
         schema_file = json.load(schema_file)
+
+        if 'schema' not in schema_file:
+            has_fatal_error("['schema'] not found in schema json file")
+        elif 'fields' not in schema_file['schema']:
+            has_fatal_error("['schema']['fields'] not found in schema json file")
+        elif not schema_file['schema']['fields']:
+            has_fatal_error("['schema']['fields'] contains no key:value pairs")
         return schema_file['schema']['fields']
 
 
-def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
+def publish_table(api_params, bq_params, public_dataset, source_table_id, overwrite=False):
     """
     todo
+    :param api_params:
     :param bq_params:
     :param public_dataset:
     :param source_table_id:
@@ -513,8 +521,8 @@ def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
         todo
         :return:
         """
-        rel_prefix = get_rel_prefix(bq_params)
-        data_source = bq_params['DATA_SOURCE']
+        rel_prefix = get_rel_prefix(api_params)
+        data_source = api_params['DATA_SOURCE']
 
         split_table_id = source_table_id.split('.')
         dataset_type = split_table_id[-1]
@@ -532,10 +540,10 @@ def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
         :return:
         """
         client = bigquery.Client()
-        current_release_tag = get_rel_prefix(bq_params)
+        current_release_tag = get_rel_prefix(api_params)
 
         stripped_table_id = source_table_id.replace(current_release_tag, "")
-        previous_release_tag = get_rel_prefix(bq_params, return_last_version=True)
+        previous_release_tag = get_rel_prefix(api_params, return_last_version=True)
         prev_table_id = stripped_table_id + previous_release_tag
 
         try:
@@ -556,8 +564,8 @@ def publish_table(bq_params, public_dataset, source_table_id, overwrite=False):
         copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
 
         print("Updating friendly name for {}\n".format(versioned_table_id))
-        is_gdc = True if bq_params['DATA_SOURCE'] == 'gdc' else False
-        update_friendly_name(bq_params, versioned_table_id, is_gdc)
+        is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
+        update_friendly_name(api_params, versioned_table_id, is_gdc)
 
         change_status_to_archived()
 
@@ -618,12 +626,12 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     print("Labels updated successfully!\n")
 
 
-def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
+def update_friendly_name(api_params, table_id, custom_name=None, is_gdc=True):
     """Modify a table's friendly name metadata.
 
-    :param bq_params: bq param object from yaml config
+    :param api_params: api param object from yaml config
     :param table_id: table id in standard SQL format
-    :param custom_name: By default, appends "'REL' + bq_params['RELEASE'] + ' VERSIONED'"
+    :param custom_name: By default, appends "'REL' + api_params['RELEASE'] + ' VERSIONED'"
     :param is_gdc: If this is GDC, we add REL before the version
     onto the existing friendly name. If custom_name is specified, this behavior is
     overridden, and the table's friendly name is replaced entirely.
@@ -635,9 +643,9 @@ def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
         new_name = custom_name
     else:
         if is_gdc:
-            release_str = ' REL' + bq_params['RELEASE']
+            release_str = ' REL' + api_params['RELEASE']
         else:
-            release_str = ' ' + bq_params['RELEASE']
+            release_str = ' ' + api_params['RELEASE']
 
         new_name = table.friendly_name + release_str + ' VERSIONED'
 
@@ -905,31 +913,31 @@ def infer_data_types(flattened_json):
 #       MISC UTILITIES
 
 
-def get_rel_prefix(bq_params, return_last_version=False, version=None):
+def get_rel_prefix(api_params, return_last_version=False, version=None):
     """Get current release number/date (set in yaml config).
     todo
+    :param api_params:
     :param version:
     :param return_last_version:
-    :param bq_params: bq param object from yaml config
     :return: release abbreviation
     """
     rel_prefix = ''
 
-    if 'REL_PREFIX' in bq_params and bq_params['REL_PREFIX']:
-        rel_prefix += bq_params['REL_PREFIX']
+    if 'REL_PREFIX' in api_params and api_params['REL_PREFIX']:
+        rel_prefix += api_params['REL_PREFIX']
 
     if version:
         rel_prefix += version
         return rel_prefix
 
-    if 'RELEASE' in bq_params and bq_params['RELEASE']:
-        rel_number = bq_params['RELEASE']
+    if 'RELEASE' in api_params and api_params['RELEASE']:
+        rel_number = api_params['RELEASE']
 
         if return_last_version:
-            if bq_params['DATA_SOURCE'] == 'gdc':
+            if api_params['DATA_SOURCE'] == 'gdc':
                 rel_number -= 1
-            elif bq_params['DATA_SOURCE'] == 'pdc':
-                rel_number = bq_params['PREV_RELEASE']
+            elif api_params['DATA_SOURCE'] == 'pdc':
+                rel_number = api_params['PREV_RELEASE']
 
         rel_prefix += rel_number
 
@@ -959,30 +967,53 @@ def load_config(args, yaml_dict_keys, validate_config=None):
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-    if len(args) != 2:
-        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
+    def open_yaml_and_return_dict(yaml_name):
+        with open(yaml_name, mode='r') as yaml_file:
+            yaml_dict = None
+            config_stream = io.StringIO(yaml_file.read())
 
-    yaml_file_arg = args[1]
+            try:
+                yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
+            except yaml.YAMLError as ex:
+                has_fatal_error(ex, str(yaml.YAMLError))
+            if yaml_dict is None:
+                has_fatal_error("Bad YAML load, exiting.", ValueError)
 
-    with open(yaml_file_arg, mode='r') as yaml_file_arg:
-        yaml_dict = None
-        config_stream = io.StringIO(yaml_file_arg.read())
+            # Dynamically generate a list of dictionaries for the return statement,
+            # since tuples are immutable
+            return [yaml_dict[key] for key in yaml_dict_keys]
 
-        try:
-            yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
-        except yaml.YAMLError as ex:
-            has_fatal_error(ex, str(yaml.YAMLError))
-        if yaml_dict is None:
-            has_fatal_error("Bad YAML load, exiting.", ValueError)
+    if len(args) < 2 or len(args) > 3:
+        has_fatal_error("")
+    if len(args) == 2:
+        singleton_yaml_dict = open_yaml_and_return_dict(args[1])
+        return tuple(singleton_yaml_dict)
 
-        # Dynamically generate a list of dictionaries for the return statement,
-        # since tuples are immutable
-        return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
+    shared_yaml_dict = open_yaml_and_return_dict(args[1])
+    data_type_yaml_dict = open_yaml_and_return_dict(args[2])
 
-        if validate_config:
-            validate_config(tuple(return_dicts))
+    merged_yaml_dict = {key:{} for key in yaml_dict_keys}
 
-        return tuple(return_dicts)
+    for key in yaml_dict_keys:
+        if key not in shared_yaml_dict and key not in data_type_yaml_dict:
+            has_fatal_error("{} not found in shared or data type-specific yaml config".format(key))
+        elif not shared_yaml_dict[key] and not data_type_yaml_dict[key]:
+            has_fatal_error("No values found for {} in shared or data type-specific yaml config".format(key))
+
+        if key in shared_yaml_dict and shared_yaml_dict[key]:
+            merged_yaml_dict[key] = shared_yaml_dict[key]
+
+            if key in data_type_yaml_dict and data_type_yaml_dict[key]:
+                merged_yaml_dict[key].update(data_type_yaml_dict[key])
+        else:
+            merged_yaml_dict[key] = data_type_yaml_dict[key]
+
+    if validate_config:
+        pass
+        # todo
+        # validate_config(tuple(return_dicts))
+
+    return tuple(merged_yaml_dict)
 
 
 def has_fatal_error(err, exception=None):
@@ -1007,5 +1038,3 @@ def has_fatal_error(err, exception=None):
         raise exception
 
     sys.exit(1)
-
-
