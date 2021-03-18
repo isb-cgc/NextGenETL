@@ -1076,7 +1076,7 @@ def make_file_metadata_query(file_id):
     :return:
     """
     return """
-    {{ fileMetadata(file_id: \"{}\" acceptDUA: true) {{
+    {{ filesMetadata(file_id: \"{}\" acceptDUA: true) {{
         file_id 
         file_name
         fraction_number 
@@ -1104,7 +1104,7 @@ def make_associated_entities_query():
     todo
     :return:
     """
-    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+    table_name = construct_table_name(BQ_PARAMS, API_PARAMS['ENDPOINT_SETTINGS']['filesMetadata']['output_name'])
     table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
 
     return """SELECT file_id, 
@@ -1123,7 +1123,7 @@ def make_combined_file_metadata_query():
     todo
     :return:
     """
-    file_metadata_output_name = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name']
+    file_metadata_output_name = API_PARAMS['ENDPOINT_SETTINGS']['filesMetadata']['output_name']
     file_metadata_table_name = construct_table_name(BQ_PARAMS, file_metadata_output_name)
     file_metadata_table_id = get_dev_table_id(file_metadata_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
@@ -1242,7 +1242,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
             print("No data returned by file metadata query for {}".format(file_id))
             continue
 
-        for metadata_row in file_metadata_res['data']['fileMetadata']:
+        for metadata_row in file_metadata_res['data']['filesMetadata']:
             if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                 fraction_number = metadata_row['fraction_number'].strip()
 
@@ -1260,7 +1260,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
                 print("{} of {} files retrieved".format(count, file_ids.total_rows))
 
     file_metadata_jsonl_file = get_filename('jsonl',
-                                            API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+                                            API_PARAMS['ENDPOINT_SETTINGS']['filesMetadata']['output_name'])
     file_metadata_jsonl_path = get_scratch_fp(BQ_PARAMS, file_metadata_jsonl_file)
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
@@ -1884,10 +1884,10 @@ def main(args):
         build_file_pdc_metadata_jsonl(file_ids)
 
     if 'build_api_file_metadata_table' in steps:
-        build_table_from_jsonl("fileMetadata", infer_schema=True)
+        build_table_from_jsonl("filesMetadata", infer_schema=True)
 
     if 'alter_api_file_metadata_table' in steps:
-        fm_table_name = construct_table_name(BQ_PARAMS, API_PARAMS["ENDPOINT_SETTINGS"]["fileMetadata"]["output_name"])
+        fm_table_name = construct_table_name(BQ_PARAMS, API_PARAMS["ENDPOINT_SETTINGS"]["filesMetadata"]["output_name"])
         fm_table_id = get_dev_table_id(fm_table_name, dataset=BQ_PARAMS['META_DATASET'])
 
         create_modified_temp_table(fm_table_id, modify_api_file_metadata_table_query(fm_table_id))
