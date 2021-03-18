@@ -250,14 +250,42 @@ def get_file_ids():
     Generates a list of file ids from table created using filesPerStudy endpoint data.
     :return: file ids list
     """
-    table_name = construct_table_name(API_PARAMS,
-                                      prefix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+    fps_table_name = construct_table_name(API_PARAMS,
+                                          prefix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
 
-    table_id = get_dev_table_id(BQ_PARAMS,
-                                dataset=BQ_PARAMS['META_DATASET'],
-                                table_name=table_name)
+    fps_table_id = get_dev_table_id(BQ_PARAMS,
+                                    dataset=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['dataset'],
+                                    table_name=fps_table_name)
 
-    return get_query_results(make_file_id_query(table_id))  # NOTE: this was once a to-do: ("fix back")
+    curr_file_ids = get_query_results(make_file_id_query(fps_table_id))
+
+    fm_table_name = construct_table_name(API_PARAMS,
+                                         prefix=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+
+    fm_table_id = get_dev_table_id(BQ_PARAMS,
+                                   dataset=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset'],
+                                   table_name=fm_table_name)
+
+    old_file_ids = get_query_results(make_file_id_query(fm_table_id))
+
+    new_file_ids = curr_file_ids - old_file_ids
+
+    return new_file_ids
+
+
+def get_previous_version_file_metadata():
+    prefix = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name']
+    dataset = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset']
+
+    table_name = construct_table_name(API_PARAMS, prefix, release=BQ_PARAMS['PREV_RELEASE'])
+    table_id = get_dev_table_id(BQ_PARAMS, dataset=dataset, table_name=table_name)
+
+    query = """
+    SELECT * 
+    FROM {}
+    """.format(table_id)
+
+    return get_query_results(query)
 
 
 def build_file_pdc_metadata_jsonl(file_ids):
@@ -267,6 +295,8 @@ def build_file_pdc_metadata_jsonl(file_ids):
     """
     jsonl_start = time.time()
     file_metadata_list = []
+
+    print("Getting {} new files".format(len(file_ids)))
 
     for count, row in enumerate(file_ids):
         file_id = row['file_id']
@@ -292,6 +322,11 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
             if count % 50 == 0:
                 print("{} of {} files retrieved".format(count, file_ids.total_rows))
+
+    old_file_metadata = get_previous_version_file_metadata()
+
+    for file in old_file_metadata:
+        file_metadata_list.append(file)
 
     file_metadata_jsonl_file = get_filename(API_PARAMS,
                                             file_extension='jsonl',
