@@ -23,6 +23,8 @@ import json
 import time
 import sys
 
+from google.cloud import bigquery
+
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, load_table_from_query, load_config,
                               publish_table, construct_table_name, download_from_bucket)
@@ -401,7 +403,9 @@ def main(args):
         with open(scratch_fp, "r") as schema_json:
             schema_obj = json.load(schema_json)
 
-        print(schema_obj)
+            schema = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
+
+            print(schema)
 
     if 'build_per_study_file_table' in steps:
         build_table_from_jsonl(API_PARAMS,
