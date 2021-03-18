@@ -24,13 +24,15 @@ import os
 import time
 
 from datetime import date
+from google.cloud import bigquery
 
 from common_etl.utils import (get_filepath, get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp,
                               upload_to_bucket, get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_and_load_table,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
                               update_schema, update_table_metadata, build_table_id,
-                              construct_table_name, get_rel_prefix, build_table_name_from_list)
+                              construct_table_name, get_rel_prefix, build_table_name_from_list,
+                              recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict)
 
 
 def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None):
@@ -150,6 +152,31 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
 
     write_list_to_jsonl(local_filepath, joined_record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
+
+    # NEW
+    data_types_dict = dict()
+
+    recursively_detect_object_structures(joined_record_list, data_types_dict)
+
+    schema_obj = {
+        "fields": list()
+    }
+
+    convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
+
+    schema_filename = get_filename(api_params,
+                                   file_extension='jsonl',
+                                   prefix="schema",
+                                   suffix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, 'w') as schema_json_file:
+        json.dump(schema_obj, schema_json_file, indent=4)
+
+        client = bigquery.Client()
+
+        print(client.schema_from_json(schema_json_file))
+        exit()
 
 
 def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False):

@@ -772,14 +772,14 @@ def check_value_type(value):
     value = normalize_value(value)
 
     if isinstance(value, bool):
-        return "BOOLEAN"
+        return "BOOL"
     if isinstance(value, int):
-        return "INTEGER"
+        return "INT64"
     if isinstance(value, float):
-        return "FLOAT"
+        return "FLOAT64"
     if isinstance(value, list):
         return "ARRAY"
-    if isinstance(value, list):
+    if isinstance(value, dict):
         return "RECORD"
     if not value:
         return None
@@ -791,13 +791,13 @@ def check_value_type(value):
             if split_value[0].isdigit() and split_value[1].isdigit():
                 # if in float form, but fraction is .0, .00, etc., then consider it an integer
                 if int(split_value[1]) == 0:
-                    return "INTEGER"
-                return "FLOAT"
+                    return "INT64"
+                return "FLOAT64"
         return "STRING"
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
     elif value.isdigit():
-        return "INTEGER"
+        return "INT64"
     elif value.startswith("0") and ':' not in value and '-' not in value:
         return "STRING"
     # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
@@ -865,22 +865,154 @@ def test_check_value_type():
 
 def resolve_type_conflicts(types_dict):
     """
-    todo
+    used with flattened dict in GDC process
     :param types_dict:
     :return:
     """
     for field, types_set in types_dict.items():
-        if len(types_set) == 1:
-            for col_type in types_set:
-                types_dict[field] = col_type
-        if len(types_set) == 0:
-            types_dict[field] = "STRING"
-        elif "STRING" in types_set:
-            types_dict[field] = "STRING"
-        elif "FLOAT" in types_set:
-            types_dict[field] = "FLOAT"
+        types_dict[field] = resolve_type_conflict(types_set)
 
 
+def resolve_type_conflict(types_set):
+    """
+    Resolve type precedence, where multiple types are detected.
+    check_value_type will return the following types:
+    - datetime: DATE, TIME, TIMESTAMP
+    - numbers: INT64, FLOAT64, NUMERIC
+    - other: STRING, BOOL, ARRAY, RECORD
+    See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
+
+    :param types_set: Set of BQ data types in string format
+    :return: BQ data type with highest precedence
+    """
+
+    datetime_types = {"TIMESTAMP", "DATE", "TIME"}
+    number_types = {"INT64", "FLOAT64", "NUMERIC"}
+
+    if len(types_set) == 0:
+        # types all null columns as string
+        return "STRING"
+    if len(types_set) == 1:
+        # only one type returned--hopefully this is the general case
+        return list(types_set)[0]
+
+    # Beyond this point, the types_set has at least two type values
+    if "ARRAY" in types_set or "RECORD" in types_set or "BOOL" in types_set:
+        # these types cannot be implicitly converted to any other, exit
+        has_fatal_error("Invalid datatype combination: {}".format(types_set), TypeError)
+    if "STRING" in types_set:
+        # if it's classified as a string, we've already disqualified it from the other types,
+        # therefore must be a string
+        return "STRING"
+
+    has_datetime_type = False
+
+    for datetime_type in datetime_types:
+        if datetime_type in types_set:
+            has_datetime_type = True
+            break
+
+    has_number_type = False
+
+    for number_type in number_types:
+        if number_type in types_set:
+            has_number_type = True
+            break
+
+    if has_datetime_type and has_number_type:
+        # another weird edge case that really shouldn't happen
+        return "STRING"
+
+    if has_datetime_type:
+        if "TIME" in types_set:
+            # TIME cannot be implicitly converted to DATETIME
+            return "STRING"
+        # DATE and TIMESTAMP *can* be implicitly converted to DATETIME
+        return "DATETIME"
+
+    if has_number_type:
+        # only number types remain
+        # INT64 and NUMERIC can be implicitly converted to FLOAT64
+        # INT64 can be implicitly converted to NUMERIC
+        if "FLOAT64" in types_set:
+            return "FLOAT64"
+        elif "NUMERIC" in types_set:
+            return "NUMERIC"
+
+    return "STRING"
+
+
+def recursively_detect_object_structures(obj, data_types_dict):
+    """
+    Traverse an object to determine its structure and data types of its values.
+    Returned as a dictionary of form "field_name": {data_type_set}
+    :param obj: object to traverse
+    :param data_types_dict: dict which stores aggregated data type/field data
+    """
+    def recursively_detect_object_structure(_obj, _data_types_dict):
+        for k, v in _obj.items():
+            # print("{}: {} {}".format(k, type(obj[k]), v))
+
+            if isinstance(_obj[k], dict):
+                if k not in _data_types_dict:
+                    _data_types_dict[k] = dict()
+
+                recursively_detect_object_structure(_obj[k], _data_types_dict[k])
+            elif isinstance(_obj[k], list) and len(_obj[k]) > 0 and isinstance(_obj[k][0], dict):
+                if k not in _data_types_dict:
+                    _data_types_dict[k] = dict()
+
+                for record in _obj[k]:
+                    recursively_detect_object_structure(record, _data_types_dict[k])
+            else:
+                if k not in _data_types_dict:
+                    _data_types_dict[k] = set()
+
+                val_type = check_value_type(_obj[k])
+
+                if val_type:
+                    _data_types_dict[k].add(val_type)
+
+    if isinstance(obj, dict):
+        recursively_detect_object_structure(obj, data_types_dict)
+    elif isinstance(obj, list):
+        for record in obj:
+            recursively_detect_object_structure(record, data_types_dict)
+
+
+def convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj, descriptions=None):
+    for k, v in data_types_dict.items():
+        if descriptions and k in descriptions:
+            description = descriptions[k]
+        else:
+            description = ""
+
+        if isinstance(v, dict):
+            schema_field = {
+                "name": k,
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": description,
+                "fields": list()
+            }
+            schema_obj.append(schema_field)
+
+            convert_object_structure_dict_to_schema_dict(data_types_dict[k], schema_field['fields'])
+        else:
+            # v is a set
+
+            final_type = resolve_type_conflict(v)
+
+            schema_field = {
+                "name": k,
+                "type": final_type,
+                "mode": "NULLABLE",
+                "description": description
+            }
+
+            schema_obj.append(schema_field)
+
+'''
 def infer_data_types(flattened_json):
     """Infer data type of fields based on values contained in dataset.
 
@@ -910,6 +1042,7 @@ def infer_data_types(flattened_json):
                 data_types[column] = val_type
 
     return data_types
+'''
 
 
 #       MISC UTILITIES
