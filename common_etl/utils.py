@@ -993,8 +993,6 @@ def load_config(args, yaml_dict_keys, validate_config=None):
 
     data_type_yaml_dict = open_yaml_and_return_dict(args[2])
 
-    print(data_type_yaml_dict)
-
     merged_yaml_dict = {key:{} for key in yaml_dict_keys}
 
     for key in yaml_dict_keys:
@@ -1016,7 +1014,7 @@ def load_config(args, yaml_dict_keys, validate_config=None):
         # todo
         # validate_config(tuple(return_dicts))
 
-    return tuple(merged_yaml_dict)
+    return tuple(merged_yaml_dict.values())
 
 
 def has_fatal_error(err, exception=None):
