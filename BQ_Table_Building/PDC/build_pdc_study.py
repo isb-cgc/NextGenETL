@@ -123,7 +123,8 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    pprinter(API_PARAMS)
+    pprinter(API_PARAMS['ENDPOINT_SETTINGS'])
+    exit()
 
     pprinter(BQ_PARAMS)
 
