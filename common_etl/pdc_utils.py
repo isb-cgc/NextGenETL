@@ -123,7 +123,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
             combined_request_parameters = request_params + (id_entry,)
-            record_list = request_data_from_pdc_api(endpoint, request_function, combined_request_parameters)
+            record_list = request_data_from_pdc_api(api_params, endpoint, request_function, combined_request_parameters)
 
             if alter_json_function and insert_id:
                 alter_json_function(record_list, id_entry)
@@ -137,7 +137,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print(" - {} records appended.".format(len(joined_record_list)))
     else:
-        joined_record_list = request_data_from_pdc_api(endpoint, request_function, request_params)
+        joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
 
         if alter_json_function:
