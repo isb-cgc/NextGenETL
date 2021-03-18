@@ -123,11 +123,6 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    pprinter(API_PARAMS['ENDPOINT_SETTINGS'])
-    exit()
-
-    pprinter(BQ_PARAMS)
-
     if 'build_studies_jsonl' in steps:
         build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                  endpoint='allPrograms',
