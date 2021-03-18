@@ -215,10 +215,8 @@ def main(args):
 
     if 'build_pull_list' in steps:
         print('build_pull_list')
-        full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                          params['TARGET_DATASET'],
-                                          params['BQ_MANIFEST_TABLE'])
-        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],
+        full_manifest = f"params['WORKING_PROJECT'].params['TARGET_DATASET'].params['BQ_MANIFEST_TABLE']"
+        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],  # todo: update param to have version
                                           params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                           params['BQ_PULL_LIST_TABLE'],
                                           params['WORKING_BUCKET'],
