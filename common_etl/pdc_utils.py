@@ -143,7 +143,9 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
         if alter_json_function:
             alter_json_function(joined_record_list)
 
-    jsonl_filename = get_filename(api_params, 'jsonl', api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    jsonl_filename = get_filename(api_params,
+                                  file_extension='jsonl',
+                                  prefix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     local_filepath = get_scratch_fp(bq_params, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, joined_record_list)
@@ -159,7 +161,9 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False):
     :param infer_schema: if True, use native BQ schema inference. Defaults to False.
     """
     table_name = construct_table_name(api_params, api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    filename = get_filename(api_params, 'jsonl', api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    filename = get_filename(api_params,
+                            file_extension='jsonl',
+                            prefix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
     table_id = get_dev_table_id(bq_params, dataset=bq_params['CLINICAL_DATASET'], table_name=table_name)
     print("Creating {}:".format(table_id))
 
@@ -208,7 +212,10 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
         return
 
     print("\nBuilding {0}... ".format(table_id))
-    tsv_name = get_filename('tsv', table_prefix, table_suffix)
+    tsv_name = get_filename(api_params,
+                            file_extension='tsv',
+                            prefix=table_prefix,
+                            suffix=table_suffix)
     create_and_load_table_from_tsv(bq_params=bq_params,
                                    tsv_file=tsv_name,
                                    schema=schema,
