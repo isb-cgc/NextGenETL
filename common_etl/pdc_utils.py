@@ -306,7 +306,7 @@ def create_modified_temp_table(bq_params, table_id, query):
     load_table_from_query(bq_params, table_id, query)
 
 
-def update_column_metadata(api_params, bq_params, table_id):
+def update_column_metadata(api_params, bq_params, table_id, include_release=True):
     """
     Update column descriptions for existing BQ table
     :param api_params: API params from YAML config
@@ -323,7 +323,9 @@ def update_column_metadata(api_params, bq_params, table_id):
 
         if suffix:
             file_list.append(suffix)
-        file_list.append(get_rel_prefix(api_params))
+
+        if include_release:
+            file_list.append(get_rel_prefix(api_params))
 
         return build_table_name_from_list(file_list)
 
