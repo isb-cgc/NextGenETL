@@ -349,7 +349,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
     record_with_aliquots_idx = None
 
     for idx, file_dict in enumerate(file_metadata_list):
-        if len(file_dict['aliquots'] > 1):
+        if len(file_dict['aliquots']) > 1:
             record_with_aliquots_idx = idx
             break
 
