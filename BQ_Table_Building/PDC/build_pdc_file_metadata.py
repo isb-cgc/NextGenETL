@@ -27,7 +27,8 @@ from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, load_table_from_query, load_config,
-                              publish_table, construct_table_name, download_from_bucket)
+                              publish_table, construct_table_name, download_from_bucket,
+                              convert_object_structure_dict_to_schema_dict, generate_bq_schema_fields)
 
 from common_etl.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename,
                                   get_dev_table_id, create_modified_temp_table, update_column_metadata,
@@ -405,13 +406,26 @@ def main(args):
 
             schema = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
 
-            print(schema)
-
     if 'build_per_study_file_table' in steps:
+        schema_filename = get_filename(API_PARAMS,
+                                       file_extension='jsonl',
+                                       prefix="schema",
+                                       suffix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+        download_from_bucket(BQ_PARAMS, schema_filename)
+
+        with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
+            schema_obj = json.load(schema_json)
+            json_schema_obj = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
+
+        schema = []
+
+        generate_bq_schema_fields(json_schema_obj['fields'], schema)
+
         build_table_from_jsonl(API_PARAMS,
                                BQ_PARAMS,
                                endpoint="filesPerStudy",
-                               infer_schema=True)
+                               infer_schema=True,
+                               schema=schema)
 
     if 'alter_per_study_file_table' in steps:
         fps_table_name = construct_table_name(API_PARAMS,

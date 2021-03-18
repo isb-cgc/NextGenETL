@@ -1011,37 +1011,38 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj, de
 
             schema_obj.append(schema_field)
 
-'''
-def infer_data_types(flattened_json):
-    """Infer data type of fields based on values contained in dataset.
 
-    :param flattened_json: file containing dict of {field name: set of field values}
-    :return: dict of field names and inferred type (None if no data in value set)
-    """
-    data_types = dict()
+def generate_bq_schema_field(schema_obj, child_schema_fields):
+    if not schema_obj:
+        return
+    elif "fields" in schema_obj:
+        child_schema_fields = list()
+        for child_obj in schema_obj['fields']:
+            generate_bq_schema_field(child_obj, child_schema_fields)
+    else:
+        child_schema_fields.append(bigquery.schema.SchemaField(name=schema_obj['name'],
+                                                               description=schema_obj['description'],
+                                                               field_type=schema_obj['type'],
+                                                               mode=schema_obj['mode']))
 
-    for column in flattened_json:
-        data_types[column] = None
 
-        for value in flattened_json[column]:
-            if data_types[column] == 'STRING':
-                break
+def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
+    for schema_obj in schema_obj_list:
+        if "fields" in schema_obj:
+            child_schema_fields = list()
+            for child_obj in schema_obj['fields']:
+                generate_bq_schema_field(child_obj, child_schema_fields)
 
-            # adding this change because organoid submitter_ids look like
-            # ints, but they should be str for uniformity
-            if column[-2:] == 'id':
-                data_types[column] = 'STRING'
-                break
-
-            val_type = check_value_type(str(value))
-
-            if not val_type:
-                continue
-            if val_type in ('FLOAT', 'STRING') or (val_type in ('INTEGER', 'BOOLEAN') and not data_types[column]):
-                data_types[column] = val_type
-
-    return data_types
-'''
+            schema_fields_obj.append(bigquery.schema.SchemaField(name=schema_obj['name'],
+                                                                 description=schema_obj['description'],
+                                                                 field_type=schema_obj['type'],
+                                                                 mode=schema_obj['mode'],
+                                                                 fields=child_schema_fields))
+        else:
+            schema_fields_obj.append(bigquery.schema.SchemaField(name=schema_obj['name'],
+                                                                 description=schema_obj['description'],
+                                                                 field_type=schema_obj['type'],
+                                                                 mode=schema_obj['mode']))
 
 
 #       MISC UTILITIES

@@ -194,9 +194,9 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
     table_id = get_dev_table_id(bq_params, dataset=dataset, table_name=table_name)
     print("Creating {}:".format(table_id))
 
-    if infer_schema:
+    if infer_schema and not schema:
         schema = None
-    else:
+    elif not infer_schema:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
         schema = load_bq_schema_from_json(bq_params, schema_filename)
 
