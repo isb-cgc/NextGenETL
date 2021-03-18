@@ -989,13 +989,11 @@ def load_config(args, yaml_dict_keys, validate_config=None):
         singleton_yaml_dict = open_yaml_and_return_dict(args[1])
         return tuple(singleton_yaml_dict)
 
-    print(args)
-
     shared_yaml_dict = open_yaml_and_return_dict(args[1])
 
-    print(shared_yaml_dict)
-
     data_type_yaml_dict = open_yaml_and_return_dict(args[2])
+
+    print(data_type_yaml_dict)
 
     merged_yaml_dict = {key:{} for key in yaml_dict_keys}
 
