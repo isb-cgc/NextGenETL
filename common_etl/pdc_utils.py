@@ -160,11 +160,14 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False):
     :param endpoint: PDC API endpoint
     :param infer_schema: if True, use native BQ schema inference. Defaults to False.
     """
-    table_name = construct_table_name(api_params, api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+    prefix = api_params['ENDPOINT_SETTINGS'][endpoint]['output_name']
+    dataset = api_params['ENDPOINT_SETTINGS'][endpoint]['dataset']
+
+    table_name = construct_table_name(api_params, prefix)
     filename = get_filename(api_params,
                             file_extension='jsonl',
-                            prefix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(bq_params, dataset=bq_params['CLINICAL_DATASET'], table_name=table_name)
+                            prefix=prefix)
+    table_id = get_dev_table_id(bq_params, dataset=dataset, table_name=table_name)
     print("Creating {}:".format(table_id))
 
     if infer_schema:
