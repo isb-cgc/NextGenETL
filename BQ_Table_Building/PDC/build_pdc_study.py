@@ -91,6 +91,10 @@ def alter_all_programs_json(all_programs_json_obj):
         projects = program.pop("projects", None)
         for project in projects:
             project['project_name'] = project.pop("name", None)
+
+            if project['project_submitter_id'] == 'CPTAC2 Retrospective':
+                project['project_submitter_id'] = 'CPTAC-2'
+
             studies = project.pop("studies", None)
             for study in studies:
                 # grab a few add't fields from study endpoint

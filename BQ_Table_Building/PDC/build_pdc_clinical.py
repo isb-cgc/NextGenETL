@@ -60,6 +60,12 @@ def make_cases_query():
     }"""
 
 
+def alter_cases_query(cases_obj_list):
+    for case_obj in cases_obj_list:
+        if case_obj['project_submitter_id'] == 'CPTAC2 Retrospective':
+            case_obj['project_submitter_id'] = 'CPTAC-2'
+
+
 def get_cases():
     """
     Get records from allCases API endpoint.
@@ -660,7 +666,8 @@ def main(args):
     if 'build_cases_jsonl' in steps:
         build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                  endpoint="allCases",
-                                 request_function=make_cases_query)
+                                 request_function=make_cases_query,
+                                 alter_json_function=alter_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
