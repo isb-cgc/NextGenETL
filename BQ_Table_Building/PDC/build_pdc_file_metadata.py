@@ -273,6 +273,7 @@ def get_file_ids():
     old_file_id_set = set()
 
     for old_file in old_file_ids:
+        print(old_file)
         file_id = old_file['file_id']
         old_file_id_set.add(file_id)
 
