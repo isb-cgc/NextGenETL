@@ -260,7 +260,8 @@ def get_file_ids():
     curr_file_ids = get_query_results(make_file_id_query(fps_table_id))
 
     fm_table_name = construct_table_name(API_PARAMS,
-                                         prefix=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
+                                         prefix=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'],
+                                         release=BQ_PARAMS['PREV_RELEASE'])
 
     fm_table_id = get_dev_table_id(BQ_PARAMS,
                                    dataset=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset'],
