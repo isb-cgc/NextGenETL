@@ -981,13 +981,13 @@ def load_config(args, yaml_dict_keys, validate_config=None):
 
             # Dynamically generate a list of dictionaries for the return statement,
             # since tuples are immutable
-            return tuple([yaml_dict[key] for key in yaml_dict_keys])
+            return {key:yaml_dict[key] for key in yaml_dict_keys}
 
     if len(args) < 2 or len(args) > 3:
         has_fatal_error("")
     if len(args) == 2:
         singleton_yaml_dict = open_yaml_and_return_dict(args[1])
-        return tuple(singleton_yaml_dict)
+        return tuple(singleton_yaml_dict.values())
 
     shared_yaml_dict = open_yaml_and_return_dict(args[1])
 
