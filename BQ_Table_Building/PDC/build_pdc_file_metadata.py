@@ -308,8 +308,11 @@ def build_file_pdc_metadata_jsonl(file_ids):
     jsonl_start = time.time()
     file_metadata_list = []
 
-    print("Getting {} new files".format(len(file_ids)))
 
+    """
+
+    print("Getting {} new files".format(len(file_ids)))
+    
     for count, file_id in enumerate(file_ids):
 
         file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
@@ -334,8 +337,11 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
             if count % 50 == 0:
                 print("{} of {} files retrieved".format(count, len(file_ids)))
+    """
 
     old_file_metadata = get_previous_version_file_metadata()
+    print(old_file_metadata)
+    exit()
 
     for file in old_file_metadata:
         file_metadata_list.append(file)
