@@ -66,7 +66,7 @@ def get_cases():
     :return: allCases response records
     """
     endpoint = 'allCases'
-    dataset = BQ_PARAMS['CLINICAL_DATASET']
+    dataset = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['DATASET']
 
     select_statement = "SELECT case_id, case_submitter_id, project_submitter_id, primary_site, disease_type"
 
