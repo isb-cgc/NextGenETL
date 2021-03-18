@@ -987,7 +987,7 @@ def load_config(args, yaml_dict_keys, validate_config=None):
         has_fatal_error("")
     if len(args) == 2:
         singleton_yaml_dict = open_yaml_and_return_dict(args[1])
-        return tuple(singleton_yaml_dict.values())
+        return tuple([singleton_yaml_dict[key] for key in yaml_dict_keys])
 
     shared_yaml_dict = open_yaml_and_return_dict(args[1])
 
@@ -1014,7 +1014,7 @@ def load_config(args, yaml_dict_keys, validate_config=None):
         # todo
         # validate_config(tuple(return_dicts))
 
-    return tuple(merged_yaml_dict.values())
+    return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
 def has_fatal_error(err, exception=None):
