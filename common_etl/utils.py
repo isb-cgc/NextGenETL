@@ -678,7 +678,6 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error("File not found, failed to access local file.\n{}".format(err))
 
 
-# not currently used, but leaving it so I don't have to re-write it down the road
 def download_from_bucket(bq_params, filename):
     """
     Download file from Google storage bucket onto VM.
@@ -853,16 +852,6 @@ def check_value_type(value):
     return "STRING"
 
 
-def resolve_type_conflicts(types_dict):
-    """
-    Iteratively resolve type conflicts in flattened dict (used by GDC clinical).
-
-    :param types_dict: dict of field: types set values
-    """
-    for field, types_set in types_dict.items():
-        types_dict[field] = resolve_type_conflict(types_set)
-
-
 def resolve_type_conflict(types_set):
     """
     Resolve type precedence, where multiple types are detected.
@@ -930,6 +919,16 @@ def resolve_type_conflict(types_set):
             return "NUMERIC"
 
     return "STRING"
+
+
+def resolve_type_conflicts(types_dict):
+    """
+    Iteratively resolve type conflicts in flattened dict (used by GDC clinical).
+
+    :param types_dict: dict of field: types set values
+    """
+    for field, types_set in types_dict.items():
+        types_dict[field] = resolve_type_conflict(types_set)
 
 
 def recursively_detect_object_structures(obj, data_types_dict):
@@ -1062,6 +1061,7 @@ def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
 
 
 #   MISC UTILS
+
 
 def format_seconds(seconds):
     """

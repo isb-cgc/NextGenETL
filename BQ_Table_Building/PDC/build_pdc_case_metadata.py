@@ -105,6 +105,7 @@ def make_cases_aliquots_query(offset, limit):
     }}""".format(offset, limit)
 '''
 
+
 def main(args):
     start_time = time.time()
     print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
