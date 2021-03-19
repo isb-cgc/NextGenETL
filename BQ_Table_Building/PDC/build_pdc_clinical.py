@@ -29,9 +29,9 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table, load_table_from_query,
                               delete_bq_table, load_config, list_bq_tables, publish_table, construct_table_name)
 
-from common_etl.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids, get_pdc_studies_list,
-                                  build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename, get_dev_table_id,
-                                  get_records, update_column_metadata, update_pdc_table_metadata)
+from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids, get_pdc_studies_list,
+                                             build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename, get_dev_table_id,
+                                             get_records, update_column_metadata, update_pdc_table_metadata)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()

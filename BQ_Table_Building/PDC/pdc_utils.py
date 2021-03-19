@@ -30,8 +30,8 @@ from common_etl.utils import (get_filepath, get_query_results, format_seconds, w
                               upload_to_bucket, get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_and_load_table,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
-                              update_schema, update_table_metadata, build_table_id,
-                              construct_table_name, get_rel_prefix, build_table_name_from_list,
+                              update_schema, update_table_metadata, construct_table_id,
+                              construct_table_name, get_rel_prefix, construct_table_name_from_list,
                               recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict)
 
 
@@ -221,7 +221,7 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
     dataset = bq_params['DEV_DATASET']
 
     table_name = construct_table_name(api_params, table_prefix)
-    table_id = build_table_id(project, dataset, table_name)
+    table_id = construct_table_id(project, dataset, table_name)
 
     schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema = load_bq_schema_from_json(bq_params, schema_filename)
@@ -229,7 +229,7 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
     if not schema and backup_table_suffix:
         print("No schema file found for {}, trying backup ({})".format(table_suffix, backup_table_suffix))
         table_name = construct_table_name(api_params, table_prefix, backup_table_suffix)
-        table_id = build_table_id(project, dataset, table_name)
+        table_id = construct_table_id(project, dataset, table_name)
         schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
         schema = load_bq_schema_from_json(bq_params, schema_filename)
 
@@ -351,7 +351,7 @@ def update_column_metadata(api_params, bq_params, table_id, include_release=True
         if include_release:
             file_list.append(get_rel_prefix(api_params))
 
-        return build_table_name_from_list(file_list)
+        return construct_table_name_from_list(file_list)
 
     file_path = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
     field_desc_file_name = get_schema_filename(bq_params['FIELD_DESC_FILE_SUFFIX']) + '.json'

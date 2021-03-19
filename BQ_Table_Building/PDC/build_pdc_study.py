@@ -22,8 +22,8 @@ SOFTWARE.
 import sys
 import time
 
-from common_etl.utils import (format_seconds,get_graphql_api_response, has_fatal_error, load_config, pprinter)
-from common_etl.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl)
+from common_etl.utils import (format_seconds, get_graphql_api_response, has_fatal_error, load_config)
+from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl)
 
 
 API_PARAMS = dict()

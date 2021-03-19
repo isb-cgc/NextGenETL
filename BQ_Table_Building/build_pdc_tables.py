@@ -37,8 +37,8 @@ from common_etl.utils import (get_filepath, get_query_results, format_seconds, w
                               create_and_load_table_from_tsv, create_and_load_table, create_tsv_row,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
                               update_schema, update_table_metadata, delete_bq_dataset, load_config,
-                              update_table_labels, list_bq_tables, publish_table, build_table_id,
-                              construct_table_name, get_rel_prefix, build_table_name_from_list)
+                              update_table_labels, list_bq_tables, publish_table, construct_table_id,
+                              construct_table_name, get_rel_prefix, construct_table_name_from_list)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -285,7 +285,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
     build_start = time.time()
 
     table_name = construct_table_name(BQ_PARAMS, table_prefix, table_suffix)
-    table_id = build_table_id(project, dataset, table_name)
+    table_id = construct_table_id(project, dataset, table_name)
 
     schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
     schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
@@ -293,7 +293,7 @@ def build_table_from_tsv(project, dataset, table_prefix, table_suffix=None, back
     if not schema and backup_table_suffix:
         print("No schema file found for {}, trying backup ({})".format(table_suffix, backup_table_suffix))
         table_name = construct_table_name(BQ_PARAMS, table_prefix, backup_table_suffix)
-        table_id = build_table_id(project, dataset, table_name)
+        table_id = construct_table_id(project, dataset, table_name)
         schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
@@ -1714,7 +1714,7 @@ def get_schema_filename(data_type, suffix=None):
         file_list.append(suffix)
     file_list.append(get_rel_prefix(BQ_PARAMS))
 
-    return build_table_name_from_list(file_list)
+    return construct_table_name_from_list(file_list)
 
 
 def update_column_metadata(table_type, table_id):
@@ -2128,7 +2128,7 @@ def main(args):
 
         print("\nBuilding {0}... ".format(fps_table_id))
 
-        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        fps_schema_file = construct_table_name_from_list(fps_table_id.split("."))
         schema_filename = fps_schema_file + '.json'
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
@@ -2143,7 +2143,7 @@ def main(args):
         fps_table_id = get_dev_table_id(table_name, dataset=BQ_PARAMS['META_DATASET'])
 
         print("Building {0}... ".format(fps_table_id))
-        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        fps_schema_file = construct_table_name_from_list(fps_table_id.split("."))
         schema_filename = fps_schema_file + '.json'
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 

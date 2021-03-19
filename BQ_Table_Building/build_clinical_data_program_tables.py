@@ -31,9 +31,9 @@ from google.api_core.exceptions import NotFound
 from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error, get_scratch_fp,
                               create_and_load_table, load_table_from_query, write_list_to_jsonl,
                               upload_to_bucket, exists_bq_table, get_working_table_id,
-                              get_webapp_table_id, build_table_id, update_table_metadata, get_filepath,
+                              get_webapp_table_id, construct_table_id, update_table_metadata, get_filepath,
                               update_schema, list_bq_tables, format_seconds,
-                              load_config, delete_bq_table, build_table_name_from_list, publish_table,
+                              load_config, delete_bq_table, construct_table_name_from_list, publish_table,
                               construct_table_name)
 
 API_PARAMS = dict()
@@ -100,7 +100,7 @@ def get_full_table_name(program, table):
     if suffix:
         table_name.append(suffix)
 
-    return build_table_name_from_list(table_name)
+    return construct_table_name_from_list(table_name)
 
 
 def build_jsonl_name(program, table, is_webapp=False):
@@ -1382,13 +1382,13 @@ def build_biospecimen_stub_tables(program):
     and sample_submitter_id (as sample_barcode).
     :param program: the program from which the cases originate.
     """
-    main_table = build_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+    main_table = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
     main_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, main_table)
 
     biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
 
     bio_spec_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
-    biospec_table_name = build_table_name_from_list(bio_spec_table_name_list)
+    biospec_table_name = construct_table_name_from_list(bio_spec_table_name_list)
     biospec_table_id = get_webapp_table_id(BQ_PARAMS, biospec_table_name)
 
     load_table_from_query(BQ_PARAMS, biospec_table_id, biospec_stub_table_query)
@@ -1859,8 +1859,8 @@ def get_cases_by_program(program):
     cases = []
 
     sample_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
-    sample_table_name = build_table_name_from_list(sample_table_name_list)
-    sample_table_id = build_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
+    sample_table_name = construct_table_name_from_list(sample_table_name_list)
+    sample_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
 
     query = """
         SELECT * 

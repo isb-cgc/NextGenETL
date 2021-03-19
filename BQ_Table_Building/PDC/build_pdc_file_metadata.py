@@ -26,13 +26,13 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
-                              get_graphql_api_response, has_fatal_error, load_table_from_query, load_config,
+                              has_fatal_error, load_table_from_query, load_config,
                               publish_table, construct_table_name, download_from_bucket,
-                              convert_object_structure_dict_to_schema_dict, generate_bq_schema_fields)
+                              generate_bq_schema_fields)
 
-from common_etl.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename,
-                                  get_dev_table_id, create_modified_temp_table, update_column_metadata,
-                                  update_pdc_table_metadata)
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename,
+                                             get_dev_table_id, create_modified_temp_table, update_column_metadata,
+                                             update_pdc_table_metadata)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()

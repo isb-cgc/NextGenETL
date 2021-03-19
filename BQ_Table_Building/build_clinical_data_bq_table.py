@@ -27,11 +27,9 @@ import os
 import sys
 import copy
 
-# todo infer
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
-                              write_line_to_jsonl, normalize_value, check_value_type,
-                              resolve_type_conflicts)
+                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -186,6 +184,19 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
     :param case:
     :return:
     """
+    def normalize_value(value):
+        """
+        todo
+        """
+        if value in ('NA', 'N/A', 'null', 'None', ''):
+            return None
+        if value in ('False', 'false', 'FALSE'):
+            return False
+        if value in ('True', 'true', 'TRUE'):
+            return True
+        else:
+            return value
+
     case_items = dict()
 
     for key in fields_dict.keys():
@@ -350,7 +361,8 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
             assert_output_count("cases.follow_ups", case['follow_ups'][0], follow_ups_fg_to_remove)
             assert_output_count("cases.follow_ups.molecular_tests", case['follow_ups'][0]['molecular_tests'][0])
 
-            write_line_to_jsonl(jsonl_file_obj, case)
+            jsonl_file_obj.write(json.dumps(obj=case, default=json_datetime_to_str_converter))
+            jsonl_file_obj.write('\n')
 
             if index % 1000 == 0:
                 print("{:6d} cases written".format(index))

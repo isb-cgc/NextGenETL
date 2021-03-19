@@ -33,10 +33,10 @@ from google.cloud import storage
 from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_tsv_row, load_table_from_query, exists_bq_table,
-                              load_config, publish_table, construct_table_name, build_table_name_from_list)
+                              load_config, publish_table, construct_table_name, construct_table_name_from_list)
 
-from common_etl.pdc_utils import (get_pdc_studies_list, build_table_from_tsv, get_filename, get_dev_table_id,
-                                  update_column_metadata, update_pdc_table_metadata)
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, build_table_from_tsv, get_filename, get_dev_table_id,
+                                             update_column_metadata, update_pdc_table_metadata)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -730,7 +730,7 @@ def main(args):
 
         print("\nBuilding {0}... ".format(fps_table_id))
 
-        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        fps_schema_file = construct_table_name_from_list(fps_table_id.split("."))
         schema_filename = fps_schema_file + '.json'
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
@@ -753,7 +753,7 @@ def main(args):
                                         table_name=table_name)
 
         print("Building {0}... ".format(fps_table_id))
-        fps_schema_file = build_table_name_from_list(fps_table_id.split("."))
+        fps_schema_file = construct_table_name_from_list(fps_table_id.split("."))
         schema_filename = fps_schema_file + '.json'
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
