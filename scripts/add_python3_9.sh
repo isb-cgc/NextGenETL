@@ -36,6 +36,7 @@ cd Python-3.9.2
 ./configure && make && make test
 # install python using altinstall, so to avoid overwriting the system's python version
 sudo make altinstall
+cd ~
 
 #
 # Now set up the python3.9 virtualenv for the BQ building scripts
