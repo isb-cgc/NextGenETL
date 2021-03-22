@@ -232,8 +232,6 @@ def split_version_ids(final_merged_csv):
 
 def merge_csv_files(file_1, file_2, file_3, number_of_lines):
 
-    
-
      with open(file_1,'r') as csv_1, open(file_2,'r') as csv_2, open(file_3,'w') as out_file:
         reader_1 = csv.reader(csv_1)
         reader_2 = csv.reader(csv_2)
