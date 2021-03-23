@@ -422,7 +422,7 @@ def main(args):
     genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
     attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
     final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}_v{params['RELEASE']}.csv"
-    final_tsv = f"{home}/gtf/{params['FINAL_TSV']}"
+    final_tsv = f"{home}/gtf/{params['FINAL_TSV']}.tsv"
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
@@ -451,8 +451,8 @@ def main(args):
     if 'download_file' in steps:
         # Download gtf file from FTP site and save it to the VM
         print('Downloading files from GENCODE ftp site')
-
-        wget.download(params['FTP_URL'], raw_gtf_file)
+        url = params['FTP_URL'].format(params['RELEASE'], params['RELEASE'])
+        wget.download(url, raw_gtf_file)
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
