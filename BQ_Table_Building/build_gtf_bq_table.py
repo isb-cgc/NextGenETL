@@ -5,6 +5,7 @@ import yaml
 from git import Repo
 #from google.cloud import storage
 #from google.cloud import bigquery
+from os import path
 from os.path import expanduser
 import pandas as pd 
 import numpy as np
@@ -21,6 +22,16 @@ from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_wr
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
                                install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag, \
                                build_combined_schema
+
+# Check if the file already exists, and if not download
+def download_file(local_file, url):
+    if not path.exists(local_file):
+        wget.download(url, local_file)
+        return True
+    else:
+        print("File already exists")
+        return False
+
 
 # todo to remove
 # def add_labels_and_descriptions(project, full_table_id):
@@ -452,7 +463,11 @@ def main(args):
         # Download gtf file from FTP site and save it to the VM
         print('Downloading files from GENCODE ftp site')
         url = params['FTP_URL'].format(params['RELEASE'], params['RELEASE'])
-        wget.download(url, raw_gtf_file)
+        success = download_file(raw_gtf_file, url)
+        if not success:
+            print("download file failed")
+            return
+
 
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
