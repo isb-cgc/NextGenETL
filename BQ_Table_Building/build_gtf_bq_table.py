@@ -468,7 +468,6 @@ def main(args):
             print("download file failed")
             return
 
-
     if 'count_number_of_lines' in steps:
         print('Counting the number of lines in the file')
         number_of_lines = count_number_of_lines(raw_gtf_file)
@@ -519,8 +518,9 @@ def main(args):
     #
 
     if 'upload_to_bucket' in steps:
+        bucket_file = f"params['WORKING_BUCKET_DIR']/{final_tsv}"
         upload_to_bucket(params['WORKING_BUCKET'],
-                         final_tsv,
+                         bucket_file,
                          params['FINAL_TSV'])
 
     if 'pull_table_info_from_git' in steps:
