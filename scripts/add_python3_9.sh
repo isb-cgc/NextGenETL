@@ -27,7 +27,7 @@ wget https://www.python.org/ftp/python/3.9.2/Python-3.9.2.tgz
 # make sure all of the correct build requirements installed
 sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-       libncurses5-dev libncursesw5-dev xz-utils tk-dev
+       libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev lzma
 # unzip the file
 tar xvf Python-3.9.2.tgz
 # move to the directory
@@ -52,6 +52,8 @@ python3.9 -m pip install PyYaml
 python3.9 -m pip install gitpython
 python3.9 -m pip install pandas
 python3.9 -m pip install xlrd
+python3.9 -m pip install wget
+python3.9 -m pip install alive_progress
 # used by build_schema:
 python3.9 -m pip install python-dateutil
 deactivate
