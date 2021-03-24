@@ -105,7 +105,9 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     """
 
     file_case_mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-    file_case_mapping_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name=file_case_mapping_table_name)
+    file_case_mapping_table_id = get_dev_table_id(BQ_PARAMS,
+                                                  dataset=BQ_PARAMS["META_DATASET"],
+                                                  table_name=file_case_mapping_table_name)
 
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
