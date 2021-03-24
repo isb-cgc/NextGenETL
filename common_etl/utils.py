@@ -1037,9 +1037,10 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
     if not schema_obj:
         return
     elif "fields" in schema_obj:
-        child_schema_fields = list()
-        for child_obj in schema_obj['fields']:
-            generate_bq_schema_field(child_obj, child_schema_fields)
+        if schema_obj['fields']:
+            child_schema_fields = list()
+            for child_obj in schema_obj['fields']:
+                generate_bq_schema_field(child_obj, child_schema_fields)
     else:
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
@@ -1051,9 +1052,6 @@ def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
     :param schema_obj_list: schema json dict object list
     :param schema_fields_obj: parent-level schema fields
     """
-    if not schema_obj:
-        return
-
     for schema_obj in schema_obj_list:
             print(schema_obj)
             if "fields" in schema_obj:
