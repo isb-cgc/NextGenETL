@@ -447,7 +447,7 @@ def main(args):
                                         dataset=BQ_PARAMS['META_DATASET'],
                                         table_name=fps_table_name)
 
-        print("Modifying files per study table")
+        print("Modifying files per study table.")
 
         create_modified_temp_table(BQ_PARAMS,
                                    table_id=fps_table_id,
