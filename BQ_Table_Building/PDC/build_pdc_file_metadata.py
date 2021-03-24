@@ -445,9 +445,6 @@ def main(args):
 
         schema = []
 
-        print(json_schema_obj)
-        exit()
-
         for json_schema_obj in json_schema_obj_list:
             generate_bq_schema_field(json_schema_obj, schema)
 
