@@ -1018,16 +1018,18 @@ def create_schema_field_obj(schema_obj):
     :return: SchemaField object
     """
 
-    print(schema_obj)
-
     if 'fields' not in schema_obj:
-        schema_obj['fields'] = None
+        return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                           description=schema_obj['description'],
+                                           field_type=schema_obj['type'],
+                                           mode=schema_obj['mode'])
+    else:
+        return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                           description=schema_obj['description'],
+                                           field_type=schema_obj['type'],
+                                           mode=schema_obj['mode'],
+                                           fields=schema_obj['fields'])
 
-    return bigquery.schema.SchemaField(name=schema_obj['name'],
-                                       description=schema_obj['description'],
-                                       field_type=schema_obj['type'],
-                                       mode=schema_obj['mode'],
-                                       fields=schema_obj['fields'])
 
 
 def generate_bq_schema_field(schema_obj, child_schema_fields):
