@@ -1031,7 +1031,6 @@ def create_schema_field_obj(schema_obj):
                                            fields=schema_obj['fields'])
 
 
-
 def generate_bq_schema_field(schema_obj, child_schema_fields):
     """
     Converts schema field json dict object into SchemaField object.
@@ -1050,6 +1049,7 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
 
+'''
 def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
     """
     Converts list of schema fields into TableSchema object.
@@ -1066,7 +1066,7 @@ def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
                     generate_bq_schema_field(child_obj, child_schema_fields)
         else:
             schema_fields_obj.append(create_schema_field_obj(schema_obj))
-
+'''
 
 #   MISC UTILS
 

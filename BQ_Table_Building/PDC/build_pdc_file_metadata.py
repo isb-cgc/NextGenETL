@@ -417,20 +417,6 @@ def main(args):
                                  alter_json_function=alter_files_per_study_json,
                                  ids=all_pdc_study_ids)
 
-        """
-        schema_filename = get_filename(API_PARAMS,
-                                       file_extension='jsonl',
-                                       prefix="schema",
-                                       suffix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
-
-        download_from_bucket(BQ_PARAMS, schema_filename)
-        scratch_fp = get_scratch_fp(BQ_PARAMS, schema_filename)
-
-        with open(scratch_fp, "r") as schema_json:
-            schema_obj = json.load(schema_json)
-
-            schema = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
-        """
     if 'build_per_study_file_table' in steps:
         schema_filename = get_filename(API_PARAMS,
                                        file_extension='jsonl',
