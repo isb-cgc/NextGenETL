@@ -168,6 +168,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
                                    file_extension='jsonl',
                                    prefix="schema",
                                    suffix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+
     schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:

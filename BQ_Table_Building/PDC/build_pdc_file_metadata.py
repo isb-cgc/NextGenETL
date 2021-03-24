@@ -30,7 +30,8 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
                               publish_table, construct_table_name, download_from_bucket,
                               generate_bq_schema_fields)
 
-from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename,
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl,
+                                             get_filename,
                                              get_dev_table_id, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata)
 
@@ -386,13 +387,13 @@ def main(args):
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
 
     if 'build_per_study_file_jsonl' in steps:
-        build_jsonl_from_pdc_api(API_PARAMS,
-                                             BQ_PARAMS,
-                                             endpoint="filesPerStudy",
-                                             request_function=make_files_per_study_query,
-                                             alter_json_function=alter_files_per_study_json,
-                                             ids=all_pdc_study_ids)
+        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                 endpoint="filesPerStudy",
+                                 request_function=make_files_per_study_query,
+                                 alter_json_function=alter_files_per_study_json,
+                                 ids=all_pdc_study_ids)
 
+        """
         schema_filename = get_filename(API_PARAMS,
                                        file_extension='jsonl',
                                        prefix="schema",
@@ -405,12 +406,13 @@ def main(args):
             schema_obj = json.load(schema_json)
 
             schema = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
-
+        """
     if 'build_per_study_file_table' in steps:
         schema_filename = get_filename(API_PARAMS,
                                        file_extension='jsonl',
                                        prefix="schema",
                                        suffix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+
         download_from_bucket(BQ_PARAMS, schema_filename)
 
         with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
@@ -421,8 +423,7 @@ def main(args):
 
         generate_bq_schema_fields(json_schema_obj['fields'], schema)
 
-        build_table_from_jsonl(API_PARAMS,
-                               BQ_PARAMS,
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint="filesPerStudy",
                                infer_schema=True,
                                schema=schema)

@@ -23,50 +23,14 @@ SOFTWARE.
 import time
 import sys
 
-from common_etl.utils import (format_seconds, has_fatal_error, load_config)
+from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name)
 
-from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids)
+from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
+                                             get_dev_table_id, get_table_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
-
-
-def make_biospecimen_per_study_query(pdc_study_id):
-    """
-    Creates a graphQL string for querying the PDC API's biospecimenPerStudy endpoint.
-    :return: GraphQL query string
-    """
-    return '''
-        {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
-            aliquot_id 
-            sample_id 
-            case_id 
-            aliquot_submitter_id 
-            sample_submitter_id 
-            case_submitter_id 
-            aliquot_status 
-            case_status 
-            sample_status 
-            project_name 
-            sample_type 
-            disease_type 
-            primary_site 
-            pool 
-            taxon
-        }}
-    }}'''.format(pdc_study_id)
-
-
-def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
-    """
-    This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
-    prior to writing it to a file.
-    :param json_obj_list: list of json objects to mutate
-    :param pdc_study_id: pdc study id for this set of json objects
-    """
-    for case in json_obj_list:
-        case['pdc_study_id'] = pdc_study_id
 
 
 '''
@@ -104,6 +68,59 @@ def make_cases_aliquots_query(offset, limit):
         }}
     }}""".format(offset, limit)
 '''
+
+
+def make_biospecimen_per_study_query(pdc_study_id):
+    """
+    Creates a graphQL string for querying the PDC API's biospecimenPerStudy endpoint.
+    :return: GraphQL query string
+    """
+    return '''{{ 
+        biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
+            aliquot_id 
+            sample_id 
+            case_id 
+            aliquot_submitter_id 
+            sample_submitter_id 
+            case_submitter_id 
+            aliquot_status 
+            case_status 
+            sample_status 
+            project_name 
+            sample_type 
+            disease_type 
+            primary_site 
+            pool 
+            taxon
+        }}
+    }}'''.format(pdc_study_id)
+
+
+def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
+    """
+    This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
+    prior to writing it to a file.
+    :param json_obj_list: list of json objects to mutate
+    :param pdc_study_id: pdc study id for this set of json objects
+    """
+
+    file_case_mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+    file_case_mapping_table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name=file_case_mapping_table_name)
+
+    for case in json_obj_list:
+        case['pdc_study_id'] = pdc_study_id
+
+        query = """
+        SELECT distinct count(file_id) as file_count
+        FROM `{}`
+        WHERE case_id = '{}'
+        """.format(file_case_mapping_table_id, case['case_id'])
+
+        res = get_query_results(query)
+
+        for row in res:
+            case['file_count'] = row['file_count']
+            break
 
 
 def main(args):
