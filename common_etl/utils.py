@@ -1052,6 +1052,7 @@ def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
     :param schema_fields_obj: parent-level schema fields
     """
     for schema_obj in schema_obj_list:
+        print(schema_obj)
         if "fields" in schema_obj:
             child_schema_fields = list()
             for child_obj in schema_obj['fields']:
