@@ -1051,10 +1051,6 @@ def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
     :param schema_obj_list: schema json dict object list
     :param schema_fields_obj: parent-level schema fields
     """
-
-    print(schema_obj_list)
-    exit()
-
     for schema_obj in schema_obj_list:
         if "fields" in schema_obj:
             child_schema_fields = list()
