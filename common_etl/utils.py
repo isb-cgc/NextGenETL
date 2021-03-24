@@ -1035,13 +1035,16 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
     :param child_schema_fields: child fields, if object is of type RECORD
     """
     if not schema_obj:
+        print(1)
         return
     elif "fields" in schema_obj:
+        print(2)
         if schema_obj['fields']:
             child_schema_fields = list()
             for child_obj in schema_obj['fields']:
                 generate_bq_schema_field(child_obj, child_schema_fields)
     else:
+        print(3)
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
 
