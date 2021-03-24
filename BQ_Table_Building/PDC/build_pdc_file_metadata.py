@@ -441,7 +441,7 @@ def main(args):
 
         with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
             schema_obj = json.load(schema_json)
-            json_schema_obj = schema_obj["fields"]
+            json_schema_obj = schema_obj
 
         schema = []
 
