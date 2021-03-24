@@ -342,7 +342,9 @@ def build_file_pdc_metadata_jsonl(file_ids):
     """
 
     old_file_metadata = get_previous_version_file_metadata()
-    removed_list = list()
+
+    print(old_file_metadata)
+    exit()
 
     prefix = API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
     files_per_study_table_name = construct_table_name(API_PARAMS, prefix=prefix)
