@@ -445,6 +445,9 @@ def main(args):
 
         schema = []
 
+        print(json_schema_obj)
+        exit()
+
         generate_bq_schema_fields(json_schema_obj, schema)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
