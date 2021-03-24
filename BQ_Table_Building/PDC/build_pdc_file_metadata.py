@@ -344,7 +344,7 @@ def build_file_pdc_metadata_jsonl(file_ids):
     old_file_metadata = get_previous_version_file_metadata()
     removed_list = list()
 
-    prefix = BQ_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
+    prefix = API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
     files_per_study_table_name = construct_table_name(API_PARAMS, prefix=prefix)
     files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
                                                 dataset=BQ_PARAMS['META_DATASET'],
