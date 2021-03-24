@@ -441,14 +441,11 @@ def main(args):
 
         with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
             schema_obj = json.load(schema_json)
-            # json_schema_obj = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
+            json_schema_obj = [bigquery.SchemaField.from_api_repr(field) for field in schema_obj["fields"]]
 
         schema = []
 
-        print(schema_obj)
-        # exit()
-
-        generate_bq_schema_fields(schema_obj, schema)
+        generate_bq_schema_fields(json_schema_obj, schema)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint="filesPerStudy",
