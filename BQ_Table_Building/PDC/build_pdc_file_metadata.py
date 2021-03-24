@@ -343,9 +343,6 @@ def build_file_pdc_metadata_jsonl(file_ids):
 
     old_file_metadata = get_previous_version_file_metadata()
 
-    print(old_file_metadata)
-    exit()
-
     prefix = API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
     files_per_study_table_name = construct_table_name(API_PARAMS, prefix=prefix)
     files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
@@ -375,6 +372,11 @@ def build_file_pdc_metadata_jsonl(file_ids):
             file_dict[key] = file[key]
 
         file_metadata_list.append(file_dict)
+
+        if len(file_metadata_list) % 100 == 0:
+            print("file_metadata_list length: {}".format(len(file_metadata_list)))
+
+    print("Done with old file metadata.")
 
     record_with_aliquots_idx = None
 
