@@ -28,7 +28,7 @@ from google.cloud import bigquery
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config,
                               publish_table, construct_table_name, download_from_bucket,
-                              generate_bq_schema_fields)
+                              generate_bq_schema_field)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl,
                                              get_filename,
@@ -441,14 +441,15 @@ def main(args):
 
         with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
             schema_obj = json.load(schema_json)
-            json_schema_obj = [field for field in schema_obj["fields"]]
+            json_schema_obj_list = [field for field in schema_obj["fields"]]
 
         schema = []
 
         print(json_schema_obj)
         exit()
 
-        generate_bq_schema_fields(json_schema_obj, schema)
+        for json_schema_obj in json_schema_obj_list:
+            generate_bq_schema_field(json_schema_obj, schema)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint="filesPerStudy",
