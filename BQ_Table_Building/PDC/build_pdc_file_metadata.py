@@ -457,6 +457,29 @@ def main(args):
                                    table_id=fps_table_id,
                                    query=modify_per_study_file_table_query(fps_table_id))
 
+    if 'create_file_count_table' in steps:
+        mapping_table_name = construct_table_name(API_PARAMS,
+                                                  prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+
+        mapping_table_id = get_dev_table_id(BQ_PARAMS,
+                                            dataset=BQ_PARAMS['META_DATASET'],
+                                            table_name=mapping_table_name)
+
+        query = """
+        SELECT case_id, count(file_id) AS file_id_count 
+        FROM `{}` 
+        GROUP BY case_id
+        """.format(mapping_table_id)
+
+        file_count_table_name = construct_table_name(API_PARAMS,
+                                                     prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
+
+        file_count_table_id = get_dev_table_id(BQ_PARAMS,
+                                               dataset=BQ_PARAMS['META_DATASET'],
+                                               table_name=file_count_table_name)
+
+        load_table_from_query(BQ_PARAMS, file_count_table_id, query)
+
     if 'build_api_file_metadata_jsonl' in steps:
         file_ids = get_file_ids()
         build_file_pdc_metadata_jsonl(file_ids)
