@@ -342,9 +342,33 @@ def build_file_pdc_metadata_jsonl(file_ids):
     """
 
     old_file_metadata = get_previous_version_file_metadata()
+    removed_list = list()
+
+    prefix = BQ_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name']
+    files_per_study_table_name = construct_table_name(API_PARAMS, prefix=prefix)
+    files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
+                                                dataset=BQ_PARAMS['META_DATASET'],
+                                                table_name=files_per_study_table_name)
 
     for file in old_file_metadata:
+        query = """
+        get count(file_id) as file_id_count
+        FROM `{}`
+        WHERE file_id = '{}'
+        """.format(files_per_study_table_id, file['file_id'])
+
+        res = get_query_results(query)
+        count = None
+
+        for row in res:
+            count = row['file_id_count']
+            break
+
+        if count == 0:
+            continue
+
         file_dict = dict()
+
         for key in file.keys():
             file_dict[key] = file[key]
 
