@@ -445,7 +445,10 @@ def main(args):
 
         schema = []
 
-        generate_bq_schema_fields(json_schema_obj['fields'], schema)
+        print(json_schema_obj)
+        exit()
+
+        generate_bq_schema_fields(json_schema_obj[0]['fields'], schema)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint="filesPerStudy",
