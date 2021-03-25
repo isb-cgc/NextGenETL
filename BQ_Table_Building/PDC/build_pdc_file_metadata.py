@@ -410,7 +410,7 @@ def main(args):
                                                          alter_json_function=alter_files_per_study_json,
                                                          ids=all_pdc_study_ids)
 
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, per_study_record_list, endpoint)
 
     if 'build_per_study_file_table' in steps:
         endpoint = 'filesPerStudy'
