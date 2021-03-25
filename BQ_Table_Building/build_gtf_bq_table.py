@@ -609,7 +609,7 @@ def main(args):
         hold_schema_list_for_count = hold_schema_list
         with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq_write_depo(typed_schema, bucket_src_url, params['SCRATCH_DATASET'],
+        csv_to_bq_write_depo(typed_schema, bucket_src_url, staging_dataset_id,
                              base_table_name, params['BQ_AS_BATCH'], None)
 
     if 'create_current_table' in steps:
