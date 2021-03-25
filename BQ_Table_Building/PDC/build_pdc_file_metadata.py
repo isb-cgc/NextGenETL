@@ -353,6 +353,8 @@ def build_file_pdc_metadata_jsonl():
         FROM `{}`
         """.format(files_per_study_table_id)
 
+    # todo broken here -- not pulling new file metadata, generally just not correct
+
     res = get_query_results(query)
 
     file_ids_from_files_per_study = set()
