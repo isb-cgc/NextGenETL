@@ -443,9 +443,8 @@ def main(args):
 
     if 'build_api_file_metadata_table' in steps:
         endpoint = 'fileMetadata'
-        table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, table_type)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, endpoint)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,

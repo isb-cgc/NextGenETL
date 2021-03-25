@@ -22,16 +22,12 @@ SOFTWARE.
 import json
 import os
 import time
-import threading
 
 from datetime import date
-from google.cloud import bigquery
-
 
 from common_etl.utils import (get_filename, get_filepath, get_query_results, format_seconds, write_list_to_jsonl,
-                              get_scratch_fp,
-                              upload_to_bucket, get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
-                              create_and_load_table_from_tsv, create_and_load_table,
+                              get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
+                              load_bq_schema_from_json, create_and_load_table_from_tsv, create_and_load_table,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
                               update_schema, update_table_metadata, construct_table_id,
                               construct_table_name, get_rel_prefix, construct_table_name_from_list,
