@@ -430,10 +430,10 @@ def main(args):
     # Create file variables
     home = expanduser('~')
     raw_gtf_file = f"{home}/gtf/gencode.{params['RELEASE']}.annotation.gtf.gz"
-    genomic_feature_file_csv = f"{home}/gtf/{params['PARSED_GENOMIC_FORMAT_FILE']}"
-    attribute_column_split_csv = f"{home}/gtf/{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
+    genomic_feature_file_csv = f"{home}/gtf/{params['RELEASE']}_{params['PARSED_GENOMIC_FORMAT_FILE']}"
+    attribute_column_split_csv = f"{home}/gtf/{params['RELEASE']}_{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
     final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}_v{params['RELEASE']}.csv"
-    final_tsv = f"{home}/gtf/{params['FINAL_TSV']}.tsv"
+    final_tsv = f"{home}/gtf/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
