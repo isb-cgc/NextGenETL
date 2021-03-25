@@ -458,8 +458,7 @@ def main(args):
                 # key, value = key_val_tuple
 
                 file_metadata_dict[key] = value
-                if key == 'aliquots' and value:
-                    print(key_val_tuple)
+
                 if key == 'file_id':
                     existing_file_metadata_ids.add(value)
 
