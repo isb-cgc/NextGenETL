@@ -22,9 +22,11 @@ SOFTWARE.
 import json
 import os
 import time
+import threading
 
 from datetime import date
 from google.cloud import bigquery
+
 
 from common_etl.utils import (get_filename, get_filepath, get_query_results, format_seconds, write_list_to_jsonl,
                               get_scratch_fp,
@@ -166,20 +168,14 @@ def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_
     :param table_type:
     :return:
     """
-    data_types_dict = dict()
 
-    recursively_detect_object_structures(joined_record_list, data_types_dict)
+    data_types_dict = recursively_detect_object_structures(joined_record_list)
 
-    schema_traversed = False
+    schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
     schema_obj = {
-        "fields": list()
+        "fields": schema_list
     }
-
-    schema_traversed = convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
-
-    while not schema_traversed:
-        time.sleep(2)
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',

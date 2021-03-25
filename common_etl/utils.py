@@ -946,14 +946,15 @@ def resolve_type_conflicts(types_dict):
         types_dict[field] = resolve_type_conflict(types_set)
 
 
-def recursively_detect_object_structures(obj, data_types_dict):
+def recursively_detect_object_structures(obj):
     """
     Traverse an object to determine its structure and data types of its values.
     Returned as a dictionary of form "field_name": {data_type_set}.
 
     :param obj: object to traverse
-    :param data_types_dict: dict which stores aggregated data type/field data
     """
+
+    data_types_dict = dict()
 
     def recursively_detect_object_structure(_obj, _data_types_dict):
         for k, v in _obj.items():
@@ -982,6 +983,8 @@ def recursively_detect_object_structures(obj, data_types_dict):
     elif isinstance(obj, list):
         for record in obj:
             recursively_detect_object_structure(record, data_types_dict)
+
+    return data_types_dict
 
 
 def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format_obj, descriptions=None):
@@ -1024,7 +1027,7 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
 
             dataset_format_obj.append(schema_field)
 
-    return True
+    return dataset_format_obj
 
 
 def create_schema_field_obj(schema_obj):
