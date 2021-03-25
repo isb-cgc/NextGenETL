@@ -447,18 +447,23 @@ def main(args):
         endpoint = 'fileMetadata'
 
         file_metadata_list = []
+        existing_file_metadata_ids = set()
 
         old_file_metadata_res = get_previous_version_file_metadata()
 
         for file_metadata_row in old_file_metadata_res:
             file_metadata_dict = dict()
-            for key_val_tuple in file_metadata_row.items():
-                file_metadata_dict[key_val_tuple[0]] = key_val_tuple[1]
-                if key_val_tuple[0] == 'aliquots' and key_val_tuple[1]:
-                    print(key_val_tuple)
-            file_metadata_list.append(file_metadata_dict)
 
-        exit()
+            for key, value in file_metadata_row.items():
+                # key, value = key_val_tuple
+
+                file_metadata_dict[key] = value
+                if key == 'aliquots' and value:
+                    print(key_val_tuple)
+                if key == 'file_id':
+                    existing_file_metadata_ids.add([value])
+
+            file_metadata_list.append(file_metadata_dict)
 
         joined_record_list = build_file_pdc_metadata_jsonl()
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
