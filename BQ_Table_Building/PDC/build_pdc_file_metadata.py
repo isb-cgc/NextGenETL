@@ -442,7 +442,7 @@ def main(args):
         joined_record_list = build_file_pdc_metadata_jsonl()
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
 
-if 'build_api_file_metadata_table' in steps:
+    if 'build_api_file_metadata_table' in steps:
         endpoint = 'fileMetadata'
         table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
