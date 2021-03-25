@@ -154,6 +154,10 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     write_list_to_jsonl(local_filepath, joined_record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
+    return joined_record_list
+
+
+def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_type):
     # NEW
     data_types_dict = dict()
 
@@ -171,7 +175,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
                                    prefix="schema",
-                                   suffix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+                                   suffix=table_type)
     schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:

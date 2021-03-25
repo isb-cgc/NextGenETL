@@ -384,6 +384,8 @@ def build_file_pdc_metadata_jsonl():
     upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
     print("File metadata jsonl uploaded to bucket!")
 
+    return file_metadata_list
+
 
 def main(args):
     start_time = time.time()
@@ -402,11 +404,13 @@ def main(args):
     if 'build_per_study_file_jsonl' in steps:
         endpoint = 'filesPerStudy'
 
-        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint=endpoint,
-                                 request_function=make_files_per_study_query,
-                                 alter_json_function=alter_files_per_study_json,
-                                 ids=all_pdc_study_ids)
+        per_study_record_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                                         endpoint=endpoint,
+                                                         request_function=make_files_per_study_query,
+                                                         alter_json_function=alter_files_per_study_json,
+                                                         ids=all_pdc_study_ids)
+
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
 
     if 'build_per_study_file_table' in steps:
         endpoint = 'filesPerStudy'
@@ -434,9 +438,11 @@ def main(args):
                                    query=modify_per_study_file_table_query(fps_table_id))
 
     if 'build_api_file_metadata_jsonl' in steps:
-        build_file_pdc_metadata_jsonl()
+        endpoint = 'fileMetadata'
+        joined_record_list = build_file_pdc_metadata_jsonl()
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
 
-    if 'build_api_file_metadata_table' in steps:
+if 'build_api_file_metadata_table' in steps:
         endpoint = 'fileMetadata'
         table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
