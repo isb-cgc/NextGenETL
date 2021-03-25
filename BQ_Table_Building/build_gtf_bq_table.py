@@ -432,7 +432,7 @@ def main(args):
     raw_gtf_file = f"{home}/gtf/gencode.{params['RELEASE']}.annotation.gtf.gz"
     genomic_feature_file_csv = f"{home}/gtf/{params['RELEASE']}_{params['PARSED_GENOMIC_FORMAT_FILE']}"
     attribute_column_split_csv = f"{home}/gtf/{params['RELEASE']}_{params['ATTRIBUTE_COLUMN_SPLIT_FILE']}"
-    final_merged_csv = f"{home}/gtf/{params['FINAL_MERGED_CSV']}_v{params['RELEASE']}.csv"
+    final_merged_csv = f"{home}/gtf/{params['RELEASE']}_{params['FINAL_MERGED_CSV']}.csv"
     final_tsv = f"{home}/gtf/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
