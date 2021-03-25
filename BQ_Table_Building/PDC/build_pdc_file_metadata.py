@@ -465,6 +465,9 @@ def main(args):
 
             file_metadata_list.append(file_metadata_dict)
 
+        print(len(file_metadata_list))
+        exit()
+
         joined_record_list = build_file_pdc_metadata_jsonl()
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
 
