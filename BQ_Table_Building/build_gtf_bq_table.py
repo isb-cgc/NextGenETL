@@ -496,7 +496,7 @@ def main(args):
     if 'split_version_ids' in steps:
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
-        df.to_csv(final_tsv, index=False, sep='\t')
+        df.to_csv(final_tsv, sep="\t", index=False, )
 
     # todo to remove
     # if 'upload_to_staging_env' in steps:
