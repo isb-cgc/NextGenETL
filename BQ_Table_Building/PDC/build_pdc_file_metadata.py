@@ -470,7 +470,7 @@ def main(args):
             file_metadata_list.append(file_metadata_dict)
 
 
-        fps_prefix = get_prefix(api_params, 'filesPerStudy')
+        fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
         files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
         files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
                                                     dataset=BQ_PARAMS['META_DATASET'],
