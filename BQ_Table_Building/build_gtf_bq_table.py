@@ -541,11 +541,13 @@ def main(args):
             use_schema = params['VER_SCHEMA_FILE_NAME']
             update_table = scratch_full_table_id_versioned
 
+        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
+
         if 'process_git_schemas' in steps:
             print('process_git_schema')
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_table_name)
+            # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -556,31 +558,31 @@ def main(args):
 
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
-            pn = params['PROGRAM']  # todo update to proper params
-            dataset_tuple = (pn, pn.replace(".", "_"))
+            # pn = params['PROGRAM']  # todo update to proper params
+            # dataset_tuple = (pn, pn.replace(".", "_"))
             tag_map_list = []
             for tag_pair in schema_tags:
                 for tag in tag_pair:
                     val = tag_pair[tag]
                     use_pair = {}
                     tag_map_list.append(use_pair)
-                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                        chunks = val.split('-', 1)
-                        if chunks[1] == 'programs':
-                            if val.find('~lcbqs-') == 0:
-                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-                            else:
-                                rep_val = dataset_tuple[0]
-                        elif chunks[1] == 'builds':
-                            rep_val = params['BUILD']
-                        else:
-                            raise Exception()
-                        if val.find('~lc-') == 0:
-                            rep_val = rep_val.lower()
-                        use_pair[tag] = rep_val
-                    else:
-                        use_pair[tag] = val
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
+                    # if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                    #     chunks = val.split('-', 1)
+                    #     if chunks[1] == 'programs':
+                    #         if val.find('~lcbqs-') == 0:
+                    #             rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                    #         else:
+                    #             rep_val = dataset_tuple[0]
+                    #     elif chunks[1] == 'builds':
+                    #         rep_val = params['BUILD']
+                    #      else:
+                    #         raise Exception()
+                    #     if val.find('~lc-') == 0:
+                    #         rep_val = rep_val.lower()
+                    #     use_pair[tag] = rep_val
+                    # else:
+                    #     use_pair[tag] = val
+            # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
@@ -659,7 +661,7 @@ def main(args):
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        compare = compare_two_tables(publish_full_table_id_current, previous_ver_table, params['BQ_AS_BATCH'])
 
         num_rows = compare.total_rows
 
