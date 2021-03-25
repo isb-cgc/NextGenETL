@@ -451,12 +451,13 @@ def main(args):
         old_file_metadata_res = get_previous_version_file_metadata()
 
         for file_metadata_row in old_file_metadata_res:
-            for key_val_tuples in file_metadata_row.items():
-                print(key_val_tuples)
-            exit()
+            file_metadata_dict = dict()
+            for key_val_tuple in file_metadata_row.items():
+                file_metadata_dict[key_val_tuple[0]] = key_val_tuple[1]
+                if key_val_tuple[0] == 'aliquots' and key_val_tuple[1]:
+                    print(key_val_tuple)
+            file_metadata_list.append(file_metadata_dict)
 
-
-        print(old_file_metadata)
         exit()
 
         joined_record_list = build_file_pdc_metadata_jsonl()
