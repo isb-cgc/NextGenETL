@@ -517,7 +517,7 @@ def main(args):
             file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
-                print("{} of {} file records retrieved".format(count, len(file_ids)))
+                print("{} of {} file records retrieved".format(count, len(new_file_ids)))
 
         print(len(file_metadata_list))
 
