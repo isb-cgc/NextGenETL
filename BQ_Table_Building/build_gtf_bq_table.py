@@ -436,6 +436,7 @@ def main(args):
     final_tsv = f"{home}/gtf/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
+    bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
 
     # Base table name
     base_table_name = f'annotation_gtf_hg38'
@@ -518,7 +519,7 @@ def main(args):
     #
 
     if 'upload_to_bucket' in steps:
-        bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
+        # bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
         upload_to_bucket(params['WORKING_BUCKET'],
                          bucket_file,
                          final_tsv)
@@ -605,7 +606,7 @@ def main(args):
                               hold_schema_dict)
 
     if 'create_bq_from_tsv' in steps:
-        bucket_src_url = f"gs://{params['WORKING_BUCKET']}/{params['FINAL_TSV']}"
+        bucket_src_url = f"gs://{bucket_file}"
         hold_schema_list_for_count = hold_schema_list
         with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
