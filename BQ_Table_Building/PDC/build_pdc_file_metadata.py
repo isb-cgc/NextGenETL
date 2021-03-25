@@ -26,7 +26,7 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
-                              has_fatal_error, load_table_from_query, load_config,
+                              has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
                               publish_table, construct_table_name, download_from_bucket,
                               generate_bq_schema_field)
 
@@ -376,18 +376,6 @@ def build_file_pdc_metadata_jsonl():
         if len(file_metadata_list) % 100 == 0:
             print("file_metadata_list length: {}".format(len(file_metadata_list)))
 
-    print("Done with old file metadata.")
-
-    record_with_aliquots_idx = None
-
-    for idx, file_dict in enumerate(file_metadata_list):
-        if len(file_dict['aliquots']) > 1:
-            record_with_aliquots_idx = idx
-            break
-
-    record_with_aliquots = file_metadata_list.pop(record_with_aliquots_idx)
-    file_metadata_list.insert(0, record_with_aliquots)
-
     file_metadata_jsonl_file = get_filename(API_PARAMS,
                                             file_extension='jsonl',
                                             prefix=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['output_name'])
@@ -415,38 +403,29 @@ def main(args):
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
 
     if 'build_per_study_file_jsonl' in steps:
+        endpoint = 'filesPerStudy'
+
         build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint="filesPerStudy",
+                                 endpoint=endpoint,
                                  request_function=make_files_per_study_query,
                                  alter_json_function=alter_files_per_study_json,
                                  ids=all_pdc_study_ids)
 
     if 'build_per_study_file_table' in steps:
-        schema_filename = get_filename(API_PARAMS,
-                                       file_extension='jsonl',
-                                       prefix="schema",
-                                       suffix=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['output_name'])
+        endpoint = 'filesPerStudy'
+        table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        download_from_bucket(BQ_PARAMS, schema_filename)
-
-        with open(get_scratch_fp(BQ_PARAMS, schema_filename), "r") as schema_json:
-            schema_obj = json.load(schema_json)
-            json_schema_obj_list = [field for field in schema_obj["fields"]]
-
-        schema = []
-
-        for json_schema_obj in json_schema_obj_list:
-            generate_bq_schema_field(json_schema_obj, schema)
+        schema = return_schema_object_for_bq(BQ_PARAMS, table_type)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint="filesPerStudy",
+                               endpoint=endpoint,
                                infer_schema=True,
                                schema=schema)
 
     if 'alter_per_study_file_table' in steps:
+        endpoint = 'filesPerStudy'
         fps_table_name = construct_table_name(API_PARAMS,
-                                              prefix=API_PARAMS["ENDPOINT_SETTINGS"]["filesPerStudy"]["output_name"])
-
+                                              prefix=API_PARAMS["ENDPOINT_SETTINGS"][endpoint]["output_name"])
         fps_table_id = get_dev_table_id(BQ_PARAMS,
                                         dataset=BQ_PARAMS['META_DATASET'],
                                         table_name=fps_table_name)
@@ -461,15 +440,19 @@ def main(args):
         build_file_pdc_metadata_jsonl()
 
     if 'build_api_file_metadata_table' in steps:
-        build_table_from_jsonl(API_PARAMS,
-                               BQ_PARAMS,
-                               endpoint="fileMetadata",
-                               infer_schema=True)
+        endpoint = 'fileMetadata'
+        table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = return_schema_object_for_bq(BQ_PARAMS, table_type)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
+                               endpoint=endpoint,
+                               infer_schema=True,
+                               schema=schema)
 
     if 'create_file_count_table' in steps:
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-
         mapping_table_id = get_dev_table_id(BQ_PARAMS,
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=mapping_table_name)
@@ -482,7 +465,6 @@ def main(args):
 
         file_count_table_name = construct_table_name(API_PARAMS,
                                                      prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-
         file_count_table_id = get_dev_table_id(BQ_PARAMS,
                                                dataset=BQ_PARAMS['META_DATASET'],
                                                table_name=file_count_table_name)

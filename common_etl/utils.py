@@ -771,6 +771,21 @@ def create_tsv_row(row_list, null_marker="None"):
     return print_str
 
 
+def get_filename(api_params, file_extension, prefix, suffix=None, include_release=True, release=None):
+    """
+    Get filename based on table naming scheme.
+    :param api_params: API params from YAML config
+    :param file_extension: File extension, e.g. jsonl or tsv
+    :param prefix: file name prefix
+    :param suffix: file name suffix
+    :param include_release: if True, includes release in file name; defaults to True
+    :param release: data release version
+    :return: file name
+    """
+    filename = construct_table_name(api_params, prefix, suffix, include_release, release=release)
+    return "{}.{}".format(filename, file_extension)
+
+
 #   SCHEMA UTILS
 
 
@@ -1047,6 +1062,26 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
                 generate_bq_schema_field(child_obj, child_schema_fields)
     else:
         child_schema_fields.append(create_schema_field_obj(schema_obj))
+
+
+def return_schema_object_for_bq(bq_params, table_type):
+    schema_filename = get_filename(API_PARAMS,
+                                   file_extension='json',
+                                   prefix="schema",
+                                   suffix=table_type)
+
+    download_from_bucket(bq_params, schema_filename)
+
+    with open(get_scratch_fp(bq_params, schema_filename), "r") as schema_json:
+        schema_obj = json.load(schema_json)
+        json_schema_obj_list = [field for field in schema_obj["fields"]]
+
+    schema = []
+
+    for json_schema_obj in json_schema_obj_list:
+        generate_bq_schema_field(json_schema_obj, schema)
+
+    return schema
 
 
 '''

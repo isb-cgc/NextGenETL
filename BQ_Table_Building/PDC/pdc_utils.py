@@ -26,7 +26,8 @@ import time
 from datetime import date
 from google.cloud import bigquery
 
-from common_etl.utils import (get_filepath, get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp,
+from common_etl.utils import (get_filename, get_filepath, get_query_results, format_seconds, write_list_to_jsonl,
+                              get_scratch_fp,
                               upload_to_bucket, get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_and_load_table,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
@@ -165,7 +166,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
 
     schema_filename = get_filename(api_params,
-                                   file_extension='jsonl',
+                                   file_extension='json',
                                    prefix="schema",
                                    suffix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
 
@@ -251,21 +252,6 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
 
     build_end = time.time() - build_start
     print("Table built in {0}!\n".format(format_seconds(build_end)))
-
-
-def get_filename(api_params, file_extension, prefix, suffix=None, include_release=True, release=None):
-    """
-    Get filename based on table naming scheme.
-    :param api_params: API params from YAML config
-    :param file_extension: File extension, e.g. jsonl or tsv
-    :param prefix: file name prefix
-    :param suffix: file name suffix
-    :param include_release: if True, includes release in file name; defaults to True
-    :param release: data release version
-    :return: file name
-    """
-    filename = construct_table_name(api_params, prefix, suffix, include_release, release=release)
-    return "{}.{}".format(filename, file_extension)
 
 
 def get_dev_table_id(bq_params, dataset=None, table_name=None):
