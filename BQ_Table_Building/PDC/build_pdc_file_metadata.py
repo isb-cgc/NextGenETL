@@ -446,8 +446,12 @@ def main(args):
     if 'build_api_file_metadata_jsonl' in steps:
         endpoint = 'fileMetadata'
 
+        file_metadata_list = []
 
-        old_file_metadata = get_previous_version_file_metadata()
+        old_file_metadata_res = get_previous_version_file_metadata()
+
+        for file_metadata_row in old_file_metadata_res:
+            print(file_metadata_row.items())
 
         print(old_file_metadata)
         exit()
