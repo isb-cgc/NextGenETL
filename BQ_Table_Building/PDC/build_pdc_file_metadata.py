@@ -457,10 +457,18 @@ def main(args):
             for key, value in file_metadata_row.items():
                 # key, value = key_val_tuple
 
-                file_metadata_dict[key] = value
+                if value == '':
+                    file_metadata_dict[key] = None
+                else:
+                    file_metadata_dict[key] = value
 
                 if key == 'file_id':
                     existing_file_metadata_ids.add(value)
+                if key == 'fraction_number':
+                    if value == 'Pool' or value == 'pool':
+                        value = 'POOL'
+                    elif value == 'N/A' or value == 'NOFRACTION':
+                        value = None
 
             file_metadata_list.append(file_metadata_dict)
 
