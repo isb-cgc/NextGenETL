@@ -304,7 +304,7 @@ def get_previous_version_file_metadata():
     return get_query_results(query)
 
 
-def build_file_pdc_metadata_jsonl(file_ids):
+def build_file_pdc_metadata_jsonl():
     """
     Build jsonl file for creating the api file metadata BQ table.
     :param file_ids: list of file ids
@@ -349,21 +349,21 @@ def build_file_pdc_metadata_jsonl(file_ids):
                                                 dataset=BQ_PARAMS['META_DATASET'],
                                                 table_name=files_per_study_table_name)
 
-    for file in old_file_metadata:
-        query = """
-        SELECT count(file_id) as file_id_count
+    query = """
+        SELECT distinct file_id
         FROM `{}`
-        WHERE file_id = '{}'
-        """.format(files_per_study_table_id, file['file_id'])
+        """.format(files_per_study_table_id)
 
-        res = get_query_results(query)
-        count = None
+    res = get_query_results(query)
 
-        for row in res:
-            count = row['file_id_count']
-            break
+    file_ids_from_files_per_study = set()
 
-        if count == 0:
+    for row in res:
+        file_ids_from_files_per_study.add(row['file_id'])
+        break
+
+    for file in old_file_metadata:
+        if file['file_id'] not in file_ids_from_files_per_study:
             continue
 
         file_dict = dict()
@@ -457,6 +457,15 @@ def main(args):
                                    table_id=fps_table_id,
                                    query=modify_per_study_file_table_query(fps_table_id))
 
+    if 'build_api_file_metadata_jsonl' in steps:
+        build_file_pdc_metadata_jsonl()
+
+    if 'build_api_file_metadata_table' in steps:
+        build_table_from_jsonl(API_PARAMS,
+                               BQ_PARAMS,
+                               endpoint="fileMetadata",
+                               infer_schema=True)
+
     if 'create_file_count_table' in steps:
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
@@ -479,16 +488,6 @@ def main(args):
                                                table_name=file_count_table_name)
 
         load_table_from_query(BQ_PARAMS, file_count_table_id, query)
-
-    if 'build_api_file_metadata_jsonl' in steps:
-        file_ids = get_file_ids()
-        build_file_pdc_metadata_jsonl(file_ids)
-
-    if 'build_api_file_metadata_table' in steps:
-        build_table_from_jsonl(API_PARAMS,
-                               BQ_PARAMS,
-                               endpoint="fileMetadata",
-                               infer_schema=True)
 
     if 'alter_api_file_metadata_table' in steps:
         fm_table_name = construct_table_name(API_PARAMS,
