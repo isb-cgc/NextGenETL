@@ -484,7 +484,7 @@ def main(args):
         current_version_file_ids_res = get_query_results(current_version_file_ids_query)
 
         for current_version_file_id in current_version_file_ids_res:
-            current_version_file_id_set.add(current_version_file_id[0])
+            current_per_study_file_id_set.add(current_version_file_id[0])
 
         # todo use this to remove these file rows before writing to jsonl
         removed_file_ids = existing_file_metadata_id_set - current_per_study_file_id_set
