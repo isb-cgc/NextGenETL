@@ -158,7 +158,14 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
 
 
 def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_type):
-    # NEW
+    """
+    todo
+    :param api_params:
+    :param bq_params:
+    :param joined_record_list:
+    :param table_type:
+    :return:
+    """
     data_types_dict = dict()
 
     recursively_detect_object_structures(joined_record_list, data_types_dict)
@@ -168,9 +175,6 @@ def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_
     }
 
     convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
-
-    print(schema_obj)
-    exit()
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
