@@ -276,6 +276,16 @@ def get_dev_table_id(bq_params, dataset=None, table_name=None):
     return "{}.{}.{}".format(project, dataset, table_name)
 
 
+def get_prefix(api_params, endpoint):
+    """
+    todo
+    :param api_params:
+    :param endpoint:
+    :return:
+    """
+    return api_params['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+
 def get_records(api_params, bq_params, endpoint, select_statement, dataset):
     """
     Get records for a given built query (custom subqueries).
