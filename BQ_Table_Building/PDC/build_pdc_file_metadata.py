@@ -309,7 +309,6 @@ def build_file_pdc_metadata_jsonl():
     Build jsonl file for creating the api file metadata BQ table.
     :param file_ids: list of file ids
     """
-    jsonl_start = time.time()
     file_metadata_list = []
 
     """
@@ -383,9 +382,7 @@ def build_file_pdc_metadata_jsonl():
 
     write_list_to_jsonl(file_metadata_jsonl_path, file_metadata_list)
     upload_to_bucket(BQ_PARAMS, file_metadata_jsonl_path)
-
-    jsonl_end = time.time() - jsonl_start
-    print("File PDC metadata jsonl file created in {0}!\n".format(format_seconds(jsonl_end)))
+    print("File metadata jsonl uploaded to bucket!")
 
 
 def main(args):
@@ -415,7 +412,7 @@ def main(args):
         endpoint = 'filesPerStudy'
         table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        schema = return_schema_object_for_bq(BQ_PARAMS, table_type)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, table_type)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,
@@ -443,7 +440,7 @@ def main(args):
         endpoint = 'fileMetadata'
         table_type = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        schema = return_schema_object_for_bq(BQ_PARAMS, table_type)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, table_type)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,

@@ -1064,8 +1064,8 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
 
-def return_schema_object_for_bq(bq_params, table_type):
-    schema_filename = get_filename(API_PARAMS,
+def return_schema_object_for_bq(api_params, bq_params, table_type):
+    schema_filename = get_filename(api_params=api_params,
                                    file_extension='json',
                                    prefix="schema",
                                    suffix=table_type)
