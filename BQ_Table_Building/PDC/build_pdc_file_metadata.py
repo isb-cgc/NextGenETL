@@ -31,7 +31,7 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
                               generate_bq_schema_field)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl,
-                                             get_filename,
+                                             get_filename, create_schema_from_pdc_api,
                                              get_dev_table_id, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata)
 
