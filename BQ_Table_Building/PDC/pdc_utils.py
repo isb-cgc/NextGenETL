@@ -170,11 +170,16 @@ def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_
 
     recursively_detect_object_structures(joined_record_list, data_types_dict)
 
+    schema_traversed = False
+
     schema_obj = {
         "fields": list()
     }
 
-    convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
+    schema_traversed = convert_object_structure_dict_to_schema_dict(data_types_dict, schema_obj['fields'])
+
+    while not schema_traversed:
+        time.sleep(2)
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',

@@ -1024,6 +1024,8 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
 
             dataset_format_obj.append(schema_field)
 
+    return True
+
 
 def create_schema_field_obj(schema_obj):
     """
