@@ -417,6 +417,8 @@ def main(args):
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, per_study_record_list, endpoint)
 
+
+
     if 'build_per_study_file_table' in steps:
         endpoint = 'filesPerStudy'
 
@@ -443,6 +445,13 @@ def main(args):
 
     if 'build_api_file_metadata_jsonl' in steps:
         endpoint = 'fileMetadata'
+
+
+        old_file_metadata = get_previous_version_file_metadata()
+
+        print(old_file_metadata)
+        exit()
+
         joined_record_list = build_file_pdc_metadata_jsonl()
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, endpoint)
 
