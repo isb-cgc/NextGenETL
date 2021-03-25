@@ -451,7 +451,10 @@ def main(args):
         old_file_metadata_res = get_previous_version_file_metadata()
 
         for file_metadata_row in old_file_metadata_res:
-            print(file_metadata_row.items())
+            for key_val_tuples in file_metadata_row:
+                print(key_val_tuples)
+            exit()
+
 
         print(old_file_metadata)
         exit()
