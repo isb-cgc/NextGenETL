@@ -518,7 +518,7 @@ def main(args):
     #
 
     if 'upload_to_bucket' in steps:
-        bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['FINAL_TSV']}.tsv"
+        bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
         upload_to_bucket(params['WORKING_BUCKET'],
                          bucket_file,
                          final_tsv)
