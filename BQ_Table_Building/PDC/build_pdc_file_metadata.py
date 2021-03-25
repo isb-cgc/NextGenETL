@@ -28,7 +28,7 @@ from google.cloud import bigquery
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
                               publish_table, construct_table_name, download_from_bucket,
-                              generate_bq_schema_field)
+                              generate_bq_schema_field, get_graphql_api_response)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_schema_from_pdc_api,
