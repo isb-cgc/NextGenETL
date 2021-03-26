@@ -972,6 +972,7 @@ def recursively_detect_object_structures(obj):
                 for _record in _obj[k]:
                     recursively_detect_object_structure(_record, _data_types_dict[k])
             else:
+                print(type(v))
                 # create set of Data type values
                 if k not in _data_types_dict:
                     _data_types_dict[k] = set()
