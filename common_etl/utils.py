@@ -983,7 +983,7 @@ def recursively_detect_object_structures(obj):
 
                 if val_type:
                     try:
-                        _data_types_dict[k] = val_type
+                        _data_types_dict[k].add(val_type)
                     except Exception:
                         print(k)
                         print(v)
