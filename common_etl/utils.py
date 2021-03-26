@@ -1084,6 +1084,9 @@ def return_schema_object_for_bq(api_params, bq_params, table_type):
         schema_obj = json.load(schema_json)
         json_schema_obj_list = [field for field in schema_obj["fields"]]
 
+    print(json_schema_obj_list)
+    exit()
+
     schema = []
 
     for json_schema_obj in json_schema_obj_list:
