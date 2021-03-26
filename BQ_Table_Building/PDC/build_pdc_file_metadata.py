@@ -391,6 +391,7 @@ def build_file_pdc_metadata_jsonl():
     return file_metadata_list
 '''
 
+
 def main(args):
     start_time = time.time()
     print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
@@ -471,7 +472,6 @@ def main(args):
 
             file_metadata_list.append(file_metadata_dict)
 
-
         fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
         files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
         files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
@@ -516,17 +516,24 @@ def main(args):
 
                     metadata_row['fraction_number'] = fraction_number
 
-
             file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
                 print("{} of {} file records retrieved".format(count, len(new_file_ids)))
 
+            # todo remove this for full api pull
             if count == 10:
                 break
 
         print(len(file_metadata_list))
 
+        jsonl_filename = get_filename(API_PARAMS,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+        local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+
+        write_list_to_jsonl(local_filepath, file_metadata_list)
+        upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
 
