@@ -1072,6 +1072,21 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
 
+def generate_bq_schema_fields(schema_obj_list):
+    """
+    Converts list of schema fields into TableSchema object.
+
+    :param schema_obj_list: schema json dict object list
+    :returns list of SchemaField objects representing BQ TableSchema
+    """
+    schema_fields_obj = list()
+
+    for schema_obj in schema_obj_list:
+        generate_bq_schema_field(schema_obj, schema_fields_obj)
+
+    return schema_fields_obj
+
+
 def return_schema_object_for_bq(api_params, bq_params, table_type):
     schema_filename = get_filename(api_params=api_params,
                                    file_extension='json',
@@ -1084,35 +1099,14 @@ def return_schema_object_for_bq(api_params, bq_params, table_type):
         schema_obj = json.load(schema_json)
         json_schema_obj_list = [field for field in schema_obj["fields"]]
 
-    schema = []
+    schema = generate_bq_schema_fields(json_schema_obj_list)
 
-    for json_schema_obj in json_schema_obj_list:
-        print(json_schema_obj)
-        generate_bq_schema_field(json_schema_obj, schema)
-        print(schema)
+    print(schema)
 
     exit()
+
     return schema
 
-
-'''
-def generate_bq_schema_fields(schema_obj_list, schema_fields_obj):
-    """
-    Converts list of schema fields into TableSchema object.
-
-    :param schema_obj_list: schema json dict object list
-    :param schema_fields_obj: parent-level schema fields
-    """
-    for schema_obj in schema_obj_list:
-        print(schema_obj)
-        if "fields" in schema_obj:
-            if schema_obj['fields']:
-                child_schema_fields = list()
-                for child_obj in schema_obj['fields']:
-                    generate_bq_schema_field(child_obj, child_schema_fields)
-        else:
-            schema_fields_obj.append(create_schema_field_obj(schema_obj))
-'''
 
 #   MISC UTILS
 
