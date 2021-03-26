@@ -495,8 +495,6 @@ def main(args):
 
         print(len(file_metadata_list))
 
-        print(file_metadata_list)
-
         # retrieve new file metadata and add to existing file metadata list
         print("Getting {} new files".format(len(new_file_ids)))
 
@@ -508,8 +506,6 @@ def main(args):
                 continue
 
             for metadata_row in file_metadata_res['data']['fileMetadata']:
-                print(metadata_row)
-                exit()
                 if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                     fraction_number = metadata_row['fraction_number'].strip()
 
