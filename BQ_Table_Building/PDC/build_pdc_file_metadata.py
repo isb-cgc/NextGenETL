@@ -467,6 +467,8 @@ def main(args):
                     elif value == 'N/A' or value == 'NOFRACTION':
                         value = None
 
+                file_metadata_dict[key] = value
+
             file_metadata_list.append(file_metadata_dict)
 
 
