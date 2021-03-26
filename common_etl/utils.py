@@ -958,6 +958,8 @@ def recursively_detect_object_structures(obj):
 
     def recursively_detect_object_structure(_obj, _data_types_dict):
         print(_obj)
+        print(_data_types_dict)
+
         for k, v in _obj.items():
             if isinstance(_obj[k], dict):
                 if k not in _data_types_dict:
