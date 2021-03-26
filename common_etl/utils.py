@@ -1088,8 +1088,8 @@ def return_schema_object_for_bq(api_params, bq_params, table_type):
 
     for json_schema_obj in json_schema_obj_list:
         print(json_schema_obj)
-        continue
         generate_bq_schema_field(json_schema_obj, schema)
+        print(schema)
 
     exit()
     return schema
