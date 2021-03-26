@@ -493,7 +493,7 @@ def main(args):
 
         print(len(file_metadata_list))
 
-        print(file_metadata_list[0])
+        print(file_metadata_list)
 
         # retrieve new file metadata and add to existing file metadata list
         print("Getting {} new files".format(len(new_file_ids)))
