@@ -492,7 +492,7 @@ def main(args):
         new_file_ids = current_per_study_file_id_set - existing_file_metadata_id_set
 
         print(len(file_metadata_list))
-
+        '''
         # retrieve new file metadata and add to existing file metadata list
         print("Getting {} new files".format(len(new_file_ids)))
 
@@ -520,7 +520,7 @@ def main(args):
                 print("{} of {} file records retrieved".format(count, len(new_file_ids)))
 
         print(len(file_metadata_list))
-
+        '''
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
 
