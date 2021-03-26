@@ -470,6 +470,18 @@ def main(args):
 
                 file_metadata_dict[key] = value
 
+            if 'aliquots' not in file_metadata_dict or not file_metadata_dict['aliquots']:
+                file_metadata_dict['aliquots'] = [
+                    {
+                        'aliquot_submitter_id': None,
+                        'case_id':  None,
+                        'sample_id':  None,
+                        'case_submitter_id':  None,
+                        'sample_submitter_id':  None,
+                        'aliquot_id':  None
+                    }
+                ]
+
             file_metadata_list.append(file_metadata_dict)
 
         fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
