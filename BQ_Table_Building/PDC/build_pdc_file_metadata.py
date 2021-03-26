@@ -492,7 +492,9 @@ def main(args):
         new_file_ids = current_per_study_file_id_set - existing_file_metadata_id_set
 
         print(len(file_metadata_list))
-        '''
+
+        print(file_metadata_list[0])
+
         # retrieve new file metadata and add to existing file metadata list
         print("Getting {} new files".format(len(new_file_ids)))
 
@@ -504,6 +506,8 @@ def main(args):
                 continue
 
             for metadata_row in file_metadata_res['data']['fileMetadata']:
+                print(metadata_row)
+                exit()
                 if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                     fraction_number = metadata_row['fraction_number'].strip()
 
@@ -514,13 +518,14 @@ def main(args):
 
                     metadata_row['fraction_number'] = fraction_number
 
+
             file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
                 print("{} of {} file records retrieved".format(count, len(new_file_ids)))
 
         print(len(file_metadata_list))
-        '''
+
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
 
