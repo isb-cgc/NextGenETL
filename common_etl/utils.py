@@ -958,7 +958,7 @@ def recursively_detect_object_structures(obj):
 
     def recursively_detect_object_structure(_obj, _data_types_dict):
         print("obj: {}".format(_obj))
-        print("_data_types_dict".format(_data_types_dict))
+        print("_data_types_dict: {}".format(_data_types_dict))
 
         for k, v in _obj.items():
             print("k: {}".format(k))
