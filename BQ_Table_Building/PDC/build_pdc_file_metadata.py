@@ -530,7 +530,7 @@ def main(args):
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
                                       prefix=prefix)
-        local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+        local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
