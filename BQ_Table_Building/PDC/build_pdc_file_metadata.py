@@ -522,7 +522,7 @@ def main(args):
         print(len(file_metadata_list))
 
 
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, joined_record_list, prefix)
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
 
     if 'build_api_file_metadata_table' in steps:
         endpoint = 'fileMetadata'
