@@ -957,12 +957,7 @@ def recursively_detect_object_structures(obj):
     data_types_dict = dict()
 
     def recursively_detect_object_structure(_obj, _data_types_dict):
-        print("obj: {}".format(_obj))
-        print("_data_types_dict: {}".format(_data_types_dict))
-
         for k, v in _obj.items():
-            print("k: {}".format(k))
-            print("v: {}".format(v))
             if isinstance(_obj[k], dict):
                 if k not in _data_types_dict:
                     # this is a dict, so use dict to nest values
@@ -977,11 +972,6 @@ def recursively_detect_object_structures(obj):
                 for _record in _obj[k]:
                     recursively_detect_object_structure(_record, _data_types_dict[k])
             elif not isinstance(_obj[k], list):
-                """
-                print()
-                print(_obj[k])
-                print()
-                """
                 # create set of Data type values
                 if k not in _data_types_dict:
                     _data_types_dict[k] = set()
@@ -989,12 +979,7 @@ def recursively_detect_object_structures(obj):
                 val_type = check_value_type(_obj[k])
 
                 if val_type:
-                    try:
-                        _data_types_dict[k].add(val_type)
-                    except Exception:
-                        print(k)
-                        print(v)
-                        exit()
+                    _data_types_dict[k].add(val_type)
 
     if isinstance(obj, dict):
         recursively_detect_object_structure(obj, data_types_dict)
