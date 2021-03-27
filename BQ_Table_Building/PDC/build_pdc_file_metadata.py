@@ -416,6 +416,8 @@ def main(args):
 
         new_file_ids = current_per_study_file_id_set - existing_file_metadata_id_set
 
+        print(len(new_file_ids))
+
         # retrieve new file metadata and add to existing file metadata list
         print("Getting {} new file metadata records".format(len(new_file_ids)))
 
