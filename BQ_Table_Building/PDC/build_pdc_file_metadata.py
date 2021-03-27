@@ -506,10 +506,8 @@ def main(args):
 
         new_file_ids = current_per_study_file_id_set - existing_file_metadata_id_set
 
-        print(len(file_metadata_list))
-
         # retrieve new file metadata and add to existing file metadata list
-        print("Getting {} new files".format(len(new_file_ids)))
+        print("Getting {} new file metadata records".format(len(new_file_ids)))
 
         for count, file_id in enumerate(new_file_ids):
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
@@ -532,13 +530,15 @@ def main(args):
             file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
-                print("{} of {} file records retrieved".format(count, len(new_file_ids)))
+                print("{} of {} records retrieved".format(count, len(new_file_ids)))
 
-        print(len(file_metadata_list))
+        if len(new_file_ids) + len(existing_file_metadata_id_set) != len(file_metadata_list):
+            has_fatal_error("file_metadata_list inequal to # of new_file_ids + existing_ids after iteration")
 
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
                                       prefix=prefix)
+
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
@@ -551,8 +551,6 @@ def main(args):
         prefix = get_prefix(API_PARAMS, endpoint)
 
         schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
-
-        print("schema: {}".format(schema))
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,
@@ -588,6 +586,7 @@ def main(args):
         update_column_metadata(API_PARAMS, BQ_PARAMS, full_table_id)
 
     if 'create_file_count_table' in steps:
+        # creates case_id -> file count mapping table, used for case metadata table
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         mapping_table_id = get_dev_table_id(BQ_PARAMS,
