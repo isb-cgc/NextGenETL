@@ -336,7 +336,7 @@ def create_modified_temp_table(bq_params, table_id, query):
     load_table_from_query(bq_params, table_id, query)
 
 
-def update_column_metadata(api_params, bq_params, table_id, include_release=True):
+def update_column_metadata(api_params, bq_params, table_id):
     """
     Update column descriptions for existing BQ table
     :param api_params: API params from YAML config
@@ -344,23 +344,8 @@ def update_column_metadata(api_params, bq_params, table_id, include_release=True
     :param table_id: BQ table id
     """
 
-    def get_schema_filename(data_type, suffix=None):
-        """
-        Get file name for BQ schema.
-        """
-        source = api_params["DATA_SOURCE"]
-        file_list = [source, data_type]
-
-        if suffix:
-            file_list.append(suffix)
-
-        if include_release:
-            file_list.append(get_rel_prefix(api_params))
-
-        return construct_table_name_from_list(file_list)
-
+    field_desc_file_name = "_".join(api_params["DATA_SOURCE"], bq_params['FIELD_DESC_FILE_SUFFIX']) + '.json'
     file_path_root = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
-    field_desc_file_name = get_schema_filename(bq_params['FIELD_DESC_FILE_SUFFIX']) + '.json'
     field_desc_fp = get_filepath(file_path_root, field_desc_file_name)
 
     if not os.path.exists(field_desc_fp):

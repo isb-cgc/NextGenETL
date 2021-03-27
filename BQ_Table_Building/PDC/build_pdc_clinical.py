@@ -416,9 +416,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
                           table_id=clinical_project_table_id,
                           query=make_ordered_clinical_table_query(fields))
 
-    update_column_metadata(API_PARAMS, BQ_PARAMS,
-                           table_id=clinical_project_table_id,
-                           include_release=False)
+    update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=clinical_project_table_id)
     delete_bq_table(temp_table_id)
 
 
