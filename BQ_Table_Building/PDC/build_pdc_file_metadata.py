@@ -495,7 +495,9 @@ def main(args):
                               table_id=full_table_id,
                               query=make_associated_entities_query())
 
-        update_column_metadata(API_PARAMS, BQ_PARAMS, full_table_id)
+        update_column_metadata(API_PARAMS, BQ_PARAMS,
+                               table_id=full_table_id,
+                               include_release=False)
 
     if 'create_file_count_table' in steps:
         # creates case_id -> file count mapping table, used for case metadata table

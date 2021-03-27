@@ -359,9 +359,9 @@ def update_column_metadata(api_params, bq_params, table_id, include_release=True
 
         return construct_table_name_from_list(file_list)
 
-    file_path = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
+    file_path_root = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
     field_desc_file_name = get_schema_filename(bq_params['FIELD_DESC_FILE_SUFFIX']) + '.json'
-    field_desc_fp = get_filepath(file_path, field_desc_file_name)
+    field_desc_fp = get_filepath(file_path_root, field_desc_file_name)
 
     if not os.path.exists(field_desc_fp):
         has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
