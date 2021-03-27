@@ -534,10 +534,6 @@ def main(args):
             if count % 100 == 0:
                 print("{} of {} file records retrieved".format(count, len(new_file_ids)))
 
-            # todo remove this for full api pull
-            if count == 10:
-                break
-
         print(len(file_metadata_list))
 
         jsonl_filename = get_filename(API_PARAMS,
