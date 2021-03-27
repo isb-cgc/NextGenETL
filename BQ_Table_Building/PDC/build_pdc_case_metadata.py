@@ -181,7 +181,8 @@ def main(args):
                                  request_function=make_biospecimen_per_study_query,
                                  alter_json_function=alter_biospecimen_per_study_obj,
                                  ids=all_pdc_study_ids,
-                                 insert_id=True)
+                                 insert_id=True,
+                                 pause=2)
 
     if 'build_biospecimen_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,

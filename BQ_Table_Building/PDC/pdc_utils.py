@@ -34,7 +34,7 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, for
                               recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict)
 
 
-def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None):
+def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None, pause=None):
     """
     Used internally by build_jsonl_from_pdc_api()
     :param api_params: API params from YAML config
@@ -51,9 +51,6 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
         Add api response data to record list
         """
         api_response = get_graphql_api_response(api_params, graphql_request_body)
-
-        print(api_response)
-        exit()
 
         response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
 
@@ -107,7 +104,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
 
 def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, request_params=tuple(),
-                             alter_json_function=None, ids=None, insert_id=False):
+                             alter_json_function=None, ids=None, insert_id=False, pause=0):
     """
     Create jsonl file based on results from PDC API request
     :param api_params: API params from YAML config
@@ -126,6 +123,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     if ids:
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
+            print(idx)
             combined_request_parameters = request_params + (id_entry,)
             record_list = request_data_from_pdc_api(api_params, endpoint, request_function, combined_request_parameters)
 
@@ -140,6 +138,8 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
                 print(" - {:6d} current records (added {})".format(len(joined_record_list), id_entry))
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print(" - {} records appended.".format(len(joined_record_list)))
+
+        time.sleep(pause)
     else:
         joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
