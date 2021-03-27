@@ -343,8 +343,11 @@ def update_column_metadata(api_params, bq_params, table_id):
     :param bq_params: BQ params from YAML config
     :param table_id: BQ table id
     """
-
-    field_desc_file_name = "_".join(api_params["DATA_SOURCE"], bq_params['FIELD_DESC_FILE_SUFFIX']) + '.json'
+    field_desc_file_name = get_filename(api_params,
+                                        file_extension='json',
+                                        prefix=api_params['DATA_SOURCE'],
+                                        suffix=bq_params['FIELD_DESC_FILE_SUFFIX'],
+                                        include_release=False)
     file_path_root = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
     field_desc_fp = get_filepath(file_path_root, field_desc_file_name)
 
