@@ -105,47 +105,38 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     :param json_obj_list: list of json objects to mutate
     :param pdc_study_id: pdc study id for this set of json objects
     """
+    def get_case_file_count_mapping():
+        """
 
-    # case_file_count_map = get_case_file_count_mapping()
+        Gets a dictionary of form {case_id: file_count} using table created during file metadata ingestion;
+        derived from associated entity mapping table
+        :return: { '<case_id>': '<file_count>'}
+        """
+        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS,
+                                    dataset=BQ_PARAMS['META_DATASET'],
+                                    table_name=table_name)
+        case_file_count_query = """
+        SELECT case_id, file_id_count
+        FROM {}
+        """.format(table_id)
 
-    file_case_mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-    file_case_mapping_table_id = get_dev_table_id(BQ_PARAMS,
-                                                  dataset=BQ_PARAMS["META_DATASET"],
-                                                  table_name=file_case_mapping_table_name)
+        res = get_query_results(case_file_count_query)
+        case_file_count_map = dict()
+
+        for case_file_count_row in res:
+            case_id = case_file_count_row[0]
+            file_count = case_file_count_row[1]
+            case_file_count_map[case_id] = file_count
+
+        return case_file_count_map
+
+    case_file_count_map = get_case_file_count_mapping()
 
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
         case_id = case['case_id']
         case['file_count'] = case_file_count_map[case_id] if case_id in case_file_count_map else 0
-
-
-def get_case_file_count_mapping():
-    """
-
-    Gets a dictionary of form {case_id: file_count} using table created during file metadata ingestion;
-    derived from associated entity mapping table
-    :return: { '<case_id>': '<file_count>'}
-    """
-    table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-    table_id = get_dev_table_id(BQ_PARAMS,
-                                dataset=BQ_PARAMS['META_DATASET'],
-                                table_name=table_name)
-
-    case_file_count_query = """
-    SELECT case_id, file_id_count
-    FROM {}
-    """.format(table_id)
-
-    res = get_query_results(case_file_count_query)
-
-    case_file_count_map = dict()
-
-    for case_file_count_row in res:
-        case_id = case_file_count_row[0]
-        file_count = case_file_count_row[1]
-        case_file_count_map[case_id] = file_count
-
-    return case_file_count_map
 
 
 def main(args):
