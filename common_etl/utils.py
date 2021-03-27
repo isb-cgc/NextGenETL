@@ -1033,25 +1033,26 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
     return dataset_format_obj
 
 
-def create_schema_field_obj(schema_obj):
+def create_schema_field_obj(schema_obj, fields=None):
     """
     Outputs SchemaField object.
 
     :param schema_obj: dict with schema field values
+    :param fields: Optional, child SchemaFields for RECORD type column
     :return: SchemaField object
     """
 
-    if 'fields' not in schema_obj:
-        return bigquery.schema.SchemaField(name=schema_obj['name'],
-                                           description=schema_obj['description'],
-                                           field_type=schema_obj['type'],
-                                           mode=schema_obj['mode'])
-    else:
+    if fields:
         return bigquery.schema.SchemaField(name=schema_obj['name'],
                                            description=schema_obj['description'],
                                            field_type=schema_obj['type'],
                                            mode=schema_obj['mode'],
-                                           fields=schema_obj['fields'])
+                                           fields=fields)
+
+    return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                       description=schema_obj['description'],
+                                       field_type=schema_obj['type'],
+                                       mode=schema_obj['mode'])
 
 
 def generate_bq_schema_field(schema_obj, child_schema_fields):
@@ -1063,11 +1064,16 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
     """
     if not schema_obj:
         return
-    elif "fields" in schema_obj:
-        if schema_obj['fields']:
-            child_schema_fields = list()
-            for child_obj in schema_obj['fields']:
-                generate_bq_schema_field(child_obj, child_schema_fields)
+    elif schema_obj['type'] == 'RECORD':
+        child_schema_fields = list()
+
+        if not schema_obj['fields']:
+            has_fatal_error("Schema object has 'type': 'RECORD' but no 'fields' key.")
+
+        for child_obj in schema_obj['fields']:
+            generate_bq_schema_field(child_obj, child_schema_fields)
+
+        child_schema_fields.append(create_schema_field_obj(schema_obj, child_schema_fields))
     else:
         child_schema_fields.append(create_schema_field_obj(schema_obj))
 
