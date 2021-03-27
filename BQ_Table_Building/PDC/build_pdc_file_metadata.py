@@ -422,6 +422,8 @@ def main(args):
         prefix = get_prefix(API_PARAMS, endpoint)
 
         schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+        print(schema)
+        exit()
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,
