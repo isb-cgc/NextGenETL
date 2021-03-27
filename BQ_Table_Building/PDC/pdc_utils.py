@@ -384,8 +384,10 @@ def update_pdc_table_metadata(api_params, bq_params, table_type=None):
                 filtered_metadata_files.append(metadata_file)
 
     print("Updating table metadata:")
+
     for table_metadata_json_file in filtered_metadata_files:
-        table_id = get_dev_table_id(bq_params, dataset=bq_params['META_DATASET'],
+        table_id = get_dev_table_id(bq_params,
+                                    dataset=bq_params['META_DATASET'],
                                     table_name=table_metadata_json_file.split('.')[-2])
 
         if not exists_bq_table(table_id):
