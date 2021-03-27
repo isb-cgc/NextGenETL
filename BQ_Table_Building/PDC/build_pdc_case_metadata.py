@@ -104,6 +104,8 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     :param pdc_study_id: pdc study id for this set of json objects
     """
 
+    case_file_count_map = get_case_file_count_mapping()
+
     file_case_mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
     file_case_mapping_table_id = get_dev_table_id(BQ_PARAMS,
                                                   dataset=BQ_PARAMS["META_DATASET"],
@@ -111,18 +113,44 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
 
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
+        case_id = case['case_id']
+
+        case['file_count'] = case_file_count_map[case_id] if case_id in case_file_count_map else 0
+
 
         query = """
         SELECT distinct count(file_id) as file_count
         FROM `{}`
         WHERE case_id = '{}'
-        """.format(file_case_mapping_table_id, case['case_id'])
+        """.format(file_case_mapping_table_id, case_id)
 
         res = get_query_results(query)
 
         for row in res:
             case['file_count'] = row['file_count']
             break
+
+def get_case_file_count_mapping():
+    table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
+    table_id = get_dev_table_id(BQ_PARAMS,
+                                  dataset=BQ_PARAMS['META_DATASET'],
+                                  table_name=table_name)
+
+    query = """
+    SELECT case_id, file_id_count
+    FROM {}
+    """.format(table_id)
+
+    res = get_query_results(query)
+
+    case_file_count_map = dict()
+
+    for row in res:
+        case_id = row[0]
+        file_count = row[1]
+        case_file_count_map[case_id] = file_count
+
+    return case_file_count_map
 
 
 def main(args):
