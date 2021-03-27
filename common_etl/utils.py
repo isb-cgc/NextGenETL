@@ -1073,9 +1073,13 @@ def generate_bq_schema_field(schema_obj, schema_fields):
         for child_obj in schema_obj['fields']:
             generate_bq_schema_field(child_obj, child_schema_fields)
 
-    schema_field = create_schema_field_obj(schema_obj, schema_fields)
+        schema_field = create_schema_field_obj(schema_obj, child_schema_fields)
+    else:
+        schema_field = create_schema_field_obj(schema_obj)
 
     schema_fields.append(schema_field)
+
+    print(schema_fields)
 
 
 def generate_bq_schema_fields(schema_obj_list):
