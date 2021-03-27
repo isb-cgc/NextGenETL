@@ -91,7 +91,6 @@ def make_file_metadata_query(file_id):
     return """
     {{ fileMetadata(file_id: \"{}\" acceptDUA: true) {{
         file_id 
-        file_name
         fraction_number 
         experiment_type 
         plex_or_dataset_name 
