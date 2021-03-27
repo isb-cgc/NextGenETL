@@ -127,8 +127,6 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
             combined_request_parameters = request_params + (id_entry,)
             record_list = request_data_from_pdc_api(api_params, endpoint, request_function, combined_request_parameters)
 
-            print("post-response")
-
             if alter_json_function and insert_id:
                 alter_json_function(record_list, id_entry)
             elif alter_json_function:
