@@ -1090,7 +1090,6 @@ def generate_bq_schema_fields(schema_obj_list):
     schema_fields_obj = list()
 
     for schema_obj in schema_obj_list:
-        print(schema_obj)
         generate_bq_schema_field(schema_obj, schema_fields_obj)
 
     return schema_fields_obj
