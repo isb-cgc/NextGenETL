@@ -1055,12 +1055,12 @@ def create_schema_field_obj(schema_obj, fields=None):
                                        mode=schema_obj['mode'])
 
 
-def generate_bq_schema_field(schema_obj, child_schema_fields):
+def generate_bq_schema_field(schema_obj, schema_fields):
     """
     Converts schema field json dict object into SchemaField object.
 
     :param schema_obj: schema json dict object
-    :param child_schema_fields: child fields, if object is of type RECORD
+    :param schema_fields: fields
     """
     if not schema_obj:
         return
@@ -1073,9 +1073,9 @@ def generate_bq_schema_field(schema_obj, child_schema_fields):
         for child_obj in schema_obj['fields']:
             generate_bq_schema_field(child_obj, child_schema_fields)
 
-        child_schema_fields.append(create_schema_field_obj(schema_obj, child_schema_fields))
-    else:
-        child_schema_fields.append(create_schema_field_obj(schema_obj))
+    schema_field = create_schema_field_obj(schema_obj, schema_fields)
+
+    schema_fields.append(schema_field)
 
 
 def generate_bq_schema_fields(schema_obj_list):
