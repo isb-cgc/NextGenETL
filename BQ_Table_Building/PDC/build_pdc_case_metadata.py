@@ -32,10 +32,10 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-
 '''
 def make_cases_aliquots_query(offset, limit):
     """
+    
     Creates a graphQL string for querying the PDC API's paginatedCasesSamplesAliquots endpoint.
     :param offset: starting index for which to return records
     :param limit: maximum number of records to return
@@ -72,6 +72,7 @@ def make_cases_aliquots_query(offset, limit):
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
+
     Creates a graphQL string for querying the PDC API's biospecimenPerStudy endpoint.
     :return: GraphQL query string
     """
@@ -98,8 +99,9 @@ def make_biospecimen_per_study_query(pdc_study_id):
 
 def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     """
-    This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
-    prior to writing it to a file.
+
+    Passed as a parameter to build_jsonl_from_pdc_api(). Allows for the dataset's json object to be mutated prior
+    to writing it to a file.
     :param json_obj_list: list of json objects to mutate
     :param pdc_study_id: pdc study id for this set of json objects
     """
@@ -117,7 +119,6 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
 
         case['file_count'] = case_file_count_map[case_id] if case_id in case_file_count_map else 0
 
-
         query = """
         SELECT distinct count(file_id) as file_count
         FROM `{}`
@@ -130,24 +131,31 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
             case['file_count'] = row['file_count']
             break
 
+
 def get_case_file_count_mapping():
+    """
+
+    Gets a dictionary of form {case_id: file_count} using table created during file metadata ingestion;
+    derived from associated entity mapping table
+    :return: { '<case_id>': '<file_count>'}
+    """
     table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
     table_id = get_dev_table_id(BQ_PARAMS,
-                                  dataset=BQ_PARAMS['META_DATASET'],
-                                  table_name=table_name)
+                                dataset=BQ_PARAMS['META_DATASET'],
+                                table_name=table_name)
 
-    query = """
+    case_file_count_query = """
     SELECT case_id, file_id_count
     FROM {}
     """.format(table_id)
 
-    res = get_query_results(query)
+    res = get_query_results(case_file_count_query)
 
     case_file_count_map = dict()
 
-    for row in res:
-        case_id = row[0]
-        file_count = row[1]
+    for case_file_count_row in res:
+        case_id = case_file_count_row[0]
+        file_count = case_file_count_row[1]
         case_file_count_map[case_id] = file_count
 
     return case_file_count_map

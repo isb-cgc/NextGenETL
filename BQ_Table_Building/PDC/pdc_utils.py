@@ -52,6 +52,9 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
         """
         api_response = get_graphql_api_response(api_params, graphql_request_body)
 
+        print(api_response)
+        exit()
+
         response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
 
         for record in response_body[payload_key]:
