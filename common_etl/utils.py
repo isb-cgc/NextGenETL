@@ -282,8 +282,6 @@ def exists_bq_table(table_id):
     """
     client = bigquery.Client()
 
-    print("testing exists_bq_table table_id: {}".format(table_id))
-
     try:
         client.get_table(table_id)
     except NotFound:
