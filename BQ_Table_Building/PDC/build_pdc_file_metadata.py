@@ -444,9 +444,6 @@ def main(args):
             if count % 100 == 0:
                 print("{} of {} records retrieved".format(count, len(new_file_ids)))
 
-        if len(new_file_ids) + len(existing_file_metadata_id_set) != len(file_metadata_list):
-            has_fatal_error("file_metadata_list inequal to # of new_file_ids + existing_ids after iteration")
-
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
                                       prefix=prefix)
