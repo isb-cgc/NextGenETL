@@ -139,7 +139,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
                 print(" - {} records appended.".format(len(joined_record_list)))
 
-        time.sleep(pause)
+            time.sleep(pause)
     else:
         joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
         print(" - collected {} records".format(len(joined_record_list)))
