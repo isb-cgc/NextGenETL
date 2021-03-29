@@ -420,46 +420,6 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     delete_bq_table(temp_table_id)
 
 
-def make_biospecimen_per_study_query(pdc_study_id):
-    """
-    Creates a graphQL string for querying the PDC API's biospecimenPerStudy endpoint.
-    :param pdc_study_id: PDC study id for which to return case records
-    :return: GraphQL query string
-    """
-
-    return '''
-        {{ biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
-            aliquot_id 
-            sample_id 
-            case_id 
-            aliquot_submitter_id 
-            sample_submitter_id 
-            case_submitter_id 
-            aliquot_status 
-            case_status 
-            sample_status 
-            project_name 
-            sample_type 
-            disease_type 
-            primary_site 
-            pool 
-            taxon
-        }}
-    }}'''.format(pdc_study_id)
-
-
-def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
-    """
-    This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
-    prior to writing it to a file.
-    :param json_obj_list: list of json objects to mutate
-    :param pdc_study_id: pdc study id for this set of json objects
-    """
-
-    for case in json_obj_list:
-        case['pdc_study_id'] = pdc_study_id
-
-
 def get_cases_by_project_submitter(studies_list):
     """
     Retrieve list of cases based on project submitter id

@@ -131,6 +131,7 @@ def make_associated_entities_query():
             "aliquot" AS entity_type
     FROM `{}`
     CROSS JOIN UNNEST(aliquots) AS aliquots
+    WHERE case_id IS NOT NULL OR entity_id IS NOT NULL
     GROUP BY file_id, case_id, entity_id, entity_submitter_id, entity_type
     """.format(table_id)
 
@@ -317,6 +318,7 @@ def main(args):
 
     if 'build_per_study_file_jsonl' in steps:
         endpoint = 'filesPerStudy'
+        prefix = get_prefix(API_PARAMS, endpoint)
 
         per_study_record_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                                          endpoint=endpoint,
@@ -324,15 +326,15 @@ def main(args):
                                                          alter_json_function=alter_files_per_study_json,
                                                          ids=all_pdc_study_ids)
 
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, per_study_record_list, prefix)
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                   joined_record_list=per_study_record_list,
+                                   table_type=prefix)
 
     if 'build_per_study_file_table' in steps:
         endpoint = 'filesPerStudy'
         prefix = get_prefix(API_PARAMS, endpoint)
 
         schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
-        print(schema)
-        exit()
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=endpoint,
@@ -355,6 +357,68 @@ def main(args):
                                    table_id=fps_table_id,
                                    query=modify_per_study_file_table_query(fps_table_id))
 
+    if 'build_api_file_metadata_jsonl' in steps:
+        endpoint = 'fileMetadata'
+        prefix = get_prefix(API_PARAMS, endpoint)
+
+        file_metadata_list = []
+
+        fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
+        files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
+        files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
+                                                    dataset=BQ_PARAMS['META_DATASET'],
+                                                    table_name=files_per_study_table_name)
+        current_version_file_ids_query = """
+        SELECT distinct file_id
+        FROM `{}`
+        """.format(files_per_study_table_id)
+
+        per_study_file_id_set = set()
+        current_version_file_ids_res = get_query_results(current_version_file_ids_query)
+
+        for current_version_file_id in current_version_file_ids_res:
+            per_study_file_id_set.add(current_version_file_id[0])
+
+        # retrieve new file metadata and add to existing file metadata list
+        print("Getting {} file metadata records".format(len(per_study_file_id_set)))
+
+        for count, file_id in enumerate(per_study_file_id_set):
+            file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
+
+            if 'data' not in file_metadata_res:
+                print("No data returned by file metadata query for {}".format(file_id))
+                continue
+
+            for metadata_row in file_metadata_res['data']['fileMetadata']:
+                if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
+                    fraction_number = metadata_row['fraction_number'].strip()
+
+                    if fraction_number == 'N/A' or fraction_number == 'NOFRACTION' or fraction_number == '':
+                        fraction_number = None
+                    elif fraction_number == 'Pool' or fraction_number == 'pool':
+                        fraction_number = 'POOL'
+
+                    metadata_row['fraction_number'] = fraction_number
+
+            file_metadata_list.append(metadata_row)
+
+            if count % 100 == 0:
+                print("{} of {} records retrieved".format(count, len(new_file_ids)))
+
+        jsonl_filename = get_filename(API_PARAMS,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+
+        local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+
+        write_list_to_jsonl(local_filepath, file_metadata_list)
+        upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
+
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
+
+    # this is the old function I was using to save time by pulling the file ids from the previous dataset--
+    # some of the parts might be useful for testing previous versions
+    '''
     if 'build_api_file_metadata_jsonl' in steps:
         endpoint = 'fileMetadata'
         prefix = get_prefix(API_PARAMS, endpoint)
@@ -405,16 +469,16 @@ def main(args):
         FROM `{}`
         """.format(files_per_study_table_id)
 
-        current_per_study_file_id_set = set()
+        per_study_file_id_set = set()
         current_version_file_ids_res = get_query_results(current_version_file_ids_query)
 
         for current_version_file_id in current_version_file_ids_res:
-            current_per_study_file_id_set.add(current_version_file_id[0])
+            per_study_file_id_set.add(current_version_file_id[0])
 
         # todo use this to remove these file rows before writing to jsonl
-        removed_file_ids = existing_file_metadata_id_set - current_per_study_file_id_set
+        removed_file_ids = existing_file_metadata_id_set - per_study_file_id_set
 
-        new_file_ids = current_per_study_file_id_set - existing_file_metadata_id_set
+        new_file_ids = per_study_file_id_set - existing_file_metadata_id_set
 
         print(len(new_file_ids))
 
@@ -454,6 +518,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
+    '''
 
     if 'build_api_file_metadata_table' in steps:
         endpoint = 'fileMetadata'
@@ -490,7 +555,7 @@ def main(args):
 
         load_table_from_query(BQ_PARAMS,
                               table_id=full_table_id,
-                              query=make_associated_entities_query())
+                              query=make_associated_entities_query)
 
         update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=full_table_id)
 

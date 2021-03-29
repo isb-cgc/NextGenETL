@@ -116,6 +116,7 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     :param ids: generically will loop over a set of ids, such as study ids or project ids, in order to merge results
     from endpoints which require id specification
     :param insert_id: if true, add id to json obj before writing to file; defaults to False
+    :param pause: number of seconds to wait between calls; used when iterating over ids
     """
 
     print("Sending {} API request: ".format(endpoint))
@@ -123,7 +124,6 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
     if ids:
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
-            print(idx)
             combined_request_parameters = request_params + (id_entry,)
             record_list = request_data_from_pdc_api(api_params, endpoint, request_function, combined_request_parameters)
 
@@ -195,6 +195,7 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
     :param bq_params: BQ params from YAML config
     :param endpoint: PDC API endpoint
     :param infer_schema: if True, use native BQ schema inference. Defaults to False.
+    :param schema: TableSchema object (inferred by script)
     """
     prefix = api_params['ENDPOINT_SETTINGS'][endpoint]['output_name']
     dataset = api_params['ENDPOINT_SETTINGS'][endpoint]['dataset']
@@ -283,10 +284,11 @@ def get_dev_table_id(bq_params, dataset=None, table_name=None):
 
 def get_prefix(api_params, endpoint):
     """
-    todo
-    :param api_params:
-    :param endpoint:
-    :return:
+
+    Data type (a.k.a. prefix) readability syntactic sugar.
+    :param api_params: API params from YAML config
+    :param endpoint: PDC API endpoint name
+    :return: data type prefix string
     """
     return api_params['ENDPOINT_SETTINGS'][endpoint]['output_name']
 

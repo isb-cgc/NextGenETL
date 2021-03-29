@@ -23,16 +23,17 @@ SOFTWARE.
 import time
 import sys
 
-from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results)
+from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
+                              return_schema_object_for_bq)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_dev_table_id)
+                                             get_dev_table_id, create_schema_from_pdc_api)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-'''
+
 def make_cases_aliquots_query(offset, limit):
     """
     
@@ -43,14 +44,48 @@ def make_cases_aliquots_query(offset, limit):
     """
     return """{{ 
         paginatedCasesSamplesAliquots(offset:{0} limit:{1} acceptDUA: true) {{ 
-            total casesSamplesAliquots {{
+            total 
+            casesSamplesAliquots {{
                 case_id 
                 case_submitter_id
+                days_to_lost_to_followup
+                disease_type
+                index_date
+                lost_to_followup
+                primary_site
                 samples {{
-                    sample_id 
+                    sample_id
+                    sample_submitter_id
+                    sample_type
+                    sample_type_id
+                    gdc_sample_id
+                    gdc_project_id
+                    biospecimen_anatomic_site
+                    composition
+                    current_weight
+                    days_to_collection
+                    days_to_sample_procurement
+                    diagnosis_pathologically_confirmed
+                    freezing_method
+                    initial_weight
+                    intermediate_dimension
+                    is_ffpe
+                    longest_dimension
+                    method_of_sample_procurement
+                    oct_embedded
+                    pathology_report_uuid
+                    preservation_method
+                    shortest_dimension
+                    time_between_clamping_and_freezing
+                    time_between_excision_and_freezing
+                    tissue_type
+                    tumor_code
+                    tumor_code_id
+                    tumor_descriptor
                     aliquots {{ 
                         aliquot_id 
                         aliquot_submitter_id
+                        analyte_type
                         aliquot_run_metadata {{ 
                             aliquot_run_metadata_id
                         }}
@@ -67,7 +102,18 @@ def make_cases_aliquots_query(offset, limit):
             }}
         }}
     }}""".format(offset, limit)
-'''
+
+
+def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
+    """
+    This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
+    prior to writing it to a file.
+    :param json_obj_list: list of json objects to mutate
+    :param pdc_study_id: pdc study id for this set of json objects
+    """
+    for case in json_obj_list:
+        case['pdc_study_id'] = pdc_study_id
+
 
 
 def make_biospecimen_per_study_query(pdc_study_id):
@@ -154,18 +200,59 @@ def main(args):
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
 
     if 'build_biospecimen_jsonl' in steps:
+        endpoint = 'biospecimenPerStudy'
+        prefix = get_prefix(API_PARAMS, endpoint)
+
         build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint="biospecimenPerStudy",
+                                 endpoint=endpoint,
                                  request_function=make_biospecimen_per_study_query,
                                  alter_json_function=alter_biospecimen_per_study_obj,
                                  ids=all_pdc_study_ids,
-                                 insert_id=True,
-                                 pause=2)
+                                 insert_id=True)
+
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                   joined_record_list=file_metadata_list,
+                                   table_type=prefix)
 
     if 'build_biospecimen_table' in steps:
+        endpoint = 'biospecimenPerStudy'
+        prefix = get_prefix(API_PARAMS, endpoint)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint="biospecimenPerStudy",
-                               infer_schema=True)
+                               endpoint=endpoint,
+                               infer_schema=True,
+                               schema=schema)
+
+    if 'build_case_aliquot_jsonl' in steps:
+        endpoint = 'paginatedCasesSamplesAliquots'
+        prefix = get_prefix(API_PARAMS, endpoint)
+
+        per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                                               endpoint=endpoint,
+                                                               request_function=make_cases_aliquots_query,
+                                                               alter_json_function=alter_cases_aliquots_objects,
+                                                               ids=all_pdc_study_ids,
+                                                               insert_id=True)
+        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                   joined_record_list=per_study_case_aliquot_list,
+                                   table_type=prefix)
+
+    if 'build_case_aliquot_table' in steps:
+        endpoint = 'biospecimenPerStudy'
+        prefix = get_prefix(API_PARAMS, endpoint)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
+                               endpoint=endpoint,
+                               infer_schema=True,
+                               schema=schema)
+
+    if 'build_case_metadata_table' in steps:
+        pass
+
+    if 'build_aliquot_to_case_id_map_table' in steps:
+        pass
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))

@@ -36,7 +36,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_config, publish_table, construct_table_name, construct_table_name_from_list)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, build_table_from_tsv, get_filename, get_dev_table_id,
-                                             update_column_metadata, update_pdc_table_metadata)
+                                             update_column_metadata, update_pdc_table_metadata, get_prefix)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -51,8 +51,11 @@ def make_gene_symbols_per_study_query(pdc_study_id):
     :param pdc_study_id: PDC study id for which to retrieve the symbols
     :return: sql query string
     """
+    endpoint = 'quantDataMatrix'
+    prefix = get_prefix(API_PARAMS, endpoint)
+
     table_name = construct_table_name(API_PARAMS,
-                                      prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                      prefix=prefix,
                                       suffix=pdc_study_id,
                                       release=API_PARAMS['RELEASE'])
 
@@ -112,8 +115,11 @@ def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
     :param pdc_study_id: PDC study id to use in query
     :param gene_symbol_set: set of gene symbols
     """
+    endpoint = 'quantDataMatrix'
+    prefix = get_prefix(API_PARAMS, endpoint)
+
     table_name = construct_table_name(API_PARAMS,
-                                      prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                      prefix=prefix,
                                       suffix=pdc_study_id,
                                       release=API_PARAMS['RELEASE'])
 
@@ -134,12 +140,15 @@ def build_gene_symbol_list(studies_list):
     :param studies_list: list of non-embargoed PDC studies
     :return: alphabetical gene symbol list
     """
+    endpoint = 'quantDataMatrix'
+    prefix = get_prefix(API_PARAMS, endpoint)
+
     print("Building gene symbol tsv!")
     gene_symbol_set = set()
 
     for study in studies_list:
         table_name = construct_table_name(API_PARAMS,
-                                          prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                          prefix=prefix,
                                           suffix=study['pdc_study_id'],
                                           release=API_PARAMS['RELEASE'])
 
@@ -475,15 +484,28 @@ def make_proteome_quant_table_query(study):
     :param study: PDC study name
     :return: sql query string
     """
-    quant_table_name = "{}_{}_{}".format(BQ_PARAMS['QUANT_DATA_TABLE'], study, API_PARAMS['RELEASE'])
-    quant_table_id = get_dev_table_id(BQ_PARAMS, quant_table_name)
+    quant_endpoint = 'quantDataMatrix'
+    quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
+    quant_table_name = construct_table_name(API_PARAMS,
+                                            prefix=quant_prefix,
+                                            suffix=study)
+    quant_table_id = get_dev_table_id(BQ_PARAMS,
+                                      dataset=BQ_PARAMS['DEV_DATASET'],
+                                      table_name=quant_table_name)
 
-    case_aliquot_table_name = '{}_{}'.format(BQ_PARAMS['CASE_ALIQUOT_TABLE'], API_PARAMS['RELEASE'])
-    case_aliquot_table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'],
+    case_aliquot_endpoint = 'paginatedCasesSamplesAliquots'
+    case_aliquot_prefix = get_prefix(API_PARAMS, case_aliquot_endpoint)
+
+    case_aliquot_table_name = construct_table_name(API_PARAMS, prefix=case_aliquot_prefix)
+    case_aliquot_table_id = get_dev_table_id(BQ_PARAMS,
+                                             dataset=BQ_PARAMS['META_DATASET'],
                                              table_name=case_aliquot_table_name)
 
+    # todo should this be changed?
     gene_table_name = '{}_{}'.format(BQ_PARAMS['GENE_TABLE'], API_PARAMS['RELEASE'])
-    gene_table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=gene_table_name)
+    gene_table_id = get_dev_table_id(BQ_PARAMS,
+                                     dataset=BQ_PARAMS['META_DATASET'],
+                                     table_name=gene_table_name)
 
     return """
     WITH csa_mapping AS (SELECT case_id, s.sample_id, a.aliquot_id, arm.aliquot_run_metadata_id
@@ -589,10 +611,11 @@ def has_quant_table(study_submitter_id):
     :param study_submitter_id: PDC study submitter id
     :return: True if table exists, false otherwise
     """
+    quant_endpoint = 'quantDataMatrix'
+    quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
     table_name = construct_table_name(API_PARAMS,
-                                      prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                      prefix=quant_prefix,
                                       suffix=study_submitter_id)
-
     table_id = get_dev_table_id(BQ_PARAMS,
                                 dataset=BQ_PARAMS['DEV_DATASET'],
                                 table_name=table_name)
@@ -622,18 +645,19 @@ def get_quant_table_name(study, is_final=True):
     :param is_final: if True, query is requesting published table name; otherwise dev table name
     :return: if True, return published table name, otherwise return dev table name
     """
+    quant_endpoint = 'quantDataMatrix'
+    quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
     analytical_fraction = study['analytical_fraction']
 
     if not is_final:
         return construct_table_name(API_PARAMS,
-                                    prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
-                                    suffix=study['pdc_study_id'],
-                                    release=API_PARAMS['RELEASE'])
+                                    prefix=quant_prefix,
+                                    suffix=study['pdc_study_id'])
     else:
         study_name = study['study_name']
         study_name = study_name.replace(analytical_fraction, "")
 
-        return "_".join([BQ_PARAMS['QUANT_DATA_TABLE'],
+        return "_".join([quant_prefix,
                          analytical_fraction.lower(),
                          change_study_name_to_table_name_format(study_name),
                          API_PARAMS['DATA_SOURCE'],
@@ -675,10 +699,13 @@ def main(args):
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
 
     if 'build_quant_tsvs' in steps:
+        quant_endpoint = 'quantDataMatrix'
+        quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
+
         for study_id_dict in studies_list:
             quant_tsv_file = get_filename(API_PARAMS,
                                           file_extension='tsv',
-                                          prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                          prefix=quant_prefix,
                                           suffix=study_id_dict['pdc_study_id'])
 
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, quant_tsv_file)
@@ -692,20 +719,23 @@ def main(args):
                 os.remove(quant_tsv_path)
 
     if 'build_quant_tables' in steps:
+        quant_endpoint = 'quantDataMatrix'
+        quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
+
         print("Building quant tables...")
         blob_files = get_quant_files()
 
         for study_id_dict in studies_list:
             quant_tsv_file = get_filename(API_PARAMS,
                                           file_extension='tsv',
-                                          prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                          prefix=quant_prefix,
                                           suffix=study_id_dict['pdc_study_id'])
 
             if quant_tsv_file not in blob_files:
                 print('Skipping table build for {} (jsonl not found in bucket)'.format(study_id_dict['study_name']))
             else:
                 build_table_from_tsv(API_PARAMS, BQ_PARAMS,
-                                     table_prefix=BQ_PARAMS['QUANT_DATA_TABLE'],
+                                     table_prefix=quant_prefix,
                                      table_suffix=study_id_dict['pdc_study_id'])
 
     if 'build_uniprot_tsv' in steps:
@@ -803,6 +833,9 @@ def main(args):
         build_table_from_tsv(API_PARAMS, BQ_PARAMS, table_prefix=BQ_PARAMS['GENE_TABLE'])
 
     if 'build_proteome_quant_tables' in steps:
+        quant_endpoint = 'quantDataMatrix'
+        quant_prefix = get_prefix(API_PARAMS, quant_endpoint)
+
         for study in studies_list:
 
             # only run the build script for analytes we're currently publishing
@@ -823,7 +856,7 @@ def main(args):
 
                 update_column_metadata(API_PARAMS, BQ_PARAMS, final_table_id)
 
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['QUANT_DATA_TABLE'])
+        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=quant_prefix)
 
     if "publish_proteome_tables" in steps:
         for study in get_proteome_studies(studies_list):
