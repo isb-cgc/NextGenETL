@@ -3,6 +3,7 @@ from json import loads as json_loads
 #from json import load as json_load
 import yaml
 from git import Repo
+from createSchemaP3 import build_schema
 #from google.cloud import storage
 #from google.cloud import bigquery
 from os import path
@@ -496,7 +497,7 @@ def main(args):
     if 'split_version_ids' in steps:
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
-        df.to_csv(final_tsv, sep="\t", index=False, )
+        df.to_csv(final_tsv, sep="\t", index=False)
 
     # todo to remove
     # if 'upload_to_staging_env' in steps:
@@ -518,7 +519,6 @@ def main(args):
     # Schemas and table descriptions are maintained in the github repo:
     #
 
-    if 'upload_to_bucket' in steps:
         # bucket_file = f"{params['WORKING_BUCKET_DIR']}/{params['RELEASE']}_{params['FINAL_TSV']}.tsv"
         upload_to_bucket(params['WORKING_BUCKET'],
                          bucket_file,
@@ -592,18 +592,27 @@ def main(args):
                 print("replace_schema_tags failed")
                 return False
 
-    if 'combined_schema' in steps:
-        # Create a list of tuples with name and type from schema files
-        with open("{}_schema.json".format(full_file_prefix), mode='r') as schema_file:
-            schema = json_loads(schema_file.read())
-        typing_tups = []
-        for field in schema:
-            tup = (field['name'], field['type'])
-            typing_tups.append(tup)
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list,
-                              hold_schema_dict)
+    # if 'combined_schema' in steps:  # update to have the analyze schema
+    #     # Create a list of tuples with name and type from schema files
+    #     with open("{}_schema.json".format(full_file_prefix), mode='r') as schema_file:
+    #         schema = json_loads(schema_file.read())
+    #     typing_tups = []
+    #     for field in schema:
+    #         tup = (field['name'], field['type'])
+    #         typing_tups.append(tup)
+    #     schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+    #     build_combined_schema(None, schema_dict_loc,
+    #                           typing_tups, hold_schema_list,
+    #                           hold_schema_dict)
+
+
+        if 'analyze_the_schema' in steps:
+            print('analyze_the_schema')
+            typing_tups = build_schema(final_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list, hold_schema_dict)
 
     if 'create_bq_from_tsv' in steps:
         bucket_src_url = f"gs://{params['WORKING_BUCKET']}/{bucket_file}"
@@ -623,6 +632,7 @@ def main(args):
     #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
+
     for table in update_schema_tables:
         update_table = scratch_full_table_id_current if table == 'current' else scratch_full_table_id_versioned
         if 'update_final_schema' in steps:
