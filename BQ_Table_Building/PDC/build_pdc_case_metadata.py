@@ -104,6 +104,7 @@ def make_cases_aliquots_query(offset, limit):
     }}""".format(offset, limit)
 
 
+'''
 def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     """
     This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
@@ -113,7 +114,7 @@ def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     """
     for case in json_obj_list:
         case['pdc_study_id'] = pdc_study_id
-
+'''
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
@@ -231,7 +232,6 @@ def main(args):
         per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                                                endpoint=aliquot_endpoint,
                                                                request_function=make_cases_aliquots_query,
-                                                               alter_json_function=alter_cases_aliquots_objects,
                                                                insert_id=True)
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_case_aliquot_list,
