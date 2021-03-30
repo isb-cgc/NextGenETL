@@ -815,7 +815,7 @@ def check_value_type(value):
 
     value = normalize_value()
 
-    if isinstance(value, bool) or value == 1 or value == 0:
+    if isinstance(value, bool) or value == 1 or value == 0 or value == '1' or value == '0':
         return "BOOL"
     if isinstance(value, int):
         return "INT64"
