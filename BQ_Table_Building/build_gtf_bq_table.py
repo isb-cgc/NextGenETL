@@ -490,8 +490,9 @@ def main(args):
     # BigQuery table variables
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
+    scratch_table_id_versioned = f'GENCODE_{base_table_name}_v{params["RELEASE"]}'
     scratch_full_table_id_versioned = \
-        f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_v{params["RELEASE"]}'
+        f'{staging_project}.{staging_dataset_id}.{scratch_table_id_versioned}'
     scratch_full_table_id_current = \
         f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_current'
     publish_project = params['PUBLISH_PROJECT']
@@ -663,7 +664,7 @@ def main(args):
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq_write_depo(typed_schema, bucket_src_url, staging_dataset_id,
-                             scratch_full_table_id_versioned, params['BQ_AS_BATCH'], None)
+                             scratch_table_id_versioned, params['BQ_AS_BATCH'], None)
 
     if 'reorder_columns' in steps:
         print('Reorder Columns in with BigQuery')
