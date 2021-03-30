@@ -361,12 +361,14 @@ def count_number_of_lines(a_file):
 
     return number_of_lines
 
-def reorder_columns(draft_bq_table, schema_file, do_batch):
+def reorder_columns(draft_bq_table, final_table, schema_file, do_batch):
     """
     Use a query in BigQuery to rearrange the columns to create a final BigQuery table.
 
-    :param draft_bq_table: full table id in project.dataset.table format
+    :param draft_bq_table: full table id for the intermediate table in project.dataset.table format
     :type draft_bq_table: basestring
+    :param final_table: full table id for the final table in project.dataset.table format
+    :tyoe final_table: basestring
     :param schema_file: full local file location of the _schema.json file
     :type schema_file: basestring
     :param do_batch: Run all BQ jobs in Batch mode? Slower but uses less of quotas
@@ -385,7 +387,7 @@ def reorder_columns(draft_bq_table, schema_file, do_batch):
 
     query = build_recorder_columns_query(draft_bq_table, column_list)
 
-    return generic_bq_harness_write_depo(query, dataset, table, do_batch, None)
+    return generic_bq_harness_write_depo(query, draft_bq_table, final_table, do_batch, None)
 
 
 def build_recorder_columns_query(draft_bq_table, field_names):
@@ -491,6 +493,7 @@ def main(args):
     staging_project = params['STAGING_PROJECT']
     staging_dataset_id = params['STAGING_DATASET_ID']
     scratch_table_id_versioned = f'GENCODE_{base_table_name}_v{params["RELEASE"]}'
+    intermediate_table_id = f"{scratch_table_id_versioned}_draft"
     scratch_full_table_id_versioned = \
         f'{staging_project}.{staging_dataset_id}.{scratch_table_id_versioned}'
     scratch_full_table_id_current = \
@@ -664,11 +667,12 @@ def main(args):
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq_write_depo(typed_schema, bucket_src_url, staging_dataset_id,
-                             f"{scratch_table_id_versioned}_draft", params['BQ_AS_BATCH'], None)
+                             intermediate_table_id, params['BQ_AS_BATCH'], None)
 
     if 'reorder_columns' in steps:
         print('Reorder Columns in with BigQuery')
-        success = reorder_columns(scratch_full_table_id_versioned,
+        success = reorder_columns(intermediate_table_id,
+                                  scratch_table_id_versioned,
                                   f"{home}/scratch/{base_table_name}_schema.json",
                                   params['BQ_AS_BATCH'])
         if not success:
