@@ -668,7 +668,7 @@ def main(args):
     if 'reorder_columns' in steps:
         print('Reorder Columns in with BigQuery')
         success = reorder_columns(scratch_full_table_id_versioned,
-                                  f"{base_table_name}_schema.json",
+                                  f"{home}/scratch/{base_table_name}_schema.json",
                                   params['BQ_AS_BATCH'])
         if not success:
             print("reorder columns failed")
