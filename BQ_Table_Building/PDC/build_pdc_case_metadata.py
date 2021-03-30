@@ -204,10 +204,8 @@ def main(args):
     aliquot_endpoint = 'paginatedCasesSamplesAliquots'
     aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
+    """
     if 'build_biospecimen_jsonl' in steps:
-        biospecimen_endpoint = 'biospecimenPerStudy'
-        biospecimen_prefix = get_prefix(API_PARAMS, biospecimen_endpoint)
-
         per_study_biospecimen_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                                               endpoint=biospecimen_endpoint,
                                                               request_function=make_biospecimen_per_study_query,
@@ -222,11 +220,12 @@ def main(args):
     if 'build_biospecimen_table' in steps:
         biospecimen_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
                                                          table_type=biospecimen_prefix)
-
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=biospecimen_endpoint,
                                infer_schema=True,
                                schema=biospecimen_schema)
+
+    """
 
     if 'build_case_aliquot_jsonl' in steps:
         per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
@@ -242,7 +241,6 @@ def main(args):
     if 'build_case_aliquot_table' in steps:
         aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
                                                      table_type=aliquot_prefix)
-
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=aliquot_endpoint,
                                infer_schema=True,
