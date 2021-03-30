@@ -792,7 +792,8 @@ def normalize_value(value):
     """
     Convert null or boolean string variations to correct form.
     """
-    value = value.strip()
+    if isinstance(value, str):
+        value = value.strip()
 
     if value in ('NA', 'N/A', 'null', 'None', ''):
         return None
