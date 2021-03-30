@@ -73,8 +73,8 @@ def make_cases_aliquots_query(offset, limit):
                     sample_id
                     sample_submitter_id
                     sample_type
-                    gdc_sample_id
-                    gdc_project_id
+                    is_ffpe
+                    preservation_method
                     biospecimen_anatomic_site
                     current_weight
                     days_to_collection
@@ -82,11 +82,9 @@ def make_cases_aliquots_query(offset, limit):
                     freezing_method
                     initial_weight
                     intermediate_dimension
-                    is_ffpe
                     longest_dimension
                     oct_embedded
                     pathology_report_uuid
-                    preservation_method
                     shortest_dimension
                     time_between_clamping_and_freezing
                     time_between_excision_and_freezing
@@ -141,15 +139,11 @@ def make_biospecimen_per_study_query(pdc_study_id):
             aliquot_submitter_id 
             sample_submitter_id 
             case_submitter_id 
-            aliquot_status 
-            case_status 
-            sample_status 
             project_name 
             sample_type 
             disease_type 
             primary_site 
             pool 
-            taxon
         }}
     }}'''.format(pdc_study_id)
 
