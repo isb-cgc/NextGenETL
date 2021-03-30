@@ -35,16 +35,18 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 """
+WITH cases_samples AS (
+    SELECT * except(samples)
+    FROM `isb-project-zero.PDC_metadata.case_sample_aliquot_mapping_V1_11`
+    CROSS JOIN UNNEST(samples) as s
+),
 samples_aliquots AS (
-    SELECT * except(aliquots), a.*
+    SELECT * except(aliquots)
     FROM cases_samples 
     CROSS JOIN UNNEST (aliquots) as a
-),
-aliquots_run_metadata AS (
-    SELECT * except(aliquot_run_metadata), aliquot_run_metadata.*
-    FROM samples_aliquots 
-    JOIN UNNEST (aliquot_run_metadata) as aliquot_run_metadata
 )
+
+SELECT * FROM samples_aliquots 
 """
 
 def make_cases_aliquots_query(offset, limit):
