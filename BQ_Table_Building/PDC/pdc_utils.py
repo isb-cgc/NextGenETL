@@ -29,7 +29,7 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, for
                               get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
                               load_bq_schema_from_json, create_and_load_table_from_tsv, create_and_load_table,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
-                              update_schema, update_table_metadata, construct_table_id,
+                              update_schema, update_table_metadata, construct_table_id, normalize_value,
                               construct_table_name, get_rel_prefix, construct_table_name_from_list,
                               recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict)
 
@@ -147,6 +147,10 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
 
         if alter_json_function:
             alter_json_function(joined_record_list)
+
+    for record in joined_record_list:
+        for k, v in record.items():
+            record[k] = normalize_value(v)
 
     jsonl_filename = get_filename(api_params,
                                   file_extension='jsonl',

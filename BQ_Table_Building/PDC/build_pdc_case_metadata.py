@@ -125,14 +125,10 @@ def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     :param pdc_study_id: pdc study id for this set of json objects
     """
     for case in json_obj_list:
-        for k in case:
-            case[k] = normalize_value(case[k])
-        """
         if case['is_ffpe'] == "FALSE" or case['is_ffpe'] == "0":
             case['is_ffpe'] == False
         if case['is_ffpe'] == "TRUE" or case['is_ffpe'] == "1":
             case['is_ffpe'] == True
-        """
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
@@ -223,7 +219,6 @@ def main(args):
     aliquot_endpoint = 'paginatedCasesSamplesAliquots'
     aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
-    """
     if 'build_biospecimen_jsonl' in steps:
         per_study_biospecimen_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                                               endpoint=biospecimen_endpoint,
@@ -244,12 +239,11 @@ def main(args):
                                infer_schema=True,
                                schema=biospecimen_schema)
 
-    """
-
     if 'build_case_aliquot_jsonl' in steps:
         per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                                                endpoint=aliquot_endpoint,
                                                                request_function=make_cases_aliquots_query,
+                                                               # alter_json_function=alter_cases_aliquots_objects,
                                                                insert_id=True)
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_case_aliquot_list,
@@ -262,11 +256,6 @@ def main(args):
                                endpoint=aliquot_endpoint,
                                infer_schema=True,
                                schema=aliquot_schema)
-        '''
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=aliquot_endpoint,
-                               infer_schema=True)
-        '''
 
     if 'build_case_metadata_table' in steps:
         pass

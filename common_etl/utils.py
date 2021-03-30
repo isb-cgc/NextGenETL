@@ -795,14 +795,14 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'null', 'None', ''):
+    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported'):
         return None
-    if value in ('False', 'false', 'FALSE'):
+    elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
         return False
-    if value in ('True', 'true', 'TRUE'):
+    elif value in ('True', 'true', 'TRUE', 'YES', 'yes', 'Yes'):
         return True
-    else:
-        return value
+
+    return value
 
 
 def check_value_type(value):
