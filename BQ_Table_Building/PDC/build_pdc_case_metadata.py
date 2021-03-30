@@ -34,6 +34,19 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+"""
+samples_aliquots AS (
+    SELECT * except(aliquots), a.*
+    FROM cases_samples 
+    CROSS JOIN UNNEST (aliquots) as a
+),
+aliquots_run_metadata AS (
+    SELECT * except(aliquot_run_metadata), aliquot_run_metadata.*
+    FROM samples_aliquots 
+    JOIN UNNEST (aliquot_run_metadata) as aliquot_run_metadata
+)
+"""
+
 def make_cases_aliquots_query(offset, limit):
     """
     
@@ -86,9 +99,6 @@ def make_cases_aliquots_query(offset, limit):
                         aliquot_id 
                         aliquot_submitter_id
                         analyte_type
-                        aliquot_run_metadata {{ 
-                            aliquot_run_metadata_id
-                        }}
                     }}
                 }}
             }}
