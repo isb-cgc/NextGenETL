@@ -103,13 +103,12 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
     return record_list
 
 
-def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, request_params=tuple(),
-                             alter_json_function=None, ids=None, insert_id=False, pause=0):
+def build_obj_from_pdc_api(api_params, endpoint, request_function, request_params=tuple(), alter_json_function=None,
+                           ids=None, insert_id=False, pause=0):
     """
 
     Create jsonl file based on results from PDC API request
     :param api_params: API params from YAML config
-    :param bq_params: BQ params from YAML config
     :param endpoint: PDC API endpoint
     :param request_function: PDC API request function
     :param request_params: API request parameters
@@ -148,19 +147,17 @@ def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, 
         if alter_json_function:
             alter_json_function(joined_record_list)
 
-    for record in joined_record_list:
-        for k, v in record.items():
-            record[k] = normalize_value(v)
+    return joined_record_list
 
+
+def write_jsonl_and_upload(api_params, bq_params, prefix, joined_record_list):
     jsonl_filename = get_filename(api_params,
                                   file_extension='jsonl',
-                                  prefix=api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
+                                  prefix=prefix)
     local_filepath = get_scratch_fp(bq_params, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, joined_record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
-
-    return joined_record_list
 
 
 def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_type):

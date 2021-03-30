@@ -30,7 +30,7 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
                               publish_table, construct_table_name, download_from_bucket,
                               generate_bq_schema_field, get_graphql_api_response)
 
-from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_jsonl_from_pdc_api, build_table_from_jsonl,
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_schema_from_pdc_api,
                                              get_dev_table_id, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata, get_prefix)
@@ -320,11 +320,10 @@ def main(args):
         endpoint = 'filesPerStudy'
         prefix = get_prefix(API_PARAMS, endpoint)
 
-        per_study_record_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                                         endpoint=endpoint,
-                                                         request_function=make_files_per_study_query,
-                                                         alter_json_function=alter_files_per_study_json,
-                                                         ids=all_pdc_study_ids)
+        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=endpoint,
+                                                       request_function=make_files_per_study_query,
+                                                       alter_json_function=alter_files_per_study_json,
+                                                       ids=all_pdc_study_ids)
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_record_list,

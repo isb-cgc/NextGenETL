@@ -30,7 +30,7 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               delete_bq_table, load_config, list_bq_tables, publish_table, construct_table_name)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids, get_pdc_studies_list,
-                                             build_jsonl_from_pdc_api, build_table_from_jsonl, get_filename, get_dev_table_id,
+                                             build_obj_from_pdc_api, build_table_from_jsonl, get_filename, get_dev_table_id,
                                              get_records, update_column_metadata, update_pdc_table_metadata)
 
 API_PARAMS = dict()
@@ -587,10 +587,8 @@ def main(args):
     pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=False)
 
     if 'build_cases_jsonl' in steps:
-        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint="allCases",
-                                 request_function=make_cases_query,
-                                 alter_json_function=alter_cases_query)
+        build_obj_from_pdc_api(API_PARAMS, endpoint="allCases", request_function=make_cases_query,
+                               alter_json_function=alter_cases_query)
 
     if 'build_cases_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
@@ -598,12 +596,9 @@ def main(args):
                                infer_schema=True)
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint="paginatedCaseDiagnosesPerStudy",
-                                 request_function=make_cases_diagnoses_query,
-                                 alter_json_function=alter_case_diagnoses_json,
-                                 ids=pdc_study_ids,
-                                 insert_id=True)
+        build_obj_from_pdc_api(API_PARAMS, endpoint="paginatedCaseDiagnosesPerStudy",
+                               request_function=make_cases_diagnoses_query,
+                               alter_json_function=alter_case_diagnoses_json, ids=pdc_study_ids, insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
@@ -611,12 +606,9 @@ def main(args):
                                infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint="paginatedCaseDemographicsPerStudy",
-                                 request_function=make_cases_demographics_query,
-                                 alter_json_function=alter_case_demographics_json,
-                                 ids=pdc_study_ids,
-                                 insert_id=True)
+        build_obj_from_pdc_api(API_PARAMS, endpoint="paginatedCaseDemographicsPerStudy",
+                               request_function=make_cases_demographics_query,
+                               alter_json_function=alter_case_demographics_json, ids=pdc_study_ids, insert_id=True)
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,

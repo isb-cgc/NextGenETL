@@ -29,7 +29,7 @@ import copy
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
-                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter, normalize_value)
+                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -400,7 +400,6 @@ def infer_types(record, fields_dict, types_dict, parent_fg_list):
                     field_key = field_group_key + '.' + key
                     if field_key not in types_dict:
                         types_dict[field_key] = set()
-                    record[key] = normalize_value(record[key])
                     value_type = check_value_type(record[key])
                     if value_type:
                         types_dict[field_key].add(value_type)

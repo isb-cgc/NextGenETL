@@ -26,7 +26,7 @@ import sys
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               return_schema_object_for_bq, normalize_value)
 
-from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
+from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
                                              get_dev_table_id, create_schema_from_pdc_api, get_prefix)
 
 API_PARAMS = dict()
@@ -220,16 +220,16 @@ def main(args):
     aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
     if 'build_biospecimen_jsonl' in steps:
-        per_study_biospecimen_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                                              endpoint=biospecimen_endpoint,
-                                                              request_function=make_biospecimen_per_study_query,
-                                                              alter_json_function=alter_biospecimen_per_study_objects,
-                                                              ids=all_pdc_study_ids,
-                                                              insert_id=True)
+        per_study_biospecimen_list = build_obj_from_pdc_api(API_PARAMS, endpoint=biospecimen_endpoint,
+                                                            request_function=make_biospecimen_per_study_query,
+                                                            alter_json_function=alter_biospecimen_per_study_objects,
+                                                            ids=all_pdc_study_ids, insert_id=True)
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_biospecimen_list,
                                    table_type=biospecimen_prefix)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, biospecimen_prefix, per_study_biospecimen_list)
 
     if 'build_biospecimen_table' in steps:
         biospecimen_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
@@ -240,14 +240,13 @@ def main(args):
                                schema=biospecimen_schema)
 
     if 'build_case_aliquot_jsonl' in steps:
-        per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                                               endpoint=aliquot_endpoint,
-                                                               request_function=make_cases_aliquots_query,
-                                                               # alter_json_function=alter_cases_aliquots_objects,
-                                                               insert_id=True)
+        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS, endpoint=aliquot_endpoint,
+                                                             request_function=make_cases_aliquots_query, insert_id=True)
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_case_aliquot_list,
                                    table_type=aliquot_prefix)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
 
     if 'build_case_aliquot_table' in steps:
         aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
