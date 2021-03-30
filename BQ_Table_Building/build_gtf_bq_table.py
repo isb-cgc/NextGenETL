@@ -664,7 +664,7 @@ def main(args):
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq_write_depo(typed_schema, bucket_src_url, staging_dataset_id,
-                             f"scratch_table_id_versioned_draft", params['BQ_AS_BATCH'], None)
+                             f"{scratch_table_id_versioned}_draft", params['BQ_AS_BATCH'], None)
 
     if 'reorder_columns' in steps:
         print('Reorder Columns in with BigQuery')
