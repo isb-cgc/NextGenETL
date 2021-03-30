@@ -34,7 +34,7 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def make_cases_aliquots_query(offset, limit):
+def make_cases_aliquots_query(pdc_study_id, offset, limit):
     """
     
     Creates a graphQL string for querying the PDC API's paginatedCasesSamplesAliquots endpoint.
@@ -232,7 +232,6 @@ def main(args):
                                                                endpoint=aliquot_endpoint,
                                                                request_function=make_cases_aliquots_query,
                                                                alter_json_function=alter_cases_aliquots_objects,
-                                                               ids=all_pdc_study_ids,
                                                                insert_id=True)
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_case_aliquot_list,

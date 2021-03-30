@@ -106,6 +106,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 def build_jsonl_from_pdc_api(api_params, bq_params, endpoint, request_function, request_params=tuple(),
                              alter_json_function=None, ids=None, insert_id=False, pause=0):
     """
+
     Create jsonl file based on results from PDC API request
     :param api_params: API params from YAML config
     :param bq_params: BQ params from YAML config
