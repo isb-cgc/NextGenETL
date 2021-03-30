@@ -104,7 +104,7 @@ def make_cases_aliquots_query(offset, limit):
     }}""".format(offset, limit)
 
 
-'''
+
 def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     """
     This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
@@ -113,8 +113,11 @@ def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     :param pdc_study_id: pdc study id for this set of json objects
     """
     for case in json_obj_list:
-        case['pdc_study_id'] = pdc_study_id
-'''
+        if case['is_ffpe'] == "FALSE" or case['is_ffpe'] == "0":
+            case['is_ffpe'] == False
+        if case['is_ffpe'] == "TRUE" or case['is_ffpe'] == "1":
+            case['is_ffpe'] == True
+
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
@@ -238,7 +241,6 @@ def main(args):
                                    table_type=aliquot_prefix)
 
     if 'build_case_aliquot_table' in steps:
-        '''
         aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
                                                      table_type=aliquot_prefix)
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
@@ -249,6 +251,7 @@ def main(args):
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=aliquot_endpoint,
                                infer_schema=True)
+        '''
 
     if 'build_case_metadata_table' in steps:
         pass
