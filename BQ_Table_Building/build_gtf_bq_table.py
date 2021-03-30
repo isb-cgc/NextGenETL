@@ -8,7 +8,7 @@ from createSchemaP3 import build_schema
 #from google.cloud import bigquery
 from os import path
 from os.path import expanduser
-import pandas as pd 
+import pandas as pd
 import numpy as np
 from alive_progress import alive_bar
 import io
@@ -22,7 +22,7 @@ import re
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
                                install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag, \
-                               build_combined_schema
+                               build_combined_schema, generic_bq_harness_write_depo
 
 # Check if the file already exists, and if not download
 def download_file(local_file, url):
@@ -181,13 +181,13 @@ def split_version_ids(final_merged_csv):
     for v_id in df['gene_id']:
         split_id = v_id.split('.')
         gene_id_v.append(split_id[0])
-    
+
     for v_id in df['transcript_id']:
         if pd.isna(v_id):
             transcript_id_v.append(np.NaN)
         else:
             split_id = v_id.split('.')
-            transcript_id_v.append(split_id[0])        
+            transcript_id_v.append(split_id[0])
 
     for v_id in df['exon_id']:
         if pd.isna(v_id):
@@ -195,14 +195,14 @@ def split_version_ids(final_merged_csv):
         else:
             split_id = v_id.split('.')
             exon_id_v.append(split_id[0])
-    
+
     for v_id in df['ccdsid']:
         if pd.isna(v_id):
             ccds_id_v.append(np.NaN)
         else:
             split_id = v_id.split('.')
             ccds_id_v.append(split_id[0])
-    
+
     for v_id in df['protein_id']:
         if pd.isna(v_id):
             protein_id_v.append(np.NaN)
@@ -223,7 +223,7 @@ def split_version_ids(final_merged_csv):
         else:
             split_id = v_id.split('.')
             havana_transcript_v.append(split_id[0])
-        
+
     df2 = df.rename(columns={'gene_id': 'gene_id_v',
                              'transcript_id': 'transcript_id_v',
                              'exon_id': 'exon_id_v',
@@ -266,8 +266,8 @@ def create_new_columns(file_1, file_2, number_of_lines):
         @return None 
 
     '''
-    number_of_lines = number_of_lines 
-    
+    number_of_lines = number_of_lines
+
     with open(file_1) as in_file:
         reader = csv.reader(in_file)
         header = next(reader)
@@ -293,7 +293,7 @@ def create_new_columns(file_1, file_2, number_of_lines):
                 writer = csv.writer(out_file, quoting=csv.QUOTE_NONE, escapechar='', quotechar='')
                 header = next(reader)
                 attribute_column_index = header.index('attribute')
-                writer.writerow(column_names)  
+                writer.writerow(column_names)
                 with alive_bar(number_of_lines) as bar:
                     for row in reader:
                         column_indicies = []
@@ -312,16 +312,17 @@ def create_new_columns(file_1, file_2, number_of_lines):
                         writer.writerow(row_out)
                         bar()
 
+
 def parse_genomic_features_file(a_file, file_1):
-    
-    column_names = ['seqname', 
-                    'source', 
+
+    column_names = ['seqname',
+                    'source',
                     'feature',
-                    'start', 
-                    'end', 
+                    'start',
+                    'end',
                     'score',
-                    'strand', 
-                    'frame', 
+                    'strand',
+                    'frame',
                     'attribute']
 
     with open(file_1, 'w') as out_file:
@@ -349,7 +350,7 @@ def count_number_of_lines(a_file):
         @return int: number_of_lines
     '''
 
-    number_of_lines = 0 
+    number_of_lines = 0
     with gzip.open(a_file, 'rb') as zipped_file:
         for line in zipped_file:
             if line.decode().startswith("##"):
@@ -357,8 +358,52 @@ def count_number_of_lines(a_file):
             else:
                 number_of_lines += 1
     print(f'The number of lines in the file: {number_of_lines}')
-    
+
     return number_of_lines
+
+def reorder_columns(draft_bq_table, schema_file, do_batch):
+    """
+    Use a query in BigQuery to rearrange the columns to create a final BigQuery table.
+
+    :param draft_bq_table: full table id in project.dataset.table format
+    :type draft_bq_table: basestring
+    :param schema_file: full local file location of the _schema.json file
+    :type schema_file: basestring
+    :param do_batch: Run all BQ jobs in Batch mode? Slower but uses less of quotas
+    :type do_batch: bool
+    :return: Boolean on whether the function was successful
+    :rtype: bool
+    """
+
+    project, dataset, table = draft_bq_table.split(".")
+    with open(schema_file, mode='r') as schema:
+        schema_load = json_loads(schema.read())
+
+    column_list = []
+    for field in schema_load:
+        column_list.append(field['name'])
+
+    query = build_recorder_columns_query(draft_bq_table, column_list)
+
+    return generic_bq_harness_write_depo(query, dataset, table, do_batch, None)
+
+
+def build_recorder_columns_query(draft_bq_table, field_names):
+    """
+    Create a string with the query to rearrange columns in BigQuery
+
+    :param draft_bq_table: full table id in project.dataset.table format
+    :type draft_bq_table: basestring
+    :param field_names: string of fields to select
+    :type field_names: basestring
+    :return: string with formatted query
+    :rtype: basestring
+    """
+
+    return """
+    SELECT {}
+    FROM `{}`
+    """.format(field_names, draft_bq_table)
 
 # todo to remove
 # def schema_with_description(path_to_json):
@@ -414,7 +459,7 @@ def main(args):
         print(" ")
         print(" Usage : {} <configuration_yaml>".format(args[0]))
         return
-    
+
     print("job started")
 
     with open(args[1], mode='r') as yaml_file:
@@ -486,14 +531,14 @@ def main(args):
         create_new_columns(genomic_feature_file_csv,
                            attribute_column_split_csv,
                            number_of_lines)
-    
+
     if 'merge_csv_files' in steps:
         print('Merging CSV files')
-        merge_csv_files(genomic_feature_file_csv, 
+        merge_csv_files(genomic_feature_file_csv,
                         attribute_column_split_csv,
                         final_merged_csv,
                         number_of_lines)
-    
+
     if 'split_version_ids' in steps:
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
@@ -506,7 +551,7 @@ def main(args):
     #                           staging_project,
     #                           staging_dataset_id,
     #                           staging_table_id)
-    
+
     # if 'publish_table' in steps:
     #     print('Publishing table')
     #     publish_table(schema,
@@ -605,7 +650,6 @@ def main(args):
     #                           typing_tups, hold_schema_list,
     #                           hold_schema_dict)
 
-
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
             typing_tups = build_schema(final_tsv, params['SCHEMA_SAMPLE_SKIPS'])
@@ -619,7 +663,15 @@ def main(args):
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq_write_depo(typed_schema, bucket_src_url, staging_dataset_id,
-                             f"{base_table_name}_r{params['RELEASE']}", params['BQ_AS_BATCH'], None)
+                             f"{base_table_name}_draft", params['BQ_AS_BATCH'], None)
+
+    if 'reorder_columns' in steps:
+        print('Reorder Columns in with BigQuery')
+        success = reorder_columns(scratch_full_table_id_versioned,
+                                  f"{base_table_name}_schema.json",
+                                  params['BQ_AS_BATCH'])
+        if not success:
+            print("reorder columns failed")
 
     if 'create_current_table' in steps:
 
