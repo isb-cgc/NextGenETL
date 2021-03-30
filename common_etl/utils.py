@@ -815,7 +815,7 @@ def check_value_type(value):
 
     value = normalize_value()
 
-    if isinstance(value, bool):
+    if isinstance(value, bool) or value == 1 or value == 0:
         return "BOOL"
     if isinstance(value, int):
         return "INT64"
@@ -902,9 +902,10 @@ def resolve_type_conflict(field, types_set):
         # therefore must be a string
         return "STRING"
 
-    if "BOOL" in types_set:
-        print("Invalid datatype combination for {}: {}".format(field, types_set))
-        has_fatal_error("", TypeError)
+    if len(types_set) == 2 and "INT64" in types_set and "BOOL" in types_set:
+        # any ints 1 or 0 are labelled bool by type checker--if they are the only ints,
+        # then it'll be interpreted as bool; otherwise, it should be INT64
+        return "INT64"
 
     has_datetime_type = False
 
