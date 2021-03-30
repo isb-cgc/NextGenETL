@@ -894,7 +894,7 @@ def resolve_type_conflict(field, types_set):
     # Beyond this point, the types_set has at least two type values
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
-        has_fatal_error("Invalid datatype combination for {}: {}".format(field. types_set), TypeError)
+        has_fatal_error("Invalid datatype combination for {}: {}".format(field, types_set), TypeError)
 
     if "STRING" in types_set:
         # if it's classified as a string, we've already disqualified it from the other types,
@@ -902,7 +902,7 @@ def resolve_type_conflict(field, types_set):
         return "STRING"
 
     if "BOOL" in types_set:
-        has_fatal_error("Invalid datatype combination for {}: {}".format(field. types_set), TypeError)
+        has_fatal_error("Invalid datatype combination for {}: {}".format(field, types_set), TypeError)
 
     has_datetime_type = False
 
