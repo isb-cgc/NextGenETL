@@ -788,6 +788,19 @@ def get_filename(api_params, file_extension, prefix, suffix=None, include_releas
 
 #   SCHEMA UTILS
 
+def normalize_value(value):
+    """
+    Convert null or boolean string variations to correct form.
+    """
+    if value in ('NA', 'N/A', 'null', 'None', ''):
+        return None
+    if value in ('False', 'false', 'FALSE'):
+        return False
+    if value in ('True', 'true', 'TRUE'):
+        return True
+    else:
+        return value
+
 
 def check_value_type(value):
     """Checks value for corresponding BQ type. Supported data types: BOOL, INT64, FLOAT64, ARRAY, RECORD, NUMERIC,
@@ -796,24 +809,6 @@ def check_value_type(value):
     :param value: value to type check
     :return: type in BQ column format
     """
-
-    def normalize_value():
-        """
-        Convert null or boolean string variations to correct form.
-        """
-        if value in ('NA', 'N/A', 'null', 'None', ''):
-            return None
-        if value in ('False', 'false', 'FALSE'):
-            return False
-        if value in ('True', 'true', 'TRUE'):
-            return True
-        else:
-            return value
-
-    # if has leading zero, then should be considered a string, even if only
-    # composed of digits
-
-    value = normalize_value()
 
     if isinstance(value, bool) or value == 1 or value == 0 or value == '1' or value == '0':
         return "BOOL"
