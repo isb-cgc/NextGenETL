@@ -238,12 +238,17 @@ def main(args):
                                    table_type=aliquot_prefix)
 
     if 'build_case_aliquot_table' in steps:
+        '''
         aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
                                                      table_type=aliquot_prefix)
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=aliquot_endpoint,
                                infer_schema=True,
                                schema=aliquot_schema)
+        '''
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
+                               endpoint=aliquot_endpoint,
+                               infer_schema=True)
 
     if 'build_case_metadata_table' in steps:
         pass
