@@ -115,7 +115,6 @@ def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
-
 def make_biospecimen_per_study_query(pdc_study_id):
     """
 
@@ -143,7 +142,7 @@ def make_biospecimen_per_study_query(pdc_study_id):
     }}'''.format(pdc_study_id)
 
 
-def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
+def alter_biospecimen_per_study_objects(json_obj_list, pdc_study_id):
     """
 
     Passed as a parameter to build_jsonl_from_pdc_api(). Allows for the dataset's json object to be mutated prior
@@ -151,6 +150,7 @@ def alter_biospecimen_per_study_obj(json_obj_list, pdc_study_id):
     :param json_obj_list: list of json objects to mutate
     :param pdc_study_id: pdc study id for this set of json objects
     """
+
     def get_case_file_count_mapping():
         """
 
@@ -199,54 +199,54 @@ def main(args):
 
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
 
-    if 'build_biospecimen_jsonl' in steps:
-        endpoint = 'biospecimenPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
+    biospecimen_endpoint = 'biospecimenPerStudy'
+    biospecimen_prefix = get_prefix(API_PARAMS, biospecimen_endpoint)
+    aliquot_endpoint = 'paginatedCasesSamplesAliquots'
+    aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
-        build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                 endpoint=endpoint,
-                                 request_function=make_biospecimen_per_study_query,
-                                 alter_json_function=alter_biospecimen_per_study_obj,
-                                 ids=all_pdc_study_ids,
-                                 insert_id=True)
+    if 'build_biospecimen_jsonl' in steps:
+        biospecimen_endpoint = 'biospecimenPerStudy'
+        biospecimen_prefix = get_prefix(API_PARAMS, biospecimen_endpoint)
+
+        per_study_biospecimen_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
+                                                              endpoint=biospecimen_endpoint,
+                                                              request_function=make_biospecimen_per_study_query,
+                                                              alter_json_function=alter_biospecimen_per_study_objects,
+                                                              ids=all_pdc_study_ids,
+                                                              insert_id=True)
 
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                   joined_record_list=file_metadata_list,
-                                   table_type=prefix)
+                                   joined_record_list=per_study_biospecimen_list,
+                                   table_type=biospecimen_prefix)
 
     if 'build_biospecimen_table' in steps:
-        endpoint = 'biospecimenPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+        biospecimen_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
+                                                         table_type=biospecimen_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=endpoint,
+                               endpoint=biospecimen_endpoint,
                                infer_schema=True,
-                               schema=schema)
+                               schema=biospecimen_schema)
 
     if 'build_case_aliquot_jsonl' in steps:
-        endpoint = 'paginatedCasesSamplesAliquots'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
         per_study_case_aliquot_list = build_jsonl_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                                               endpoint=endpoint,
+                                                               endpoint=aliquot_endpoint,
                                                                request_function=make_cases_aliquots_query,
                                                                alter_json_function=alter_cases_aliquots_objects,
                                                                ids=all_pdc_study_ids,
                                                                insert_id=True)
         create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
                                    joined_record_list=per_study_case_aliquot_list,
-                                   table_type=prefix)
+                                   table_type=aliquot_prefix)
 
     if 'build_case_aliquot_table' in steps:
-        endpoint = 'biospecimenPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+        aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
+                                                     table_type=aliquot_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=endpoint,
+                               endpoint=aliquot_endpoint,
                                infer_schema=True,
-                               schema=schema)
+                               schema=aliquot_schema)
 
     if 'build_case_metadata_table' in steps:
         pass
