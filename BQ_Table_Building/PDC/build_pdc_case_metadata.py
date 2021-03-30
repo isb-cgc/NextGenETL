@@ -27,7 +27,7 @@ from common_etl.utils import (format_seconds, has_fatal_error, load_config, cons
                               return_schema_object_for_bq)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_jsonl_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_dev_table_id, create_schema_from_pdc_api)
+                                             get_dev_table_id, create_schema_from_pdc_api, get_prefix)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
