@@ -867,7 +867,7 @@ def check_value_type(value):
     return "STRING"
 
 
-def resolve_type_conflict(types_set):
+def resolve_type_conflict(field, types_set):
     """
     Resolve type precedence, where multiple types are detected.
     check_value_type will return the following types:
@@ -877,6 +877,7 @@ def resolve_type_conflict(types_set):
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
 
     :param types_set: Set of BQ data types in string format
+    :param field: field name
     :return: BQ data type with highest precedence
     """
 
@@ -893,7 +894,7 @@ def resolve_type_conflict(types_set):
     # Beyond this point, the types_set has at least two type values
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
-        has_fatal_error("Invalid datatype combination: {}".format(types_set), TypeError)
+        has_fatal_error("Invalid datatype combination for {}: {}".format(field. types_set), TypeError)
 
     if "STRING" in types_set:
         # if it's classified as a string, we've already disqualified it from the other types,
@@ -901,7 +902,7 @@ def resolve_type_conflict(types_set):
         return "STRING"
 
     if "BOOL" in types_set:
-        has_fatal_error("Invalid datatype combination: {}".format(types_set), TypeError)
+        has_fatal_error("Invalid datatype combination for {}: {}".format(field. types_set), TypeError)
 
     has_datetime_type = False
 
@@ -1023,7 +1024,7 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
         else:
             # v is a set
 
-            final_type = resolve_type_conflict(v)
+            final_type = resolve_type_conflict(k, v)
 
             schema_field = {
                 "name": k,
