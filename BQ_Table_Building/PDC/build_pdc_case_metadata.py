@@ -73,21 +73,17 @@ def make_cases_aliquots_query(offset, limit):
                     sample_id
                     sample_submitter_id
                     sample_type
-                    sample_type_id
                     gdc_sample_id
                     gdc_project_id
                     biospecimen_anatomic_site
-                    composition
                     current_weight
                     days_to_collection
-                    days_to_sample_procurement
                     diagnosis_pathologically_confirmed
                     freezing_method
                     initial_weight
                     intermediate_dimension
                     is_ffpe
                     longest_dimension
-                    method_of_sample_procurement
                     oct_embedded
                     pathology_report_uuid
                     preservation_method
@@ -95,13 +91,13 @@ def make_cases_aliquots_query(offset, limit):
                     time_between_clamping_and_freezing
                     time_between_excision_and_freezing
                     tissue_type
-                    tumor_code
-                    tumor_code_id
-                    tumor_descriptor
                     aliquots {{ 
                         aliquot_id 
                         aliquot_submitter_id
                         analyte_type
+                        aliquot_run_metadata {{
+                            aliquot_run_metadata_id
+                        }}
                     }}
                 }}
             }}
