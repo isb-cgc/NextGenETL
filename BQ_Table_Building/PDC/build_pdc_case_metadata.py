@@ -78,13 +78,11 @@ def make_cases_aliquots_query(offset, limit):
                     biospecimen_anatomic_site
                     current_weight
                     days_to_collection
-                    diagnosis_pathologically_confirmed
                     freezing_method
                     initial_weight
                     intermediate_dimension
                     longest_dimension
                     oct_embedded
-                    pathology_report_uuid
                     shortest_dimension
                     time_between_clamping_and_freezing
                     time_between_excision_and_freezing
