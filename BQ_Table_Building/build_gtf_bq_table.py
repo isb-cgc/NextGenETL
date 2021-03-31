@@ -586,10 +586,10 @@ def main(args):
     for table in update_schema_tables:
         if table == 'current':
             use_schema = params['SCHEMA_FILE_NAME']
-            update_table = scratch_full_table_id_current
+            update_table = f"{base_table_name}_current"
         else:
             use_schema = params['VER_SCHEMA_FILE_NAME']
-            update_table = scratch_full_table_id_versioned
+            update_table = f"{base_table_name}_v{params['RELEASE']}"
 
         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
@@ -673,7 +673,7 @@ def main(args):
         print('Reorder Columns in with BigQuery')
         success = reorder_columns(f"{staging_project}.{staging_dataset_id}.{intermediate_table_id}",
                                   scratch_table_id_versioned,
-                                  f"{home}/scratch/{base_table_name}_schema.json",
+                                  f"{params['PROX_DESC_PREFIX']}/{base_table_name}_schema.json",
                                   params['BQ_AS_BATCH'])
         if not success:
             print("reorder columns failed")
@@ -691,7 +691,7 @@ def main(args):
     #
 
     for table in update_schema_tables:
-        update_table = scratch_full_table_id_current if table == 'current' else scratch_full_table_id_versioned
+        update_table = f"{base_table_name}_current" if table == 'current' else f"{base_table_name}_v{params['RELEASE']}"
         if 'update_final_schema' in steps:
             success = update_schema(params['STAGING_DATASET_ID'], update_table,
                                     hold_schema_dict)
