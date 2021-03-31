@@ -367,7 +367,7 @@ def reorder_columns(draft_bq_table, final_table, schema_file, do_batch):
 
     :param draft_bq_table: full table id for the intermediate table in project.dataset.table format
     :type draft_bq_table: basestring
-    :param final_table: full table id for the final table in project.dataset.table format
+    :param final_table: table for the final table
     :tyoe final_table: basestring
     :param schema_file: full local file location of the _schema.json file
     :type schema_file: basestring
@@ -387,7 +387,7 @@ def reorder_columns(draft_bq_table, final_table, schema_file, do_batch):
 
     query = build_recorder_columns_query(draft_bq_table, column_list)
 
-    return generic_bq_harness_write_depo(query, draft_bq_table, final_table, do_batch, None)
+    return generic_bq_harness_write_depo(query, dataset, final_table, do_batch, None)
 
 
 def build_recorder_columns_query(draft_bq_table, field_names):
