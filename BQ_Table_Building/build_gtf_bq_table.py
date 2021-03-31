@@ -737,8 +737,8 @@ def main(args):
         Compares two tables to confirm that there is a identical versioned table to be deleted before deleting said 
         table. After the table has been confirmed there is a versioned table, a backup is created and the table is deleted. 
         '''
-        old_current_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_current"
-        table_temp = f"{staging_project}.{staging_dataset_id}.{previous_ver_table}_backup"
+        old_current_table = f"{publish_project}.{publish_dataset_id}.v{base_table_name}_current"
+        table_temp = f"{staging_project}.{staging_dataset_id}.v{previous_ver_table}_backup"
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
