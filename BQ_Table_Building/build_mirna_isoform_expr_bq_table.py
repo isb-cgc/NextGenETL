@@ -447,12 +447,12 @@ def main(args):
    
         if not same_versioned or not same_scratch:
             print( 'Comparison failed' )
-            #return
+            return
         if same_versioned == 'identical' and same_scratch == 'different':
             delete_table = delete_table_bq_job(params['PROGRAM'], final_table+'_current', params['PUBLICATION_PROJECT'])
             if not delete_table:
                 print( 'Delete table failed' )
-                #return
+                return
 
     if 'publish' in steps:
         for table in [new_ver_table, current_table]:
