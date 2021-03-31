@@ -502,7 +502,7 @@ def main(args):
     publish_dataset_id = params['PUBLISH_DATASET_ID']
     publish_table_id_ver = f'{publish_project}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
     publish_full_table_id_current = f'{publish_project}.{publish_dataset_id}.{base_table_name}_current'
-    previous_ver_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_v{params['PREVIOUS_RELEASE']}"
+    previous_ver_table = f"{publish_project}.{publish_dataset_id}_versioned.{base_table_name}_v{params['PREVIOUS_RELEASE']}"
     #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
 
 
