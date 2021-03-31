@@ -495,8 +495,7 @@ def main(args):
     staging_dataset_id = params['STAGING_DATASET_ID']
     scratch_table_id_versioned = f'GENCODE_{base_table_name}_v{params["RELEASE"]}'
     intermediate_table_id = f"{scratch_table_id_versioned}_draft"
-    scratch_full_table_id_versioned = \
-        f'{staging_project}.{staging_dataset_id}.{scratch_table_id_versioned}'
+    scratch_full_table_id_versioned = f'{staging_project}.{staging_dataset_id}.{scratch_table_id_versioned}'
     scratch_full_table_id_current = \
         f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_current'
     publish_project = params['PUBLISH_PROJECT']
@@ -780,14 +779,18 @@ def main(args):
         for table in tables:
             if table == 'versioned':
                 print(table)
-                success = publish_table(scratch_full_table_id_versioned, publish_full_table_id_versioned)
+                print(scratch_full_table_id_versioned)
+                print(publish_full_table_id_versioned)
+                # success = publish_table(scratch_full_table_id_versioned, publish_full_table_id_versioned)
             elif table == 'current':
                 print(table)
-                success = publish_table(scratch_full_table_id_current, publish_full_table_id_current)
+                print(scratch_full_table_id_current)
+                print(publish_full_table_id_current)
+                # success = publish_table(scratch_full_table_id_current, publish_full_table_id_current)
 
-        if not success:
-            print("publish table failed")
-            return
+        # if not success:
+        #     print("publish table failed")
+        #     return
 
     if 'update_status_tag' in steps:
         print('Update previous table')
