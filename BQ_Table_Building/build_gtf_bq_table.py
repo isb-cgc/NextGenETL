@@ -617,22 +617,23 @@ def main(args):
                     val = tag_pair[tag]
                     use_pair = {}
                     tag_map_list.append(use_pair)
-                    # if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                    #     chunks = val.split('-', 1)
-                    #     if chunks[1] == 'programs':
-                    #         if val.find('~lcbqs-') == 0:
-                    #             rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-                    #         else:
-                    #             rep_val = dataset_tuple[0]
-                    #     elif chunks[1] == 'builds':
-                    #         rep_val = params['BUILD']
-                    #      else:
-                    #         raise Exception()
-                    #     if val.find('~lc-') == 0:
-                    #         rep_val = rep_val.lower()
-                    #     use_pair[tag] = rep_val
-                    # else:
-                    #     use_pair[tag] = val
+                    use_pair[tag] = val
+            #         if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+            #             chunks = val.split('-', 1)
+            #             if chunks[1] == 'programs':
+            #                 if val.find('~lcbqs-') == 0:
+            #                     rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+            #                 else:
+            #                     rep_val = dataset_tuple[0]
+            #             elif chunks[1] == 'builds':
+            #                 rep_val = params['BUILD']
+            #              else:
+            #                 raise Exception()
+            #             if val.find('~lc-') == 0:
+            #                 rep_val = rep_val.lower()
+            #             use_pair[tag] = rep_val
+            #         else:
+            #             use_pair[tag] = val
             # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
             # Write out the details
