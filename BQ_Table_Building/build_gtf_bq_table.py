@@ -673,7 +673,7 @@ def main(args):
         print('Reorder Columns in with BigQuery')
         success = reorder_columns(f"{staging_project}.{staging_dataset_id}.{intermediate_table_id}",
                                   scratch_table_id_versioned,
-                                  f"{params['PROX_DESC_PREFIX']}/{base_table_name}_schema.json",
+                                  f"{params['PROX_DESC_PREFIX']}/{base_table_name}_v{params['RELEASE']}_schema.json",
                                   params['BQ_AS_BATCH'])
         if not success:
             print("reorder columns failed")
