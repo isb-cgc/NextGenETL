@@ -609,12 +609,16 @@ def main(args):
 
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
+
             # pn = params['PROGRAM']  # todo update to proper params
             # dataset_tuple = (pn, pn.replace(".", "_"))
-            # tag_map_list = []
-            # for tag_pair in schema_tags:
-            #     for tag in tag_pair:
-            #         val = tag_pair[tag]
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = str(tag_pair[tag])
+                    tag_map_list.append({tag: val})
+                else:
+                    tag_map_list.append({tag: tag_pair[tag]})
             #         use_pair = {}
             #         tag_map_list.append(use_pair)
             #         use_pair[tag] = val
@@ -637,7 +641,7 @@ def main(args):
             # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
             # Write out the details
-            success = customize_labels_and_desc(full_file_prefix, schema_tags)
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
 
             if not success:
                 print("replace_schema_tags failed")
