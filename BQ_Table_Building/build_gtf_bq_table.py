@@ -500,8 +500,7 @@ def main(args):
         f'{staging_project}.{staging_dataset_id}.GENCODE_{base_table_name}_current'
     publish_project = params['PUBLISH_PROJECT']
     publish_dataset_id = params['PUBLISH_DATASET_ID']
-    publish_full_table_id_versioned = \
-        f'{publish_dataset_id}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
+    publish_table_id_ver = f'{publish_project}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
     publish_full_table_id_current = f'{publish_project}.{publish_dataset_id}.{base_table_name}_current'
     previous_ver_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_v{params['PREVIOUS_RELEASE']}"
     #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
@@ -779,18 +778,14 @@ def main(args):
         for table in tables:
             if table == 'versioned':
                 print(table)
-                print(scratch_full_table_id_versioned)
-                print(publish_full_table_id_versioned)
-                # success = publish_table(scratch_full_table_id_versioned, publish_full_table_id_versioned)
+                success = publish_table(scratch_full_table_id_versioned, publish_table_id_ver)
             elif table == 'current':
                 print(table)
-                print(scratch_full_table_id_current)
-                print(publish_full_table_id_current)
-                # success = publish_table(scratch_full_table_id_current, publish_full_table_id_current)
+                success = publish_table(scratch_full_table_id_current, publish_full_table_id_current)
 
-        # if not success:
-        #     print("publish table failed")
-        #     return
+        if not success:
+            print("publish table failed")
+            return
 
     if 'update_status_tag' in steps:
         print('Update previous table')
