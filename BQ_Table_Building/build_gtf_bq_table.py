@@ -615,10 +615,11 @@ def main(args):
             tag_map_list = []
             for tag_pair in schema_tags:
                 for tag in tag_pair:
-                    val = str(tag_pair[tag])
-                    tag_map_list.append({tag: val})
-                else:
-                    tag_map_list.append({tag: tag_pair[tag]})
+                    if type(tag_pair[tag]) != str:
+                        val = str(tag_pair[tag])
+                        tag_map_list.append({tag: val})
+                    else:
+                        tag_map_list.append({tag: tag_pair[tag]})
             #         use_pair = {}
             #         tag_map_list.append(use_pair)
             #         use_pair[tag] = val
