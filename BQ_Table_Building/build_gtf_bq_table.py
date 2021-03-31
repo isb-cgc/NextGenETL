@@ -693,9 +693,13 @@ def main(args):
 
     for table in update_schema_tables:
         if table == 'current':
+            use_schema = params['SCHEMA_FILE_NAME']
             update_table = f"GENCODE_{base_table_name}_current"
         else:
-            f"GENCODE_{base_table_name}_v{params['RELEASE']}"
+            use_schema = params['VER_SCHEMA_FILE_NAME']
+            update_table = f"GENCODE_{base_table_name}_v{params['RELEASE']}"
+
+        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
         if 'update_final_schema' in steps:
             success = update_schema(params['STAGING_DATASET_ID'], update_table,
@@ -710,7 +714,7 @@ def main(args):
 
         if 'add_table_description' in steps:
             print('update_table_description')
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
+            # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], update_table)
             success = install_labels_and_desc(params['STAGING_DATASET_ID'], update_table,
                                               full_file_prefix)
             if not success:
