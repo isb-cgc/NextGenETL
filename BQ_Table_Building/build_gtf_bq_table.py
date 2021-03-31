@@ -790,7 +790,7 @@ def main(args):
     if 'update_status_tag' in steps:
         print('Update previous table')
         success = update_status_tag(f"{publish_dataset_id}_versioned", previous_ver_table,
-                                    'archived', params['PUBLICATION_PROJECT'])
+                                    'archived', publish_project)
 
         if not success:
             print("update status tag table failed")
