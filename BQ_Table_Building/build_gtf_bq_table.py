@@ -587,10 +587,10 @@ def main(args):
     for table in update_schema_tables:
         if table == 'current':
             use_schema = params['SCHEMA_FILE_NAME']
-            update_table = f"{base_table_name}_current"
+            update_table = f"GENCODE_{base_table_name}_current"
         else:
             use_schema = params['VER_SCHEMA_FILE_NAME']
-            update_table = f"{base_table_name}_v{params['RELEASE']}"
+            update_table = f"GENCODE_{base_table_name}_v{params['RELEASE']}"
 
         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
@@ -693,10 +693,8 @@ def main(args):
 
     for table in update_schema_tables:
         if table == 'current':
-            use_schema = params['SCHEMA_FILE_NAME']
             update_table = f"GENCODE_{base_table_name}_current"
         else:
-            use_schema = params['VER_SCHEMA_FILE_NAME']
             update_table = f"GENCODE_{base_table_name}_v{params['RELEASE']}"
 
         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
