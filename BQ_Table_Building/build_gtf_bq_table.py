@@ -385,7 +385,7 @@ def reorder_columns(draft_bq_table, final_table, schema_file, do_batch):
     for field in schema_load:
         column_list.append(field['name'])
 
-    query = build_recorder_columns_query(draft_bq_table, column_list)
+    query = build_recorder_columns_query(draft_bq_table, ", ".join(column_list))
 
     return generic_bq_harness_write_depo(query, dataset, final_table, do_batch, None)
 
