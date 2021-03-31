@@ -672,9 +672,10 @@ def main(args):
 
     if 'reorder_columns' in steps:
         print('Reorder Columns in with BigQuery')
+        schema =  f"{params['PROX_DESC_PREFIX']}/GENCODE_{base_table_name}_v{params['RELEASE']}_schema.json"
         success = reorder_columns(f"{staging_project}.{staging_dataset_id}.{intermediate_table_id}",
                                   scratch_table_id_versioned,
-                                  f"{params['PROX_DESC_PREFIX']}/{base_table_name}_v{params['RELEASE']}_schema.json",
+                                  schema,
                                   params['BQ_AS_BATCH'])
         if not success:
             print("reorder columns failed")
