@@ -764,7 +764,7 @@ def main(args):
             # remove old table
             elif table_moved:
                 print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(publish_dataset_id, old_current_table, publish_project)
+                delete_table = delete_table_bq_job(publish_dataset_id, f"{base_table_name}_current", publish_project)
                 if not delete_table:
                     print('delete table failed')
                     return
