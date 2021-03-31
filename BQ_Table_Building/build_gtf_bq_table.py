@@ -692,7 +692,10 @@ def main(args):
     #
 
     for table in update_schema_tables:
-        update_table = f"{base_table_name}_current" if table == 'current' else f"{base_table_name}_v{params['RELEASE']}"
+        if table == 'current':
+            update_table = f"GENCODE_{base_table_name}_current"
+        else:
+            f"GENCODE_{base_table_name}_v{params['RELEASE']}"
         if 'update_final_schema' in steps:
             success = update_schema(params['STAGING_DATASET_ID'], update_table,
                                     hold_schema_dict)
