@@ -1,11 +1,8 @@
 import sys
 from json import loads as json_loads
-#from json import load as json_load
 import yaml
 from git import Repo
 from createSchemaP3 import build_schema
-#from google.cloud import storage
-#from google.cloud import bigquery
 from os import path
 from os.path import expanduser
 import pandas as pd
@@ -17,15 +14,22 @@ import csv
 import wget
 from datetime import date
 import re
-#import pyarrow
-#from google.cloud.exceptions import NotFound
 from common_etl.support import confirm_google_vm, upload_to_bucket, csv_to_bq_write_depo, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, update_schema, publish_table, \
                                install_labels_and_desc, compare_two_tables, delete_table_bq_job, update_status_tag, \
                                build_combined_schema, generic_bq_harness_write_depo
 
-# Check if the file already exists, and if not download
 def download_file(local_file, url):
+    """
+    Check if the file already exists, and if not download
+
+    :param local_file: raw local file location
+    :type local_file: basestring
+    :param url: FTP url
+    :type url: basestring
+    :return: Boolean of if the download worked or not
+    :rtype: bool
+    """
     if not path.exists(local_file):
         wget.download(url, local_file)
         return True
@@ -34,141 +38,10 @@ def download_file(local_file, url):
         return False
 
 
-# todo to remove
-# def add_labels_and_descriptions(project, full_table_id):
-#     '''
-#         @paramaters project, full_table_id
-#
-#         The function will add in the description, labels, and freindlyName to
-#         the published table.
-#
-#         @return None
-#
-#     '''
-#
-#     client = bigquery.Client(project=project)
-#     table = client.get_table(full_table_id)
-#
-#     print('Adding Labels, Description, and Friendly name to table')
-#     table.description = 'Data was loaded from the GENCODE reference gene set, release 34, dated Aprilc 2020. These annotations are based on the hg38/GRCh38 reference genome. More details: see Harrow J, et al. (2012) GENCODE: The reference human genome annotation for The ENCODE Project http://www.ncbi.nlm.nih.gov/pubmed/22955987 and ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_34/gencode.v34.annotation.gtf.gz'
-#     table.friendly_name = 'GENCODE V34'
-#     assert table.labels == {}
-#     labels = {"access": "open",
-#               "data_type":"genome_annotation",
-#               "source":"gencode",
-#               "reference_genome_0":"hg38",
-#               "category":"genomic_reference_database",
-#               "status":"current"}
-#     table.labels = labels
-#     table = client.update_table(table, ['description','labels', 'friendlyName'])
-#     assert table.labels == labels
-
-# def check_table_existance(client,
-#                           full_table_id,
-#                           schema):
-#
-#
-#     table_exists = None
-#
-#     try:
-#         client.get_table(full_table_id)
-#         table_exists = True
-#     except NotFound:
-#         table_exists = False
-#
-#     if table_exists == True:
-#         print(f'{full_table_id} exists. Making deletion of the table')
-#         client.delete_table(full_table_id)
-#         table = bigquery.Table(full_table_id, schema=schema)
-#         table.clustering_fields = ["CHROM",
-#                                    "ID",
-#                                    "analysis_workflow_type",
-#                                    "project_short_name"]
-#         table = client.create_table(table)
-#         print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
-#     else:
-#         print(f'{full_table_id} does not exist. Creating the table')
-#         table = bigquery.Table(full_table_id, schema=schema)
-#         table.clustering_fields = ["CHROM",
-#                                    "ID",
-#                                    "analysis_workflow_type",
-#                                    "project_short_name"]
-#         table = client.create_table(table)
-#         print(f"Created clustered table {table.project}, {table.dataset_id}, {table.table_id}")
-
-# def publish_table(schema, project, dataset_id, table_id, staging_full_table_id):
-#
-#     '''
-#         @parameters schema, project, dataset_id, table_id, staging_full_table_id
-#
-#         The function will use an SQL query to retrieve the bigquery table from the
-#         staging environment and make a push to the production environment including
-#         the schema description.
-#
-#         return None
-#
-#     '''
-#
-#     client = bigquery.Client(project=project)
-#     full_table_id = f'{project}.{dataset_id}.{table_id}'
-#
-#
-#     check_table_existance(client,
-#                           full_table_id,
-#                           schema)
-#
-#
-#     add_labels_and_descriptions(dataset_id,
-#                                 full_table_id)
-#
-#
-#     job_config = bigquery.QueryJobConfig(
-#         allow_large_results=True,
-#         destination=full_table_id
-#     )
-#
-#     sql = f'''
-#         SELECT
-#             *
-#         FROM
-#             {staging_full_table_id}
-#     '''
-#
-#     table = client.get_table(full_table_id)
-#     query_job = client.query(sql,
-#                              job_config=job_config)
-#     query_job.result()
-#     print(f"Uploaded records to {table.project}, {table.dataset_id}, {table.table_id}")
-
-
-# def upload_to_staging_env(df, project, dataset_id, table_id):
-#
-#     client = bigquery.Client(project=project)
-#
-#
-#     full_table_id = f'{client.project}.{dataset_id}.{table_id}'
-#     job_config = bigquery.LoadJobConfig(write_disposition='WRITE_TRUNCATE')
-#     job = client.load_table_from_dataframe(
-#         df, full_table_id, job_config=job_config
-#     )
-#     job.result()
-#
-#     table = client.get_table(full_table_id)
-#     print(f'Loaded {table.num_rows} rows and {len(table.schema)} columns to {table_id}')
-
-
 def split_version_ids(final_merged_csv):
 
     df = pd.read_csv(final_merged_csv)
     df = df.drop(['attribute'], axis=1)
-
-    # columns_to_split = ['gene_id',
-    #                     'transcript_id',
-    #                     'exon_id',
-    #                     'ccds_id',
-    #                     'protein_id',
-    #                     'hava_gene',
-    #                     'havana_transcript']
 
     gene_id_v = []
     transcript_id_v = []
@@ -242,6 +115,7 @@ def split_version_ids(final_merged_csv):
 
     return df2
 
+
 def merge_csv_files(file_1, file_2, file_3, number_of_lines):
 
      with open(file_1,'r') as csv_1, open(file_2,'r') as csv_2, open(file_3,'w') as out_file:
@@ -255,17 +129,18 @@ def merge_csv_files(file_1, file_2, file_3, number_of_lines):
 
 
 def create_new_columns(file_1, file_2, number_of_lines):
-    '''
+    """
         @parameters file1, file2, number_of_lines 
 
-        This function will take a csv file with the formated gtf file and 
+        This function will take a csv file with the formatted gtf file and
         parse out the 'attribute' column. The parsed information in the attribute 
         column will be transformed into new columns of their own and be written out
         to a csv file. 
 
         @return None 
 
-    '''
+    """
+
     number_of_lines = number_of_lines
 
     with open(file_1) as in_file:
@@ -339,8 +214,7 @@ def parse_genomic_features_file(a_file, file_1):
 
 
 def count_number_of_lines(a_file):
-
-    '''
+    """
         @parameters gff_file
 
         The number lines in the file will counted and returned
@@ -348,7 +222,7 @@ def count_number_of_lines(a_file):
         CSV file.
 
         @return int: number_of_lines
-    '''
+    """
 
     number_of_lines = 0
     with gzip.open(a_file, 'rb') as zipped_file:
@@ -360,6 +234,7 @@ def count_number_of_lines(a_file):
     print(f'The number of lines in the file: {number_of_lines}')
 
     return number_of_lines
+
 
 def reorder_columns(draft_bq_table, final_table, schema_file, do_batch):
     """
@@ -408,29 +283,12 @@ def build_recorder_columns_query(draft_bq_table, field_names):
     FROM `{}`
     """.format(field_names, draft_bq_table)
 
-# todo to remove
-# def schema_with_description(path_to_json):
-#
-#     '''
-#         @parameters json_file_path
-#
-#         Give the file path to the json file to retrieve
-#         the schema for the table which includes the
-#         description as well.
-#
-#     '''
-#
-#     with open(path_to_json) as json_file:
-#         schema = json_load(json_file)
-#
-#     return schema
-
 
 def load_config(yaml_config):
-    '''
+    """
     ----------------------------------------------------------------------------------------------
     The configuration reader. Parses the YAML configuration into dictionaries
-    '''
+    """
 
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
@@ -447,16 +305,15 @@ def load_config(yaml_config):
 
 
 def main(args):
-    '''
+    """"
     Main Control Flow
     Note that the actual steps run are configured in the YAML input! This allows you to
     e.g. skip previously run steps.
-    '''
+    """
 
     if not confirm_google_vm():
         print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
         return
-
 
     if len(args) != 2:
         print(" ")
@@ -468,13 +325,9 @@ def main(args):
     with open(args[1], mode='r') as yaml_file:
         params, update_schema_tables, schema_tags, steps = load_config(yaml_file.read())
 
-
     if params is None:
         print("Bad YAML load")
         return
-
-    # Which release is this workflow running on?
-    #release = f"v{params['RELEASE']}"  # todo remove?
 
     # Create file variables
     home = expanduser('~')
@@ -503,11 +356,6 @@ def main(args):
     publish_table_id_ver = f'{publish_project}.{publish_dataset_id}_versioned.{base_table_name}_v{params["RELEASE"]}'
     publish_full_table_id_current = f'{publish_project}.{publish_dataset_id}.{base_table_name}_current'
     previous_ver_table = f"{base_table_name}_v{params['PREVIOUS_RELEASE']}"
-    #path_to_json_schema = params['SCHEMA_WITH_DESCRIPTION'] # todo to remove
-
-
-
-#    schema = schema_with_description(path_to_json_schema) # todo to remove
 
     if 'download_file' in steps:
         # Download gtf file from FTP site and save it to the VM
@@ -546,22 +394,6 @@ def main(args):
         print('Splitting version ids')
         df = split_version_ids(final_merged_csv)
         df.to_csv(final_tsv, sep="\t", index=False)
-
-    # todo to remove
-    # if 'upload_to_staging_env' in steps:
-    #     print('Uploading table to a staging environment')
-    #     upload_to_staging_env(df,
-    #                           staging_project,
-    #                           staging_dataset_id,
-    #                           staging_table_id)
-
-    # if 'publish_table' in steps:
-    #     print('Publishing table')
-    #     publish_table(schema,
-    #                   publish_project,
-    #                   publish_dataset_id,
-    #                   publish_table_id,
-    #                   scratch_full_table_id)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -608,8 +440,6 @@ def main(args):
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
 
-            # pn = params['PROGRAM']  # todo update to proper params
-            # dataset_tuple = (pn, pn.replace(".", "_"))
             tag_map_list = []
             for tag_pair in schema_tags:
                 for tag in tag_pair:
@@ -618,26 +448,6 @@ def main(args):
                         tag_map_list.append({tag: val})
                     else:
                         tag_map_list.append({tag: tag_pair[tag]})
-            #         use_pair = {}
-            #         tag_map_list.append(use_pair)
-            #         use_pair[tag] = val
-            #         if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-            #             chunks = val.split('-', 1)
-            #             if chunks[1] == 'programs':
-            #                 if val.find('~lcbqs-') == 0:
-            #                     rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-            #                 else:
-            #                     rep_val = dataset_tuple[0]
-            #             elif chunks[1] == 'builds':
-            #                 rep_val = params['BUILD']
-            #              else:
-            #                 raise Exception()
-            #             if val.find('~lc-') == 0:
-            #                 rep_val = rep_val.lower()
-            #             use_pair[tag] = rep_val
-            #         else:
-            #             use_pair[tag] = val
-            # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{update_table}"
 
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
@@ -645,19 +455,6 @@ def main(args):
             if not success:
                 print("replace_schema_tags failed")
                 return False
-
-    # if 'combined_schema' in steps:  # update to have the analyze schema
-    #     # Create a list of tuples with name and type from schema files
-    #     with open("{}_schema.json".format(full_file_prefix), mode='r') as schema_file:
-    #         schema = json_loads(schema_file.read())
-    #     typing_tups = []
-    #     for field in schema:
-    #         tup = (field['name'], field['type'])
-    #         typing_tups.append(tup)
-    #     schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-    #     build_combined_schema(None, schema_dict_loc,
-    #                           typing_tups, hold_schema_list,
-    #                           hold_schema_dict)
 
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
@@ -728,12 +525,12 @@ def main(args):
     # compare and remove old current table
     #
 
-    # compare the two tables
     if 'compare_remove_old_current' in steps:
 
         '''
         Compares two tables to confirm that there is a identical versioned table to be deleted before deleting said 
-        table. After the table has been confirmed there is a versioned table, a backup is created and the table is deleted. 
+        table. After the table has been confirmed there is a versioned table, 
+        a backup is created and the table is deleted. 
         '''
         old_current_table = f"{publish_project}.{publish_dataset_id}.{base_table_name}_current"
         table_temp = f"{staging_project}.{staging_dataset_id}.{base_table_name}_v{params['PREVIOUS_RELEASE']}_backup"
@@ -810,6 +607,7 @@ def main(args):
                              args[1])
         # Archive raw gtf file
         upload_to_bucket(raw_gtf_file)
+
 
 if __name__ == '__main__':
     main(sys.argv)
