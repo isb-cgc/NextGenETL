@@ -655,7 +655,7 @@ def main(args):
             hold_schema_list_for_count = hold_schema_list.format(count_name)
             with open(hold_schema_list_for_count, mode='r') as schema_hold_dict:
                 typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq_write_depo(typed_schema, bucket_src_url,
+            csv_to_bq_write_depo(typed_schema, bucket_src_url,
                                  params['SCRATCH_DATASET'],
                                  upload_table.format(count_name), params['BQ_AS_BATCH'], None)
 
