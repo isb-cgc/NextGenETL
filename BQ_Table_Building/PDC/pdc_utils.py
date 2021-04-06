@@ -160,7 +160,7 @@ def write_jsonl_and_upload(api_params, bq_params, prefix, joined_record_list):
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
 
-def create_schema_from_pdc_api(api_params, bq_params, joined_record_list, table_type):
+def normalize_data_and_create_schema(api_params, bq_params, joined_record_list, table_type):
     """
     todo
     :param api_params:

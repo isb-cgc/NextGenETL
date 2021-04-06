@@ -31,7 +31,7 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
                               generate_bq_schema_field, get_graphql_api_response)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, create_schema_from_pdc_api,
+                                             get_filename, normalize_data_and_create_schema,
                                              get_dev_table_id, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata, get_prefix)
 
@@ -315,37 +315,34 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
+    per_study_file_endpoint = 'filesPerStudy'
+    per_study_file_prefix = get_prefix(API_PARAMS, per_study_file_endpoint)
+    file_metadata_endpoint = 'fileMetadata'
+    file_metadata_prefix = get_prefix(API_PARAMS, file_metadata_endpoint)
 
     if 'build_per_study_file_jsonl' in steps:
-        endpoint = 'filesPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
-        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=endpoint,
+        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=per_study_file_endpoint,
                                                        request_function=make_files_per_study_query,
                                                        alter_json_function=alter_files_per_study_json,
                                                        ids=all_pdc_study_ids)
 
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                   joined_record_list=per_study_record_list,
-                                   table_type=prefix)
+        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
+                                         joined_record_list=per_study_record_list,
+                                         table_type=per_study_file_prefix)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
 
     if 'build_per_study_file_table' in steps:
-        endpoint = 'filesPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, per_study_file_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=endpoint,
+                               endpoint=per_study_file_endpoint,
                                infer_schema=True,
                                schema=schema)
 
     if 'alter_per_study_file_table' in steps:
-        endpoint = 'filesPerStudy'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
         fps_table_name = construct_table_name(API_PARAMS,
-                                              prefix=prefix)
+                                              prefix=per_study_file_prefix)
         fps_table_id = get_dev_table_id(BQ_PARAMS,
                                         dataset=BQ_PARAMS['META_DATASET'],
                                         table_name=fps_table_name)
@@ -357,9 +354,6 @@ def main(args):
                                    query=modify_per_study_file_table_query(fps_table_id))
 
     if 'build_api_file_metadata_jsonl' in steps:
-        endpoint = 'fileMetadata'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
         file_metadata_list = []
 
         fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
@@ -390,14 +384,8 @@ def main(args):
 
             for metadata_row in file_metadata_res['data']['fileMetadata']:
                 if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
-                    fraction_number = metadata_row['fraction_number'].strip()
-
-                    if fraction_number == 'N/A' or fraction_number == 'NOFRACTION' or fraction_number == '':
-                        fraction_number = None
-                    elif fraction_number == 'Pool' or fraction_number == 'pool':
-                        fraction_number = 'POOL'
-
-                    metadata_row['fraction_number'] = fraction_number
+                    if metadata_row['fraction_number'] == 'Pool' or metadata_row['fraction_number'] == 'pool':
+                        metadata_row['fraction_number'] = 'POOL'
 
             file_metadata_list.append(metadata_row)
 
@@ -406,133 +394,26 @@ def main(args):
 
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
-                                      prefix=prefix)
-
+                                      prefix=file_metadata_prefix)
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+
+        # must occur prior to jsonl write, because this also normalizes the data
+        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
-
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
-
-    # this is the old function I was using to save time by pulling the file ids from the previous dataset--
-    # some of the parts might be useful for testing previous versions
-    '''
-    if 'build_api_file_metadata_jsonl' in steps:
-        endpoint = 'fileMetadata'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
-        file_metadata_list = []
-        existing_file_metadata_id_set = set()
-
-        old_file_metadata_res = get_previous_version_file_metadata()
-
-        # create dict from existing bigquery results
-        for file_metadata_row in old_file_metadata_res:
-            file_metadata_dict = dict()
-
-            for key, value in file_metadata_row.items():
-                # key, value = key_val_tuple
-
-                if key == 'file_id':
-                    existing_file_metadata_id_set.add(value)
-                if key == 'fraction_number':
-                    if value == 'Pool' or value == 'pool':
-                        value = 'POOL'
-                    elif value == 'N/A' or value == 'NOFRACTION':
-                        value = None
-
-                file_metadata_dict[key] = value
-
-            if 'aliquots' not in file_metadata_dict or not file_metadata_dict['aliquots']:
-                file_metadata_dict['aliquots'] = [
-                    {
-                        'aliquot_submitter_id': None,
-                        'case_id':  None,
-                        'sample_id':  None,
-                        'case_submitter_id':  None,
-                        'sample_submitter_id':  None,
-                        'aliquot_id':  None
-                    }
-                ]
-
-            file_metadata_list.append(file_metadata_dict)
-
-        fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
-        files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
-        files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
-                                                    dataset=BQ_PARAMS['META_DATASET'],
-                                                    table_name=files_per_study_table_name)
-        current_version_file_ids_query = """
-        SELECT distinct file_id
-        FROM `{}`
-        """.format(files_per_study_table_id)
-
-        per_study_file_id_set = set()
-        current_version_file_ids_res = get_query_results(current_version_file_ids_query)
-
-        for current_version_file_id in current_version_file_ids_res:
-            per_study_file_id_set.add(current_version_file_id[0])
-
-        # todo use this to remove these file rows before writing to jsonl
-        removed_file_ids = existing_file_metadata_id_set - per_study_file_id_set
-
-        new_file_ids = per_study_file_id_set - existing_file_metadata_id_set
-
-        print(len(new_file_ids))
-
-        # retrieve new file metadata and add to existing file metadata list
-        print("Getting {} new file metadata records".format(len(new_file_ids)))
-
-        for count, file_id in enumerate(new_file_ids):
-            file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
-
-            if 'data' not in file_metadata_res:
-                print("No data returned by file metadata query for {}".format(file_id))
-                continue
-
-            for metadata_row in file_metadata_res['data']['fileMetadata']:
-                if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
-                    fraction_number = metadata_row['fraction_number'].strip()
-
-                    if fraction_number == 'N/A' or fraction_number == 'NOFRACTION':
-                        fraction_number = None
-                    elif fraction_number == 'Pool' or fraction_number == 'pool':
-                        fraction_number = 'POOL'
-
-                    metadata_row['fraction_number'] = fraction_number
-
-            file_metadata_list.append(metadata_row)
-
-            if count % 100 == 0:
-                print("{} of {} records retrieved".format(count, len(new_file_ids)))
-
-        jsonl_filename = get_filename(API_PARAMS,
-                                      file_extension='jsonl',
-                                      prefix=prefix)
-
-        local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
-
-        write_list_to_jsonl(local_filepath, file_metadata_list)
-        upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
-
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS, file_metadata_list, prefix)
-    '''
 
     if 'build_api_file_metadata_table' in steps:
-        endpoint = 'fileMetadata'
-        prefix = get_prefix(API_PARAMS, endpoint)
-
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, prefix)
+        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, file_metadata_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=endpoint,
+                               endpoint=file_metadata_endpoint,
                                infer_schema=True,
                                schema=schema)
 
     if 'alter_api_file_metadata_table' in steps:
         fm_table_name = construct_table_name(API_PARAMS,
-                                             prefix=get_prefix(API_PARAMS, 'fileMetadata'))
+                                             prefix=file_metadata_prefix)
 
         fm_table_id = get_dev_table_id(BQ_PARAMS,
                                        dataset=BQ_PARAMS['META_DATASET'],

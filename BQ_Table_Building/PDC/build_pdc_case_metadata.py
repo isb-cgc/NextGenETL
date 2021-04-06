@@ -24,16 +24,15 @@ import time
 import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
-                              return_schema_object_for_bq, normalize_value)
+                              return_schema_object_for_bq, normalize_value, load_table_from_query)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_dev_table_id, create_schema_from_pdc_api, get_prefix,
+                                             get_dev_table_id, normalize_data_and_create_schema, get_prefix,
                                              write_jsonl_and_upload)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
-
 
 """
 WITH cases_samples AS (
@@ -49,6 +48,7 @@ samples_aliquots AS (
 
 SELECT * FROM samples_aliquots 
 """
+
 
 def make_cases_aliquots_query(offset, limit):
     """
@@ -86,7 +86,6 @@ def make_cases_aliquots_query(offset, limit):
                     shortest_dimension
                     time_between_clamping_and_freezing
                     time_between_excision_and_freezing
-                    tissue_type
                     aliquots {{ 
                         aliquot_id 
                         aliquot_submitter_id
@@ -109,7 +108,6 @@ def make_cases_aliquots_query(offset, limit):
     }}""".format(offset, limit)
 
 
-
 def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
     """
     This function is passed as a parameter to build_jsonl_from_pdc_api(). It allows for the json object to be mutated
@@ -122,6 +120,7 @@ def alter_cases_aliquots_objects(json_obj_list, pdc_study_id):
             case['is_ffpe'] == False
         if case['is_ffpe'] == "TRUE" or case['is_ffpe'] == "1":
             case['is_ffpe'] == True
+
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
@@ -205,6 +204,7 @@ def main(args):
 
     biospecimen_endpoint = 'biospecimenPerStudy'
     biospecimen_prefix = get_prefix(API_PARAMS, biospecimen_endpoint)
+
     aliquot_endpoint = 'paginatedCasesSamplesAliquots'
     aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
@@ -214,9 +214,9 @@ def main(args):
                                                             alter_json_function=alter_biospecimen_per_study_objects,
                                                             ids=all_pdc_study_ids, insert_id=True)
 
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                   joined_record_list=per_study_biospecimen_list,
-                                   table_type=biospecimen_prefix)
+        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
+                                         joined_record_list=per_study_biospecimen_list,
+                                         table_type=biospecimen_prefix)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, biospecimen_prefix, per_study_biospecimen_list)
 
@@ -231,9 +231,9 @@ def main(args):
     if 'build_case_aliquot_jsonl' in steps:
         per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS, endpoint=aliquot_endpoint,
                                                              request_function=make_cases_aliquots_query, insert_id=True)
-        create_schema_from_pdc_api(API_PARAMS, BQ_PARAMS,
-                                   joined_record_list=per_study_case_aliquot_list,
-                                   table_type=aliquot_prefix)
+        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
+                                         joined_record_list=per_study_case_aliquot_list,
+                                         table_type=aliquot_prefix)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
 
@@ -245,11 +245,121 @@ def main(args):
                                infer_schema=True,
                                schema=aliquot_schema)
 
+    case_aliquot_table_name = construct_table_name(API_PARAMS, prefix=aliquot_prefix)
+    case_aliquot_table_id = get_dev_table_id(BQ_PARAMS,
+                                             dataset=BQ_PARAMS['META_DATASET'],
+                                             table_name=case_aliquot_table_name)
+
+    biospecimen_table_name = construct_table_name(API_PARAMS, prefix=biospecimen_prefix)
+    biospecimen_table_id = get_dev_table_id(BQ_PARAMS,
+                                            dataset=BQ_PARAMS['META_DATASET'],
+                                            table_name=biospecimen_table_name)
+
+    study_endpoint = 'allPrograms'
+    study_prefix = get_prefix(API_PARAMS, study_endpoint)
+    study_table_name = construct_table_name(API_PARAMS, prefix=study_prefix)
+    study_table_id = get_dev_table_id(BQ_PARAMS,
+                                      dataset=BQ_PARAMS['META_DATASET'],
+                                      table_name=study_table_name)
+
+    case_external_mapping_endpoint = 'allCases'
+    case_external_mapping_prefix = get_prefix(API_PARAMS, case_external_mapping_endpoint)
+    case_external_mapping_table_name = construct_table_name(API_PARAMS, prefix=case_external_mapping_prefix)
+    case_external_mapping_table_id = get_dev_table_id(BQ_PARAMS,
+                                                      dataset=BQ_PARAMS['META_DATASET'],
+                                                      table_name=case_external_mapping_table_name)
+
+
+    file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
+    file_count_table_id = get_dev_table_id(BQ_PARAMS,
+                                                      dataset=BQ_PARAMS['META_DATASET'],
+                                                      table_name=file_count_table_name)
+
     if 'build_case_metadata_table' in steps:
-        pass
+        # case_id, case_submitter_id, primary_site,
+        # project_disease_type, project_name, program_name, project_id,  file_count
+        case_metadata_table_query = """
+        WITH case_project_file_count AS (
+            SELECT DISTINCT c.case_id, c.case_submitter_id, c.project_submitter_id, 
+                s.project_name, s.program_name, s.project_id,
+                fc.file_id_count as file_count
+            FROM `{0}` c
+            JOIN `{1}` s
+                ON c.project_submitter_id = s.project_submitter_id
+            JOIN `{2}` fc
+            ON c.case_id = fc.case_id
+        )
+
+        SELECT ca.case_id, ca.case_submitter_id, ca.primary_site, 
+            p.project_disease_type, p.project_name, p.program_name, p.project_id,
+            c.file_count
+        FROM `{3}` AS ca
+        JOIN cases_projects AS cp
+            ON cp.case_id = ca.case_id
+        JOIN projects AS p 
+            ON cp.project_submitter_id = p.project_submitter_id
+        JOIN file_counts AS c
+            ON c.case_id = ca.case_id
+        """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
-        pass
+        aliquot_to_case_id_query = """
+        WITH cases_samples AS (
+            SELECT c.case_id, c.case_submitter_id, 
+                s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, s.aliquots
+            FROM `{0}` AS c
+            CROSS JOIN UNNEST(samples) AS s
+        ),
+        samples_aliquots AS (
+            SELECT case_id, case_submitter_id, sample_id, sample_submitter_id, sample_type, is_ffpe, 
+            preservation_method, a.aliquot_id, a.aliquot_submitter_id 
+            FROM cases_samples 
+            CROSS JOIN UNNEST (aliquots) AS a
+        ), 
+        cases_projects AS (
+            SELECT DISTINCT case_id, project_submitter_id
+            FROM `{1}`
+        ), 
+        projects AS (
+            SELECT DISTINCT project_submitter_id, project_name, program_name
+            FROM `{2}`  
+        ), 
+        biospecimen AS (
+            SELECT aliquot_id, primary_site, disease_type, sample_type
+            FROM `{3}`
+        )
+        
+        SELECT p.program_name, p.project_name, 
+            sa.case_id, sa.case_submitter_id, sa.sample_id, sa.sample_submitter_id, 
+            sa.sample_type, sa.is_ffpe, sa.preservation_method, sa.aliquot_id, sa.aliquot_submitter_id 
+        FROM samples_aliquots AS sa
+        JOIN cases_projects AS cp
+            ON sa.case_id = cp.case_id
+        JOIN projects AS p
+            ON cp.project_submitter_id = p.project_submitter_id
+        JOIN biospecimen AS b 
+            ON b.aliquot_id = sa.aliquot_id
+        """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id, biospecimen_table_id)
+
+    if 'build_aliquot_run_metadata_map_table' in steps:
+        aliquot_run_metadata_query = """
+        WITH cases_samples AS (
+            SELECT c.case_id, s.sample_id, s.aliquots
+            FROM `{}` AS c
+            CROSS JOIN UNNEST(samples) AS s
+        ),
+        samples_aliquots AS (
+            SELECT case_id, sample_id, a.aliquot_id, a.aliquot_run_metadata
+            FROM cases_samples 
+            CROSS JOIN UNNEST (aliquots) AS a
+        )
+        
+        SELECT case_id, sample_id, aliquot_id, r.aliquot_run_metadata_id
+        FROM samples_aliquots 
+        CROSS JOIN UNNEST (aliquot_run_metadata) as r
+        """.format(case_aliquot_table_id)
+
+        load_table_from_query(BQ_PARAMS, case_aliquot_table_id, aliquot_run_metadata_query)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
