@@ -209,7 +209,8 @@ def main(args):
     aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
 
     if 'build_biospecimen_jsonl' in steps:
-        per_study_biospecimen_list = build_obj_from_pdc_api(API_PARAMS, endpoint=biospecimen_endpoint,
+        per_study_biospecimen_list = build_obj_from_pdc_api(API_PARAMS,
+                                                            endpoint=biospecimen_endpoint,
                                                             request_function=make_biospecimen_per_study_query,
                                                             alter_json_function=alter_biospecimen_per_study_objects,
                                                             ids=all_pdc_study_ids, insert_id=True)
@@ -229,8 +230,11 @@ def main(args):
                                schema=biospecimen_schema)
 
     if 'build_case_aliquot_jsonl' in steps:
-        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS, endpoint=aliquot_endpoint,
-                                                             request_function=make_cases_aliquots_query, insert_id=True)
+        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS,
+                                                             endpoint=aliquot_endpoint,
+                                                             request_function=make_cases_aliquots_query,
+                                                             alter_json_function=alter_cases_aliquots_objects,
+                                                             insert_id=True)
         normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
                                          joined_record_list=per_study_case_aliquot_list,
                                          table_type=aliquot_prefix)
