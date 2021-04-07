@@ -277,7 +277,7 @@ def main(args):
                                                       table_name=file_count_table_name)
 
     if 'build_aliquot_run_metadata_map_table' in steps:
-        aliquot_run_metadata_query = """
+        query = """
         WITH cases_samples AS (
             SELECT c.case_id, s.sample_id, s.aliquots
             FROM `{}` AS c
@@ -294,7 +294,9 @@ def main(args):
         CROSS JOIN UNNEST (aliquot_run_metadata) as r
         """.format(case_aliquot_table_id)
 
-        load_table_from_query(BQ_PARAMS, case_aliquot_table_id, aliquot_run_metadata_query)
+        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        load_table_from_query(BQ_PARAMS, table_id, query)
 
     if 'build_case_metadata_table' in steps:
         # case_id, case_submitter_id, primary_site,
@@ -317,6 +319,10 @@ def main(args):
         JOIN case_project_file_count AS cp
             ON cp.case_id = ca.case_id
         """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
+
+        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        load_table_from_query(BQ_PARAMS, table_id, query)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = """
@@ -346,6 +352,10 @@ def main(args):
         JOIN cases_projects AS p
             ON sa.case_id = p.case_id
         """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id)
+
+        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        load_table_from_query(BQ_PARAMS, table_id, query)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
