@@ -298,9 +298,10 @@ def main(args):
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
 
-        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
-        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
-        update_schema(table_id, fields_path)
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+        field_desc_fp = get_filepath(fields_path, fields_file)
+        update_schema(table_id, field_desc_fp)
 
     if 'build_case_metadata_table' in steps:
         # case_id, case_submitter_id, primary_site,
@@ -328,9 +329,10 @@ def main(args):
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
 
-        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
-        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
-        update_schema(table_id, fields_path)
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+        field_desc_fp = get_filepath(fields_path, fields_file)
+        update_schema(table_id, field_desc_fp)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = """
@@ -365,9 +367,10 @@ def main(args):
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
 
-        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
-        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
-        update_schema(table_id, fields_path)
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+        field_desc_fp = get_filepath(fields_path, fields_file)
+        update_schema(table_id, field_desc_fp)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))

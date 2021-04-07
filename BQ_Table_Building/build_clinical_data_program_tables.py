@@ -1290,7 +1290,7 @@ def update_clin_schema():
     print("\nUpdating schemas (field descriptions)!")
 
     dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    fields_file = "{}_{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'], get_rel_prefix(API_PARAMS))
+    fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
     field_desc_fp = get_filepath(dir_path, fields_file)
 
     with open(field_desc_fp) as field_output:
