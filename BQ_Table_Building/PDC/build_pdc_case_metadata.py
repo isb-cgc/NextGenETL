@@ -344,7 +344,7 @@ def main(args):
                 s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, 
                 s.freezing_method, s.time_between_clamping_and_freezing, s.time_between_excision_and_freezing,
                 s.days_to_collection, s.initial_weight, s.current_weight, s.shortest_dimension, 
-                s.intermediate_dimension, s.longest_dimension
+                s.intermediate_dimension, s.longest_dimension,
                 s.aliquots
             FROM `{0}` AS c
             CROSS JOIN UNNEST(samples) AS s
@@ -353,7 +353,7 @@ def main(args):
             SELECT case_id, case_submitter_id, sample_id, sample_submitter_id, sample_type, preservation_method, 
                 is_ffpe, freezing_method, time_between_clamping_and_freezing, time_between_excision_and_freezing,
                 days_to_collection, initial_weight, current_weight, shortest_dimension, 
-                intermediate_dimension, longest_dimension
+                intermediate_dimension, longest_dimension,
                 a.aliquot_id, a.aliquot_submitter_id 
             FROM cases_samples 
             CROSS JOIN UNNEST (aliquots) AS a
@@ -370,7 +370,7 @@ def main(args):
             sa.sample_type, sa.is_ffpe, sa.preservation_method, sa.freezing_method, 
             sa.time_between_clamping_and_freezing, sa.time_between_excision_and_freezing,
             sa.days_to_collection, sa.initial_weight, sa.current_weight, 
-            sa.shortest_dimension, sa.intermediate_dimension, sa.longest_dimension
+            sa.shortest_dimension, sa.intermediate_dimension, sa.longest_dimension,
             sa.aliquot_id, sa.aliquot_submitter_id 
         FROM samples_aliquots AS sa
         JOIN cases_projects AS p
