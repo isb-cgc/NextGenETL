@@ -273,8 +273,8 @@ def main(args):
 
     file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
     file_count_table_id = get_dev_table_id(BQ_PARAMS,
-                                                      dataset=BQ_PARAMS['META_DATASET'],
-                                                      table_name=file_count_table_name)
+                                          dataset=BQ_PARAMS['META_DATASET'],
+                                          table_name=file_count_table_name)
 
     if 'build_aliquot_run_metadata_map_table' in steps:
         aliquot_run_metadata_query = """
@@ -297,6 +297,10 @@ def main(args):
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
+
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
+        update_schema(table_id, fields_path)
 
     if 'build_case_metadata_table' in steps:
         # case_id, case_submitter_id, primary_site,
@@ -323,6 +327,10 @@ def main(args):
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
+
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
+        update_schema(table_id, fields_path)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = """
@@ -356,6 +364,10 @@ def main(args):
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
+
+        fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_PREFIX'])
+        fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR'], fields_file])
+        update_schema(table_id, fields_path)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
