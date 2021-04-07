@@ -153,6 +153,7 @@ def alter_biospecimen_per_study_objects(json_obj_list, pdc_study_id):
     :param json_obj_list: list of json objects to mutate
     :param pdc_study_id: pdc study id for this set of json objects
     """
+    # todo change how this works -- not dependent on biospecimen
 
     def get_case_file_count_mapping():
         """
@@ -255,11 +256,6 @@ def main(args):
                                              dataset=BQ_PARAMS['META_DATASET'],
                                              table_name=case_aliquot_table_name)
 
-    biospecimen_table_name = construct_table_name(API_PARAMS, prefix=biospecimen_prefix)
-    biospecimen_table_id = get_dev_table_id(BQ_PARAMS,
-                                            dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=biospecimen_table_name)
-
     study_endpoint = 'allPrograms'
     study_prefix = get_prefix(API_PARAMS, study_endpoint)
     study_table_name = construct_table_name(API_PARAMS, prefix=study_prefix)
@@ -280,72 +276,6 @@ def main(args):
                                                       dataset=BQ_PARAMS['META_DATASET'],
                                                       table_name=file_count_table_name)
 
-    if 'build_case_metadata_table' in steps:
-        # case_id, case_submitter_id, primary_site,
-        # project_disease_type, project_name, program_name, project_id,  file_count
-        case_metadata_table_query = """
-        WITH case_project_file_count AS (
-            SELECT DISTINCT c.case_id, c.case_submitter_id, c.project_submitter_id, 
-                s.project_name, s.program_name, s.project_id,
-                fc.file_id_count as file_count
-            FROM `{0}` c
-            JOIN `{1}` s
-                ON c.project_submitter_id = s.project_submitter_id
-            JOIN `{2}` fc
-            ON c.case_id = fc.case_id
-        )
-
-        SELECT ca.case_id, ca.case_submitter_id, ca.primary_site, 
-            p.project_disease_type, p.project_name, p.program_name, p.project_id,
-            c.file_count
-        FROM `{3}` AS ca
-        JOIN cases_projects AS cp
-            ON cp.case_id = ca.case_id
-        JOIN projects AS p 
-            ON cp.project_submitter_id = p.project_submitter_id
-        JOIN file_counts AS c
-            ON c.case_id = ca.case_id
-        """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
-
-    if 'build_aliquot_to_case_id_map_table' in steps:
-        aliquot_to_case_id_query = """
-        WITH cases_samples AS (
-            SELECT c.case_id, c.case_submitter_id, 
-                s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, s.aliquots
-            FROM `{0}` AS c
-            CROSS JOIN UNNEST(samples) AS s
-        ),
-        samples_aliquots AS (
-            SELECT case_id, case_submitter_id, sample_id, sample_submitter_id, sample_type, is_ffpe, 
-            preservation_method, a.aliquot_id, a.aliquot_submitter_id 
-            FROM cases_samples 
-            CROSS JOIN UNNEST (aliquots) AS a
-        ), 
-        cases_projects AS (
-            SELECT DISTINCT case_id, project_submitter_id
-            FROM `{1}`
-        ), 
-        projects AS (
-            SELECT DISTINCT project_submitter_id, project_name, program_name
-            FROM `{2}`  
-        ), 
-        biospecimen AS (
-            SELECT aliquot_id, primary_site, disease_type, sample_type
-            FROM `{3}`
-        )
-        
-        SELECT p.program_name, p.project_name, 
-            sa.case_id, sa.case_submitter_id, sa.sample_id, sa.sample_submitter_id, 
-            sa.sample_type, sa.is_ffpe, sa.preservation_method, sa.aliquot_id, sa.aliquot_submitter_id 
-        FROM samples_aliquots AS sa
-        JOIN cases_projects AS cp
-            ON sa.case_id = cp.case_id
-        JOIN projects AS p
-            ON cp.project_submitter_id = p.project_submitter_id
-        JOIN biospecimen AS b 
-            ON b.aliquot_id = sa.aliquot_id
-        """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id, biospecimen_table_id)
-
     if 'build_aliquot_run_metadata_map_table' in steps:
         aliquot_run_metadata_query = """
         WITH cases_samples AS (
@@ -365,6 +295,57 @@ def main(args):
         """.format(case_aliquot_table_id)
 
         load_table_from_query(BQ_PARAMS, case_aliquot_table_id, aliquot_run_metadata_query)
+
+    if 'build_case_metadata_table' in steps:
+        # case_id, case_submitter_id, primary_site,
+        # project_disease_type, project_name, program_name, project_id,  file_count
+        case_metadata_table_query = """
+        WITH case_project_file_count AS (
+            SELECT DISTINCT c.case_id, c.case_submitter_id, c.project_submitter_id, 
+                s.project_name, s.program_name, s.project_id,
+                fc.file_id_count as file_count
+            FROM `{0}` c
+            JOIN `{1}` s
+                ON c.project_submitter_id = s.project_submitter_id
+            JOIN `{2}` fc
+                ON c.case_id = fc.case_id
+        )
+
+        SELECT ca.case_id, ca.case_submitter_id, ca.primary_site, ca.disease_type,
+            cp.project_name, cp.program_name, cp.project_id, cp.file_count
+        FROM `{3}` AS ca
+        JOIN case_project_file_count AS cp
+            ON cp.case_id = ca.case_id
+        """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
+
+    if 'build_aliquot_to_case_id_map_table' in steps:
+        aliquot_to_case_id_query = """
+        WITH cases_samples AS (
+            SELECT c.case_id, c.case_submitter_id, 
+                s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, s.aliquots
+            FROM `{0}` AS c
+            CROSS JOIN UNNEST(samples) AS s
+        ),
+        samples_aliquots AS (
+            SELECT case_id, case_submitter_id, sample_id, sample_submitter_id, sample_type, is_ffpe, 
+            preservation_method, a.aliquot_id, a.aliquot_submitter_id 
+            FROM cases_samples 
+            CROSS JOIN UNNEST (aliquots) AS a
+        ), 
+        cases_projects AS (
+            SELECT DISTINCT ext_map.case_id, studies.program_name, studies.project_name
+            FROM `{1}` ext_map
+            JOIN `{2}` studies
+                ON studies.project_submitter_id = ext_map.project_submitter_id
+        )
+        
+        SELECT p.program_name, p.project_name, 
+            sa.case_id, sa.case_submitter_id, sa.sample_id, sa.sample_submitter_id, 
+            sa.sample_type, sa.is_ffpe, sa.preservation_method, sa.aliquot_id, sa.aliquot_submitter_id 
+        FROM samples_aliquots AS sa
+        JOIN cases_projects AS p
+            ON sa.case_id = p.case_id
+        """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
