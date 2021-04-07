@@ -277,7 +277,7 @@ def main(args):
                                                       table_name=file_count_table_name)
 
     if 'build_aliquot_run_metadata_map_table' in steps:
-        query = """
+        aliquot_run_metadata_query = """
         WITH cases_samples AS (
             SELECT c.case_id, s.sample_id, s.aliquots
             FROM `{}` AS c
@@ -296,7 +296,7 @@ def main(args):
 
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, query)
+        load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
 
     if 'build_case_metadata_table' in steps:
         # case_id, case_submitter_id, primary_site,
@@ -322,7 +322,7 @@ def main(args):
 
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, query)
+        load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = """
@@ -355,7 +355,7 @@ def main(args):
 
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, query)
+        load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
