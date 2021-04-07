@@ -117,9 +117,9 @@ def alter_cases_aliquots_objects(json_obj_list):
     for case in json_obj_list:
         if 'is_ffpe' in case:
             if case['is_ffpe'] == "0" or case['is_ffpe'] == 0:
-                case['is_ffpe'] == False
+                case['is_ffpe'] == "False"
             if case['is_ffpe'] == "1" or case['is_ffpe'] == 1:
-                case['is_ffpe'] == True
+                case['is_ffpe'] == "True"
 
 
 def make_biospecimen_per_study_query(pdc_study_id):

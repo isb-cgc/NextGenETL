@@ -798,9 +798,9 @@ def normalize_value(value):
     if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported'):
         return None
     elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
-        return False
+        return "False"
     elif value in ('True', 'true', 'TRUE', 'YES', 'yes', 'Yes'):
-        return True
+        return "True"
 
     return value
 
