@@ -813,18 +813,10 @@ def check_value_type(value):
     :return: type in BQ column format
     """
 
-    '''
-    if value == 1 or value == 0 or value == '1' or value == '0':
-        # Sometimes, 1 and 0 are integers, sometimes they're boolean. In order to avoid mistyping them as int OR bool,
-        # this opts not to type them at all. Other values in the dataset should make the decision.
-        # The worst case scenario is that an entire data source uses {1, 0} to represent boolean, but it ends up being
-        # typed as string.
-        return None
-    '''
-    if isinstance(value, int):
-        return "INT64"
     if isinstance(value, bool):
         return "BOOL"
+    if isinstance(value, int):
+        return "INT64"
     if isinstance(value, float):
         return "FLOAT64"
     if isinstance(value, list):

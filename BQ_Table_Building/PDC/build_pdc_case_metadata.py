@@ -213,7 +213,8 @@ def main(args):
                                                             endpoint=biospecimen_endpoint,
                                                             request_function=make_biospecimen_per_study_query,
                                                             alter_json_function=alter_biospecimen_per_study_objects,
-                                                            ids=all_pdc_study_ids, insert_id=True)
+                                                            ids=all_pdc_study_ids,
+                                                            insert_id=True)
 
         normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
                                          joined_record_list=per_study_biospecimen_list,
