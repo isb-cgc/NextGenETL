@@ -82,7 +82,6 @@ def make_cases_aliquots_query(offset, limit):
                     initial_weight
                     intermediate_dimension
                     longest_dimension
-                    oct_embedded
                     shortest_dimension
                     time_between_clamping_and_freezing
                     time_between_excision_and_freezing
@@ -121,11 +120,7 @@ def alter_cases_aliquots_objects(json_obj_list):
                 case['is_ffpe'] == False
             if case['is_ffpe'] == "1" or case['is_ffpe'] == 1:
                 case['is_ffpe'] == True
-        if 'oct_embedded' in case:
-            if case['oct_embedded'] == "0" or case['oct_embedded'] == 0:
-                case['oct_embedded'] == False
-            if case['oct_embedded'] == "1" or case['oct_embedded'] == 1:
-                case['oct_embedded'] == True
+
 
 def make_biospecimen_per_study_query(pdc_study_id):
     """
