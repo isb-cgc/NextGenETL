@@ -22,6 +22,7 @@ SOFTWARE.
 
 import time
 import sys
+import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
