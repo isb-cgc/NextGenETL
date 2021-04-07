@@ -116,10 +116,11 @@ def alter_cases_aliquots_objects(json_obj_list):
     :param pdc_study_id: pdc study id for this set of json objects
     """
     for case in json_obj_list:
-        if case['is_ffpe'] == "FALSE" or case['is_ffpe'] == "0" or case['is_ffpe'] == "false" or case['is_ffpe'] == "False":
-            case['is_ffpe'] == False
-        if case['is_ffpe'] == "TRUE" or case['is_ffpe'] == "1" or case['is_ffpe'] == "true" or case['is_ffpe'] == "True":
-            case['is_ffpe'] == True
+        if 'is_ffpe' in case:
+            if case['is_ffpe'] == "FALSE" or case['is_ffpe'] == "0" or case['is_ffpe'] == "false" or case['is_ffpe'] == "False":
+                case['is_ffpe'] == False
+            if case['is_ffpe'] == "TRUE" or case['is_ffpe'] == "1" or case['is_ffpe'] == "true" or case['is_ffpe'] == "True":
+                case['is_ffpe'] == True
 
 
 def make_biospecimen_per_study_query(pdc_study_id):
