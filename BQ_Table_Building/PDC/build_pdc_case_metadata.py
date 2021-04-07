@@ -277,7 +277,7 @@ def main(args):
                                           dataset=BQ_PARAMS['META_DATASET'],
                                           table_name=file_count_table_name)
 
-    fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+    fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
     fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
     field_desc_fp = get_filepath(fields_path, fields_file)
 
