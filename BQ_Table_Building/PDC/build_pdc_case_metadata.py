@@ -24,7 +24,8 @@ import time
 import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
-                              return_schema_object_for_bq, normalize_value, load_table_from_query)
+                              return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
+                              update_schema)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
                                              get_dev_table_id, normalize_data_and_create_schema, get_prefix,
