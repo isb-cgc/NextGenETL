@@ -68,7 +68,6 @@ def extract_aliquot_count(release_table, do_batch):
     retval = [row.max_delim for row in results]
     return retval[0] + 1
 
-
 '''
 ----------------------------------------------------------------------------------------------
 SQL for above:
@@ -87,7 +86,6 @@ def extract_aliquot_count_sql(release_table):
                   (associated_entities__entity_type = "aliquot"))
             SELECT MAX(delim) as max_delim FROM a1
             '''.format(release_table)
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -120,7 +118,6 @@ def extract_active_aliquot_file_data(release_table, program_name, target_dataset
 
     sql = extract_active_aliquot_file_data_sql(release_table, program_name)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -187,18 +184,14 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
               (a.associated_entities__entity_type = "aliquot")
         '''.format(program_name, release_table)
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Get two rows from one where there are two aliquots present
 '''
-
-
 def expand_active_aliquot_file_data(aliquot_table, target_dataset, dest_table, do_batch):
 
     sql = expand_active_aliquot_file_data_sql(aliquot_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1012,7 +1005,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                         chunks = val.split('-', 1)
                         if chunks[1] == 'programs':
                             if val.find('~lcbqs-') == 0:
-                                # todo: have BEATAML not with _01 for label
                                 rep_val = dataset_tuple[1].lower() # can't have "." in a tag...
                             else:
                                 rep_val = dataset_tuple[0]
@@ -1083,114 +1075,99 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 print("install_table_description failed")
                 return False
 
-    publish_steps = ['compare_remove_old_current',
-                     'publish',
-                     'update_status_tag']
+    #
+    # compare and remove old current table
+    #
 
-    if all(step in steps for step in publish_steps):
-        print('Running turned on Publication Steps')
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        table = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_{}')
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
+                                              table.format('current'))
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([dataset_tuple[1], 'versioned']),
+                                               table.format(params['PREVIOUS_RELEASE']))
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+                                       "_".join([dataset_tuple[1],
+                                                 table.format(params['PREVIOUS_RELEASE']),
+                                                 'backup']))
 
-        print('Check to make sure the table has new data before publication')
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-        # todo: add evaluate table union here
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        if compare is not None:
+            num_rows = compare.total_rows
 
-        if new_table:
-            #
-            # compare and remove old current table
-            #
-
-            # compare the two tables
-            if 'compare_remove_old_current' in steps:
-                table = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_{}')
-                old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
-                                                      table.format('current'))
-                previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                       "_".join([dataset_tuple[1], 'versioned']),
-                                                       table.format(params['PREVIOUS_RELEASE']))
-                table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                               "_".join([dataset_tuple[1],
-                                                         table.format(params['PREVIOUS_RELEASE']),
-                                                         'backup']))
-
-                print('Compare {} to {}'.format(old_current_table, previous_ver_table))
-
-                compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-                if compare is not None:
-                    num_rows = compare.total_rows
-
-                    if num_rows == 0:
-                        print('the tables are the same')
-                    else:
-                        print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-
-                    if not compare:
-                        print('compare_tables failed')
-                        return
-                    # move old table to a temporary location
-                    elif compare and num_rows == 0:
-                        print('Move old table to temp location')
-                        table_moved = publish_table(old_current_table, table_temp)
-
-                        if not table_moved:
-                            print('Old Table was not moved and will not be deleted')
-                        # remove old table
-                        elif table_moved:
-                            print('Deleting old table: {}'.format(old_current_table))
-                            delete_table = delete_table_bq_job(dataset_tuple[1],
-                                                                      table.format('current'), params['PUBLICATION_PROJECT'])
-                            if not delete_table:
-                                print('delete table failed')
-                                return
-                else:
-                    print('no previous table available for ', table.format(params['RELEASE']))
-            #
-            # publish table:
-            #
-
-            if 'publish' in steps:
-                print('publish tables')
-                tables = ['versioned', 'current']
-
-                for table in tables:
-                    if table == 'versioned':
-                        table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
-                        draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
-                                                                   params['RELEASE'])
-                        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                                         params['TARGET_DATASET'], draft_table_name)
-                        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                             '_'.join([dataset_tuple[1], 'versioned']), table_name)
-                    elif table == 'current':
-                        table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_current')
-                        draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
-                                                                   'current')
-                        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], draft_table_name)
-                        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
-                    print('publish: {}'.format(table_name))
-                    success = publish_table(source_table, publication_dest)
-
-                    if not success:
-                        print("publish failed")
-                        return False
-
-            #
-            # Update previous versioned table with archived tag
-            #
-
-            if 'update_status_tag' in steps:
-                print('Update previous table')
-                previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
-                success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
-                                            previous_ver_table,
-                                            'archived', params['PUBLICATION_PROJECT'])
-
-                if not success:
-                    print("update status tag table failed")
-                    return
-
+            if num_rows == 0:
+                print('the tables are the same')
             else:
-                print("{} program does not have new data")
+                print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+            if not compare:
+                print('compare_tables failed')
                 return
+            # move old table to a temporary location
+            elif compare and num_rows == 0:
+                print('Move old table to temp location')
+                table_moved = publish_table(old_current_table, table_temp)
+
+                if not table_moved:
+                    print('Old Table was not moved and will not be deleted')
+                # remove old table
+                elif table_moved:
+                    print('Deleting old table: {}'.format(old_current_table))
+                    delete_table = delete_table_bq_job(dataset_tuple[1],
+                                                              table.format('current'), params['PUBLICATION_PROJECT'])
+                    if not delete_table:
+                        print('delete table failed')
+                        return
+        else:
+            print('no previous table available for ', table.format(params['RELEASE']))
+    #
+    # publish table:
+    #
+
+    if 'publish' in steps:
+        print('publish tables')
+        tables = ['versioned', 'current']
+
+        for table in tables:
+            if table == 'versioned':
+                table_name = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['RELEASE'])
+                draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
+                                                           params['RELEASE'])
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
+                                                 params['TARGET_DATASET'], draft_table_name)
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     '_'.join([dataset_tuple[1], 'versioned']), table_name)
+            elif table == 'current':
+                table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_current')
+                draft_table_name = "{}_{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc',
+                                                           'current')
+                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], draft_table_name)
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1], table_name)
+            print('publish: {}'.format(table_name))
+            success = publish_table(source_table, publication_dest)
+
+            if not success:
+                print("publish failed")
+                return False
+
+    #
+    # Update previous versioned table with archived tag
+    #
+
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+        previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
+        success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
+                                    previous_ver_table,
+                                    'archived', params['PUBLICATION_PROJECT'])
+
+        if not success:
+            print("update status tag table failed")
+            return
+
     #
     # Clear out working temp tables:
     #

@@ -1063,6 +1063,37 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
+# The below three functions break the multiple schema steps into distinct pieces
+# retrieve a schema from a table, update it using a dictionary of new values, write to BQ
+def retrieve_table_schema(target_dataset, dest_table, project=None):
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        return table.schema
+    except Exception as ex:
+        print(ex)
+        return False
+
+def update_table_schema(schema, add_dict):
+    schema_dict = {field.name: field for field in schema}
+    for key in add_dict:
+        schema_dict[key] = bigquery.SchemaField( key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'] )
+    updated_schema = [schema_dict[key] for key in schema_dict]
+    return updated_schema
+
+def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        table.schema = new_schema
+        table = client.update_table(table, ["schema"])
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
+
 def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
@@ -1497,6 +1528,12 @@ Is the table that is replacing the view exactly the same?
 '''
 
 def compare_two_tables(old_table, new_table, do_batch):
+    old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
+    
+    old_schema = retrieve_table_schema( old_table_spl[1], old_table_spl[2], old_table_spl[0] )
+    new_schema = retrieve_table_schema( new_table_spl[1], new_table_spl[2], new_table_spl[0] )
+    if len(old_schema) != len(new_schema):
+        return 'Number of fields do not match'
     sql = compare_two_tables_sql(old_table, new_table)
     return bq_harness_with_result(sql, do_batch)
 
@@ -1519,3 +1556,22 @@ def compare_two_tables_sql(old_table, new_table):
             SELECT * from `{0}`
         )
     '''.format(old_table, new_table)
+
+
+def evaluate_table_union(bq_results):
+    """Evaluate whether two tables are identical by 
+    using the count of distinct rows in their union
+    return True/False"""
+    if not bq_results:
+        print( 'Table comparison failed')
+        return( False )
+    if bq_results == 'Number of fields do not match':
+        print( bq_results )
+        return ( 'different' )
+    row_difference = bq_results.total_rows
+    if row_difference == 0:
+        print( 'The tables are identical' )
+        return ( 'identical' )
+    else:
+        print( 'The tables differ by {} rows'.format(row_difference) )
+        return( 'different' )
