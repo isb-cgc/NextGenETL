@@ -62,7 +62,7 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
-# ### Concatentate all Files
+# ### Concatenate all Files
 # Gather up all files and glue them into one big one. We also add columns for the
 `source_file_name` and `source_file_id` (which is the name of the directory it is in).
 WARNING! Currently hardwired to CNV file heading!
