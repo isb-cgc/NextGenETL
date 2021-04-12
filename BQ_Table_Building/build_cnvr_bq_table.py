@@ -16,10 +16,14 @@ limitations under the License.
 
 """
 
+# Overall to dos
+# todo: add docstrings
+# todo: convert to python3.9 with f stings
+#
+
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
 '''
-
 
 import sys
 import os
@@ -42,6 +46,7 @@ from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_cl
 The configuration reader. Parses the YAML configuration into dictionaries
 '''
 def load_config(yaml_config):
+
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
     try:
@@ -99,7 +104,7 @@ def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table
 # ### SQL Code For Final Table Generation
 # Original author: Sheila Reynolds
 '''
-def merge_bq_sql(cnv_table, aliquot_table):
+def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different columns names
 
     # todo add primary site
     # todo may need to join on sample_id also
