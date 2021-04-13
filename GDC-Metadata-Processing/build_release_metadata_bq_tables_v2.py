@@ -35,7 +35,7 @@ from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, \
                                update_schema_with_dict, install_labels_and_desc, \
-                               compare_two_tables, publish_table, update_status_tag
+                               remove_old_current_tables, publish_table, update_status_tag
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1094,35 +1094,8 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-        if compare is not None:
-            num_rows = compare.total_rows
+        success = remove_old_current_tables(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'])
 
-            if num_rows == 0:
-                print('the tables are the same')
-            else:
-                print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-
-            if not compare:
-                print('compare_tables failed')
-                return
-            # move old table to a temporary location
-            elif compare and num_rows == 0:
-                print('Move old table to temp location')
-                table_moved = publish_table(old_current_table, table_temp)
-
-                if not table_moved:
-                    print('Old Table was not moved and will not be deleted')
-                # remove old table
-                elif table_moved:
-                    print('Deleting old table: {}'.format(old_current_table))
-                    delete_table = delete_table_bq_job(dataset_tuple[1],
-                                                              table.format('current'), params['PUBLICATION_PROJECT'])
-                    if not delete_table:
-                        print('delete table failed')
-                        return
-        else:
-            print('no previous table available for ', table.format(params['RELEASE']))
     #
     # publish table:
     #
