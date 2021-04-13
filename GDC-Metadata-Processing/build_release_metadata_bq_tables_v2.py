@@ -906,14 +906,16 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
             step_two_table = "{}_{}_{}".format(dataset_tuple[1], build, params['ALIQUOT_STEP_2_TABLE'])
 
             if dataset_tuple[0] in aliquot_map_programs:
-                success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
+                success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset_tuple[0],
+                                                   params['TARGET_DATASET'],
                                                    step_two_table, params['BQ_AS_BATCH'])
 
                 if not success:
                     print("{} {} align_barcodes job failed".format(dataset_tuple[0], build))
                     return False
             else:
-                success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset_tuple[0], params['TARGET_DATASET'],
+                success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset_tuple[0],
+                                                      params['TARGET_DATASET'],
                                                       step_two_table, params['BQ_AS_BATCH'])
 
                 if not success:
