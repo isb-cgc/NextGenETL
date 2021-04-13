@@ -1524,14 +1524,14 @@ def publish_table(source_table, target_table):
 
 '''
 ----------------------------------------------------------------------------------------------
-Is the table that is replacing the view exactly the same?
+Are two tables exactly the same?
 '''
 
 def compare_two_tables(old_table, new_table, do_batch):
     old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
-    
-    old_schema = retrieve_table_schema( old_table_spl[1], old_table_spl[2], old_table_spl[0] )
-    new_schema = retrieve_table_schema( new_table_spl[1], new_table_spl[2], new_table_spl[0] )
+
+    old_schema = retrieve_table_schema(old_table_spl[1], old_table_spl[2], old_table_spl[0])
+    new_schema = retrieve_table_schema(new_table_spl[1], new_table_spl[2], new_table_spl[0])
     if len(old_schema) != len(new_schema):
         return 'Number of fields do not match'
     sql = compare_two_tables_sql(old_table, new_table)
@@ -1563,15 +1563,49 @@ def evaluate_table_union(bq_results):
     using the count of distinct rows in their union
     return True/False"""
     if not bq_results:
-        print( 'Table comparison failed')
-        return( False )
+        print('Table comparison failed')
+        return False
     if bq_results == 'Number of fields do not match':
-        print( bq_results )
-        return ( 'different' )
+        print(bq_results)
+        return 'different'
     row_difference = bq_results.total_rows
     if row_difference == 0:
-        print( 'The tables are identical' )
-        return ( 'identical' )
+        print('The tables are identical')
+        return 'identical'
     else:
-        print( 'The tables differ by {} rows'.format(row_difference) )
-        return( 'different' )
+        print('The tables differ by {} rows'.format(row_difference))
+        return 'different'
+
+
+def remove_old_current_tables(old_current_table, previous_ver_table, table_temp, do_batch):
+    project, dataset, table = old_current_table.split('.')
+    compare = compare_two_tables(old_current_table, previous_ver_table, do_batch)
+    if compare is not None:
+        # Evaluate the two tables
+        evaluate_compare = evaluate_table_union(compare)
+
+        if not compare:
+            print('compare_tables failed')
+            return False
+        # move old table to a temporary location
+        elif compare and evaluate_compare == 'identical':
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+                return False
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(dataset,
+                                                   table.format('current'), project)
+
+                if not delete_table:
+                    print('delete table failed')
+                    return False
+    else:
+        print('no previous table available for this data type')
+        return False
+
+    return True
