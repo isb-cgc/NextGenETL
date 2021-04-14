@@ -381,7 +381,7 @@ def main(args):
 
         case_metadata_table_id = get_dev_table_id(BQ_PARAMS,
                                                   dataset=BQ_PARAMS['META_DATASET'],
-                                                  table_name=file_metadata_table_name)
+                                                  table_name=case_metadata_table_name)
 
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
