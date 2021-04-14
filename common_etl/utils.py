@@ -371,6 +371,9 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
     current_table_id, versioned_table_id = get_publish_table_ids()
 
+    print("{}: {}".format(current_table_id, versioned_table_id))
+    exit()
+
     if exists_bq_table(source_table_id):
         print("Publishing {}".format(versioned_table_id))
         copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
