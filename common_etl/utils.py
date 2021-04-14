@@ -193,7 +193,7 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     print("Labels updated successfully!\n")
 
 
-def update_friendly_name(api_params, table_id, custom_name=None, is_gdc=True):
+def update_friendly_name(api_params, table_id, is_gdc, custom_name=None):
     """Modify BQ table's friendly name.
 
     :param api_params: api param object from yaml config
