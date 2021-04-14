@@ -109,7 +109,6 @@ def alter_cases_aliquots_objects(json_obj_list):
                 case['is_ffpe'] == "True"
 
 
-
 def make_biospecimen_per_study_query(pdc_study_id):
     """
 
@@ -141,6 +140,7 @@ def alter_biospecimen_per_study_objects(json_obj_list, pdc_study_id):
     :param json_obj_list: list of json objects to mutate
     :param pdc_study_id: pdc study id for this set of json objects
     """
+
     # todo change how this works -- not dependent on biospecimen
 
     def get_case_file_count_mapping():
@@ -258,11 +258,10 @@ def main(args):
                                                       dataset=BQ_PARAMS['META_DATASET'],
                                                       table_name=case_external_mapping_table_name)
 
-
     file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
     file_count_table_id = get_dev_table_id(BQ_PARAMS,
-                                          dataset=BQ_PARAMS['META_DATASET'],
-                                          table_name=file_count_table_name)
+                                           dataset=BQ_PARAMS['META_DATASET'],
+                                           table_name=file_count_table_name)
 
     fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
     fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
@@ -375,6 +374,8 @@ def main(args):
 
     if "publish_case_metadata_tables" in steps:
         # Publish master case metadata table
+        print("publish")
+
         case_metadata_table_name = construct_table_name(API_PARAMS,
                                                         prefix=BQ_PARAMS['CASE_METADATA_TABLE'],
                                                         include_release=False)
@@ -387,7 +388,7 @@ def main(args):
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=case_metadata_table_id,
                       overwrite=True)
-        
+
         # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'],
