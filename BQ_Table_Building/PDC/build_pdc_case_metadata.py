@@ -377,7 +377,7 @@ def main(args):
     if "publish_case_metadata_tables" in steps:
         # Publish master file metadata table
         case_metadata_table_name = construct_table_name(API_PARAMS,
-                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
+                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'], include_release=False)
 
         case_metadata_table_id = get_dev_table_id(BQ_PARAMS,
                                                   dataset=BQ_PARAMS['META_DATASET'],
