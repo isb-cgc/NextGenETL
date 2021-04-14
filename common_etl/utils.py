@@ -345,8 +345,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_type = split_table_id[-1]
         data_type = data_type.replace(rel_prefix, '').strip('_')
 
-        print(data_type)
-
         curr_table_name = construct_table_name_from_list([data_type, data_source, 'current'])
         curr_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
         vers_table_name = construct_table_name_from_list([data_type, data_source, rel_prefix])
@@ -373,9 +371,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
             print("Couldn't find a table to archive. Might be that this is the first table release?")
 
     current_table_id, versioned_table_id = get_publish_table_ids()
-
-    print("{}: {}".format(current_table_id, versioned_table_id))
-    exit()
 
     if exists_bq_table(source_table_id):
         print("Publishing {}".format(versioned_table_id))
