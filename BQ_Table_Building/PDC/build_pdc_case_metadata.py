@@ -377,15 +377,13 @@ def main(args):
     if "publish_case_metadata_tables" in steps:
         # Publish master file metadata table
         case_metadata_table_name = construct_table_name(API_PARAMS,
-                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'], include_release=False)
+                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'],
+                                                        include_release=False)
 
         case_metadata_table_id = get_dev_table_id(BQ_PARAMS,
                                                   dataset=BQ_PARAMS['META_DATASET'],
                                                   table_name=case_metadata_table_name)
 
-        print(case_metadata_table_id)
-
-        """
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=case_metadata_table_id,
@@ -393,7 +391,8 @@ def main(args):
         
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS,
-                                                  prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+                                                  prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'],
+                                                  include_release=False)
 
         mapping_table_id = get_dev_table_id(BQ_PARAMS,
                                             dataset=BQ_PARAMS['META_DATASET'],
@@ -403,7 +402,6 @@ def main(args):
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=mapping_table_id,
                       overwrite=True)
-        """
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
