@@ -341,12 +341,15 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_source = api_params['DATA_SOURCE']
 
         split_table_id = source_table_id.split('.')
-        dataset_type = split_table_id[-1]
-        dataset_type.replace(rel_prefix, '').strip('_')
 
-        curr_table_name = construct_table_name_from_list([dataset_type, data_source, 'current'])
+        data_type = split_table_id[-1]
+        data_type.replace(rel_prefix, '').strip('_')
+
+        print(data_type)
+
+        curr_table_name = construct_table_name_from_list([data_type, data_source, 'current'])
         curr_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
-        vers_table_name = construct_table_name_from_list([dataset_type, data_source, rel_prefix])
+        vers_table_name = construct_table_name_from_list([data_type, data_source, rel_prefix])
         vers_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset + '_versioned', vers_table_name)
         return curr_table_id, vers_table_id
 
