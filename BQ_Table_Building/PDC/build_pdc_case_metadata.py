@@ -373,9 +373,8 @@ def main(args):
         update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CASE_METADATA_TABLE'])
         update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
 
-
     if "publish_case_metadata_tables" in steps:
-        # Publish master file metadata table
+        # Publish master case metadata table
         case_metadata_table_name = construct_table_name(API_PARAMS,
                                                         prefix=BQ_PARAMS['CASE_METADATA_TABLE'],
                                                         include_release=False)
@@ -389,7 +388,7 @@ def main(args):
                       source_table_id=case_metadata_table_id,
                       overwrite=True)
         
-        # Publish master associated entities table
+        # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'],
                                                   include_release=False)
