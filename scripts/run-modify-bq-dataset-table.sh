@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_pdc_metadata.py ~/config/ModifyBQDatasetTable.yaml
+python3 ./BQ_Table_Building/modify_bq_dataset_table.py ~/config/ModifyBQDatasetTable.yaml
 deactivate
