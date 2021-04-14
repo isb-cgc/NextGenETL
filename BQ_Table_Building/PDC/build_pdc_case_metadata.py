@@ -385,7 +385,6 @@ def main(args):
 
         print(case_metadata_table_id)
 
-
         """
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
