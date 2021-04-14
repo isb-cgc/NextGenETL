@@ -489,7 +489,7 @@ def main(args):
                                                   table_name=file_metadata_table_name)
 
         publish_table(API_PARAMS, BQ_PARAMS,
-                      public_dataset=BQ_PARAMS['FILE_METADATA'],
+                      public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=file_metadata_table_id,
                       overwrite=True)
 
@@ -502,7 +502,7 @@ def main(args):
                                             table_name=mapping_table_name)
 
         publish_table(API_PARAMS, BQ_PARAMS,
-                      public_dataset=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'],
+                      public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=mapping_table_id,
                       overwrite=True)
 

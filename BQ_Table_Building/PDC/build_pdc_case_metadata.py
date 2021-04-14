@@ -36,21 +36,6 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-"""
-WITH cases_samples AS (
-    SELECT * except(samples)
-    FROM `isb-project-zero.PDC_metadata.case_sample_aliquot_mapping_V1_11`
-    CROSS JOIN UNNEST(samples) as s
-),
-samples_aliquots AS (
-    SELECT * except(aliquots)
-    FROM cases_samples 
-    CROSS JOIN UNNEST (aliquots) as a
-)
-
-SELECT * FROM samples_aliquots 
-"""
-
 
 def make_cases_aliquots_query(offset, limit):
     """
@@ -122,6 +107,7 @@ def alter_cases_aliquots_objects(json_obj_list):
                 case['is_ffpe'] == "False"
             if case['is_ffpe'] == "1" or case['is_ffpe'] == 1:
                 case['is_ffpe'] == "True"
+
 
 
 def make_biospecimen_per_study_query(pdc_study_id):
@@ -382,6 +368,39 @@ def main(args):
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
 
         update_schema(table_id, descriptions)
+
+    if 'update_case_metadata_tables_metadata' in steps:
+        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CASE_METADATA_TABLE'])
+        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+
+
+    if "publish_case_metadata_tables" in steps:
+        # Publish master file metadata table
+        case_metadata_table_name = construct_table_name(API_PARAMS,
+                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
+
+        case_metadata_table_id = get_dev_table_id(BQ_PARAMS,
+                                                  dataset=BQ_PARAMS['META_DATASET'],
+                                                  table_name=file_metadata_table_name)
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
+                      source_table_id=case_metadata_table_id,
+                      overwrite=True)
+
+        # Publish master associated entities table
+        mapping_table_name = construct_table_name(API_PARAMS,
+                                                  prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+
+        mapping_table_id = get_dev_table_id(BQ_PARAMS,
+                                            dataset=BQ_PARAMS['META_DATASET'],
+                                            table_name=mapping_table_name)
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
+                      source_table_id=mapping_table_id,
+                      overwrite=True)
+
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
