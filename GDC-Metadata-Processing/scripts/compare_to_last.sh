@@ -111,6 +111,6 @@ compare () {
 
 compare "aliquot" "aliqMap.merge" "project_id sample_type aliquot_gdc_id" "2,8,15" "1,2" "portion_barcode"
 compare "slide" "slidMap.merge" "project_id sample_type slide_gdc_id" "2,8,11" "1,2" "portion_barcode"
-compare "caseData" "caseData.merge" "case_id project_id" "1,7" "2" "project__disease_type"
+compare "caseData" "caseData.merge" "case_id project__project_id" "1,8" "2" "project__disease_type"
 compare "currentFiles" "fileData.current" "file_id cases__project__project_id data_format" "2,22,25" "2,3" "file_id"
 compare "legacyFiles" "fileData.legacy" "file_id cases__project__project_id data_format" "2,19,26" "2,3" "file_id"
