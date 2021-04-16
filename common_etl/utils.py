@@ -565,8 +565,6 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_row
 
     if null_marker:
         job_config.null_marker = null_marker
-    else:
-        job_config.null_marker = "None"
 
     load_create_table_job(bq_params, tsv_file, client, table_id, job_config)
 
