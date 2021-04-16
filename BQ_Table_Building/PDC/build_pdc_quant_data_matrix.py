@@ -180,6 +180,14 @@ def make_paginated_gene_query(offset, limit):
               proteins 
               assays
             }}
+            pagination {{
+                count
+                from 
+                page 
+                total
+                pages
+                size
+            }}
           }}
         }}
     """.format(offset, limit)
