@@ -836,12 +836,19 @@ def main(args):
 
     # compare the two tables
     if 'compare_remove_old_current' in steps:
+        """
+        This step compares the old current table to the old versioned duplicate then deletes the old current table,
+        if the two tables are the same
+        """
+        # Table that is currently in production under the current table dataset that is to be replaced
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
                                               publication_table.format('current'))
+        # Previous versioned table that should match the table in the current dataset
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                                publication_table.format("".join(["r",
                                                                                  str(params['PREVIOUS_RELEASE'])])))
+        # Temporary location to save a copy of the previous table
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                        "_".join([params['PROGRAM'],
                                                  publication_table.format("".join(["r",
@@ -849,9 +856,12 @@ def main(args):
                                                  'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
-
+        # Compare the two previous tables to make sure they are exactly the same
         compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-
+        """
+        If the tables are exactly the same, the row count from compare_two_tables should be 0, the query will give the 
+        number of rows that are different between the two tables
+        """
         num_rows = compare.total_rows
 
         if num_rows == 0:
@@ -865,6 +875,7 @@ def main(args):
         # move old table to a temporary location
         elif compare and num_rows == 0:
             print('Move old table to temp location')
+            # Save the previous current table to a temporary location
             table_moved = publish_table(old_current_table, table_temp)
 
             if not table_moved:

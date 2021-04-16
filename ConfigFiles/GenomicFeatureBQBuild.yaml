@@ -1,51 +1,153 @@
-version: 1
+version: 2
 
+# Parameters for the workflow
 files_and_buckets_and_tables:
-  # Name of the staging project 
-  STAGING_PROJECT: 
- 
-  # Name of the staging dataset 
-  STAGING_DATASET_ID: 
- 
-  # Name of the staging table 
-  STAGING_TABLE_ID: 
+  # Update these parameters per run of the workflow #
 
-  # Publish Project ID
-  PUBLISH_PROJECT: 
+  ## Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
 
-  # Publish Dataset ID
-  PUBLISH_DATASET_ID: 
+  ## Release number
+  RELEASE: XX
 
-  # Publish Table ID
-  PUBLISH_TABLE_ID: 
+  ## Previous release number
+  PREVIOUS_RELEASE: XX
 
-  # Path to Genomic Feature File
-  FILE_PATH: 
+  ## Update these parameter per user of the workflow #
 
-  # File name to send all vcfs to a csv 
-  PARSED_GENOMIC_FORMAT_FILE: 
+  ## Name of the staging dataset
+  STAGING_DATASET_ID: your_scratch_dataset
 
-  # File name to send the parsed 'attribute' column
-  ATTRIBUTE_COLUMN_SPLIT_FILE: 
+  ## What directory holds the processed schema, tag, and desc lists?
+  PROX_DESC_PREFIX: /relative/local/path/scratch
 
-  # File name that stores the merged csv file of the parsed gtf file 
-  FINAL_MERGED_CSV: 
+  ## Where do we dump the schema git repository?
+  SCHEMA_REPO_LOCAL: /relative/local/path//schemaRepo
 
-  # Schema file that holds all the description for each column. (Provide a path)
-  SCHEMA_WITH_DESCRIPTION: 
+  ## What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: full/path/in/bucket # DO NOT HAVE A LEADING /
 
+  ## These parameters are rarely updated for the workflow #
 
+  ## Publish Dataset ID
+  PUBLISH_DATASET_ID: your_publication_project
+
+  ## GENCODE FTP URL - The release number is filled into the blanks
+  FTP_URL: ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_{}/gencode.v{}.annotation.gtf.gz
+
+  ## Name of the staging project
+  STAGING_PROJECT: your_staging_project
+
+  ## What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: your-working-bucket
+
+  ## Name of the publication project
+  PUBLISH_PROJECT: your_publication_project
+
+  ## File name for the parsed genomic file
+  PARSED_GENOMIC_FORMAT_FILE: parsed_genomic_format.csv
+
+  ## File name to send the parsed 'attribute' column
+  ATTRIBUTE_COLUMN_SPLIT_FILE: attribute_column_split.csv
+
+  ## File name that stores the merged csv file of the parsed gtf file
+  FINAL_MERGED_CSV: final_merged
+
+  ## File name of the tsv
+  FINAL_TSV: final
+
+  ## Where is the repo?
+  SCHEMA_REPO_URL: https://github.com/your_org/yourSchemaRepe.git
+
+  ## What repo branch to use?
+  SCHEMA_REPO_BRANCH: master
+
+  ## Name of schema file:
+  SCHEMA_FILE_NAME: name_of_table_schema_file.json
+
+  ## Name of versioned schema file
+  VER_SCHEMA_FILE_NAME: versioned_name_of_table_schema_file.json
+
+  ## What directory holds the schema data files in the repo?
+  RAW_SCHEMA_DIR: TableSchemaDirectory
+
+  ## Saved schema dict (all fields): (possibly remove)
+  HOLD_SCHEMA_DICT: relative/local/path/saved_cosmic_schema_dict.json
+
+  ## Saved schema list (typed tuples from schema analysis only)
+  HOLD_SCHEMA_LIST: relative/local/path/saved_cosmic_skel_schema.json
+
+  ## Number of rows to skip while sampling big TSV to generate schema:
+  SCHEMA_SAMPLE_SKIPS: 100
+
+  ## Archive bucket:
+  ARCHIVE_BUCKET: your_archive_bucket
+
+  ## What is the archive bucket dir
+  ARCHIVE_BUCKET_DIR: your-archive-bucket-dir # DO NOT HAVE A LEADING /
+
+  ## Location where you want the config archive to go
+  ARCHIVE_CONFIG: config_archive
+
+# The table schema from the repo is generic, and needs to be individualized for each table
+# with the following tags. "~-" means use above parameter, "~lc-" does the same with conversion to lower case, "~lcbqs-" does this as well, plus changes "." characters to "_"
+
+schema_tags:
+
+    - ---tag-release-month-year--- : Month, Year
+    - ---tag-release--- : XX
+
+# Which tables are we updating schema on? (Default is both)
+
+update_schema_tables:
+  - versioned
+  - current
+
+# Workflow steps #
 steps:
-  - count_number_of_lines
+  # download gtf file
+  - download_file
 
+  # parse gtf file to tsv
   - parse_genomic_features_file
-
-  - create_new_columns 
-
+  - count_number_of_lines # required for the next two steps
+  - create_new_columns
   - merge_csv_files
-
   - split_version_ids
 
-  - upload_to_staging_env
+  # Upload ONE_BIG_TSV to WORKING_BUCKET/WORKING_BUCKET_DIR/BUCKET_TSV:
+  - upload_to_bucket
 
-  - publish_table
+  # Get the table schema/description/tags pulled from git:
+  - pull_table_info_from_git
+  # Extract the table schema/description/tags from that file:
+  - process_git_schemas
+  # Customize generic schema:
+  - combined_schema
+  # Analyze the schema from the ONE_BIG_TSV file:
+  - analyze_the_schema
+
+  # Load TSV file into BQ
+  - create_bq_from_tsv
+
+  # Rearrange columns in BQ based on the schema json file in github
+  - reorder_columns
+
+  # Create current table draft
+  - create_current_table
+
+  # Install final table schema descriptions:
+  - update_final_schema
+  # Add a table description:
+  - add_table_description
+
+  # Remove old current table
+  # This doesn't need to be run if it is the first table of it's kind
+  - compare_remove_old_current
+  # publish the tables:
+  - publish
+  # Update previous versioned table to the 'archived' tag
+  - update_status_tag
+
+  # archive files used:
+  - archive

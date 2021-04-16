@@ -14,23 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export MY_VENV=~/virtualEnvETL
+source ~/setEnvVars.sh
+
+export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
-
-# Directory created to store the intemediary files 
-mkdir -p ~/NextGenETL/intermediateFiles 
-
-mkdir -p ~/config
-# gsutil cp gs://gencode_gtf_gff/gencode.v34.annotation.gtf.gz ~/oshazada98/NextGenETL/files
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-gsutil cp gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenomicFeatureBQBuild.yaml 
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GenomicFeatureBQBuild.yaml .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_gtf_bq_table.py /Users/oshahzada98/Desktop/NextGenETL/ConfigFiles/GenomicFeatureBQBuild.yaml
+python3.9 ./BQ_Table_Building/build_gtf_bq_table.py ~/config/GenomicFeatureBQBuild.yaml
 deactivate

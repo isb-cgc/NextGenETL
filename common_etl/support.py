@@ -58,7 +58,6 @@ def checkToken(aToken):
 
     return ( aToken )
 
-
 def pickColumns(tokenList):
     """
     Sheila's legacy pickColumns() Function
@@ -93,7 +92,6 @@ def pickColumns(tokenList):
                 newList += [ tokenList[ii] ]
 
     return newList
-
 
 def write_MAFs(tumor, mutCalls, hdrPick, mutCallers, do_logging):
     """
@@ -360,7 +358,6 @@ def pull_list_builder_sql(manifest_table, indexd_table):
 # Like the above function, but uses the final public mapping table instead:
 #
 
-
 def pull_list_builder_sql_public(manifest_table, indexd_table):
     """
     Generates SQL for above function
@@ -491,6 +488,7 @@ def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target
         target_bucket_file = bucket_file
     source_bucket.copy_blob(source_blob, destination_bucket, target_bucket_file)
     return
+
 
 
 def build_manifest_filter(filter_dict_list):
@@ -742,7 +740,6 @@ def pull_from_buckets(pull_list, local_files_dir):
             print_progress_bar(copy_count, num_files)
     print_progress_bar(num_files, num_files)
 
-
 def build_file_list(local_files_dir):
     """
     Build the File List
@@ -813,13 +810,10 @@ def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, wri
         return False
     return True
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Use to run queries where we want to get the result back to use (not write into a table)
 '''
-
-
 def bq_harness_with_result(sql, do_batch):
     """
     Handles all the boilerplate for running a BQ job
@@ -1034,7 +1028,6 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
     return True
 
-
 def typing_tups_to_schema_list(typing_tups, holding_list):
     #
     # Need to create a typed list for the initial TSV import:
@@ -1053,7 +1046,6 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
 
     return True
 
-
 def update_schema(target_dataset, dest_table, schema_dict_loc):
     """
     Update the Schema of a Table
@@ -1071,6 +1063,36 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
+# The below three functions break the multiple schema steps into distinct pieces
+# retrieve a schema from a table, update it using a dictionary of new values, write to BQ
+def retrieve_table_schema(target_dataset, dest_table, project=None):
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        return table.schema
+    except Exception as ex:
+        print(ex)
+        return False
+
+def update_table_schema(schema, add_dict):
+    schema_dict = {field.name: field for field in schema}
+    for key in add_dict:
+        schema_dict[key] = bigquery.SchemaField( key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'] )
+    updated_schema = [schema_dict[key] for key in schema_dict]
+    return updated_schema
+
+def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table = client.get_table(table_ref)
+        table.schema = new_schema
+        table = client.update_table(table, ["schema"])
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
 
 def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
@@ -1095,7 +1117,6 @@ def update_schema_with_dict(target_dataset, dest_table, full_schema, project=Non
 
     return True
 
-
 def update_description(target_dataset, dest_table, desc):
     """
     Update the Description of a Table¶
@@ -1108,7 +1129,6 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
-
 def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
@@ -1119,7 +1139,6 @@ def update_status_tag(target_dataset, dest_table, status, project=None):
     table.labels = {"status": status}
     table = client.update_table(table, ["labels"])
     return True
-
 
 def bq_table_exists(target_dataset, dest_table):
     """
@@ -1133,7 +1152,6 @@ def bq_table_exists(target_dataset, dest_table):
     except NotFound:
         return False
 
-
 def bq_table_is_empty(target_dataset, dest_table):
     """
     Is table empty?
@@ -1142,7 +1160,6 @@ def bq_table_is_empty(target_dataset, dest_table):
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     return table.num_rows == 0
-
 
 def delete_table_bq_job(target_dataset, delete_table, project = None):
 
@@ -1158,7 +1175,6 @@ def delete_table_bq_job(target_dataset, delete_table, project = None):
         return False
 
     return True
-
 
 def confirm_google_vm():
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"
@@ -1202,7 +1218,6 @@ def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1,
         print()
     return
 
-
 def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     """
     Transfer description of schema from e.g. table to view
@@ -1238,7 +1253,6 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     client.update_table(trg_table, ["schema"])
     return True
 
-
 def list_schema(source_dataset, source_table):
     """
     List schema
@@ -1258,7 +1272,6 @@ def list_schema(source_dataset, source_table):
 Take the BQ Ecosystem json file for the table and break out the pieces into chunks that will
 be arguments to the bq command used to create the table.
 '''
-
 
 def generate_table_detail_files(dict_file, file_tag):
 
@@ -1286,13 +1299,11 @@ def generate_table_detail_files(dict_file, file_tag):
 
     return True
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Take the staging files for a generic BQ metadata load and customize it for a single data set
 using tags.
 '''
-
 
 def customize_labels_and_desc(file_tag, tag_map_list):
 
@@ -1328,7 +1339,6 @@ def customize_labels_and_desc(file_tag, tag_map_list):
         return False
 
     return True
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1518,6 +1528,12 @@ Is the table that is replacing the view exactly the same?
 '''
 
 def compare_two_tables(old_table, new_table, do_batch):
+    old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
+    
+    old_schema = retrieve_table_schema( old_table_spl[1], old_table_spl[2], old_table_spl[0] )
+    new_schema = retrieve_table_schema( new_table_spl[1], new_table_spl[2], new_table_spl[0] )
+    if len(old_schema) != len(new_schema):
+        return 'Number of fields do not match'
     sql = compare_two_tables_sql(old_table, new_table)
     return bq_harness_with_result(sql, do_batch)
 
@@ -1540,3 +1556,22 @@ def compare_two_tables_sql(old_table, new_table):
             SELECT * from `{0}`
         )
     '''.format(old_table, new_table)
+
+
+def evaluate_table_union(bq_results):
+    """Evaluate whether two tables are identical by 
+    using the count of distinct rows in their union
+    return True/False"""
+    if not bq_results:
+        print( 'Table comparison failed')
+        return( False )
+    if bq_results == 'Number of fields do not match':
+        print( bq_results )
+        return ( 'different' )
+    row_difference = bq_results.total_rows
+    if row_difference == 0:
+        print( 'The tables are identical' )
+        return ( 'identical' )
+    else:
+        print( 'The tables differ by {} rows'.format(row_difference) )
+        return( 'different' )

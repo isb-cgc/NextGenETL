@@ -29,6 +29,7 @@ import sys
 import io
 from git import Repo
 from json import loads as json_loads
+import re
 
 from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_harness_with_result, delete_table_bq_job, \
@@ -1005,7 +1006,8 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                         chunks = val.split('-', 1)
                         if chunks[1] == 'programs':
                             if val.find('~lcbqs-') == 0:
-                                rep_val = dataset_tuple[1].lower() # can't have "." in a tag...
+                                prog = re.search('(\D*)', dataset_tuple[1].lower())
+                                rep_val = prog.group(0)
                             else:
                                 rep_val = dataset_tuple[0]
                         elif chunks[1] == 'path_tags':
