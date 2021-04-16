@@ -26,10 +26,10 @@ import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table)
+                              update_schema, publish_table, create_and_upload_schema_from_json)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_dev_table_id, normalize_data_and_create_schema, get_prefix,
+                                             get_dev_table_id, get_prefix,
                                              write_jsonl_and_upload, update_pdc_table_metadata)
 
 API_PARAMS = dict()
@@ -109,195 +109,13 @@ def alter_cases_aliquots_objects(json_obj_list):
                 case['is_ffpe'] == "True"
 
 
-def make_biospecimen_per_study_query(pdc_study_id):
-    """
-
-    Creates a graphQL string for querying the PDC API's biospecimenPerStudy endpoint.
-    :return: GraphQL query string
-    """
-    return '''{{ 
-        biospecimenPerStudy( pdc_study_id: \"{}\" acceptDUA: true) {{
-            aliquot_id 
-            sample_id 
-            case_id 
-            aliquot_submitter_id 
-            sample_submitter_id 
-            case_submitter_id 
-            project_name 
-            sample_type 
-            disease_type 
-            primary_site 
-            pool 
-        }}
-    }}'''.format(pdc_study_id)
-
-
-def alter_biospecimen_per_study_objects(json_obj_list, pdc_study_id):
-    """
-
-    Passed as a parameter to build_jsonl_from_pdc_api(). Allows for the dataset's json object to be mutated prior
-    to writing it to a file.
-    :param json_obj_list: list of json objects to mutate
-    :param pdc_study_id: pdc study id for this set of json objects
-    """
-
-    # todo change how this works -- not dependent on biospecimen
-
-    def get_case_file_count_mapping():
-        """
-
-        Gets a dictionary of form {case_id: file_count} using table created during file metadata ingestion;
-        derived from associated entity mapping table
-        :return: { '<case_id>': '<file_count>'}
-        """
-        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-        table_id = get_dev_table_id(BQ_PARAMS,
-                                    dataset=BQ_PARAMS['META_DATASET'],
-                                    table_name=table_name)
-        case_file_count_query = """
-        SELECT case_id, file_id_count
-        FROM {}
-        """.format(table_id)
-
-        res = get_query_results(case_file_count_query)
-        case_file_count_map = dict()
-
-        for case_file_count_row in res:
-            case_id = case_file_count_row[0]
-            file_count = case_file_count_row[1]
-            case_file_count_map[case_id] = file_count
-
-        return case_file_count_map
-
-    case_file_count_map = get_case_file_count_mapping()
-
-    for case in json_obj_list:
-        case['pdc_study_id'] = pdc_study_id
-        case_id = case['case_id']
-        case['file_count'] = case_file_count_map[case_id] if case_id in case_file_count_map else 0
-
-
-def main(args):
-    start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
-
-    steps = None
-
-    try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
-    except ValueError as err:
-        has_fatal_error(err, ValueError)
-
-    all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
-
-    biospecimen_endpoint = 'biospecimenPerStudy'
-    biospecimen_prefix = get_prefix(API_PARAMS, biospecimen_endpoint)
-
-    aliquot_endpoint = 'paginatedCasesSamplesAliquots'
-    aliquot_prefix = get_prefix(API_PARAMS, aliquot_endpoint)
-
-    if 'build_biospecimen_jsonl' in steps:
-        per_study_biospecimen_list = build_obj_from_pdc_api(API_PARAMS,
-                                                            endpoint=biospecimen_endpoint,
-                                                            request_function=make_biospecimen_per_study_query,
-                                                            alter_json_function=alter_biospecimen_per_study_objects,
-                                                            ids=all_pdc_study_ids,
-                                                            insert_id=True)
-
-        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
-                                         joined_record_list=per_study_biospecimen_list,
-                                         table_type=biospecimen_prefix)
-
-        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, biospecimen_prefix, per_study_biospecimen_list)
-
-    if 'build_biospecimen_table' in steps:
-        biospecimen_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                         table_type=biospecimen_prefix)
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=biospecimen_endpoint,
-                               infer_schema=True,
-                               schema=biospecimen_schema)
-
-    if 'build_case_aliquot_jsonl' in steps:
-        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS,
-                                                             endpoint=aliquot_endpoint,
-                                                             request_function=make_cases_aliquots_query,
-                                                             alter_json_function=alter_cases_aliquots_objects,
-                                                             insert_id=True)
-        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
-                                         joined_record_list=per_study_case_aliquot_list,
-                                         table_type=aliquot_prefix)
-
-        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
-
-    if 'build_case_aliquot_table' in steps:
-        aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                     table_type=aliquot_prefix)
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=aliquot_endpoint,
-                               infer_schema=True,
-                               schema=aliquot_schema)
-
-    case_aliquot_table_name = construct_table_name(API_PARAMS, prefix=aliquot_prefix)
-    case_aliquot_table_id = get_dev_table_id(BQ_PARAMS,
-                                             dataset=BQ_PARAMS['META_DATASET'],
-                                             table_name=case_aliquot_table_name)
-
-    study_endpoint = 'allPrograms'
-    study_prefix = get_prefix(API_PARAMS, study_endpoint)
-    study_table_name = construct_table_name(API_PARAMS, prefix=study_prefix)
-    study_table_id = get_dev_table_id(BQ_PARAMS,
-                                      dataset=BQ_PARAMS['META_DATASET'],
-                                      table_name=study_table_name)
-
-    case_external_mapping_endpoint = 'allCases'
-    case_external_mapping_prefix = get_prefix(API_PARAMS, case_external_mapping_endpoint)
-    case_external_mapping_table_name = construct_table_name(API_PARAMS, prefix=case_external_mapping_prefix)
-    case_external_mapping_table_id = get_dev_table_id(BQ_PARAMS,
-                                                      dataset=BQ_PARAMS['META_DATASET'],
-                                                      table_name=case_external_mapping_table_name)
-
+def make_case_metadata_table_query(case_external_mapping_table_id, study_table_id, case_aliquot_table_id):
     file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
     file_count_table_id = get_dev_table_id(BQ_PARAMS,
                                            dataset=BQ_PARAMS['META_DATASET'],
                                            table_name=file_count_table_name)
 
-    fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
-    fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    field_desc_fp = get_filepath(fields_path, fields_file)
-
-    with open(field_desc_fp) as field_output:
-        descriptions = json.load(field_output)
-
-    if 'build_aliquot_run_metadata_map_table' in steps:
-        aliquot_run_metadata_query = """
-        WITH cases_samples AS (
-            SELECT c.case_id, s.sample_id, s.aliquots
-            FROM `{}` AS c
-            CROSS JOIN UNNEST(samples) AS s
-        ),
-        samples_aliquots AS (
-            SELECT case_id, sample_id, a.aliquot_id, a.aliquot_run_metadata
-            FROM cases_samples 
-            CROSS JOIN UNNEST (aliquots) AS a
-        )
-        
-        SELECT case_id, sample_id, aliquot_id, r.aliquot_run_metadata_id
-        FROM samples_aliquots 
-        CROSS JOIN UNNEST (aliquot_run_metadata) as r
-        """.format(case_aliquot_table_id)
-
-        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
-        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
-
-        update_schema(table_id, descriptions)
-
-    if 'build_case_metadata_table' in steps:
-        # case_id, case_submitter_id, primary_site,
-        # project_disease_type, project_name, program_name, project_id,  file_count
-        case_metadata_table_query = """
+    return """
         WITH case_project_file_count AS (
             SELECT DISTINCT c.case_id, c.case_submitter_id, c.project_submitter_id, 
                 s.project_name, s.program_name, s.project_id,
@@ -314,16 +132,11 @@ def main(args):
         FROM `{3}` AS ca
         JOIN case_project_file_count AS cp
             ON cp.case_id = ca.case_id
-        """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
+    """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
 
-        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
-        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
 
-        update_schema(table_id, descriptions)
-
-    if 'build_aliquot_to_case_id_map_table' in steps:
-        aliquot_to_case_id_query = """
+def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_table_id, study_table_id):
+    return """
         WITH cases_samples AS (
             SELECT c.case_id, c.case_submitter_id, 
                 s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, 
@@ -362,10 +175,112 @@ def main(args):
             ON sa.case_id = p.case_id
         """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id)
 
+
+def make_aliquot_run_metadata_query():
+    return """
+        WITH cases_samples AS (
+            SELECT c.case_id, s.sample_id, s.aliquots
+            FROM `{}` AS c
+            CROSS JOIN UNNEST(samples) AS s
+        ),
+        samples_aliquots AS (
+            SELECT case_id, sample_id, a.aliquot_id, a.aliquot_run_metadata
+            FROM cases_samples
+            CROSS JOIN UNNEST (aliquots) AS a
+        )
+    
+        SELECT case_id, sample_id, aliquot_id, r.aliquot_run_metadata_id
+        FROM samples_aliquots
+        CROSS JOIN UNNEST (aliquot_run_metadata) as r
+    """.format(case_aliquot_table_id)
+
+
+def main(args):
+    start_time = time.time()
+    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+
+    steps = None
+
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
+
+    all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
+
+    aliquot_prefix = get_prefix(API_PARAMS, API_PARAMS['ALIQUOT_ENDPOINT'])
+
+    if 'build_case_aliquot_jsonl' in steps:
+        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS,
+                                                             endpoint=API_PARAMS['ALIQUOT_ENDPOINT'],
+                                                             request_function=make_cases_aliquots_query,
+                                                             alter_json_function=alter_cases_aliquots_objects,
+                                                             insert_id=True)
+        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
+                                           table_name=aliquot_prefix)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
+
+    if 'build_case_aliquot_table' in steps:
+        aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
+                                                     table_type=aliquot_prefix)
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
+                               endpoint=API_PARAMS['ALIQUOT_ENDPOINT'],
+                               infer_schema=True,
+                               schema=aliquot_schema)
+
+    # these are reused by several steps below, so defining them here in order to avoid code duplication
+    case_aliquot_table_name = construct_table_name(API_PARAMS, prefix=aliquot_prefix)
+    case_aliquot_table_id = get_dev_table_id(BQ_PARAMS,
+                                             dataset=BQ_PARAMS['META_DATASET'],
+                                             table_name=case_aliquot_table_name)
+
+    study_prefix = get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT'])
+    study_table_name = construct_table_name(API_PARAMS, prefix=study_prefix)
+    study_table_id = get_dev_table_id(BQ_PARAMS,
+                                      dataset=BQ_PARAMS['META_DATASET'],
+                                      table_name=study_table_name)
+
+    case_external_mapping_prefix = get_prefix(API_PARAMS, API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT'])
+    case_external_mapping_table_name = construct_table_name(API_PARAMS, prefix=case_external_mapping_prefix)
+    case_external_mapping_table_id = get_dev_table_id(BQ_PARAMS,
+                                                      dataset=BQ_PARAMS['META_DATASET'],
+                                                      table_name=case_external_mapping_table_name)
+
+    fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+    fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
+    field_desc_fp = get_filepath(fields_path, fields_file)
+
+    with open(field_desc_fp) as field_output:
+        descriptions = json.load(field_output)
+
+    if 'build_aliquot_run_metadata_map_table' in steps:
+        aliquot_run_metadata_query = make_aliquot_run_metadata_query(case_aliquot_table_id)
+        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+
+        load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
+        update_schema(table_id, descriptions)
+
+    if 'build_case_metadata_table' in steps:
+        case_metadata_table_query = make_case_metadata_table_query(case_external_mapping_table_id,
+                                                                   study_table_id,
+                                                                   case_aliquot_table_id)
+        table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
+        table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+
+        load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
+        update_schema(table_id, descriptions)
+
+    if 'build_aliquot_to_case_id_map_table' in steps:
+        aliquot_to_case_id_query = make_aliquot_to_case_id_query(case_aliquot_table_id,
+                                                                 case_external_mapping_table_id,
+                                                                 study_table_id)
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
         table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
-        load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
 
+        load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
         update_schema(table_id, descriptions)
 
     if 'update_case_metadata_tables_metadata' in steps:
@@ -375,26 +290,20 @@ def main(args):
     if "publish_case_metadata_tables" in steps:
         # Publish master case metadata table
 
-        case_metadata_table_name = construct_table_name(API_PARAMS,
-                                                        prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
-
+        case_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
         case_metadata_table_id = get_dev_table_id(BQ_PARAMS,
                                                   dataset=BQ_PARAMS['META_DATASET'],
                                                   table_name=case_metadata_table_name)
-
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=case_metadata_table_id,
                       overwrite=True)
 
         # Publish aliquot to case mapping table
-        mapping_table_name = construct_table_name(API_PARAMS,
-                                                  prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
-
+        mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
         mapping_table_id = get_dev_table_id(BQ_PARAMS,
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=mapping_table_name)
-
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['FILE_CASE_META_DATASET'],
                       source_table_id=mapping_table_id,

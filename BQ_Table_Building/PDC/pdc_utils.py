@@ -27,11 +27,12 @@ from datetime import date
 
 from common_etl.utils import (get_filename, get_filepath, get_query_results, format_seconds, write_list_to_jsonl,
                               get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
-                              load_bq_schema_from_json, create_and_load_table_from_tsv, create_and_load_table,
+                              load_bq_schema_from_json, create_and_load_table_from_tsv, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
                               update_schema, update_table_metadata, construct_table_id, normalize_value,
                               construct_table_name, get_rel_prefix, construct_table_name_from_list,
-                              recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict)
+                              recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict,
+                              check_value_type, resolve_type_conflicts)
 
 
 def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None, pause=None):
@@ -160,38 +161,9 @@ def write_jsonl_and_upload(api_params, bq_params, prefix, joined_record_list):
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
 
-def normalize_data_and_create_schema(api_params, bq_params, joined_record_list, table_type):
-    """
-    todo
-    :param api_params:
-    :param bq_params:
-    :param joined_record_list:
-    :param table_type:
-    :return:
-    """
-
-    data_types_dict = recursively_detect_object_structures(joined_record_list)
-
-    schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
-
-    schema_obj = {
-        "fields": schema_list
-    }
-
-    schema_filename = get_filename(api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_type)
-    schema_fp = get_scratch_fp(bq_params, schema_filename)
-
-    with open(schema_fp, 'w') as schema_json_file:
-        json.dump(schema_obj, schema_json_file, indent=4)
-
-    upload_to_bucket(bq_params, schema_fp, delete_local=True)
-
-
 def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, schema=None):
     """
+
     Build BQ table from jsonl file.
     :param api_params: API params from YAML config
     :param bq_params: BQ params from YAML config
@@ -220,11 +192,12 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
         if not schema:
             has_fatal_error("No schema found and infer_schema set to False, exiting")
 
-    create_and_load_table(bq_params, filename, table_id, schema)
+    create_and_load_table_from_jsonl(bq_params, filename, table_id, schema)
 
 
 def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None, backup_table_suffix=None):
     """
+
     Build BQ table from tsv file.
     :param api_params: API params from YAML config
     :param bq_params: BQ params from YAML config 
@@ -260,10 +233,7 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
                             file_extension='tsv',
                             prefix=table_prefix,
                             suffix=table_suffix)
-    create_and_load_table_from_tsv(bq_params=bq_params,
-                                   tsv_file=tsv_name,
-                                   schema=schema,
-                                   table_id=table_id)
+    create_and_load_table_from_tsv(bq_params=bq_params, tsv_file=tsv_name, table_id=table_id, schema=schema)
 
     build_end = time.time() - build_start
     print("Table built in {0}!\n".format(format_seconds(build_end)))
@@ -271,6 +241,7 @@ def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None,
 
 def get_dev_table_id(bq_params, dataset=None, table_name=None):
     """
+
     Get dev table id.
     :param bq_params: BQ params from YAML config
     :param dataset: dataset for table id (e.g. PDC_clinical, PDC_metadata, PDC)
@@ -297,6 +268,7 @@ def get_prefix(api_params, endpoint):
 
 def get_records(api_params, bq_params, endpoint, select_statement, dataset):
     """
+
     Get records for a given built query (custom subqueries).
     :param api_params: API params from YAML config
     :param bq_params: BQ params from YAML config

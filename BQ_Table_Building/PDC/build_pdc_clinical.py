@@ -26,7 +26,7 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
-                              has_fatal_error, load_bq_schema_from_json, create_and_load_table, load_table_from_query,
+                              has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl, load_table_from_query,
                               delete_bq_table, load_config, list_bq_tables, publish_table, construct_table_name)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids, get_pdc_studies_list,
@@ -324,10 +324,10 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
     print("Creating {}:".format(clinical_or_child_table_id))
 
-    create_and_load_table(BQ_PARAMS,
-                          jsonl_file=clinical_jsonl_filename,
-                          table_id=clinical_or_child_table_id,
-                          schema=schema)
+    create_and_load_table_from_jsonl(BQ_PARAMS,
+                                     jsonl_file=clinical_jsonl_filename,
+                                     table_id=clinical_or_child_table_id,
+                                     schema=schema)
 
     return clinical_or_child_table_id
 

@@ -28,7 +28,7 @@ import sys
 import copy
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
-                              upload_to_bucket, create_and_load_table, get_working_table_id, format_seconds,
+                              upload_to_bucket, create_and_load_table_from_jsonl, get_working_table_id, format_seconds,
                               check_value_type, resolve_type_conflicts, json_datetime_to_str_converter)
 
 API_PARAMS = dict()
@@ -587,7 +587,7 @@ def main(args):
         table_name = "_".join([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
         table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_output_file, table_id, schema)
+        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_output_file, table_id, schema)
         # os.remove(scratch_fp)
 
     end = format_seconds(time.time() - start)

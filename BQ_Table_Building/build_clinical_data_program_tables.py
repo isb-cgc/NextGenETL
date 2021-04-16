@@ -29,7 +29,7 @@ from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
 
 from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error, get_scratch_fp,
-                              create_and_load_table, load_table_from_query, write_list_to_jsonl,
+                              create_and_load_table_from_jsonl, load_table_from_query, write_list_to_jsonl,
                               upload_to_bucket, exists_bq_table, get_working_table_id,
                               get_webapp_table_id, construct_table_id, update_table_metadata, get_filepath,
                               update_schema, list_bq_tables, format_seconds,
@@ -1220,7 +1220,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
         else:
             table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
 
-        create_and_load_table(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
+        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
 
 
 def get_metadata_files():

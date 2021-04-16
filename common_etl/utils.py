@@ -381,7 +381,9 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
         print("Updating friendly name for {}\n".format(versioned_table_id))
         is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
-        update_friendly_name(api_params, versioned_table_id, is_gdc)
+        update_friendly_name(api_params,
+                             table_id=versioned_table_id,
+                             is_gdc=is_gdc)
 
         change_status_to_archived()
 
@@ -519,7 +521,7 @@ def get_webapp_table_id(bq_params, table_name):
     return construct_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
 
 
-def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
+def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=None):
     """Creates new BQ table, populating rows using contents of jsonl file.
 
     :param bq_params: bq param obj from yaml config
@@ -542,23 +544,27 @@ def create_and_load_table(bq_params, jsonl_file, table_id, schema=None):
     load_create_table_job(bq_params, jsonl_file, client, table_id, job_config)
 
 
-def create_and_load_table_from_tsv(bq_params, tsv_file, schema, table_id, num_header_rows=1):
-    """Creates BQ table and inserts case data from tsv file.
+def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema=None, null_marker=None):
+    """
 
+    Creates BQ table and inserts case data from tsv file.
     :param bq_params: bq param obj from yaml config
     :param tsv_file: file containing case records in tsv format
     :param schema: list of SchemaFields representing desired BQ table schema
     :param table_id: table_id to be created
     :param num_header_rows: int value representing number of header rows in file (skipped during processing)
+    :param null_marker: todo
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
     job_config.schema = schema
+    job_config.skip_leading_rows = num_header_rows
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-    job_config.skip_leading_rows = num_header_rows
-    job_config.null_marker = "None"
+
+    if null_marker:
+        job_config.null_marker = null_marker
 
     load_create_table_job(bq_params, tsv_file, client, table_id, job_config)
 
@@ -1103,11 +1109,12 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def return_schema_object_for_bq(api_params, bq_params, table_type):
+def return_schema_object_for_bq(api_params, bq_params, table_type, release=None):
     schema_filename = get_filename(api_params=api_params,
                                    file_extension='json',
                                    prefix="schema",
-                                   suffix=table_type)
+                                   suffix=table_type,
+                                   release=release)
 
     download_from_bucket(bq_params, schema_filename)
 
@@ -1118,6 +1125,92 @@ def return_schema_object_for_bq(api_params, bq_params, table_type):
     schema = generate_bq_schema_fields(json_schema_obj_list)
 
     return schema
+
+
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict):
+    schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
+
+    schema_obj = {
+        "fields": schema_list
+    }
+
+    schema_filename = get_filename(api_params,
+                                   file_extension='json',
+                                   prefix="schema",
+                                   suffix=table_name)
+    schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, 'w') as schema_json_file:
+        json.dump(schema_obj, schema_json_file, indent=4)
+
+    upload_to_bucket(bq_params, schema_fp, delete_local=True)
+
+
+def create_and_upload_schema_from_json(api_params, bq_params, record_list, table_name):
+    """
+
+    todo
+    :param api_params:
+    :param bq_params:
+    :param record_list:
+    :param table_name:
+    :return:
+    """
+    data_types_dict = recursively_detect_object_structures(record_list)
+
+    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict)
+
+
+def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
+                                      header_list=None, header_row=None, skip_rows=0):
+    """
+
+    todo
+    :param api_params:
+    :param bq_params:
+    :param table_name:
+    :param tsv_fp:
+    :param header_list:
+    :param header_row:
+    :param skip_rows:
+    :return:
+    """
+    data_types_dict = {}
+
+    if not header_list and not header_row:
+        has_fatal_error("Please supply either the header row index or a list of headers for tsv schema creation.")
+    if header_row and header_list:
+        has_fatal_error("Please supply *either* a header row index or header list, not both, for tsv schema creation.")
+
+    # if no header list supplied here, headers are generated from header_row.
+    if header_list:
+        for column_name in header_list:
+            data_types_dict[column_name] = set()
+
+    with open(tsv_fp, 'r') as tsv_file:
+        for i in range(skip_rows):
+            skipped_row = tsv_file.readline()
+
+            # if header included in file, create header list here
+            if header_row and header_row == i:
+                headers = skipped_row
+                header_list = headers.split('\t')
+
+        while True:
+            row = tsv_file.readline()
+
+            if not row:
+                break
+
+            row_list = row.split('\t')
+
+            for idx, value in enumerate(row_list):
+                value_type = check_value_type(value)
+                data_types_dict[header_list[idx]].add(value_type)
+
+    resolve_type_conflicts(data_types_dict)
+
+    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict)
 
 
 #   MISC UTILS

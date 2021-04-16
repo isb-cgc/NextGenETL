@@ -27,11 +27,11 @@ from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
-                              publish_table, construct_table_name, download_from_bucket,
+                              publish_table, construct_table_name, download_from_bucket, create_and_upload_schema_from_json,
                               generate_bq_schema_field, get_graphql_api_response)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, normalize_data_and_create_schema,
+                                             get_filename,
                                              get_dev_table_id, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata, get_prefix)
 
@@ -117,7 +117,7 @@ def make_associated_entities_query():
     :return: sql query string
     """
     table_name = construct_table_name(API_PARAMS,
-                                      prefix=get_prefix(API_PARAMS, 'fileMetadata'))
+                                      prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
 
     table_id = get_dev_table_id(BQ_PARAMS,
                                 dataset=BQ_PARAMS['META_DATASET'],
@@ -143,14 +143,15 @@ def make_combined_file_metadata_query():
     :return: sql query string
     """
     file_metadata_table_name = construct_table_name(API_PARAMS,
-                                                    prefix=get_prefix(API_PARAMS, 'fileMetadata'))
+                                                    prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
 
     file_metadata_table_id = get_dev_table_id(BQ_PARAMS,
                                               dataset=BQ_PARAMS['META_DATASET'],
                                               table_name=file_metadata_table_name)
 
     file_per_study_table_name = construct_table_name(API_PARAMS,
-                                                     prefix=get_prefix(API_PARAMS, 'filesPerStudy'))
+                                                     prefix=get_prefix(API_PARAMS,
+                                                                       API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
 
     file_per_study_table_id = get_dev_table_id(BQ_PARAMS,
                                                dataset=BQ_PARAMS['META_DATASET'],
@@ -206,10 +207,10 @@ def modify_per_study_file_table_query(fps_table_id):
     temp_table_id = fps_table_id + "_temp"
 
     study_table_name = construct_table_name(API_PARAMS,
-                                            prefix=get_prefix(API_PARAMS, 'allPrograms'))
+                                            prefix=get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT']))
 
     study_table_id = get_dev_table_id(BQ_PARAMS,
-                                      dataset="PDC_metadata",
+                                      dataset=BQ_PARAMS['META_DATASET'],
                                       table_name=study_table_name)
 
     return """
@@ -252,21 +253,25 @@ def get_file_ids():
     Generates a list of file ids from table created using filesPerStudy endpoint data.
     :return: file ids list
     """
+
+    files_per_study_endpoint = API_PARAMS['PER_STUDY_FILE_ENDPOINT']
+    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
+
     fps_table_name = construct_table_name(API_PARAMS,
-                                          prefix=get_prefix(API_PARAMS, 'filesPerStudy'))
+                                          prefix=get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
 
     fps_table_id = get_dev_table_id(BQ_PARAMS,
-                                    dataset=API_PARAMS['ENDPOINT_SETTINGS']['filesPerStudy']['dataset'],
+                                    dataset=API_PARAMS['ENDPOINT_SETTINGS'][files_per_study_endpoint]['dataset'],
                                     table_name=fps_table_name)
 
     curr_file_ids = get_query_results(make_file_id_query(fps_table_id))
 
     fm_table_name = construct_table_name(API_PARAMS,
-                                         prefix=get_prefix(API_PARAMS, 'fileMetadata'),
+                                         prefix=get_prefix(API_PARAMS, file_metadata_endpoint),
                                          release=API_PARAMS['PREV_RELEASE'])
 
     fm_table_id = get_dev_table_id(BQ_PARAMS,
-                                   dataset=API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset'],
+                                   dataset=API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset'],
                                    table_name=fm_table_name)
 
     old_file_ids = get_query_results(make_file_id_query(fm_table_id))
@@ -288,8 +293,9 @@ def get_file_ids():
 
 
 def get_previous_version_file_metadata():
-    prefix = get_prefix(API_PARAMS, 'fileMetadata')
-    dataset = API_PARAMS['ENDPOINT_SETTINGS']['fileMetadata']['dataset']
+    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
+    prefix = get_prefix(API_PARAMS, file_metadata_endpoint)
+    dataset = API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset']
 
     table_name = construct_table_name(API_PARAMS, prefix, release=API_PARAMS['PREV_RELEASE'])
     table_id = get_dev_table_id(BQ_PARAMS, dataset=dataset, table_name=table_name)
@@ -315,20 +321,17 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
-    per_study_file_endpoint = 'filesPerStudy'
-    per_study_file_prefix = get_prefix(API_PARAMS, per_study_file_endpoint)
-    file_metadata_endpoint = 'fileMetadata'
-    file_metadata_prefix = get_prefix(API_PARAMS, file_metadata_endpoint)
+    per_study_file_prefix = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
+    file_metadata_prefix = get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT'])
 
     if 'build_per_study_file_jsonl' in steps:
-        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=per_study_file_endpoint,
+        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
                                                        request_function=make_files_per_study_query,
                                                        alter_json_function=alter_files_per_study_json,
                                                        ids=all_pdc_study_ids)
 
-        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS,
-                                         joined_record_list=per_study_record_list,
-                                         table_type=per_study_file_prefix)
+        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
+                                           table_name=per_study_file_prefix)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
 
@@ -336,7 +339,7 @@ def main(args):
         schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, per_study_file_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=per_study_file_endpoint,
+                               endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
                                infer_schema=True,
                                schema=schema)
 
@@ -356,7 +359,7 @@ def main(args):
     if 'build_api_file_metadata_jsonl' in steps:
         file_metadata_list = []
 
-        fps_prefix = get_prefix(API_PARAMS, 'filesPerStudy')
+        fps_prefix = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
         files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
         files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
                                                     dataset=BQ_PARAMS['META_DATASET'],
@@ -382,7 +385,9 @@ def main(args):
                 print("No data returned by file metadata query for {}".format(file_id))
                 continue
 
-            for metadata_row in file_metadata_res['data']['fileMetadata']:
+            file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
+
+            for metadata_row in file_metadata_res['data'][file_metadata_endpoint]:
                 if 'fraction_number' in metadata_row and metadata_row['fraction_number']:
                     if metadata_row['fraction_number'] == 'Pool' or metadata_row['fraction_number'] == 'pool':
                         metadata_row['fraction_number'] = 'POOL'
@@ -394,11 +399,11 @@ def main(args):
 
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
-                                      prefix=file_metadata_prefix)
+                                      prefix=API_PARAMS['FILE_METADATA_ENDPOINT'])
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
-        normalize_data_and_create_schema(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
+        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
@@ -407,7 +412,7 @@ def main(args):
         schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, file_metadata_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=file_metadata_endpoint,
+                               endpoint=API_PARAMS['FILE_METADATA_ENDPOINT'],
                                infer_schema=True,
                                schema=schema)
 
