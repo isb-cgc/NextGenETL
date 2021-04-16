@@ -105,7 +105,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
 
 def build_obj_from_pdc_api(api_params, endpoint, request_function, request_params=tuple(), alter_json_function=None,
-                           ids=None, insert_id=False, pause=0):
+                           ids=None, insert_id=False, pause=0, total_count=None):
     """
 
     Create jsonl file based on results from PDC API request
@@ -142,11 +142,18 @@ def build_obj_from_pdc_api(api_params, endpoint, request_function, request_param
 
             time.sleep(pause)
     else:
-        joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
-        print(" - collected {} records".format(len(joined_record_list)))
+        if not api_params['ENDPOINT_SETTINGS'][endpoint]['is_paginated']:
+            joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
+            print(" - collected {} records".format(len(joined_record_list)))
 
-        if alter_json_function:
-            alter_json_function(joined_record_list)
+            if alter_json_function:
+                alter_json_function(joined_record_list)
+        else:
+            limit = api_params['PAGINATED_LIMIT']
+            offset = 0
+            if not total_count:
+                has_fatal_error("Must supply total record count for paginated entries.")
+
 
     return joined_record_list
 

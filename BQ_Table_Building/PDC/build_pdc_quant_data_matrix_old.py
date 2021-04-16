@@ -45,6 +45,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 # ***** GENE TABLE FUNCTIONS
 
+'''
 def make_gene_symbols_per_study_query(pdc_study_id):
     """
     Returns list of gene symbols for a given PDC study id.
@@ -107,6 +108,7 @@ def make_swissprot_query():
     SELECT swissprot_id 
     FROM `{}`
     """.format(swissprot_table_id)
+
 
 
 def add_gene_symbols_per_study(pdc_study_id, gene_symbol_set):
@@ -281,7 +283,7 @@ def build_gene_tsv(gene_symbol_list, gene_tsv, append=False):
 
             if count % 50 == 0:
                 print("Added {} genes".format(count))
-
+'''
 
 def download_from_uniprot_ftp(local_file, server_fp, type_str):
     """
@@ -315,7 +317,7 @@ def download_from_uniprot_ftp(local_file, server_fp, type_str):
 
     print(" done!")
 
-
+'''
 def is_uniprot_accession_number(id_str):
     """
     Is id_str a valid UniProt accession number based on their canonical formats?
@@ -417,7 +419,6 @@ def sort_uniprot_by_age(a, b):
 
     return index_of_a - index_of_b
 
-
 def filter_uniprot_accession_nums(proteins_str):
     """
     Filter proteins list, searching for ids in UniProt accession number format.
@@ -461,7 +462,7 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
             swissprot_count += 1
 
     return swissprot_str, swissprot_count
-
+'''
 
 # ***** QUANT DATA MATRIX FUNCTIONS
 '''
