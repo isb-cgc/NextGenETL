@@ -1127,7 +1127,7 @@ def return_schema_object_for_bq(api_params, bq_params, table_type, release=None)
     return schema
 
 
-def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict):
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=None):
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
     schema_obj = {
@@ -1137,7 +1137,8 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     schema_filename = get_filename(api_params,
                                    file_extension='json',
                                    prefix="schema",
-                                   suffix=table_name)
+                                   suffix=table_name,
+                                   release=release)
     schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
@@ -1162,7 +1163,7 @@ def create_and_upload_schema_from_json(api_params, bq_params, record_list, table
 
 
 def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
-                                      header_list=None, header_row=None, skip_rows=0):
+                                      header_list=None, header_row=None, skip_rows=0, release=None):
     """
 
     todo
@@ -1173,6 +1174,7 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     :param header_list:
     :param header_row:
     :param skip_rows:
+    :param release:
     :return:
     """
 
@@ -1181,9 +1183,9 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
         column_list = list()
 
         if header_list:
-            for column in header_list:
-                column = make_string_bq_friendly(column)
-                column_list.append(column)
+            for _column in header_list:
+                _column = make_string_bq_friendly(_column)
+                column_list.append(_column)
         else:
             with open(tsv_fp, 'r') as _tsv_file:
                 for index in range(header_row):
@@ -1195,9 +1197,9 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
                 if len(_columns) == 0:
                     has_fatal_error("No column name values supplied by header row index")
 
-                for column in _columns:
-                    column = make_string_bq_friendly(column)
-                    column_list.append(column)
+                for _column in _columns:
+                    _column = make_string_bq_friendly(_column)
+                    column_list.append(_column)
 
         return column_list
 
@@ -1237,7 +1239,7 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
     resolve_type_conflicts(data_types_dict)
 
-    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict)
+    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=release)
 
 
 #   MISC UTILS

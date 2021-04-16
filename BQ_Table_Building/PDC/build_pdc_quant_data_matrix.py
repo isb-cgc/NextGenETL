@@ -72,7 +72,8 @@ def main(args):
                                           table_name=swissprot_table_name,
                                           tsv_fp=swissprot_fp,
                                           header_row=0,
-                                          skip_rows=1)
+                                          skip_rows=1,
+                                          release=API_PARAMS['SWISSPROT_RELEASE'])
 
         upload_to_bucket(BQ_PARAMS, swissprot_fp)
 
