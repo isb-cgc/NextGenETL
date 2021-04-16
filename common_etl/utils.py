@@ -1251,14 +1251,14 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     # if no header list supplied here, headers are generated from header_row.
     columns = get_column_list()
 
-    data_types_dict = {}
+    data_types_dict = dict()
 
     for column in columns:
         data_types_dict[column] = set()
 
-    resolve_type_conflicts(data_types_dict)
-    
     aggregate_column_data_types()
+
+    resolve_type_conflicts(data_types_dict)
 
     schema_obj = create_schema_object()
 

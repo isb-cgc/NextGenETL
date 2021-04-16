@@ -195,6 +195,7 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
     create_and_load_table_from_jsonl(bq_params, filename, table_id, schema)
 
 
+'''
 # todo remove, use create_and_load_table_from_tsv in utils
 def build_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema):
     """
@@ -219,7 +220,7 @@ def build_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema)
 
     build_end = time.time() - build_start
     print("Table built in {0}!\n".format(format_seconds(build_end)))
-
+'''
 
 def get_dev_table_id(bq_params, dataset=None, table_name=None):
     """
