@@ -26,11 +26,11 @@ import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table, create_and_upload_schema_for_json)
+                              update_schema, publish_table, create_and_upload_schema_for_json, write_jsonl_and_upload)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
                                              get_dev_table_id, get_prefix,
-                                             write_jsonl_and_upload, update_pdc_table_metadata)
+                                             update_pdc_table_metadata)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -224,7 +224,7 @@ def main(args):
 
     if 'build_case_aliquot_table' in steps:
         aliquot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                     table_type=aliquot_prefix)
+                                                     table_name=aliquot_prefix)
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=API_PARAMS['ALIQUOT_ENDPOINT'],
                                infer_schema=True,

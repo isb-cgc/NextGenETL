@@ -28,7 +28,7 @@ from google.cloud import bigquery
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
                               publish_table, construct_table_name, download_from_bucket, create_and_upload_schema_for_json,
-                              generate_bq_schema_field, get_graphql_api_response)
+                              generate_bq_schema_field, get_graphql_api_response, write_jsonl_and_upload)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename,
@@ -325,7 +325,8 @@ def main(args):
     file_metadata_prefix = get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT'])
 
     if 'build_per_study_file_jsonl' in steps:
-        per_study_record_list = build_obj_from_pdc_api(API_PARAMS, endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
+        per_study_record_list = build_obj_from_pdc_api(API_PARAMS,
+                                                       endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
                                                        request_function=make_files_per_study_query,
                                                        alter_json_function=alter_files_per_study_json,
                                                        ids=all_pdc_study_ids)

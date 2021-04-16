@@ -587,7 +587,9 @@ def main(args):
     pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=False)
 
     if 'build_cases_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS, endpoint="allCases", request_function=make_cases_query,
+        build_obj_from_pdc_api(API_PARAMS,
+                               endpoint="allCases",
+                               request_function=make_cases_query,
                                alter_json_function=alter_cases_query)
 
     if 'build_cases_table' in steps:
@@ -596,9 +598,12 @@ def main(args):
                                infer_schema=True)
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS, endpoint="paginatedCaseDiagnosesPerStudy",
+        build_obj_from_pdc_api(API_PARAMS,
+                               endpoint="paginatedCaseDiagnosesPerStudy",
                                request_function=make_cases_diagnoses_query,
-                               alter_json_function=alter_case_diagnoses_json, ids=pdc_study_ids, insert_id=True)
+                               alter_json_function=alter_case_diagnoses_json,
+                               ids=pdc_study_ids,
+                               insert_id=True)
 
     if 'build_case_diagnoses_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
@@ -606,9 +611,12 @@ def main(args):
                                infer_schema=True)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS, endpoint="paginatedCaseDemographicsPerStudy",
+        build_obj_from_pdc_api(API_PARAMS,
+                               endpoint="paginatedCaseDemographicsPerStudy",
                                request_function=make_cases_demographics_query,
-                               alter_json_function=alter_case_demographics_json, ids=pdc_study_ids, insert_id=True)
+                               alter_json_function=alter_case_demographics_json,
+                               ids=pdc_study_ids,
+                               insert_id=True)
 
     if 'build_case_demographics_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,

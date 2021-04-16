@@ -758,6 +758,16 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
             file_obj.write('\n')
 
 
+def write_jsonl_and_upload(api_params, bq_params, prefix, joined_record_list):
+    jsonl_filename = get_filename(api_params,
+                                  file_extension='jsonl',
+                                  prefix=prefix)
+    local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+
+    write_list_to_jsonl(local_filepath, joined_record_list)
+    upload_to_bucket(bq_params, local_filepath, delete_local=True)
+
+
 def create_tsv_row(row_list, null_marker="None"):
     """
     Converts list of row values into a tab-delimited string.
