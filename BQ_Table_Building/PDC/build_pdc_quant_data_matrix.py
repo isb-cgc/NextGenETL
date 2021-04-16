@@ -360,39 +360,36 @@ def alter_paginated_gene_list(json_obj_list):
     swissprot_set = {row[0] for row in get_query_results(make_swissprot_query())}
 
     for gene in json_obj_list:
-        gene_authority = gene.pop('authority')
-
+        authority = None
+        authority_gene_id = None
         authority_records_dict = dict()
 
-        authority_records = gene_authority.split('; ')
+        gene_authority = gene.pop('authority')
 
-        for authority_record in authority_records:
-            split_authority = authority_record.split(':')
+        if len(gene_authority) > 0:
+            authority_records = gene_authority.split('; ')
 
-            if len(split_authority) == 2:
-                authority = split_authority[0]
-                authority_gene_id = split_authority[1]
-            elif len(split_authority) < 2:
-                authority = None
-                authority_gene_id = None
-            else:
-                has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
+            for authority_record in authority_records:
+                split_authority = authority_record.split(':')
 
-            authority_records_dict[authority] = authority_gene_id
+                if len(split_authority) == 2:
+                    authority = split_authority[0]
+                    authority_gene_id = split_authority[1]
+                elif len(split_authority) > 2:
+                    has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
 
-        # this is a mouse gene database, exclude
-        if "MGI" in authority_records_dict:
-            authority_records_dict.pop("MGI")
+                authority_records_dict[authority] = authority_gene_id
 
-        if len(authority_records_dict) == 0:
-            authority = None
-            authority_gene_id = None
-        elif len(authority_records_dict) > 1:
-            has_fatal_error("Unable to select authority record to include: {}".format(authority_records_dict))
-        else:
-            for auth, gene_id in authority_records_dict.items():
-                authority = auth
-                authority_gene_id = gene_id
+            # this is a mouse gene database, exclude
+            if "MGI" in authority_records_dict:
+                authority_records_dict.pop("MGI")
+
+            if len(authority_records_dict) > 1:
+                has_fatal_error("Unable to select authority record to include: {}".format(authority_records_dict))
+            elif len(authority_records_dict) == 1:
+                for auth, gene_id in authority_records_dict.items():
+                    authority = auth
+                    authority_gene_id = gene_id
 
         gene['authority_gene_id'] = authority_gene_id
         gene['authority'] = authority
@@ -413,12 +410,10 @@ def alter_paginated_gene_list(json_obj_list):
         uniprotkb_ids = uniprot_accession_str
 
         if swissprot_count == 0:
-            print("No swissprots counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
-            print("(for string: {})".format(swissprot_str))
-
+            print("No swissprots counted, returns {}; {} for string {}".format(
+                uniprotkb_id, uniprotkb_ids, swissprot_str))
         if swissprot_count > 1:
-            print("More than one swissprot counted, returns {}; {}".format(uniprotkb_id, uniprotkb_ids))
-            print("(for string: {})".format(swissprot_str))
+            print("More than one swissprot counted, returns {} for string {}".format(uniprotkb_id, swissprot_str))
 
         gene['uniprotkb_id'] = uniprotkb_id
         gene['uniprotkb_ids'] = uniprotkb_ids
