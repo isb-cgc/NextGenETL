@@ -65,17 +65,8 @@ def main(args):
 
         swissprot_data = retrieve_uniprot_kb_genes()
 
-        swissprot_rows = swissprot_data.split('\n')
-
         with open(swissprot_fp, 'w') as swissprot_file:
-            for swissprot_row in swissprot_rows:
-                row_list = swissprot_row.split('\t')
-
-                print(row_list)
-
-                exit()
-
-                swissprot_file.write(swissprot_data)
+            swissprot_file.write(swissprot_data)
 
         create_and_upload_schema_from_tsv(API_PARAMS, BQ_PARAMS,
                                           table_name=swissprot_table_name,
