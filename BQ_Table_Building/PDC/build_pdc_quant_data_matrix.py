@@ -14,7 +14,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_tsv_row, load_table_from_query, exists_bq_table,
                               load_config, publish_table, construct_table_name, construct_table_name_from_list,
-                              create_and_upload_schema_for_tsv, return_schema_object_for_bq)
+                              create_and_upload_schema_for_tsv, return_schema_object_for_bq, get_rel_prefix)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, get_dev_table_id,
                                              update_column_metadata, update_pdc_table_metadata, get_prefix)
@@ -131,7 +131,9 @@ def get_quant_files():
 
     for blob in blobs:
         filename = blob.name.split('/')[-1]
-        files.add(filename)
+        version = get_rel_prefix(API_PARAMS)
+        if "quant" in filename and "schema" not in filename and version in filename:
+            files.add(filename)
 
     return files
 
@@ -176,6 +178,7 @@ def make_gene_symbols_per_study_query(pdc_study_id):
 
 
 # todo check
+'''
 def add_gene_symbols_per_study(study_obj, gene_symbol_set):
     """
 
@@ -227,6 +230,7 @@ def build_gene_symbol_list(studies_list):
 
     gene_symbol_list = list(sorted(gene_symbol_set))
     return gene_symbol_list
+'''
 
 
 def main(args):
@@ -321,7 +325,8 @@ def main(args):
         print("Building quant tables...")
         blob_files = get_quant_files()
 
-        print(blob_files)
+        for file_name in blob_files:
+            print(file_name)
         exit()
 
         quant_table_name_no_version = create_raw_quant_table_name(study_id_dict, include_release=False)
