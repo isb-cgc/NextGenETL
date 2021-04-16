@@ -956,7 +956,7 @@ def resolve_type_conflicts(types_dict):
     :param types_dict: dict of field: types set values
     """
     for field, types_set in types_dict.items():
-        types_dict[field] = resolve_type_conflict(types_set)
+        types_dict[field] = resolve_type_conflict(field, types_set)
 
 
 def recursively_detect_object_structures(obj):
