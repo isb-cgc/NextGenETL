@@ -14,7 +14,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
                               create_and_load_table_from_tsv, create_tsv_row, load_table_from_query, exists_bq_table,
                               load_config, publish_table, construct_table_name, construct_table_name_from_list,
-                              create_and_upload_schema_from_tsv, return_schema_object_for_bq, build_table_from_tsv)
+                              create_and_upload_schema_from_tsv, return_schema_object_for_bq)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, get_dev_table_id,
                                              update_column_metadata, update_pdc_table_metadata, get_prefix)
