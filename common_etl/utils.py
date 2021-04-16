@@ -1239,8 +1239,16 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
     resolve_type_conflicts(data_types_dict)
 
-    print(table_name)
+    print(data_types_dict)
 
+    '''
+    schema_field = {
+        "name": k,
+        "type": final_type,
+        "mode": "NULLABLE",
+        "description": description
+    }
+    '''
     generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=release)
 
 

@@ -79,8 +79,6 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, swissprot_fp)
 
     if 'build_swissprot_table' in steps:
-        print("\nBuilding {0}... ".format(swissprot_table_id))
-
         swissprot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
                                                        table_type=BQ_PARAMS['SWISSPROT_TABLE'],
                                                        release=API_PARAMS['SWISSPROT_RELEASE'])
