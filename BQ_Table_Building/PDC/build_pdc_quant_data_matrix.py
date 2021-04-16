@@ -40,18 +40,18 @@ def retrieve_uniprot_kb_genes():
     return response.text
 
 
-def make_quant_data_matrix_query(study_submitter_id, data_type):
+def make_quant_data_matrix_query(pdc_study_id, data_type):
     """
 
     Create graphQL string for querying the PDC API's quantDataMatrix endpoint.
-    :param study_submitter_id: Study submitter id for query argument
+    :param pdc_study_id: PDC study id for query argument
     :param data_type: Data type for query argument (e.g. log2_ratio)
     :return: GraphQL query string
     """
 
     return '''{{ 
-            quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\" acceptDUA: true) 
-        }}'''.format(study_submitter_id, data_type)
+            quantDataMatrix(pdc_study_id: \"{}\" data_type: \"{}\" acceptDUA: true) 
+        }}'''.format(pdc_study_id, data_type)
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
@@ -64,19 +64,19 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
     :param header: header for quant tsv file
     :return: count of lines written to tsv
     """
-    study_submitter_id = study_id_dict['study_submitter_id']
     study_name = study_id_dict['study_name']
     lines_written = 0
+    quant_endpoint = API_PARAMS['QUANT_ENDPOINT']
 
-    quant_query = make_quant_data_matrix_query(study_submitter_id, data_type)
+    quant_query = make_quant_data_matrix_query(study_id_dict['pdc_study_id'], data_type)
     res_json = get_graphql_api_response(API_PARAMS, quant_query, fail_on_error=False)
 
-    if not res_json or not res_json['data']['quantDataMatrix']:
+    if not res_json or not res_json['data'][quant_endpoint]:
         return lines_written
 
     aliquot_metadata = list()
 
-    id_row = res_json['data']['quantDataMatrix'].pop(0)
+    id_row = res_json['data'][quant_endpoint].pop(0)
     id_row.pop(0)  # remove gene column header string
 
     # process first row, which gives us the aliquot ids and idx positions
@@ -105,7 +105,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
     with open(tsv_fp, 'w') as fh:
         fh.write(create_tsv_row(header))
 
-        for row in res_json['data']['quantDataMatrix']:
+        for row in res_json['data'][quant_endpoint]:
             gene_symbol = row.pop(0)
 
             for i, log2_ratio in enumerate(row):

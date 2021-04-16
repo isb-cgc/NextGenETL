@@ -378,7 +378,7 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
     table_id = get_dev_table_id(bq_params, dataset=bq_params['META_DATASET'], table_name=table_name)
 
     return """
-    SELECT pdc_study_id, study_name, embargo_date, project_submitter_id, analytical_fraction
+    SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, project_submitter_id, analytical_fraction
     FROM  `{}`
     """.format(table_id)
 
@@ -416,7 +416,8 @@ def get_pdc_split_studies_lists(api_params, bq_params):
     :param bq_params: BQ params from YAML config 
     :return: studies list, embargoed studies list
     """
-    studies_output_name = api_params['ENDPOINT_SETTINGS']['allPrograms']['output_name']
+    study_endpoint = API_PARAMS['STUDY_ENDPOINT']
+    studies_output_name = api_params['ENDPOINT_SETTINGS'][study_endpoint]['output_name']
 
     studies_table_name = construct_table_name(api_params, studies_output_name)
     studies_table_id = get_dev_table_id(bq_params,
