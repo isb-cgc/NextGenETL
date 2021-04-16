@@ -1177,7 +1177,6 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     :param release:
     :return:
     """
-
     def get_column_list():
         # if no header list supplied here, headers are generated from header_row.
         column_list = list()
@@ -1203,6 +1202,42 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
         return column_list
 
+    def aggregate_column_data_types():
+        with open(tsv_fp, 'r') as tsv_file:
+            for i in range(skip_rows):
+                tsv_file.readline()
+
+            while True:
+                row = tsv_file.readline()
+
+                if not row:
+                    break
+
+                row_list = row.split('\t')
+
+                for idx, value in enumerate(row_list):
+                    value_type = check_value_type(value)
+                    data_types_dict[columns[idx]].add(value_type)
+
+    def create_schema_object():
+        schema_field_object_list = list()
+
+        for column_name in columns:
+            schema_field = {
+                "name": column_name,
+                "type": data_types_dict[column_name],
+                "mode": "NULLABLE",
+                "description": ''
+            }
+
+            schema_field_object_list.append(schema_field)
+
+        schema_obj = {
+            "fields": schema_field_object_list
+        }
+
+        return schema_obj
+
     print("Creating schema for {}".format(table_name))
 
     # third condition required to account for header row at 0 index
@@ -1221,39 +1256,11 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     for column in columns:
         data_types_dict[column] = set()
 
-    with open(tsv_fp, 'r') as tsv_file:
-        for i in range(skip_rows):
-            tsv_file.readline()
-
-        while True:
-            row = tsv_file.readline()
-
-            if not row:
-                break
-
-            row_list = row.split('\t')
-
-            for idx, value in enumerate(row_list):
-                value_type = check_value_type(value)
-                data_types_dict[columns[idx]].add(value_type)
-
     resolve_type_conflicts(data_types_dict)
+    
+    aggregate_column_data_types()
 
-    schema_field_obj_list = list()
-
-    for column_name in columns:
-        schema_field = {
-            "name": column_name,
-            "type": data_types_dict[column_name],
-            "mode": "NULLABLE",
-            "description": ''
-        }
-
-        schema_field_obj_list.append(schema_field)
-
-    schema_obj = {
-        "fields": schema_field_obj_list
-    }
+    schema_obj = create_schema_object()
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
