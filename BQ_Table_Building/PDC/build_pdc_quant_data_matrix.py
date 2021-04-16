@@ -18,7 +18,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, get_dev_table_id,
                                              update_column_metadata, update_pdc_table_metadata, get_prefix,
-                                             build_obj_from_pdc_api)
+                                             build_obj_from_pdc_api, request_data_from_pdc_api)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -157,23 +157,20 @@ def create_raw_quant_table_name(study_id_dict, include_release=True):
 
 
 def make_genes_count_query():
-    return ''' {{
-        getPaginatedGenes(offset: {} limit: {} acceptDUA: true) {{
-            total genesProper {{
-                gene_id
-            }}
-            pagination {{
-                count
-            }}
-        }}
-    }}'''.format(100, 2)
-
+    return ''' {
+        getPaginatedGenes(offset: 0 limit: 1 acceptDUA: true) {
+            total
+        }
+    }'''
 
 
 def get_gene_record_count():
     gene_record_query = make_genes_count_query()
 
-    count_res = get_query_results(gene_record_query)
+    count_res = request_data_from_pdc_api(API_PARAMS, API_PARAMS['GENE_ENDPOINT'], gene_record_query)
+
+    print(count_res)
+    exit()
 
     for row in count_res:
         return row[0]
