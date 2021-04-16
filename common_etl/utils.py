@@ -1130,8 +1130,6 @@ def return_schema_object_for_bq(api_params, bq_params, table_type, release=None)
 def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=None):
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
-    print(table_name)
-
     schema_obj = {
         "fields": schema_list
     }
@@ -1240,6 +1238,8 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
                 data_types_dict[columns[idx]].add(value_type)
 
     resolve_type_conflicts(data_types_dict)
+
+    print(table_name)
 
     generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=release)
 
