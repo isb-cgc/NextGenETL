@@ -1211,7 +1211,7 @@ def create_and_load_tables(program, cases, schemas, record_counts, is_webapp=Fal
 
         print("Upload {} to bucket".format(jsonl_name))
 
-        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name))
+        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name), delete_local=True)
 
         table_name = get_full_table_name(program, record_table)
 

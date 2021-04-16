@@ -190,7 +190,7 @@ def main(args):
                                          tsv_fp=swissprot_fp, header_row=0, skip_rows=1,
                                          release=API_PARAMS['SWISSPROT_RELEASE'])
 
-        upload_to_bucket(BQ_PARAMS, swissprot_fp)
+        upload_to_bucket(BQ_PARAMS, swissprot_fp, delete_local=True)
 
     if 'build_swissprot_table' in steps:
         swissprot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
@@ -235,7 +235,7 @@ def main(args):
                                                  header_list=raw_quant_header,
                                                  skip_rows=1)
 
-                upload_to_bucket(BQ_PARAMS, quant_tsv_path)
+                upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print("\n{0} lines written for {1}".format(lines_written, study_id_dict['study_name']))
                 print("{0} uploaded to Google Cloud bucket!".format(raw_quant_tsv_file))
                 os.remove(quant_tsv_path)

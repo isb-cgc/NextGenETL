@@ -711,7 +711,7 @@ def main(args):
             print("\n{0} lines written for {1}".format(lines_written, study_id_dict['study_name']))
 
             if lines_written > 0:
-                upload_to_bucket(BQ_PARAMS, quant_tsv_path)
+                upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print("{0} uploaded to Google Cloud bucket!".format(quant_tsv_file))
                 os.remove(quant_tsv_path)
 
@@ -743,7 +743,7 @@ def main(args):
         mapping_file = split_file[0] + '_' + API_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
 
         download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
-        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file))
+        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file), delete_local=True)
 
     if 'build_uniprot_table' in steps:
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
@@ -800,7 +800,7 @@ def main(args):
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
         build_gene_tsv(gene_symbol_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
-        upload_to_bucket(BQ_PARAMS, gene_tsv_path)
+        upload_to_bucket(BQ_PARAMS, gene_tsv_path, delete_local=True)
 
     if 'build_gene_table' in steps:
         gene_tsv_file = get_filename(API_PARAMS,

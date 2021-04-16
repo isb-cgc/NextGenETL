@@ -574,7 +574,7 @@ def main(args):
         # ingestion by BQ
         print('Uploading jsonl file to cloud storage!')
         # don't remove local file here, using it to create schema object in next step
-        upload_to_bucket(BQ_PARAMS, scratch_fp)
+        upload_to_bucket(BQ_PARAMS, scratch_fp, delete_local=True)
 
     if 'build_bq_table' in steps:
         if not grouped_fields_dict:
