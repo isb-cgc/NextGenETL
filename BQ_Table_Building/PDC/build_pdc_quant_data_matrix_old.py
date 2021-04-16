@@ -464,7 +464,7 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 
 
 # ***** QUANT DATA MATRIX FUNCTIONS
-
+'''
 def make_quant_data_matrix_query(study_submitter_id, data_type):
     """
     Creates a graphQL string for querying the PDC API's allCases endpoint.
@@ -476,7 +476,7 @@ def make_quant_data_matrix_query(study_submitter_id, data_type):
     return '''{{ 
             quantDataMatrix(study_submitter_id: \"{}\" data_type: \"{}\" acceptDUA: true) 
         }}'''.format(study_submitter_id, data_type)
-
+'''
 
 def make_proteome_quant_table_query(study):
     """
@@ -524,6 +524,7 @@ def make_proteome_quant_table_query(study):
     """.format(case_aliquot_table_id, quant_table_id, gene_table_id)
 
 
+'''
 def build_quant_tsv(study_id_dict, data_type, tsv_fp):
     """
     Output quant data rows in tsv format, for future BQ ingestion.
@@ -586,7 +587,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp):
             lines_written += 1
 
         return lines_written
-
+'''
 
 def get_quant_files():
     """
@@ -713,6 +714,7 @@ def main(args):
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path)
                 print("{0} uploaded to Google Cloud bucket!".format(quant_tsv_file))
                 os.remove(quant_tsv_path)
+
 
     if 'build_quant_tables' in steps:
         quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])

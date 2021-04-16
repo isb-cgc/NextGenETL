@@ -1109,11 +1109,11 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def return_schema_object_for_bq(api_params, bq_params, table_type, release=None):
+def return_schema_object_for_bq(api_params, bq_params, table_name, release=None):
     schema_filename = get_filename(api_params=api_params,
                                    file_extension='json',
                                    prefix="schema",
-                                   suffix=table_type,
+                                   suffix=table_name,
                                    release=release)
 
     download_from_bucket(bq_params, schema_filename)
@@ -1147,7 +1147,7 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
-def create_and_upload_schema_from_json(api_params, bq_params, record_list, table_name):
+def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name):
     """
 
     todo
@@ -1162,8 +1162,8 @@ def create_and_upload_schema_from_json(api_params, bq_params, record_list, table
     generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict)
 
 
-def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
-                                      header_list=None, header_row=None, skip_rows=0, release=None):
+def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp,
+                                     header_list=None, header_row=None, skip_rows=0, release=None):
     """
 
     todo

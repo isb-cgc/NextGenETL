@@ -27,7 +27,7 @@ from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
-                              publish_table, construct_table_name, download_from_bucket, create_and_upload_schema_from_json,
+                              publish_table, construct_table_name, download_from_bucket, create_and_upload_schema_for_json,
                               generate_bq_schema_field, get_graphql_api_response)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -330,8 +330,8 @@ def main(args):
                                                        alter_json_function=alter_files_per_study_json,
                                                        ids=all_pdc_study_ids)
 
-        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
-                                           table_name=per_study_file_prefix)
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
+                                          table_name=per_study_file_prefix)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
 
@@ -403,7 +403,7 @@ def main(args):
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
-        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)

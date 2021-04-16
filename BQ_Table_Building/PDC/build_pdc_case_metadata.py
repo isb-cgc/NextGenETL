@@ -26,7 +26,7 @@ import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table, create_and_upload_schema_from_json)
+                              update_schema, publish_table, create_and_upload_schema_for_json)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
                                              get_dev_table_id, get_prefix,
@@ -217,8 +217,8 @@ def main(args):
                                                              request_function=make_cases_aliquots_query,
                                                              alter_json_function=alter_cases_aliquots_objects,
                                                              insert_id=True)
-        create_and_upload_schema_from_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
-                                           table_name=aliquot_prefix)
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
+                                          table_name=aliquot_prefix)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
 
