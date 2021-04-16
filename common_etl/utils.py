@@ -1181,14 +1181,14 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
         if header_list:
             return header_list
 
-        with open(tsv_fp, 'r') as tsv_file:
-            for i in range(skip_rows):
-                skipped_row = tsv_file.readline()
+        with open(tsv_fp, 'r') as _tsv_file:
+            for idx in range(header_row):
+                tsv_file.readline()
 
-                # if header included in file, create header list here
-                if header_row and header_row == i:
-                    columns = skipped_row.split('\t')
-                    return columns
+                column_row = tsv_file.readline()
+                print(column_row)
+                exit()
+                return header_row.split('\t')
 
         has_fatal_error("No column name values supplied by header row index")
 
