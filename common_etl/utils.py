@@ -1241,10 +1241,10 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
     schema_field_obj_list = list()
 
-    for column_name, column_type in data_types_dict:
+    for column_name in columns:
         schema_field = {
             "name": column_name,
-            "type": column_type,
+            "type": data_types_dict[column_name],
             "mode": "NULLABLE",
             "description": ''
         }
