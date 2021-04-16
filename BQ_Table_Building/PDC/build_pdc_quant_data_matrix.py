@@ -164,6 +164,27 @@ def make_genes_count_query():
     }'''
 
 
+def make_paginated_gene_query(offset, limit):
+    return """
+        {{
+          getPaginatedGenes(offset:{0} limit: {1} acceptDUA:true) {{ 
+            total genesProper{{
+              gene_id 
+              gene_name 
+              NCBI_gene_id 
+              authority 
+              description 
+              organism 
+              chromosome 
+              locus 
+              proteins 
+              assays
+            }}
+          }}
+        }}
+    """.format(offset, limit)
+
+
 def get_gene_record_count():
     gene_record_query = make_genes_count_query()
 
@@ -272,25 +293,6 @@ def make_gene_query(gene_name):
     '''.format(gene_name)
 
 
-def make_paginated_gene_query(offset, limit):
-    return """
-        {{
-          getPaginatedGenes(offset:{0} limit: {1} acceptDUA:true) {{ 
-            total genesProper{{
-              gene_id 
-              gene_name 
-              NCBI_gene_id 
-              authority 
-              description 
-              organism 
-              chromosome 
-              locus 
-              proteins 
-              assays
-            }}
-          }}
-        }}
-    """.format(offset, limit)
 
 
 def make_swissprot_query():
@@ -686,14 +688,12 @@ def main(args):
     if 'build_gene_jsonl' in steps:
         record_count = get_gene_record_count()
 
-        print(record_count)
-        exit()
-
         api_gene_list = build_obj_from_pdc_api(API_PARAMS,
                                                endpoint=API_PARAMS['GENE_ENDPOINT'],
-                                               request_function=make_paginated_gene_query,
-                                               alter_json_function=alter_paginated_gene_list,
-                                               )
+                                               request_function=make_paginated_gene_query)
+
+        print(len(api_gene_list))
+        exit()
 
         '''
         gene_tsv_headers = ['gene_id',
