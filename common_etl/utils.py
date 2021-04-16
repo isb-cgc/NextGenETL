@@ -1177,7 +1177,10 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     """
     data_types_dict = {}
 
-    if not header_list and not header_row:
+    print("Creating schema for {}".format(table_name))
+
+    # third condition required to account for header row at 0 index
+    if not header_list and not header_row and not isinstance(header_row, int):
         has_fatal_error("Please supply either the header row index or a list of headers for tsv schema creation.")
     if header_row and header_list:
         has_fatal_error("Please supply *either* a header row index or header list, not both, for tsv schema creation.")
