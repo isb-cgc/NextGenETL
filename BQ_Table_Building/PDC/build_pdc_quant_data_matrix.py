@@ -71,9 +71,9 @@ def main(args):
 
         with open(swissprot_fp, 'w') as swissprot_file:
             for swissprot_row in swissprot_rows:
-                swissprot_row.split('\t')
+                row_list = swissprot_row.split('\t')
 
-                print(value)
+                print(row_list)
 
                 exit()
 
