@@ -196,45 +196,26 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
 
 
 # todo remove, use create_and_load_table_from_tsv in utils
-def build_table_from_tsv(api_params, bq_params, table_prefix, table_suffix=None, backup_table_suffix=None):
+def build_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema):
     """
-
+    todo
     Build BQ table from tsv file.
-    :param api_params: API params from YAML config
-    :param bq_params: BQ params from YAML config 
-    :param table_prefix: table name prefix
-    :param table_suffix: table name suffix (defaults to None
-    :param backup_table_suffix: (NOTE: not currently using this anywhere--necessary for future dev?)
+    :param bq_params: BQ params from YAML config
+    :param tsv_file:
+    :param table_id:
+    :param num_header_rows:
+    :param schema:
+    :return:
     """
     build_start = time.time()
 
-    project = bq_params['DEV_PROJECT']
-    dataset = bq_params['DEV_DATASET']
-
-    table_name = construct_table_name(api_params, table_prefix)
-    table_id = construct_table_id(project, dataset, table_name)
-
-    schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-    schema = load_bq_schema_from_json(bq_params, schema_filename)
-
-    if not schema and backup_table_suffix:
-        print("No schema file found for {}, trying backup ({})".format(table_suffix, backup_table_suffix))
-        table_name = construct_table_name(api_params, table_prefix, backup_table_suffix)
-        table_id = construct_table_id(project, dataset, table_name)
-        schema_filename = '{}/{}/{}.json'.format(project, dataset, table_name)
-        schema = load_bq_schema_from_json(bq_params, schema_filename)
-
-    # still no schema? return
-    if not schema:
-        print("No schema file found for {}, skipping table.".format(table_id))
-        return
-
     print("\nBuilding {0}... ".format(table_id))
-    tsv_name = get_filename(api_params,
-                            file_extension='tsv',
-                            prefix=table_prefix,
-                            suffix=table_suffix)
-    create_and_load_table_from_tsv(bq_params=bq_params, tsv_file=tsv_name, table_id=table_id, schema=schema)
+
+    create_and_load_table_from_tsv(bq_params,
+                                   tsv_file=tsv_file,
+                                   table_id=table_id,
+                                   num_header_rows=num_header_rows,
+                                   schema=schema)
 
     build_end = time.time() - build_start
     print("Table built in {0}!\n".format(format_seconds(build_end)))

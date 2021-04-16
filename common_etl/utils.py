@@ -1130,6 +1130,8 @@ def return_schema_object_for_bq(api_params, bq_params, table_type, release=None)
 def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=None):
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
+    print(table_name)
+
     schema_obj = {
         "fields": schema_list
     }
