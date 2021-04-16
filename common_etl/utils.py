@@ -1178,28 +1178,31 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
     def get_column_list():
         # if no header list supplied here, headers are generated from header_row.
+        column_list = list()
+
         if header_list:
-            return header_list
-
-        with open(tsv_fp, 'r') as _tsv_file:
-            for index in range(header_row):
-                _tsv_file.readline()
-
-            column_row = _tsv_file.readline()
-            _columns = column_row.split('\t')
-            column_list = list()
-
-            for column in _columns:
-                column = re.sub(r'[^A-Za-z0-9_ ]+', ' ', column)
-                column = column.strip()
-                column = re.sub(r'\s+', '_', column)
-                print(column)
+            for column in header_list:
+                column = make_string_bq_friendly(column)
                 column_list.append(column)
+        else:
+            with open(tsv_fp, 'r') as _tsv_file:
+                for index in range(header_row):
+                    _tsv_file.readline()
 
-            print(column_list)
-            return column_list
+                column_row = _tsv_file.readline()
+                _columns = column_row.split('\t')
 
-            has_fatal_error("No column name values supplied by header row index")
+                if len(_columns) == 0:
+                    has_fatal_error("No column name values supplied by header row index")
+
+                for column in _columns:
+                    column = make_string_bq_friendly(column)
+                    column_list.append(column)
+
+        print(column_list)
+        return column_list
+
+
 
     data_types_dict = {}
 
@@ -1238,6 +1241,19 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
 
 #   MISC UTILS
+
+def make_string_bq_friendly(string):
+    """
+
+    todo
+    :param string:
+    :return:
+    """
+    string = re.sub(r'[^A-Za-z0-9_ ]+', ' ', string)
+    string = string.strip()
+    string = re.sub(r'\s+', '_', string)
+
+    return string
 
 
 def format_seconds(seconds):
