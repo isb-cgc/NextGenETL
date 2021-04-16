@@ -65,7 +65,7 @@ def main(args):
 
         swissprot_data = retrieve_uniprot_kb_genes()
 
-        with(swissprot_fp, 'w') as swissprot_file:
+        with open(swissprot_fp, 'w') as swissprot_file:
             swissprot_file.write(swissprot_data)
 
         create_and_upload_schema_from_tsv(API_PARAMS, BQ_PARAMS,
