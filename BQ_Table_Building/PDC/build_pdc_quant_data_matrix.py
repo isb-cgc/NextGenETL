@@ -164,6 +164,15 @@ def make_genes_count_query():
     }"""
 
 
+def get_gene_record_count():
+    gene_record_query = make_genes_count_query()
+
+    count_res = get_query_results(gene_record_query)
+
+    for row in count_res:
+        return row[0]
+
+
 def make_gene_symbols_per_study_query(pdc_study_id):
     """
 
@@ -181,15 +190,6 @@ def make_gene_symbols_per_study_query(pdc_study_id):
         SELECT DISTINCT(gene_symbol)
         FROM `{}`
     """.format(quant_table_id)
-
-
-def get_gene_record_count():
-    gene_record_query = make_genes_count_query()
-
-    count_res = get_query_results(gene_record_query)
-
-    for row in count_res:
-        return row[0]
 
 
 def alter_paginated_gene_list():
