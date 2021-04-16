@@ -1197,7 +1197,9 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
             # if header included in file, create header list here
             if header_row and header_row == i:
                 headers = skipped_row
-                header_list = headers.split('\t')
+                row_header_list = headers.split('\t')
+
+        columns = header_list if header_list else row_header_list
 
         while True:
             row = tsv_file.readline()
@@ -1209,7 +1211,7 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
             for idx, value in enumerate(row_list):
                 value_type = check_value_type(value)
-                data_types_dict[header_list[idx]].add(value_type)
+                data_types_dict[columns[idx]].add(value_type)
 
     resolve_type_conflicts(data_types_dict)
 
