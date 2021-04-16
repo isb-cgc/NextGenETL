@@ -94,7 +94,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
             if split_el[1]:
                 aliquot_submitter_id = split_el[1]
 
-            if not aliquot_submitter_id or aliquot_run_metadata_id:
+            if not aliquot_submitter_id or not aliquot_run_metadata_id:
                 has_fatal_error("Unexpected value for aliquot_run_metadata_id:aliquot_submitter_id ({})".format(el))
 
         aliquot_metadata.append({
