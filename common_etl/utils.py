@@ -1205,6 +1205,9 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
                 else:
                     has_fatal_error("No column name values supplied by header row index")
 
+        print(columns)
+        exit()
+
         while True:
             row = tsv_file.readline()
 
