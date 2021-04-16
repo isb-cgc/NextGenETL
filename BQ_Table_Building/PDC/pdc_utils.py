@@ -71,7 +71,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
         if total_pages:
             has_fatal_error("Paginated API response ({} pages), but is_paginated set to False.".format(total_pages))
     else:
-        limit = api_params['PAGINATED_LIMIT']
+        limit = api_params['ENDPOINT_SETTINGS'][endpoint]['batch_size']
         offset = 0
         page = 1
 
@@ -105,7 +105,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
 
 def build_obj_from_pdc_api(api_params, endpoint, request_function, request_params=tuple(), alter_json_function=None,
-                           ids=None, insert_id=False, pause=0, total_count=None):
+                           ids=None, insert_id=False, pause=0):
     """
 
     Create jsonl file based on results from PDC API request

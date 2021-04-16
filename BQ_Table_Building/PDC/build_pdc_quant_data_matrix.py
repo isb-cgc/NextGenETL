@@ -361,16 +361,38 @@ def alter_paginated_gene_list(json_obj_list):
 
     for gene in json_obj_list:
         gene_authority = gene.pop('authority')
-        split_authority = gene_authority.split(':')
 
-        if len(split_authority) == 2:
-            authority = split_authority[0]
-            authority_gene_id = split_authority[1]
-        elif len(split_authority) < 2:
+        authority_records_dict = dict()
+
+        authority_records = gene_authority.split('; ')
+
+        for authority_record in authority_records:
+            split_authority = authority_record.split(':')
+
+            if len(split_authority) == 2:
+                authority = split_authority[0]
+                authority_gene_id = split_authority[1]
+            elif len(split_authority) < 2:
+                authority = None
+                authority_gene_id = None
+            else:
+                has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
+
+            authority_records_dict[authority] = authority_gene_id
+
+        # this is a mouse gene database, exclude
+        if "MGI" in authority_records_dict:
+            authority_records_dict.pop("MGI")
+
+        if len(authority_records_dict) == 0:
             authority = None
             authority_gene_id = None
+        elif len(authority_records_dict) > 1:
+            has_fatal_error("Unable to select authority record to include: {}".format(authority_records_dict))
         else:
-            has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
+            for auth, gene_id in authority_records_dict.items():
+                authority = auth
+                authority_gene_id = gene_id
 
         gene['authority_gene_id'] = authority_gene_id
         gene['authority'] = authority
