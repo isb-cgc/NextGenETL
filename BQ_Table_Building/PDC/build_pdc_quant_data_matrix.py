@@ -167,7 +167,7 @@ def make_genes_count_query():
 def get_gene_record_count():
     gene_record_query = make_genes_count_query()
 
-    count_res = request_data_from_pdc_api(API_PARAMS, API_PARAMS['GENE_ENDPOINT'], gene_record_query)
+    count_res = get_graphql_api_response(API_PARAMS, gene_record_query)
 
     print(count_res)
     exit()
