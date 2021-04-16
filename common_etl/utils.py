@@ -1190,10 +1190,11 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
             column_list = list()
 
             for column in _columns:
-                column_edit = re.sub(r'[^A-Za-z0-9_ ]+', ' ', column)
-                column_edit = column_edit.strip()
-                print(column_edit)
-                column_list.append(column_edit)
+                column = re.sub(r'[^A-Za-z0-9_ ]+', ' ', column)
+                column = column.strip()
+                column = re.sub(r'\s+', ' ', column)
+                print(column)
+                column_list.append(column)
 
             print(column_list)
             return column_list
