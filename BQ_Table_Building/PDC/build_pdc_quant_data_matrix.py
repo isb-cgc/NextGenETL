@@ -70,7 +70,7 @@ def main(args):
             swissprot_file.write(swissprot_data)
 
         create_and_upload_schema_from_tsv(API_PARAMS, BQ_PARAMS,
-                                          table_name=swissprot_table_name,
+                                          table_name=BQ_PARAMS['SWISSPROT_TABLE'],
                                           tsv_fp=swissprot_fp,
                                           header_row=0,
                                           skip_rows=1,
