@@ -398,6 +398,7 @@ def alter_paginated_gene_list(json_obj_list):
         swissprot_str, swissprot_count = filter_swissprot_accession_nums(gene['proteins'], swissprot_set)
         uniprotkb_id = ""
 
+        # returns oldest swiss-prot id; if none, returns oldest uniprot id
         if swissprot_count == 1:
             uniprotkb_id = swissprot_str
         elif swissprot_count > 1:
@@ -409,9 +410,11 @@ def alter_paginated_gene_list(json_obj_list):
 
         uniprotkb_ids = uniprot_accession_str
 
+        '''
         if swissprot_count == 0:
             print("No swissprots counted, returns {}; {} for string {}".format(
                 uniprotkb_id, uniprotkb_ids, swissprot_str))
+        '''
         if swissprot_count > 1:
             print("More than one swissprot counted, returns {} for string {}".format(uniprotkb_id, swissprot_str))
 
