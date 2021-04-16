@@ -156,16 +156,18 @@ def create_raw_quant_table_name(study_id_dict, include_release=True):
                                 include_release=include_release)
 
 
-def make_genes_count_query():
-    return """{ 
-    getPaginatedGenes(offset: 0 limit: 1 acceptDUA: true) { 
-        total
-    }
-    }"""
+def make_genes_count_query(offset, limit):
+    return """
+    {{
+        getPaginatedGenes(offset: {0} limit: {1} acceptDUA: true) {{ 
+            total
+        }}
+    }}
+    """.format(offset, limit)
 
 
 def get_gene_record_count():
-    gene_record_query = make_genes_count_query()
+    gene_record_query = make_genes_count_query(0, 1)
 
     count_res = get_query_results(gene_record_query)
 
