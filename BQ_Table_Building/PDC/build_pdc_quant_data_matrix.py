@@ -186,11 +186,8 @@ def main(args):
         with open(swissprot_fp, 'w') as swissprot_file:
             swissprot_file.write(swissprot_data)
 
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                         table_name=BQ_PARAMS['SWISSPROT_TABLE'],
-                                         tsv_fp=swissprot_fp,
-                                         header_row=0,
-                                         skip_rows=1,
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['SWISSPROT_TABLE'],
+                                         tsv_fp=swissprot_fp, header_row=0, skip_rows=1,
                                          release=API_PARAMS['SWISSPROT_RELEASE'])
 
         upload_to_bucket(BQ_PARAMS, swissprot_fp)
@@ -220,12 +217,21 @@ def main(args):
                                 'gene_symbol',
                                 'protein_abundance_log2ratio']
 
+            data_types_dict = {
+                'aliquot_run_metadata_id': 'STRING',
+                'aliquot_submitter_id': 'STRING',
+                'study_name': 'STRING',
+                'gene_symbol': 'STRING',
+                'protein_abundance_log2ratio': 'FLOAT64'
+            }
+
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if lines_written > 0:
                 create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                                  table_name=quant_table_name_no_version,
                                                  tsv_fp=quant_tsv_path,
+                                                 types_dict=data_types_dict,
                                                  header_list=raw_quant_header,
                                                  skip_rows=1)
 
