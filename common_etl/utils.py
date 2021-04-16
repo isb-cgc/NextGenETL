@@ -1199,10 +1199,7 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
                     column = make_string_bq_friendly(column)
                     column_list.append(column)
 
-        print(column_list)
         return column_list
-
-    data_types_dict = {}
 
     print("Creating schema for {}".format(table_name))
 
@@ -1217,8 +1214,10 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     # if no header list supplied here, headers are generated from header_row.
     columns = get_column_list()
 
-    print(columns)
-    exit()
+    data_types_dict = {}
+
+    for column in columns:
+        data_types_dict[column] = set()
 
     with open(tsv_fp, 'r') as tsv_file:
         for i in range(skip_rows):
