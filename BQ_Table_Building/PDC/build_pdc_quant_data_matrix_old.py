@@ -191,7 +191,7 @@ def has_quant_table(study_submitter_id):
                                       prefix=quant_prefix,
                                       suffix=study_submitter_id)
     table_id = get_dev_table_id(BQ_PARAMS,
-                                dataset=BQ_PARAMS['DEV_DATASET'],
+                                dataset=BQ_PARAMS['QUANT_DATASET'],
                                 table_name=table_name)
 
     return exists_bq_table(table_id)
@@ -417,8 +417,9 @@ def main(args):
 
             pdc_study_id = study['pdc_study_id']
             raw_table_name = get_quant_table_name(study, is_final=False)
+            raw_table_id = get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['QUANT_DATASET'], table_name=raw_table_name)
 
-            if exists_bq_table(get_dev_table_id(BQ_PARAMS, dataset=BQ_PARAMS['DEV_DATASET'], table_name=raw_table_name)):
+            if exists_bq_table(raw_table_id):
                 final_table_name = get_quant_table_name(study)
                 final_table_id = get_dev_table_id(BQ_PARAMS, final_table_name)
 

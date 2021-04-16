@@ -1,9 +1,5 @@
 import re
-import csv
-import ftplib
-import gzip
 import time
-import os
 import sys
 import requests
 
@@ -11,15 +7,13 @@ from functools import cmp_to_key
 from google.cloud import storage
 
 from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket,
-                              get_graphql_api_response, has_fatal_error, load_bq_schema_from_json,
-                              create_and_load_table_from_tsv, create_tsv_row, load_table_from_query, exists_bq_table,
-                              load_config, publish_table, construct_table_name, construct_table_name_from_list,
+                              get_graphql_api_response, has_fatal_error, create_and_load_table_from_tsv, create_tsv_row,
+                              load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, return_schema_object_for_bq, get_rel_prefix,
                               create_and_upload_schema_for_json, write_jsonl_and_upload)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, get_dev_table_id,
-                                             update_column_metadata, update_pdc_table_metadata, get_prefix,
-                                             build_obj_from_pdc_api, request_data_from_pdc_api, build_table_from_jsonl)
+                                             get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -40,6 +34,39 @@ def retrieve_uniprot_kb_genes():
 
     response = requests.get(request_url)
     return response.text
+
+
+# todo in progress
+def retrieve_uniprot_kb_proteins():
+    with open("uniprot_res.tab", "r") as uniprot_fp:
+        rows = uniprot_fp.readlines()
+
+    ref_seq_uniprot_mapping_list = list()
+
+    for row in rows[1:]:
+        row = row.strip()
+        if '\t' in row:
+            columns = row.split("\t")
+            if len(columns) == 2 and columns[0] and columns[1]:
+                swissprot_id = columns[0]
+                ref_seq_ids = columns[1].strip(';').split(';')
+
+                for ref_seq_id in ref_seq_ids:
+                    if " " in ref_seq_id:
+                        ref_seq_swissprot_acc_id = ref_seq_id.split(" ")
+                        swissprot_acc_id = ref_seq_swissprot_acc_id[1].strip('[').strip(']')
+                        if not swissprot_acc_id:
+                            swissprot_acc_id = None
+                        ref_seq_uniprot_mapping_list.append([ref_seq_swissprot_acc_id[0], swissprot_id, swissprot_acc_id])
+                    else:
+                        ref_seq_uniprot_mapping_list.append([ref_seq_id, swissprot_id, None])
+
+    for map_row in ref_seq_uniprot_mapping_list:
+        if map_row[2]:
+            uniprot = map_row[2].split('-')[0]
+            if map_row != uniprot:
+                print("not equal: {}, {}".format(map_row, uniprot))
+        # print(map_row)
 
 
 def make_swissprot_query():

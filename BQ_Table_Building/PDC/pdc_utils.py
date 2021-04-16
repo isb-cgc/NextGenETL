@@ -219,7 +219,8 @@ def build_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema)
     print("Table built in {0}!\n".format(format_seconds(build_end)))
 '''
 
-def get_dev_table_id(bq_params, dataset=None, table_name=None):
+
+def get_dev_table_id(bq_params, dataset, table_name):
     """
 
     Get dev table id.
@@ -228,11 +229,7 @@ def get_dev_table_id(bq_params, dataset=None, table_name=None):
     :param table_name: name of table
     :return: BQ table id
     """
-    project = bq_params['DEV_PROJECT']
-    if not dataset:
-        dataset = bq_params['DEV_DATASET']
-
-    return "{}.{}.{}".format(project, dataset, table_name)
+    return "{}.{}.{}".format(bq_params['DEV_PROJECT'], dataset, table_name)
 
 
 def get_prefix(api_params, endpoint):
