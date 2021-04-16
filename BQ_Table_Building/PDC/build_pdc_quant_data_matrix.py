@@ -414,9 +414,10 @@ def alter_paginated_gene_list(json_obj_list):
         if swissprot_count == 0:
             print("No swissprots counted, returns {}; {} for string {}".format(
                 uniprotkb_id, uniprotkb_ids, swissprot_str))
-        '''
+        
         if swissprot_count > 1:
             print("More than one swissprot counted, returns {} for string {}".format(uniprotkb_id, swissprot_str))
+        '''
 
         gene['uniprotkb_id'] = uniprotkb_id
         gene['uniprotkb_ids'] = uniprotkb_ids
@@ -547,7 +548,8 @@ def main(args):
                                           table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
-                               API_PARAMS['GENE_ENDPOINT'], gene_record_list)
+                               prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']),
+                               joined_record_list=gene_record_list)
 
     if 'build_gene_table' in steps:
         gene_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
