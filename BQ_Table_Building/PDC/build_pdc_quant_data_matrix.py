@@ -132,7 +132,8 @@ def get_quant_files():
     for blob in blobs:
         filename = blob.name.split('/')[-1]
         version = get_rel_prefix(API_PARAMS)
-        if "quant" in filename and "schema" not in filename and version in filename:
+        # kind of a hacky fix, but we'll move to CDA before it matters (before there are 9000+ studies)
+        if "quant" in filename and "schema" not in filename and version in filename and "PDC0" in filename:
             files.add(filename)
 
     return files
@@ -286,7 +287,7 @@ def main(args):
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
-            quant_table_name_no_version = create_raw_quant_table_name(study_id_dict, include_release=False)
+            unversioned_quant_table_name = create_raw_quant_table_name(study_id_dict, include_release=False)
             raw_quant_tsv_file = create_raw_quant_table_name(study_id_dict) + '.tsv'
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, raw_quant_tsv_file)
 
@@ -309,7 +310,7 @@ def main(args):
 
             if lines_written > 0:
                 create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                                 table_name=quant_table_name_no_version,
+                                                 table_name=unversioned_quant_table_name,
                                                  tsv_fp=quant_tsv_path,
                                                  types_dict=data_types_dict,
                                                  header_list=raw_quant_header,
@@ -323,26 +324,24 @@ def main(args):
 
     if 'build_quant_tables' in steps:
         print("Building quant tables...")
-        blob_files = get_quant_files()
-
-        for file_name in blob_files:
-            print(file_name)
-        exit()
-
-        quant_table_name_no_version = create_raw_quant_table_name(study_id_dict, include_release=False)
-
-        raw_quant_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, table_name=quant_table_name_no_version)
+        # used to verify the presence of quant file (meaning there was data for that study in quantDataMatrix)
+        quant_blob_files = get_quant_files()
 
         for study_id_dict in studies_list:
             raw_quant_tsv_file = create_raw_quant_table_name(study_id_dict) + '.tsv'
 
-            if raw_quant_tsv_file not in blob_files:
+            if raw_quant_tsv_file not in quant_blob_files:
                 print('Skipping table build for {} (jsonl not found in bucket)'.format(raw_quant_tsv_file))
             else:
                 print("Building table for {}".format(raw_quant_tsv_file))
 
                 raw_quant_table_name = create_raw_quant_table_name(study_id_dict)
                 raw_quant_table_id = get_dev_table_id(BQ_PARAMS, BQ_PARAMS['QUANT_DATASET'], raw_quant_table_name)
+
+                unversioned_quant_table_name = create_raw_quant_table_name(study_id_dict, include_release=False)
+                raw_quant_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
+                                                               table_name=unversioned_quant_table_name)
+
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=raw_quant_tsv_file,
                                                table_id=raw_quant_table_id,
