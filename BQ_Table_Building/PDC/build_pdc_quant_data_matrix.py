@@ -159,7 +159,7 @@ def create_raw_quant_table_name(study_id_dict, include_release=True):
 def make_genes_count_query(offset, limit):
     return '''
     {
-        getPaginatedGenes(offset:0 limit: 1 acceptDUA:true) {
+        getPaginatedGenes(offset: 0 limit: 1 acceptDUA: true) {
             total genesProper {
                 gene_id
             }
