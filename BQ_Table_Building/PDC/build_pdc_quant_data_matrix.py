@@ -238,7 +238,6 @@ def main(args):
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print("\n{0} lines written for {1}".format(lines_written, study_id_dict['study_name']))
                 print("{0} uploaded to Google Cloud bucket!".format(raw_quant_tsv_file))
-                os.remove(quant_tsv_path)
             else:
                 print("\n{0} lines written for {1}; not uploaded.".format(lines_written, study_id_dict['study_name']))
 

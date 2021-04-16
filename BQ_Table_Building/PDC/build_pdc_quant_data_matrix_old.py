@@ -743,7 +743,7 @@ def main(args):
         mapping_file = split_file[0] + '_' + API_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
 
         download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
-        upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, mapping_file), delete_local=True)
+        upload_to_bucket(BQ_PARAMS, scratch_fp=get_scratch_fp(BQ_PARAMS, mapping_file), delete_local=True)
 
     if 'build_uniprot_table' in steps:
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
