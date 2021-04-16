@@ -1175,6 +1175,23 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
     :param skip_rows:
     :return:
     """
+
+    def get_column_list():
+        # if no header list supplied here, headers are generated from header_row.
+        if header_list:
+            return header_list
+
+        with open(tsv_fp, 'r') as tsv_file:
+            for i in range(skip_rows):
+                skipped_row = tsv_file.readline()
+
+                # if header included in file, create header list here
+                if header_row and header_row == i:
+                    columns = skipped_row.split('\t')
+                    return columns
+
+        has_fatal_error("No column name values supplied by header row index")
+
     data_types_dict = {}
 
     print("Creating schema for {}".format(table_name))
@@ -1186,27 +1203,11 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
         has_fatal_error("Please supply *either* a header row index or header list, not both, for tsv schema creation.")
 
     # if no header list supplied here, headers are generated from header_row.
-    if header_list:
-        for column_name in header_list:
-            data_types_dict[column_name] = set()
+    columns = get_column_list()
 
     with open(tsv_fp, 'r') as tsv_file:
-        columns = None
-
         for i in range(skip_rows):
-            skipped_row = tsv_file.readline()
-
-            # if header included in file, create header list here
-            if header_row and header_row == i:
-                columns = skipped_row.split('\t')
-
-                if not columns and header_list:
-                    columns = header_list
-                else:
-                    has_fatal_error("No column name values supplied by header row index")
-
-        print(columns)
-        exit()
+            tsv_file.readline()
 
         while True:
             row = tsv_file.readline()
