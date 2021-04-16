@@ -1186,9 +1186,16 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
                 _tsv_file.readline()
 
             column_row = _tsv_file.readline()
-            print(column_row)
-            exit()
-            return header_row.split('\t')
+            _columns = column_row.split('\t')
+            column_list = list()
+
+            for column in _columns:
+                column = re.sub(r'^A-Za-z0-9_ ', '', column)
+                column = column.replace(' ', '_')
+                column_list.append(column)
+
+            print(column_list)
+            return column_list
 
             has_fatal_error("No column name values supplied by header row index")
 
@@ -1201,6 +1208,8 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
         has_fatal_error("Please supply either the header row index or a list of headers for tsv schema creation.")
     if header_row and header_list:
         has_fatal_error("Please supply *either* a header row index or header list, not both, for tsv schema creation.")
+    if isinstance(header_row, int) and header_row >= skip_rows:
+        has_fatal_error("Header row not excluded by skip_rows.")
 
     # if no header list supplied here, headers are generated from header_row.
     columns = get_column_list()
