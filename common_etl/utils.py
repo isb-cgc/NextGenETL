@@ -1200,10 +1200,10 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
             if header_row and header_row == i:
                 columns = skipped_row.split('\t')
 
-        if not columns and header_list:
-            columns = header_list
-        else:
-            has_fatal_error("No column name values supplied by header row index")
+                if not columns and header_list:
+                    columns = header_list
+                else:
+                    has_fatal_error("No column name values supplied by header row index")
 
         while True:
             row = tsv_file.readline()
