@@ -66,12 +66,10 @@ def main(args):
         swissprot_data = retrieve_uniprot_kb_genes()
 
         swissprot_rows = swissprot_data.split('\n')
-        print(swissprot_rows)
-        exit()
 
         with open(swissprot_fp, 'w') as swissprot_file:
             for swissprot_row in swissprot_rows:
-                row_list = swissprot_row.split('\\t')
+                row_list = swissprot_row.split('\t')
 
                 print(row_list)
 
