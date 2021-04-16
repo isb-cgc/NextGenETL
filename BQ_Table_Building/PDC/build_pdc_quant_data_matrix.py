@@ -190,9 +190,6 @@ def get_gene_record_count():
 
     count_res = get_graphql_api_response(API_PARAMS, gene_record_query)
 
-    print(count_res)
-    exit()
-
     for row in count_res:
         return row[0]
 
