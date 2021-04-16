@@ -366,7 +366,7 @@ def alter_paginated_gene_list(json_obj_list):
 
         gene_authority = gene.pop('authority')
 
-        if len(gene_authority) > 0:
+        if gene_authority and len(gene_authority) > 0:
             authority_records = gene_authority.split('; ')
 
             for authority_record in authority_records:
