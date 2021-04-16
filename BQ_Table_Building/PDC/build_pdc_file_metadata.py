@@ -26,13 +26,12 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
-                              has_fatal_error, load_table_from_query, load_config, return_schema_object_for_bq,
+                              has_fatal_error, load_table_from_query, load_config, retrieve_bq_schema_object,
                               publish_table, construct_table_name, download_from_bucket, create_and_upload_schema_for_json,
-                              generate_bq_schema_field, get_graphql_api_response, write_jsonl_and_upload)
+                              generate_bq_schema_field, get_graphql_api_response, write_list_to_jsonl_and_upload)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename,
-                                             get_dev_table_id, create_modified_temp_table, update_column_metadata,
+                                             get_filename, create_modified_temp_table, update_column_metadata,
                                              update_pdc_table_metadata, get_prefix)
 
 API_PARAMS = dict()
@@ -119,7 +118,7 @@ def make_associated_entities_query():
     table_name = construct_table_name(API_PARAMS,
                                       prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
 
-    table_id = get_dev_table_id(BQ_PARAMS,
+    table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                 dataset=BQ_PARAMS['META_DATASET'],
                                 table_name=table_name)
 
@@ -145,7 +144,7 @@ def make_combined_file_metadata_query():
     file_metadata_table_name = construct_table_name(API_PARAMS,
                                                     prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
 
-    file_metadata_table_id = get_dev_table_id(BQ_PARAMS,
+    file_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                               dataset=BQ_PARAMS['META_DATASET'],
                                               table_name=file_metadata_table_name)
 
@@ -153,7 +152,7 @@ def make_combined_file_metadata_query():
                                                      prefix=get_prefix(API_PARAMS,
                                                                        API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
 
-    file_per_study_table_id = get_dev_table_id(BQ_PARAMS,
+    file_per_study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                dataset=BQ_PARAMS['META_DATASET'],
                                                table_name=file_per_study_table_name)
 
@@ -209,7 +208,7 @@ def modify_per_study_file_table_query(fps_table_id):
     study_table_name = construct_table_name(API_PARAMS,
                                             prefix=get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT']))
 
-    study_table_id = get_dev_table_id(BQ_PARAMS,
+    study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                       dataset=BQ_PARAMS['META_DATASET'],
                                       table_name=study_table_name)
 
@@ -260,7 +259,7 @@ def get_file_ids():
     fps_table_name = construct_table_name(API_PARAMS,
                                           prefix=get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
 
-    fps_table_id = get_dev_table_id(BQ_PARAMS,
+    fps_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                     dataset=API_PARAMS['ENDPOINT_SETTINGS'][files_per_study_endpoint]['dataset'],
                                     table_name=fps_table_name)
 
@@ -270,7 +269,7 @@ def get_file_ids():
                                          prefix=get_prefix(API_PARAMS, file_metadata_endpoint),
                                          release=API_PARAMS['PREV_RELEASE'])
 
-    fm_table_id = get_dev_table_id(BQ_PARAMS,
+    fm_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                    dataset=API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset'],
                                    table_name=fm_table_name)
 
@@ -298,7 +297,7 @@ def get_previous_version_file_metadata():
     dataset = API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset']
 
     table_name = construct_table_name(API_PARAMS, prefix, release=API_PARAMS['PREV_RELEASE'])
-    table_id = get_dev_table_id(BQ_PARAMS, dataset=dataset, table_name=table_name)
+    table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], dataset=dataset, table_name=table_name)
 
     query = """
     SELECT * 
@@ -334,10 +333,10 @@ def main(args):
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
                                           table_name=per_study_file_prefix)
 
-        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
 
     if 'build_per_study_file_table' in steps:
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, per_study_file_prefix)
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, per_study_file_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
@@ -347,7 +346,7 @@ def main(args):
     if 'alter_per_study_file_table' in steps:
         fps_table_name = construct_table_name(API_PARAMS,
                                               prefix=per_study_file_prefix)
-        fps_table_id = get_dev_table_id(BQ_PARAMS,
+        fps_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                         dataset=BQ_PARAMS['META_DATASET'],
                                         table_name=fps_table_name)
 
@@ -362,7 +361,7 @@ def main(args):
 
         fps_prefix = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
         files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
-        files_per_study_table_id = get_dev_table_id(BQ_PARAMS,
+        files_per_study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                     dataset=BQ_PARAMS['META_DATASET'],
                                                     table_name=files_per_study_table_name)
         current_version_file_ids_query = """
@@ -410,7 +409,7 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
 
     if 'build_api_file_metadata_table' in steps:
-        schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS, file_metadata_prefix)
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, file_metadata_prefix)
 
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=API_PARAMS['FILE_METADATA_ENDPOINT'],
@@ -421,7 +420,7 @@ def main(args):
         fm_table_name = construct_table_name(API_PARAMS,
                                              prefix=file_metadata_prefix)
 
-        fm_table_id = get_dev_table_id(BQ_PARAMS,
+        fm_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                        dataset=BQ_PARAMS['META_DATASET'],
                                        table_name=fm_table_name)
 
@@ -435,7 +434,7 @@ def main(args):
         table_name = construct_table_name(API_PARAMS,
                                           prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
 
-        full_table_id = get_dev_table_id(BQ_PARAMS,
+        full_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                          dataset=BQ_PARAMS['META_DATASET'],
                                          table_name=table_name)
 
@@ -449,7 +448,7 @@ def main(args):
         # creates case_id -> file count mapping table, used for case metadata table
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-        mapping_table_id = get_dev_table_id(BQ_PARAMS,
+        mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=mapping_table_name)
 
@@ -461,7 +460,7 @@ def main(args):
 
         file_count_table_name = construct_table_name(API_PARAMS,
                                                      prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-        file_count_table_id = get_dev_table_id(BQ_PARAMS,
+        file_count_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                dataset=BQ_PARAMS['META_DATASET'],
                                                table_name=file_count_table_name)
 
@@ -471,7 +470,7 @@ def main(args):
         table_name = construct_table_name(API_PARAMS,
                                           prefix=BQ_PARAMS['FILE_METADATA'])
 
-        full_table_id = get_dev_table_id(BQ_PARAMS,
+        full_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                          dataset=BQ_PARAMS['META_DATASET'],
                                          table_name=table_name)
 
@@ -490,7 +489,7 @@ def main(args):
         file_metadata_table_name = construct_table_name(API_PARAMS,
                                                         prefix=BQ_PARAMS['FILE_METADATA'])
 
-        file_metadata_table_id = get_dev_table_id(BQ_PARAMS,
+        file_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                   dataset=BQ_PARAMS['META_DATASET'],
                                                   table_name=file_metadata_table_name)
 
@@ -503,7 +502,7 @@ def main(args):
         mapping_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
 
-        mapping_table_id = get_dev_table_id(BQ_PARAMS,
+        mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=mapping_table_name)
 

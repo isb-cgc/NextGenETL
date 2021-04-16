@@ -25,11 +25,11 @@ import sys
 import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
-                              return_schema_object_for_bq, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table, create_and_upload_schema_for_json)
+                              retrieve_bq_schema_object, normalize_value, load_table_from_query, get_filepath,
+                              update_schema, publish_table, create_and_upload_schema_for_json, construct_table_id)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_dev_table_id, get_prefix,
+                                             get_prefix,
                                              write_jsonl_and_upload, update_pdc_table_metadata)
 
 API_PARAMS = dict()
@@ -79,7 +79,7 @@ def alter_biospecimen_per_study_objects(json_obj_list, pdc_study_id):
         :return: { '<case_id>': '<file_count>'}
         """
         table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-        table_id = get_dev_table_id(BQ_PARAMS,
+        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                     dataset=BQ_PARAMS['META_DATASET'],
                                     table_name=table_name)
         case_file_count_query = """
@@ -136,8 +136,8 @@ def main(args):
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, biospecimen_prefix, per_study_biospecimen_list)
 
     if 'build_biospecimen_table' in steps:
-        biospecimen_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                         table_type=biospecimen_prefix)
+        biospecimen_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                       table_type=biospecimen_prefix)
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=biospecimen_endpoint,
                                infer_schema=True,

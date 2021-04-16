@@ -9,10 +9,10 @@ from google.cloud import storage
 from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, create_and_load_table_from_tsv, create_tsv_row,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
-                              create_and_upload_schema_for_tsv, return_schema_object_for_bq, get_rel_prefix,
-                              create_and_upload_schema_for_json, write_jsonl_and_upload)
+                              create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
+                              create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id)
 
-from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, get_dev_table_id,
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
 
 API_PARAMS = dict()
@@ -79,7 +79,7 @@ def make_swissprot_query():
                                                 prefix=BQ_PARAMS['SWISSPROT_TABLE'],
                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
 
-    swissprot_table_id = get_dev_table_id(BQ_PARAMS,
+    swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                           dataset=BQ_PARAMS['META_DATASET'],
                                           table_name=swissprot_table_name)
     return """
@@ -506,15 +506,15 @@ def make_quant_table_query(study):
     analytical_fraction = study['analytical_fraction']
 
     raw_quant_table_name = create_raw_quant_table_name(study_id_dict=study)
-    raw_quant_table_id = get_dev_table_id(BQ_PARAMS,
+    raw_quant_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                           dataset=BQ_PARAMS['QUANT_DATASET'],
                                           table_name=raw_quant_table_name)
     aliquot_run_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
-    aliquot_run_table_id = get_dev_table_id(BQ_PARAMS,
+    aliquot_run_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=aliquot_run_table_name)
     gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
-    gene_table_id = get_dev_table_id(BQ_PARAMS,
+    gene_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                      dataset=BQ_PARAMS['META_DATASET'],
                                      table_name=gene_table_name)
 
@@ -591,7 +591,7 @@ def main(args):
     swissprot_table_name = construct_table_name(API_PARAMS,
                                                 prefix=BQ_PARAMS['SWISSPROT_TABLE'],
                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
-    swissprot_table_id = get_dev_table_id(BQ_PARAMS,
+    swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                           dataset=BQ_PARAMS['META_DATASET'],
                                           table_name=swissprot_table_name)
 
@@ -603,16 +603,19 @@ def main(args):
         with open(swissprot_fp, 'w') as swissprot_file:
             swissprot_file.write(swissprot_data)
 
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['SWISSPROT_TABLE'],
-                                         tsv_fp=swissprot_fp, header_row=0, skip_rows=1,
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
+                                         table_name=BQ_PARAMS['SWISSPROT_TABLE'],
+                                         tsv_fp=swissprot_fp,
+                                         header_row=0,
+                                         skip_rows=1,
                                          release=API_PARAMS['SWISSPROT_RELEASE'])
 
         upload_to_bucket(BQ_PARAMS, swissprot_fp, delete_local=True)
 
     if 'build_swissprot_table' in steps:
-        swissprot_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                       table_name=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                       release=API_PARAMS['SWISSPROT_RELEASE'])
+        swissprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                     table_name=BQ_PARAMS['SWISSPROT_TABLE'],
+                                                     release=API_PARAMS['SWISSPROT_RELEASE'])
 
         create_and_load_table_from_tsv(BQ_PARAMS,
                                        tsv_file=swissprot_file_name,
@@ -631,13 +634,13 @@ def main(args):
                                           record_list=gene_record_list,
                                           table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
 
-        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
-                               prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']),
-                               joined_record_list=gene_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                                       prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']),
+                                       record_list=gene_record_list)
 
     if 'build_gene_table' in steps:
-        gene_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                  table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
+        gene_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint=API_PARAMS['GENE_ENDPOINT'],
                                schema=gene_schema)
@@ -649,6 +652,7 @@ def main(args):
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, raw_quant_tsv_file)
 
             # todo change gene_symbol to gene name?
+            # todo move to generic schema
             raw_quant_header = ['aliquot_run_metadata_id',
                                 'aliquot_submitter_id',
                                 'study_name',
@@ -700,11 +704,11 @@ def main(args):
                 print("Building table for {}".format(raw_quant_tsv_file))
 
                 raw_quant_table_name = create_raw_quant_table_name(study_id_dict)
-                raw_quant_table_id = get_dev_table_id(BQ_PARAMS, BQ_PARAMS['QUANT_DATASET'], raw_quant_table_name)
+                raw_quant_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['QUANT_DATASET'], raw_quant_table_name)
 
                 unversioned_quant_table_name = create_raw_quant_table_name(study_id_dict, include_release=False)
-                raw_quant_schema = return_schema_object_for_bq(API_PARAMS, BQ_PARAMS,
-                                                               table_name=unversioned_quant_table_name)
+                raw_quant_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                             table_name=unversioned_quant_table_name)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=raw_quant_tsv_file,
@@ -724,19 +728,20 @@ def main(args):
                 continue
 
             raw_table_name = get_quant_table_name(study, is_final=False)
-            raw_table_id = get_dev_table_id(BQ_PARAMS,
+            raw_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['QUANT_DATASET'],
                                             table_name=raw_table_name)
 
             if exists_bq_table(raw_table_id):
-                final_table_name = get_quant_table_name(study)
-                final_table_id = get_dev_table_id(BQ_PARAMS,
+                final_dev_table_name = get_quant_table_name(study)
+                final_dev_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                   dataset=BQ_PARAMS['QUANT_DATASET'],
-                                                  table_name=final_table_name)
+                                                  table_name=final_dev_table_name)
                 load_table_from_query(BQ_PARAMS,
-                                      table_id=final_table_id,
+                                      table_id=final_dev_table_id,
                                       query=make_quant_table_query(study))
-                # update_column_metadata(API_PARAMS, BQ_PARAMS, final_table_id)
+                # todo
+                # update_column_metadata(API_PARAMS, BQ_PARAMS, final_dev_table_id)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))

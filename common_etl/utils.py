@@ -39,11 +39,13 @@ from google.cloud import bigquery, storage, exceptions
 
 def get_graphql_api_response(api_params, query, fail_on_error=True):
     """
+
     Create and submit graphQL API request, returning API response serialized as json object.
-    :param api_params:
-    :param query:
-    :param fail_on_error:
-    :return:
+    :param api_params: api_params supplied in yaml config
+    :param query: GraphQL-formatted query string
+    :param fail_on_error: if True, will fail fast--otherwise, tries up to 3 times before failing. False is good for
+    longer paginated queries, which often throw random server errors
+    :return: json response object
     """
     max_retries = 4
 
@@ -71,26 +73,27 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
 
         tries += 1
 
-    if tries > max_retries:
-        # give up!
-        api_res.raise_for_status()
+        if tries > max_retries:
+            # give up!
+            api_res.raise_for_status()
 
-    json_res = api_res.json()
+        json_res = api_res.json()
 
-    if 'errors' in json_res and json_res['errors']:
-        if fail_on_error:
-            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
+        if 'errors' in json_res and json_res['errors']:
+            if fail_on_error:
+                has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
 
-    return json_res
+        return json_res
 
 
 def get_rel_prefix(api_params, return_last_version=False, version=None):
-    """Get API release version (set in yaml config).
+    """
 
-    :param api_params: API PARAMS
-    :param return_last_version: if True, returns release version prior to newest.
+    Get API release version (set in yaml config).
+    :param api_params: API params, supplied via yaml config
+    :param return_last_version: if True, returns release version prior to newest
     :param version: release version string
-    :return: release version number (with prefix, if included).
+    :return: release version number (with prefix, if included)
     """
     rel_prefix = ''
 
@@ -119,8 +122,9 @@ def get_rel_prefix(api_params, return_last_version=False, version=None):
 
 
 def delete_bq_table(table_id):
-    """Permanently delete BQ table located by table_id.
+    """
 
+    Permanently delete BigQuery table located by table_id.
     :param table_id: table id in standard SQL format
     """
     client = bigquery.Client()
@@ -129,8 +133,8 @@ def delete_bq_table(table_id):
 
 def delete_bq_dataset(dataset_id):
     """
-    Permanently delete BQ dataset.
 
+    Permanently delete BigQuery dataset.
     :param dataset_id: dataset_id for deletion
     """
     client = bigquery.Client()
@@ -138,8 +142,9 @@ def delete_bq_dataset(dataset_id):
 
 
 def update_table_metadata(table_id, metadata):
-    """Modify an existing BQ table's metadata (labels, friendly name, description) using metadata dict argument
+    """
 
+    Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format
     :param metadata: metadata containing new field and table attributes
     """
@@ -158,9 +163,9 @@ def update_table_metadata(table_id, metadata):
 
 def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict=None):
     """
-    Alter table labels for existing BQ table (for instance, when changes are needed to a published table's labels).
 
-    :param table_id: target BQ table id
+    Alter table labels for existing BigQuery table (e.g. when changes are necessary for a published table's labels).
+    :param table_id: target BigQuery table id
     :param labels_to_remove_list: optional list of label keys to remove
     :param labels_to_add_dict: optional dictionary of label key-value pairs to add to table metadata
     """
@@ -194,13 +199,14 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
 
 
 def update_friendly_name(api_params, table_id, is_gdc, custom_name=None):
-    """Modify BQ table's friendly name.
+    """
 
-    :param api_params: api param object from yaml config
+    Modify BigQuery table's friendly name.
+    :param api_params: API params, supplied via yaml config
     :param table_id: table id in standard SQL format
     :param custom_name: By default, appends "'REL' + api_params['RELEASE'] + ' VERSIONED'"
-    :param is_gdc: If this is GDC, we add REL before the version onto the existing friendly name.
-    If custom_name is specified, this behavior is overridden, and the table's friendly name is replaced entirely.
+    :param is_gdc: If this is GDC, we add REL before the version onto the existing friendly name;
+        if custom_name is specified, this behavior is overridden, and the table's friendly name is replaced entirely.
     """
     client = bigquery.Client()
     table = get_bq_table_obj(table_id)
@@ -222,8 +228,9 @@ def update_friendly_name(api_params, table_id, is_gdc, custom_name=None):
 
 
 def update_schema(table_id, new_descriptions):
-    """Modify an existing table's field descriptions.
+    """
 
+    Modify an existing table's field descriptions.
     :param table_id: table id in standard SQL format
     :param new_descriptions: dict of field names and new description strings
     """
@@ -253,12 +260,13 @@ def update_schema(table_id, new_descriptions):
 
 
 def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
-    """Copy an existing BQ src_table into location specified by dest_table.
+    """
 
-    :param replace_table:
+    Copy an existing BigQuery src_table into location specified by dest_table.
     :param bq_params: bq param object from yaml config
-    :param src_table: Table to copy
-    :param dest_table: Table to be created
+    :param src_table: ID of table to copy
+    :param dest_table: ID of table create
+    :param replace_table: Replace existing table, if one exists; defaults to False
     """
     client = bigquery.Client()
 
@@ -275,8 +283,9 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
 
 
 def exists_bq_table(table_id):
-    """Determines whether bq table exists for given table_id.
+    """
 
+    Determine whether bq table exists for given table_id.
     :param table_id: table id in standard SQL format
     :return: True if exists, False otherwise
     """
@@ -290,10 +299,11 @@ def exists_bq_table(table_id):
 
 
 def get_bq_table_obj(table_id):
-    """Gets the bq table object referenced by table_id.
+    """
 
+    Gets the bq table object referenced by table_id.
     :param table_id: table id in standard SQL format
-    :return: bq Table object
+    :return: BigQuery Table object
     """
     if not exists_bq_table(table_id):
         return None
@@ -304,9 +314,9 @@ def get_bq_table_obj(table_id):
 
 def list_bq_tables(dataset_id, release=None):
     """
-    Generates list of all tables which exist for given dataset id.
+    Generate list of all tables which exist for given dataset id.
 
-    :param dataset_id: BQ dataset_id
+    :param dataset_id: BigQuery dataset_id
     :param release: API release version
     :return: list of bq tables for dataset
     """
@@ -323,14 +333,17 @@ def list_bq_tables(dataset_id, release=None):
 
 def publish_table(api_params, bq_params, public_dataset, source_table_id, overwrite=False):
     """
-    Publish production BQ tables using source_table_id: create current/versioned table ids, publish tables,
-    update friendly name for versioned table, change last version tables' status labels to archived.
 
+    Publish production BigQuery tables using source_table_id:
+        - create current/versioned table ids
+        - publish tables
+        - update friendly name for versioned table
+        - change last version tables' status labels to archived
     :param api_params: api params from yaml config
     :param bq_params: bq params from yaml config
     :param public_dataset: publish dataset location
     :param source_table_id: source (dev) table id
-    :param overwrite: If True, replace existing BQ table; defaults to False
+    :param overwrite: If True, replace existing BigQuery table; defaults to False
     """
 
     def get_publish_table_ids():
@@ -389,10 +402,11 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
-    """Monitor for completion of BQ Job that produces some result (generally data insertion).
+    """
 
+    Monitor for completion of BigQuery Load or Query Job that produces some result (generally data insertion).
     :param bq_params: bq params from yaml config file
-    :param client: BQ api object, allowing for execution of bq lib functions
+    :param client: BigQuery api object, allowing for execution of bq lib functions
     :param table_id: table id in standard SQL format
     :param bq_job: A Job object, responsible for executing bq function calls
     """
@@ -416,7 +430,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
 
     if bq_job.error_result is not None:
         has_fatal_error(
-            'While running BQ job: {}\n{}'.format(bq_job.error_result, bq_job.errors),
+            'While running BigQuery job: {}\n{}'.format(bq_job.error_result, bq_job.errors),
             ValueError)
 
     table = client.get_table(table_id)
@@ -424,10 +438,11 @@ def await_insert_job(bq_params, client, table_id, bq_job):
 
 
 def await_job(bq_params, client, bq_job):
-    """Monitor the completion of BQ Job which doesn't return a result.
+    """
 
+    Monitor the completion of BigQuery Job which doesn't return a result.
     :param bq_params: bq params from yaml config file
-    :param client: BQ api object, allowing for execution of bq lib functions
+    :param client: BigQuery api object, allowing for execution of bq lib functions
     :param bq_job: A Job object, responsible for executing bq function calls
     """
     location = bq_params['LOCATION']
@@ -446,19 +461,19 @@ def await_job(bq_params, client, bq_job):
     if bq_job.error_result is not None:
         err_res = bq_job.error_result
         errs = bq_job.errors
-        has_fatal_error("While running BQ job: {}\n{}".format(err_res, errs))
+        has_fatal_error("While running BigQuery job: {}\n{}".format(err_res, errs))
 
 
 def construct_table_name(api_params, prefix, suffix=None, include_release=True, release=None):
     """
-    Utilizes function args to generate BigQuery table name string (prefix is generally set in yaml
-    params and passed by caller).
-    :param api_params:
-    :param prefix:
-    :param suffix:
-    :param include_release:
-    :param release:
-    :return:
+
+    Generate BigQuery-safe table name using supplied parameters.
+    :param api_params: API params supplied in yaml config
+    :param prefix: table prefix or the base table's root name
+    :param suffix: table suffix, optionally supplying another word to append to the prefix
+    :param include_release: If False, excludes RELEASE value set in yaml config; defaults to True
+    :param release: Optionally supply a custom release (useful for external mapping tables, etc)
+    :return: Table name, formatted to be compatible with BigQuery's naming limitations (only: A-Z, a-z, 0-9, _)
     """
     table_name = prefix
 
@@ -474,8 +489,9 @@ def construct_table_name(api_params, prefix, suffix=None, include_release=True, 
 
 
 def construct_table_name_from_list(str_list):
-    """Constructs a table name (str) from list<str>.
+    """
 
+    Construct a table name (str) from list<str>.
     :param str_list: a list<str> of table name segments
     :return: composed table name string
     """
@@ -486,47 +502,25 @@ def construct_table_name_from_list(str_list):
     return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
 
 
-def construct_table_id(project, dataset, table):
-    """ Build table_id in {project}.{dataset}.{table} format.
-
-    :param project: project id
-    :param dataset: dataset id
-    :param table: table name
-    :return: table_id
+def construct_table_id(project, dataset, table_name):
     """
-    return '{}.{}.{}'.format(project, dataset, table)
 
-
-def get_working_table_id(api_params, bq_params, table_name=None):
-    """Get working (development) table_id for given table_name.
-
-    :param api_params: api param object from yaml config
-    :param bq_params: bq param object from yaml config
-    :param table_name: name of the bq table
-    :return: table id
+    Build table_id in {project}.{dataset}.{table} format.
+    :param project: BigQuery project id
+    :param dataset: BigQuery dataset id
+    :param table_name: BigQuery table name
+    :return: joined table_id in BigQuery format
     """
-    if not table_name:
-        table_name = "_".join([get_rel_prefix(api_params), bq_params['MASTER_TABLE']])
-
-    return construct_table_id(bq_params["DEV_PROJECT"], bq_params["DEV_DATASET"], table_name)
-
-
-def get_webapp_table_id(bq_params, table_name):
-    """Get table id for webapp db table.
-
-    :param bq_params: bq param object from yaml config
-    :param table_name: name of the bq table
-    :return: table id
-    """
-    return construct_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
+    return '{}.{}.{}'.format(project, dataset, table_name)
 
 
 def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=None):
-    """Creates new BQ table, populating rows using contents of jsonl file.
+    """
 
+    Create new BigQuery table, populating rows using contents of jsonl file.
     :param bq_params: bq param obj from yaml config
     :param jsonl_file: file containing case records in jsonl format
-    :param schema: list of SchemaFields representing desired BQ table schema
+    :param schema: list of SchemaFields representing desired BigQuery table schema
     :param table_id: table_id to be created
     """
     client = bigquery.Client()
@@ -547,13 +541,13 @@ def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=Non
 def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema=None, null_marker=None):
     """
 
-    Creates BQ table and inserts case data from tsv file.
+    Create new BigQuery table, populating rows using contents of tsv file.
     :param bq_params: bq param obj from yaml config
-    :param tsv_file: file containing case records in tsv format
-    :param schema: list of SchemaFields representing desired BQ table schema
+    :param tsv_file: file containing records in tsv format
+    :param schema: list of SchemaFields representing desired BigQuery table schema
     :param table_id: table_id to be created
     :param num_header_rows: int value representing number of header rows in file (skipped during processing)
-    :param null_marker: todo
+    :param null_marker: null_marker character, optional (defaults to empty string for tsv/csv in bigquery)
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
@@ -570,10 +564,11 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_row
 
 
 def get_query_results(query):
-    """Returns BigQuery query result (RowIterator) object.
+    """
 
+    Return BigQuery query result (RowIterator) object.
     :param query: query string
-    :return: result object
+    :return: query result object (RowIterator)
     """
     client = bigquery.Client()
     query_job = client.query(query)
@@ -581,11 +576,12 @@ def get_query_results(query):
 
 
 def load_table_from_query(bq_params, table_id, query):
-    """Creates new BQ table using result output of BQ SQL query.
+    """
 
+    Create new BigQuery table using result output of BigQuery SQL query.
     :param bq_params: bq params from yaml config file
     :param table_id: table id in standard SQL format
-    :param query: query which returns data to populate a new BQ table.
+    :param query: data selection query, used to populate a new BigQuery table
     """
     client = bigquery.Client()
     job_config = bigquery.QueryJobConfig(destination=table_id)
@@ -601,11 +597,11 @@ def load_table_from_query(bq_params, table_id, query):
 
 def load_bq_schema_from_json(bq_params, filename):
     """
-    Open table schema file from BQEcosystem Repo and convert to python dict, in preparation for use in table creation.
 
+    Open table schema file from BQEcosystem Repo and convert to python dict, in preparation for use in table creation.
     :param bq_params: bq param object from yaml config
     :param filename: name of the schema file
-    :return: schema list, table metadata dict
+    :return: tuple(<list of schema fields>, <dict containing table metadata>)
     """
 
     fp = get_filepath(bq_params['BQ_REPO'] + "/" + bq_params['SCHEMA_DIR'], filename)
@@ -627,14 +623,13 @@ def load_bq_schema_from_json(bq_params, filename):
 
 def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     """
-    Generates LoadJob for BQ table creation.
 
+    Generate BigQuery LoadJob, for creating and populating table.
     :param bq_params: bq param obj from yaml config
     :param data_file: file containing case records
-    :param client: BQ Client obj
+    :param client: BigQuery Client obj
     :param table_id: table_id to be created
     :param job_config: LoadJobConfig object
-    :return:
     """
     gs_uri = "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'], bq_params['WORKING_BUCKET_DIR'], data_file)
 
@@ -648,6 +643,7 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
 
 
 # todo use support? in progress
+"""
 def compare_table_versions(api_params, table_name_prefix):
     def compare_two_tables_sql(old_table, new_table):
         return '''
@@ -665,9 +661,11 @@ def compare_table_versions(api_params, table_name_prefix):
         '''.format(old_table, new_table)
 
     def evaluate_table_union(bq_results):
-        """Evaluate whether two tables are identical by
+        '''
+        Evaluate whether two tables are identical by
         using the count of distinct rows in their union
-        return True/False"""
+        return True/False
+        '''
         if not bq_results:
             print('Table comparison failed')
             return None
@@ -686,14 +684,15 @@ def compare_table_versions(api_params, table_name_prefix):
 
     old_table = table_name_prefix + '_' + api_params['PREV_RELEASE']
     new_table = table_name_prefix + '_' + api_params['RELEASE']
-
+"""
 
 #   GOOGLE CLOUD STORAGE UTILS
 
 
 def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
-    """Uploads file to a Google storage bucket (bucket/directory location specified in YAML config).
+    """
 
+    Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     :param delete_local: delete scratch file created on VM
@@ -728,10 +727,10 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
 
 def download_from_bucket(bq_params, filename):
     """
-    Download file from Google storage bucket onto VM.
 
-    :param bq_params: BQ params
-    :param filename: Name of file to download.
+    Download file from Google storage bucket onto VM.
+    :param bq_params: BigQuery params
+    :param filename: Name of file to download
     """
     storage_client = storage.Client(project="")
     blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], filename)
@@ -747,8 +746,9 @@ def download_from_bucket(bq_params, filename):
 
 
 def get_filepath(dir_path, filename=None):
-    """Get file path for location on VM.
+    """
 
+    Get file path for location on VM; expands compatibly for local or VM scripts.
     :param dir_path: directory portion of the filepath (starting at user home dir)
     :param filename: name of the file
     :return: full path to file
@@ -762,8 +762,9 @@ def get_filepath(dir_path, filename=None):
 
 
 def get_scratch_fp(bq_params, filename):
-    """Construct filepath for VM output file.
+    """
 
+    Construct filepath for VM output file.
     :param filename: name of the file
     :param bq_params: bq param object from yaml config
     :return: output filepath for VM
@@ -773,7 +774,8 @@ def get_scratch_fp(bq_params, filename):
 
 def json_datetime_to_str_converter(obj):
     """
-    Converts python datetime object to string (necessary for json serialization)
+
+    Convert python datetime object to string (necessary for json serialization).
     :param obj: python datetime obj
     :return: datetime obj cast as str type
     """
@@ -786,32 +788,42 @@ def json_datetime_to_str_converter(obj):
 
 
 def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
-    """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
+    """
 
+    Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
     :param jsonl_fp: local VM jsonl filepath
     :param json_obj_list: list of dicts representing json objects
-    :param mode: 'a' if appending to a file that's being built iteratively
+    :param mode: 'a' if appending to a file that's being built iteratively;
                  'w' if file data is written in a single call to the function
-                     (in which case any existing data is overwritten)"""
+                 (in which case any existing data is overwritten)
+    """
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
             json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
             file_obj.write('\n')
 
 
-def write_jsonl_and_upload(api_params, bq_params, prefix, joined_record_list):
+def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
+    """
+
+    Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param prefix: string representing base file name (release string is appended to generate filename)
+    :param record_list: list of record objects to insert into jsonl file
+    """
     jsonl_filename = get_filename(api_params,
                                   file_extension='jsonl',
                                   prefix=prefix)
     local_filepath = get_scratch_fp(bq_params, jsonl_filename)
-
-    write_list_to_jsonl(local_filepath, joined_record_list)
+    write_list_to_jsonl(local_filepath, record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
 
 def create_tsv_row(row_list, null_marker="None"):
     """
-    Converts list of row values into a tab-delimited string.
+
+    Convert list of row values into a tab-delimited string.
     :param row_list: list of row values for conversion
     :param null_marker: Value to write to string for nulls
     :return: tab-delimited string representation of row_list
@@ -831,7 +843,8 @@ def create_tsv_row(row_list, null_marker="None"):
 
 def get_filename(api_params, file_extension, prefix, suffix=None, include_release=True, release=None):
     """
-    Get filename based on table naming scheme.
+
+    Get filename based on common table-naming (see construct_table_name).
     :param api_params: API params from YAML config
     :param file_extension: File extension, e.g. jsonl or tsv
     :param prefix: file name prefix
@@ -846,9 +859,14 @@ def get_filename(api_params, file_extension, prefix, suffix=None, include_releas
 
 #   SCHEMA UTILS
 
+
 def normalize_value(value):
     """
-    Convert null or boolean string variations to correct form.
+
+    If value is variation of null or boolean value, converts to single form (None, True, False);
+    otherwise returns original value.
+    :param value: value to convert
+    :return: normalized (or original) value
     """
     if isinstance(value, str):
         value = value.strip()
@@ -864,11 +882,14 @@ def normalize_value(value):
 
 
 def check_value_type(value):
-    """Checks value for corresponding BQ type. Supported data types: BOOL, INT64, FLOAT64, ARRAY, RECORD, NUMERIC,
-    STRING, DATE, TIME, TIMESTAMP
+    """
 
-    :param value: value to type check
-    :return: type in BQ column format
+    Checks value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
+        - datetime formats: DATE, TIME, TIMESTAMP
+        - number formats: INT64, FLOAT64, NUMERIC
+        - misc formats: STRING, BOOL, ARRAY, RECORD
+    :param value: value on which to perform data type analysis
+    :return: data type in BigQuery Standard SQL format
     """
 
     if isinstance(value, bool):
@@ -883,8 +904,9 @@ def check_value_type(value):
         return "RECORD"
     if not value:
         return None
-    # check to see if value is numeric, float or int
 
+    # check to see if value is numeric, float or int; differentiates between these types and datetime or ids,
+    # which may be composed of only numbers or symbols
     if '.' in value and ':' not in value:
         split_value = value.split('.')
         if len(split_value) == 2:
@@ -894,77 +916,86 @@ def check_value_type(value):
                     return "INT64"
                 return "FLOAT64"
         return "STRING"
+
+    # numeric values are numbers with special encoding, like an exponent or sqrt symbol
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
     elif value.isdigit():
         return "INT64"
+
+    # a sequence of numbers starting with a 0 has to be explicitly classified as a, otherwise data loss will occur
     elif value.startswith("0") and ':' not in value and '-' not in value:
         return "STRING"
-    # BQ CANONICAL DATE/TIME FORMATS: (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
-    # BQ date format: 'YYYY-[M]M-[D]D'
+
+    """
+    BIGQUERY'S CANONICAL DATE/TIME FORMATS:
+    (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
+    """
+
+    # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
     date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
     date_pattern = re.compile(date_re_str)
     if re.fullmatch(date_pattern, value):
         return "DATE"
 
-    # TIME: [H]H:[M]M:[S]S[.DDDDDD]
+    # Check for BigQuery TIME format: [H]H:[M]M:[S]S[.DDDDDD]
     time_re_str = r"([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
     time_pattern = re.compile(time_re_str)
-
     if re.fullmatch(time_pattern, value):
         return "TIME"
 
-    # TIMESTAMP: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+    # Check for BigQuery TIMESTAMP format: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
     timestamp_re_str = date_re_str + r'( |T)' + time_re_str + r"([ \-:A-Za-z0-9]*)"
     timestamp_pattern = re.compile(timestamp_re_str)
     if re.fullmatch(timestamp_pattern, value):
         return "TIMESTAMP"
 
+    # This shouldn't really be returned--in case of some missed edge case, however, it's safe to default to string.
     return "STRING"
 
 
 def resolve_type_conflict(field, types_set):
     """
-    Resolve type precedence, where multiple types are detected.
-    check_value_type will return the following types:
-    - datetime: DATE, TIME, TIMESTAMP
-    - numbers: INT64, FLOAT64, NUMERIC
-    - other: STRING, BOOL, ARRAY, RECORD
-    See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
 
-    :param types_set: Set of BQ data types in string format
+    Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
+    BigQuery's implicit conversion behavior.
+    See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
+    :param types_set: Set of BigQuery data types in string format
     :param field: field name
-    :return: BQ data type with highest precedence
+    :return: BigQuery data type with highest precedence
     """
 
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
     if len(types_set) == 0:
-        # types all null columns as string
+        # fields with no type values default to string--this would still be safe for skip-row analysis of a data file
         return "STRING"
     if len(types_set) == 1:
-        # only one type returned--hopefully this is the general case
+        # only one data type for field, return it
         return list(types_set)[0]
 
-    # Beyond this point, the types_set has at least two type values
+    # From here, the field's types_set contains at least two values; select based on BigQuery's implicit conversion
+    # rules; when in doubt, declare a string to avoid risk of data loss
+
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
         print("Invalid datatype combination for {}: {}".format(field, types_set))
         has_fatal_error("", TypeError)
 
     if "STRING" in types_set:
-        # if it's classified as a string, we've already disqualified it from the other types,
-        # therefore must be a string
+        # if it's partly classified as a string, it has to be a string--other data type values are converted
         return "STRING"
 
     if len(types_set) == 2 and "INT64" in types_set and "BOOL" in types_set:
-        # any ints 1 or 0 are labelled bool by type checker--if they are the only ints,
-        # then it'll be interpreted as bool; otherwise, it should be INT64
+        # 1 or 0 are labelled bool by type checker; any other ints are labelled as ints.
+        # If both 1 and 0 occur, AND there are traditional Boolean values in the column, then it'll be declared a BOOL;
+        # otherwise, it should be INT64
         return "INT64"
 
     has_datetime_type = False
 
+    # are any of the data types datetime types -- {"TIMESTAMP", "DATE", "TIME"}?
     for datetime_type in datetime_types:
         if datetime_type in types_set:
             has_datetime_type = True
@@ -972,15 +1003,18 @@ def resolve_type_conflict(field, types_set):
 
     has_number_type = False
 
+    # are any of the data types number types -- {"INT64", "FLOAT64", "NUMERIC"}?
     for number_type in number_types:
         if number_type in types_set:
             has_number_type = True
             break
 
+    # What, data source?! Okay, fine, be a string
     if has_datetime_type and has_number_type:
         # another weird edge case that really shouldn't happen
         return "STRING"
 
+    # Implicitly convert to inclusive datetime format
     if has_datetime_type:
         if "TIME" in types_set:
             # TIME cannot be implicitly converted to DATETIME
@@ -988,6 +1022,7 @@ def resolve_type_conflict(field, types_set):
         # DATE and TIMESTAMP *can* be implicitly converted to DATETIME
         return "DATETIME"
 
+    # Implicitly convert to inclusive number format
     if has_number_type:
         # only number types remain
         # INT64 and NUMERIC can be implicitly converted to FLOAT64
@@ -997,30 +1032,44 @@ def resolve_type_conflict(field, types_set):
         elif "NUMERIC" in types_set:
             return "NUMERIC"
 
+    # No BOOL, DATETIME combinations allowed, or whatever other randomness occurs--return STRING
     return "STRING"
 
 
 def resolve_type_conflicts(types_dict):
     """
+    # todo convert to new schema generation
     Iteratively resolve type conflicts in flattened dict (used by GDC clinical).
-
     :param types_dict: dict of field: types set values
     """
     for field, types_set in types_dict.items():
         types_dict[field] = resolve_type_conflict(field, types_set)
 
 
-def recursively_detect_object_structures(obj):
-    """
-    Traverse an object to determine its structure and data types of its values.
-    Returned as a dictionary of form "field_name": {data_type_set}.
-
-    :param obj: object to traverse
+def recursively_detect_object_structures(nested_obj):
     """
 
+    Traverse a dict or list of objects, analyzing the structure. Order not guaranteed (if anything, it'll be
+    backwards)--Not for use with TSV data.
+    Works for arbitrary nesting, even if object structure varies from record to record; use for lists, dicts,
+    or any combination therein.
+    If nested_obj is a list, function will traverse every record in order to find all possible fields.
+    :param nested_obj: object to traverse
+    :return data types dict--key is the field name, value is the set of BigQuery column data types returned
+    when analyzing data using check_value_type ({<field_name>: {<data_type_set>}})
+    """
+
+    # stores the dict of {fields: value types}
     data_types_dict = dict()
 
     def recursively_detect_object_structure(_obj, _data_types_dict):
+        """
+
+        Recursively explore a part of the supplied object. Traverses parent nodes, adding to data_types_dict
+        as repeated (RECORD) field objects. Adds child nodes parent's "fields" list.
+        :param _obj: object in current location of recursion
+        :param _data_types_dict: dict of fields and type sets
+        """
         for k, v in _obj.items():
             if isinstance(_obj[k], dict):
                 if k not in _data_types_dict:
@@ -1046,10 +1095,10 @@ def recursively_detect_object_structures(obj):
                 if val_type:
                     _data_types_dict[k].add(val_type)
 
-    if isinstance(obj, dict):
-        recursively_detect_object_structure(obj, data_types_dict)
-    elif isinstance(obj, list):
-        for record in obj:
+    if isinstance(nested_obj, dict):
+        recursively_detect_object_structure(nested_obj, data_types_dict)
+    elif isinstance(nested_obj, list):
+        for record in nested_obj:
             recursively_detect_object_structure(record, data_types_dict)
 
     return data_types_dict
@@ -1057,9 +1106,9 @@ def recursively_detect_object_structures(obj):
 
 def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format_obj, descriptions=None):
     """
-    Parse dict representing a dataset's (possibly nested) structure, field names (keys) and data types (value sets).
-    Convert into json dict obj representing a TableSchema object.
 
+    Parse dict of {<field>: {<data_types>}} representing data object's structure;
+    convert into dict representing a TableSchema object.
     :param data_types_dict: dictionary represent dataset's structure, fields and data types
     :param dataset_format_obj: dataset format obj
     :param descriptions: (optional) dictionary of field: description string pairs for inclusion in schema definition
@@ -1071,6 +1120,7 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
             description = ""
 
         if isinstance(v, dict):
+            # parent node
             schema_field = {
                 "name": k,
                 "type": "RECORD",
@@ -1083,9 +1133,9 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
             convert_object_structure_dict_to_schema_dict(data_types_dict[k], schema_field['fields'])
         else:
             # v is a set
-
             final_type = resolve_type_conflict(k, v)
 
+            # child (leaf) node
             schema_field = {
                 "name": k,
                 "type": final_type,
@@ -1100,32 +1150,31 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
 
 def create_schema_field_obj(schema_obj, fields=None):
     """
-    Outputs SchemaField object.
 
+    Output BigQuery SchemaField object.
     :param schema_obj: dict with schema field values
     :param fields: Optional, child SchemaFields for RECORD type column
     :return: SchemaField object
     """
-
     if fields:
         return bigquery.schema.SchemaField(name=schema_obj['name'],
                                            description=schema_obj['description'],
                                            field_type=schema_obj['type'],
                                            mode=schema_obj['mode'],
                                            fields=fields)
-
-    return bigquery.schema.SchemaField(name=schema_obj['name'],
-                                       description=schema_obj['description'],
-                                       field_type=schema_obj['type'],
-                                       mode=schema_obj['mode'])
+    else:
+        return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                           description=schema_obj['description'],
+                                           field_type=schema_obj['type'],
+                                           mode=schema_obj['mode'])
 
 
 def generate_bq_schema_field(schema_obj, schema_fields):
     """
-    Converts schema field json dict object into SchemaField object.
 
-    :param schema_obj: schema json dict object
-    :param schema_fields: fields
+    Convert schema field json dict object into SchemaField object.
+    :param schema_obj: direct ancestor of schema_fields
+    :param schema_fields: list of SchemaField objects
     """
     if not schema_obj:
         return
@@ -1147,10 +1196,10 @@ def generate_bq_schema_field(schema_obj, schema_fields):
 
 def generate_bq_schema_fields(schema_obj_list):
     """
-    Converts list of schema fields into TableSchema object.
 
-    :param schema_obj_list: schema json dict object list
-    :returns list of SchemaField objects representing BQ TableSchema
+    Convert list of schema fields into TableSchema object.
+    :param schema_obj_list: list of dicts representing BigQuery SchemaField objects
+    :returns list of BigQuery SchemaField objects (represents TableSchema object)
     """
     schema_fields_obj = list()
 
@@ -1160,7 +1209,16 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def return_schema_object_for_bq(api_params, bq_params, table_name, release=None):
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None):
+    """
+
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name:
+    :param release:
+    :return:
+    """
     schema_filename = get_filename(api_params=api_params,
                                    file_extension='json',
                                    prefix="schema",
@@ -1179,6 +1237,16 @@ def return_schema_object_for_bq(api_params, bq_params, table_name, release=None)
 
 
 def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=None):
+    """
+
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name:
+    :param data_types_dict:
+    :param release:
+    :return:
+    """
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
     schema_obj = {
@@ -1202,8 +1270,8 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     """
 
     todo
-    :param api_params:
-    :param bq_params:
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
     :param record_list:
     :param table_name:
     :return:
@@ -1218,20 +1286,21 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     """
 
     todo
-    :param types_dict:
-    :param api_params:
-    :param bq_params:
-    :param table_name:
-    :param tsv_fp:
-    :param header_list:
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name: name of table belonging to schema
+    :param tsv_fp: path to tsv data file, parsed to create schema
+    :param header_list: optional, list of header strings
     :param header_row:
     :param skip_rows:
     :param release:
-    :return:
+    :param types_dict:
     """
-
     def get_column_list():
-        # if no header list supplied here, headers are generated from header_row.
+        """
+        Return a list of column headers using header_list, if provided, OR from the tab-separated file row at the index
+        specified by header_row (specifying both header_list and header_row in parent function triggers a fatal error).
+        """
         column_list = list()
 
         if header_list:
@@ -1256,6 +1325,9 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         return column_list
 
     def aggregate_column_data_types():
+        """
+        Open tsv file and aggregate data types for each column.
+        """
         with open(tsv_fp, 'r') as tsv_file:
             for i in range(skip_rows):
                 tsv_file.readline()
@@ -1273,6 +1345,9 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
                     data_types_dict[columns[idx]].add(value_type)
 
     def create_schema_object():
+        """
+        Create BigQuery SchemaField object representation.
+        """
         schema_field_object_list = list()
 
         for column_name in columns:
@@ -1288,20 +1363,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         return {
             "fields": schema_field_object_list
         }
-
-    # todo possibly create config to cut down on args
-    '''
-    config_obj = {
-        'header_list': None,
-        'header_row': None,
-        'types_dict': None,
-        'skip_rows': 0,
-        'release': None
-    }
-    
-    for entry in config.keys():
-        config_obj[entry] = config[entry]
-    '''
 
     print("Creating schema for {}".format(table_name))
 
@@ -1362,8 +1423,8 @@ def make_string_bq_friendly(string):
 
 def format_seconds(seconds):
     """
-    Rounds seconds to formatted hour, minute, and/or second output.
 
+    Rounds seconds to formatted hour, minute, and/or second output.
     :param seconds: int representing time in seconds
     :return: formatted time string
     """
@@ -1376,16 +1437,21 @@ def format_seconds(seconds):
 
 
 def load_config(args, yaml_dict_keys, validate_config=None):
-    """Opens yaml file and retrieves configuration parameters.
+    """
 
+    Opens yaml file and retrieves configuration parameters.
     :param validate_config:
     :param args: args param from python bash cli
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-
     def open_yaml_and_return_dict(yaml_name):
+        """
+        todo
+        :param yaml_name:
+        :return:
+        """
         with open(yaml_name, mode='r') as yaml_file:
             yaml_dict = None
             config_stream = io.StringIO(yaml_file.read())
@@ -1429,15 +1495,16 @@ def load_config(args, yaml_dict_keys, validate_config=None):
 
     if validate_config:
         pass
-        # todo
+        # todo create config validation
         # validate_config(tuple(return_dicts))
 
     return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
 def has_fatal_error(err, exception=None):
-    """Outputs error str or list<str>, then exits; optionally throws Exception.
+    """
 
+    Outputs error str or list<str>, then exits; optionally throws Exception.
     :param err: error message str or list<str>
     :param exception: Exception type for error (defaults to None)
     """
@@ -1460,8 +1527,8 @@ def has_fatal_error(err, exception=None):
 
 def pprinter(print_str):
     """
-    Pretty print (with indentation) json or other formatted strings.
 
+    Pretty print (with indentation) json or other formatted strings.
     :param print_str: string to format
     """
     pp = pprint.PrettyPrinter(indent=4)

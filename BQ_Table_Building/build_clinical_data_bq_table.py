@@ -28,8 +28,9 @@ import sys
 import copy
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
-                              upload_to_bucket, create_and_load_table_from_jsonl, get_working_table_id, format_seconds,
-                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter)
+                              upload_to_bucket, create_and_load_table_from_jsonl, format_seconds,
+                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter,
+                              construct_table_id, construct_table_name_from_list)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -37,7 +38,28 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-# todo yaml config conformance test
+def get_working_table_id(table_name=None):
+    """
+
+    Get working (development) table_id for supplied table_name and default DEV_PROJECT and DEV_DATASET
+    values in bq_params.
+    :param table_name: name of the bq table
+    :return: table id
+    """
+    if not table_name:
+        table_name = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+    return construct_table_id(BQ_PARAMS["DEV_PROJECT"], BQ_PARAMS["DEV_DATASET"], table_name)
+
+
+def get_webapp_table_id(bq_params, table_name):
+    """
+
+    Get table id for webapp db table.
+    :param bq_params: bq param object from yaml config
+    :param table_name: name of the bq table
+    :return: table id
+    """
+    return construct_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
 
 
 def request_data_from_gdc_api(curr_index):
@@ -584,8 +606,8 @@ def main(args):
         schema = generate_bq_schema(grouped_fields_dict, column_data_types_dict)
 
         print('Building BQ Table!')
-        table_name = "_".join([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-        table_id = get_working_table_id(API_PARAMS, BQ_PARAMS, table_name)
+        table_name = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
+        table_id = get_working_table_id(table_name)
 
         create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_output_file, table_id, schema)
         # os.remove(scratch_fp)

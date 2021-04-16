@@ -26,12 +26,14 @@ import sys
 from google.cloud import bigquery
 
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
-                              has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl, load_table_from_query,
-                              delete_bq_table, load_config, list_bq_tables, publish_table, construct_table_name)
+                              has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
+                              load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
+                              construct_table_name, construct_table_id)
 
-from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids, get_pdc_studies_list,
-                                             build_obj_from_pdc_api, build_table_from_jsonl, get_filename, get_dev_table_id,
-                                             get_records, update_column_metadata, update_pdc_table_metadata)
+from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
+                                             get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
+                                             get_filename, get_records, update_column_metadata,
+                                             update_pdc_table_metadata)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -40,6 +42,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def make_cases_query():
     """
+
     Creates a graphQL string for querying the PDC API's allCases endpoint.
     :return: GraphQL query string
     """
@@ -314,7 +317,7 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     prefix = "_".join(["temp", project_name, clinical_type])
 
     clinical_or_child_table_name = construct_table_name(API_PARAMS, prefix=prefix)
-    clinical_or_child_table_id = get_dev_table_id(BQ_PARAMS,
+    clinical_or_child_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                   dataset=BQ_PARAMS['CLINICAL_DATASET'],
                                                   table_name=clinical_or_child_table_name)
 
@@ -394,7 +397,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_table_prefix)
 
-    clinical_project_table_id = get_dev_table_id(BQ_PARAMS,
+    clinical_project_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                  dataset=BQ_PARAMS['CLINICAL_DATASET'],
                                                  table_name=clinical_project_table_name)
 
@@ -663,7 +666,7 @@ def main(args):
                 if rem_str in project_shortname:
                     project_shortname = project_shortname.replace(rem_str, '')
 
-            clinical_table_id = get_dev_table_id(BQ_PARAMS, BQ_PARAMS['CLINICAL_DATASET'], table_name)
+            clinical_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['CLINICAL_DATASET'], table_name)
 
             publish_table(API_PARAMS, BQ_PARAMS,
                           public_dataset=dataset_map[project_shortname],

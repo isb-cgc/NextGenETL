@@ -25,19 +25,17 @@ import time
 
 from datetime import date
 
-from common_etl.utils import (get_filename, get_filepath, get_query_results, format_seconds, write_list_to_jsonl,
+from common_etl.utils import (get_filename, get_filepath, get_query_results, write_list_to_jsonl,
                               get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
-                              load_bq_schema_from_json, create_and_load_table_from_tsv, create_and_load_table_from_jsonl,
+                              load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
-                              update_schema, update_table_metadata, construct_table_id, normalize_value,
-                              construct_table_name, get_rel_prefix, construct_table_name_from_list,
-                              recursively_detect_object_structures, convert_object_structure_dict_to_schema_dict,
-                              check_value_type, resolve_type_conflicts)
+                              update_schema, update_table_metadata, construct_table_name, construct_table_id)
 
 
-def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None, pause=None):
+def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None):
     """
-    Used internally by build_jsonl_from_pdc_api()
+
+    Used internally by build_jsonl_from_pdc_api().
     :param api_params: API params from YAML config
     :param endpoint: PDC API endpoint
     :param request_body_function: function outputting GraphQL request body (including query)
@@ -48,9 +46,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
     payload_key = api_params['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
     def append_api_response_data():
-        """
-        Add api response data to record list
-        """
+        # Adds api response data to record list
         api_response = get_graphql_api_response(api_params, graphql_request_body)
 
         response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
@@ -178,7 +174,7 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
     filename = get_filename(api_params,
                             file_extension='jsonl',
                             prefix=prefix)
-    table_id = get_dev_table_id(bq_params, dataset=dataset, table_name=table_name)
+    table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=dataset, table_name=table_name)
 
     print("Creating {}:".format(table_id))
 
@@ -190,46 +186,6 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
             has_fatal_error("No schema found and infer_schema set to False, exiting")
 
     create_and_load_table_from_jsonl(bq_params, filename, table_id, schema)
-
-
-'''
-# todo remove, use create_and_load_table_from_tsv in utils
-def build_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema):
-    """
-    todo
-    Build BQ table from tsv file.
-    :param bq_params: BQ params from YAML config
-    :param tsv_file:
-    :param table_id:
-    :param num_header_rows:
-    :param schema:
-    :return:
-    """
-    build_start = time.time()
-
-    print("\nBuilding {0}... ".format(table_id))
-
-    create_and_load_table_from_tsv(bq_params,
-                                   tsv_file=tsv_file,
-                                   table_id=table_id,
-                                   num_header_rows=num_header_rows,
-                                   schema=schema)
-
-    build_end = time.time() - build_start
-    print("Table built in {0}!\n".format(format_seconds(build_end)))
-'''
-
-
-def get_dev_table_id(bq_params, dataset, table_name):
-    """
-
-    Get dev table id.
-    :param bq_params: BQ params from YAML config
-    :param dataset: dataset for table id (e.g. PDC_clinical, PDC_metadata, PDC)
-    :param table_name: name of table
-    :return: BQ table id
-    """
-    return "{}.{}.{}".format(bq_params['DEV_PROJECT'], dataset, table_name)
 
 
 def get_prefix(api_params, endpoint):
@@ -255,7 +211,7 @@ def get_records(api_params, bq_params, endpoint, select_statement, dataset):
     :return: result records for query
     """
     table_name = construct_table_name(api_params, api_params['ENDPOINT_SETTINGS'][endpoint]['output_name'])
-    table_id = get_dev_table_id(bq_params, dataset=dataset, table_name=table_name)
+    table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=dataset, table_name=table_name)
 
     query = select_statement
     query += " FROM `{}`".format(table_id)
@@ -342,9 +298,9 @@ def update_pdc_table_metadata(api_params, bq_params, table_type=None):
     print("Updating table metadata:")
 
     for table_metadata_json_file in filtered_metadata_files:
-        table_id = get_dev_table_id(bq_params,
-                                    dataset=bq_params['META_DATASET'],
-                                    table_name=table_metadata_json_file.split('.')[-2])
+        table_id = construct_table_id(bq_params['DEV_PROJECT'],
+                                      dataset=bq_params['META_DATASET'],
+                                      table_name=table_metadata_json_file.split('.')[-2])
 
         if not exists_bq_table(table_id):
             print("skipping {} (no bq table found)".format(table_id))
@@ -369,7 +325,7 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
     :return: sql query string
     """
     table_name = construct_table_name(api_params, output_name)
-    table_id = get_dev_table_id(bq_params, dataset=bq_params['META_DATASET'], table_name=table_name)
+    table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=bq_params['META_DATASET'], table_name=table_name)
 
     return """
     SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, project_submitter_id, analytical_fraction
@@ -413,9 +369,9 @@ def get_pdc_split_studies_lists(api_params, bq_params):
     studies_output_name = get_prefix(api_params, api_params['STUDY_ENDPOINT'])
 
     studies_table_name = construct_table_name(api_params, studies_output_name)
-    studies_table_id = get_dev_table_id(bq_params,
-                                        dataset=bq_params['META_DATASET'],
-                                        table_name=studies_table_name)
+    studies_table_id = construct_table_id(bq_params['DEV_PROJECT'],
+                                          dataset=bq_params['META_DATASET'],
+                                          table_name=studies_table_name)
 
     if not exists_bq_table(studies_table_id):
         has_fatal_error("Studies table for release {} does not exist. "
