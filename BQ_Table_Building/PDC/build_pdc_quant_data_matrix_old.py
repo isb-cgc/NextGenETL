@@ -695,7 +695,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
-
+    '''
     if 'build_quant_tsvs' in steps:
         quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
 
@@ -743,7 +743,9 @@ def main(args):
         mapping_file = split_file[0] + '_' + API_PARAMS['UNIPROT_RELEASE'] + API_PARAMS['UNIPROT_FILE_EXT']
 
         download_from_uniprot_ftp(mapping_file, API_PARAMS['UNIPROT_MAPPING_FP'], 'UniProt mapping')
-        upload_to_bucket(BQ_PARAMS, scratch_fp=get_scratch_fp(BQ_PARAMS, mapping_file), delete_local=True)
+        upload_to_bucket(BQ_PARAMS, 
+                         scratch_fp=get_scratch_fp(BQ_PARAMS, mapping_file), 
+                         delete_local=True)
 
     if 'build_uniprot_table' in steps:
         gz_file_name = API_PARAMS['UNIPROT_MAPPING_FP'].split('/')[-1]
@@ -790,6 +792,7 @@ def main(args):
                                        num_header_rows=0, schema=schema)
 
         print("Swiss-prot table built!")
+    '''
 
     if 'build_gene_tsv' in steps:
         gene_symbol_list = build_gene_symbol_list(studies_list)
@@ -799,8 +802,10 @@ def main(args):
 
         gene_tsv_path = get_scratch_fp(BQ_PARAMS, gene_tsv_file)
 
-        build_gene_tsv(gene_symbol_list, gene_tsv_path, append=API_PARAMS['RESUME_GENE_TSV'])
-        upload_to_bucket(BQ_PARAMS, gene_tsv_path, delete_local=True)
+        build_gene_tsv(gene_symbol_list=gene_symbol_list,
+                       gene_tsv=gene_tsv_path,
+                       append=API_PARAMS['RESUME_GENE_TSV'])
+        upload_to_bucket(BQ_PARAMS, scratch_fp=gene_tsv_path, delete_local=True)
 
     if 'build_gene_table' in steps:
         gene_tsv_file = get_filename(API_PARAMS,

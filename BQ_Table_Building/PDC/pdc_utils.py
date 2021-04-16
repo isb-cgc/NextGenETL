@@ -416,8 +416,7 @@ def get_pdc_split_studies_lists(api_params, bq_params):
     :param bq_params: BQ params from YAML config 
     :return: studies list, embargoed studies list
     """
-    study_endpoint = api_params['STUDY_ENDPOINT']
-    studies_output_name = api_params['ENDPOINT_SETTINGS'][study_endpoint]['output_name']
+    studies_output_name = get_prefix(api_params, api_params['STUDY_ENDPOINT'])
 
     studies_table_name = construct_table_name(api_params, studies_output_name)
     studies_table_id = get_dev_table_id(bq_params,

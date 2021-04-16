@@ -144,13 +144,89 @@ def create_raw_quant_table_name(study_id_dict, include_release=True):
     :param include_release:
     :return:
     """
-    quant_endpoint = API_PARAMS['QUANT_ENDPOINT']
-    prefix = API_PARAMS['ENDPOINT_SETTINGS'][quant_endpoint]['output_name']
+    prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
     suffix = study_id_dict['analytical_fraction'] + '_' + study_id_dict['pdc_study_id']
     return construct_table_name(API_PARAMS,
                                 prefix=prefix,
                                 suffix=suffix,
                                 include_release=include_release)
+
+
+# todo check
+def make_gene_symbols_per_study_query(pdc_study_id):
+    """
+    Returns list of gene symbols for a given PDC study id.
+    :param pdc_study_id: PDC study id for which to retrieve the symbols
+    :return: sql query string
+    """
+    endpoint = 'quantDataMatrix'
+    prefix = get_prefix(API_PARAMS, endpoint)
+
+    table_name = construct_table_name(API_PARAMS,
+                                      prefix=prefix,
+                                      suffix=pdc_study_id,
+                                      release=API_PARAMS['RELEASE'])
+
+    table_id = get_dev_table_id(BQ_PARAMS, table_name)
+
+    return """
+        SELECT DISTINCT(gene_symbol)
+        FROM `{}`
+    """.format(table_id)
+
+
+# todo check
+def add_gene_symbols_per_study(study_obj, gene_symbol_set):
+    """
+
+    Create master gene symbol set by querying the gene symbols for each study.
+    :param study_obj: todo
+    :param gene_symbol_set: set of gene symbols
+    """
+    quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
+    raw_quant_table_name = create_raw_quant_table_name(study_id_dict=study_obj)
+
+    raw_quant_table_id = get_dev_table_id(BQ_PARAMS,
+                                          dataset=BQ_PARAMS['QUANT_DATASET'],
+                                          table_name=raw_quant_table_name)
+
+    if exists_bq_table(raw_quant_table_id):
+        results = get_query_results(make_gene_symbols_per_study_query(pdc_study_id))
+
+        for row in results:
+            gene_symbol_set.add(row['gene_symbol'])
+
+
+# todo check
+def build_gene_symbol_list(studies_list):
+    """
+    Creates sorted list of all gene symbols used for any current PDC study
+    :param studies_list: list of non-embargoed PDC studies
+    :return: alphabetical gene symbol list
+    """
+    quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
+
+    print("Building gene symbol tsv!")
+    gene_symbol_set = set()
+
+    for study in studies_list:
+        table_name = construct_table_name(API_PARAMS,
+                                          prefix=quant_prefix,
+                                          suffix=study['pdc_study_id'],
+                                          release=API_PARAMS['RELEASE'])
+
+        table_id = get_dev_table_id(BQ_PARAMS,
+                                    dataset=BQ_PARAMS['DEV_DATASET'],
+                                    table_name=table_name)
+
+        if exists_bq_table(table_id):
+            add_gene_symbols_per_study(study, gene_symbol_set)
+            print("- Added {}, current count: {}".format(study['pdc_study_id'], len(gene_symbol_set)))
+        else:
+            print("- No table for {}, skipping.".format(study['pdc_study_id']))
+
+    gene_symbol_list = list(sorted(gene_symbol_set))
+    return gene_symbol_list
 
 
 def main(args):
@@ -244,6 +320,9 @@ def main(args):
     if 'build_quant_tables' in steps:
         print("Building quant tables...")
         blob_files = get_quant_files()
+
+        print(blob_files)
+        exit()
 
         quant_table_name_no_version = create_raw_quant_table_name(study_id_dict, include_release=False)
 
