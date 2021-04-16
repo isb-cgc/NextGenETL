@@ -1239,17 +1239,33 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
 
     resolve_type_conflicts(data_types_dict)
 
-    print(data_types_dict)
+    schema_field_obj_list = list()
 
-    '''
-    schema_field = {
-        "name": k,
-        "type": final_type,
-        "mode": "NULLABLE",
-        "description": description
+    for column_name, column_type in data_types_dict:
+        schema_field = {
+            "name": column_name,
+            "type": column_type,
+            "mode": "NULLABLE",
+            "description": ''
+        }
+
+        schema_field_obj_list.append(schema_field)
+
+    schema_obj = {
+        "fields": schema_field_obj_list
     }
-    '''
-    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=release)
+
+    schema_filename = get_filename(api_params,
+                                   file_extension='json',
+                                   prefix="schema",
+                                   suffix=table_name,
+                                   release=release)
+    schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, 'w') as schema_json_file:
+        json.dump(schema_obj, schema_json_file, indent=4)
+
+    upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
 #   MISC UTILS
