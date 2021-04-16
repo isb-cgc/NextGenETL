@@ -1198,8 +1198,7 @@ def create_and_upload_schema_from_tsv(api_params, bq_params, table_name, tsv_fp,
             if header_row and header_row == i:
                 headers = skipped_row
                 row_header_list = headers.split('\t')
-
-        columns = header_list if header_list else row_header_list
+                columns = header_list if header_list else row_header_list
 
         while True:
             row = tsv_file.readline()
