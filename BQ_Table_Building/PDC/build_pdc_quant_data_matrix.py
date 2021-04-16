@@ -373,12 +373,12 @@ def alter_paginated_gene_list(json_obj_list):
                 split_authority = authority_record.split(':')
 
                 if len(split_authority) == 2:
-                    authority = split_authority[0]
-                    authority_gene_id = split_authority[1]
+                    auth = split_authority[0]
+                    gene_id = split_authority[1]
                 elif len(split_authority) > 2:
                     has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
 
-                authority_records_dict[authority] = authority_gene_id
+                authority_records_dict[auth] = gene_id
 
             # this is a mouse gene database, exclude
             if "MGI" in authority_records_dict:
@@ -390,6 +390,7 @@ def alter_paginated_gene_list(json_obj_list):
                 for auth, gene_id in authority_records_dict.items():
                     authority = auth
                     authority_gene_id = gene_id
+                    break
 
         gene['authority_gene_id'] = authority_gene_id
         gene['authority'] = authority
