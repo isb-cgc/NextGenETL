@@ -176,7 +176,7 @@ def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_t
         """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id)
 
 
-def make_aliquot_run_metadata_query():
+def make_aliquot_run_metadata_query(case_aliquot_table_id):
     return """
         WITH cases_samples AS (
             SELECT c.case_id, s.sample_id, s.aliquots
@@ -207,8 +207,6 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    all_pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=True)
-
     aliquot_prefix = get_prefix(API_PARAMS, API_PARAMS['ALIQUOT_ENDPOINT'])
 
     if 'build_case_aliquot_jsonl' in steps:
@@ -219,7 +217,6 @@ def main(args):
                                                              insert_id=True)
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
                                           table_name=aliquot_prefix)
-
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
 
     if 'build_case_aliquot_table' in steps:
@@ -233,20 +230,20 @@ def main(args):
     # these are reused by several steps below, so defining them here in order to avoid code duplication
     case_aliquot_table_name = construct_table_name(API_PARAMS, prefix=aliquot_prefix)
     case_aliquot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                             dataset=BQ_PARAMS['META_DATASET'],
-                                             table_name=case_aliquot_table_name)
+                                               dataset=BQ_PARAMS['META_DATASET'],
+                                               table_name=case_aliquot_table_name)
 
     study_prefix = get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT'])
     study_table_name = construct_table_name(API_PARAMS, prefix=study_prefix)
     study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                      dataset=BQ_PARAMS['META_DATASET'],
-                                      table_name=study_table_name)
+                                        dataset=BQ_PARAMS['META_DATASET'],
+                                        table_name=study_table_name)
 
     case_external_mapping_prefix = get_prefix(API_PARAMS, API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT'])
     case_external_mapping_table_name = construct_table_name(API_PARAMS, prefix=case_external_mapping_prefix)
     case_external_mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                      dataset=BQ_PARAMS['META_DATASET'],
-                                                      table_name=case_external_mapping_table_name)
+                                                        dataset=BQ_PARAMS['META_DATASET'],
+                                                        table_name=case_external_mapping_table_name)
 
     fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
     fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
@@ -258,7 +255,9 @@ def main(args):
     if 'build_aliquot_run_metadata_map_table' in steps:
         aliquot_run_metadata_query = make_aliquot_run_metadata_query(case_aliquot_table_id)
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
-        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                      dataset=BQ_PARAMS['META_DATASET'],
+                                      table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
         update_schema(table_id, descriptions)
@@ -268,7 +267,9 @@ def main(args):
                                                                    study_table_id,
                                                                    case_aliquot_table_id)
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['CASE_METADATA_TABLE'])
-        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                      dataset=BQ_PARAMS['META_DATASET'],
+                                      table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
         update_schema(table_id, descriptions)
@@ -278,7 +279,9 @@ def main(args):
                                                                  case_external_mapping_table_id,
                                                                  study_table_id)
         table_name = construct_table_name(API_PARAMS, BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
-        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], dataset=BQ_PARAMS['META_DATASET'], table_name=table_name)
+        table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                      dataset=BQ_PARAMS['META_DATASET'],
+                                      table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
         update_schema(table_id, descriptions)
@@ -292,8 +295,8 @@ def main(args):
 
         case_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
         case_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                  dataset=BQ_PARAMS['META_DATASET'],
-                                                  table_name=case_metadata_table_name)
+                                                    dataset=BQ_PARAMS['META_DATASET'],
+                                                    table_name=case_metadata_table_name)
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=case_metadata_table_id,
@@ -302,8 +305,8 @@ def main(args):
         # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
         mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                            dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=mapping_table_name)
+                                              dataset=BQ_PARAMS['META_DATASET'],
+                                              table_name=mapping_table_name)
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,

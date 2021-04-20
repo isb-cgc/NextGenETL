@@ -26,11 +26,13 @@ import time
 import os
 import sys
 import copy
+import jsonlines
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table_from_jsonl, format_seconds,
                               check_value_type, resolve_type_conflicts, json_datetime_to_str_converter,
-                              construct_table_id, construct_table_name_from_list)
+                              construct_table_id, construct_table_name_from_list, get_filename, write_list_to_jsonl,
+                              create_and_upload_schema_for_json, construct_table_name, retrieve_bq_schema_object)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -41,8 +43,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 def get_working_table_id(table_name=None):
     """
 
-    Get working (development) table_id for supplied table_name and default DEV_PROJECT and DEV_DATASET
-    values in bq_params.
+    Get working (dev) table_id for supplied table_name and default DEV_PROJECT and DEV_DATASET values in bq_params.
     :param table_name: name of the bq table
     :return: table id
     """
@@ -63,8 +64,9 @@ def get_webapp_table_id(bq_params, table_name):
 
 
 def request_data_from_gdc_api(curr_index):
-    """ Make a POST API request and return response (if valid).
+    """
 
+    Make a POST API request and return response (if valid).
     :param curr_index: current API poll start position
     :return: response object
     """
@@ -100,54 +102,38 @@ def request_data_from_gdc_api(curr_index):
 
 
 def extract_api_response_json(local_path):
-    """Retrieves case records from API and outputs them to a JSONL file, which is later
-        used to populate the clinical data BQ table.
+    """
 
+    Retrieve API case records and output to a JSONL file (later used to populate the clinical data BQ table).
     :param local_path: absolute path to data output file
     """
-    cases_list = list()
-    total_pages = None
     current_index = API_PARAMS['START_INDEX']
+    file_mode = 'a' if current_index > 0 else 'w'
 
-    local_json_path = local_path[:-1]
+    # don't append records to existing file if START_INDEX is set to 0
+    if file_mode == 'w' and os.path.exists(local_path):
+        os.remove(local_path)
 
-    with open(local_json_path, "w") as file_obj:
-        file_obj.write('{"cases": [')
+    while True:
+        response = request_data_from_gdc_api(current_index)
+        response_json = response.json()['data']
 
-        while True:
-            response = request_data_from_gdc_api(current_index)
-            response_json = response.json()['data']
+        # If response doesn't contain pagination, indicates an invalid request.
+        if 'pagination' not in response_json:
+            has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
 
-            # If response doesn't contain pagination, indicates an invalid request.
-            if 'pagination' not in response_json:
-                has_fatal_error("'pagination' key not found in response json, exiting.", KeyError)
+        total_pages = response_json['pagination']['pages']
+        response_cases = response_json['hits']
+        assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
+        print("Fetched page {} of {}".format(response_json['pagination']['page'], total_pages))
 
-            if not total_pages:
-                total_pages = response_json['pagination']['pages']
-                print("Total pages: {}".format(total_pages))
-                total_cases = response_json['pagination']['total']
-                print("Total cases: {}".format(total_cases))
+        write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode=file_mode)
+        current_index += API_PARAMS['BATCH_SIZE']
 
-            current_page = response_json['pagination']['page']
-            print("Fetching page {}".format(current_page))
+        if response_json['pagination']['page'] == total_pages:
+            break
 
-            response_cases = response_json['hits']
-
-            assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
-
-            file_obj.write(json.dumps(response_cases))
-
-            cases_list += response_cases
-            current_index += API_PARAMS['BATCH_SIZE']
-
-            if response_json['pagination']['page'] == total_pages:
-                break
-            else:
-                file_obj.write(',')
-
-        file_obj.write(']}')
-
-    print("Wrote cases response to json file.")
+    print("Wrote cases response to jsonl file.")
 
 
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
@@ -564,8 +550,9 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
 
 
 def main(args):
-    """Script execution function.
+    """
 
+    Script execution function.
     :param args: command-line arguments
     """
     start = time.time()
@@ -577,40 +564,45 @@ def main(args):
     except ValueError as err:
         has_fatal_error("{}".format(err), ValueError)
 
-    jsonl_output_file = get_rel_prefix(API_PARAMS) + "_" + BQ_PARAMS['MASTER_TABLE'] + '.jsonl'
+    bulk_table_name = construct_table_name(API_PARAMS,
+                                           prefix=get_rel_prefix(API_PARAMS),
+                                           suffix=BQ_PARAMS['MASTER_TABLE'],
+                                           include_release=False)
+    bulk_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                       dataset=BQ_PARAMS['DEV_DATASET'],
+                                       table_name=bulk_table_name)
+
+    jsonl_output_file = get_filename(API_PARAMS,
+                                     file_extension='jsonl',
+                                     prefix=get_rel_prefix(API_PARAMS),
+                                     suffix=BQ_PARAMS['MASTER_TABLE'],
+                                     include_release=False)
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
-    grouped_fields_dict = None
-
-    if 'extract_api_response_json' in steps:
-        # Hits the GDC api endpoint, outputs data to jsonl file (format required by bq)
-        print('Starting GDC API calls!')
+    if 'build_and_upload_case_jsonl' in steps:
+        # Hit GDC api endpoint, outputs data to jsonl file (format required by bq)
         extract_api_response_json(scratch_fp)
+        upload_to_bucket(BQ_PARAMS, scratch_fp)
 
-    if 'generate_jsonl_from_modified_api_json' in steps:
-        print('Generating master fields list and adding missing fields to cases!')
-        grouped_fields_dict = modify_response_json_and_output_jsonl(scratch_fp)
+    if 'create_schema' in steps:
+        record_list = list()
 
-    if 'upload_jsonl_to_cloud_storage' in steps:
-        # Insert the generated jsonl file into google storage bucket, for later
-        # ingestion by BQ
-        print('Uploading jsonl file to cloud storage!')
-        # don't remove local file here, using it to create schema object in next step
-        upload_to_bucket(BQ_PARAMS, scratch_fp, delete_local=True)
+        with jsonlines.open(scratch_fp) as jsonl_file:
+            for line in jsonl_file:
+                record_list.append(line)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=record_list,
+                                          table_name=bulk_table_name,
+                                          include_release=False)
 
     if 'build_bq_table' in steps:
-        if not grouped_fields_dict:
-            grouped_fields_dict = get_grouped_fields_dict(scratch_fp)
+        bulk_table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=bulk_table_name)
 
-        column_data_types_dict = create_column_data_type_dict(grouped_fields_dict, scratch_fp)
-        schema = generate_bq_schema(grouped_fields_dict, column_data_types_dict)
-
-        print('Building BQ Table!')
-        table_name = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-        table_id = get_working_table_id(table_name)
-
-        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_output_file, table_id, schema)
-        # os.remove(scratch_fp)
+        create_and_load_table_from_jsonl(BQ_PARAMS,
+                                         jsonl_file=jsonl_output_file,
+                                         table_id=bulk_table_id,
+                                         schema=bulk_table_schema)
 
     end = format_seconds(time.time() - start)
     print("Script executed in {}\n".format(end))
