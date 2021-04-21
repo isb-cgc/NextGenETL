@@ -581,6 +581,8 @@ def main(args):
                 file_json_obj = json.loads(file_record)
                 record_list.append(file_json_obj)
 
+        print(bulk_table_name)
+
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=record_list,
                                           table_name=bulk_table_name,
