@@ -1237,7 +1237,7 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
     return schema
 
 
-def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=None, include_release=True):
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None):
     """
 
     todo
@@ -1245,6 +1245,7 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     :param bq_params: bq_params supplied in yaml config
     :param table_name:
     :param data_types_dict:
+    :param include_release:
     :param release:
     :return:
     """
@@ -1275,7 +1276,7 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
-def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release=True):
+def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release):
     """
 
     todo
@@ -1288,7 +1289,7 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     """
     data_types_dict = recursively_detect_object_structures(record_list)
 
-    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release)
+    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=include_release)
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,

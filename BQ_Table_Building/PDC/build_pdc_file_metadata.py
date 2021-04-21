@@ -331,7 +331,7 @@ def main(args):
                                                        ids=all_pdc_study_ids)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
-                                          table_name=per_study_file_prefix)
+                                          table_name=per_study_file_prefix, include_release=True)
 
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
 
@@ -403,7 +403,8 @@ def main(args):
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix)
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix,
+                                          include_release=True)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
         upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)

@@ -130,8 +130,10 @@ def main(args):
                                                             ids=all_pdc_study_ids,
                                                             insert_id=True)
 
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_biospecimen_list,
-                                          table_name=biospecimen_prefix)
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=per_study_biospecimen_list,
+                                          table_name=biospecimen_prefix,
+                                          include_release=True)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS, biospecimen_prefix, per_study_biospecimen_list)
 

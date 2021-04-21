@@ -632,7 +632,8 @@ def main(args):
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=gene_record_list,
-                                          table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
+                                          table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']),
+                                          include_release=True)
 
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
                                        prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']),

@@ -216,7 +216,7 @@ def main(args):
                                                              alter_json_function=alter_cases_aliquots_objects,
                                                              insert_id=True)
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
-                                          table_name=aliquot_prefix)
+                                          table_name=aliquot_prefix, include_release=True)
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
 
     if 'build_case_aliquot_table' in steps:
