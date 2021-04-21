@@ -1289,7 +1289,10 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     """
     data_types_dict = recursively_detect_object_structures(record_list)
 
-    generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, release=include_release)
+    generate_and_upload_schema(api_params, bq_params,
+                               table_name=table_name,
+                               data_types_dict=data_types_dict,
+                               include_release=include_release)
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
