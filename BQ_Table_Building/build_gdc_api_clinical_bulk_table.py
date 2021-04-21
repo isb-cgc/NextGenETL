@@ -83,10 +83,9 @@ def extract_api_response_json(local_path):
     :param local_path: absolute path to data output file
     """
     current_index = API_PARAMS['START_INDEX']
-    file_mode = 'a' if current_index > 0 else 'w'
 
     # don't append records to existing file if START_INDEX is set to 0
-    if file_mode == 'w' and os.path.exists(local_path):
+    if API_PARAMS['START_INDEX'] == 0 and os.path.exists(local_path):
         os.remove(local_path)
 
     while True:
@@ -107,7 +106,8 @@ def extract_api_response_json(local_path):
                 if field in response_case:
                     response_case.pop(field)
 
-        write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode=file_mode)
+        # always set to append--if starting over, file is manually deleted at start of function
+        write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']
 
         if response_json['pagination']['page'] == total_pages:
