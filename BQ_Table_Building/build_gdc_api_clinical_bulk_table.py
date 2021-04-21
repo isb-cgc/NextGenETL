@@ -23,14 +23,12 @@ import requests
 import time
 import os
 import sys
-import copy
 import json
 
-from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
-                              upload_to_bucket, create_and_load_table_from_jsonl, format_seconds,
-                              check_value_type, resolve_type_conflicts, json_datetime_to_str_converter,
-                              construct_table_id, get_filename, write_list_to_jsonl,
-                              create_and_upload_schema_for_json, construct_table_name, retrieve_bq_schema_object)
+from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp, upload_to_bucket,
+                              create_and_load_table_from_jsonl, format_seconds, construct_table_id, get_filename,
+                              write_list_to_jsonl, create_and_upload_schema_for_json, construct_table_name,
+                              retrieve_bq_schema_object)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -113,7 +111,7 @@ def extract_api_response_json(local_path):
         if response_json['pagination']['page'] == total_pages:
             break
 
-    print("Wrote cases response to jsonl file.")
+    print("Wrote GDC API response to jsonl file.")
 
 
 def main(args):
@@ -138,7 +136,6 @@ def main(args):
     bulk_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                        dataset=BQ_PARAMS['DEV_DATASET'],
                                        table_name=bulk_table_name)
-
     jsonl_output_file = get_filename(API_PARAMS,
                                      file_extension='jsonl',
                                      prefix=get_rel_prefix(API_PARAMS),
@@ -147,13 +144,16 @@ def main(args):
     scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
 
     if 'build_and_upload_case_jsonl' in steps:
-        # Hit GDC api endpoint, outputs data to jsonl file (format required by bq)
+        # Hit paginated GDC api endpoint, then write data to jsonl file
         extract_api_response_json(scratch_fp)
+        # Upload bulk jsonl file to Google Cloud bucket
         upload_to_bucket(BQ_PARAMS, scratch_fp)
 
     if 'create_schema' in steps:
+        print("Inferring column data types and generating schema!")
         record_list = list()
 
+        # Create list of record objects for schema analysis
         with open(scratch_fp) as jsonl_file:
             while True:
                 file_record = jsonl_file.readline()
@@ -164,16 +164,19 @@ def main(args):
                 file_json_obj = json.loads(file_record)
                 record_list.append(file_json_obj)
 
+        # Infer column type, generate schema, upload to Google Cloud bucket
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=record_list,
                                           table_name=bulk_table_name,
                                           include_release=False)
 
     if 'build_bq_table' in steps:
+        # Download schema file from Google Cloud bucket
         bulk_table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                       table_name=bulk_table_name,
                                                       include_release=False)
 
+        # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS,
                                          jsonl_file=jsonl_output_file,
                                          table_id=bulk_table_id,
