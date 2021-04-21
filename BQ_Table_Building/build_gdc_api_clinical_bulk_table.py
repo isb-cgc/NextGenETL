@@ -29,36 +29,13 @@ import json
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table_from_jsonl, format_seconds,
                               check_value_type, resolve_type_conflicts, json_datetime_to_str_converter,
-                              construct_table_id, construct_table_name_from_list, get_filename, write_list_to_jsonl,
+                              construct_table_id, get_filename, write_list_to_jsonl,
                               create_and_upload_schema_for_json, construct_table_name, retrieve_bq_schema_object)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 # used to capture returned yaml config sections
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
-
-
-def get_working_table_id(table_name=None):
-    """
-
-    Get working (dev) table_id for supplied table_name and default DEV_PROJECT and DEV_DATASET values in bq_params.
-    :param table_name: name of the bq table
-    :return: table id
-    """
-    if not table_name:
-        table_name = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-    return construct_table_id(BQ_PARAMS["DEV_PROJECT"], BQ_PARAMS["DEV_DATASET"], table_name)
-
-
-def get_webapp_table_id(bq_params, table_name):
-    """
-
-    Get table id for webapp db table.
-    :param bq_params: bq param object from yaml config
-    :param table_name: name of the bq table
-    :return: table id
-    """
-    return construct_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
 
 
 def request_data_from_gdc_api(curr_index):
@@ -133,7 +110,8 @@ def extract_api_response_json(local_path):
 
     print("Wrote cases response to jsonl file.")
 
-
+'''
+# todo remove
 def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     """
     todo
@@ -183,6 +161,7 @@ def add_case_fields_to_master_dict(grouped_fields_dict, cases):
     print("Master field dict created!")
 
 
+# todo remove
 def add_missing_fields_and_normalize_case(fields_dict, case):
     """
     todo
@@ -282,6 +261,7 @@ def add_missing_fields_and_normalize_case(fields_dict, case):
     return temp_case
 
 
+# todo remove
 def modify_response_json_and_output_jsonl(local_jsonl_path):
     """
     todo
@@ -379,6 +359,7 @@ def modify_response_json_and_output_jsonl(local_jsonl_path):
     return grouped_fields_dict
 
 
+# todo remove
 def infer_types(record, fields_dict, types_dict, parent_fg_list):
     """
     todo
@@ -411,6 +392,7 @@ def infer_types(record, fields_dict, types_dict, parent_fg_list):
                         types_dict[field_key].add(value_type)
 
 
+# todo remove
 def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
     """
     todo
@@ -439,6 +421,7 @@ def create_column_data_type_dict(grouped_fields_dict, scratch_fp):
     return column_data_types
 
 
+# todo remove
 def get_grouped_fields_dict(local_jsonl_path):
     """
     todo
@@ -465,6 +448,7 @@ def get_grouped_fields_dict(local_jsonl_path):
     return grouped_fields_dict
 
 
+# todo remove
 def create_field_mapping_dict():
     """
     todo
@@ -480,6 +464,7 @@ def create_field_mapping_dict():
         print(row)
 
 
+# todo remove
 def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
     """
     todo
@@ -545,6 +530,7 @@ def generate_bq_schema(grouped_fields_dict, column_data_types_dict):
             schema.append(nested_schema_fields)
 
     return schema
+'''
 
 
 def main(args):
@@ -601,7 +587,9 @@ def main(args):
                                           include_release=False)
 
     if 'build_bq_table' in steps:
-        bulk_table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=bulk_table_name)
+        bulk_table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                      table_name=bulk_table_name,
+                                                      include_release=False)
 
         create_and_load_table_from_jsonl(BQ_PARAMS,
                                          jsonl_file=jsonl_output_file,

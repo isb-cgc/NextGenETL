@@ -1209,7 +1209,7 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None):
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True):
     """
 
     todo
@@ -1223,7 +1223,8 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None):
                                    file_extension='json',
                                    prefix="schema",
                                    suffix=table_name,
-                                   release=release)
+                                   release=release,
+                                   include_release=include_release)
 
     download_from_bucket(bq_params, schema_filename)
 
@@ -1259,6 +1260,9 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
                                    suffix=table_name,
                                    release=release,
                                    include_release=include_release)
+
+    print(schema_filename)
+
     schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
