@@ -102,6 +102,19 @@ def extract_api_response_json(local_path):
         assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
         print("Fetched page {} of {}".format(response_json['pagination']['page'], total_pages))
 
+        for response_case in response_cases:
+            response_case.pop("aliquot_ids")
+            response_case.pop("diagnosis_ids")
+            response_case.pop("sample_ids")
+            response_case.pop("portion_ids")
+            response_case.pop("slide_ids")
+            response_case.pop("submitter_aliquot_ids")
+            response_case.pop("submitter_analyte_ids")
+            response_case.pop("submitter_diagnosis_ids")
+            response_case.pop("submitter_portion_ids")
+            response_case.pop("submitter_sample_ids")
+            response_case.pop("submitter_slide_ids")
+
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode=file_mode)
         current_index += API_PARAMS['BATCH_SIZE']
 
