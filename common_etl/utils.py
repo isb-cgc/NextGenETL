@@ -1254,6 +1254,10 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
         "fields": schema_list
     }
 
+    print("table_name: {}".format(table_name))
+    print("release: {}".format(release))
+    print("include_release: {}".format(include_release))
+
     schema_filename = get_filename(api_params,
                                    file_extension='json',
                                    prefix="schema",
