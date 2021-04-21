@@ -19,14 +19,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import json
-
 import requests
 import time
 import os
 import sys
 import copy
-import jsonlines
+import json
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp,
                               upload_to_bucket, create_and_load_table_from_jsonl, format_seconds,
@@ -587,9 +585,15 @@ def main(args):
     if 'create_schema' in steps:
         record_list = list()
 
-        with jsonlines.open(scratch_fp) as jsonl_file:
-            for line in jsonl_file:
-                record_list.append(line)
+        with open(scratch_fp) as jsonl_file:
+            while True:
+                file_record = jsonl_file.readline()
+
+                if not file_record:
+                    break
+
+                file_json_obj = json.loads(file_record)
+                record_list.append(file_json_obj)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=record_list,
