@@ -1412,6 +1412,40 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
     return True
 
+
+def find_most_recent_release(dataset, base_table, project=None):
+    """
+
+    This function iterates though all tables of a BigQuery versioned dataset to find the most recent release of version
+    number of a certain data type.
+
+    :param dataset: Dataset to search
+    :type dataset: basestring
+    :param base_table: The table name before the release number (must include _ before release number)
+    :type base_table: basestring
+    :param project: Which project is the data set in?
+    :type project: basestring
+
+    :returns: The highest version number of that table type in that dataset as a string
+    """
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        release = ''  # variable for the most recent release
+        table_create = ''  # the most recently created table
+        # Iterate through all of the tables in a dataset
+        for t in list(client.list_tables(dataset)):
+            # If the table has a newer create date then the one in table_create date, check if the table name matches
+            # the base table name, if so then save the release number
+            if table_create < str(t.created):
+                len_base_table = len(base_table)
+                if t.table_id[:len_base_table] == base_table:
+                    table_create = str(t.created)
+                    release = t.table_id[len(base_table):]
+        return release
+    except Exception as ex:
+        print(ex)
+        return False
+
 '''
 ----------------------------------------------------------------------------------------------
 Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
