@@ -36,6 +36,7 @@ from common_etl.support import generic_bq_harness, confirm_google_vm, \
                                bq_table_exists, bq_table_is_empty, create_clean_target, \
                                generate_table_detail_files, customize_labels_and_desc, \
                                update_schema_with_dict, install_labels_and_desc, \
+                               find_most_recent_release, \
                                compare_two_tables, evaluate_table_union, \
                                remove_old_current_tables, publish_table, update_status_tag
 
@@ -1079,8 +1080,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 print("install_table_description failed")
                 return False
 
-# todo: make a control step here for if the table should be published
-
     #
     # Not every release of the GDC metadata has updated per sample metadata tables.
     # This check is to make sure that there is new data for the program before the
@@ -1093,14 +1092,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     # These are the steps that need new_data to be True to run
     publication_steps = ['compare_remove_old_current', 'publish', 'update_status_tag']
     # Whether there is new data for a program
-    new_data = False
+    new_data = params['PUBLISH_ALL']
+    previous_release = ''
     if all(step in publication_steps for step in steps) or 'check_for_new_data' in steps:
-
+        base_table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_')
+        previous_release = find_most_recent_release(params['TARGET_DATASET'],
+                                                    base_table_name, params['PUBLICATION_PROJECT'])
         # Check to see if the tables contains new data
         if params['new_data_check']:
             previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                    "_".join([dataset_tuple[1], 'versioned']),
-                                                   table.format(params['PREVIOUS_RELEASE']))
+                                                   table.format(previous_release))
             draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
             source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                              draft_table.format(params['RELEASE']))
@@ -1111,10 +1113,12 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                     print('publication steps will now be run')
                     new_data = True
                 else:
-                    return False
+                    print('{} has new data'.format(draft_table.format(params['RELEASE'])))
+                    return
 
             else:
                 print('Data for {} was not updated'.format(dataset_tuple[0]))
+                return
 
     #
     # compare and remove old current table
@@ -1122,16 +1126,16 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     # compare the two tables
     if 'compare_remove_old_current' in steps and new_data:
-        # todo: dynamically look for the last revision of the table
+        #
         table = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_{}')
         old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1],
                                               table.format('current'))
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([dataset_tuple[1], 'versioned']),
-                                               table.format(params['PREVIOUS_RELEASE']))
+                                               table.format(previous_release))
         table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                        "_".join([dataset_tuple[1],
-                                                 table.format(params['PREVIOUS_RELEASE']),
+                                                 table.format(previous_release),
                                                  'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
@@ -1178,7 +1182,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     if 'update_status_tag' in steps and new_data:
         print('Update previous table')
-        previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', params['PREVIOUS_RELEASE'])
+        previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', previous_release)
         success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
                                     previous_ver_table,
                                     'archived', params['PUBLICATION_PROJECT'])
@@ -1186,8 +1190,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         if not success:
             print("update status tag table failed")
             return
-
-# todo: End here for checking if table needs to be published
 
     #
     # Clear out working temp tables:
