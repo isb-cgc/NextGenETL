@@ -104,6 +104,8 @@ def extract_api_response_json(local_path):
                 if field in response_case:
                     response_case.pop(field)
 
+
+
         # always set to append--if starting over, file is manually deleted at start of function
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']

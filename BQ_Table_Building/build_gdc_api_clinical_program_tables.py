@@ -46,26 +46,17 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 def make_program_list_query():
     """
 
-    todo
-    :return:
+    Create program list query.
+    :return: program list query string
     """
 
-    bulk_table_name = construct_table_name(API_PARAMS,
-                                           prefix=get_rel_prefix(API_PARAMS),
-                                           suffix=BQ_PARAMS['MASTER_TABLE'],
-                                           include_release=False)
-    bulk_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], bulk_table_name)
+    case_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_caseData'
 
     return """
-        SELECT DISTINCT(proj) 
-        FROM (
-            SELECT SPLIT((
-                SELECT project_id
-                FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-            FROM `{}`
-        )
-        ORDER BY proj
-        """.format(bulk_table_id)
+        SELECT DISTINCT program_name
+        FROM {}
+        ORDER BY program_name
+        """.format(case_table_id)
 
 
 def get_program_list():
@@ -1211,38 +1202,21 @@ def copy_tables_into_public_project(publish_table_list):
         publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
 
-#    Webapp specific functions
-
-
-def make_biospecimen_stub_table_query(main_table_id, program):
+def make_biospecimen_stub_table_query(program):
     """
-    todo
-    :param main_table_id:
-    :param program:
-    :return:
+
+    Create biospecimen table query.
+    :param program: Program name for which to create biospecimen table
+    :return: biospecimen table query
     """
+
+    slide_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_slide2caseIDmap'
+
     return """
-        SELECT program_name, project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-        FROM (
-            SELECT program_name, project_short_name, case_gdc_id, case_barcode, 
-                SPLIT(sample_ids, ', ') as s_gdc_ids, 
-                SPLIT(submitter_sample_ids, ', ') as s_barcodes
-            FROM (
-                SELECT case_id as case_gdc_id, 
-                    submitter_id as case_barcode, 
-                    sample_ids, 
-                    submitter_sample_ids, 
-                    SPLIT(p.project_id, '-')[OFFSET(0)] AS program_name,
-                    p.project_id as project_short_name
-                FROM `{0}`,
-                UNNEST(project) AS p
-            )
-        ), 
-        UNNEST(s_gdc_ids) as sample_gdc_id WITH OFFSET pos1, 
-        UNNEST(s_barcodes) as sample_barcode WITH OFFSET pos2
-        WHERE pos1 = pos2
-        AND program_name = '{1}'
-    """.format(main_table_id, program)
+        SELECT program_name, project_id as project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
+        FROM `{0}`
+        WHERE program_name = '{1}'
+    """.format(slide_table_id, program)
 
 
 def build_biospecimen_stub_tables(program):
@@ -1255,7 +1229,7 @@ def build_biospecimen_stub_tables(program):
     main_table = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
     main_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], main_table)
 
-    biospec_stub_table_query = make_biospecimen_stub_table_query(main_table_id, program)
+    biospec_stub_table_query = make_biospecimen_stub_table_query(program)
 
     bio_spec_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
     biospec_table_name = construct_table_name_from_list(bio_spec_table_name_list)
@@ -1778,7 +1752,6 @@ def main(args):
                 print("No cases found for program {0}, skipping.".format(orig_program))
                 continue
 
-        if 'create_and_load_tables' in steps:
             schema = create_schema_dict()
             # replace so that 'BEATAML1.0' doesn't break bq table name
             program = orig_program.replace('.', '_')
