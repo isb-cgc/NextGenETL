@@ -1428,6 +1428,7 @@ def find_most_recent_release(dataset, base_table, project=None):
 
     :returns: The highest version number of that table type in that dataset as a string
     """
+    print('finding most recent release in ' + dataset)
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         release = ''  # variable for the most recent release
