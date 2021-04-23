@@ -1099,26 +1099,27 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         # Find the most recent release
         previous_release = find_most_recent_release(params['TARGET_DATASET'],
                                                     base_table_name, params['PUBLICATION_PROJECT'])
-        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                               "_".join([dataset_tuple[1], 'versioned']),
-                                               "".join([base_table_name, previous_release]))
-        draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         draft_table.format(params['RELEASE']))
-        # Check to see if the tables contains new data
-        result = compare_two_tables(previous_ver_table, source_table, params['BQ_AS_BATCH'])
-        if result == 'different':
-            print('New data in table.')
-            if all(step in publication_steps for step in steps):
-                print('publication steps will now be run')
-                new_data = True
-            else:
-                print('{} has new data'.format(draft_table.format(params['RELEASE'])))
-                return
-
-        else:
-            print('Data for {} was not updated'.format(dataset_tuple[0]))
-            return
+        print(previous_release)
+        # previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+        #                                        "_".join([dataset_tuple[1], 'versioned']),
+        #                                        "".join([base_table_name, previous_release]))
+        # draft_table = "{}_{}_{}_{}".format(dataset_tuple[1], params['FINAL_TABLE'], build, 'gdc_{}')
+        # source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        #                                  draft_table.format(params['RELEASE']))
+        # # Check to see if the tables contains new data
+        # result = compare_two_tables(previous_ver_table, source_table, params['BQ_AS_BATCH'])
+        # if result == 'different':
+        #     print('New data in table.')
+        #     if all(step in publication_steps for step in steps):
+        #         print('publication steps will now be run')
+        #         new_data = True
+        #     else:
+        #         print('{} has new data'.format(draft_table.format(params['RELEASE'])))
+        #         return
+        #
+        # else:
+        #     print('Data for {} was not updated'.format(dataset_tuple[0]))
+        #     return
 
     #
     # compare and remove old current table
