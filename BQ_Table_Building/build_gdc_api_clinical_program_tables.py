@@ -28,12 +28,10 @@ from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
 
 from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error, get_scratch_fp,
-                              create_and_load_table_from_jsonl, load_table_from_query, write_list_to_jsonl,
-                              upload_to_bucket, exists_bq_table, construct_table_id, update_table_metadata,
-                              get_filepath,
-                              update_schema, list_bq_tables, format_seconds,
-                              load_config, construct_table_name_from_list, publish_table,
-                              construct_table_name)
+                              create_and_load_table_from_jsonl, write_list_to_jsonl, upload_to_bucket,
+                              exists_bq_table, construct_table_id, update_table_metadata, get_filepath,
+                              create_view_from_query, update_schema, list_bq_tables, format_seconds,
+                              load_config, construct_table_name_from_list, publish_table, construct_table_name)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -49,13 +47,13 @@ def make_program_list_query():
     Create program list query.
     :return: program list query string
     """
-    case_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_caseData'
+    case_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.GDC_metadata.rel{API_PARAMS['RELEASE']}_caseData"
 
-    return """
+    return f"""
         SELECT DISTINCT program_name
-        FROM {}
+        FROM {case_table_id}
         ORDER BY program_name
-        """.format(case_table_id)
+    """
 
 
 def get_program_list():
@@ -71,7 +69,7 @@ def get_program_list():
 def get_one_to_many_tables(record_counts):
     """
 
-    Get one-to-many tables for program.
+    Get one-to-many tables that will be created for program.
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
@@ -395,7 +393,7 @@ def find_program_structure(cases):
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
-            print("{0} not in metadata".format(field_grp))
+            print(f"{field_grp} not in metadata")
             fgs.pop(field_grp)
             cases.pop(field_grp)
 
@@ -422,7 +420,7 @@ def get_parent_fg(tables, field_name):
         parent_table = ".".join(parent_table.split('.')[:-1])
 
     if not parent_table:
-        has_fatal_error("No parent fg found for {}".format(field_name))
+        has_fatal_error(f"No parent fg found for {field_name}")
     return parent_table
 
 
@@ -469,7 +467,7 @@ def merge_fg_and_field(field_group, field):
     :param field: field name
     :return: full field key string
     """
-    return '{}.{}'.format(field_group, field)
+    return f'{field_group}.{field}'
 
 
 def get_long_field_group_id_key(field_group):
@@ -544,7 +542,7 @@ def generate_id_schema_entry(column, parent_table, program):
     return {
         "name": get_field_name(column),
         "type": 'STRING',
-        "description": ("Reference to ancestor {}, located in {}.".format(bq_col_name, source_table)),
+        "description": f"Reference to ancestor {bq_col_name}, located in {source_table}.",
         "mode": 'REQUIRED'
     }
 
@@ -557,7 +555,7 @@ def generate_count_schema_entry(count_id_key, parent_table):
     :param parent_table: parent table name
     :return: schema entry dict for new one-to-many record count field
     """
-    description = ("Total child record count (located in {} table).".format(parent_table))
+    description = f"Total child record count (located in {parent_table} table)."
 
     return {
         "name": get_field_name(count_id_key),
@@ -761,7 +759,7 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
         for column in [col for col, idx in sorted(merged_orders[table].items(), key=lambda i: i[1])]:
             if column not in schema:
-                print("{0} not in src table; excluding schema field.".format(column))
+                print(f"{column} not in src table; excluding schema field.")
                 continue
             schema_field_lists_dict[table].append(bigquery.SchemaField.from_api_repr(schema[column]))
 
@@ -934,7 +932,7 @@ def get_record_idx(flat_case, field_grp, record_id):
             return idx
         idx += 1
 
-    return has_fatal_error("id {} not found by get_record_idx.".format(record_id))
+    return has_fatal_error(f"id {record_id} not found by get_record_idx.")
 
 
 def merge_single_entry_fgs(flat_case, record_counts):
@@ -1060,7 +1058,7 @@ def create_and_load_tables(program, cases, schemas, record_counts):
 
         for bq_table in flat_case:
             if bq_table not in record_tables:
-                has_fatal_error("Table {} not found in table keys".format(bq_table))
+                has_fatal_error(f"Table {bq_table} not found in table keys")
 
             jsonl_name = build_jsonl_name(program, bq_table)
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
@@ -1068,12 +1066,12 @@ def create_and_load_tables(program, cases, schemas, record_counts):
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
 
         if i % 100 == 0:
-            print("wrote case {} of {} to jsonl".format(i, len(cases)))
+            print(f"wrote case {i} of {len(cases)} to jsonl")
 
     for record_table in record_tables:
         jsonl_name = build_jsonl_name(program, record_table)
 
-        print("Upload {} to bucket".format(jsonl_name))
+        print(f"Upload {jsonl_name} to bucket")
 
         upload_to_bucket(BQ_PARAMS, get_scratch_fp(BQ_PARAMS, jsonl_name), delete_local=True)
 
@@ -1115,10 +1113,10 @@ def make_and_check_metadata_table_id(json_file):
     table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
     if not exists_bq_table(table_id):
-        print('\t\t- skipping -- no table found for file: {}'.format(json_file))
+        print(f'\t\t- skipping -- no table found for file: {json_file}')
         return None
     else:
-        print('\t- updating {}'.format(json_file))
+        print(f'\t- updating {json_file}')
         return table_id
 
 
@@ -1151,7 +1149,7 @@ def update_clin_schema():
     print("\nUpdating schemas (field descriptions)!")
 
     dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    fields_file = "{}.json".format(BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
+    fields_file = f"{BQ_PARAMS['FIELD_DESC_FILE_SUFFIX']}.json"
     field_desc_fp = get_filepath(dir_path, fields_file)
 
     with open(field_desc_fp) as field_output:
@@ -1181,7 +1179,7 @@ def change_status_to_archived(table_id):
     try:
         prev_table = client.get_table(prev_table_id)
         prev_table.labels['status'] = 'archived'
-        print("labels: {}".format(prev_table.labels))
+        print(f"labels: {prev_table.labels}")
         client.update_table(prev_table, ["labels"])
 
         assert prev_table.labels['status'] == 'archived'
@@ -1202,40 +1200,34 @@ def copy_tables_into_public_project(publish_table_list):
         publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
 
-def make_biospecimen_stub_table_query(program):
+def make_biospecimen_stub_view_query(program):
     """
 
-    Create biospecimen table query.
-    :param program: Program name for which to create biospecimen table
-    :return: biospecimen table query
+    Create biospecimen view query.
+    :param program: Program name for which to create biospecimen view
+    :return: biospecimen view query
     """
-
     slide_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_slide2caseIDmap'
 
-    return """
+    return f"""
         SELECT program_name, project_id as project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-        FROM `{0}`
-        WHERE program_name = '{1}'
-    """.format(slide_table_id, program)
-
-
-def build_biospecimen_stub_tables(program):
+        FROM `{slide_table_id}`
+        WHERE program_name = '{program}'
     """
-    Create one-to-many table referencing case_id (as case_gdc_id),
-    submitter_id (as case_barcode), (sample_ids as sample_gdc_ids),
-    and sample_submitter_id (as sample_barcode).
-    :param program: the program from which the cases originate.
+
+
+def build_biospecimen_stub_view(program):
     """
-    main_table = construct_table_name_from_list([get_rel_prefix(API_PARAMS), BQ_PARAMS['MASTER_TABLE']])
-    main_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], main_table)
 
-    biospec_stub_table_query = make_biospecimen_stub_table_query(program)
+    Create one-to-many biospecimen view for webapp integration.
+    :param program: program to which cases belong
+    """
+    bio_spec_view_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
+    biospec_view_name = construct_table_name_from_list(bio_spec_view_name_list)
+    biospec_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], biospec_view_name)
+    biospec_stub_table_query = make_biospecimen_stub_view_query(program)
 
-    bio_spec_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
-    biospec_table_name = construct_table_name_from_list(bio_spec_table_name_list)
-    biospec_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], biospec_table_name)
-
-    load_table_from_query(BQ_PARAMS, biospec_table_id, biospec_stub_table_query)
+    create_view_from_query(biospec_table_id, biospec_stub_table_query)
 
 
 #    Script execution
@@ -1247,14 +1239,14 @@ def make_publish_table_list_query(old_table_id, new_table_id):
     :param new_table_id:
     :return:
     """
-    return """
+    return f"""
         SELECT count(*) as row_count
-        FROM `{}` old
-        FULL JOIN `{}` curr
+        FROM `{old_table_id}` old
+        FULL JOIN `{new_table_id}` curr
             ON old.case_id = curr.case_id
         WHERE old.case_id is null 
         OR curr.case_id is null
-    """.format(old_table_id, new_table_id)
+    """
 
 
 def build_publish_table_list():
@@ -1379,39 +1371,41 @@ def create_tables(program, cases, schema):
 
 def make_release_fields_comparison_query(old_rel, new_rel):
     """
+
     todo
     :param old_rel:
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         SELECT table_name AS release, field_path AS field
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
         WHERE field_path IN (
             SELECT field_path 
             FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-            WHERE table_name='{}_clinical' 
-                OR table_name='{}_clinical'
+            WHERE table_name='{old_rel}_clinical' 
+                OR table_name='{new_rel}_clinical'
            GROUP BY field_path
            HAVING COUNT(field_path) <= 1)
-    """.format(old_rel, new_rel)
+    """
 
 
 def find_release_changed_data_types_query(old_rel, new_rel):
     """
+
     todo
     :param old_rel:
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-        WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+        WHERE (table_name='{old_rel}_clinical' OR table_name='{new_rel}_clinical')
             AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
         GROUP BY field_path, data_type 
         HAVING distinct_data_type_cnt <= 1
-    """.format(old_rel, new_rel)
+    """
 
 
 def make_field_diff_query(old_rel, new_rel, removed_fields):
@@ -1424,18 +1418,18 @@ def make_field_diff_query(old_rel, new_rel, removed_fields):
     """
     check_rel = old_rel if removed_fields else new_rel
 
-    return """
+    return f"""
         SELECT field_path AS field
         FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
         WHERE field_path IN (
             SELECT field_path 
             FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-            WHERE table_name='{}_clinical' 
-                OR table_name='{}_clinical'
+            WHERE table_name='{old_rel}_clinical' 
+                OR table_name='{new_rel}_clinical'
            GROUP BY field_path
            HAVING COUNT(field_path) <= 1)
-       AND table_name='{}_clinical'
-    """.format(old_rel, new_rel, check_rel)
+       AND table_name='{check_rel}_clinical'
+    """
 
 
 def make_datatype_diff_query(old_rel, new_rel):
@@ -1445,34 +1439,35 @@ def make_datatype_diff_query(old_rel, new_rel):
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         WITH data_types as (SELECT field_path, data_type
           FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-          WHERE (table_name='{}_clinical' OR table_name='{}_clinical')
+          WHERE (table_name='{old_rel}_clinical' OR table_name='{new_rel}_clinical')
             AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
           GROUP BY field_path, data_type)
         SELECT field_path
         FROM data_types
         GROUP BY field_path
         HAVING COUNT(field_path) > 1
-    """.format(old_rel, new_rel)
+    """
 
 
 def make_removed_case_ids_query(old_rel, new_rel):
     """
+
     todo
     :param old_rel:
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         SELECT case_id, project.project_id
-        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        FROM `isb-project-zero.GDC_Clinical_Data.{old_rel}_clinical`
         JOIN UNNEST(project) as project
         WHERE case_id NOT IN (
             SELECT case_id 
-            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)    
-    """.format(old_rel, new_rel)
+            FROM `isb-project-zero.GDC_Clinical_Data.{new_rel}_clinical`)    
+    """
 
 
 def make_added_case_ids_query(old_rel, new_rel):
@@ -1482,15 +1477,15 @@ def make_added_case_ids_query(old_rel, new_rel):
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         SELECT project.project_id, count(case_id) as new_case_cnt
-        FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`
+        FROM `isb-project-zero.GDC_Clinical_Data.{new_rel}_clinical`
         JOIN UNNEST(project) as project
         WHERE case_id NOT IN (
             SELECT case_id 
-            FROM `isb-project-zero.GDC_Clinical_Data.{}_clinical`)
+            FROM `isb-project-zero.GDC_Clinical_Data.{old_rel}_clinical`)
         GROUP BY project.project_id
-    """.format(new_rel, old_rel)
+    """
 
 
 def make_tables_diff_query(old_rel, new_rel):
@@ -1500,7 +1495,7 @@ def make_tables_diff_query(old_rel, new_rel):
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         WITH old_table_counts AS (
           SELECT program, COUNT(program) AS num_tables 
           FROM (
@@ -1508,7 +1503,7 @@ def make_tables_diff_query(old_rel, new_rel):
             FROM (
               SELECT SPLIT(table_name, '_') AS els
               FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-              WHERE table_name LIKE '{}%'))
+              WHERE table_name LIKE '{old_rel}%'))
           WHERE program != 'clinical'
           GROUP BY program
         ),
@@ -1519,7 +1514,7 @@ def make_tables_diff_query(old_rel, new_rel):
             FROM (
               SELECT SPLIT(table_name, '_') AS els
               FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-              WHERE table_name LIKE '{}%'))
+              WHERE table_name LIKE '{new_rel}%'))
           WHERE program != 'clinical'
           GROUP BY program
         )
@@ -1534,32 +1529,33 @@ def make_tables_diff_query(old_rel, new_rel):
         WHERE o.num_tables != n.num_tables
           OR o.num_tables IS NULL or n.num_tables IS NULL
         ORDER BY n.num_tables DESC
-    """.format(old_rel, new_rel)
+    """
 
 
 def make_new_table_list_query(old_rel, new_rel):
     """
+
     todo
     :param old_rel:
     :param new_rel:
     :return:
     """
-    return """
+    return f"""
         WITH old_tables AS (
           SELECT table_name
           FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-          WHERE table_name LIKE '{0}%'
+          WHERE table_name LIKE '{old_rel}%'
           ORDER BY table_name),
         new_tables AS (
           SELECT table_name
           FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.TABLES
-          WHERE table_name LIKE '{1}%'
+          WHERE table_name LIKE '{new_rel}%'
           ORDER BY table_name)
         
         SELECT table_name
         FROM new_tables 
-        WHERE LTRIM(table_name, '{1}_') NOT IN (SELECT LTRIM(table_name, '{0}_') FROM old_tables)
-    """.format(old_rel, new_rel)
+        WHERE LTRIM(table_name, '{new_rel}_') NOT IN (SELECT LTRIM(table_name, '{old_rel}_') FROM old_tables)
+    """
 
 
 def compare_gdc_releases():
@@ -1570,7 +1566,7 @@ def compare_gdc_releases():
     old_rel = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
     new_rel = get_rel_prefix(API_PARAMS)
 
-    print("\n\n*** {} -> {} GDC Clinical Data Comparison Report ***".format(old_rel, new_rel))
+    print(f"\n\n*** {old_rel} -> {new_rel} GDC Clinical Data Comparison Report ***")
 
     # which fields have been removed?
     removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
@@ -1620,7 +1616,7 @@ def compare_gdc_releases():
         print("<none>")
     else:
         for row in added_case_ids_res:
-            print("{}: {} new case ids".format(row[0], row[1]))
+            print(f"{row[0]}: {row[1]} new case ids")
 
     # any case ids added?
     print("\nTable count changes: ")
@@ -1634,9 +1630,7 @@ def compare_gdc_releases():
             prev_table_cnt = 0 if not row[2] else row[2]
             new_table_cnt = 0 if not row[3] else row[3]
 
-            print("{}: {} table(s) in {}, {} table(s) in {}".format(program_name,
-                                                                    prev_table_cnt, old_rel,
-                                                                    new_table_cnt, new_rel))
+            print(f"{program_name}: {prev_table_cnt} table(s) in {old_rel}, {new_table_cnt} table(s) in {new_rel}")
 
     print("\nAdded tables: ")
     added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
@@ -1658,7 +1652,7 @@ def output_report(start, steps):
     :param steps: set of steps to be performed (configured in YAML)
     """
     seconds = time.time() - start
-    print("Script executed in {0}\n".format(format_seconds(seconds)))
+    print(f"Script executed in {format_seconds(seconds)}\n")
 
     print("Steps completed: ")
 
@@ -1698,14 +1692,14 @@ def get_cases_by_program(program):
     sample_table_name = construct_table_name_from_list(sample_table_name_list)
     sample_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
 
-    query = """
+    query = f"""
         SELECT * 
-        FROM `{}` 
+        FROM `{bulk_table_id}` 
         WHERE case_id IN (
             SELECT DISTINCT(case_gdc_id) 
-            FROM `{}`
-            WHERE program_name = '{}')
-    """.format(bulk_table_id, sample_table_id, program)
+            FROM `{sample_table_id}`
+            WHERE program_name = '{program}')
+    """
 
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())
@@ -1737,18 +1731,18 @@ def main(args):
     for orig_program in programs:
         prog_start = time.time()
         if 'create_biospecimen_stub_tables' in steps or 'create_and_load_tables' in steps:
-            print("\nRunning script for program: {0}...".format(orig_program))
+            print(f"\nRunning script for program: {orig_program}...")
 
         if 'create_biospecimen_stub_tables' in steps:
             # these tables are used to populate the per-program clinical tables and the webapp tables
             print(" - Creating biospecimen stub tables!")
-            build_biospecimen_stub_tables(orig_program)
+            build_biospecimen_stub_view(orig_program)
 
         if 'create_and_load_tables' in steps:
             cases = get_cases_by_program(orig_program)
 
             if not cases:
-                print("No cases found for program {0}, skipping.".format(orig_program))
+                print(f"No cases found for program {orig_program}, skipping.")
                 continue
 
             schema = create_schema_dict()
@@ -1758,7 +1752,7 @@ def main(args):
             create_tables(program, cases, schema)
 
         prog_end = time.time() - prog_start
-        print("{0} processed in {1}!\n".format(orig_program, format_seconds(prog_end)))
+        print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
 
     if 'list_tables_for_publication' in steps:
         print("Table changes detected--create schemas for: ")

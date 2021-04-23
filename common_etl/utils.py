@@ -595,6 +595,24 @@ def load_table_from_query(bq_params, table_id, query):
         has_fatal_error(err)
 
 
+def create_view_from_query(view_id, view_query):
+    """
+
+    Create BigQuery view using a SQL query.
+    :param view_id: view_id (same structure as a BigQuery table id)
+    :param view_query: query from which to construct the view
+    """
+    client = bigquery.Client()
+    view = bigquery.Table(view_id)
+    view.view_query = view_query
+    view = client.create_table(view)
+
+    if not exists_bq_table(view_id):
+        has_fatal_error(f"View {view_id} not created, exiting.")
+    else:
+        print(f"Created {view.table_type}: {str(view.reference)}")
+
+
 def load_bq_schema_from_json(bq_params, filename):
     """
 
