@@ -1719,11 +1719,10 @@ def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        if 'FIELD_CONFIG' not in API_PARAMS:
+            has_fatal_error("params['FIELD_CONFIG'] not found")
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
-
-    if not API_PARAMS['FIELD_CONFIG']:
-        has_fatal_error("params['FIELD_CONFIG'] not found")
 
     # programs = ['BEATAML1.0']
     programs = get_program_list()
