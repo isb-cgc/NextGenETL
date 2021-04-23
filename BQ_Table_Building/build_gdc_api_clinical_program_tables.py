@@ -49,7 +49,6 @@ def make_program_list_query():
     Create program list query.
     :return: program list query string
     """
-
     case_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_caseData'
 
     return """
@@ -65,7 +64,8 @@ def get_program_list():
     Get list of the programs which have contributed data to GDC's research program.
     :return: list of research programs participating in GDC data sharing
     """
-    return {program_name for program_name in get_query_results(make_program_list_query())}
+
+    return [res[0] for res in get_query_results(make_program_list_query())]
 
 
 def get_one_to_many_tables(record_counts):
@@ -1733,7 +1733,6 @@ def main(args):
 
     # programs = ['BEATAML1.0']
     programs = get_program_list()
-    programs = sorted(programs)
 
     for orig_program in programs:
         prog_start = time.time()
