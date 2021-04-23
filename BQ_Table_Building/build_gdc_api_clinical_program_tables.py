@@ -65,7 +65,7 @@ def get_program_list():
     Get list of the programs which have contributed data to GDC's research program.
     :return: list of research programs participating in GDC data sharing
     """
-    return {prog.proj for prog in get_query_results(make_program_list_query())}
+    return {program_name for program_name in get_query_results(make_program_list_query())}
 
 
 def get_one_to_many_tables(record_counts):
