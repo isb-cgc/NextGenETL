@@ -1441,10 +1441,12 @@ def find_most_recent_release(dataset, base_table, project=None):
                 if t.table_id[:len_base_table] == base_table:
                     table_create = str(t.created)
                     release = t.table_id[len(base_table):]
-        return release
     except Exception as ex:
         print(ex)
         return False
+
+    return release
+
 
 '''
 ----------------------------------------------------------------------------------------------
