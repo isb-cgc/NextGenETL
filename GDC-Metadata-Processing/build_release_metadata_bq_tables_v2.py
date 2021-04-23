@@ -1106,7 +1106,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
                                          draft_table.format(params['RELEASE']))
         # Check to see if the tables contains new data
-        result = compare_two_tables(previous_ver_table, source_table, params['DO_BATCH'])
+        result = compare_two_tables(previous_ver_table, source_table, params['BQ_AS_BATCH'])
         if result == 'different':
             print('New data in table.')
             if all(step in publication_steps for step in steps):
