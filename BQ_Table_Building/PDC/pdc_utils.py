@@ -94,7 +94,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
             paginated_request_params = request_parameters + (offset, limit)
             graphql_request_body = request_body_function(*paginated_request_params)
-            new_total_pages = append_api_response_data()
+            new_total_pages = append_api_response_data(graphql_request_body)
             if 'Study' not in endpoint:
                 print(" - Appended page {} of {}".format(page, total_pages))
 
