@@ -418,10 +418,7 @@ def get_quant_table_name(study, is_final, include_release=True):
         :param _study_name: PDC study associated with table data
         :return: table name
         """
-        _study_name = _study_name.strip()
-        _study_name = re.sub('[^0-9a-zA-Z_]+', '_', _study_name)
-        _study_name = _study_name.replace(study['analytical_fraction'], "")
-
+        _study_name = _study_name.replace(study['analytical_fraction'] + " ", "")
         study_name_list = _study_name.split(" ")
         new_study_name_list = list()
 
@@ -431,7 +428,9 @@ def get_quant_table_name(study, is_final, include_release=True):
             if name:
                 new_study_name_list.append(name)
 
-        return "_".join(new_study_name_list)
+        _study_name = " ".join(new_study_name_list)
+        _study_name = make_string_bq_friendly(_study_name)
+        return _study_name
 
     quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
 
