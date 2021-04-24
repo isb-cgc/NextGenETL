@@ -478,7 +478,7 @@ def make_quant_table_query(raw_table_id, study):
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
             INNER JOIN `{gene_table_id}` AS gene
-                ON gene.gene_symbol = quant.gene_symbol
+                ON gene.gene_name = quant.gene_symbol
         """
     else:
         gene_name_replacement_map = {
