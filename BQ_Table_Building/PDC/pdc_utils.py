@@ -57,7 +57,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
             return response_body['pagination']['pages'] if 'pagination' in response_body else None
         except TypeError:
-            has_fatal_error(f"Unexpected response format: {api_response}")
+            has_fatal_error(f"Unexpected GraphQL response format: {api_response}")
 
     record_list = list()
 
@@ -78,6 +78,9 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*paginated_request_params)
+
+        print(graphql_request_body)
+
         total_pages = append_api_response_data()
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
