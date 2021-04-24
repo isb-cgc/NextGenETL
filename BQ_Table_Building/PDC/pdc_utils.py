@@ -45,10 +45,10 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
     is_paginated = api_params['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
     payload_key = api_params['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
-    def append_api_response_data():
+    def append_api_response_data(_graphql_request_body):
         # Adds api response data to record list
 
-        api_response = get_graphql_api_response(api_params, graphql_request_body)
+        api_response = get_graphql_api_response(api_params, _graphql_request_body)
 
         try:
             response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
@@ -65,7 +65,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
     if not is_paginated:
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*request_parameters)
-        total_pages = append_api_response_data()
+        total_pages = append_api_response_data(graphql_request_body)
 
         # should be None, if value is returned then endpoint is actually paginated
         if total_pages:
@@ -79,8 +79,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
         # * operator unpacks tuple for use as positional function args
         graphql_request_body = request_body_function(*paginated_request_params)
-
-        total_pages = append_api_response_data()
+        total_pages = append_api_response_data(graphql_request_body)
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
         if 'Study' not in endpoint:
@@ -122,11 +121,6 @@ def build_obj_from_pdc_api(api_params, endpoint, request_function, request_param
     """
 
     print("Sending {} API request: ".format(endpoint))
-
-    print(f"""endpoint={endpoint}, request_function={request_function}, 
-        request_params={request_params}, alter_json_function={alter_json_function},
-        ids={ids}, insert_id={insert_id}, pause={pause}
-    """)
 
     if ids:
         joined_record_list = list()
