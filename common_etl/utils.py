@@ -997,6 +997,9 @@ def resolve_type_conflict(field, types_set):
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
+    if "_id" in field:
+        return "STRING"
+
     if len(types_set) == 0:
         # fields with no type values default to string--this would still be safe for skip-row analysis of a data file
         return "STRING"
@@ -1390,8 +1393,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
         for column_name in columns:
             # override typing for ids, even those which are actually in
-            if "_id" in column_name:
-                data_types_dict[column_name] = {"STRING"}
 
             schema_field = {
                 "name": column_name,
