@@ -13,6 +13,8 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
                               make_string_bq_friendly)
 
+from common_etl.support import compare_two_tables
+
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
 
@@ -696,6 +698,13 @@ def main(args):
                                       query=final_quant_table_query)
                 # todo
                 # update_column_metadata(API_PARAMS, BQ_PARAMS, final_dev_table_id)
+
+    if 'find_table_differences' in steps:
+        result = compare_two_tables("isb-project-zero.PDC.quant_proteome_CPTAC_CCRCC_discovery_study_pdc_2020_11",
+                                    "isb-project-zero.PDC.quant_proteome_CPTAC_CCRCC_discovery_study_pdc_V1_11",
+                                    do_batch=False)
+
+        print(result)
 
     end = time.time() - start_time
     print("Finished program execution in {}!\n".format(format_seconds(end)))
