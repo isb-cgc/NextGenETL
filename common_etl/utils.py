@@ -608,7 +608,7 @@ def create_view_from_query(view_id, view_query):
     if exists_bq_table(view_id):
         if view.table_type == 'VIEW':
             client.delete_table(view_id)
-        else:
+        elif view.table_type:
             has_fatal_error(f"""
             {view_id} already exists, and refers to a non-view type ({view.table_type}). Cannot create view, exiting.
             """)
