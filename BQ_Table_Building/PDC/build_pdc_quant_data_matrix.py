@@ -10,7 +10,8 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               get_graphql_api_response, has_fatal_error, create_and_load_table_from_tsv, create_tsv_row,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
-                              create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id)
+                              create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
+                              make_string_bq_friendly)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
@@ -417,6 +418,7 @@ def get_quant_table_name(study, is_final, include_release=True):
         :param _study_name: PDC study associated with table data
         :return: table name
         """
+        _study_name = _study_name.strip()
         _study_name = re.sub('[^0-9a-zA-Z_]+', '_', _study_name)
         _study_name = _study_name.replace(study['analytical_fraction'], "")
 
@@ -677,9 +679,6 @@ def main(args):
 
         for study in studies_list:
             raw_table_name = get_quant_table_name(study, is_final=False)
-
-            print(raw_table_name)
-
             raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                               dataset=BQ_PARAMS['QUANT_DATASET'],
                                               table_name=raw_table_name)
@@ -689,9 +688,7 @@ def main(args):
                 final_dev_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                                         dataset=BQ_PARAMS['QUANT_DATASET'],
                                                         table_name=final_dev_table_name)
-
                 final_quant_table_query = make_quant_table_query(raw_table_id, study)
-                print(final_quant_table_query)
 
                 load_table_from_query(BQ_PARAMS,
                                       table_id=final_dev_table_id,
