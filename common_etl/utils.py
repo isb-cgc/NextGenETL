@@ -52,14 +52,15 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
 
-    print(query)
-    print(endpoint)
-
     if not query:
         has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
 
     req_body = {'query': query}
     api_res = requests.post(endpoint, headers=headers, json=req_body)
+
+    print(req_body)
+    print(api_res)
+
     tries = 0
 
     while not api_res.ok and tries < max_retries:
