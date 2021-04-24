@@ -49,12 +49,15 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
         # Adds api response data to record list
         api_response = get_graphql_api_response(api_params, graphql_request_body)
 
-        response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
+        try:
+            response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
 
-        for record in response_body[payload_key]:
-            record_list.append(record)
+            for record in response_body[payload_key]:
+                record_list.append(record)
 
-        return response_body['pagination']['pages'] if 'pagination' in response_body else None
+            return response_body['pagination']['pages'] if 'pagination' in response_body else None
+        except TypeError:
+            has_fatal_error(f"Unexpected response format: {response_body}")
 
     record_list = list()
 
