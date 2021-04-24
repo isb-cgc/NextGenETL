@@ -401,7 +401,7 @@ def get_quant_files():
     return files
 
 
-def get_quant_table_name(study, is_final, include_release=None):
+def get_quant_table_name(study, is_final, include_release=True):
     """
 
     Get quant table name for given study.
