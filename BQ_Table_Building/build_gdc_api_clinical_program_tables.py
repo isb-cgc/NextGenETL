@@ -82,7 +82,6 @@ def get_one_to_many_tables(record_counts):
     return table_keys
 
 
-# todo replace
 def get_full_table_name(program, table):
     """
 
@@ -101,25 +100,6 @@ def get_full_table_name(program, table):
         table_name.append(suffix)
 
     return construct_table_name_from_list(table_name)
-
-
-# todo replace
-def build_jsonl_name(program, table):
-    """
-
-    Derive file name for adding or locating jsonl row file in google cloud bucket.
-    :param program: gdc program name
-    :param table: table type
-    :return: jsonl file name
-    """
-    program = construct_table_name(API_PARAMS, program)
-    suffix = get_table_suffixes()[table]
-    name_list = [get_rel_prefix(API_PARAMS), program, BQ_PARAMS['MASTER_TABLE'], suffix]
-
-    # remove any blank values in list
-    filtered_name_list = [x for x in name_list if x]
-    file_name = '_'.join(filtered_name_list)
-    return file_name + '.jsonl'
 
 
 def get_bq_name(field, arg_fg=None):
@@ -1039,7 +1019,8 @@ def create_and_load_tables(program, cases, schemas, record_counts):
     record_tables = get_one_to_many_tables(record_counts)
 
     for record_table in record_tables:
-        jsonl_name = build_jsonl_name(program, record_table)
+        full_table_name = get_full_table_name(program, record_table)
+        jsonl_name = f"{full_table_name}.jsonl"
         jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
         # If jsonl scratch file exists, delete so we don't append
@@ -1060,7 +1041,8 @@ def create_and_load_tables(program, cases, schemas, record_counts):
             if bq_table not in record_tables:
                 has_fatal_error(f"Table {bq_table} not found in table keys")
 
-            jsonl_name = build_jsonl_name(program, bq_table)
+            full_table_name = get_full_table_name(program, bq_table)
+            jsonl_name = f"{full_table_name}.jsonl"
             jsonl_fp = get_scratch_fp(BQ_PARAMS, jsonl_name)
 
             write_list_to_jsonl(jsonl_fp, flat_case[bq_table], 'a')
@@ -1069,7 +1051,8 @@ def create_and_load_tables(program, cases, schemas, record_counts):
             print(f"wrote case {i} of {len(cases)} to jsonl")
 
     for record_table in record_tables:
-        jsonl_name = build_jsonl_name(program, record_table)
+        full_table_name = get_full_table_name(program, record_table)
+        jsonl_name = f"{full_table_name}.jsonl"
 
         print(f"Upload {jsonl_name} to bucket")
 

@@ -713,6 +713,7 @@ def compare_table_versions(api_params, table_name_prefix):
     new_table = table_name_prefix + '_' + api_params['RELEASE']
 """
 
+
 #   GOOGLE CLOUD STORAGE UTILS
 
 
@@ -1331,6 +1332,7 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param release:
     :param types_dict:
     """
+
     def get_column_list():
         """
         Return a list of column headers using header_list, if provided, OR from the tab-separated file row at the index
@@ -1386,6 +1388,10 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         schema_field_object_list = list()
 
         for column_name in columns:
+            # override typing for ids, even those which are actually int
+            if "_id" in column_name:
+                data_types_dict[column_name] = {"STRING"}
+
             schema_field = {
                 "name": column_name,
                 "type": data_types_dict[column_name],
@@ -1481,6 +1487,7 @@ def load_config(args, yaml_dict_keys, validate_config=None):
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
+
     def open_yaml_and_return_dict(yaml_name):
         """
         todo
