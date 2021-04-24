@@ -604,6 +604,10 @@ def create_view_from_query(view_id, view_query):
     """
     client = bigquery.Client()
     view = bigquery.Table(view_id)
+
+    if exists_bq_table(view_id):
+        client.delete_table(view_id)
+
     view.view_query = view_query
     view = client.create_table(view)
 
