@@ -1108,8 +1108,9 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                          draft_table.format(params['RELEASE']))
         # Check to see if the tables contains new data
         result = compare_two_tables(previous_ver_table, source_table, params['BQ_AS_BATCH'])
-        print(result)
-        if result == 'different':
+        comparison_result = evaluate_table_union(result)
+        print(comparison_result)
+        if comparison_result == 'different':
             print('New data in table.')
             if all(step in publication_steps for step in steps):
                 print('publication steps will now be run')
