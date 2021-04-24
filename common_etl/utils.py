@@ -52,6 +52,9 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
 
+    print(query)
+    print(endpoint)
+
     if not query:
         has_fatal_error("Must specify query for get_graphql_api_response.", SyntaxError)
 
