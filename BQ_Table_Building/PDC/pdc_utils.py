@@ -57,7 +57,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
             return response_body['pagination']['pages'] if 'pagination' in response_body else None
         except TypeError:
-            has_fatal_error(f"Unexpected response format: {response_body}")
+            has_fatal_error(f"Unexpected response format: {api_response}")
 
     record_list = list()
 
