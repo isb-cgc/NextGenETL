@@ -58,9 +58,6 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     req_body = {'query': query}
     api_res = requests.post(endpoint, headers=headers, json=req_body)
 
-    print(req_body)
-    print(api_res)
-
     tries = 0
 
     while not api_res.ok and tries < max_retries:
@@ -87,9 +84,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
             if fail_on_error:
                 has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
 
-        print(json_res)
-
-        return json_res
+    return json_res
 
 
 def get_rel_prefix(api_params, return_last_version=False, version=None):
