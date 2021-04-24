@@ -28,45 +28,12 @@ def retrieve_uniprot_kb_genes():
     """
     query = 'organism:9606+AND+reviewed:yes'
     data_format = 'tab'
-    columns = 'id,genes(PREFERRED),database(GeneID),database(HGNC)'
+    columns = 'id,genes(PREFERRED),database(RefSeq),database(HGNC)'
 
     request_url = 'https://www.uniprot.org/uniprot/?query={}&format={}&columns={}'.format(query, data_format, columns)
 
     response = requests.get(request_url)
     return response.text
-
-
-# todo in progress
-def retrieve_uniprot_kb_proteins():
-    with open("uniprot_res.tab", "r") as uniprot_fp:
-        rows = uniprot_fp.readlines()
-
-    ref_seq_uniprot_mapping_list = list()
-
-    for row in rows[1:]:
-        row = row.strip()
-        if '\t' in row:
-            columns = row.split("\t")
-            if len(columns) == 2 and columns[0] and columns[1]:
-                swissprot_id = columns[0]
-                ref_seq_ids = columns[1].strip(';').split(';')
-
-                for ref_seq_id in ref_seq_ids:
-                    if " " in ref_seq_id:
-                        ref_seq_swissprot_acc_id = ref_seq_id.split(" ")
-                        swissprot_acc_id = ref_seq_swissprot_acc_id[1].strip('[').strip(']')
-                        if not swissprot_acc_id:
-                            swissprot_acc_id = None
-                        ref_seq_uniprot_mapping_list.append([ref_seq_swissprot_acc_id[0], swissprot_id, swissprot_acc_id])
-                    else:
-                        ref_seq_uniprot_mapping_list.append([ref_seq_id, swissprot_id, None])
-
-    for map_row in ref_seq_uniprot_mapping_list:
-        if map_row[2]:
-            uniprot = map_row[2].split('-')[0]
-            if map_row != uniprot:
-                print("not equal: {}, {}".format(map_row, uniprot))
-        # print(map_row)
 
 
 def make_swissprot_query():
@@ -521,53 +488,49 @@ def make_quant_table_query(study):
     gene_name_replacement_map = {
         "Phosphoproteome": {
             "site": "phosphorylation_sites",
-            "id_column_label": "NCBI_refseq_id"
+            "id_column_label": "RefSeq"
         },
         "Acetylome": {
             "site": "acetylation_sites",
-            "id_column_label": "NCBI_refseq_id"
+            "id_column_label": "RefSeq"
         },
         "Glycoproteome": {
             "site": "glycosylation_sites",
-            "id_column_label": "NCBI_refseq_id"
+            "id_column_label": "RefSeq"
         },
         "Ubiquitylome": {
             "site": "ubiquitylation_sites",
-            "id_column_label": "NCBI_refseq_id"
+            "id_column_label": "RefSeq"
         },
     }
 
     if analytical_fraction == 'Proteome':
-        return """
+        return f"""
             SELECT aliq.case_id, aliq.sample_id, aliq.aliquot_id, 
                 quant.aliquot_submitter_id, quant.aliquot_run_metadata_id, quant.study_name, 
                 quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_symbol, gene.NCBI_gene_id, gene.authority, 
                 gene.authority_gene_id, gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, 
                 gene.uniprotkb_ids, gene.proteins, gene.assays
-            FROM `{}` as quant
-            INNER JOIN `{}` as aliq 
+            FROM `{raw_quant_table_id}` as quant
+            INNER JOIN `{aliquot_run_table_id}` as aliq 
             ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
-            INNER JOIN `{}` as gene
+            INNER JOIN `{gene_table_id}` as gene
             ON gene.gene_symbol = quant.gene_symbol
-        """.format(raw_quant_table_id, aliquot_run_table_id, gene_table_id)
+        """
     else:
         sites = gene_name_replacement_map[analytical_fraction]['site']
         id_column_label = gene_name_replacement_map[analytical_fraction]['id_column_label']
 
-        return """
+        return f"""
             SELECT aliq.case_id, aliq.sample_id, aliq.aliquot_id, 
-                quant.aliquot_submitter_id, quant.aliquot_run_metadata_id, quant.study_name, 
-                quant.protein_abundance_log2ratio, 
-                SPLIT(gene.gene_id, ':')[OFFSET(0)] AS `{}`, 
-                SPLIT(gene.gene_id, ':')[OFFSET(1)] AS `{}`, gene.NCBI_gene_id, gene.authority, gene.authority_gene_id, 
-                gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, gene.uniprotkb_ids, 
-                gene.proteins, gene.assays
-            FROM `{}` as quant
-            INNER JOIN `{}` as aliq 
-            ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
-            INNER JOIN `{}` as gene
-            ON gene.gene_symbol = quant.gene_symbol
-        """.format(id_column_label, sites, raw_quant_table_id, aliquot_run_table_id, gene_table_id)
+                q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio, 
+                SPLIT(q.gene_symbol, ':')[OFFSET(0)] AS `{id_column_label}`, 
+                SPLIT(q.gene_symbol, ':')[OFFSET(1)] AS `{sites}`
+            FROM `{raw_quant_table_id}` AS q
+            INNER JOIN `{aliquot_run_table_id}` AS aliq 
+                ON q.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
+                    AND q.aliquot_submitter_id = aliq.aliquot_submitter_id
+        """
 
 
 def main(args):
@@ -730,14 +693,14 @@ def main(args):
 
             raw_table_name = get_quant_table_name(study, is_final=False)
             raw_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                            dataset=BQ_PARAMS['QUANT_DATASET'],
-                                            table_name=raw_table_name)
+                                              dataset=BQ_PARAMS['QUANT_DATASET'],
+                                              table_name=raw_table_name)
 
             if exists_bq_table(raw_table_id):
                 final_dev_table_name = get_quant_table_name(study)
                 final_dev_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                  dataset=BQ_PARAMS['QUANT_DATASET'],
-                                                  table_name=final_dev_table_name)
+                                                        dataset=BQ_PARAMS['QUANT_DATASET'],
+                                                        table_name=final_dev_table_name)
                 load_table_from_query(BQ_PARAMS,
                                       table_id=final_dev_table_id,
                                       query=make_quant_table_query(study))
