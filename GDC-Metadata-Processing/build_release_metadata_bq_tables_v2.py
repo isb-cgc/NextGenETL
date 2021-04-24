@@ -1099,7 +1099,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         # Find the most recent release
         previous_release = find_most_recent_release('_'.join([dataset_tuple[1], 'versioned']),
                                                     base_table_name, params['PUBLICATION_PROJECT'])
-        print(previous_release)
+        print('previous release is ' + previous_release)
         previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
                                                "_".join([dataset_tuple[1], 'versioned']),
                                                "".join([base_table_name, previous_release]))
