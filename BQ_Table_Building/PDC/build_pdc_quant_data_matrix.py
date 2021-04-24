@@ -598,7 +598,7 @@ def main(args):
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
             unversioned_quant_table_name = get_quant_table_name(study_id_dict, is_final=False, include_release=False)
-            raw_quant_tsv_file = get_quant_table_name(study_id_dict) + '.tsv'
+            raw_quant_tsv_file = get_quant_table_name(study_id_dict, is_final=False) + '.tsv'
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, raw_quant_tsv_file)
 
             # todo change gene_symbol to gene name?
