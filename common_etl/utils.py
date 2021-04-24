@@ -606,7 +606,7 @@ def create_view_from_query(view_id, view_query):
     view = bigquery.Table(view_id)
 
     if exists_bq_table(view_id):
-        existing_table = client.get_table()
+        existing_table = client.get_table(view_id)
 
         if existing_table.table_type == 'VIEW':
             client.delete_table(view_id)
