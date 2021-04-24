@@ -438,7 +438,7 @@ def change_study_name_to_table_name_format(study_name):
     return "_".join(new_study_name_list)
 
 
-def get_quant_table_name(study, is_final=True):
+def get_quant_table_name(study, is_final):
     """
 
     Get quant table name for given study.
@@ -461,48 +461,26 @@ def get_quant_table_name(study, is_final=True):
                          analytical_fraction.lower(),
                          change_study_name_to_table_name_format(study_name),
                          API_PARAMS['DATA_SOURCE'],
-                         API_PARAMS['RELEASE']])
+                         get_rel_prefix(API_PARAMS)])
 
 
-def make_quant_table_query(study):
+def make_quant_table_query(raw_table_id, study):
     """
     Create sql query to create proteome quant data matrix table for a given study.
+    :param raw_table_id: table id for raw quantDataMatrix output
     :param study: PDC study name
     :return: sql query string
     """
     analytical_fraction = study['analytical_fraction']
 
-    raw_quant_table_name = create_raw_quant_table_name(study_id_dict=study)
-    raw_quant_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                          dataset=BQ_PARAMS['QUANT_DATASET'],
-                                          table_name=raw_quant_table_name)
     aliquot_run_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
     aliquot_run_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                            dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=aliquot_run_table_name)
+                                              dataset=BQ_PARAMS['META_DATASET'],
+                                              table_name=aliquot_run_table_name)
     gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
     gene_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                     dataset=BQ_PARAMS['META_DATASET'],
-                                     table_name=gene_table_name)
-
-    gene_name_replacement_map = {
-        "Phosphoproteome": {
-            "site": "phosphorylation_sites",
-            "id_column_label": "RefSeq"
-        },
-        "Acetylome": {
-            "site": "acetylation_sites",
-            "id_column_label": "RefSeq"
-        },
-        "Glycoproteome": {
-            "site": "glycosylation_sites",
-            "id_column_label": "RefSeq"
-        },
-        "Ubiquitylome": {
-            "site": "ubiquitylation_sites",
-            "id_column_label": "RefSeq"
-        },
-    }
+                                       dataset=BQ_PARAMS['META_DATASET'],
+                                       table_name=gene_table_name)
 
     if analytical_fraction == 'Proteome':
         return f"""
@@ -511,13 +489,32 @@ def make_quant_table_query(study):
                 quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_symbol, gene.NCBI_gene_id, gene.authority, 
                 gene.authority_gene_id, gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, 
                 gene.uniprotkb_ids, gene.proteins, gene.assays
-            FROM `{raw_quant_table_id}` as quant
+            FROM `{raw_table_id}` as quant
             INNER JOIN `{aliquot_run_table_id}` as aliq 
             ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
             INNER JOIN `{gene_table_id}` as gene
             ON gene.gene_symbol = quant.gene_symbol
         """
     else:
+        gene_name_replacement_map = {
+            "Phosphoproteome": {
+                "site": "phosphorylation_sites",
+                "id_column_label": "RefSeq"
+            },
+            "Acetylome": {
+                "site": "acetylation_sites",
+                "id_column_label": "RefSeq"
+            },
+            "Glycoproteome": {
+                "site": "glycosylation_sites",
+                "id_column_label": "RefSeq"
+            },
+            "Ubiquitylome": {
+                "site": "ubiquitylation_sites",
+                "id_column_label": "RefSeq"
+            },
+        }
+
         sites = gene_name_replacement_map[analytical_fraction]['site']
         id_column_label = gene_name_replacement_map[analytical_fraction]['id_column_label']
 
@@ -526,7 +523,7 @@ def make_quant_table_query(study):
                 q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio, 
                 SPLIT(q.gene_symbol, ':')[OFFSET(0)] AS `{id_column_label}`, 
                 SPLIT(q.gene_symbol, ':')[OFFSET(1)] AS `{sites}`
-            FROM `{raw_quant_table_id}` AS q
+            FROM `{raw_table_id}` AS q
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON q.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
                     AND q.aliquot_submitter_id = aliq.aliquot_submitter_id
@@ -555,8 +552,8 @@ def main(args):
                                                 prefix=BQ_PARAMS['SWISSPROT_TABLE'],
                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
     swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                          dataset=BQ_PARAMS['META_DATASET'],
-                                          table_name=swissprot_table_name)
+                                            dataset=BQ_PARAMS['META_DATASET'],
+                                            table_name=swissprot_table_name)
 
     if 'build_swissprot_tsv' in steps:
         swissprot_fp = get_scratch_fp(BQ_PARAMS, swissprot_file_name)
@@ -697,13 +694,17 @@ def main(args):
                                               table_name=raw_table_name)
 
             if exists_bq_table(raw_table_id):
-                final_dev_table_name = get_quant_table_name(study)
+                final_dev_table_name = get_quant_table_name(study, is_final=True)
                 final_dev_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                         dataset=BQ_PARAMS['QUANT_DATASET'],
                                                         table_name=final_dev_table_name)
+
+                final_quant_table_query = make_quant_table_query(raw_table_id, study)
+                print(final_quant_table_query)
+
                 load_table_from_query(BQ_PARAMS,
                                       table_id=final_dev_table_id,
-                                      query=make_quant_table_query(study))
+                                      query=final_quant_table_query)
                 # todo
                 # update_column_metadata(API_PARAMS, BQ_PARAMS, final_dev_table_id)
 
