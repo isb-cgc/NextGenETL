@@ -471,7 +471,7 @@ def make_quant_table_query(raw_table_id, study):
         return f"""
             SELECT aliq.case_id, aliq.sample_id, aliq.aliquot_id, 
                 quant.aliquot_submitter_id, quant.aliquot_run_metadata_id, quant.study_name, 
-                quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_symbol, gene.NCBI_gene_id, gene.authority, 
+                quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_name, gene.NCBI_gene_id, gene.authority, 
                 gene.authority_gene_id, gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, 
                 gene.uniprotkb_ids, gene.proteins, gene.assays
             FROM `{raw_table_id}` AS quant
