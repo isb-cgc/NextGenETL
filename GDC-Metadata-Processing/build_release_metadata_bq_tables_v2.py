@@ -1097,7 +1097,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if all(step in publication_steps for step in steps) or 'check_for_new_data' in steps:
         base_table_name = "{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc_')
         # Find the most recent release
-        previous_release = find_most_recent_release(params['TARGET_DATASET'],
+        previous_release = find_most_recent_release('_'.join([dataset_tuple[1], 'versioned']),
                                                     base_table_name, params['PUBLICATION_PROJECT'])
         print(previous_release)
         # previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
