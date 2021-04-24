@@ -687,9 +687,6 @@ def main(args):
         print("Building final quant tables!")
 
         for study in studies_list:
-            if study['analytical_fraction'] not in BQ_PARAMS["BUILD_ANALYTES"]:
-                continue
-
             raw_table_name = get_quant_table_name(study, is_final=False)
             raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                               dataset=BQ_PARAMS['QUANT_DATASET'],
