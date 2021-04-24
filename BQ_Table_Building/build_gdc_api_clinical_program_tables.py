@@ -1701,8 +1701,6 @@ def get_cases_by_program(program):
         )
     """
 
-    print(query)
-
     for case_row in get_query_results(query):
         case_items = dict(case_row.items())
         cases.append(case_items)
