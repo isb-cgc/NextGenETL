@@ -1690,7 +1690,7 @@ def get_cases_by_program(program):
 
     sample_table_name_list = [get_rel_prefix(API_PARAMS), str(program), BQ_PARAMS['BIOSPECIMEN_SUFFIX']]
     sample_table_name = construct_table_name_from_list(sample_table_name_list)
-    sample_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['APP_DATASET'], sample_table_name)
+    sample_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], sample_table_name)
 
     query = f"""
         SELECT * 
@@ -1698,7 +1698,7 @@ def get_cases_by_program(program):
         WHERE case_id IN (
             SELECT DISTINCT(case_gdc_id) 
             FROM `{sample_table_id}`
-            WHERE program_name = '{program}')
+        )
     """
 
     for case_row in get_query_results(query):
