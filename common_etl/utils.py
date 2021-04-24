@@ -83,6 +83,8 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
             if fail_on_error:
                 has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
 
+        print(json_res)
+
         return json_res
 
 
@@ -1388,7 +1390,7 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         schema_field_object_list = list()
 
         for column_name in columns:
-            # override typing for ids, even those which are actually int
+            # override typing for ids, even those which are actually in
             if "_id" in column_name:
                 data_types_dict[column_name] = {"STRING"}
 
