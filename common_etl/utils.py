@@ -997,6 +997,7 @@ def resolve_type_conflict(field, types_set):
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
+    # fix to make even proper INT64 ids into STRING ids
     if "_id" in field:
         return "STRING"
 
