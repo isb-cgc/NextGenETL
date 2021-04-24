@@ -1207,11 +1207,11 @@ def make_biospecimen_stub_view_query(program):
     :param program: Program name for which to create biospecimen view
     :return: biospecimen view query
     """
-    slide_table_id = BQ_PARAMS['DEV_PROJECT'] + '.GDC_metadata.rel' + API_PARAMS['RELEASE'] + '_slide2caseIDmap'
+    aliquot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.GDC_metadata.rel{API_PARAMS['RELEASE']}_aliquot2caseIDmap"
 
     return f"""
         SELECT program_name, project_id as project_short_name, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode
-        FROM `{slide_table_id}`
+        FROM `{aliquot_table_id}`
         WHERE program_name = '{program}'
     """
 
