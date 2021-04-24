@@ -474,11 +474,11 @@ def make_quant_table_query(raw_table_id, study):
                 quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_symbol, gene.NCBI_gene_id, gene.authority, 
                 gene.authority_gene_id, gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, 
                 gene.uniprotkb_ids, gene.proteins, gene.assays
-            FROM `{raw_table_id}` as quant
-            INNER JOIN `{aliquot_run_table_id}` as aliq 
-            ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
-            INNER JOIN `{gene_table_id}` as gene
-            ON gene.gene_symbol = quant.gene_symbol
+            FROM `{raw_table_id}` AS quant
+            INNER JOIN `{aliquot_run_table_id}` AS aliq 
+                ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
+            INNER JOIN `{gene_table_id}` AS gene
+                ON gene.gene_symbol = quant.gene_symbol
         """
     else:
         gene_name_replacement_map = {
@@ -511,7 +511,6 @@ def make_quant_table_query(raw_table_id, study):
             FROM `{raw_table_id}` AS q
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON q.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
-                    AND q.aliquot_submitter_id = aliq.aliquot_submitter_id
         """
 
 
