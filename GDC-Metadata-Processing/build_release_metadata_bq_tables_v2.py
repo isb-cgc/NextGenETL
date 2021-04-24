@@ -1142,12 +1142,11 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                                                  'backup']))
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
-        print(table_temp)
-        # success = remove_old_current_tables(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'])
+        success = remove_old_current_tables(old_current_table, previous_ver_table, table_temp, params['BQ_AS_BATCH'])
 
-        # if not success:
-        #     print("compare two tables failed")
-        #     return False
+        if not success:
+            print("compare two tables failed")
+            return False
 
     #
     # publish table:
