@@ -424,6 +424,8 @@ def get_quant_table_name(study, is_final, include_release=True):
         new_study_name_list = list()
 
         for name in study_name_list:
+            if not name:
+                continue
             if not name.isupper():
                 name = name.lower()
             if name:
