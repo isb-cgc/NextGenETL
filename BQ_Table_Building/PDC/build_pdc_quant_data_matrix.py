@@ -419,6 +419,7 @@ def get_quant_table_name(study, is_final, include_release=True):
         :return: table name
         """
         _study_name = _study_name.replace(study['analytical_fraction'] + " ", "")
+        _study_name = _study_name.replace(study['analytical_fraction'].lower() + " ", "")
         study_name_list = _study_name.split(" ")
         new_study_name_list = list()
 
