@@ -595,7 +595,6 @@ def load_table_from_query(bq_params, table_id, query):
         has_fatal_error(err)
 
 
-'''
 def create_view_from_query(view_id, view_query):
     """
 
@@ -621,7 +620,6 @@ def create_view_from_query(view_id, view_query):
         has_fatal_error(f"View {view_id} not created, exiting.")
     else:
         print(f"Created {view.table_type}: {str(view.reference)}")
-'''
 
 
 def load_bq_schema_from_json(bq_params, filename):
