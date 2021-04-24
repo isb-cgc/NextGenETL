@@ -123,6 +123,12 @@ def build_obj_from_pdc_api(api_params, endpoint, request_function, request_param
 
     print("Sending {} API request: ".format(endpoint))
 
+    print(f"""
+        api_params={api_params}, endpoint={endpoint}, request_function={request_function}, 
+        request_params={request_params}, alter_json_function={alter_json_function},
+        ids={ids}, insert_id={insert_id}, pause={pause}
+    """)
+
     if ids:
         joined_record_list = list()
         for idx, id_entry in enumerate(ids):
