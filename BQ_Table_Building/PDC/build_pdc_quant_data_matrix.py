@@ -401,67 +401,52 @@ def get_quant_files():
     return files
 
 
-def create_raw_quant_table_name(study_id_dict, include_release=True):
-    """
-
-    todo
-    :param study_id_dict:
-    :param include_release:
-    :return:
-    """
-    prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
-    suffix = study_id_dict['analytical_fraction'] + '_' + study_id_dict['pdc_study_id']
-    return construct_table_name(API_PARAMS,
-                                prefix=prefix,
-                                suffix=suffix,
-                                include_release=include_release)
-
-
-def change_study_name_to_table_name_format(study_name):
-    """
-
-    Convert study name to table name format.
-    :param study_name: PDC study associated with table data
-    :return: table name
-    """
-    study_name = re.sub('[^0-9a-zA-Z_]+', '_', study_name)
-
-    study_name_list = study_name.split(" ")
-    new_study_name_list = list()
-
-    for name in study_name_list:
-        if not name.isupper():
-            name = name.lower()
-        if name:
-            new_study_name_list.append(name)
-
-    return "_".join(new_study_name_list)
-
-
-def get_quant_table_name(study, is_final):
+def get_quant_table_name(study, is_final, include_release=None):
     """
 
     Get quant table name for given study.
     :param study: study metadata dict
     :param is_final: if True, query is requesting published table name; otherwise dev table name
+    :param include_release: Include release in table name (boolean)
     :return: if True, return published table name, otherwise return dev table name
     """
+    def change_study_name_to_table_name_format(_study_name):
+        """
+
+        Convert study name to table name format.
+        :param _study_name: PDC study associated with table data
+        :return: table name
+        """
+        _study_name = re.sub('[^0-9a-zA-Z_]+', '_', _study_name)
+        _study_name = _study_name.replace(study['analytical_fraction'], "")
+
+        study_name_list = _study_name.split(" ")
+        new_study_name_list = list()
+
+        for name in study_name_list:
+            if not name.isupper():
+                name = name.lower()
+            if name:
+                new_study_name_list.append(name)
+
+        return "_".join(new_study_name_list)
+
     quant_prefix = get_prefix(API_PARAMS, API_PARAMS['QUANT_ENDPOINT'])
-    analytical_fraction = study['analytical_fraction']
 
     if not is_final:
+        quant_suffix = study['analytical_fraction'] + '_' + study['pdc_study_id']
         return construct_table_name(API_PARAMS,
                                     prefix=quant_prefix,
-                                    suffix=study['pdc_study_id'])
+                                    suffix=quant_suffix,
+                                    include_release=include_release)
     else:
         study_name = study['study_name']
-        study_name = study_name.replace(analytical_fraction, "")
+        study_name = change_study_name_to_table_name_format(study_name)
+        version = get_rel_prefix(API_PARAMS)
+        analytical_fraction = study['analytical_fraction'].lower()
 
-        return "_".join([quant_prefix,
-                         analytical_fraction.lower(),
-                         change_study_name_to_table_name_format(study_name),
-                         API_PARAMS['DATA_SOURCE'],
-                         get_rel_prefix(API_PARAMS)])
+        # return table name in following format: quant_<analyte>_<study_name>_pdc_<version>
+        return "_".join([quant_prefix, analytical_fraction, study_name, API_PARAMS['DATA_SOURCE'], version])
 
 
 def make_quant_table_query(raw_table_id, study):
@@ -608,8 +593,8 @@ def main(args):
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
-            unversioned_quant_table_name = create_raw_quant_table_name(study_id_dict, include_release=False)
-            raw_quant_tsv_file = create_raw_quant_table_name(study_id_dict) + '.tsv'
+            unversioned_quant_table_name = get_quant_table_name(study_id_dict, is_final=False, include_release=False)
+            raw_quant_tsv_file = get_quant_table_name(study_id_dict) + '.tsv'
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, raw_quant_tsv_file)
 
             # todo change gene_symbol to gene name?
@@ -657,17 +642,22 @@ def main(args):
         }
 
         for study_id_dict in studies_list:
-            raw_quant_tsv_file = create_raw_quant_table_name(study_id_dict) + '.tsv'
+            quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
+            raw_quant_tsv_file = f"{quant_table_name}.tsv"
 
             if raw_quant_tsv_file not in quant_blob_files:
                 print('Skipping table build for {} (jsonl not found in bucket)'.format(raw_quant_tsv_file))
             else:
                 print("Building table for {}".format(raw_quant_tsv_file))
 
-                raw_quant_table_name = create_raw_quant_table_name(study_id_dict)
-                raw_quant_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['QUANT_DATASET'], raw_quant_table_name)
+                raw_quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
+                raw_quant_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                                        dataset=BQ_PARAMS['QUANT_DATASET'],
+                                                        table_name=raw_quant_table_name)
 
-                unversioned_quant_table_name = create_raw_quant_table_name(study_id_dict, include_release=False)
+                unversioned_quant_table_name = get_quant_table_name(study_id_dict,
+                                                                    is_final=False,
+                                                                    include_release=False)
                 raw_quant_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                              table_name=unversioned_quant_table_name)
 
