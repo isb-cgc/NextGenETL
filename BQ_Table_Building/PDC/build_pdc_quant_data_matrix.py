@@ -544,18 +544,11 @@ def main(args):
 
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
 
-    swissprot_file_name = get_filename(API_PARAMS,
-                                       file_extension='tsv',
-                                       prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                       release=API_PARAMS['SWISSPROT_RELEASE'])
-    swissprot_table_name = construct_table_name(API_PARAMS,
-                                                prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                release=API_PARAMS['SWISSPROT_RELEASE'])
-    swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                            dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=swissprot_table_name)
-
     if 'build_swissprot_tsv' in steps:
+        swissprot_file_name = get_filename(API_PARAMS,
+                                           file_extension='tsv',
+                                           prefix=BQ_PARAMS['SWISSPROT_TABLE'],
+                                           release=API_PARAMS['SWISSPROT_RELEASE'])
         swissprot_fp = get_scratch_fp(BQ_PARAMS, swissprot_file_name)
 
         swissprot_data = retrieve_uniprot_kb_genes()
@@ -573,6 +566,13 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, swissprot_fp, delete_local=True)
 
     if 'build_swissprot_table' in steps:
+        swissprot_table_name = construct_table_name(API_PARAMS,
+                                                    prefix=BQ_PARAMS['SWISSPROT_TABLE'],
+                                                    release=API_PARAMS['SWISSPROT_RELEASE'])
+        swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                                dataset=BQ_PARAMS['META_DATASET'],
+                                                table_name=swissprot_table_name)
+
         swissprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                      table_name=BQ_PARAMS['SWISSPROT_TABLE'],
                                                      release=API_PARAMS['SWISSPROT_RELEASE'])
@@ -684,18 +684,20 @@ def main(args):
             print(" - {}: {}".format(analytical_fraction, built_table_counts[analytical_fraction]))
 
     if 'build_final_quant_tables' in steps:
+        print("Building final quant tables!")
+
         for study in studies_list:
             if study['analytical_fraction'] not in BQ_PARAMS["BUILD_ANALYTES"]:
                 continue
 
             raw_table_name = get_quant_table_name(study, is_final=False)
-            raw_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+            raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                               dataset=BQ_PARAMS['QUANT_DATASET'],
                                               table_name=raw_table_name)
 
             if exists_bq_table(raw_table_id):
                 final_dev_table_name = get_quant_table_name(study, is_final=True)
-                final_dev_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                final_dev_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                                         dataset=BQ_PARAMS['QUANT_DATASET'],
                                                         table_name=final_dev_table_name)
 
