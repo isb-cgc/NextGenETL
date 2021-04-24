@@ -678,6 +678,9 @@ def main(args):
 
         for study in studies_list:
             raw_table_name = get_quant_table_name(study, is_final=False)
+
+            print(raw_table_name)
+
             raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                               dataset=BQ_PARAMS['QUANT_DATASET'],
                                               table_name=raw_table_name)
