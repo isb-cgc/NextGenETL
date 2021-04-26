@@ -874,6 +874,8 @@ def flatten_case(case):
 
     base_id_name = get_field_group_id_key_name(base_fg)
 
+    print(f"case: {case}")
+
     flat_case = dict()
 
     flatten_case_entry(record=case,
