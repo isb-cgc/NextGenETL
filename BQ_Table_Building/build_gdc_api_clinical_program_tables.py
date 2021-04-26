@@ -179,9 +179,6 @@ def parse_bq_schema_obj(schema, fg, schema_list=None):
     if fg not in API_PARAMS['FIELD_CONFIG']:
         return
 
-    print(schema_list)
-    exit()
-
     for i, schema_field in enumerate(schema_list):
 
         field_key = merge_fg_and_field(fg, schema_field['name'])
@@ -192,14 +189,6 @@ def parse_bq_schema_obj(schema, fg, schema_list=None):
             parse_bq_schema_obj(schema, field_key, schema_field['fields'])
 
             field_config = API_PARAMS['FIELD_CONFIG']
-
-            if fg not in field_config or 'id_key' not in field_config[fg]:
-                required_field_list = None
-            else:
-                required_field_list = [merge_fg_and_field(fg, field_config[fg]['id_key'])]
-
-            for field_name in required_field_list:
-                schema[field_name]['mode'] = 'REQUIRED'
         else:
             # not a nested field entry--do we need to prefix the schema field name?
             # schema_field['name'] = get_bq_name(field_key)
