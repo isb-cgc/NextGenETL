@@ -833,7 +833,8 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
             else:  # todo is this needed?
                 if fg_id_name != pid_name:
                     # remove field from period-delimited field group string
-                    parent_fg = ".".join(fg.split('.')[:-1])
+                    split_parent_fg = fg.split('.')[:-1]
+                    parent_fg = ".".join(split_parent_fg)
                     pid_key = get_bq_name(pid_name, parent_fg)
 
                     # add parent_id key and value to row
@@ -859,9 +860,10 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
                     if row_field in excluded or not row[row_field]:
                         row.pop(row_field)
 
-        if API_PARAMS['FIELD_CONFIG'][fg]['id_key'] in row:
+        # if API_PARAMS['FIELD_CONFIG'][fg]['id_key'] in row:
             # I changed this because otherwise rows are added without required id fields
-            flat_case[fg].append(row)
+            # todo does changing back fix?
+        flat_case[fg].append(row)
 
 
 def flatten_case(case):
@@ -874,7 +876,6 @@ def flatten_case(case):
 
     base_fg = get_base_fg()
     get_long_field_group_id_key(base_fg)
-
     base_id_name = get_field_group_id_key_name(base_fg)
 
     flat_case = dict()
