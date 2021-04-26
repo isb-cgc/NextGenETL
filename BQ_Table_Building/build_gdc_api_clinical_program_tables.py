@@ -801,8 +801,6 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
     :param pid_name: parent field group id key
     """
 
-    print(f"record: {record}, fg: {fg}, flat_case: {flat_case}, case_id: {case_id}, pid: {pid}, pid_name: {pid_name}")
-
     def get_excluded_fields_one_fg():
         excluded_key = 'excluded_fields'
         excluded_list = API_PARAMS['FIELD_CONFIG'][fg][excluded_key]
@@ -830,7 +828,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
                 flatten_case_entry(record=columns, fg=merge_fg_and_field(fg, field), flat_case=flat_case,
                                    case_id=case_id, pid=record[fg_id_name], pid_name=fg_id_name)
                 continue
-            else:  # todo is this needed?
+            else:
                 if fg_id_name != pid_name:
                     # remove field from period-delimited field group string
                     split_parent_fg = fg.split('.')[:-1]
@@ -860,9 +858,6 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
                     if row_field in excluded or not row[row_field]:
                         row.pop(row_field)
 
-        # if API_PARAMS['FIELD_CONFIG'][fg]['id_key'] in row:
-            # I changed this because otherwise rows are added without required id fields
-            # todo does changing back fix?
         flat_case[fg].append(row)
 
 
@@ -886,9 +881,6 @@ def flatten_case(case):
                        case_id=case[base_id_name],
                        pid=case[base_id_name],
                        pid_name=base_id_name)
-    print()
-    print(flat_case)
-    exit()
 
     return flat_case
 
