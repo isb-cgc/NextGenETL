@@ -110,6 +110,7 @@ def get_bq_name(field, arg_fg=None):
     :param arg_fg: field group containing field
     :return: bq column name for given field name
     """
+
     def get_fgs_and_id_keys():
         """
 
@@ -800,6 +801,8 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
     :param pid_name: parent field group id key
     """
 
+    print(f"record: {record}, fg: {fg}, flat_case: {flat_case}, case_id: {case_id}, pid: {pid}, pid_name: {pid_name}")
+
     def get_excluded_fields_one_fg():
         excluded_key = 'excluded_fields'
         excluded_list = API_PARAMS['FIELD_CONFIG'][fg][excluded_key]
@@ -882,6 +885,9 @@ def flatten_case(case):
                        case_id=case[base_id_name],
                        pid=case[base_id_name],
                        pid_name=base_id_name)
+    print()
+    print(flat_case)
+    exit()
 
     return flat_case
 
@@ -1019,11 +1025,7 @@ def create_and_load_tables(program, cases, schemas, record_counts):
             os.remove(jsonl_fp)
 
     for i, case in enumerate(cases):
-        print(case)
         flat_case = flatten_case(case)
-        print()
-        print(flat_case)
-        exit()
 
         # remove excluded field groups
         for fg in flat_case.copy():
@@ -1260,61 +1262,6 @@ def build_publish_table_list():
                 break
 
     return publish_table_list
-
-
-def modify_fields_for_app(schema, column_order_dict, columns):
-    """Alter field naming conventions so that they're compatible with those in the
-    web app.
-
-    :param schema: dict containing schema records
-    :param column_order_dict: dict of {field_groups: column_order set()}
-    :param columns: dict containing table column keys
-    """
-    renamed_fields = dict(API_PARAMS['RENAMED_FIELDS'])
-    fgs = column_order_dict.keys()
-
-    excluded_fgs = API_PARAMS['FG_CONFIG']['excluded_fgs']
-    excluded_fields = get_excluded_fields_all_fgs(fgs)
-
-    for fg in fgs:
-        # rename case_id no matter which fg it's in
-        for renamed_field in renamed_fields.keys():
-            if renamed_field in column_order_dict[fg]:
-                new_field = renamed_fields[renamed_field]
-                column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
-                column_order_dict[fg].pop(renamed_field)
-            if fg in columns and renamed_field in columns[fg]:
-                columns[fg].add(renamed_fields[renamed_field])
-                columns[fg].remove(renamed_field)
-
-    # field is fully associated name
-    for field in {k for k in schema.keys()}:
-        base_fg = ".".join(field.split('.')[:-1])
-        field_name = field.split('.')[-1]
-
-        # substitute base field name for prefixed
-        schema[field]['name'] = field_name
-
-        # exclude any field groups or fields explicitly excluded in yaml
-        if field in excluded_fields or base_fg in excluded_fgs:
-            schema.pop(field)
-        # field exists in renamed_fields, change its name
-        elif field in renamed_fields:
-            new_field = renamed_fields[field]
-
-            schema[field]['name'] = new_field.split('.')[-1]
-            schema[new_field] = schema[field]
-            schema.pop(field)
-
-            # change the field name in the column order dict
-            if base_fg in column_order_dict and field in column_order_dict[base_fg]:
-                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
-                column_order_dict[base_fg].pop(field)
-
-        if field in excluded_fields and base_fg in column_order_dict:
-            # remove excluded field from column order lists
-            if field in column_order_dict[base_fg]:
-                column_order_dict[base_fg].pop(field)
 
 
 def create_tables(program, cases, schema):
