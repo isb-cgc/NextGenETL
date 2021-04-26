@@ -874,8 +874,6 @@ def flatten_case(case):
 
     base_id_name = get_field_group_id_key_name(base_fg)
 
-    print(f"case: {case}")
-
     flat_case = dict()
 
     flatten_case_entry(record=case,
@@ -933,7 +931,6 @@ def merge_single_entry_fgs(flat_case, record_counts):
 
         for record in flat_case[field_grp]:
             parent_id = record[bq_parent_id_key]
-            print(1)
             parent_idx = get_record_idx(flat_case, parent, parent_id)
             flat_case[parent][parent_idx].update(record)
         flat_case.pop(field_grp)
@@ -1022,9 +1019,11 @@ def create_and_load_tables(program, cases, schemas, record_counts):
             os.remove(jsonl_fp)
 
     for i, case in enumerate(cases):
+        print(case)
         flat_case = flatten_case(case)
-
+        print()
         print(flat_case)
+        exit()
 
         # remove excluded field groups
         for fg in flat_case.copy():
@@ -1703,8 +1702,9 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    # programs = ['BEATAML1.0']
-    programs = get_program_list()
+    # todo switch back
+    programs = ['BEATAML1.0']
+    # programs = get_program_list()
 
     for orig_program in programs:
         prog_start = time.time()
