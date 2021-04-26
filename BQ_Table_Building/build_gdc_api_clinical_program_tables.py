@@ -179,6 +179,9 @@ def parse_bq_schema_obj(schema, fg, schema_list=None):
     if fg not in API_PARAMS['FIELD_CONFIG']:
         return
 
+    print(schema_list)
+    exit()
+
     for i, schema_field in enumerate(schema_list):
 
         field_key = merge_fg_and_field(fg, schema_field['name'])

@@ -69,7 +69,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
         # should be None, if value is returned then endpoint is actually paginated
         if total_pages:
-            has_fatal_error("Paginated API response ({} pages), but is_paginated set to False.".format(total_pages))
+            has_fatal_error(f"Paginated API response ({total_pages} pages), but is_paginated set to False.")
     else:
         limit = api_params['ENDPOINT_SETTINGS'][endpoint]['batch_size']
         offset = 0
@@ -83,7 +83,7 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
 
         # Useful for endpoints which don't access per-study data, otherwise too verbose
         if 'Study' not in endpoint:
-            print(" - Appended page {} of {}".format(page, total_pages))
+            print(f" - Appended page {page} of {total_pages}")
 
         if not total_pages:
             has_fatal_error("API did not return a value for total pages, but is_paginated set to True.")
@@ -96,10 +96,10 @@ def request_data_from_pdc_api(api_params, endpoint, request_body_function, reque
             graphql_request_body = request_body_function(*paginated_request_params)
             new_total_pages = append_api_response_data(graphql_request_body)
             if 'Study' not in endpoint:
-                print(" - Appended page {} of {}".format(page, total_pages))
+                print(f" - Appended page {page} of {total_pages}")
 
             if new_total_pages != total_pages:
-                has_fatal_error("Page count change mid-ingestion (from {} to {})".format(total_pages, new_total_pages))
+                has_fatal_error(f"Page count change mid-ingestion (from {total_pages} to {new_total_pages})")
 
     return record_list
 
@@ -120,7 +120,7 @@ def build_obj_from_pdc_api(api_params, endpoint, request_function, request_param
     :param pause: number of seconds to wait between calls; used when iterating over ids
     """
 
-    print("Sending {} API request: ".format(endpoint))
+    print(f"Sending {endpoint} API request: ")
 
     if ids:
         joined_record_list = list()
@@ -136,14 +136,14 @@ def build_obj_from_pdc_api(api_params, endpoint, request_function, request_param
             joined_record_list += record_list
 
             if len(ids) < 100:
-                print(" - {:6d} current records (added {})".format(len(joined_record_list), id_entry))
+                print(f" - {len(joined_record_list):6d} current records (added {id_entry})")
             elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
-                print(" - {} records appended.".format(len(joined_record_list)))
+                print(f" - {len(joined_record_list)} records appended.")
 
             time.sleep(pause)
     else:
         joined_record_list = request_data_from_pdc_api(api_params, endpoint, request_function, request_params)
-        print(" - collected {} records".format(len(joined_record_list)))
+        print(f" - collected {len(joined_record_list)} records")
 
         if alter_json_function:
             alter_json_function(joined_record_list)
@@ -180,7 +180,7 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
                             prefix=prefix)
     table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=dataset, table_name=table_name)
 
-    print("Creating {}:".format(table_id))
+    print(f"Creating {table_id}:")
 
     if not schema and not infer_schema:
         schema_filename = infer_schema_file_location_by_table_id(table_id)
@@ -218,7 +218,7 @@ def get_records(api_params, bq_params, endpoint, select_statement, dataset):
     table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=dataset, table_name=table_name)
 
     query = select_statement
-    query += " FROM `{}`".format(table_id)
+    query += f" FROM `{table_id}`"
 
     records = list()
 
@@ -271,7 +271,7 @@ def update_column_metadata(api_params, bq_params, table_id):
         has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
-        print("Updating metadata for {}\n".format(table_id))
+        print(f"Updating metadata for {table_id}\n")
         update_schema(table_id, descriptions)
 
 
@@ -307,10 +307,10 @@ def update_pdc_table_metadata(api_params, bq_params, table_type=None):
                                       table_name=table_metadata_json_file.split('.')[-2])
 
         if not exists_bq_table(table_id):
-            print("skipping {} (no bq table found)".format(table_id))
+            print(f"skipping {table_id} (no bq table found)")
             continue
 
-        print("- {}".format(table_id))
+        print(f"- {table_id}")
         json_fp = "/".join([metadata_fp, table_metadata_json_file])
 
         with open(json_fp) as json_file_output:
@@ -331,10 +331,10 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
     table_name = construct_table_name(api_params, output_name)
     table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=bq_params['META_DATASET'], table_name=table_name)
 
-    return """
+    return f"""
     SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, project_submitter_id, analytical_fraction
-    FROM  `{}`
-    """.format(table_id)
+    FROM  `{table_id}`
+    """
 
 
 def print_embargoed_studies(excluded_studies_list):
@@ -345,7 +345,7 @@ def print_embargoed_studies(excluded_studies_list):
     print("\nStudies excluded due to data embargo:")
 
     for study in sorted(excluded_studies_list, key=lambda item: item['study_name']):
-        print(" - {} ({}, expires {})".format(study['study_name'], study['pdc_study_id'], study['embargo_date']))
+        print(f" - {study['study_name']} ({study['pdc_study_id']}, expires {study['embargo_date']})")
 
     print()
 

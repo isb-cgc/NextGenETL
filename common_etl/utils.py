@@ -63,11 +63,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
-            has_fatal_error("Response status code {}:\n{}.\nRequest body:\n{}".
-                            format(api_res.status_code, api_res.reason, req_body))
+            has_fatal_error(
+                f"Response status code {api_res.status_code}:\n{api_res.reason}.\nRequest body:\n{req_body}")
 
-        print("Response code {}: {}".format(api_res.status_code, api_res.reason))
-        print("Retry {} of {}...".format(tries, max_retries))
+        print(f"Response code {api_res.status_code}: {api_res.reason}")
+        print(f"Retry {tries} of {max_retries}...")
         time.sleep(3)
 
         api_res = requests.post(endpoint, headers=headers, json=req_body)
@@ -82,7 +82,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
 
     if 'errors' in json_res and json_res['errors']:
         if fail_on_error:
-            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
+            has_fatal_error(f"Errors returned by {endpoint}.\nError json:\n{json_res['errors']}")
 
     return json_res
 
@@ -173,7 +173,7 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     client = bigquery.Client()
     table = get_bq_table_obj(table_id)
 
-    print("Processing labels for {}".format(table_id))
+    print(f"Processing labels for {table_id}")
 
     labels = table.labels
 
@@ -182,13 +182,13 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
             if label in labels:
                 del labels[label]
                 table.labels[label] = None
-        print("Deleting label(s)--now: {}".format(labels))
+        print(f"Deleting label(s)--now: {labels}")
     elif labels_to_remove_list and not isinstance(labels_to_remove_list, list):
         has_fatal_error("labels_to_remove_list not provided in correct format, should be a list.")
 
     if labels_to_add_dict and isinstance(labels_to_add_dict, dict):
         labels.update(labels_to_add_dict)
-        print("Adding/Updating label(s)--now: {}".format(labels))
+        print(f"Adding/Updating label(s)--now: {labels}")
     elif labels_to_add_dict and not isinstance(labels_to_add_dict, dict):
         has_fatal_error("labels_to_add_dict not provided in correct format, should be a dict.")
 
@@ -247,7 +247,7 @@ def update_schema(table_id, new_descriptions):
             name = field['name']
             field['description'] = new_descriptions[name]
         elif field['description'] == '':
-            print("Still no description for field: {0}".format(field['name']))
+            print(f"Still no description for field: {field['name']}")
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)
@@ -280,7 +280,7 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
 
     if await_job(bq_params, client, bq_job):
         print("Successfully copied table:")
-        print("src: {}\n dest: {}\n".format(src_table, dest_table))
+        print(f"src: {src_table}\n dest: {dest_table}\n")
 
 
 def exists_bq_table(table_id):
@@ -387,13 +387,13 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
     current_table_id, versioned_table_id = get_publish_table_ids()
 
     if exists_bq_table(source_table_id):
-        print("Publishing {}".format(versioned_table_id))
+        print(f"Publishing {versioned_table_id}")
         copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
 
-        print("Publishing {}".format(current_table_id))
+        print(f"Publishing {current_table_id}")
         copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
 
-        print("Updating friendly name for {}\n".format(versioned_table_id))
+        print(f"Updating friendly name for {versioned_table_id}\n")
         is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
         update_friendly_name(api_params,
                              table_id=versioned_table_id,
@@ -419,7 +419,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            print('\tcurrent job state: {0}...\t'.format(bq_job.state), end='')
+            print(f'\tcurrent job state: {bq_job.state}...\t', end='')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -431,11 +431,11 @@ def await_insert_job(bq_params, client, table_id, bq_job):
 
     if bq_job.error_result is not None:
         has_fatal_error(
-            'While running BigQuery job: {}\n{}'.format(bq_job.error_result, bq_job.errors),
+            f'While running BigQuery job: {bq_job.error_result}\n{bq_job.errors}',
             ValueError)
 
     table = client.get_table(table_id)
-    print(" done. {0} rows inserted.".format(table.num_rows))
+    print(f" done. {table.num_rows} rows inserted.")
 
 
 def await_job(bq_params, client, bq_job):
@@ -462,7 +462,7 @@ def await_job(bq_params, client, bq_job):
     if bq_job.error_result is not None:
         err_res = bq_job.error_result
         errs = bq_job.errors
-        has_fatal_error("While running BigQuery job: {}\n{}".format(err_res, errs))
+        has_fatal_error(f"While running BigQuery job: {err_res}\n{errs}")
 
 
 def construct_table_name(api_params, prefix, suffix=None, include_release=True, release=None):
@@ -512,7 +512,7 @@ def construct_table_id(project, dataset, table_name):
     :param table_name: BigQuery table name
     :return: joined table_id in BigQuery format
     """
-    return '{}.{}.{}'.format(project, dataset, table_name)
+    return f'{project}.{dataset}.{table_name}'
 
 
 def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=None):
@@ -530,7 +530,7 @@ def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=Non
     if schema:
         job_config.schema = schema
     else:
-        print(" - No schema supplied for {}, using schema autodetect.".format(table_id))
+        print(f" - No schema supplied for {table_id}, using schema autodetect.")
         job_config.autodetect = True
 
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
@@ -590,7 +590,7 @@ def load_table_from_query(bq_params, table_id, query):
 
     try:
         query_job = client.query(query, job_config=job_config)
-        print(' - Inserting into {0}... '.format(table_id), end="")
+        print(f' - Inserting into {table_id}... ', end="")
         await_insert_job(bq_params, client, table_id, query_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -659,12 +659,12 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     :param table_id: table_id to be created
     :param job_config: LoadJobConfig object
     """
-    gs_uri = "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'], bq_params['WORKING_BUCKET_DIR'], data_file)
+    gs_uri = f"gs://{bq_params['WORKING_BUCKET']}/{bq_params['WORKING_BUCKET_DIR']}/{data_file}"
 
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        print(' - Inserting into {0}... '.format(table_id), end="")
+        print(f' - Inserting into {table_id}... ', end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
@@ -727,7 +727,7 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     :param delete_local: delete scratch file created on VM
     """
     if not os.path.exists(scratch_fp):
-        has_fatal_error("Invalid filepath: {}".format(scratch_fp), FileNotFoundError)
+        has_fatal_error(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
 
     try:
         storage_client = storage.Client(project="")
@@ -736,22 +736,22 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         bucket_name = bq_params['WORKING_BUCKET']
         bucket = storage_client.bucket(bucket_name)
 
-        blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], jsonl_output_file)
+        blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{jsonl_output_file}"
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(scratch_fp)
 
-        print("Successfully uploaded file to {}/{}. ".format(bucket_name, blob_name), end="")
+        print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
 
         if delete_local:
             os.remove(scratch_fp)
             print("Local file deleted.")
         else:
-            print("Local file not deleted (location: {}).".format(scratch_fp))
+            print(f"Local file not deleted (location: {scratch_fp}).")
 
     except exceptions.GoogleCloudError as err:
-        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+        has_fatal_error(f"Failed to upload to bucket.\n{err}")
     except FileNotFoundError as err:
-        has_fatal_error("File not found, failed to access local file.\n{}".format(err))
+        has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
 def download_from_bucket(bq_params, filename):
@@ -762,7 +762,7 @@ def download_from_bucket(bq_params, filename):
     :param filename: Name of file to download
     """
     storage_client = storage.Client(project="")
-    blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], filename)
+    blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
@@ -883,7 +883,7 @@ def get_filename(api_params, file_extension, prefix, suffix=None, include_releas
     :return: file name
     """
     filename = construct_table_name(api_params, prefix, suffix, include_release, release=release)
-    return "{}.{}".format(filename, file_extension)
+    return f"{filename}.{file_extension}"
 
 
 #   SCHEMA UTILS
@@ -1013,7 +1013,7 @@ def resolve_type_conflict(field, types_set):
 
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
-        print("Invalid datatype combination for {}: {}".format(field, types_set))
+        print(f"Invalid datatype combination for {field}: {types_set}")
         has_fatal_error("", TypeError)
 
     if "STRING" in types_set:
@@ -1408,7 +1408,7 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
             "fields": schema_field_object_list
         }
 
-    print("Creating schema for {}".format(table_name))
+    print(f"Creating schema for {table_name}")
 
     # third condition required to account for header row at 0 index
 
@@ -1526,9 +1526,9 @@ def load_config(args, yaml_dict_keys, validate_config=None):
 
     for key in yaml_dict_keys:
         if key not in shared_yaml_dict and key not in data_type_yaml_dict:
-            has_fatal_error("{} not found in shared or data type-specific yaml config".format(key))
+            has_fatal_error(f"{key} not found in shared or data type-specific yaml config")
         elif not shared_yaml_dict[key] and not data_type_yaml_dict[key]:
-            has_fatal_error("No values found for {} in shared or data type-specific yaml config".format(key))
+            has_fatal_error(f"No values found for {key} in shared or data type-specific yaml config")
 
         if key in shared_yaml_dict and shared_yaml_dict[key]:
             merged_yaml_dict[key] = shared_yaml_dict[key]
