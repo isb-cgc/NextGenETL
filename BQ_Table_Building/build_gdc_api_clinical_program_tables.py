@@ -1023,7 +1023,6 @@ def create_and_load_tables(program, cases, schemas, record_counts):
         flat_case = flatten_case(case)
 
         print(flat_case)
-        exit()
 
         # remove excluded field groups
         for fg in flat_case.copy():
