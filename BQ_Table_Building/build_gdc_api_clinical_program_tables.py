@@ -73,7 +73,7 @@ def get_one_to_many_tables(record_counts):
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
     """
-    table_keys = {get_base_fg()}
+    table_keys = {API_PARAMS['FG_CONFIG']['base_fg']}
 
     for table in record_counts:
         if record_counts[table] > 1:
@@ -125,7 +125,7 @@ def get_bq_name(field, arg_fg=None):
 
         return id_key_dict
 
-    base_fg = get_base_fg()
+    base_fg = API_PARAMS['FG_CONFIG']['base_fg']
 
     if arg_fg:
         # field group is specified as a function argument
@@ -219,7 +219,7 @@ def create_schema_dict():
 
     schema = dict()
 
-    parse_bq_schema_obj(schema, get_base_fg(), schema_list)
+    parse_bq_schema_obj(schema, API_PARAMS['FG_CONFIG']['base_fg'], schema_list)
 
     return schema
 
@@ -362,7 +362,7 @@ def find_program_structure(cases):
 
     for case in cases:
         if case:
-            examine_case(fgs, record_counts, case, get_base_fg())
+            examine_case(fgs, record_counts, case, API_PARAMS['FG_CONFIG']['base_fg'])
 
     for field_grp in fgs:
         if field_grp not in API_PARAMS['FIELD_CONFIG']:
@@ -395,15 +395,6 @@ def get_parent_fg(tables, field_name):
     if not parent_table:
         has_fatal_error(f"No parent fg found for {field_name}")
     return parent_table
-
-
-def get_base_fg():
-    """
-
-    Get the first-level field group, of which all other field groups are descendents.
-    :return: base field group name
-    """
-    return API_PARAMS['FG_CONFIG']['base_fg']
 
 
 def get_field_name(field_col_key):
@@ -452,8 +443,8 @@ def get_long_field_group_id_key(field_group):
     """
     split_fg = field_group.split('.')
 
-    if split_fg[0] != API_PARAMS['PARENT_FG']:
-        split_fg.insert(0, API_PARAMS['PARENT_FG'])
+    if split_fg[0] != API_PARAMS['FG_CONFIG']['base_fg']:
+        split_fg.insert(0, API_PARAMS['FG_CONFIG']['base_fg'])
         field_group = ".".join(split_fg)
 
     long_fg_id_key = merge_fg_and_field(field_group, API_PARAMS['FIELD_CONFIG'][field_group]['id_key'])
@@ -507,7 +498,7 @@ def generate_id_schema_entry(column, parent_table, program):
 
     if field_name == 'case_id':
         bq_col_name = 'case_id'
-        source_table = get_full_table_name(program, get_base_fg())
+        source_table = get_full_table_name(program, API_PARAMS['FG_CONFIG']['base_fg'])
     else:
         bq_col_name = get_bq_name(column)
         source_table = get_full_table_name(program, parent_table)
@@ -640,7 +631,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None):
             insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, parent_id_key, program))
             idx += 1
 
-        base_field_grp_id_key = get_long_field_group_id_key(get_base_fg())
+        base_field_grp_id_key = get_long_field_group_id_key(API_PARAMS['FG_CONFIG']['base_fg'])
 
         insert_ref_id_keys(schema, columns, column_orders, field_grp, (idx, base_field_grp_id_key, program))
         idx += 1
@@ -810,7 +801,7 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
     if fg not in API_PARAMS['FIELD_CONFIG'].keys():
         return
 
-    base_pid_name = get_field_group_id_key_name(get_base_fg())
+    base_pid_name = get_field_group_id_key_name(API_PARAMS['FG_CONFIG']['base_fg'])
 
     if isinstance(record, list):
         # flatten each record in field group list
@@ -869,7 +860,7 @@ def flatten_case(case):
     :return: flattened case dict
     """
 
-    base_fg = get_base_fg()
+    base_fg = API_PARAMS['FG_CONFIG']['base_fg']
     get_long_field_group_id_key(base_fg)
     base_id_name = get_field_group_id_key_name(base_fg)
 
@@ -917,7 +908,7 @@ def merge_single_entry_fgs(flat_case, record_counts):
     flattened_field_grp_parents = dict()
 
     for field_grp in record_counts:
-        if field_grp == get_base_fg():
+        if field_grp == API_PARAMS['FG_CONFIG']['base_fg']:
             continue
         if record_counts[field_grp] == 1:
             if field_grp in flat_case:
@@ -1670,6 +1661,263 @@ def main(args):
 
         prog_end = time.time() - prog_start
         print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
+
+    if "build_view_queries" in steps:
+        view_queries = {
+            "BEATAML1_0": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_BEATAML1_0_clinical
+            """,
+            "CGCI": """
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            d.diag__diagnosis_id AS diagnosis_id,
+            d.diag__morphology AS morphology,
+            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            d.diag__tumor_grade AS tumor_grade,
+            d.diag__tumor_stage AS tumor_stage,
+            d.diag__age_at_diagnosis AS age_at_diagnosis,
+            d.diag__prior_malignancy AS prior_malignancy,
+            d.diag__treatment_type AS treatment_type,
+            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical cl
+            JOIN isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical_diagnoses d 
+                ON cl.case_id = d.case_id
+            """,
+            "CMI": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CMI_clinical
+            """,
+            "CPTAC": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__prior_malignancy AS prior_malignancy,
+            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            exp__pack_years_smoked AS pack_years_smoked,
+            exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CPTAC_clinical
+            """,
+            "CTSP": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__prior_malignancy AS prior_malignancy,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CTSP_clinical
+            """,
+            "FM": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_FM_clinical
+            """,
+            "GENIE": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_grade AS tumor_grade,
+            diag__tumor_stage AS tumor_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_GENIE_clinical
+            """,
+            "HCMI": """
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            d.diag__diagnosis_id AS diagnosis_id,
+            d.diag__morphology AS morphology,
+            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            d.diag__tumor_grade AS tumor_grade,
+            d.diag__age_at_diagnosis AS age_at_diagnosis,
+            d.diag__prior_malignancy AS prior_malignancy,
+            d.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            d.diag__treatment_type AS treatment_type,
+            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical cl
+            JOIN isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical_diagnoses d 
+                ON cl.case_id = d.case_id
+            """,
+            "MMRF": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__treatment_type AS treatment_type,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_MMRF_clinical
+            """,
+            "NCICCR": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_NCICCR_clinical
+            """,
+            "OHSU": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_OHSU_clinical
+            """,
+            "ORGANOID": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_ORGANOID_clinical
+            """,
+            "TARGET": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_TARGET_clinical
+            """,
+            "TCGA": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__prior_malignancy AS prior_malignancy,
+            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            diag__treatment_type AS treatment_type,
+            diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            exp__pack_years_smoked AS pack_years_smoked,
+            exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_TCGA_clinical
+            """,
+            "VAREPOP": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__prior_malignancy AS prior_malignancy,
+            diag__treatment_type AS treatment_type,
+            exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_VAREPOP_clinical
+            """,
+            "WCDT": """
+            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
+            demo__ethnicity AS ethnicity, 
+            demo__gender AS gender, 
+            demo__race AS race, 
+            demo__vital_status AS vital_status,
+            diag__morphology AS morphology,
+            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            diag__tumor_stage AS tumor_stage,
+            diag__age_at_diagnosis AS age_at_diagnosis,
+            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_WCDT_clinical
+            """
+        }
+
+        for program, view_query in view_queries.items():
+            program_view_name = f"webapp_{get_rel_prefix()}_{program}"
+            view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{program_view_name}"
+            create_view_from_query(view_id, view_query)
 
     if 'list_tables_for_publication' in steps:
         print("Table changes detected--create schemas for: ")
