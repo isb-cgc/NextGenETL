@@ -1659,8 +1659,8 @@ def main(args):
 
             create_tables(program, cases, schema)
 
-        prog_end = time.time() - prog_start
-        print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
+            prog_end = time.time() - prog_start
+            print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
 
     if "build_view_queries" in steps:
         view_queries = {
@@ -1915,7 +1915,7 @@ def main(args):
         }
 
         for program, view_query in view_queries.items():
-            program_view_name = f"webapp_{get_rel_prefix()}_{program}"
+            program_view_name = f"webapp_{get_rel_prefix(API_PARAMS)}_{program}"
             view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{program_view_name}"
             create_view_from_query(view_id, view_query)
 
