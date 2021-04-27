@@ -1691,7 +1691,6 @@ def main(args):
             d.diag__tumor_stage AS tumor_stage,
             d.diag__age_at_diagnosis AS age_at_diagnosis,
             d.diag__prior_malignancy AS prior_malignancy,
-            d.diag__treatment_type AS treatment_type,
             d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
             d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
             d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
@@ -1786,7 +1785,6 @@ def main(args):
             d.diag__age_at_diagnosis AS age_at_diagnosis,
             d.diag__prior_malignancy AS prior_malignancy,
             d.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            d.diag__treatment_type AS treatment_type,
             d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
             d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
             d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
@@ -1806,7 +1804,6 @@ def main(args):
             diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
             diag__tumor_stage AS tumor_stage,
             diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__treatment_type AS treatment_type,
             FROM isb-project-zero.GDC_Clinical_Data.r29_MMRF_clinical
             """,
             "NCICCR": """
@@ -1874,7 +1871,6 @@ def main(args):
             diag__age_at_diagnosis AS age_at_diagnosis,
             diag__prior_malignancy AS prior_malignancy,
             diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            diag__treatment_type AS treatment_type,
             diag__ajcc_pathologic_m AS ajcc_pathologic_m,
             diag__ajcc_pathologic_n AS ajcc_pathologic_n,
             diag__ajcc_pathologic_t AS ajcc_pathologic_t,
@@ -1894,7 +1890,6 @@ def main(args):
             diag__tumor_stage AS tumor_stage,
             diag__age_at_diagnosis AS age_at_diagnosis,
             diag__prior_malignancy AS prior_malignancy,
-            diag__treatment_type AS treatment_type,
             exp__alcohol_history AS alcohol_history
             FROM isb-project-zero.GDC_Clinical_Data.r29_VAREPOP_clinical
             """,
