@@ -1665,20 +1665,24 @@ def main(args):
     if "build_view_queries" in steps:
         view_queries = {
             "BEATAML1_0": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_BEATAML1_0_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_BEATAML1_0_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "CGCI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1698,81 +1702,99 @@ def main(args):
             FROM isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical cl
             JOIN isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical_diagnoses d 
                 ON cl.case_id = d.case_id
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "CMI": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CMI_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CMI_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "CPTAC": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__prior_malignancy AS prior_malignancy,
-            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            exp__pack_years_smoked AS pack_years_smoked,
-            exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CPTAC_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CPTAC_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "CTSP": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__prior_malignancy AS prior_malignancy,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CTSP_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_CTSP_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "FM": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_FM_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_FM_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "GENIE": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_grade AS tumor_grade,
-            diag__tumor_stage AS tumor_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_GENIE_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_grade AS tumor_grade,
+            cl.diag__tumor_stage AS tumor_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_GENIE_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "HCMI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1792,120 +1814,146 @@ def main(args):
             FROM isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical cl
             JOIN isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical_diagnoses d 
                 ON cl.case_id = d.case_id
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "MMRF": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_MMRF_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_MMRF_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "NCICCR": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_NCICCR_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_NCICCR_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "OHSU": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_OHSU_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_OHSU_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "ORGANOID": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_ORGANOID_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_ORGANOID_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "TARGET": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_TARGET_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_TARGET_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "TCGA": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__prior_malignancy AS prior_malignancy,
-            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            exp__pack_years_smoked AS pack_years_smoked,
-            exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_TCGA_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,            
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_TCGA_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "VAREPOP": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__prior_malignancy AS prior_malignancy,
-            exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_VAREPOP_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r29_VAREPOP_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """,
             "WCDT": """
-            SELECT case_id AS case_gdc_id, submitter_id AS case_barcode, disease_type, primary_site, 
-            demo__ethnicity AS ethnicity, 
-            demo__gender AS gender, 
-            demo__race AS race, 
-            demo__vital_status AS vital_status,
-            diag__morphology AS morphology,
-            diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            diag__tumor_stage AS tumor_stage,
-            diag__age_at_diagnosis AS age_at_diagnosis,
-            diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_WCDT_clinical
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r29_WCDT_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
+                ON meta.case_gdc_id = cl.case_id
             """
         }
 
