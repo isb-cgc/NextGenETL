@@ -30,7 +30,7 @@ import datetime
 
 import requests
 import yaml
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
 
 
