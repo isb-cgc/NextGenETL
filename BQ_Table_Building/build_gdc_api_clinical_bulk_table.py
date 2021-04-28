@@ -189,8 +189,6 @@ def main(args):
                                                       table_name=bulk_table_name,
                                                       include_release=False)
 
-        print(bulk_table_schema)
-
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS,
                                          jsonl_file=jsonl_output_file,
