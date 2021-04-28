@@ -1180,7 +1180,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
             # Update previous versioned table with archived tag,  if the versioned table was published
             if success and table == 'versioned':
-                print('Update previous table')
+                print('Update previous table status label to archive')
                 previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', previous_release)
                 tag_updated = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
                                                 previous_ver_table,
