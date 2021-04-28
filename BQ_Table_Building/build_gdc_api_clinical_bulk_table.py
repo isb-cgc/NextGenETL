@@ -104,6 +104,7 @@ def extract_api_response_json(local_path):
                 if '.' not in field and field in response_case:
                     response_case.pop(field)
                 else:
+                    # todo fix this workaround (arrays aren't being recognized by the schema inference)
                     split_field = field.split('.')
                     if len(split_field) == 2:
                         field_group = split_field[0]
