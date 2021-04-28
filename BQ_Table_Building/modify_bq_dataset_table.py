@@ -24,7 +24,7 @@ import time
 import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, delete_bq_table, delete_bq_dataset, load_config,
-                              update_table_labels)
+                              update_table_labels, copy_bq_table)
 
 BQ_PARAMS = dict()
 YAML_HEADERS = ('bq_params', 'steps')
@@ -40,15 +40,22 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    if 'copy_tables' in steps:
+        for existing_table_id, new_table_id in BQ_PARAMS['COPY_TABLES'].items:
+            copy_bq_table(BQ_PARAMS,
+                          src_table=existing_table_id,
+                          dest_table=new_table_id,
+                          replace_table=False)
+
     if 'delete_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
             delete_bq_table(table_id)
-            print("Deleted table: {}".format(table_id))
+            print(f"Deleted table: {table_id}")
 
     if 'delete_datasets' in steps:
         for dataset in BQ_PARAMS['DELETE_DATASETS']:
             delete_bq_dataset(dataset)
-            print("Deleted dataset: {}".format(dataset))
+            print(f"Deleted dataset: {dataset}")
 
     if "update_table_labels" in steps:
         table_labels = BQ_PARAMS['TABLE_LABEL_UPDATES']
@@ -64,7 +71,7 @@ def main(args):
             update_table_labels(table_id, labels_to_remove, labels_to_add)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':
