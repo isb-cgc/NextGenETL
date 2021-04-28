@@ -46,6 +46,7 @@ def main(args):
                           src_table=existing_table_id,
                           dest_table=new_table_id,
                           replace_table=False)
+            print(f"Copied {existing_table_id} to {new_table_id}")
 
     if 'delete_tables' in steps:
         for table_id in BQ_PARAMS['DELETE_TABLES']:
