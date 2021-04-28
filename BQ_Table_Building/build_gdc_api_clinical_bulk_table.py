@@ -28,7 +28,7 @@ import json
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp, upload_to_bucket,
                               create_and_load_table_from_jsonl, format_seconds, construct_table_id, get_filename,
                               write_list_to_jsonl, create_and_upload_schema_for_json, construct_table_name,
-                              retrieve_bq_schema_object)
+                              retrieve_bq_schema_object, download_from_bucket)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -153,6 +153,8 @@ def main(args):
         print("Inferring column data types and generating schema!")
         record_list = list()
 
+        download_from_bucket(BQ_PARAMS, jsonl_output_file)
+
         # Create list of record objects for schema analysis
         with open(scratch_fp) as jsonl_file:
             while True:
@@ -169,6 +171,8 @@ def main(args):
                                           record_list=record_list,
                                           table_name=bulk_table_name,
                                           include_release=False)
+
+        os.remove(scratch_fp)
 
     if 'build_bq_table' in steps:
         # Download schema file from Google Cloud bucket
