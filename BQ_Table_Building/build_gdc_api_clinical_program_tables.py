@@ -1244,12 +1244,13 @@ def build_publish_table_list():
 
             res = get_query_results(compare_two_tables_sql(old_table_id, new_table_id))
 
-            print(res)
+            if not res:
+                publish_table_list.append(new_table_name)
 
             for row in res:
-                if row[0] > 0:
+                if row:
                     publish_table_list.append(new_table_name)
-                break
+                    break
 
     return publish_table_list
 

@@ -571,9 +571,12 @@ def get_query_results(query):
     :param query: query string
     :return: query result object (RowIterator)
     """
-    client = bigquery.Client()
-    query_job = client.query(query)
-    return query_job.result()
+    try:
+        client = bigquery.Client()
+        query_job = client.query(query)
+        return query_job.result()
+    except BadRequest:
+        return None
 
 
 def load_table_from_query(bq_params, table_id, query):
