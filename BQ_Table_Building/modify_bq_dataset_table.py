@@ -41,7 +41,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'copy_tables' in steps:
-        for existing_table_id, new_table_id in BQ_PARAMS['COPY_TABLES'].items:
+        for existing_table_id, new_table_id in BQ_PARAMS['COPY_TABLES'].items():
             copy_bq_table(BQ_PARAMS,
                           src_table=existing_table_id,
                           dest_table=new_table_id,
