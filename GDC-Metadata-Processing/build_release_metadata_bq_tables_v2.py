@@ -1178,20 +1178,15 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 print("publish failed")
                 return False
 
-    #
-    # Update previous versioned table with archived tag
-    #
-
-    if 'update_status_tag' in steps and new_data:
-        print('Update previous table')
-        previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', previous_release)
-        success = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
-                                    previous_ver_table,
-                                    'archived', params['PUBLICATION_PROJECT'])
-
-        if not success:
-            print("update status tag table failed")
-            return
+            # Update previous versioned table with archived tag,  if the versioned table was published
+            if success and table == 'versioned':
+                print('Update previous table')
+                previous_ver_table = "{}_{}_{}_{}".format(params['FINAL_TABLE'], build, 'gdc', previous_release)
+                tag_updated = update_status_tag("_".join([dataset_tuple[1], 'versioned']),
+                                                previous_ver_table,
+                                                'archived', params['PUBLICATION_PROJECT'])
+                if not tag_updated:
+                    print("Update status tag table failed")
 
     #
     # Clear out working temp tables:
