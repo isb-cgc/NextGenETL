@@ -110,7 +110,7 @@ def get_rel_prefix(api_params, return_last_version=False, version=None):
 
         if return_last_version:
             if api_params['DATA_SOURCE'] == 'gdc':
-                rel_number -= 1
+                rel_number = str(int(rel_number) - 1)
             elif api_params['DATA_SOURCE'] == 'pdc':
                 rel_number = api_params['PREV_RELEASE']
 
