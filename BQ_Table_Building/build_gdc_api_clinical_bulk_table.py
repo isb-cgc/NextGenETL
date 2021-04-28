@@ -105,8 +105,12 @@ def extract_api_response_json(local_path):
                     response_case.pop(field)
                 else:
                     split_field = field.split('.')
-                    if len(split_field) == 2 and split_field[1] in response_case[split_field[0]]:
-                        response_case[split_field[0]].pop(split_field[1])
+                    if len(split_field) == 2:
+                        field_group = split_field[0]
+                        field = split_field[1]
+
+                        if field in response_case[field_group][0]:
+                            response_case[field_group][0].pop(field)
 
         # always set to append--if starting over, file is manually deleted at start of function
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
