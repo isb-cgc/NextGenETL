@@ -33,6 +33,8 @@ from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error
                               create_view_from_query, update_schema, list_bq_tables, format_seconds,
                               load_config, construct_table_name_from_list, publish_table, construct_table_name)
 
+from common_etl.support import compare_two_tables_sql
+
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
@@ -1218,15 +1220,17 @@ def build_publish_table_list():
     todo
     :return:
     """
-    old_release = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
-    new_release = API_PARAMS['REL_PREFIX'] + API_PARAMS['RELEASE']
-    old_tables = set(list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release))
-    new_tables = list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release)
+    old_release = get_rel_prefix(API_PARAMS, return_last_version=True)
+    new_release = get_rel_prefix(API_PARAMS)
+
+    old_tables = {table for table in list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release) if "webapp" not in table}
+    new_tables = {table for table in list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release) if "webapp" not in table}
 
     publish_table_list = list()
 
     for new_table_name in new_tables:
-        if new_table_name == (new_release + '_' + BQ_PARAMS['MASTER_TABLE']):
+        # exclude master table
+        if new_table_name == f"{new_release}_{BQ_PARAMS['MASTER_TABLE']}":
             continue
 
         split_new_table = new_table_name.split('_')
@@ -1238,7 +1242,9 @@ def build_publish_table_list():
             old_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], old_table_name)
             new_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], new_table_name)
 
-            res = get_query_results(make_publish_table_list_query(old_table_id, new_table_id))
+            res = get_query_results(compare_two_tables_sql(old_table_id, new_table_id))
+
+            print(res)
 
             for row in res:
                 if row[0] > 0:
