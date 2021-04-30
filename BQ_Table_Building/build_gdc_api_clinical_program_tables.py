@@ -27,13 +27,13 @@ import sys
 from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
 
-from common_etl.utils import (get_query_results, get_rel_prefix, has_fatal_error, get_scratch_fp,
+from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp,
                               create_and_load_table_from_jsonl, write_list_to_jsonl, upload_to_bucket,
                               exists_bq_table, construct_table_id, update_table_metadata, get_filepath,
                               create_view_from_query, update_schema, list_bq_tables, format_seconds,
                               load_config, construct_table_name_from_list, publish_table, construct_table_name)
 
-from common_etl.support import compare_two_tables_sql
+from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -65,7 +65,7 @@ def get_program_list():
     :return: list of research programs participating in GDC data sharing
     """
 
-    return [res[0] for res in get_query_results(make_program_list_query())]
+    return [res[0] for res in bq_harness_with_result(make_program_list_query(), BQ_PARAMS['DO_BATCH'])]
 
 
 def get_one_to_many_tables(record_counts):
@@ -1242,7 +1242,7 @@ def build_publish_table_list():
             old_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], old_table_name)
             new_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], new_table_name)
 
-            res = get_query_results(compare_two_tables_sql(old_table_id, new_table_id))
+            res = bq_harness_with_result(compare_two_tables_sql(old_table_id, new_table_id), BQ_PARAMS['DO_BATCH'])
 
             if not res:
                 publish_table_list.append(new_table_name)
@@ -1485,7 +1485,8 @@ def compare_gdc_releases():
     print(f"\n\n*** {old_rel} -> {new_rel} GDC Clinical Data Comparison Report ***")
 
     # which fields have been removed?
-    removed_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=True))
+    removed_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=True),
+                                           BQ_PARAMS['DO_BATCH'])
     print("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
@@ -1495,7 +1496,7 @@ def compare_gdc_releases():
             print(row[0])
 
     # which fields were added?
-    added_fields_res = get_query_results(make_field_diff_query(old_rel, new_rel, removed_fields=False))
+    added_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=False), BQ_PARAMS['DO_BATCH'])
     print("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
@@ -1505,7 +1506,7 @@ def compare_gdc_releases():
             print(row[0])
 
     # any changes in field data type?
-    datatype_diff_res = get_query_results(make_datatype_diff_query(old_rel, new_rel))
+    datatype_diff_res = bq_harness_with_result(make_datatype_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
     print("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
@@ -1516,7 +1517,7 @@ def compare_gdc_releases():
 
     # any case ids removed?
     print("\nRemoved case ids:")
-    removed_case_ids_res = get_query_results(make_removed_case_ids_query(old_rel, new_rel))
+    removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
 
     if removed_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1526,7 +1527,7 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nAdded case id counts:")
-    added_case_ids_res = get_query_results(make_added_case_ids_query(old_rel, new_rel))
+    added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
 
     if added_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1536,7 +1537,7 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nTable count changes: ")
-    table_count_res = get_query_results(make_tables_diff_query(old_rel, new_rel))
+    table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
 
     if table_count_res.total_rows == 0:
         print("<none>")
@@ -1549,7 +1550,7 @@ def compare_gdc_releases():
             print(f"{program_name}: {prev_table_cnt} table(s) in {old_rel}, {new_table_cnt} table(s) in {new_rel}")
 
     print("\nAdded tables: ")
-    added_table_res = get_query_results(make_new_table_list_query(old_rel, new_rel))
+    added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
 
     if added_table_res.total_rows == 0:
         print("<none>")
@@ -1617,7 +1618,7 @@ def get_cases_by_program(program):
         )
     """
 
-    for case_row in get_query_results(query):
+    for case_row in bq_harness_with_result(query, BQ_PARAMS['DO_BATCH']):
         case_items = dict(case_row.items())
         cases.append(case_items)
 
