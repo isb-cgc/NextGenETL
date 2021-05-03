@@ -652,6 +652,11 @@ def load_bq_schema_from_json(bq_params, filename):
         return schema_file['schema']['fields']
 
 
+def populate_generic_table_schema():
+    # todo
+    pass
+
+
 def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     """
 
@@ -671,52 +676,6 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
         has_fatal_error(err)
-
-
-# todo use support? in progress
-"""
-def compare_table_versions(api_params, table_name_prefix):
-    def compare_two_tables_sql(old_table, new_table):
-        return '''
-            (
-                SELECT * FROM `{0}`
-                EXCEPT DISTINCT
-                SELECT * from `{1}`
-            )
-            UNION ALL
-            (
-                SELECT * FROM `{1}`
-                EXCEPT DISTINCT
-                SELECT * from `{0}`
-            )
-        '''.format(old_table, new_table)
-
-    def evaluate_table_union(bq_results):
-        '''
-        Evaluate whether two tables are identical by
-        using the count of distinct rows in their union
-        return True/False
-        '''
-        if not bq_results:
-            print('Table comparison failed')
-            return None
-        if bq_results == 'Number of fields do not match':
-            print(bq_results)
-            return False
-
-        row_difference = bq_results.total_rows
-
-        if row_difference == 0:
-            print('The tables are identical')
-            return True
-        else:
-            print('The tables differ by {} rows'.format(row_difference))
-            return False
-
-    old_table = table_name_prefix + '_' + api_params['PREV_RELEASE']
-    new_table = table_name_prefix + '_' + api_params['RELEASE']
-"""
-
 
 #   GOOGLE CLOUD STORAGE UTILS
 

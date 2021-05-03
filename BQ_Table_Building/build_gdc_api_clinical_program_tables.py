@@ -990,7 +990,7 @@ def merge_or_count_records(flattened_case, record_counts):
     get_record_counts(flattened_case, record_counts)
 
 
-def create_and_load_tables(program, cases, schemas, record_counts):
+def create_and_load_tables(program, cases, schemas, record_counts, schema_tags):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
@@ -1047,6 +1047,53 @@ def create_and_load_tables(program, cases, schemas, record_counts):
 
         create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
 
+        update_table_schema_from_generic(schema_tags, program, table_id)
+
+        # todo update table metadata
+
+
+def update_table_schema_from_generic(schema_tags, program, table_id):
+    if program == "BEATAML1_0":
+        schema_tags['program-name-upper'] = "BEATAML1.0"
+        schema_tags['program-name-lower'] = "beataml"
+    else:
+        schema_tags['program-name-upper'] = program.upper()  # should already be upper
+        schema_tags['program-name-lower'] = program.lower()
+
+    split_table_id = table_id.split("_")
+    clinical_index = split_table_id.index("clinical")
+    if not clinical_index:
+        has_fatal_error("clinical not found in table id, can't parse id to use as friendly name")
+
+    if len(split_table_id) > clinical_index + 1:
+        start_index = clinical_index + 1
+        mapping_name = f" -"
+
+        for mapping_name_component in split_table_id[start_index:]:
+            mapping_name += f" {mapping_name_component.upper()}"
+    else:
+        mapping_name = ''
+
+    schema_tags['mapping-name'] = mapping_name
+
+    metadata_dir = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['GENERIC_TABLE_METADATA_FILEPATH']}"
+    # adapts path for vm
+    metadata_fp = get_filepath(metadata_dir)
+
+    with open(metadata_fp) as file_handler:
+        table_schema = file_handler.readlines()
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            table_schema = table_schema.replace(tag, tag_value)
+
+        metadata = json.load(table_schema)
+
+        print(metadata)
+
+        update_table_metadata(table_id, metadata)
+
 
 def get_metadata_files():
     """Get all the file names in a directory as a list of as strings.
@@ -1086,6 +1133,7 @@ def make_and_check_metadata_table_id(json_file):
         return table_id
 
 
+'''
 def update_metadata():
     """
     Use .json file in the BQEcosystem repo to update a bq table's metadata
@@ -1099,13 +1147,14 @@ def update_metadata():
         if not table_id:
             continue
 
-        metadata_dir = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(API_PARAMS)])
-        metadata_fp = get_filepath(metadata_dir, json_file)
+        metadata_dir = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['GENERIC_TABLE_METADATA_FILEPATH']}"
+        # adapts path for vm
+        metadata_fp = get_filepath(metadata_dir)
 
         with open(metadata_fp) as json_file_output:
             metadata = json.load(json_file_output)
             update_table_metadata(table_id, metadata)
-
+'''
 
 def update_clin_schema():
     """
@@ -1255,7 +1304,7 @@ def build_publish_table_list():
     return publish_table_list
 
 
-def create_tables(program, cases, schema):
+def create_tables(program, cases, schema, schema_tags):
     """
     Run the overall script which creates schemas, modifies data, prepares it for loading,
     and creates the databases.
@@ -1282,7 +1331,7 @@ def create_tables(program, cases, schema):
     # creates dictionary of lists of SchemaField objects in json format
     schemas = create_schema_lists(schema, record_counts, merged_orders)
 
-    create_and_load_tables(program, cases, schemas, record_counts)
+    create_and_load_tables(program, cases, schemas, record_counts, schema_tags)
 
 
 def make_release_fields_comparison_query(old_rel, new_rel):
@@ -1635,14 +1684,14 @@ def main(args):
 
     try:
         global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        API_PARAMS, BQ_PARAMS, schema_tags, steps = load_config(args, YAML_HEADERS)
         if 'FIELD_CONFIG' not in API_PARAMS:
             has_fatal_error("params['FIELD_CONFIG'] not found")
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    # programs = ['BEATAML1.0']
-    programs = get_program_list()
+    programs = ['BEATAML1.0']
+    # programs = get_program_list()
 
     for orig_program in programs:
         prog_start = time.time()
@@ -1665,7 +1714,7 @@ def main(args):
             # replace so that 'BEATAML1.0' doesn't break bq table name
             program = orig_program.replace('.', '_')
 
-            create_tables(program, cases, schema)
+            create_tables(program, cases, schema, schema_tags)
 
             prog_end = time.time() - prog_start
             print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
@@ -1979,8 +2028,11 @@ def main(args):
     if 'validate_data' in steps:
         compare_gdc_releases()
 
+    '''
     if 'update_table_metadata' in steps:
+        # todo get schema tags
         update_metadata()
+    '''
 
     if 'update_schema' in steps:
         update_clin_schema()
