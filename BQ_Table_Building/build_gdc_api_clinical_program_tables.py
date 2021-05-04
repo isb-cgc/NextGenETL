@@ -1145,9 +1145,8 @@ def add_column_descriptions():
     """
     print("\nUpdating schemas (field descriptions)!")
 
-    dir_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    fields_file = f"{BQ_PARAMS['FIELD_DESC_FILE_SUFFIX']}.json"
-    field_desc_fp = get_filepath(dir_path, fields_file)
+    field_desc_fp = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['FIELD_DESCRIPTION_FILEPATH']}"
+    field_desc_fp = get_filepath(field_desc_fp)
 
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
