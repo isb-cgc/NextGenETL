@@ -31,7 +31,7 @@ def retrieve_uniprot_kb_genes():
     """
     query = 'organism:9606+AND+reviewed:yes'
     data_format = 'tab'
-    columns = 'id,genes(PREFERRED),database(RefSeq),database(HGNC)'
+    columns = 'id,genes(PREFERRED),database(RefSeq)'
 
     request_url = 'https://www.uniprot.org/uniprot/?query={}&format={}&columns={}'.format(query, data_format, columns)
 
