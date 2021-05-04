@@ -1966,7 +1966,7 @@ def main(args):
         publish_table_list = build_publish_table_list(programs)
 
         if len(publish_table_list) > 0:
-            print("Table changes detected--create schemas for: ")
+            print("\nTable changes detected--create schemas for: ")
             for table_name in publish_table_list:
                 print(table_name)
             print()
