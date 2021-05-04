@@ -1186,7 +1186,7 @@ def build_publish_table_list(programs):
 
     mapping_suffixes_list = list()
 
-    for field_group in BQ_PARAMS['FIELD_CONFIG'].keys():
+    for field_group in API_PARAMS['FIELD_CONFIG'].keys():
         split_field_group = field_group.split('.')
         # swap 'cases' to 'clinical' in order to generate possible table names
         split_field_group[0] = 'clinical'
