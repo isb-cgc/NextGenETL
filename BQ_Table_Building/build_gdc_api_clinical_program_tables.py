@@ -1097,7 +1097,7 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
         print(metadata)
 
         update_table_metadata(table_id, metadata)
-        add_column_descriptions()
+        add_column_descriptions(table_id)
 
 
 def get_metadata_files():
@@ -1138,7 +1138,7 @@ def make_and_check_metadata_table_id(json_file):
         return table_id
 
 
-def add_column_descriptions():
+def add_column_descriptions(table_id):
     """
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
@@ -1151,13 +1151,7 @@ def add_column_descriptions():
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
-    for json_file in get_metadata_files():
-        table_id = make_and_check_metadata_table_id(json_file)
-
-        if not table_id:
-            continue
-
-        update_schema(table_id, descriptions)
+    update_schema(table_id, descriptions)
 
 
 def change_status_to_archived(table_id):
