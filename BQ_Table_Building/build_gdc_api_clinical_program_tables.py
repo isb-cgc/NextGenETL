@@ -1196,6 +1196,9 @@ def build_publish_table_list(programs):
     publish_table_list = list()
 
     for program in programs:
+        # BEATAML1.0 fix
+        program = program.replace('.', '_')
+
         for suffix in mapping_suffixes_list:
             base_table_name = f"{program}_{suffix}"
             new_release_table_name = f"{get_rel_prefix(API_PARAMS)}_{base_table_name}"
@@ -1970,7 +1973,7 @@ def main(args):
         compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
-        publish_table_list = build_publish_table_list()
+        publish_table_list = build_publish_table_list(programs)
         copy_tables_into_public_project(publish_table_list)
 
     output_report(start, steps)
