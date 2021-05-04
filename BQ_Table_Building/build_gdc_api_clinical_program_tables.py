@@ -1082,7 +1082,10 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
     metadata_fp = get_filepath(metadata_dir)
 
     with open(metadata_fp) as file_handler:
-        table_schema = file_handler.readlines()
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
 
         for tag_key, tag_value in schema_tags.items():
             tag = f"{{---tag-{tag_key}---}}"
