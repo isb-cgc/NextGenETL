@@ -573,6 +573,42 @@ def main(args):
                                        schema=swissprot_schema)
         print("SwissProt table built!")
 
+    if 'create_refseq_table' in steps:
+        refseq_id_list = list()
+
+        swissprot_table_name = construct_table_name(API_PARAMS,
+                                                    prefix=BQ_PARAMS['SWISSPROT_TABLE'],
+                                                    release=API_PARAMS['SWISSPROT_RELEASE'])
+        swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                                dataset=BQ_PARAMS['META_DATASET'],
+                                                table_name=swissprot_table_name)
+        res = get_query_results(f"SELECT * FROM {swissprot_table_id}")
+
+        for row in res:
+            swissprot_id = row['Entry']
+            gene_symbol = row['Gene_names_primary']
+            # remove additional swissprot accession from mapping string
+
+            ref_seq_str = row['Cross_reference_RefSeq']
+
+            if not ref_seq_str:
+                continue
+
+            ref_seq_str = re.sub(r' \[*]', '', ref_seq_str)
+
+            # remove trailing semicolon
+            ref_seq_list = ref_seq_str.strip(';').split(';')
+
+            if not ref_seq_list or len(ref_seq_list) == 0:
+                continue
+
+            for refseq_id in ref_seq_list:
+                if refseq_id:
+                    refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
+
+        print(refseq_id_list)
+        exit()
+
     if 'build_gene_jsonl' in steps:
         gene_record_list = build_obj_from_pdc_api(API_PARAMS,
                                                   endpoint=API_PARAMS['GENE_ENDPOINT'],
