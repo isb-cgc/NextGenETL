@@ -1032,7 +1032,7 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
     :type typing_tups: list
     :param holding_list: Filename for where to save a list of field names
     :type holding_list: basestring
-    :param holding_dict: Filename for where to save a dictionary of dictionary of fields
+    :param holding_dict: Filename for where to save a dictionary of fields and descriptions
     :type holding_dict: basestring
     :return: Whether the function succeeded
     :rtype: bool
@@ -1084,10 +1084,16 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
 
 def typing_tups_to_schema_list(typing_tups, holding_list):
-    #
-    # Need to create a typed list for the initial TSV import:
-    #
+    """
+    Need to create a typed list for the initial TSV import
 
+    :param typing_tups: List of tuples with (name, type)
+    :type typing_tups: list
+    :param holding_list: Filename for where to save a list of field names
+    :type holding_list: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
+    """
     typed_schema = []
     for tup in typing_tups:
         no_desc = {
@@ -1106,6 +1112,15 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param schema_dict_loc: Filename for where to dictionary of fields and descriptions is saved
+    :type schema_dict_loc: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     try:
         with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -1120,9 +1135,21 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         return False
 
 
-# The below three functions break the multiple schema steps into distinct pieces
-# retrieve a schema from a table, update it using a dictionary of new values, write to BQ
+
 def retrieve_table_schema(target_dataset, dest_table, project=None):
+    """
+
+    retrieve a schema from a table, update it using a dictionary of new values, write to BQ
+
+    :param target_dataset:
+    :type target_dataset:
+    :param dest_table:
+    :type dest_table:
+    :param project:
+    :type project:
+    :return:
+    :rtype:
+    """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
