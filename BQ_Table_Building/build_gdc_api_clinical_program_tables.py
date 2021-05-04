@@ -1973,8 +1973,8 @@ def main(args):
         else:
             print("No table changes detected; nothing to publish.")
 
-    if 'validate_data' in steps:
-        compare_gdc_releases()
+        # todo add back reporting here (somewhere?)
+        # compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
         publish_table_list = build_publish_table_list(programs)
