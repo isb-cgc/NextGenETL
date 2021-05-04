@@ -29,7 +29,8 @@ from google.api_core.exceptions import NotFound
 from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp, create_and_load_table_from_jsonl,
                               write_list_to_jsonl, upload_to_bucket, construct_table_id, create_view_from_query,
                               list_bq_tables, format_seconds, load_config, construct_table_name_from_list,
-                              publish_table, construct_table_name, add_generic_table_metadata, add_column_descriptions)
+                              publish_table, construct_table_name, add_generic_table_metadata, add_column_descriptions,
+                              exists_bq_table)
 
 from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
@@ -1177,42 +1178,67 @@ def make_publish_table_list_query(old_table_id, new_table_id):
     """
 
 
-def build_publish_table_list():
+def build_publish_table_list(programs):
     """
     todo
     :return:
     """
-    old_release = get_rel_prefix(API_PARAMS, return_last_version=True)
-    new_release = get_rel_prefix(API_PARAMS)
 
-    old_tables = {table for table in list_bq_tables(BQ_PARAMS['DEV_DATASET'], old_release) if "webapp" not in table}
-    new_tables = {table for table in list_bq_tables(BQ_PARAMS['DEV_DATASET'], new_release) if "webapp" not in table}
+    mapping_suffixes_list = list()
 
+    for field_group in BQ_PARAMS['FIELD_CONFIG'].keys():
+        split_field_group = field_group.split('.')
+        # swap 'cases' to 'clinical' in order to generate possible table names
+        split_field_group[0] = 'clinical'
+        mapping_suffixes_list.append("_".join(split_field_group))
+
+    program_tables_list = list()
     publish_table_list = list()
 
-    for new_table_name in new_tables:
-        # exclude master table
-        if new_table_name == f"{new_release}_{BQ_PARAMS['MASTER_TABLE']}":
-            continue
+    for program in programs:
+        for suffix in mapping_suffixes_list:
+            base_table_name = f"{program}_{suffix}"
+            new_release_table_name = f"{get_rel_prefix(API_PARAMS)}_{base_table_name}"
+            new_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                                      dataset=BQ_PARAMS['DEV_DATASET'],
+                                                      table_name=new_release_table_name)
+            if exists_bq_table(new_release_table_id):
+                # program_table_list.append(table_id)
 
-        split_new_table = new_table_name.split('_')
-        split_new_table[0] = old_release
-        old_table_name = "_".join(split_new_table)
-        if old_table_name not in old_tables:
-            publish_table_list.append(new_table_name)
-        else:
-            old_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], old_table_name)
-            new_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], new_table_name)
+                oldest_etl_release = 27  # the oldest table release we published
+                last_gdc_release = int(API_PARAMS['RELEASE']) - 1
 
-            res = bq_harness_with_result(compare_two_tables_sql(old_table_id, new_table_id), BQ_PARAMS['DO_BATCH'])
+                tables_to_compare = None
 
-            if not res:
-                publish_table_list.append(new_table_name)
-            else:
-                for row in res:
-                    if row:
-                        publish_table_list.append(new_table_name)
+                for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+                    prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
+                    prev_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                                               dataset=BQ_PARAMS['DEV_DATASET'],
+                                                               table_name=prev_release_table_name)
+
+                    if exists_bq_table(prev_release_table_id):
+                        # found last release table, stop iterating
+                        tables_to_compare = [prev_release_table_id, new_release_table_id]
                         break
+
+                if tables_to_compare:
+                    program_tables_list.append(tables_to_compare)
+                else:
+                    # if previous version not found, should definitely publish table
+                    publish_table_list.append(new_release_table_id)
+
+    for tables_to_compare in program_tables_list:
+        previous_table_id = tables_to_compare[0]
+        current_table_id = tables_to_compare[1]
+        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'])
+
+        if not res:
+            publish_table_list.append(current_table_id)
+        else:
+            for row in res:
+                if row:
+                    publish_table_list.append(current_table_id)
+                break
 
     return publish_table_list
 
@@ -1934,6 +1960,7 @@ def main(args):
             create_view_from_query(view_id, view_query)
 
     if 'list_tables_for_publication' in steps:
+        publish_table_list = build_publish_table_list(programs)
         print("Table changes detected--create schemas for: ")
         for table_name in build_publish_table_list():
             print(table_name)
