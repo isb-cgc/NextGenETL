@@ -1092,7 +1092,7 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
 
             table_schema = table_schema.replace(tag, tag_value)
 
-        metadata = json.load(table_schema)
+        metadata = json.loads(table_schema)
 
         print(metadata)
 
