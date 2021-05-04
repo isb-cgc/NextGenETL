@@ -990,7 +990,7 @@ def merge_or_count_records(flattened_case, record_counts):
     get_record_counts(flattened_case, record_counts)
 
 
-def create_and_load_tables(program, cases, schemas, record_counts, schema_tags):
+def create_and_load_tables(program, cases, schemas, record_counts):
     """
     Create jsonl row files for future insertion, store in GC storage bucket,
     then insert the new table schemas and data.
@@ -1047,12 +1047,10 @@ def create_and_load_tables(program, cases, schemas, record_counts, schema_tags):
 
         create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_name, table_id, schemas[record_table])
 
-        update_table_schema_from_generic(schema_tags, program, table_id)
-
-        # todo update table metadata
+        update_table_schema_from_generic(program, table_id, BQ_PARAMS['SCHEMA_TAGS'])
 
 
-def update_table_schema_from_generic(schema_tags, program, table_id):
+def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
     if program == "BEATAML1_0":
         schema_tags['program-name-upper'] = "BEATAML1.0"
         schema_tags['program-name-lower'] = "beataml"
@@ -1304,7 +1302,7 @@ def build_publish_table_list():
     return publish_table_list
 
 
-def create_tables(program, cases, schema, schema_tags):
+def create_tables(program, cases, schema):
     """
     Run the overall script which creates schemas, modifies data, prepares it for loading,
     and creates the databases.
@@ -1331,7 +1329,7 @@ def create_tables(program, cases, schema, schema_tags):
     # creates dictionary of lists of SchemaField objects in json format
     schemas = create_schema_lists(schema, record_counts, merged_orders)
 
-    create_and_load_tables(program, cases, schemas, record_counts, schema_tags)
+    create_and_load_tables(program, cases, schemas, record_counts)
 
 
 def make_release_fields_comparison_query(old_rel, new_rel):
@@ -1684,7 +1682,7 @@ def main(args):
 
     try:
         global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, schema_tags, steps = load_config(args, YAML_HEADERS)
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
         if 'FIELD_CONFIG' not in API_PARAMS:
             has_fatal_error("params['FIELD_CONFIG'] not found")
     except ValueError as err:
@@ -1714,7 +1712,7 @@ def main(args):
             # replace so that 'BEATAML1.0' doesn't break bq table name
             program = orig_program.replace('.', '_')
 
-            create_tables(program, cases, schema, schema_tags)
+            create_tables(program, cases, schema)
 
             prog_end = time.time() - prog_start
             print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
