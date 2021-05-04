@@ -1628,8 +1628,8 @@ def main(args):
         has_fatal_error(str(err), ValueError)
 
     # programs = ['BEATAML1.0']
-    programs = ['HCMI']
-    # programs = get_program_list()
+    # programs = ['HCMI']
+    programs = get_program_list()
 
     for orig_program in programs:
         prog_start = time.time()
