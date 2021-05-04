@@ -20,19 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import os
-import json
 import time
 import sys
 
 from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
 
-from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp,
-                              create_and_load_table_from_jsonl, write_list_to_jsonl, upload_to_bucket,
-                              exists_bq_table, construct_table_id, update_table_metadata, get_filepath,
-                              create_view_from_query, update_schema, list_bq_tables, format_seconds,
-                              load_config, construct_table_name_from_list, publish_table, construct_table_name,
-                              add_generic_table_metadata, add_column_descriptions)
+from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp, create_and_load_table_from_jsonl,
+                              write_list_to_jsonl, upload_to_bucket, construct_table_id, create_view_from_query,
+                              list_bq_tables, format_seconds, load_config, construct_table_name_from_list,
+                              publish_table, construct_table_name, add_generic_table_metadata, add_column_descriptions)
 
 from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
@@ -1451,7 +1448,7 @@ def compare_gdc_releases():
 
     # which fields have been removed?
     removed_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=True),
-                                           BQ_PARAMS['DO_BATCH'])
+                                                BQ_PARAMS['DO_BATCH'])
     print("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
