@@ -797,7 +797,10 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
     def get_excluded_fields_one_fg():
         excluded_key = 'excluded_fields'
         excluded_list = API_PARAMS['FIELD_CONFIG'][fg][excluded_key]
-        return [get_bq_name(f, fg) for f in excluded_list]
+
+        if excluded_list:
+            return [get_bq_name(f, fg) for f in excluded_list]
+        return []
 
     # entry represents a field group, recursively flatten each record
     if fg not in API_PARAMS['FIELD_CONFIG'].keys():
