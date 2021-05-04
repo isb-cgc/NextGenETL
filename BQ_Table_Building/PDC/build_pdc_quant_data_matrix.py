@@ -606,8 +606,8 @@ def main(args):
                 if refseq_id:
                     refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
 
-        print(refseq_id_list)
-        exit()
+        for refseq_id_obj in refseq_id_list:
+            print(refseq_id_obj)
 
     if 'build_gene_jsonl' in steps:
         gene_record_list = build_obj_from_pdc_api(API_PARAMS,
