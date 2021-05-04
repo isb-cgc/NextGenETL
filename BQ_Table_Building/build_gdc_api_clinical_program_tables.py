@@ -30,7 +30,7 @@ from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp, c
                               write_list_to_jsonl, upload_to_bucket, construct_table_id, create_view_from_query,
                               list_bq_tables, format_seconds, load_config, construct_table_name_from_list,
                               publish_table, construct_table_name, add_generic_table_metadata, add_column_descriptions,
-                              exists_bq_table)
+                              exists_bq_table, delete_bq_table)
 
 from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
@@ -1159,26 +1159,23 @@ def build_biospecimen_stub_view(program):
     create_view_from_query(biospec_table_id, biospec_stub_table_query)
 
 
-#    Script execution
+def find_last_release_table_id(base_table_name):
+    oldest_etl_release = 27  # the oldest table release we published
+    last_gdc_release = int(API_PARAMS['RELEASE']) - 1
 
-def make_publish_table_list_query(old_table_id, new_table_id):
-    """
-    todo
-    :param old_table_id:
-    :param new_table_id:
-    :return:
-    """
-    return f"""
-        SELECT count(*) as row_count
-        FROM `{old_table_id}` old
-        FULL JOIN `{new_table_id}` curr
-            ON old.case_id = curr.case_id
-        WHERE old.case_id is null 
-        OR curr.case_id is null
-    """
+    for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+        prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
+        prev_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                                   dataset=BQ_PARAMS['DEV_DATASET'],
+                                                   table_name=prev_release_table_name)
+        if exists_bq_table(prev_release_table_id):
+            # found last release table, stop iterating
+            return prev_release_table_id
+
+    return None
 
 
-def build_publish_table_list(programs):
+def build_publish_table_list(programs, to_remove_list=False):
     """
     todo
     :return:
@@ -1192,9 +1189,10 @@ def build_publish_table_list(programs):
         split_field_group[0] = 'clinical'
         mapping_suffixes_list.append("_".join(split_field_group))
 
-    program_tables_list = list()
+    table_comparison_list = list()
     publish_table_list = list()
 
+    # compile lists of tables to compare (the current version and the last release)
     for program in programs:
         # BEATAML1.0 fix
         program = program.replace('.', '_')
@@ -1206,31 +1204,15 @@ def build_publish_table_list(programs):
                                                       dataset=BQ_PARAMS['DEV_DATASET'],
                                                       table_name=new_release_table_name)
             if exists_bq_table(new_release_table_id):
-                # program_table_list.append(table_id)
-
-                oldest_etl_release = 27  # the oldest table release we published
-                last_gdc_release = int(API_PARAMS['RELEASE']) - 1
-
-                tables_to_compare = None
-
-                for release in range(last_gdc_release, oldest_etl_release - 1, -1):
-                    prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
-                    prev_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                               dataset=BQ_PARAMS['DEV_DATASET'],
-                                                               table_name=prev_release_table_name)
-
-                    if exists_bq_table(prev_release_table_id):
-                        # found last release table, stop iterating
-                        tables_to_compare = [prev_release_table_id, new_release_table_id]
-                        break
-
-                if tables_to_compare:
-                    program_tables_list.append(tables_to_compare)
-                else:
-                    # if previous version not found, should definitely publish table
+                prev_release_table_id = find_last_release_table_id(base_table_name)
+                if not prev_release_table_id:
                     publish_table_list.append(new_release_table_id)
+                else:
+                    table_comparison_list.append([prev_release_table_id, new_release_table_id])
 
-    for tables_to_compare in program_tables_list:
+    tables_to_remove_from_dev = list()
+
+    for tables_to_compare in table_comparison_list:
         previous_table_id = tables_to_compare[0]
         current_table_id = tables_to_compare[1]
         res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'])
@@ -1241,9 +1223,14 @@ def build_publish_table_list(programs):
             for row in res:
                 if row:
                     publish_table_list.append(current_table_id)
+                else:
+                    tables_to_remove_from_dev.append(current_table_id)
                 break
 
-    return publish_table_list
+    if to_remove_list:
+        return tables_to_remove_from_dev
+    else:
+        return publish_table_list
 
 
 def create_tables(program, cases, schema):
@@ -1979,6 +1966,12 @@ def main(args):
     if 'copy_tables_into_production' in steps:
         publish_table_list = build_publish_table_list(programs)
         copy_tables_into_public_project(publish_table_list)
+
+    if 'remove_redundant_tables' in steps:
+        tables_to_remove_from_dev = build_publish_table_list(programs, to_remove_list=True)
+
+        for table_id in tables_to_remove_from_dev:
+            delete_bq_table(table_id)
 
     output_report(start, steps)
 
