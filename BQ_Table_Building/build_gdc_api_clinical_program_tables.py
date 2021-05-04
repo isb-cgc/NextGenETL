@@ -1964,10 +1964,14 @@ def main(args):
 
     if 'list_tables_for_publication' in steps:
         publish_table_list = build_publish_table_list(programs)
-        print("Table changes detected--create schemas for: ")
-        for table_name in build_publish_table_list():
-            print(table_name)
-        print()
+
+        if len(publish_table_list) > 0:
+            print("Table changes detected--create schemas for: ")
+            for table_name in publish_table_list:
+                print(table_name)
+            print()
+        else:
+            print("No table changes detected; nothing to publish.")
 
     if 'validate_data' in steps:
         compare_gdc_releases()
