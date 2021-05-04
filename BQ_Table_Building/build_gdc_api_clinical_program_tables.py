@@ -1100,44 +1100,6 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
         add_column_descriptions(table_id)
 
 
-def get_metadata_files():
-    """Get all the file names in a directory as a list of as strings.
-
-    :return: list of filenames
-    """
-    rel_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['TABLE_METADATA_DIR'], get_rel_prefix(API_PARAMS)])
-    metadata_fp = get_filepath(rel_path)
-
-    return [f for f in os.listdir(metadata_fp) if os.path.isfile(os.path.join(metadata_fp, f))]
-
-
-def make_and_check_metadata_table_id(json_file):
-    def convert_json_to_table_name():
-        """Convert json filename (from BQEcosystem repo) into BQ table name.
-        json schema files match table ID of BQ table.
-
-        data and metadata; json file naming matches table ID of corresponding BQ table
-        :return: BQ table name for which the json acts as a configuration file
-        """
-        # handles naming for *webapp* tables
-        split_name = json_file.split('.')
-        program_name = split_name[1]
-        split_table = split_name[2].split('_')
-        program_table_name = '_'.join(split_table[:-2])
-        rel = get_rel_prefix(API_PARAMS)
-        return '_'.join([rel, program_name, program_table_name])
-
-    table_name = convert_json_to_table_name()
-    table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
-
-    if not exists_bq_table(table_id):
-        print(f'\t\t- skipping -- no table found for file: {json_file}')
-        return None
-    else:
-        print(f'\t- updating {json_file}')
-        return table_id
-
-
 def add_column_descriptions(table_id):
     """
     Alter an existing table's schema (currently, only field descriptions are mutable
