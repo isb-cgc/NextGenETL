@@ -1411,6 +1411,31 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
+def get_generic_table_metadata(bq_params, schema_tags):
+    """
+
+    :param bq_params: bq_params supplied in yaml config
+    :param schema_tags: dictionary of generic schema tag keys and values
+    :return:
+    """
+    metadata_dir = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_TABLE_METADATA_FILEPATH']}"
+    # adapts path for vm
+    metadata_fp = get_filepath(metadata_dir)
+
+    with open(metadata_fp) as file_handler:
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            table_schema = table_schema.replace(tag, tag_value)
+
+        return json.loads(table_schema)
+
+
 #   MISC UTILS
 
 def make_string_bq_friendly(string):
@@ -1541,3 +1566,4 @@ def pprinter(print_str):
     pp = pprint.PrettyPrinter(indent=4)
 
     pp.pprint(print_str)
+

@@ -31,7 +31,8 @@ from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp,
                               create_and_load_table_from_jsonl, write_list_to_jsonl, upload_to_bucket,
                               exists_bq_table, construct_table_id, update_table_metadata, get_filepath,
                               create_view_from_query, update_schema, list_bq_tables, format_seconds,
-                              load_config, construct_table_name_from_list, publish_table, construct_table_name)
+                              load_config, construct_table_name_from_list, publish_table, construct_table_name,
+                              get_generic_table_metadata)
 
 from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
@@ -1077,27 +1078,10 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
 
     schema_tags['mapping-name'] = mapping_name
 
-    metadata_dir = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['GENERIC_TABLE_METADATA_FILEPATH']}"
-    # adapts path for vm
-    metadata_fp = get_filepath(metadata_dir)
+    table_metadata = get_generic_table_metadata(BQ_PARAMS, schema_tags)
+    update_table_metadata(table_id, table_metadata)
 
-    with open(metadata_fp) as file_handler:
-        table_schema = ''
-
-        for line in file_handler.readlines():
-            table_schema += line
-
-        for tag_key, tag_value in schema_tags.items():
-            tag = f"{{---tag-{tag_key}---}}"
-
-            table_schema = table_schema.replace(tag, tag_value)
-
-        metadata = json.loads(table_schema)
-
-        print(metadata)
-
-        update_table_metadata(table_id, metadata)
-        add_column_descriptions(table_id)
+    add_column_descriptions(table_id)
 
 
 def add_column_descriptions(table_id):
