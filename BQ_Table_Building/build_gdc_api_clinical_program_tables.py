@@ -1097,6 +1097,7 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
         print(metadata)
 
         update_table_metadata(table_id, metadata)
+        add_column_descriptions()
 
 
 def get_metadata_files():
@@ -1137,30 +1138,7 @@ def make_and_check_metadata_table_id(json_file):
         return table_id
 
 
-'''
-def update_metadata():
-    """
-    Use .json file in the BQEcosystem repo to update a bq table's metadata
-    (labels, description, friendly name)
-    """
-    print("Updating metadata!")
-
-    for json_file in get_metadata_files():
-        table_id = make_and_check_metadata_table_id(json_file)
-
-        if not table_id:
-            continue
-
-        metadata_dir = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['GENERIC_TABLE_METADATA_FILEPATH']}"
-        # adapts path for vm
-        metadata_fp = get_filepath(metadata_dir)
-
-        with open(metadata_fp) as json_file_output:
-            metadata = json.load(json_file_output)
-            update_table_metadata(table_id, metadata)
-'''
-
-def update_clin_schema():
+def add_column_descriptions():
     """
     Alter an existing table's schema (currently, only field descriptions are mutable
     without a table rebuild, Google's restriction).
@@ -2031,15 +2009,6 @@ def main(args):
 
     if 'validate_data' in steps:
         compare_gdc_releases()
-
-    '''
-    if 'update_table_metadata' in steps:
-        # todo get schema tags
-        update_metadata()
-    '''
-
-    if 'update_schema' in steps:
-        update_clin_schema()
 
     if 'copy_tables_into_production' in steps:
         publish_table_list = build_publish_table_list()
