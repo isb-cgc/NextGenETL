@@ -32,7 +32,7 @@ from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp,
                               exists_bq_table, construct_table_id, update_table_metadata, get_filepath,
                               create_view_from_query, update_schema, list_bq_tables, format_seconds,
                               load_config, construct_table_name_from_list, publish_table, construct_table_name,
-                              get_generic_table_metadata)
+                              add_generic_table_metadata, add_column_descriptions)
 
 from common_etl.support import compare_two_tables_sql, bq_harness_with_result
 
@@ -1054,7 +1054,18 @@ def create_and_load_tables(program, cases, schemas, record_counts):
         update_table_schema_from_generic(program, table_id, BQ_PARAMS['SCHEMA_TAGS'])
 
 
-def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
+def update_table_schema_from_generic(program, table_id, schema_tags):
+    """
+
+    todo
+    :param program:
+    :param table_id:
+    :param schema_tags:
+    :return:
+    """
+    if schema_tags is None:
+        schema_tags = dict()
+
     if program == "BEATAML1_0":
         schema_tags['program-name-upper'] = "BEATAML1.0"
         schema_tags['program-name-lower'] = "beataml"
@@ -1064,9 +1075,11 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
 
     split_table_id = table_id.split("_")
     clinical_index = split_table_id.index("clinical")
+
     if not clinical_index:
         has_fatal_error("clinical not found in table id, can't parse id to use as friendly name")
 
+    # derive mapping table friendly name by parsing remaining table id after "clinical" keyword
     if len(split_table_id) > clinical_index + 1:
         start_index = clinical_index + 1
         mapping_name = f" -"
@@ -1078,26 +1091,8 @@ def update_table_schema_from_generic(program, table_id, schema_tags=dict()):
 
     schema_tags['mapping-name'] = mapping_name
 
-    table_metadata = get_generic_table_metadata(BQ_PARAMS, schema_tags)
-    update_table_metadata(table_id, table_metadata)
-
-    add_column_descriptions(table_id)
-
-
-def add_column_descriptions(table_id):
-    """
-    Alter an existing table's schema (currently, only field descriptions are mutable
-    without a table rebuild, Google's restriction).
-    """
-    print("\nUpdating schemas (field descriptions)!")
-
-    field_desc_fp = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['FIELD_DESCRIPTION_FILEPATH']}"
-    field_desc_fp = get_filepath(field_desc_fp)
-
-    with open(field_desc_fp) as field_output:
-        descriptions = json.load(field_output)
-
-    update_schema(table_id, descriptions)
+    add_generic_table_metadata(BQ_PARAMS, table_id, schema_tags)
+    add_column_descriptions(BQ_PARAMS, table_id)
 
 
 def change_status_to_archived(table_id):

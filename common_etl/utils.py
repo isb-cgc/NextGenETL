@@ -257,6 +257,49 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
+def add_generic_table_metadata(bq_params, table_id, schema_tags):
+    """
+
+    :param bq_params: bq_params supplied in yaml config
+    :param table_id: table id for which to add the metadata
+    :param schema_tags: dictionary of generic schema tag keys and values
+    :return:
+    """
+    metadata_dir = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_TABLE_METADATA_FILEPATH']}"
+    # adapts path for vm
+    metadata_fp = get_filepath(metadata_dir)
+
+    with open(metadata_fp) as file_handler:
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            table_schema = table_schema.replace(tag, tag_value)
+
+        table_metadata = json.loads(table_schema)
+        update_table_metadata(table_id, table_metadata)
+
+
+def add_column_descriptions(bq_params, table_id):
+    """
+    Alter an existing table's schema (currently, only field descriptions are mutable
+    without a table rebuild, Google's restriction).
+    """
+    print("\nAdding column descriptions!")
+
+    field_desc_fp = f"{bq_params['BQ_REPO']}/{bq_params['FIELD_DESCRIPTION_FILEPATH']}"
+    field_desc_fp = get_filepath(field_desc_fp)
+
+    with open(field_desc_fp) as field_output:
+        descriptions = json.load(field_output)
+
+    update_schema(table_id, descriptions)
+
+
 #   BIGQUERY UTILS
 
 
@@ -1410,30 +1453,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
-
-def get_generic_table_metadata(bq_params, schema_tags):
-    """
-
-    :param bq_params: bq_params supplied in yaml config
-    :param schema_tags: dictionary of generic schema tag keys and values
-    :return:
-    """
-    metadata_dir = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_TABLE_METADATA_FILEPATH']}"
-    # adapts path for vm
-    metadata_fp = get_filepath(metadata_dir)
-
-    with open(metadata_fp) as file_handler:
-        table_schema = ''
-
-        for line in file_handler.readlines():
-            table_schema += line
-
-        for tag_key, tag_value in schema_tags.items():
-            tag = f"{{---tag-{tag_key}---}}"
-
-            table_schema = table_schema.replace(tag, tag_value)
-
-        return json.loads(table_schema)
 
 
 #   MISC UTILS
