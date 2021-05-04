@@ -1627,8 +1627,8 @@ def main(args):
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
-    programs = ['BEATAML1.0']
-    # programs = get_program_list()
+    # programs = ['BEATAML1.0']
+    programs = get_program_list()
 
     for orig_program in programs:
         prog_start = time.time()
