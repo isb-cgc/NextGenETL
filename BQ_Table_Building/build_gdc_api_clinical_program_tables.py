@@ -513,15 +513,15 @@ def generate_id_schema_entry(column, parent_table, program):
     }
 
 
-def generate_count_schema_entry(count_id_key, parent_table):
+def generate_count_schema_entry(count_id_key, table):
     """
 
     Create schema entry for one-to-many record count field.
     :param count_id_key: count field name
-    :param parent_table: parent table name
+    :param table: table name
     :return: schema entry dict for new one-to-many record count field
     """
-    description = f"Total child record count (located in {parent_table} table)."
+    description = f"Total record count in {table} mapping table."
 
     return {
         "name": get_field_name(count_id_key),
@@ -568,7 +568,7 @@ def add_record_count_refs(schema, columns, column_order, table):
     parent_table = get_parent_fg(columns.keys(), table)
     count_field = table + '.count'
 
-    schema[count_field] = generate_count_schema_entry(count_field, parent_table)
+    schema[count_field] = generate_count_schema_entry(count_field, table)
     columns[parent_table].add(count_field)
     count_column_index = get_count_column_index(parent_table, column_order[parent_table])
     column_order[parent_table][count_field] = count_column_index
