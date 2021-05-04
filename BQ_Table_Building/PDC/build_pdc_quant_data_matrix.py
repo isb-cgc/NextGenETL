@@ -600,15 +600,27 @@ def main(args):
             if not ref_seq_list or len(ref_seq_list) == 0:
                 continue
 
-            for refseq_id in ref_seq_list:
-                print(refseq_id)
-                #if refseq_id:
-                #    refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
+            for refseq_id_paired in ref_seq_list:
+                if not refseq_id_paired:
+                    continue
 
-        '''
+                # refseq paired with an isoform
+                if " [" in refseq_id_paired:
+                    ref_seq_paired_split = refseq_id_paired.strip("]").split(" [")
+
+                    if len(ref_seq_paired_split) != 2:
+                        has_fatal_error(f"Couldn't parse Swiss-Prot/RefSeq mapping for {refseq_id_paired}")
+
+                    swissprot_id = ref_seq_paired_split[1]
+                    refseq_id = ref_seq_paired_split[0]
+                else:
+                    refseq_id = refseq_id_paired
+
+                if refseq_id:
+                    refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
+
         for refseq_id_obj in refseq_id_list:
             print(refseq_id_obj)
-        '''
 
         # todo add this list to sql
 
