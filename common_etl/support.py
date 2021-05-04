@@ -869,11 +869,45 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
 
 
 def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
+    """
+    Loads a csv file into BigQuery
+
+    :param schema: Dictionary of field name (key) and description (value)
+    :type schema: dict
+    :param csv_uri: Bucket location of the file in the form of gs://working_bucket/filename.csv
+    :type csv_uri: basestring
+    :param dataset_id: Name of the dataset where the table will be created
+    :type dataset_id: basestring
+    :param targ_table: Name of the table to be created
+    :type targ_table: basestring
+    :param do_batch: Should the BQ job be run in Batch Mode? Slower but uses less quotas
+    :type do_batch: bool
+    :return: Whether the BQ job was completed
+    :rtype: bool
+    """
     return csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table,
                                 do_batch, bigquery.WriteDisposition.WRITE_TRUNCATE)
 
 
 def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
+    """
+    Loads a csv file into BigQuery with option to specify disposition
+
+    :param schema: Dictionary of field name (key) and description (value)
+    :type schema: dict
+    :param csv_uri: Bucket location of the file in the form of gs://working_bucket/filename.csv
+    :type csv_uri: basestring
+    :param dataset_id: Name of the dataset where the table will be created
+    :type dataset_id: basestring
+    :param targ_table: Name of the table to be created
+    :type targ_table: basestring
+    :param do_batch: Should the BQ job be run in Batch Mode? Slower but uses less quotas
+    :type do_batch: bool
+    :param write_depo: Should the table be overwritten or appended?
+    :type write_depo: class
+    :return: Whether the BQ job was completed
+    :rtype: bool
+    """
     client = bigquery.Client()
 
     dataset_ref = client.dataset(dataset_id)
@@ -989,6 +1023,19 @@ def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_in
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
     Merge schema descriptions (if any) and ISB-added descriptions with inferred type data
+
+    :param scraped: JSON file name with scraped table schema
+    :type scraped: basestring
+    :param augmented: JSON file name of table schema
+    :type augmented: basestring
+    :param typing_tups: List of tuples with (name, type)
+    :type typing_tups: list
+    :param holding_list: Filename for where to save a list of field names
+    :type holding_list: basestring
+    :param holding_dict: Filename for where to save a dictionary of dictionary of fields
+    :type holding_dict: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     schema_list = []
     if scraped is not None:
