@@ -594,7 +594,7 @@ def main(args):
             if not ref_seq_str:
                 continue
 
-            ref_seq_str_subbed = re.sub(r' \[*]', '', ref_seq_str)
+            ref_seq_str_subbed = re.sub(r'\[.*]', '', ref_seq_str)
 
             # remove trailing semicolon
             ref_seq_list = ref_seq_str_subbed.strip(';').split(';')
