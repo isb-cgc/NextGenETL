@@ -1208,11 +1208,11 @@ def build_publish_table_list():
 
             if not res:
                 publish_table_list.append(new_table_name)
-
-            for row in res:
-                if row:
-                    publish_table_list.append(new_table_name)
-                    break
+            else:
+                for row in res:
+                    if row:
+                        publish_table_list.append(new_table_name)
+                        break
 
     return publish_table_list
 
