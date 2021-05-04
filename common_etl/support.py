@@ -821,7 +821,7 @@ Use to run queries where we want to get the result back to use (not write into a
 '''
 
 
-def bq_harness_with_result(sql, do_batch):
+def bq_harness_with_result(sql, do_batch, verbose=True):
     """
     Handles all the boilerplate for running a BQ job
     """
@@ -839,15 +839,18 @@ def bq_harness_with_result(sql, do_batch):
     job_state = 'NOT_STARTED'
     while job_state != 'DONE':
         query_job = client.get_job(query_job.job_id, location=location)
-        print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
+        if verbose:
+            print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
         job_state = query_job.state
         if job_state != 'DONE':
             time.sleep(5)
-    print('Job {} is done'.format(query_job.job_id))
+    if verbose:
+        print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
     if query_job.error_result is not None:
-        print('Error result!! {}'.format(query_job.error_result))
+        if verbose:
+            print('Error result!! {}'.format(query_job.error_result))
         return None
 
     results = query_job.result()
