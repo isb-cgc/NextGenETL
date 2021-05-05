@@ -1365,8 +1365,9 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
                 column_list.append(_column)
         else:
             with open(tsv_fp, 'r') as _tsv_file:
-                for index in range(header_row):
-                    _tsv_file.readline()
+                if header_row:
+                    for index in range(header_row):
+                        _tsv_file.readline()
 
                 column_row = _tsv_file.readline()
                 _columns = column_row.split('\t')
