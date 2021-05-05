@@ -1134,21 +1134,18 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
-
-
 def retrieve_table_schema(target_dataset, dest_table, project=None):
     """
+    retrieve a schema from a table
 
-    retrieve a schema from a table, update it using a dictionary of new values, write to BQ
-
-    :param target_dataset:
-    :type target_dataset:
-    :param dest_table:
-    :type dest_table:
-    :param project:
-    :type project:
-    :return:
-    :rtype:
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Table schema
+    :rtype: dict
     """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
@@ -1161,14 +1158,38 @@ def retrieve_table_schema(target_dataset, dest_table, project=None):
 
 
 def update_table_schema(schema, add_dict):
+    """
+    Combine original field schema to a new dictionary of field schema
+
+    :param schema: Original table field schema
+    :type schema: dict
+    :param add_dict: Dictionary of field schema to add to the original field schema
+    :type add_dict: dict
+    :return: A combined schema with the original and added field schema
+    :rtype: dict
+    """
     schema_dict = {field.name: field for field in schema}
     for key in add_dict:
-        schema_dict[key] = bigquery.SchemaField( key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'] )
+        schema_dict[key] = bigquery.SchemaField(key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'])
     updated_schema = [schema_dict[key] for key in schema_dict]
     return updated_schema
 
 
 def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
+    """
+    Update field schema on table
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param new_schema: Dictionary of field schema to update table with
+    :type new_schema: dict
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
+    """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
