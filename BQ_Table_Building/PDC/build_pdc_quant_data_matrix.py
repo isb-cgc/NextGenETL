@@ -632,6 +632,7 @@ def main(args):
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                          table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
                                          tsv_fp=refseq_fp,
+                                         header_list=['swissprot_id', 'gene_symbol', 'refseq_id'],
                                          skip_rows=0,
                                          release=API_PARAMS['SWISSPROT_RELEASE'])
 
