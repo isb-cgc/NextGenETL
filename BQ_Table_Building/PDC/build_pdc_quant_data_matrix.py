@@ -627,6 +627,7 @@ def main(args):
 
         refseq_fp = get_scratch_fp(BQ_PARAMS, refseq_file_name)
         write_list_to_tsv(refseq_fp, refseq_id_list)
+        upload_to_bucket(BQ_PARAMS, scratch_fp=refseq_fp, delete_local=True)
 
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                          table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
