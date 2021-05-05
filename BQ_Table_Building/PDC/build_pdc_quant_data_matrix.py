@@ -620,7 +620,11 @@ def main(args):
                 if refseq_id:
                     refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
 
-        refseq_file_name = f"{BQ_PARAMS['REFSEQ_SWISSPROT_TABLE']}.tsv"
+        refseq_file_name = get_filename(API_PARAMS,
+                                        file_extension='tsv',
+                                        prefix=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
+                                        release=API_PARAMS['SWISSPROT_RELEASE'])
+
         refseq_fp = get_scratch_fp(BQ_PARAMS, refseq_file_name)
         write_list_to_tsv(refseq_fp, refseq_id_list)
 
