@@ -11,7 +11,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
-                              make_string_bq_friendly)
+                              make_string_bq_friendly, write_list_to_tsv)
 
 from common_etl.support import compare_two_tables
 
@@ -50,8 +50,8 @@ def make_swissprot_query():
                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
 
     swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                          dataset=BQ_PARAMS['META_DATASET'],
-                                          table_name=swissprot_table_name)
+                                            dataset=BQ_PARAMS['META_DATASET'],
+                                            table_name=swissprot_table_name)
     return """
         SELECT Entry AS swissprot_id
         FROM `{}`
@@ -413,6 +413,7 @@ def get_quant_table_name(study, is_final, include_release=True):
     :param include_release: Include release in table name (boolean)
     :return: if True, return published table name, otherwise return dev table name
     """
+
     def change_study_name_to_table_name_format(_study_name):
         """
 
@@ -619,10 +620,31 @@ def main(args):
                 if refseq_id:
                     refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
 
-        for refseq_id_obj in refseq_id_list:
-            print(refseq_id_obj)
+        refseq_file_name = f"{BQ_PARAMS['REFSEQ_SWISSPROT_TABLE']}.tsv"
+        refseq_fp = get_scratch_fp(BQ_PARAMS, refseq_file_name)
+        write_list_to_tsv(refseq_fp, refseq_id_list)
 
-        # todo add this list to sql
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
+                                         table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
+                                         tsv_fp=refseq_fp,
+                                         skip_rows=0,
+                                         release=API_PARAMS['SWISSPROT_RELEASE'])
+
+        refseq_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                  table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
+                                                  release=API_PARAMS['SWISSPROT_RELEASE'])
+        refseq_table_name = construct_table_name(API_PARAMS,
+                                                 prefix=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
+                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
+        refseq_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                             dataset=BQ_PARAMS['META_DATASET'],
+                                             table_name=refseq_table_name)
+
+        create_and_load_table_from_tsv(BQ_PARAMS,
+                                       tsv_file=refseq_file_name,
+                                       table_id=refseq_table_id,
+                                       num_header_rows=0,
+                                       schema=refseq_schema)
 
     if 'build_gene_jsonl' in steps:
         gene_record_list = build_obj_from_pdc_api(API_PARAMS,

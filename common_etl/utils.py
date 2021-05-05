@@ -854,6 +854,15 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
 
+def write_list_to_tsv(fp, tsv_list):
+    with open(fp, "w") as tsv_file:
+        for row in tsv_list:
+            tsv_row = create_tsv_row(row)
+            tsv_file.write(tsv_row)
+
+    print(f"{len(tsv_list)} rows written to {fp}!")
+
+
 def create_tsv_row(row_list, null_marker="None"):
     """
 
