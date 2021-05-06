@@ -1257,9 +1257,20 @@ def update_description(target_dataset, dest_table, desc):
     return True
 
 
-def update_status_tag(target_dataset, dest_table, status, project=None): # todo
+def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param status: The value you want to change the table label to
+    :type status: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function works
+    :rtype: bool
     """
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
@@ -1351,7 +1362,7 @@ def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1,
     return
 
 
-def transfer_schema(target_dataset, dest_table, source_dataset, source_table): # todo
+def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     """
     Transfer description of schema from e.g. table to view
 
@@ -1369,6 +1380,17 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table): #
     SDS = "table_data_set"
     STAB = "table_name"
     transfer_schema(TDS, DTAB, SDS, STAB)
+
+    :param target_dataset: Dataset name of the view to be updated
+    :type target_dataset: basestring
+    :param dest_table: Name of the view to be updated
+    :type dest_table: basestring
+    :param source_dataset: Dataset name of where the schema is coming from
+    :type source_dataset: basestring
+    :param source_table: Table name of where the schema is coming from
+    :type source_table: basestring
+    :return: Whether the function worked
+    :rtype: bool
 
     """
 
