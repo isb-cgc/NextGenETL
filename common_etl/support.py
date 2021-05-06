@@ -1520,7 +1520,7 @@ Take the labels and description of a BQ table and get them installed
 '''
 
 
-def install_labels_and_desc(dataset, table_name, file_tag, project=None): #todo
+def install_labels_and_desc(dataset, table_name, file_tag, project=None):
     """
     Update table schema
 
@@ -1620,11 +1620,17 @@ be arguments to the bq command used to update the dataset.
 '''
 
 
-def generate_dataset_desc_file(dict_file, file_tag): # todo
+def generate_dataset_desc_file(dict_file, file_tag):
 
-    #
-    # Read in the chunks and write them out into pieces the bq command can use
-    #
+    """
+    Read in the chunks and write them out into pieces the bq command can use
+    :param dict_file: Schema Json file
+    :type dict_file: basestring
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
 
     try:
         with open(dict_file, mode='r') as bqt_dict_file:
@@ -1644,8 +1650,19 @@ Take the description of a BQ dataset and get it installed
 '''
 
 
-def install_dataset_desc(dataset_id, file_tag, project=None): # todo
+def install_dataset_desc(dataset_id, file_tag, project=None):
+    """
+    Update Dataset Description
 
+    :param dataset_id: Dataset name
+    :type dataset_id: basestring
+    :param file_tag: Json schema file
+    :type file_tag: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
