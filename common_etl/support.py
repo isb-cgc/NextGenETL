@@ -1409,9 +1409,16 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     return True
 
 
-def list_schema(source_dataset, source_table): #todo
+def list_schema(source_dataset, source_table):
     """
     List schema
+
+    :param source_dataset: Dataset name
+    :type source_dataset: basestring
+    :param source_table: Table name
+    :type source_table: basestring
+    :return: whether the function worked
+    :rtype: bool
     """
 
     client = bigquery.Client()
