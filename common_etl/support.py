@@ -1257,7 +1257,7 @@ def update_description(target_dataset, dest_table, desc):
     return True
 
 
-def update_status_tag(target_dataset, dest_table, status, project=None):
+def update_status_tag(target_dataset, dest_table, status, project=None): # todo
     """
     Update the status tag of a big query table once a new version of the table has been created
     """
@@ -1351,7 +1351,7 @@ def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1,
     return
 
 
-def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
+def transfer_schema(target_dataset, dest_table, source_dataset, source_table): # todo
     """
     Transfer description of schema from e.g. table to view
 
@@ -1387,7 +1387,7 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     return True
 
 
-def list_schema(source_dataset, source_table):
+def list_schema(source_dataset, source_table): #todo
     """
     List schema
     """
@@ -1408,7 +1408,7 @@ be arguments to the bq command used to create the table.
 '''
 
 
-def generate_table_detail_files(dict_file, file_tag):
+def generate_table_detail_files(dict_file, file_tag): #todo
 
     #
     # Read in the chunks and write them out into pieces the bq command can use
@@ -1441,7 +1441,7 @@ using tags.
 '''
 
 
-def customize_labels_and_desc(file_tag, tag_map_list):
+def customize_labels_and_desc(file_tag, tag_map_list): #todo
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1482,7 +1482,7 @@ Take the labels and description of a BQ table and get them installed
 '''
 
 
-def install_labels_and_desc(dataset, table_name, file_tag, project=None):
+def install_labels_and_desc(dataset, table_name, file_tag, project=None): #todo
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
@@ -1569,7 +1569,7 @@ be arguments to the bq command used to update the dataset.
 '''
 
 
-def generate_dataset_desc_file(dict_file, file_tag):
+def generate_dataset_desc_file(dict_file, file_tag): # todo
 
     #
     # Read in the chunks and write them out into pieces the bq command can use
@@ -1593,7 +1593,7 @@ Take the description of a BQ dataset and get it installed
 '''
 
 
-def install_dataset_desc(dataset_id, file_tag, project=None):
+def install_dataset_desc(dataset_id, file_tag, project=None): # todo
 
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
