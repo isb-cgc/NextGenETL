@@ -1202,7 +1202,7 @@ def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
         return False
 
 
-def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
+def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None): # todo
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
@@ -1228,8 +1228,16 @@ def update_schema_with_dict(target_dataset, dest_table, full_schema, project=Non
 
 def update_description(target_dataset, dest_table, desc):
     """
-    Update the Description of a Table¶
-    Final derived table needs a description
+    Update the description of a table
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param desc: Description to update table with
+    :type desc: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     client = bigquery.Client()
     table_ref = client.dataset(target_dataset).table(dest_table)
