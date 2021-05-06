@@ -1437,7 +1437,7 @@ be arguments to the bq command used to create the table.
 '''
 
 
-def generate_table_detail_files(dict_file, file_tag): #todo
+def generate_table_detail_files(dict_file, file_tag):
 
     #
     # Read in the chunks and write them out into pieces the bq command can use
@@ -1470,8 +1470,17 @@ using tags.
 '''
 
 
-def customize_labels_and_desc(file_tag, tag_map_list): #todo
+def customize_labels_and_desc(file_tag, tag_map_list):
+    """
+    Updates schema files to fill in dynamic variables within the json files
 
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :param tag_map_list: List of tags to values
+    :type tag_map_list: list
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
@@ -1512,7 +1521,20 @@ Take the labels and description of a BQ table and get them installed
 
 
 def install_labels_and_desc(dataset, table_name, file_tag, project=None): #todo
+    """
+    Update table schema
 
+    :param dataset: Dataset Name
+    :type dataset: basestring
+    :param table_name: Table Name
+    :type table_name: basestring
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :param project: Project Name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
