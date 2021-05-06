@@ -1202,10 +1202,20 @@ def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
         return False
 
 
-def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None): # todo
+def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
-    Final derived table needs the schema descriptions to be installed.
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param full_schema: Dictionary of Table Schema
+    :type full_schema: dict
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
     """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
