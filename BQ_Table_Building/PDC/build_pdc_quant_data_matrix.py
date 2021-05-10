@@ -506,6 +506,7 @@ def main(args):
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
 
     if 'build_uniprot_tsv' in steps:
+        print("Building uniprot TSV!")
         uniprot_file_name = get_filename(API_PARAMS,
                                            file_extension='tsv',
                                            prefix=BQ_PARAMS['UNIPROT_TABLE'],
@@ -543,7 +544,7 @@ def main(args):
         create_and_load_table_from_tsv(BQ_PARAMS,
                                        tsv_file=uniprot_file_name,
                                        table_id=uniprot_table_id,
-                                       num_header_rows=0,
+                                       num_header_rows=1,
                                        schema=uniprot_schema)
         print("UniProt table built!")
 
@@ -560,6 +561,7 @@ def main(args):
 
         for row in res:
             uniprot_id = row['Entry']
+            status = row['Status']
             gene_symbol = row['Gene_names_primary']
             # remove additional uniprot accession from mapping string
 
@@ -591,7 +593,7 @@ def main(args):
                     refseq_id = refseq_id_paired
 
                 if refseq_id:
-                    refseq_id_list.append([uniprot_id, gene_symbol, refseq_id])
+                    refseq_id_list.append([uniprot_id, status, gene_symbol, refseq_id])
 
         refseq_file_name = get_filename(API_PARAMS,
                                         file_extension='tsv',
@@ -605,7 +607,7 @@ def main(args):
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                          table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                          tsv_fp=refseq_fp,
-                                         header_list=['uniprot_id', 'gene_symbol', 'refseq_id'],
+                                         header_list=['uniprot_id', 'review_status', 'gene_symbol', 'refseq_id'],
                                          skip_rows=0,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
