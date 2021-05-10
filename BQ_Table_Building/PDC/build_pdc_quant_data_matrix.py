@@ -549,6 +549,7 @@ def main(args):
         print("UniProt table built!")
 
     if 'create_refseq_table' in steps:
+        print("Building RefSeq mapping table!")
         refseq_id_list = list()
 
         uniprot_table_name = construct_table_name(API_PARAMS,
@@ -570,7 +571,6 @@ def main(args):
             if not ref_seq_str:
                 continue
 
-            # ref_seq_str_subbed = re.sub(r' \[.*]', '', ref_seq_str)
             ref_seq_list = ref_seq_str.strip(';').split(';')
 
             if not ref_seq_list or len(ref_seq_list) == 0:
