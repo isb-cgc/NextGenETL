@@ -30,7 +30,7 @@ def retrieve_uniprot_kb_genes():
     """
     query = 'organism:9606'
     data_format = 'tab'
-    columns = 'id,reviewed,database(RefSeq),genes(PREFERRED)'
+    columns = 'id,reviewed,genes(PREFERRED),database(RefSeq)'
 
     request_url = 'https://www.uniprot.org/uniprot/?query={}&format={}&columns={}'.format(query, data_format, columns)
 
@@ -553,8 +553,8 @@ def main(args):
         refseq_id_list = list()
 
         uniprot_table_name = construct_table_name(API_PARAMS,
-                                                    prefix=BQ_PARAMS['UNIPROT_TABLE'],
-                                                    release=API_PARAMS['UNIPROT_RELEASE'])
+                                                  prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                                  release=API_PARAMS['UNIPROT_RELEASE'])
         uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                 dataset=BQ_PARAMS['META_DATASET'],
                                                 table_name=uniprot_table_name)
