@@ -1,4 +1,3 @@
-import re
 import time
 import sys
 import requests
@@ -29,9 +28,9 @@ def retrieve_uniprot_kb_genes():
     Retrieve Swiss-Prot ids and gene names from UniProtKB REST API.
     :return: REST API response text (tsv)
     """
-    query = 'organism:9606+AND+reviewed:yes'
+    query = 'organism:9606'
     data_format = 'tab'
-    columns = 'id,genes(PREFERRED),database(RefSeq)'
+    columns = 'id,reviewed,database(RefSeq),genes(PREFERRED)'
 
     request_url = 'https://www.uniprot.org/uniprot/?query={}&format={}&columns={}'.format(query, data_format, columns)
 
@@ -39,23 +38,23 @@ def retrieve_uniprot_kb_genes():
     return response.text
 
 
-def make_swissprot_query():
+def make_uniprot_query():
     """
 
     Make query to select Swiss-Prot id from UniProt table.
     :return: sql query string
     """
-    swissprot_table_name = construct_table_name(API_PARAMS,
+    uniprot_table_name = construct_table_name(API_PARAMS,
                                                 prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                release=API_PARAMS['SWISSPROT_RELEASE'])
+                                                release=API_PARAMS['UNIPROT_RELEASE'])
 
-    swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+    uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=swissprot_table_name)
+                                            table_name=uniprot_table_name)
     return """
-        SELECT Entry AS swissprot_id
+        SELECT Entry AS uniprot_id
         FROM `{}`
-    """.format(swissprot_table_id)
+    """.format(uniprot_table_id)
 
 
 def sort_swissprot_by_age(a, b):
@@ -239,7 +238,7 @@ def make_paginated_gene_query(offset, limit):
 
 def alter_paginated_gene_list(json_obj_list):
     compare_uniprot_ids = cmp_to_key(sort_swissprot_by_age)
-    swissprot_set = {row[0] for row in get_query_results(make_swissprot_query())}
+    swissprot_set = {row[0] for row in get_query_results(make_uniprot_query())}
     for gene in json_obj_list:
         authority = None
         authority_gene_id = None
@@ -291,15 +290,6 @@ def alter_paginated_gene_list(json_obj_list):
             uniprotkb_id = uniprot_list[0]
 
         uniprotkb_ids = uniprot_accession_str
-
-        '''
-        if swissprot_count == 0:
-            print("No swissprots counted, returns {}; {} for string {}".format(
-                uniprotkb_id, uniprotkb_ids, swissprot_str))
-        
-        if swissprot_count > 1:
-            print("More than one swissprot counted, returns {} for string {}".format(uniprotkb_id, swissprot_str))
-        '''
 
         gene['uniprotkb_id'] = uniprotkb_id
         gene['uniprotkb_ids'] = uniprotkb_ids
@@ -487,33 +477,14 @@ def make_quant_table_query(raw_table_id, study):
                 ON gene.gene_name = quant.gene_symbol
         """
     else:
-        gene_name_replacement_map = {
-            "Phosphoproteome": {
-                "site": "phosphorylation_sites",
-                "id_column_label": "RefSeq"
-            },
-            "Acetylome": {
-                "site": "acetylation_sites",
-                "id_column_label": "RefSeq"
-            },
-            "Glycoproteome": {
-                "site": "glycosylation_sites",
-                "id_column_label": "RefSeq"
-            },
-            "Ubiquitylome": {
-                "site": "ubiquitylation_sites",
-                "id_column_label": "RefSeq"
-            },
-        }
-
-        sites = gene_name_replacement_map[analytical_fraction]['site']
-        id_column_label = gene_name_replacement_map[analytical_fraction]['id_column_label']
+        site_column_name = API_PARAMS['QUANT_REPLACEMENT_MAP'][analytical_fraction]['site_column_name']
+        id_column_name = API_PARAMS['QUANT_REPLACEMENT_MAP'][analytical_fraction]['id_column_name']
 
         return f"""
             SELECT aliq.case_id, aliq.sample_id, aliq.aliquot_id, 
                 q.aliquot_submitter_id, q.aliquot_run_metadata_id, q.study_name, q.protein_abundance_log2ratio, 
-                SPLIT(q.gene_symbol, ':')[OFFSET(0)] AS `{id_column_label}`, 
-                SPLIT(q.gene_symbol, ':')[OFFSET(1)] AS `{sites}`
+                SPLIT(q.gene_symbol, ':')[OFFSET(0)] AS `{id_column_name}`, 
+                SPLIT(q.gene_symbol, ':')[OFFSET(1)] AS `{site_column_name}`
             FROM `{raw_table_id}` AS q
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON q.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
@@ -534,61 +505,64 @@ def main(args):
 
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
 
-    if 'build_swissprot_tsv' in steps:
-        swissprot_file_name = get_filename(API_PARAMS,
+    if 'build_uniprot_tsv' in steps:
+        uniprot_file_name = get_filename(API_PARAMS,
                                            file_extension='tsv',
-                                           prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                           release=API_PARAMS['SWISSPROT_RELEASE'])
-        swissprot_fp = get_scratch_fp(BQ_PARAMS, swissprot_file_name)
+                                           prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                           release=API_PARAMS['UNIPROT_RELEASE'])
+        uniprot_fp = get_scratch_fp(BQ_PARAMS, uniprot_file_name)
 
-        swissprot_data = retrieve_uniprot_kb_genes()
+        uniprot_data = retrieve_uniprot_kb_genes()
 
-        with open(swissprot_fp, 'w') as swissprot_file:
-            swissprot_file.write(swissprot_data)
+        with open(uniprot_fp, 'w') as uniprot_file:
+            uniprot_file.write(uniprot_data)
 
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                         table_name=BQ_PARAMS['SWISSPROT_TABLE'],
-                                         tsv_fp=swissprot_fp,
+                                         table_name=BQ_PARAMS['UNIPROT_TABLE'],
+                                         tsv_fp=uniprot_fp,
                                          header_row=0,
                                          skip_rows=1,
-                                         release=API_PARAMS['SWISSPROT_RELEASE'])
+                                         release=API_PARAMS['UNIPROT_RELEASE'])
 
-        upload_to_bucket(BQ_PARAMS, swissprot_fp, delete_local=True)
+        upload_to_bucket(BQ_PARAMS, uniprot_fp, delete_local=True)
 
-    if 'build_swissprot_table' in steps:
-        swissprot_table_name = construct_table_name(API_PARAMS,
-                                                    prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                    release=API_PARAMS['SWISSPROT_RELEASE'])
-        swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=swissprot_table_name)
-
-        swissprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
-                                                     table_name=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                     release=API_PARAMS['SWISSPROT_RELEASE'])
+    if 'build_uniprot_table' in steps:
+        uniprot_file_name = get_filename(API_PARAMS,
+                                         file_extension='tsv',
+                                         prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                         release=API_PARAMS['UNIPROT_RELEASE'])
+        uniprot_table_name = construct_table_name(API_PARAMS,
+                                                  prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                                  release=API_PARAMS['UNIPROT_RELEASE'])
+        uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+                                              dataset=BQ_PARAMS['META_DATASET'],
+                                              table_name=uniprot_table_name)
+        uniprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
+                                                   table_name=BQ_PARAMS['UNIPROT_TABLE'],
+                                                   release=API_PARAMS['UNIPROT_RELEASE'])
 
         create_and_load_table_from_tsv(BQ_PARAMS,
-                                       tsv_file=swissprot_file_name,
-                                       table_id=swissprot_table_id,
+                                       tsv_file=uniprot_file_name,
+                                       table_id=uniprot_table_id,
                                        num_header_rows=0,
-                                       schema=swissprot_schema)
-        print("SwissProt table built!")
+                                       schema=uniprot_schema)
+        print("UniProt table built!")
 
     if 'create_refseq_table' in steps:
         refseq_id_list = list()
 
-        swissprot_table_name = construct_table_name(API_PARAMS,
-                                                    prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                    release=API_PARAMS['SWISSPROT_RELEASE'])
-        swissprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+        uniprot_table_name = construct_table_name(API_PARAMS,
+                                                    prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                                    release=API_PARAMS['UNIPROT_RELEASE'])
+        uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                                 dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=swissprot_table_name)
-        res = get_query_results(f"SELECT * FROM {swissprot_table_id}")
+                                                table_name=uniprot_table_name)
+        res = get_query_results(f"SELECT * FROM {uniprot_table_id}")
 
         for row in res:
-            swissprot_id = row['Entry']
+            uniprot_id = row['Entry']
             gene_symbol = row['Gene_names_primary']
-            # remove additional swissprot accession from mapping string
+            # remove additional uniprot accession from mapping string
 
             ref_seq_str = row['Cross_reference_RefSeq']
 
@@ -612,36 +586,36 @@ def main(args):
                     if len(ref_seq_paired_split) != 2:
                         has_fatal_error(f"Couldn't parse Swiss-Prot/RefSeq mapping for {refseq_id_paired}")
 
-                    swissprot_id = ref_seq_paired_split[1]
+                    uniprot_id = ref_seq_paired_split[1]
                     refseq_id = ref_seq_paired_split[0]
                 else:
                     refseq_id = refseq_id_paired
 
                 if refseq_id:
-                    refseq_id_list.append([swissprot_id, gene_symbol, refseq_id])
+                    refseq_id_list.append([uniprot_id, gene_symbol, refseq_id])
 
         refseq_file_name = get_filename(API_PARAMS,
                                         file_extension='tsv',
-                                        prefix=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
-                                        release=API_PARAMS['SWISSPROT_RELEASE'])
+                                        prefix=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
+                                        release=API_PARAMS['UNIPROT_RELEASE'])
 
         refseq_fp = get_scratch_fp(BQ_PARAMS, refseq_file_name)
         write_list_to_tsv(refseq_fp, refseq_id_list)
         upload_to_bucket(BQ_PARAMS, scratch_fp=refseq_fp)
 
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                         table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
+                                         table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                          tsv_fp=refseq_fp,
-                                         header_list=['swissprot_id', 'gene_symbol', 'refseq_id'],
+                                         header_list=['uniprot_id', 'gene_symbol', 'refseq_id'],
                                          skip_rows=0,
-                                         release=API_PARAMS['SWISSPROT_RELEASE'])
+                                         release=API_PARAMS['UNIPROT_RELEASE'])
 
         refseq_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
-                                                  table_name=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
-                                                  release=API_PARAMS['SWISSPROT_RELEASE'])
+                                                  table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
+                                                  release=API_PARAMS['UNIPROT_RELEASE'])
         refseq_table_name = construct_table_name(API_PARAMS,
-                                                 prefix=BQ_PARAMS['REFSEQ_SWISSPROT_TABLE'],
-                                                 release=API_PARAMS['SWISSPROT_RELEASE'])
+                                                 prefix=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
+                                                 release=API_PARAMS['UNIPROT_RELEASE'])
         refseq_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                              dataset=BQ_PARAMS['META_DATASET'],
                                              table_name=refseq_table_name)
