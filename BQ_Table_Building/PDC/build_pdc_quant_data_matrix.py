@@ -540,7 +540,6 @@ def main(args):
         uniprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                    table_name=BQ_PARAMS['UNIPROT_TABLE'],
                                                    release=API_PARAMS['UNIPROT_RELEASE'])
-
         create_and_load_table_from_tsv(BQ_PARAMS,
                                        tsv_file=uniprot_file_name,
                                        table_id=uniprot_table_id,
