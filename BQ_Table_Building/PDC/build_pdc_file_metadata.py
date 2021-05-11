@@ -196,7 +196,7 @@ def make_webapp_per_sample_view_query():
                 'Quant_Maps_Tissue_Biopsies' AS program_short_name
         )
         
-        SELECT fm.file_id, fa.case_id as case_node_id, 'pdc' as source node, 
+        SELECT fm.file_id, fa.case_id as case_node_id, 'pdc' as source_node, 
             ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, ac.project_name, 
             null as project_name_suffix, map.program_short_name as program_name,
             fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type as data_type, 
