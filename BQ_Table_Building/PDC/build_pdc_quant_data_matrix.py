@@ -10,7 +10,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
-                              make_string_bq_friendly, write_list_to_tsv)
+                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table)
 
 from common_etl.support import compare_two_tables
 
@@ -55,6 +55,35 @@ def make_uniprot_query():
         SELECT Entry AS uniprot_id
         FROM `{}`
     """.format(uniprot_table_id)
+
+
+def make_refseq_filtered_status_mapping_query(refseq_table_id):
+    """
+
+    Create query to filter refseq - uniprot mapping data; where both uniprot reviewed and unreviewed records
+    exist for a given RefSeq id, keep only the reviewed record.
+    :param refseq_table_id: reference to intermediate refseq->uniprot mapping table.
+    :return: filter query, used for final mapping table creation
+    """
+    return f"""
+    WITH reviewed AS (
+        SELECT *
+        FROM `{refseq_table_id}`
+        WHERE review_status = 'reviewed'
+    ), unreviewed AS (
+        SELECT *
+        FROM `{refseq_table_id}`
+        WHERE review_status = 'unreviewed'   
+            AND refseq_id NOT IN (
+                SELECT refseq_id 
+                FROM reviewed
+            )
+    )
+    
+    SELECT * FROM reviewed
+    UNION ALL 
+    SELECT * FROM unreviewed
+    """
 
 
 def sort_swissprot_by_age(a, b):
@@ -607,7 +636,7 @@ def main(args):
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                          table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                          tsv_fp=refseq_fp,
-                                         header_list=['uniprot_id', 'review_status', 'gene_symbol', 'refseq_id'],
+                                         header_list=['uniprot_id', 'unprot_review_status', 'gene_symbol', 'refseq_id'],
                                          skip_rows=0,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
@@ -617,15 +646,27 @@ def main(args):
         refseq_table_name = construct_table_name(API_PARAMS,
                                                  prefix=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                                  release=API_PARAMS['UNIPROT_RELEASE'])
-        refseq_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
+        refseq_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                              dataset=BQ_PARAMS['META_DATASET'],
                                              table_name=refseq_table_name)
-
         create_and_load_table_from_tsv(BQ_PARAMS,
                                        tsv_file=refseq_file_name,
                                        table_id=refseq_table_id,
                                        num_header_rows=0,
                                        schema=refseq_schema)
+
+        final_refseq_table_name = construct_table_name(API_PARAMS,
+                                                       prefix=BQ_PARAMS['REFSEQ_UNIPROT_FINAL_TABLE'],
+                                                       release=API_PARAMS['UNIPROT_RELEASE'])
+        final_refseq_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
+                                                   dataset=BQ_PARAMS['META_DATASET'],
+                                                   table_name=final_refseq_table_name)
+        load_table_from_query(BQ_PARAMS,
+                              table_id=final_refseq_table_id,
+                              query=make_refseq_filtered_status_mapping_query(refseq_table_id))
+
+        if exists_bq_table(final_refseq_table_id):
+            delete_bq_table(refseq_table_id)
 
     if 'build_gene_jsonl' in steps:
         gene_record_list = build_obj_from_pdc_api(API_PARAMS,
