@@ -69,11 +69,11 @@ def make_refseq_filtered_status_mapping_query(refseq_table_id):
     WITH reviewed AS (
         SELECT *
         FROM `{refseq_table_id}`
-        WHERE review_status = 'reviewed'
+        WHERE uniprot_review_status = 'reviewed'
     ), unreviewed AS (
         SELECT *
         FROM `{refseq_table_id}`
-        WHERE review_status = 'unreviewed'   
+        WHERE uniprot_review_status = 'unreviewed'   
             AND refseq_id NOT IN (
                 SELECT refseq_id 
                 FROM reviewed
