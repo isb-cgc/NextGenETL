@@ -182,14 +182,23 @@ def make_webapp_per_sample_view_query():
                                           dataset=BQ_PARAMS['META_DATASET'],
                                           table_name=aliquot_table_name)
 
-    program_mapping_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                  dataset=BQ_PARAMS['META_DATASET'],
-                                                  table_name='program_short_name_mapping')
-
     return f"""
+        WITH mapping AS (
+            SELECT 'Pediatric Brain Tumor Atlas - CBTN' AS program_name, 'CBTTC' AS program_short_name
+            UNION ALL 
+            SELECT 'Georgetown Proteomics Research Program' AS program_name, 'GPRP' AS program_short_name
+            UNION ALL 
+            SELECT 'Clinical Proteomic Tumor Analysis Consortium' AS program_name, 'CPTAC' AS program_short_name
+            UNION ALL 
+            SELECT 'International Cancer Proteogenome Consortium' AS program_name, 'ICPC' AS program_short_name
+            UNION ALL 
+            SELECT 'Quantitative digital maps of tissue biopsies' AS program_name, 
+                'Quant_Maps_Tissue_Biopsies' AS program_short_name
+        )
+        
         SELECT fm.file_id, fa.case_id as case_node_id, 'pdc' as source node, 
             ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, ac.project_name, 
-            null as project_name_suffix, ac.program_name,
+            null as project_name_suffix, map.program_short_name as program_name,
             fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type as data_type, 
             fm.file_format as data_format, 
             fm.instrument as platform, fm.file_name, null as cloud_path, fm.`access`
@@ -198,8 +207,8 @@ def make_webapp_per_sample_view_query():
             ON fm.file_id = fa.file_id
         JOIN `{aliquot_table_id}` ac
             ON fa.case_id = ac.case_id
-        JOIN `{program_mapping_table_id}` prog
-            ON 
+        JOIN mapping map
+            ON map.program_name = ac.program_name
         """
 
 
