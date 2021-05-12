@@ -399,8 +399,8 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
 
     clinical_project_prefix = f"{clinical_type}_{project_short_name}_{API_PARAMS['DATA_SOURCE']}"
 
-    clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_prefix)
-    clinical_project_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{program_short_name}.{clinical_project_table_name}"
+    table_name = construct_table_name(API_PARAMS, prefix=clinical_project_prefix)
+    clinical_project_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['CLINICAL_DATASET']}.{table_name}"
 
     fields = {"parent_level": list()}
 
