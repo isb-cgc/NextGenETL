@@ -96,7 +96,9 @@ def alter_all_programs_json(all_programs_json_obj):
                 project['project_submitter_id'] = 'CPTAC-2'
 
             if project['project_submitter_id'] not in BQ_PARAMS['PROJECT_MAP']:
-                project['project_short_name'], project['program_short_name'], project['dataset'] = None
+                project['project_short_name'] = None
+                project['program_short_name'] = None
+                project['dataset'] = None
                 print(f"Unmapped project submitter id: {project['project_submitter_id']}")
             else:
                 project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
