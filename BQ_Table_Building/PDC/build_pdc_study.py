@@ -23,8 +23,8 @@ import sys
 import time
 
 from common_etl.utils import (format_seconds, get_graphql_api_response, has_fatal_error, load_config)
-from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl)
-
+from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
+                                             get_prefix)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -140,9 +140,14 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_studies_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS, endpoint='allPrograms', request_function=make_all_programs_query,
-                               alter_json_function=alter_all_programs_json)
+        joined_record_list = build_obj_from_pdc_api(API_PARAMS,
+                                                    endpoint='allPrograms',
+                                                    request_function=make_all_programs_query,
+                                                    alter_json_function=alter_all_programs_json)
 
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allPrograms'),
+                               joined_record_list=joined_record_list)
     if 'build_studies_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint='allPrograms',
