@@ -521,7 +521,7 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
         record_count = len(project_dict['cases'])
         max_diagnosis_count = project_dict['max_diagnosis_count']
 
-        print("{}: {} records, {} max diagnoses".format(project_submitter_id, record_count, max_diagnosis_count))
+        print("\n{}: {} records, {} max diagnoses".format(project_submitter_id, record_count, max_diagnosis_count))
 
         clinical_records = []
         clinical_diagnoses_records = []
