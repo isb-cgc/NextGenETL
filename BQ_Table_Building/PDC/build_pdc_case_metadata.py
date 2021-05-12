@@ -245,9 +245,8 @@ def main(args):
                                                         dataset=BQ_PARAMS['META_DATASET'],
                                                         table_name=case_external_mapping_table_name)
 
-    fields_file = "{}_{}.json".format(API_PARAMS['DATA_SOURCE'], BQ_PARAMS['FIELD_DESC_FILE_SUFFIX'])
-    fields_path = '/'.join([BQ_PARAMS['BQ_REPO'], BQ_PARAMS['FIELD_DESC_DIR']])
-    field_desc_fp = get_filepath(fields_path, fields_file)
+    file_path_root = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['FIELD_DESCRIPTION_FILEPATH']}"
+    field_desc_fp = get_filepath(file_path_root)
 
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)

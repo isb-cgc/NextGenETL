@@ -294,6 +294,8 @@ def add_column_descriptions(bq_params, table_id):
     field_desc_fp = f"{bq_params['BQ_REPO']}/{bq_params['FIELD_DESCRIPTION_FILEPATH']}"
     field_desc_fp = get_filepath(field_desc_fp)
 
+    if not os.path.exists(field_desc_fp):
+        has_fatal_error("BQEcosystem field description path not found", FileNotFoundError)
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
@@ -1337,19 +1339,20 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     types_dict=None, skip_rows=0, release=None):
+                                     types_dict=None, skip_rows=0, row_check_interval=1, release=None):
     """
 
-    todo
+    Create and upload schema for a file in tsv format.
     :param api_params: api_params supplied in yaml config
     :param bq_params: bq_params supplied in yaml config
     :param table_name: name of table belonging to schema
     :param tsv_fp: path to tsv data file, parsed to create schema
     :param header_list: optional, list of header strings
-    :param header_row:
-    :param skip_rows:
-    :param release:
-    :param types_dict:
+    :param header_row: optional, integer index of header row within the file
+    :param types_dict: todo remove
+    :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
+    :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
+    :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
     """
 
     def get_column_list():
@@ -1383,11 +1386,14 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     def aggregate_column_data_types():
         """
+
         Open tsv file and aggregate data types for each column.
         """
         with open(tsv_fp, 'r') as tsv_file:
             for i in range(skip_rows):
                 tsv_file.readline()
+
+            count = 0
 
             while True:
                 row = tsv_file.readline()
@@ -1395,11 +1401,15 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
                 if not row:
                     break
 
-                row_list = row.split('\t')
+                if count % row_check_interval == 0:
 
-                for idx, value in enumerate(row_list):
-                    value_type = check_value_type(value)
-                    data_types_dict[columns[idx]].add(value_type)
+                    row_list = row.split('\t')
+
+                    for idx, value in enumerate(row_list):
+                        value_type = check_value_type(value)
+                        data_types_dict[columns[idx]].add(value_type)
+
+                count += 1
 
     def create_schema_object():
         """

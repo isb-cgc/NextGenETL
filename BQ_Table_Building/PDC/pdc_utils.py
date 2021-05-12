@@ -252,29 +252,6 @@ def create_modified_temp_table(bq_params, table_id, query):
     load_table_from_query(bq_params, table_id, query)
 
 
-def update_column_metadata(api_params, bq_params, table_id):
-    """
-    Update column descriptions for existing BQ table
-    :param api_params: API params from YAML config
-    :param bq_params: BQ params from YAML config
-    :param table_id: BQ table id
-    """
-    field_desc_file_name = get_filename(api_params,
-                                        file_extension='json',
-                                        prefix=api_params['DATA_SOURCE'],
-                                        suffix=bq_params['FIELD_DESC_FILE_SUFFIX'],
-                                        include_release=False)
-    file_path_root = "/".join([bq_params['BQ_REPO'], bq_params['FIELD_DESC_DIR']])
-    field_desc_fp = get_filepath(file_path_root, field_desc_file_name)
-
-    if not os.path.exists(field_desc_fp):
-        has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
-    with open(field_desc_fp) as field_output:
-        descriptions = json.load(field_output)
-        print(f"Updating metadata for {table_id}\n")
-        update_schema(table_id, descriptions)
-
-
 def update_pdc_table_metadata(api_params, bq_params, table_type=None):
     """
     Create a list of newly created tables based on bucket file names for a given table type, then access its schema

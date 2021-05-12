@@ -28,11 +28,11 @@ from google.cloud import bigquery
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
-                              construct_table_name, construct_table_id)
+                              construct_table_name, construct_table_id, add_column_descriptions)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, get_records, update_column_metadata,
+                                             get_filename, get_records,
                                              update_pdc_table_metadata)
 
 API_PARAMS = dict()
@@ -419,7 +419,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
                           table_id=clinical_project_table_id,
                           query=make_ordered_clinical_table_query(fields))
 
-    update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=clinical_project_table_id)
+    add_column_descriptions(BQ_PARAMS, table_id=clinical_project_table_id)
     delete_bq_table(temp_table_id)
 
 

@@ -720,7 +720,8 @@ def main(args):
                                                  tsv_fp=quant_tsv_path,
                                                  types_dict=data_types_dict,
                                                  header_list=raw_quant_header,
-                                                 skip_rows=1)
+                                                 skip_rows=1,
+                                                 row_check_interval=100)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print("\n{0} lines written for {1}".format(lines_written, study_id_dict['study_name']))

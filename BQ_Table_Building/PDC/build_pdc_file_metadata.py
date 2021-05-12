@@ -26,10 +26,10 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
                               has_fatal_error, load_table_from_query, load_config, retrieve_bq_schema_object,
                               publish_table, construct_table_name, create_and_upload_schema_for_json,
                               get_graphql_api_response, write_list_to_jsonl_and_upload, construct_table_id,
-                              create_view_from_query)
+                              create_view_from_query, add_column_descriptions)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, create_modified_temp_table, update_column_metadata,
+                                             get_filename, create_modified_temp_table,
                                              update_pdc_table_metadata, get_prefix)
 
 API_PARAMS = dict()
@@ -487,7 +487,7 @@ def main(args):
                               table_id=full_table_id,
                               query=make_associated_entities_query)
 
-        update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=full_table_id)
+        add_column_descriptions(BQ_PARAMS, table_id=full_table_id)
 
     if 'create_file_count_table' in steps:
         # creates case_id -> file count mapping table, used for case metadata table
@@ -521,7 +521,7 @@ def main(args):
                               table_id=full_table_id,
                               query=make_combined_file_metadata_query())
 
-        update_column_metadata(API_PARAMS, BQ_PARAMS, full_table_id)
+        add_column_descriptions(BQ_PARAMS, full_table_id)
 
     if 'build_per_sample_webapp_view' in steps:
         webapp_per_sample_view_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW'])
