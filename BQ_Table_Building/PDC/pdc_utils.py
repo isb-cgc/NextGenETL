@@ -448,6 +448,8 @@ def get_proj_short_names(api_params, bq_params, project_submitter_id):
         LIMIT 1
     """
 
+    print(query)
+
     project_short_name = ''
     program_short_name = ''
 
