@@ -32,6 +32,8 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, wri
                               update_schema, update_table_metadata, construct_table_name, construct_table_id,
                               add_generic_table_metadata, add_column_descriptions)
 
+from common_etl.support import (bq_harness_with_result)
+
 
 def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None):
     """
@@ -431,3 +433,30 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
 
     add_generic_table_metadata(bq_params=bq_params, table_id=table_id, schema_tags=schema_tags)
     add_column_descriptions(bq_params=bq_params, table_id=table_id)
+
+
+def get_proj_short_names(api_params, bq_params, project_submitter_id):
+    endpoint = 'allPrograms'
+    prefix = get_prefix(api_params, endpoint)
+    study_table_name = construct_table_name(api_params=api_params, prefix=prefix)
+    study_table_id = f"{bq_params['DEV_PROJECT']}.{bq_params['DEV_DATASET']}.{study_table_name}"
+
+    query = f"""
+        SELECT project_short_name, program_short_name
+        FROM {study_table_id}
+        WHERE project_submitter_id = {project_submitter_id}
+        LIMIT 1
+    """
+
+    project_short_name = ''
+    program_short_name = ''
+
+    res = bq_harness_with_result(sql=query, do_batch=False, verbose=False)
+    for row in res:
+        project_short_name = row[0]
+        program_short_name = row[1]
+        break
+
+    return project_short_name, program_short_name
+
+

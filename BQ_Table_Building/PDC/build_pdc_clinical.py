@@ -29,12 +29,13 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, add_column_descriptions,
-                              create_and_upload_schema_for_json, retrieve_bq_schema_object)
+                              create_and_upload_schema_for_json, retrieve_bq_schema_object, make_string_bq_friendly)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, get_records, write_jsonl_and_upload,
-                                             update_pdc_table_metadata, get_prefix)
+                                             update_pdc_table_metadata, get_prefix,
+                                             update_table_schema_from_generic_pdc, get_proj_short_names)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -556,6 +557,17 @@ def build_per_project_clinical_tables(cases_by_project):
 
             clinical_records.append(clinical_case_record)
 
+        project_submitter_id = clinical_case_record['project_submitter_id']
+
+        project_short_name, program_short_name = get_proj_short_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
+
+        schema_tags = {
+            "project-name": project_name,
+            "mapping-name": "",
+            "friendly-project-name-upper": make_string_bq_friendly(project_name).upper(),
+            "program-name-lower": program_short_name.lower()
+        }
+
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
                                                                         project_name=project_name,
@@ -565,7 +577,13 @@ def build_per_project_clinical_tables(cases_by_project):
                                           project_name=project_name,
                                           clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
 
+            update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                 table_id=temp_clinical_table_id,
+                                                 schema_tags=schema_tags)
+
         if clinical_diagnoses_records:
+            schema_tags['mapping-name'] = 'DIAGNOSES '
+
             temp_diagnoses_table_id = remove_nulls_and_create_temp_table(records=clinical_diagnoses_records,
                                                                          project_name=project_name,
                                                                          is_diagnoses=True,
@@ -574,6 +592,10 @@ def build_per_project_clinical_tables(cases_by_project):
             create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
                                           project_name=project_name,
                                           clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+
+            update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                 table_id=temp_diagnoses_table_id,
+                                                 schema_tags=schema_tags)
 
 
 def main(args):
@@ -688,9 +710,6 @@ def main(args):
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
         build_per_project_clinical_tables(cases_by_project)
-
-    if 'update_clinical_tables_metadata' in steps:
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CLINICAL_TABLE'])
 
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
