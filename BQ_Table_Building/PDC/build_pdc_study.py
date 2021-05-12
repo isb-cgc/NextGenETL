@@ -95,11 +95,14 @@ def alter_all_programs_json(all_programs_json_obj):
             if project['project_submitter_id'] == 'CPTAC2 Retrospective':
                 project['project_submitter_id'] = 'CPTAC-2'
 
-            project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
-
-            project['project_short_name'] = project_shortname_mapping['SHORT_NAME']
-            project['program_short_name'] = project_shortname_mapping['DATASET']
-            project['dataset'] = project_shortname_mapping['DATASET']
+            if project['project_submitter_id'] not in BQ_PARAMS['PROJECT_MAP']:
+                project['project_short_name'], project['program_short_name'], project['dataset'] = None
+                print(f"Unmapped project submitter id: {project['project_submitter_id']}")
+            else:
+                project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
+                project['project_short_name'] = project_shortname_mapping['SHORT_NAME']
+                project['program_short_name'] = project_shortname_mapping['DATASET']
+                project['dataset'] = project_shortname_mapping['DATASET']
 
             studies = project.pop("studies", None)
             for study in studies:
