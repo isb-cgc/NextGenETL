@@ -119,8 +119,9 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return f''' {{ 
-        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{
+    return f''' 
+    {{ paginatedCaseDiagnosesPerStudy
+        (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{
             total caseDiagnosesPerStudy {{
                 case_id
                 case_submitter_id
@@ -204,8 +205,9 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return f"""{{ 
-        paginatedCaseDemographicsPerStudy (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{ 
+    return f"""
+    {{ paginatedCaseDemographicsPerStudy 
+        (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{ 
             total caseDemographicsPerStudy {{ 
                 case_id 
                 case_submitter_id
@@ -273,7 +275,8 @@ def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
-def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnoses=False, infer_schema=False, schema=None):
+def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnoses=False, infer_schema=False,
+                                       schema=None):
     """
     Remove columns where only null values would exist for entire table,
         then construct temporary project-level clinical table.
@@ -281,7 +284,7 @@ def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnos
     :param project_submitter_id: name of project to which the case records belong
     :param is_diagnoses: if True, the temp table is a supplement to the project's clinical table,
         due to some cases having multiple diagnosis records; defaults to False
-    :param infer_schema: if True, script will use BQ's native schema inference; defaults to False
+    :param infer_schema: if True, script will use BigQuery's native schema inference; defaults to False
     :param schema: list of SchemaFields representing desired BQ table schema; defaults to None
     :return: newly created BQ table id
     """
@@ -708,11 +711,10 @@ def main(args):
         # create dict of project short names and the dataset they belong to
         dataset_map = dict()
 
-        # todo switch this to using get_proj_short_names()
-        for project_submitter_id in BQ_PARAMS['PROJECT_MAP']:
-            key = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['SHORT_NAME']
-            val = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['DATASET']
-            dataset_map[key] = val
+        for study in pdc_study_ids:
+            project_submitter_id = study['project_submitter_id']
+            project_short_name, dataset, pn = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
+            dataset_map[project_short_name] = dataset
 
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
@@ -721,17 +723,17 @@ def main(args):
         removal_list = ['clinical_diagnoses_', 'clinical_', "_pdc_" + API_PARAMS['RELEASE']]
 
         for table_name in current_clinical_table_list:
-            project_shortname = table_name
+            project_short_name = table_name
 
-            # strip table name down to project shortname in order to derive clinical dataset
+            # strip table name down to project short name; use as key to look up program dataset name
             for rem_str in removal_list:
-                if rem_str in project_shortname:
-                    project_shortname = project_shortname.replace(rem_str, '')
+                if rem_str in project_short_name:
+                    project_short_name = project_short_name.replace(rem_str, '')
 
             clinical_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['CLINICAL_DATASET'], table_name)
 
             publish_table(API_PARAMS, BQ_PARAMS,
-                          public_dataset=dataset_map[project_shortname],
+                          public_dataset=dataset_map[project_short_name],
                           source_table_id=clinical_table_id,
                           overwrite=True)
 

@@ -14,7 +14,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
 
 from common_etl.support import compare_two_tables
 
-from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename,
+from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
 
 API_PARAMS = dict()
@@ -45,12 +45,12 @@ def make_uniprot_query():
     :return: sql query string
     """
     uniprot_table_name = construct_table_name(API_PARAMS,
-                                                prefix=BQ_PARAMS['SWISSPROT_TABLE'],
-                                                release=API_PARAMS['UNIPROT_RELEASE'])
+                                              prefix=BQ_PARAMS['SWISSPROT_TABLE'],
+                                              release=API_PARAMS['UNIPROT_RELEASE'])
 
     uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                            dataset=BQ_PARAMS['META_DATASET'],
-                                            table_name=uniprot_table_name)
+                                          dataset=BQ_PARAMS['META_DATASET'],
+                                          table_name=uniprot_table_name)
     return f"""
         SELECT Entry AS uniprot_id
         FROM `{uniprot_table_id}`
@@ -269,8 +269,6 @@ def alter_paginated_gene_list(json_obj_list):
     compare_uniprot_ids = cmp_to_key(sort_swissprot_by_age)
     swissprot_set = {row[0] for row in get_query_results(make_uniprot_query())}
     for gene in json_obj_list:
-        authority = None
-        authority_gene_id = None
         authority_records_dict = dict()
 
         gene_authority = gene.pop('authority')
@@ -297,12 +295,15 @@ def alter_paginated_gene_list(json_obj_list):
                 has_fatal_error(f"Unable to select authority record to include: {authority_records_dict}")
             elif len(authority_records_dict) == 1:
                 for auth, gene_id in authority_records_dict.items():
-                    authority = auth
-                    authority_gene_id = gene_id
+                    gene['authority'] = auth
+                    gene['authority_gene_id'] = gene_id
                     break
+            else:
+                gene['authority'] = None
+                gene['authority_gene_id'] = None
 
-        gene['authority_gene_id'] = authority_gene_id
-        gene['authority'] = authority
+        gene['gene_symbol'] = gene.pop('gene_name')
+        gene['gene_description'] = gene.pop('description')
 
         uniprot_accession_str = filter_uniprot_accession_nums(gene['proteins'])
         swissprot_str, swissprot_count = filter_swissprot_accession_nums(gene['proteins'], swissprot_set)
@@ -534,12 +535,13 @@ def main(args):
 
     studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
 
+    uniprot_file_name = get_filename(API_PARAMS,
+                                     file_extension='tsv',
+                                     prefix=BQ_PARAMS['UNIPROT_TABLE'],
+                                     release=API_PARAMS['UNIPROT_RELEASE'])
+
     if 'build_uniprot_tsv' in steps:
         print("Building uniprot TSV!")
-        uniprot_file_name = get_filename(API_PARAMS,
-                                           file_extension='tsv',
-                                           prefix=BQ_PARAMS['UNIPROT_TABLE'],
-                                           release=API_PARAMS['UNIPROT_RELEASE'])
         uniprot_fp = get_scratch_fp(BQ_PARAMS, uniprot_file_name)
 
         uniprot_data = retrieve_uniprot_kb_genes()
@@ -557,16 +559,11 @@ def main(args):
         upload_to_bucket(BQ_PARAMS, uniprot_fp, delete_local=True)
 
     if 'build_uniprot_table' in steps:
-        uniprot_file_name = get_filename(API_PARAMS,
-                                         file_extension='tsv',
-                                         prefix=BQ_PARAMS['UNIPROT_TABLE'],
-                                         release=API_PARAMS['UNIPROT_RELEASE'])
         uniprot_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['UNIPROT_TABLE'],
                                                   release=API_PARAMS['UNIPROT_RELEASE'])
-        uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=uniprot_table_name)
+        uniprot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{uniprot_table_name}"
+
         uniprot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                    table_name=BQ_PARAMS['UNIPROT_TABLE'],
                                                    release=API_PARAMS['UNIPROT_RELEASE'])
@@ -575,9 +572,11 @@ def main(args):
                                        table_id=uniprot_table_id,
                                        num_header_rows=1,
                                        schema=uniprot_schema)
+
         print("UniProt table built!")
 
     if 'create_refseq_table' in steps:
+        # todo it'd be nice to clean this up some; it works but we tacked stuff on, it could probably be consolidated
         print("Building RefSeq mapping table!")
         refseq_id_list = list()
 
@@ -585,8 +584,8 @@ def main(args):
                                                   prefix=BQ_PARAMS['UNIPROT_TABLE'],
                                                   release=API_PARAMS['UNIPROT_RELEASE'])
         uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=uniprot_table_name)
+                                              dataset=BQ_PARAMS['META_DATASET'],
+                                              table_name=uniprot_table_name)
         res = get_query_results(f"SELECT * FROM {uniprot_table_id}")
 
         for row in res:
@@ -633,10 +632,12 @@ def main(args):
         write_list_to_tsv(refseq_fp, refseq_id_list)
         upload_to_bucket(BQ_PARAMS, scratch_fp=refseq_fp)
 
+        refseq_uniprot_headers = ['uniprot_id', 'uniprot_review_status', 'gene_symbol', 'refseq_id']
+
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                          table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                          tsv_fp=refseq_fp,
-                                         header_list=['uniprot_id', 'uniprot_review_status', 'gene_symbol', 'refseq_id'],
+                                         header_list=refseq_uniprot_headers,
                                          skip_rows=0,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
@@ -665,6 +666,12 @@ def main(args):
                               table_id=final_refseq_table_id,
                               query=make_refseq_filtered_status_mapping_query(refseq_table_id))
 
+        schema_tags = {
+            "uniprot-version": API_PARAMS['UNIPROT_RELEASE']
+        }
+
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, final_refseq_table_id, schema_tags=schema_tags)
+
         if exists_bq_table(final_refseq_table_id):
             delete_bq_table(refseq_table_id)
 
@@ -684,11 +691,15 @@ def main(args):
                                        record_list=gene_record_list)
 
     if 'build_gene_table' in steps:
-        gene_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
-                                                table_name=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint=API_PARAMS['GENE_ENDPOINT'],
-                               schema=gene_schema)
+        gene_prefix = get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT'])
+
+        gene_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=gene_prefix)
+
+        gene_table_id = build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
+                                               endpoint=API_PARAMS['GENE_ENDPOINT'],
+                                               schema=gene_schema)
+
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, gene_table_id)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
@@ -698,12 +709,14 @@ def main(args):
 
             # todo change gene_symbol to gene name?
             # todo move to generic schema
+
             raw_quant_header = ['aliquot_run_metadata_id',
                                 'aliquot_submitter_id',
                                 'study_name',
                                 'gene_symbol',
                                 'protein_abundance_log2ratio']
 
+            """
             data_types_dict = {
                 'aliquot_run_metadata_id': 'STRING',
                 'aliquot_submitter_id': 'STRING',
@@ -711,6 +724,7 @@ def main(args):
                 'gene_symbol': 'STRING',
                 'protein_abundance_log2ratio': 'FLOAT64'
             }
+            """
 
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
@@ -718,7 +732,6 @@ def main(args):
                 create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
                                                  table_name=unversioned_quant_table_name,
                                                  tsv_fp=quant_tsv_path,
-                                                 types_dict=data_types_dict,
                                                  header_list=raw_quant_header,
                                                  skip_rows=1,
                                                  row_check_interval=100)
@@ -792,15 +805,21 @@ def main(args):
                 load_table_from_query(BQ_PARAMS,
                                       table_id=final_dev_table_id,
                                       query=final_quant_table_query)
-                # todo
-                # update_column_metadata(API_PARAMS, BQ_PARAMS, final_dev_table_id)
 
-    if 'find_table_differences' in steps:
-        result = compare_two_tables("isb-project-zero.PDC.quant_proteome_CPTAC_CCRCC_discovery_study_pdc_2020_11",
-                                    "isb-project-zero.PDC.quant_proteome_CPTAC_CCRCC_discovery_study_pdc_V1_11",
-                                    do_batch=False)
+                schema_tags = {
+                    "project-name": study['program_short_name'],
+                    "study-name": study["study_name"],
+                    "pdc-study-id": study["pdc_study_id"],
+                    "study-name-upper": study["study_name"].upper()
+                }
 
-        print(result)
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_dev_table_id,
+                                                     schema_tags=schema_tags)
+
+    if 'publish_quant_and_mapping_tables' in steps:
+        pass
+        # todo version diff testing and publish step
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

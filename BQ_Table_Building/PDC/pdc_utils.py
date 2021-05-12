@@ -194,6 +194,8 @@ def build_table_from_jsonl(api_params, bq_params, endpoint, infer_schema=False, 
 
     create_and_load_table_from_jsonl(bq_params, filename, table_id, schema)
 
+    return table_id
+
 
 def get_prefix(api_params, endpoint):
     """
@@ -312,7 +314,8 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
     table_id = construct_table_id(bq_params['DEV_PROJECT'], dataset=bq_params['META_DATASET'], table_name=table_name)
 
     return f"""
-    SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, project_submitter_id, analytical_fraction
+    SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, 
+        project_submitter_id, analytical_fraction, program_short_name
     FROM  `{table_id}`
     """
 
@@ -436,6 +439,14 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
 
 
 def get_project_program_names(api_params, bq_params, project_submitter_id):
+    """
+
+    todo
+    :param api_params:
+    :param bq_params:
+    :param project_submitter_id:
+    :return: tuple containing (project_short_name, program_short_name, project_name) strings
+    """
     endpoint = 'allPrograms'
     prefix = get_prefix(api_params, endpoint)
     study_table_name = construct_table_name(api_params=api_params, prefix=prefix)
