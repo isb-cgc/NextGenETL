@@ -339,8 +339,9 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
 def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     """
+
     Using column ordering provided in YAML config file, builds a BQ table from the previously created,
-        temporary clinical table. Deletes temporary table upon completion.
+    temporary clinical table. Deletes temporary table upon completion.
     :param temp_table_id: full BQ table id of temporary table
     :param project_name: Name of PDC project associated with the clinical records
     :param clinical_type: Type of clinical table, e.g. 'clinical,' 'clinical_diagnoses'
@@ -348,6 +349,7 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
     def make_subquery_string(nested_field_list):
         """
+
         Build subquery representing new column ordering for demographic and/or diagnoses columns.
         :param nested_field_list: List of fields nested by field group
         :return: subquery string portion of table-building sql query
@@ -372,16 +374,16 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
 
         return subqueries
 
-    def make_ordered_clinical_table_query(fields):
+    def make_ordered_clinical_table_query(_fields):
         """
         Sort list by index, output list of column names for use in sql query
         """
-        select_parent_list = [tup[0] for tup in sorted(fields['parent_level'], key=lambda t: t[1])]
+        select_parent_list = [tup[0] for tup in sorted(_fields['parent_level'], key=lambda t: t[1])]
         select_parent_query_str = ", ".join(select_parent_list)
 
-        fields.pop("parent_level")
+        _fields.pop("parent_level")
 
-        subquery_str = make_subquery_string(fields.keys())
+        subquery_str = make_subquery_string(_fields.keys())
 
         return """
         SELECT {}
@@ -421,8 +423,9 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
                           table_id=clinical_project_table_id,
                           query=make_ordered_clinical_table_query(fields))
 
-    add_column_descriptions(BQ_PARAMS, table_id=clinical_project_table_id)
     delete_bq_table(temp_table_id)
+
+    return clinical_project_table_id
 
 
 def get_cases_by_project_submitter(studies_list):
@@ -439,9 +442,6 @@ def get_cases_by_project_submitter(studies_list):
             'cases': list(),
             'max_diagnosis_count': 0
         }
-
-    # NOTE: remove when fixed by PDC
-    cases_by_project_submitter['LUAD-100'] = {'cases': list(), 'max_diagnosis_count': 0}
 
     # get all case records, append to list for its project submitter id
     for case in get_cases():
@@ -518,16 +518,16 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
     print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
 
-def build_per_project_clinical_tables(cases_by_project):
+def build_per_project_clinical_tables(cases_by_project_submitter):
     """
     Manages construction of null filtering, clinical data retrieval, and per-project clinical table creation
-    :param cases_by_project: dict of form project_submitter_id : cases list
+    :param cases_by_project_submitter: dict of form project_submitter_id : cases list
     """
-    for project_name, project_dict in cases_by_project.items():
+    for project_submitter_id, project_dict in cases_by_project_submitter.items():
         record_count = len(project_dict['cases'])
         max_diagnosis_count = project_dict['max_diagnosis_count']
 
-        print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
+        print("{}: {} records, {} max diagnoses".format(project_submitter_id, record_count, max_diagnosis_count))
 
         clinical_records = []
         clinical_diagnoses_records = []
@@ -557,44 +557,42 @@ def build_per_project_clinical_tables(cases_by_project):
 
             clinical_records.append(clinical_case_record)
 
-        project_submitter_id = clinical_case_record['project_submitter_id']
-
         project_short_name, program_short_name = get_proj_short_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
         schema_tags = {
-            "project-name": project_name,
+            "project-name": clinical_case_record['project_name'],
             "mapping-name": "",
-            "friendly-project-name-upper": make_string_bq_friendly(project_name).upper(),
+            "friendly-project-name-upper": make_string_bq_friendly(clinical_case_record['project_name']).upper(),
             "program-name-lower": program_short_name.lower()
         }
 
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
-                                                                        project_name=project_name,
+                                                                        project_name=project_submitter_id,
                                                                         infer_schema=True)
 
-            create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
+            final_table_id = create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
+                                                           project_name=project_submitter_id,
+                                                           clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
 
             update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                 table_id=temp_clinical_table_id,
+                                                 table_id=final_table_id,
                                                  schema_tags=schema_tags)
 
         if clinical_diagnoses_records:
             schema_tags['mapping-name'] = 'DIAGNOSES '
 
             temp_diagnoses_table_id = remove_nulls_and_create_temp_table(records=clinical_diagnoses_records,
-                                                                         project_name=project_name,
+                                                                         project_name=project_submitter_id,
                                                                          is_diagnoses=True,
                                                                          infer_schema=True)
 
-            create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+            final_table_id = create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
+                                                           project_name=project_submitter_id,
+                                                           clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
             update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                 table_id=temp_diagnoses_table_id,
+                                                 table_id=final_table_id,
                                                  schema_tags=schema_tags)
 
 
@@ -700,21 +698,22 @@ def main(args):
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
         # get unique project_submitter_ids from studies_list
-        cases_by_project = get_cases_by_project_submitter(studies_list)
+        cases_by_project_submitter = get_cases_by_project_submitter(studies_list)
 
         # get demographic and diagnosis records for each case, and append to cases_by_project dictionary
         demographics_by_case, diagnosis_by_case = get_diagnosis_demographic_records_by_case()
 
         # retrieve case demographic and diagnoses for case, pop, add to case record
-        append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, demographics_by_case)
+        append_diagnosis_demographic_to_case(cases_by_project_submitter, diagnosis_by_case, demographics_by_case)
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
-        build_per_project_clinical_tables(cases_by_project)
+        build_per_project_clinical_tables(cases_by_project_submitter)
 
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
         dataset_map = dict()
 
+        # todo switch this to using get_proj_short_names()
         for project_submitter_id in BQ_PARAMS['PROJECT_MAP']:
             key = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['SHORT_NAME']
             val = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['DATASET']
