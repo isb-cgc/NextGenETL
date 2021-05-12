@@ -509,9 +509,6 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
                 case.update(demographic_record)
 
-    # NOTE: remove when fixed by PDC
-    cases_by_project['Academia Sinica LUAD-100'] = cases_by_project.pop('LUAD-100')
-
     print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
 
 
