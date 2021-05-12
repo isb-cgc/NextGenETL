@@ -439,7 +439,7 @@ def get_proj_short_names(api_params, bq_params, project_submitter_id):
     endpoint = 'allPrograms'
     prefix = get_prefix(api_params, endpoint)
     study_table_name = construct_table_name(api_params=api_params, prefix=prefix)
-    study_table_id = f"{bq_params['DEV_PROJECT']}.{bq_params['DEV_DATASET']}.{study_table_name}"
+    study_table_id = f"{bq_params['DEV_PROJECT']}.{bq_params['META_DATASET']}.{study_table_name}"
 
     query = f"""
         SELECT project_short_name, program_short_name
