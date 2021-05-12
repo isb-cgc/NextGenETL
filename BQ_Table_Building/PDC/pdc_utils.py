@@ -444,7 +444,7 @@ def get_proj_short_names(api_params, bq_params, project_submitter_id):
     query = f"""
         SELECT project_short_name, program_short_name
         FROM {study_table_id}
-        WHERE project_submitter_id = {project_submitter_id}
+        WHERE project_submitter_id = '{project_submitter_id}'
         LIMIT 1
     """
 
