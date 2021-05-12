@@ -555,9 +555,9 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
                                                                                          project_submitter_id)
 
         schema_tags = {
-            "project-name": clinical_case_record['project_name'],
+            "project-name": project_name,
             "mapping-name": "",
-            "friendly-project-name-upper": make_string_bq_friendly(clinical_case_record['project_name']).upper(),
+            "friendly-project-name-upper": make_string_bq_friendly(project_name).upper(),
             "program-name-lower": program_short_name.lower()
         }
 
