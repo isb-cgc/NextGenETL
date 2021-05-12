@@ -45,7 +45,7 @@ def make_uniprot_query():
     :return: sql query string
     """
     uniprot_table_name = construct_table_name(API_PARAMS,
-                                              prefix=BQ_PARAMS['SWISSPROT_TABLE'],
+                                              prefix=BQ_PARAMS['UNIPROT_TABLE'],
                                               release=API_PARAMS['UNIPROT_RELEASE'])
 
     uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
