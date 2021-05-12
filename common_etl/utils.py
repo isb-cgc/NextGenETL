@@ -1339,7 +1339,7 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     types_dict=None, skip_rows=0, row_check_interval=1, release=None):
+                                     skip_rows=0, row_check_interval=1, release=None):
     """
 
     Create and upload schema for a file in tsv format.
@@ -1349,7 +1349,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param tsv_fp: path to tsv data file, parsed to create schema
     :param header_list: optional, list of header strings
     :param header_row: optional, integer index of header row within the file
-    :param types_dict: todo remove
     :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
     :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
     :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
@@ -1440,24 +1439,26 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     # if no header list supplied here, headers are generated from header_row.
     columns = get_column_list()
 
+    """
     if types_dict:
         data_types_dict = types_dict
     else:
-        if not header_list and not header_row and not isinstance(header_row, int):
-            has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
-        if header_row and header_list:
-            has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
-        if isinstance(header_row, int) and header_row >= skip_rows:
-            has_fatal_error("Header row not excluded by skip_rows.")
+    """
+    if not header_list and not header_row and not isinstance(header_row, int):
+        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
+    if header_row and header_list:
+        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
+    if isinstance(header_row, int) and header_row >= skip_rows:
+        has_fatal_error("Header row not excluded by skip_rows.")
 
-        data_types_dict = dict()
+    data_types_dict = dict()
 
-        for column in columns:
-            data_types_dict[column] = set()
+    for column in columns:
+        data_types_dict[column] = set()
 
-        aggregate_column_data_types()
+    aggregate_column_data_types()
 
-        resolve_type_conflicts(data_types_dict)
+    resolve_type_conflicts(data_types_dict)
 
     schema_obj = create_schema_object()
 
@@ -1472,7 +1473,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         json.dump(schema_obj, schema_json_file, indent=4)
 
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
-
 
 
 #   MISC UTILS

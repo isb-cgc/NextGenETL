@@ -541,7 +541,7 @@ def main(args):
                                      release=API_PARAMS['UNIPROT_RELEASE'])
 
     if 'build_uniprot_tsv' in steps:
-        print("Building uniprot TSV!")
+        print("Retrieving data from UniProtKB!")
         uniprot_fp = get_scratch_fp(BQ_PARAMS, uniprot_file_name)
 
         uniprot_data = retrieve_uniprot_kb_genes()
@@ -549,11 +549,9 @@ def main(args):
         with open(uniprot_fp, 'w') as uniprot_file:
             uniprot_file.write(uniprot_data)
 
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                         table_name=BQ_PARAMS['UNIPROT_TABLE'],
-                                         tsv_fp=uniprot_fp,
-                                         header_row=0,
-                                         skip_rows=1,
+        print("Retrieving data from UniProtKB!")
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['UNIPROT_TABLE'],
+                                         tsv_fp=uniprot_fp, header_row=0, skip_rows=1,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
         upload_to_bucket(BQ_PARAMS, uniprot_fp, delete_local=True)
@@ -634,11 +632,8 @@ def main(args):
 
         refseq_uniprot_headers = ['uniprot_id', 'uniprot_review_status', 'gene_symbol', 'refseq_id']
 
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                         table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
-                                         tsv_fp=refseq_fp,
-                                         header_list=refseq_uniprot_headers,
-                                         skip_rows=0,
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
+                                         tsv_fp=refseq_fp, header_list=refseq_uniprot_headers, skip_rows=0,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
         refseq_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
@@ -729,11 +724,8 @@ def main(args):
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if lines_written > 0:
-                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                                 table_name=unversioned_quant_table_name,
-                                                 tsv_fp=quant_tsv_path,
-                                                 header_list=raw_quant_header,
-                                                 skip_rows=1,
+                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=unversioned_quant_table_name,
+                                                 tsv_fp=quant_tsv_path, header_list=raw_quant_header, skip_rows=1,
                                                  row_check_interval=100)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
