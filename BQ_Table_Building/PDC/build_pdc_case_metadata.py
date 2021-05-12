@@ -26,8 +26,9 @@ import json
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
                               retrieve_bq_schema_object, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table, create_and_upload_schema_for_json, write_list_to_jsonl_and_upload,
-                              construct_table_id)
+                              update_schema, publish_table, create_and_upload_schema_for_json,
+                              write_list_to_jsonl_and_upload,
+                              construct_table_id, add_generic_table_metadata)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
                                              get_prefix, update_pdc_table_metadata)
@@ -248,6 +249,11 @@ def main(args):
     file_path_root = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['FIELD_DESCRIPTION_FILEPATH']}"
     field_desc_fp = get_filepath(file_path_root)
 
+    schema_tags = {
+        'version': API_PARAMS['RELEASE'],
+        'extracted-month-year': API_PARAMS['EXTRACTED_MONTH_YEAR']
+    }
+
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
@@ -259,7 +265,6 @@ def main(args):
                                       table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_run_metadata_query)
-        update_schema(table_id, descriptions)
 
     if 'build_case_metadata_table' in steps:
         case_metadata_table_query = make_case_metadata_table_query(case_external_mapping_table_id,
@@ -272,6 +277,7 @@ def main(args):
 
         load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
         update_schema(table_id, descriptions)
+        add_generic_table_metadata(BQ_PARAMS, table_id, schema_tags)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = make_aliquot_to_case_id_query(case_aliquot_table_id,
@@ -284,6 +290,7 @@ def main(args):
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
         update_schema(table_id, descriptions)
+        add_generic_table_metadata(BQ_PARAMS, table_id, schema_tags)
 
     if 'update_case_metadata_tables_metadata' in steps:
         update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CASE_METADATA_TABLE'])
