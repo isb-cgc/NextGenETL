@@ -30,8 +30,7 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_modified_temp_table,
-                                             update_pdc_table_metadata, get_prefix,
-                                             update_table_schema_from_generic_pdc)
+                                             get_prefix, update_table_schema_from_generic_pdc)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()

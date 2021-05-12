@@ -28,12 +28,13 @@ from google.cloud import bigquery
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
-                              construct_table_name, construct_table_id, add_column_descriptions)
+                              construct_table_name, construct_table_id, add_column_descriptions,
+                              create_and_upload_schema_for_json, retrieve_bq_schema_object)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, get_records,
-                                             update_pdc_table_metadata)
+                                             get_filename, get_records, write_jsonl_and_upload,
+                                             update_pdc_table_metadata, get_prefix)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -318,8 +319,8 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
     clinical_or_child_table_name = construct_table_name(API_PARAMS, prefix=prefix)
     clinical_or_child_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                  dataset=BQ_PARAMS['CLINICAL_DATASET'],
-                                                  table_name=clinical_or_child_table_name)
+                                                    dataset=BQ_PARAMS['CLINICAL_DATASET'],
+                                                    table_name=clinical_or_child_table_name)
 
     if not infer_schema and not schema:
         schema_filename = infer_schema_file_location_by_table_id(clinical_or_child_table_id)
@@ -398,8 +399,8 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_table_prefix)
 
     clinical_project_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                 dataset=BQ_PARAMS['CLINICAL_DATASET'],
-                                                 table_name=clinical_project_table_name)
+                                                   dataset=BQ_PARAMS['CLINICAL_DATASET'],
+                                                   table_name=clinical_project_table_name)
 
     fields = {"parent_level": list()}
 
@@ -590,41 +591,89 @@ def main(args):
     pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=False)
 
     if 'build_cases_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="allCases",
-                               request_function=make_cases_query,
-                               alter_json_function=alter_cases_query)
+        endpoint = "allCases"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_query,
+                                                   alter_json_function=alter_cases_query)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allCases'),
+                               joined_record_list=joined_cases_list)
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint="allCases",
-                               infer_schema=True)
+        endpoint = "allCases"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint=endpoint, schema=schema)
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="paginatedCaseDiagnosesPerStudy",
-                               request_function=make_cases_diagnoses_query,
-                               alter_json_function=alter_case_diagnoses_json,
-                               ids=pdc_study_ids,
-                               insert_id=True)
+        endpoint = "paginatedCaseDiagnosesPerStudy"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_diagnoses_query,
+                                                   alter_json_function=alter_case_diagnoses_json,
+                                                   ids=pdc_study_ids,
+                                                   insert_id=True)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint),
+                               joined_record_list=joined_cases_list)
 
     if 'build_case_diagnoses_table' in steps:
+        endpoint = "paginatedCaseDiagnosesPerStudy"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint='paginatedCaseDiagnosesPerStudy',
-                               infer_schema=True)
+                               endpoint=endpoint,
+                               infer_schema=False,
+                               schema=schema)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="paginatedCaseDemographicsPerStudy",
-                               request_function=make_cases_demographics_query,
-                               alter_json_function=alter_case_demographics_json,
-                               ids=pdc_study_ids,
-                               insert_id=True)
+        endpoint = "paginatedCaseDemographicsPerStudy"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_demographics_query,
+                                                   alter_json_function=alter_case_demographics_json,
+                                                   ids=pdc_study_ids,
+                                                   insert_id=True)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint),
+                               joined_record_list=joined_cases_list)
 
     if 'build_case_demographics_table' in steps:
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint='paginatedCaseDemographicsPerStudy',
-                               infer_schema=True)
+        endpoint = "paginatedCaseDemographicsPerStudy"
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint=endpoint, schema=schema)
 
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
