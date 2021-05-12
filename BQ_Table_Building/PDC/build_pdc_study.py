@@ -67,14 +67,14 @@ def make_study_query(pdc_study_id):
     Creates a graphQL string for querying the PDC API's study endpoint.
     :return: GraphQL query string
     """
-    return """{{ 
-        study (pdc_study_id: \"{}\" acceptDUA: true) {{ 
+    return f"""{{ 
+        study (pdc_study_id: \"{pdc_study_id}\" acceptDUA: true) {{ 
             study_name
             disease_type
             primary_site
             embargo_date
         }} 
-    }}""".format(pdc_study_id)
+    }}"""
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -87,7 +87,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
     for program in all_programs_json_obj:
         program['program_name'] = program.pop("name", None)
-        print("Processing {}".format(program['program_name']))
+        print(f"Processing {program['program_name']}")
         projects = program.pop("projects", None)
         for project in projects:
             project['project_name'] = project.pop("name", None)
@@ -127,7 +127,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
 def main(args):
     start_time = time.time()
-    print("PDC study metadata script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC study metadata script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -152,7 +152,7 @@ def main(args):
                                infer_schema=True)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

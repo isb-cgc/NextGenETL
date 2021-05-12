@@ -32,7 +32,7 @@ def retrieve_uniprot_kb_genes():
     data_format = 'tab'
     columns = 'id,genes(PREFERRED),database(RefSeq),reviewed'
 
-    request_url = 'https://www.uniprot.org/uniprot/?query={}&format={}&columns={}'.format(query, data_format, columns)
+    request_url = f'https://www.uniprot.org/uniprot/?query={query}&format={data_format}&columns={columns}'
 
     response = requests.get(request_url)
     return response.text
@@ -51,10 +51,10 @@ def make_uniprot_query():
     uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
                                             dataset=BQ_PARAMS['META_DATASET'],
                                             table_name=uniprot_table_name)
-    return """
+    return f"""
         SELECT Entry AS uniprot_id
-        FROM `{}`
-    """.format(uniprot_table_id)
+        FROM `{uniprot_table_id}`
+    """
 
 
 def make_refseq_filtered_status_mapping_query(refseq_table_id):
@@ -237,9 +237,9 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 
 
 def make_paginated_gene_query(offset, limit):
-    return """
+    return f"""
         {{
-          getPaginatedGenes(offset:{0} limit: {1} acceptDUA:true) {{ 
+          getPaginatedGenes(offset:{offset} limit: {limit} acceptDUA:true) {{ 
             total genesProper{{
               gene_id 
               gene_name 
@@ -262,7 +262,7 @@ def make_paginated_gene_query(offset, limit):
             }}
           }}
         }}
-    """.format(offset, limit)
+    """
 
 
 def alter_paginated_gene_list(json_obj_list):
@@ -285,7 +285,7 @@ def alter_paginated_gene_list(json_obj_list):
                     auth = split_authority[0]
                     gene_id = split_authority[1]
                 elif len(split_authority) > 2:
-                    has_fatal_error("Authority should split into <= two elements. Actual: {}".format(gene_authority))
+                    has_fatal_error(f"Authority should split into <= two elements. Actual: {gene_authority}")
 
                 authority_records_dict[auth] = gene_id
 
@@ -294,7 +294,7 @@ def alter_paginated_gene_list(json_obj_list):
                 authority_records_dict.pop("MGI")
 
             if len(authority_records_dict) > 1:
-                has_fatal_error("Unable to select authority record to include: {}".format(authority_records_dict))
+                has_fatal_error(f"Unable to select authority record to include: {authority_records_dict}")
             elif len(authority_records_dict) == 1:
                 for auth, gene_id in authority_records_dict.items():
                     authority = auth
@@ -333,9 +333,9 @@ def make_quant_data_matrix_query(pdc_study_id, data_type):
     :return: GraphQL query string
     """
 
-    return '''{{ 
-            quantDataMatrix(pdc_study_id: \"{}\" data_type: \"{}\" acceptDUA: true) 
-        }}'''.format(pdc_study_id, data_type)
+    return f'''{{ 
+            quantDataMatrix(pdc_study_id: \"{pdc_study_id}\" data_type: \"{data_type}\" acceptDUA: true) 
+        }}'''
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
@@ -371,7 +371,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
         split_el = el.split(':')
 
         if len(split_el) != 2:
-            print("Quant API returns non-standard aliquot_run_metadata_id entry: {}".format(el, ))
+            print(f"Quant API returns non-standard aliquot_run_metadata_id entry: {el}")
         else:
             if split_el[0]:
                 aliquot_run_metadata_id = split_el[0]
@@ -379,7 +379,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
                 aliquot_submitter_id = split_el[1]
 
             if not aliquot_submitter_id or not aliquot_run_metadata_id:
-                has_fatal_error("Unexpected value for aliquot_run_metadata_id:aliquot_submitter_id ({})".format(el))
+                has_fatal_error(f"Unexpected value for aliquot_run_metadata_id:aliquot_submitter_id ({el})")
 
         aliquot_metadata.append({
             "aliquot_run_metadata_id": aliquot_run_metadata_id,
@@ -522,7 +522,7 @@ def make_quant_table_query(raw_table_id, study):
 
 def main(args):
     start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -724,10 +724,10 @@ def main(args):
                                                  row_check_interval=100)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
-                print("\n{0} lines written for {1}".format(lines_written, study_id_dict['study_name']))
-                print("{0} uploaded to Google Cloud bucket!".format(raw_quant_tsv_file))
+                print(f"\n{lines_written} lines written for {study_id_dict['study_name']}")
+                print(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
             else:
-                print("\n{0} lines written for {1}; not uploaded.".format(lines_written, study_id_dict['study_name']))
+                print(f"\n{lines_written} lines written for {study_id_dict['study_name']}; not uploaded.")
 
     if 'build_quant_tables' in steps:
         print("Building quant tables...")
@@ -746,9 +746,9 @@ def main(args):
             raw_quant_tsv_file = f"{quant_table_name}.tsv"
 
             if raw_quant_tsv_file not in quant_blob_files:
-                print('Skipping table build for {} (jsonl not found in bucket)'.format(raw_quant_tsv_file))
+                print(f'Skipping table build for {raw_quant_tsv_file} (jsonl not found in bucket)')
             else:
-                print("Building table for {}".format(raw_quant_tsv_file))
+                print(f"Building table for {raw_quant_tsv_file}")
 
                 raw_quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
                 raw_quant_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
@@ -771,7 +771,7 @@ def main(args):
         print("quantDataMatrix table counts per analytical fraction: ")
 
         for analytical_fraction in built_table_counts.keys():
-            print(" - {}: {}".format(analytical_fraction, built_table_counts[analytical_fraction]))
+            print(f" - {analytical_fraction}: {built_table_counts[analytical_fraction]}")
 
     if 'build_final_quant_tables' in steps:
         print("Building final quant tables!")
@@ -803,7 +803,7 @@ def main(args):
         print(result)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

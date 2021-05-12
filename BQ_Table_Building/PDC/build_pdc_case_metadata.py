@@ -24,14 +24,12 @@ import time
 import sys
 import json
 
-from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, get_query_results,
-                              retrieve_bq_schema_object, normalize_value, load_table_from_query, get_filepath,
-                              update_schema, publish_table, create_and_upload_schema_for_json,
-                              write_list_to_jsonl_and_upload,
-                              construct_table_id, add_generic_table_metadata)
+from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name,
+                              retrieve_bq_schema_object, load_table_from_query, get_filepath,
+                              publish_table, create_and_upload_schema_for_json, write_list_to_jsonl_and_upload,
+                              construct_table_id)
 
-from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_prefix, update_pdc_table_metadata,
+from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_prefix,
                                              update_table_schema_from_generic_pdc)
 
 API_PARAMS = dict()
@@ -47,8 +45,8 @@ def make_cases_aliquots_query(offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return """{{ 
-        paginatedCasesSamplesAliquots(offset:{0} limit:{1} acceptDUA: true) {{ 
+    return f"""{{ 
+        paginatedCasesSamplesAliquots(offset:{offset} limit:{limit} acceptDUA: true) {{ 
             total 
             casesSamplesAliquots {{
                 case_id 
@@ -93,7 +91,7 @@ def make_cases_aliquots_query(offset, limit):
                 size 
             }}
         }}
-    }}""".format(offset, limit)
+    }}"""
 
 
 def alter_cases_aliquots_objects(json_obj_list):
@@ -117,28 +115,28 @@ def make_case_metadata_table_query(case_external_mapping_table_id, study_table_i
                                            dataset=BQ_PARAMS['META_DATASET'],
                                            table_name=file_count_table_name)
 
-    return """
+    return f"""
         WITH case_project_file_count AS (
             SELECT DISTINCT c.case_id, c.case_submitter_id, c.project_submitter_id, 
                 s.project_name, s.program_name, s.project_id,
                 fc.file_id_count as file_count
-            FROM `{0}` c
-            JOIN `{1}` s
+            FROM `{case_external_mapping_table_id}` c
+            JOIN `{study_table_id}` s
                 ON c.project_submitter_id = s.project_submitter_id
-            JOIN `{2}` fc
+            JOIN `{file_count_table_id}` fc
                 ON c.case_id = fc.case_id
         )
 
         SELECT ca.case_id, ca.case_submitter_id, ca.primary_site, ca.disease_type,
             cp.project_name, cp.program_name, cp.project_id, cp.file_count
-        FROM `{3}` AS ca
+        FROM `{case_aliquot_table_id}` AS ca
         JOIN case_project_file_count AS cp
             ON cp.case_id = ca.case_id
-    """.format(case_external_mapping_table_id, study_table_id, file_count_table_id, case_aliquot_table_id)
+    """
 
 
 def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_table_id, study_table_id):
-    return """
+    return f"""
         WITH cases_samples AS (
             SELECT c.case_id, c.case_submitter_id, 
                 s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, 
@@ -146,7 +144,7 @@ def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_t
                 s.days_to_collection, s.initial_weight, s.current_weight, s.shortest_dimension, 
                 s.intermediate_dimension, s.longest_dimension,
                 s.aliquots
-            FROM `{0}` AS c
+            FROM `{case_aliquot_table_id}` AS c
             CROSS JOIN UNNEST(samples) AS s
         ),
         samples_aliquots AS (
@@ -160,8 +158,8 @@ def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_t
         ), 
         cases_projects AS (
             SELECT DISTINCT ext_map.case_id, studies.program_name, studies.project_name
-            FROM `{1}` ext_map
-            JOIN `{2}` studies
+            FROM `{case_external_mapping_table_id}` ext_map
+            JOIN `{study_table_id}` studies
                 ON studies.project_submitter_id = ext_map.project_submitter_id
         )
         
@@ -175,14 +173,14 @@ def make_aliquot_to_case_id_query(case_aliquot_table_id, case_external_mapping_t
         FROM samples_aliquots AS sa
         JOIN cases_projects AS p
             ON sa.case_id = p.case_id
-        """.format(case_aliquot_table_id, case_external_mapping_table_id, study_table_id)
+        """
 
 
 def make_aliquot_run_metadata_query(case_aliquot_table_id):
-    return """
+    return f"""
         WITH cases_samples AS (
             SELECT c.case_id, s.sample_id, s.aliquots
-            FROM `{}` AS c
+            FROM `{case_aliquot_table_id}` AS c
             CROSS JOIN UNNEST(samples) AS s
         ),
         samples_aliquots AS (
@@ -194,12 +192,12 @@ def make_aliquot_run_metadata_query(case_aliquot_table_id):
         SELECT case_id, sample_id, aliquot_id, r.aliquot_run_metadata_id
         FROM samples_aliquots
         CROSS JOIN UNNEST (aliquot_run_metadata) as r
-    """.format(case_aliquot_table_id)
+    """
 
 
 def main(args):
     start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -309,7 +307,7 @@ def main(args):
                       overwrite=True)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

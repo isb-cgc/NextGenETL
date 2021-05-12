@@ -119,8 +119,8 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return ''' {{ 
-        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{
+    return f''' {{ 
+        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{
             total caseDiagnosesPerStudy {{
                 case_id
                 case_submitter_id
@@ -193,7 +193,7 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
                 size
             }}
         }}
-    }}'''.format(pdc_study_id, offset, limit)
+    }}'''
 
 
 def make_cases_demographics_query(pdc_study_id, offset, limit):
@@ -204,8 +204,8 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return """{{ 
-        paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{ 
+    return f"""{{ 
+        paginatedCaseDemographicsPerStudy (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{ 
             total caseDemographicsPerStudy {{ 
                 case_id 
                 case_submitter_id
@@ -232,7 +232,7 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
                 size 
             }} 
         }} 
-    }}""".format(pdc_study_id, offset, limit)
+    }}"""
 
 
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
@@ -326,7 +326,7 @@ def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnos
         schema_filename = infer_schema_file_location_by_table_id(clinical_or_child_table_id)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
-    print("Creating {}:".format(clinical_or_child_table_id))
+    print(f"Creating {clinical_or_child_table_id}:")
 
     create_and_load_table_from_jsonl(BQ_PARAMS,
                                      jsonl_file=clinical_jsonl_filename,
@@ -361,13 +361,13 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
                 select_list = [tup[0] for tup in sorted(fields[field], key=lambda t: t[1])]
                 select_str = ", ".join(select_list)
 
-                subquery = """
+                subquery = f"""
                     , ARRAY(
                         SELECT AS STRUCT
-                            {0}
-                        FROM clinical.{1}
-                    ) AS {1}
-                """.format(select_str, field)
+                            {select_str}
+                        FROM clinical.{field}
+                    ) AS {field}
+                """
 
                 subqueries += subquery
 
@@ -384,11 +384,11 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
 
         subquery_str = make_subquery_string(_fields.keys())
 
-        return """
-        SELECT {}
-        {}
-        FROM {} clinical
-        """.format(select_parent_query_str, subquery_str, temp_table_id)
+        return f"""
+        SELECT {select_parent_query_str}
+        {subquery_str}
+        FROM {temp_table_id} clinical
+        """
 
     client = bigquery.Client()
     temp_table = client.get_table(temp_table_id)
@@ -509,7 +509,7 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
                 case.update(demographic_record)
 
-    print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
+    print(f"{len(cases_with_no_clinical_data)} cases with no clinical data")
 
 
 def build_per_project_clinical_tables(cases_by_project_submitter):
@@ -521,7 +521,7 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
         record_count = len(project_dict['cases'])
         max_diagnosis_count = project_dict['max_diagnosis_count']
 
-        print("\n{}: {} records, {} max diagnoses".format(project_submitter_id, record_count, max_diagnosis_count))
+        print(f"\n{project_submitter_id}: {record_count} records, {max_diagnosis_count} max diagnoses")
 
         clinical_records = []
         clinical_diagnoses_records = []
@@ -593,7 +593,7 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
 def main(args):
     start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -736,7 +736,7 @@ def main(args):
                           overwrite=True)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

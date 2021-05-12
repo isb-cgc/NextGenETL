@@ -157,43 +157,33 @@ def make_combined_file_metadata_query():
 
 
 def make_webapp_per_sample_view_query():
+    meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
+
     file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
-    file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
+    file_metadata_table_id = f"{meta_dataset}.{file_metadata_table_name}"
 
     file_assoc_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-    file_assoc_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_assoc_table_name}"
+    file_assoc_table_id = f"{meta_dataset}.{file_assoc_table_name}"
 
     aliquot_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
-    aliquot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{aliquot_table_name}"
+    aliquot_table_id = f"{meta_dataset}.{aliquot_table_name}"
 
-    # todo fix -- this is now in studies table
+    study_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, 'allPrograms'))
+    study_table_id = f"{meta_dataset}.{study_table_name}"
+
     return f"""
-        WITH mapping AS (
-            SELECT 'Pediatric Brain Tumor Atlas - CBTN' AS program_name, 'CBTTC' AS program_short_name
-            UNION ALL 
-            SELECT 'Georgetown Proteomics Research Program' AS program_name, 'GPRP' AS program_short_name
-            UNION ALL 
-            SELECT 'Clinical Proteomic Tumor Analysis Consortium' AS program_name, 'CPTAC' AS program_short_name
-            UNION ALL 
-            SELECT 'International Cancer Proteogenome Consortium' AS program_name, 'ICPC' AS program_short_name
-            UNION ALL 
-            SELECT 'Quantitative digital maps of tissue biopsies' AS program_name, 
-                'Quant_Maps_Tissue_Biopsies' AS program_short_name
-        )
-        
-        SELECT fm.file_id, fa.case_id as case_node_id, 'PDC' as source_node, 
-            ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, ac.project_name, 
-            null as project_name_suffix, map.program_short_name as program_name,
+        SELECT fm.file_id, fa.case_id as case_node_id, 
+            'PDC' as source_node, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, 
+            ac.project_name, null as project_name_suffix, s.program_short_name as program_name,
             fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type as data_type, 
-            fm.file_format as data_format, 
-            fm.instrument as platform, fm.file_name, null as cloud_path, fm.`access`
+            fm.file_format as data_format, fm.instrument as platform, fm.file_name, null as cloud_path, fm.`access`
         FROM `{file_metadata_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
             ON fm.file_id = fa.file_id
         JOIN `{aliquot_table_id}` ac
             ON fa.case_id = ac.case_id
-        JOIN mapping map
-            ON map.program_name = ac.program_name
+        JOIN `{study_table_id}` s
+            ON s.project_name = ac.project_name
         """
 
 
@@ -419,7 +409,9 @@ def main(args):
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix,
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=file_metadata_list,
+                                          table_name=file_metadata_prefix,
                                           include_release=True)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
