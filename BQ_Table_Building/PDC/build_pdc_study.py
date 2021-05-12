@@ -99,7 +99,8 @@ def alter_all_programs_json(all_programs_json_obj):
                 project['project_short_name'] = None
                 project['program_short_name'] = None
                 project['dataset'] = None
-                print(f"Unmapped project submitter id: {project['project_submitter_id']}")
+                print(f"""\n**Unmapped project submitter id: {project['project_submitter_id']}. 
+                      Add to bq_params['PROJECT_MAP'] and rerun study workflow.\n""")
             else:
                 project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
                 project['project_short_name'] = project_shortname_mapping['SHORT_NAME']
