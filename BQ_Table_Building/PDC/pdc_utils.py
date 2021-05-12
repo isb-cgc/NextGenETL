@@ -435,30 +435,26 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
     add_column_descriptions(bq_params=bq_params, table_id=table_id)
 
 
-def get_proj_short_names(api_params, bq_params, project_submitter_id):
+def get_project_program_names(api_params, bq_params, project_submitter_id):
     endpoint = 'allPrograms'
     prefix = get_prefix(api_params, endpoint)
     study_table_name = construct_table_name(api_params=api_params, prefix=prefix)
     study_table_id = f"{bq_params['DEV_PROJECT']}.{bq_params['META_DATASET']}.{study_table_name}"
 
     query = f"""
-        SELECT project_short_name, program_short_name
+        SELECT project_short_name, program_short_name, project_name
         FROM {study_table_id}
         WHERE project_submitter_id = '{project_submitter_id}'
         LIMIT 1
     """
 
-    print(query)
-
-    project_short_name = ''
-    program_short_name = ''
-
     res = bq_harness_with_result(sql=query, do_batch=False, verbose=False)
     for row in res:
+        if not row:
+            has_fatal_error(f"No result for query: {query}")
         project_short_name = row[0]
         program_short_name = row[1]
-        break
-
-    return project_short_name, program_short_name
+        project_name = row[2]
+        return project_short_name, program_short_name, project_name
 
 

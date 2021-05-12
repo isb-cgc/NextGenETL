@@ -28,14 +28,13 @@ from google.cloud import bigquery
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
-                              construct_table_name, construct_table_id, add_column_descriptions,
-                              create_and_upload_schema_for_json, retrieve_bq_schema_object, make_string_bq_friendly)
+                              construct_table_name, construct_table_id, create_and_upload_schema_for_json,
+                              retrieve_bq_schema_object, make_string_bq_friendly)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, get_records, write_jsonl_and_upload,
-                                             update_pdc_table_metadata, get_prefix,
-                                             update_table_schema_from_generic_pdc, get_proj_short_names)
+                                             get_filename, get_records, write_jsonl_and_upload, get_prefix,
+                                             update_table_schema_from_generic_pdc, get_project_program_names)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -274,12 +273,12 @@ def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
-def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False, infer_schema=False, schema=None):
+def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnoses=False, infer_schema=False, schema=None):
     """
     Remove columns where only null values would exist for entire table,
         then construct temporary project-level clinical table.
     :param records: clinical case record dictionary
-    :param project_name: name of project to which the case records belong
+    :param project_submitter_id: name of project to which the case records belong
     :param is_diagnoses: if True, the temp table is a supplement to the project's clinical table,
         due to some cases having multiple diagnosis records; defaults to False
     :param infer_schema: if True, script will use BQ's native schema inference; defaults to False
@@ -305,7 +304,7 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
     clinical_jsonl_filename = get_filename(API_PARAMS,
                                            file_extension='jsonl',
-                                           prefix=project_name,
+                                           prefix=project_submitter_id,
                                            suffix=clinical_type)
 
     clinical_scratch_fp = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
@@ -316,7 +315,7 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
                      scratch_fp=clinical_scratch_fp,
                      delete_local=True)
 
-    prefix = "_".join(["temp", project_name, clinical_type])
+    prefix = "_".join(["temp", project_submitter_id, clinical_type])
 
     clinical_or_child_table_name = construct_table_name(API_PARAMS, prefix=prefix)
     clinical_or_child_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
@@ -337,13 +336,13 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     return clinical_or_child_table_id
 
 
-def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
+def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_type):
     """
 
     Using column ordering provided in YAML config file, builds a BQ table from the previously created,
     temporary clinical table. Deletes temporary table upon completion.
     :param temp_table_id: full BQ table id of temporary table
-    :param project_name: Name of PDC project associated with the clinical records
+    :param project_submitter_id: Name of PDC project associated with the clinical records
     :param clinical_type: Type of clinical table, e.g. 'clinical,' 'clinical_diagnoses'
     """
 
@@ -395,15 +394,13 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
     temp_table = client.get_table(temp_table_id)
     table_schema = temp_table.schema
 
-    clinical_project_table_prefix = "_".join([clinical_type,
-                                              BQ_PARAMS["PROJECT_MAP"][project_name]["SHORT_NAME"],
-                                              API_PARAMS['DATA_SOURCE']])
+    project_short_name, program_short_name, project_name = get_project_program_names(API_PARAMS, BQ_PARAMS,
+                                                                                     project_submitter_id)
 
-    clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_table_prefix)
+    clinical_project_prefix = f"{clinical_type}_{project_short_name}_{API_PARAMS['DATA_SOURCE']}"
 
-    clinical_project_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                   dataset=BQ_PARAMS['CLINICAL_DATASET'],
-                                                   table_name=clinical_project_table_name)
+    clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_prefix)
+    clinical_project_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{program_short_name}.{clinical_project_table_name}"
 
     fields = {"parent_level": list()}
 
@@ -557,7 +554,8 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
             clinical_records.append(clinical_case_record)
 
-        project_short_name, program_short_name = get_proj_short_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
+        project_short_name, program_short_name, project_name = get_project_program_names(API_PARAMS, BQ_PARAMS,
+                                                                                         project_submitter_id)
 
         schema_tags = {
             "project-name": clinical_case_record['project_name'],
@@ -568,11 +566,11 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
-                                                                        project_name=project_submitter_id,
+                                                                        project_submitter_id=project_submitter_id,
                                                                         infer_schema=True)
 
             final_table_id = create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
-                                                           project_name=project_submitter_id,
+                                                           project_submitter_id=project_submitter_id,
                                                            clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
 
             update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
@@ -583,12 +581,12 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
             schema_tags['mapping-name'] = 'DIAGNOSES '
 
             temp_diagnoses_table_id = remove_nulls_and_create_temp_table(records=clinical_diagnoses_records,
-                                                                         project_name=project_submitter_id,
+                                                                         project_submitter_id=project_submitter_id,
                                                                          is_diagnoses=True,
                                                                          infer_schema=True)
 
             final_table_id = create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
-                                                           project_name=project_submitter_id,
+                                                           project_submitter_id=project_submitter_id,
                                                            clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
             update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
