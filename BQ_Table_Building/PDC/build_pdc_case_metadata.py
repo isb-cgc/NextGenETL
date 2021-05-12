@@ -31,7 +31,8 @@ from common_etl.utils import (format_seconds, has_fatal_error, load_config, cons
                               construct_table_id, add_generic_table_metadata)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_prefix, update_pdc_table_metadata)
+                                             get_prefix, update_pdc_table_metadata,
+                                             update_table_schema_from_generic_pdc)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -249,11 +250,6 @@ def main(args):
     file_path_root = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['FIELD_DESCRIPTION_FILEPATH']}"
     field_desc_fp = get_filepath(file_path_root)
 
-    schema_tags = {
-        'version': API_PARAMS['RELEASE'],
-        'extracted-month-year': API_PARAMS['EXTRACTED_MONTH_YEAR']
-    }
-
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
@@ -276,8 +272,7 @@ def main(args):
                                       table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, case_metadata_table_query)
-        update_schema(table_id, descriptions)
-        add_generic_table_metadata(BQ_PARAMS, table_id, schema_tags)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id)
 
     if 'build_aliquot_to_case_id_map_table' in steps:
         aliquot_to_case_id_query = make_aliquot_to_case_id_query(case_aliquot_table_id,
@@ -289,12 +284,7 @@ def main(args):
                                       table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
-        update_schema(table_id, descriptions)
-        add_generic_table_metadata(BQ_PARAMS, table_id, schema_tags)
-
-    if 'update_case_metadata_tables_metadata' in steps:
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CASE_METADATA_TABLE'])
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id)
 
     if "publish_case_metadata_tables" in steps:
         # Publish master case metadata table

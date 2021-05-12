@@ -29,7 +29,8 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, wri
                               get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
                               load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
-                              update_schema, update_table_metadata, construct_table_name, construct_table_id)
+                              update_schema, update_table_metadata, construct_table_name, construct_table_id,
+                              add_generic_table_metadata, add_column_descriptions)
 
 
 def request_data_from_pdc_api(api_params, endpoint, request_body_function, request_parameters=None):
@@ -413,3 +414,20 @@ def get_pdc_studies_list(api_params, bq_params, include_embargoed=False):
         return studies_list + embargoed_studies_list
 
     return studies_list
+
+
+def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict()):
+    """
+
+    todo
+    :param api_params:
+    :param bq_params:
+    :param table_id:
+    :param schema_tags:
+    :return:
+    """
+    schema_tags['version'] = api_params['RELEASE']
+    schema_tags['extracted-month-year'] = api_params['EXTRACTED_MONTH_YEAR']
+
+    add_generic_table_metadata(bq_params=bq_params, table_id=table_id, schema_tags=schema_tags)
+    add_column_descriptions(bq_params=bq_params, table_id=table_id)
