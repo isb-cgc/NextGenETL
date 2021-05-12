@@ -98,14 +98,12 @@ def alter_all_programs_json(all_programs_json_obj):
             if project['project_submitter_id'] not in BQ_PARAMS['PROJECT_MAP']:
                 project['project_short_name'] = None
                 project['program_short_name'] = None
-                project['dataset'] = None
                 print(f"""\n**Unmapped project submitter id: {project['project_submitter_id']}. 
                       Add to bq_params['PROJECT_MAP'] and rerun study workflow.\n""")
             else:
                 project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
-                project['project_short_name'] = project_shortname_mapping['SHORT_NAME']
-                project['program_short_name'] = project_shortname_mapping['DATASET']
-                project['dataset'] = project_shortname_mapping['DATASET']
+                project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
+                project['program_short_name'] = project_shortname_mapping['PROGRAM_SHORT_NAME']
 
             studies = project.pop("studies", None)
             for study in studies:
