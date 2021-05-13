@@ -58,7 +58,7 @@ def make_files_per_study_query(study_id):
             file_location 
             file_size 
             data_category 
-            file_format
+            file_xsWXSv
             signedUrl {{
                 url
             }}
@@ -405,7 +405,7 @@ def main(args):
 
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
-                                      prefix=API_PARAMS['FILE_METADATA_ENDPOINT'])
+                                      prefix=file_metadata_prefix)
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
