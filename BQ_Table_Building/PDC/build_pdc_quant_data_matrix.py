@@ -497,9 +497,9 @@ def make_quant_table_query(raw_table_id, study):
         return f"""
             SELECT aliq.case_id, aliq.sample_id, aliq.aliquot_id, 
                 quant.aliquot_submitter_id, quant.aliquot_run_metadata_id, quant.study_name, 
-                quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_name, gene.NCBI_gene_id, gene.authority, 
-                gene.authority_gene_id, gene.description, gene.organism, gene.chromosome, gene.locus, gene.uniprotkb_id, 
-                gene.uniprotkb_ids, gene.proteins, gene.assays
+                quant.protein_abundance_log2ratio, gene.gene_id, gene.gene_symbol, gene.NCBI_gene_id, gene.authority, 
+                gene.authority_gene_id, gene.gene_description, gene.organism, gene.chromosome, gene.locus, 
+                gene.uniprotkb_id, gene.uniprotkb_ids, gene.proteins, gene.assays
             FROM `{raw_table_id}` AS quant
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON quant.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
@@ -541,7 +541,7 @@ def main(args):
                                      release=API_PARAMS['UNIPROT_RELEASE'])
 
     if 'build_uniprot_tsv' in steps:
-        print("Retrieving data from UniProtKB!")
+        print("Retrieving data from UniProtKB")
         uniprot_fp = get_scratch_fp(BQ_PARAMS, uniprot_file_name)
 
         uniprot_data = retrieve_uniprot_kb_genes()
@@ -549,7 +549,7 @@ def main(args):
         with open(uniprot_fp, 'w') as uniprot_file:
             uniprot_file.write(uniprot_data)
 
-        print("Retrieving data from UniProtKB!")
+        print("Creating schema for UniProt mapping table")
         create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['UNIPROT_TABLE'],
                                          tsv_fp=uniprot_fp, header_row=0, skip_rows=1,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
