@@ -443,6 +443,8 @@ def main(args):
                                           prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         full_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
+        print(make_associated_entities_query())
+
         load_table_from_query(BQ_PARAMS,
                               table_id=full_table_id,
                               query=make_associated_entities_query())
