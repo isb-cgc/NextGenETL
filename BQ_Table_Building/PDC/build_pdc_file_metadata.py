@@ -430,6 +430,8 @@ def main(args):
                                              prefix=file_metadata_prefix)
         fm_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{fm_table_name}"
 
+        print(modify_api_file_metadata_table_query(fm_table_id))
+
         create_modified_temp_table(BQ_PARAMS,
                                    table_id=fm_table_id,
                                    query=modify_api_file_metadata_table_query(fm_table_id))
