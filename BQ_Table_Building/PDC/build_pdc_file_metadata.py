@@ -445,7 +445,7 @@ def main(args):
 
         load_table_from_query(BQ_PARAMS,
                               table_id=full_table_id,
-                              query=make_associated_entities_query)
+                              query=make_associated_entities_query())
 
         update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, full_table_id)
 
