@@ -118,16 +118,15 @@ def make_associated_entities_query():
     table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
     return f"""
-    SELECT  file_id, 
+    SELECT DISTINCT file_id, 
             aliquots.case_id AS case_id, 
             aliquots.aliquot_id AS entity_id, 
             aliquots.aliquot_submitter_id AS entity_submitter_id, 
             "aliquot" AS entity_type
     FROM `{table_id}`
     CROSS JOIN UNNEST(aliquots) AS aliquots
-    WHERE case_id IS NOT NULL OR entity_id IS NOT NULL
-    GROUP BY file_id, case_id, entity_id, entity_submitter_id, entity_type
     """
+    # WHERE case_id IS NOT NULL OR aliquots.aliquot_id IS NOT NULL
 
 
 def make_combined_file_metadata_query():
