@@ -72,7 +72,7 @@ def get_table_list_for_curr_release(api_params, bq_params):
                 or bq_params['MASTER_TABLE'] in table_name:
             continue
 
-        table_id = get_working_table_id(bq_params, table_name)
+        table_id = get_working_table_id(api_params, bq_params, table_name)
 
         table_res = client.get_table(table_id)
         table_json_attr = table_res.to_api_repr()

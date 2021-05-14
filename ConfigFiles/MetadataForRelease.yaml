@@ -1,0 +1,176 @@
+#
+# Configuration to build BQ table summarizing GDC API pulls per release.
+# YAML Configuration file used for script build_release_metadata_bq_tables.py
+#
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # Where do we dump the schema git repository?
+  SCHEMA_REPO_LOCAL: /full/path/to/local/schema_git_repo
+
+  # Where is the repo?
+  SCHEMA_REPO_URL: https://github.com/your_schema_repo.git
+
+  # What directory holds the schema data files in the repo?
+  RAW_SCHEMA_DIR: GenericSchemas
+
+  # Name of schema file:
+  SCHEMA_FILE_NAME: project_build_file_metadata_for_release_relxx.json
+
+  # Name of versioned schema file
+  VER_SCHEMA_FILE_NAME: versioned.project_build_file_metadata_for_release_relxx.json
+
+  # What repo branch to use?
+  SCHEMA_REPO_BRANCH: master
+
+  # What directory holds the processed schema, tag, and desc lists?
+  PROX_DESC_PREFIX: full/path/to/local/scratch
+
+  # What project are we in:
+  WORKING_PROJECT: your_working_project_name
+
+  # Project to publish to:
+  PUBLICATION_PROJECT: Your-publication-project
+
+  # How many per-file input aliquots can be parsed?
+  MAX_ALIQUOT_PARSE: 4
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_bq_dataset_name_in_working_project
+
+  # Where is the release table that holds case data:
+  CASE_TABLE: your_bq_dataset_name_in_working_project.GDC_metadata.rel28_caseData
+
+  # Where is the release table that holds file data (prefix):
+  FILE_TABLE: your_bq_dataset_name_in_working_project.GDC_metadata.relXX_fileData
+
+  # Where is the release table that maps files to aliquot (prefix):
+  ALIQUOT_TABLE: your_bq_dataset_name_in_working_project.GDC_metadata.relXX_aliquot2caseIDmap
+
+  # Where is the table that maps slide ID to all the other stuff (e.g. case barcode):
+  SLIDE_TABLE: your_bq_dataset_name_in_working_project.GDC_metadata.relXX_slide2caseIDmap
+
+  # Where is the table that maps file ID to URL
+  UUID_2_URL_TABLE: your_bq_dataset_name_in_working_project.GDC_manifests.drXX_paths_
+
+  # Some intermediate steps:
+
+  SLIDE_STEP_0_TABLE: Slide_Zero
+  SLIDE_STEP_1_TABLE: Slide_One
+  SLIDE_STEP_2_TABLE: Slide_Two
+  ALIQUOT_STEP_0_TABLE: Aliquot_Zero
+  ALIQUOT_STEP_1_TABLE: Aliquot_One
+  ALIQUOT_STEP_2_TABLE: Aliquot_Two
+  CASE_STEP_1_TABLE: Case_One
+  CASE_STEP_2_TABLE: Case_Two
+
+  # PRE-URI:
+  UNION_TABLE: no_url_per_sample_file_metadata
+
+  # Final table name:
+  FINAL_TABLE: per_sample_file_metadata
+
+  # Release:
+  RELEASE: rXX
+
+  # Should all tables be published? (true) or should only new tables be published (false)
+  # Default: False
+  PUBLISH_ALL: False
+
+builds:
+  - hg19
+  - hg38
+
+build_tags:
+  - legacy
+  - current
+
+path_tags:
+  - legacy
+  - active
+
+# (OPTIONAL) Only run the workflow on certain programs
+programs:
+
+update_schema_tables:
+  - versioned
+  - current
+
+# The table schema from the repo is generic, and needs to be individualized for each table
+# with the following tags. "~-" means use above parameter, "~lc-" does the same with conversion to lower case, "~lcbqs-" does this as well, plus changes "." characters to "_"
+
+schema_tags:
+
+    - ---tag-program--- : ~-programs
+    - ---tag-archive--- : ~-path_tags
+    - ---tag-release-month-year--- : MMM YYYY
+    - ---tag-release-url-anchor--- : data-release-XXX
+    - ---tag-ref-genome-0--- : ~lc-builds
+    - ---tag-release--- : RELXX
+    - ---tag-source-0--- : ~lcbqs-programs
+
+steps:
+
+  # Get table metadata out of GitHub:
+  - pull_table_info_from_git
+
+  # Confirm that the number of aliquots per file is what we can handle:
+  - count_aliquots
+
+  # Pull data from schema:
+  - process_git_schemas
+
+  # Slide data:
+  - pull_slides
+
+  # Fix bogus legacy GDC slide files entries:
+  - repair_slides
+
+  # Aliquot data:
+  - pull_aliquot
+
+  # Split multi-aliquot files to two rows:
+  - expand_aliquots
+
+  # case data:
+  - pull_case
+
+  # Get barcodes:
+  - slide_barcodes
+
+  # Get barcodes:
+  - aliquot_barcodes
+
+  # Get barcodes:
+  - case_barcodes
+
+  # Create the union table:
+  - union_tables
+
+  # Create the versioned table:
+  - create_versioned_table
+
+  # Create curernt table draft
+  - create_current_table
+
+  # Customize generic schema:
+  - replace_schema_tags
+
+  # Install per-field table descriptions:
+  - install_field_descriptions
+
+  # Install table description, tags, and friendly names:
+  - install_table_description
+
+  #- check_for_new_data
+
+  # Remove old current table
+  - compare_remove_old_current
+  # publish the tables:
+  - publish
+
+  # Delete working tables:
+  - dump_working_tables
