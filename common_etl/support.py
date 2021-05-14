@@ -58,6 +58,7 @@ def checkToken(aToken):
 
     return ( aToken )
 
+
 def pickColumns(tokenList):
     """
     Sheila's legacy pickColumns() Function
@@ -92,6 +93,7 @@ def pickColumns(tokenList):
                 newList += [ tokenList[ii] ]
 
     return newList
+
 
 def write_MAFs(tumor, mutCalls, hdrPick, mutCallers, do_logging):
     """
@@ -357,6 +359,7 @@ def pull_list_builder_sql(manifest_table, indexd_table):
 #
 # Like the above function, but uses the final public mapping table instead:
 #
+
 
 def pull_list_builder_sql_public(manifest_table, indexd_table):
     """
@@ -740,6 +743,7 @@ def pull_from_buckets(pull_list, local_files_dir):
             print_progress_bar(copy_count, num_files)
     print_progress_bar(num_files, num_files)
 
+
 def build_file_list(local_files_dir):
     """
     Build the File List
@@ -810,11 +814,14 @@ def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, wri
         return False
     return True
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Use to run queries where we want to get the result back to use (not write into a table)
 '''
-def bq_harness_with_result(sql, do_batch):
+
+
+def bq_harness_with_result(sql, do_batch, verbose=True):
     """
     Handles all the boilerplate for running a BQ job
     """
@@ -832,15 +839,18 @@ def bq_harness_with_result(sql, do_batch):
     job_state = 'NOT_STARTED'
     while job_state != 'DONE':
         query_job = client.get_job(query_job.job_id, location=location)
-        print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
+        if verbose:
+            print('Job {} is currently in state {}'.format(query_job.job_id, query_job.state))
         job_state = query_job.state
         if job_state != 'DONE':
             time.sleep(5)
-    print('Job {} is done'.format(query_job.job_id))
+    if verbose:
+        print('Job {} is done'.format(query_job.job_id))
 
     query_job = client.get_job(query_job.job_id, location=location)
     if query_job.error_result is not None:
-        print('Error result!! {}'.format(query_job.error_result))
+        if verbose:
+            print('Error result!! {}'.format(query_job.error_result))
         return None
 
     results = query_job.result()
@@ -1028,6 +1038,7 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
     return True
 
+
 def typing_tups_to_schema_list(typing_tups, holding_list):
     #
     # Need to create a typed list for the initial TSV import:
@@ -1046,6 +1057,7 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
 
     return True
 
+
 def update_schema(target_dataset, dest_table, schema_dict_loc):
     """
     Update the Schema of a Table
@@ -1063,6 +1075,7 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
+
 # The below three functions break the multiple schema steps into distinct pieces
 # retrieve a schema from a table, update it using a dictionary of new values, write to BQ
 def retrieve_table_schema(target_dataset, dest_table, project=None):
@@ -1075,12 +1088,14 @@ def retrieve_table_schema(target_dataset, dest_table, project=None):
         print(ex)
         return False
 
+
 def update_table_schema(schema, add_dict):
     schema_dict = {field.name: field for field in schema}
     for key in add_dict:
         schema_dict[key] = bigquery.SchemaField( key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'] )
     updated_schema = [schema_dict[key] for key in schema_dict]
     return updated_schema
+
 
 def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
     try:
@@ -1093,6 +1108,7 @@ def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
     except Exception as ex:
         print(ex)
         return False
+
 
 def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
@@ -1117,6 +1133,7 @@ def update_schema_with_dict(target_dataset, dest_table, full_schema, project=Non
 
     return True
 
+
 def update_description(target_dataset, dest_table, desc):
     """
     Update the Description of a Table¶
@@ -1129,6 +1146,7 @@ def update_description(target_dataset, dest_table, desc):
     table = client.update_table(table, ["description"])
     return True
 
+
 def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
@@ -1139,6 +1157,7 @@ def update_status_tag(target_dataset, dest_table, status, project=None):
     table.labels = {"status": status}
     table = client.update_table(table, ["labels"])
     return True
+
 
 def bq_table_exists(target_dataset, dest_table):
     """
@@ -1152,6 +1171,7 @@ def bq_table_exists(target_dataset, dest_table):
     except NotFound:
         return False
 
+
 def bq_table_is_empty(target_dataset, dest_table):
     """
     Is table empty?
@@ -1160,6 +1180,7 @@ def bq_table_is_empty(target_dataset, dest_table):
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     return table.num_rows == 0
+
 
 def delete_table_bq_job(target_dataset, delete_table, project = None):
 
@@ -1175,6 +1196,7 @@ def delete_table_bq_job(target_dataset, delete_table, project = None):
         return False
 
     return True
+
 
 def confirm_google_vm():
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"
@@ -1218,6 +1240,7 @@ def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1,
         print()
     return
 
+
 def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     """
     Transfer description of schema from e.g. table to view
@@ -1253,6 +1276,7 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     client.update_table(trg_table, ["schema"])
     return True
 
+
 def list_schema(source_dataset, source_table):
     """
     List schema
@@ -1272,6 +1296,7 @@ def list_schema(source_dataset, source_table):
 Take the BQ Ecosystem json file for the table and break out the pieces into chunks that will
 be arguments to the bq command used to create the table.
 '''
+
 
 def generate_table_detail_files(dict_file, file_tag):
 
@@ -1304,6 +1329,7 @@ def generate_table_detail_files(dict_file, file_tag):
 Take the staging files for a generic BQ metadata load and customize it for a single data set
 using tags.
 '''
+
 
 def customize_labels_and_desc(file_tag, tag_map_list):
 
@@ -1344,6 +1370,7 @@ def customize_labels_and_desc(file_tag, tag_map_list):
 ----------------------------------------------------------------------------------------------
 Take the labels and description of a BQ table and get them installed
 '''
+
 
 def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
@@ -1388,11 +1415,49 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
 
     return True
 
+
+def find_most_recent_release(dataset, base_table, project=None):
+    """
+
+    This function iterates though all tables of a BigQuery versioned dataset to find the most recent release of version
+    number of a certain data type.
+
+    :param dataset: Dataset to search
+    :type dataset: basestring
+    :param base_table: The table name before the release number (must include _ before release number)
+    :type base_table: basestring
+    :param project: Which project is the data set in?
+    :type project: basestring
+
+    :returns: The highest version number of that table type in that dataset as a string
+    """
+    print('finding most recent release in ' + dataset)
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        release = ''  # variable for the most recent release
+        table_create = ''  # the most recently created table
+        # Iterate through all of the tables in a dataset
+        for t in list(client.list_tables(dataset)):
+            # If the table has a newer create date then the one in table_create date, check if the table name matches
+            # the base table name, if so then save the release number
+            if table_create < str(t.created):
+                len_base_table = len(base_table)
+                if t.table_id[:len_base_table] == base_table:
+                    table_create = str(t.created)
+                    release = t.table_id[len(base_table):]
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return release
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
 be arguments to the bq command used to update the dataset.
 '''
+
 
 def generate_dataset_desc_file(dict_file, file_tag):
 
@@ -1417,6 +1482,7 @@ def generate_dataset_desc_file(dict_file, file_tag):
 Take the description of a BQ dataset and get it installed
 '''
 
+
 def install_dataset_desc(dataset_id, file_tag, project=None):
 
     try:
@@ -1439,6 +1505,7 @@ def install_dataset_desc(dataset_id, file_tag, project=None):
 ----------------------------------------------------------------------------------------------
 Create a new BQ dataset
 '''
+
 
 def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
 
@@ -1524,14 +1591,14 @@ def publish_table(source_table, target_table):
 
 '''
 ----------------------------------------------------------------------------------------------
-Is the table that is replacing the view exactly the same?
+Are two tables exactly the same?
 '''
 
 def compare_two_tables(old_table, new_table, do_batch):
     old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
-    
-    old_schema = retrieve_table_schema( old_table_spl[1], old_table_spl[2], old_table_spl[0] )
-    new_schema = retrieve_table_schema( new_table_spl[1], new_table_spl[2], new_table_spl[0] )
+
+    old_schema = retrieve_table_schema(old_table_spl[1], old_table_spl[2], old_table_spl[0])
+    new_schema = retrieve_table_schema(new_table_spl[1], new_table_spl[2], new_table_spl[0])
     if len(old_schema) != len(new_schema):
         return 'Number of fields do not match'
     sql = compare_two_tables_sql(old_table, new_table)
@@ -1563,15 +1630,49 @@ def evaluate_table_union(bq_results):
     using the count of distinct rows in their union
     return True/False"""
     if not bq_results:
-        print( 'Table comparison failed')
-        return( False )
+        print('Table comparison failed')
+        return False
     if bq_results == 'Number of fields do not match':
-        print( bq_results )
-        return ( 'different' )
+        print(bq_results)
+        return 'different'
     row_difference = bq_results.total_rows
     if row_difference == 0:
-        print( 'The tables are identical' )
-        return ( 'identical' )
+        print('The tables are identical')
+        return 'identical'
     else:
-        print( 'The tables differ by {} rows'.format(row_difference) )
-        return( 'different' )
+        print('The tables differ by {} rows'.format(row_difference))
+        return 'different'
+
+
+def remove_old_current_tables(old_current_table, previous_ver_table, table_temp, do_batch):
+    project, dataset, table = old_current_table.split('.')
+    compare = compare_two_tables(old_current_table, previous_ver_table, do_batch)
+    if compare is not None:
+        # Evaluate the two tables
+        evaluate_compare = evaluate_table_union(compare)
+
+        if not compare:
+            print('compare_tables failed')
+            return False
+        # move old table to a temporary location
+        elif compare and evaluate_compare == 'identical':
+            print('Move old table to temp location')
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+                return False
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(dataset,
+                                                   table.format('current'), project)
+
+                if not delete_table:
+                    print('delete table failed')
+                    return False
+    else:
+        print('no previous table available for this data type')
+        return False
+
+    return True
