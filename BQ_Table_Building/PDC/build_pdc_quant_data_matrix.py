@@ -694,7 +694,7 @@ def main(args):
                                                endpoint=API_PARAMS['GENE_ENDPOINT'],
                                                schema=gene_schema)
 
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, gene_table_id)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, gene_table_id,)
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:

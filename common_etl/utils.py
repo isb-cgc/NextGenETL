@@ -257,15 +257,21 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def add_generic_table_metadata(bq_params, table_id, schema_tags):
+def add_generic_table_metadata(bq_params, table_id, schema_tags, metadata_file=None):
     """
 
+    todo
     :param bq_params: bq_params supplied in yaml config
     :param table_id: table id for which to add the metadata
     :param schema_tags: dictionary of generic schema tag keys and values
-    :return:
+    :param metadata_file:
     """
-    metadata_dir = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_TABLE_METADATA_FILEPATH']}"
+    generic_schema_path = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_SCHEMA_DIR']}"
+
+    if not metadata_file:
+        metadata_dir = f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}"
+    else:
+        metadata_dir = f"{generic_schema_path}/{metadata_file}"
     # adapts path for vm
     metadata_fp = get_filepath(metadata_dir)
 

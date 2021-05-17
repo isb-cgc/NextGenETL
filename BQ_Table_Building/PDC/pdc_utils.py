@@ -421,7 +421,7 @@ def get_pdc_studies_list(api_params, bq_params, include_embargoed=False):
     return studies_list
 
 
-def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict()):
+def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict(), metadata_file=None):
     """
 
     todo
@@ -429,12 +429,15 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
     :param bq_params:
     :param table_id:
     :param schema_tags:
-    :return:
+    :param metadata_file:
     """
     schema_tags['version'] = api_params['RELEASE']
     schema_tags['extracted-month-year'] = api_params['EXTRACTED_MONTH_YEAR']
 
-    add_generic_table_metadata(bq_params=bq_params, table_id=table_id, schema_tags=schema_tags)
+    add_generic_table_metadata(bq_params=bq_params,
+                               table_id=table_id,
+                               schema_tags=schema_tags,
+                               metadata_file=metadata_file)
     add_column_descriptions(bq_params=bq_params, table_id=table_id)
 
 
