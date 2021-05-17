@@ -665,7 +665,10 @@ def main(args):
             "uniprot-version": API_PARAMS['UNIPROT_RELEASE']
         }
 
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, final_refseq_table_id, schema_tags=schema_tags)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                             table_id=final_refseq_table_id,
+                                             schema_tags=schema_tags,
+                                             metadata_file=BQ_PARAMS['GENERIC_REFSEQ_TABLE_METDATA_FILE'])
 
         if exists_bq_table(final_refseq_table_id):
             delete_bq_table(refseq_table_id)
@@ -694,7 +697,9 @@ def main(args):
                                                endpoint=API_PARAMS['GENE_ENDPOINT'],
                                                schema=gene_schema)
 
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, gene_table_id,)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                             table_id=gene_table_id,
+                                             metadata_file=BQ_PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
     if 'build_quant_tsvs' in steps:
         for study_id_dict in studies_list:
