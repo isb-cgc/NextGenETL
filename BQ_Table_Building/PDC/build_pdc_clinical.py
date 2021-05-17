@@ -557,10 +557,15 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
         project_short_name, program_short_name, project_name = get_project_program_names(API_PARAMS, BQ_PARAMS,
                                                                                          project_submitter_id)
 
+        friendly_project_name_upper = make_string_bq_friendly(project_name).upper()
+        friendly_project_name_upper = friendly_project_name_upper.replace("_", " ")
+
+        # todo test
+
         schema_tags = {
             "project-name": project_name,
             "mapping-name": "",
-            "friendly-project-name-upper": make_string_bq_friendly(project_name).upper(),
+            "friendly-project-name-upper": friendly_project_name_upper,
             "program-name-lower": program_short_name.lower()
         }
 
