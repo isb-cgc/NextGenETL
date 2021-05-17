@@ -315,7 +315,7 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
 
     return f"""
     SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, 
-        project_submitter_id, analytical_fraction, program_short_name
+        project_submitter_id, analytical_fraction, program_short_name, project_friendly_name
     FROM  `{table_id}`
     """
 
