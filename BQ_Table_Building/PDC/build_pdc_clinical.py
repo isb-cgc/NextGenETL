@@ -397,10 +397,9 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
     temp_table = client.get_table(temp_table_id)
     table_schema = temp_table.schema
 
-    project_short_name, program_short_name, project_name = get_project_program_names(API_PARAMS, BQ_PARAMS,
-                                                                                     project_submitter_id)
+    project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
-    clinical_project_prefix = f"{clinical_type}_{project_short_name}_{API_PARAMS['DATA_SOURCE']}"
+    clinical_project_prefix = f"{clinical_type}_{project_name_dict['project_short_name']}_{API_PARAMS['DATA_SOURCE']}"
 
     table_name = construct_table_name(API_PARAMS, prefix=clinical_project_prefix)
     clinical_project_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['CLINICAL_DATASET']}.{table_name}"
@@ -554,19 +553,13 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
             clinical_records.append(clinical_case_record)
 
-        project_short_name, program_short_name, project_name = get_project_program_names(API_PARAMS, BQ_PARAMS,
-                                                                                         project_submitter_id)
-
-        friendly_project_name_upper = make_string_bq_friendly(project_short_name).upper()
-        friendly_project_name_upper = friendly_project_name_upper.replace("_", " ")
-
-        # todo test
+        project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
         schema_tags = {
-            "project-name": project_name,
+            "project-name": project_name_dict['project_name'],
             "mapping-name": "",
-            "friendly-project-name-upper": friendly_project_name_upper,
-            "program-name-lower": program_short_name.lower()
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+            "program-name-lower": project_name_dict['program_short_name'].lower()
         }
 
         if clinical_records:
@@ -718,8 +711,9 @@ def main(args):
 
         for study in pdc_study_ids:
             project_submitter_id = study['project_submitter_id']
-            project_short_name, dataset, pn = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
-            dataset_map[project_short_name] = dataset
+            project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
+            project_short_name = project_name_dict['project_short_name']
+            dataset_map[project_short_name] = project_name_dict['program_short_name']
 
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],

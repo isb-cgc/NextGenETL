@@ -456,7 +456,7 @@ def get_project_program_names(api_params, bq_params, project_submitter_id):
     study_table_id = f"{bq_params['DEV_PROJECT']}.{bq_params['META_DATASET']}.{study_table_name}"
 
     query = f"""
-        SELECT project_short_name, program_short_name, project_name
+        SELECT project_short_name, program_short_name, project_name, project_friendly_name
         FROM {study_table_id}
         WHERE project_submitter_id = '{project_submitter_id}'
         LIMIT 1
@@ -469,6 +469,15 @@ def get_project_program_names(api_params, bq_params, project_submitter_id):
         project_short_name = row[0]
         program_short_name = row[1]
         project_name = row[2]
-        return project_short_name, program_short_name, project_name
+        project_friendly_name = row[3]
+
+        project_name_dict = {
+            "project_short_name": project_short_name,
+            "program_short_name": program_short_name,
+            "project_name": project_name,
+            "project_friendly_name": project_friendly_name
+        }
+
+        return project_name_dict
 
 
