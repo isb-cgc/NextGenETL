@@ -872,11 +872,45 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
 
 
 def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
+    """
+    Loads a csv file into BigQuery
+
+    :param schema: Dictionary of field name (key) and description (value)
+    :type schema: dict
+    :param csv_uri: Bucket location of the file in the form of gs://working_bucket/filename.csv
+    :type csv_uri: basestring
+    :param dataset_id: Name of the dataset where the table will be created
+    :type dataset_id: basestring
+    :param targ_table: Name of the table to be created
+    :type targ_table: basestring
+    :param do_batch: Should the BQ job be run in Batch Mode? Slower but uses less quotas
+    :type do_batch: bool
+    :return: Whether the BQ job was completed
+    :rtype: bool
+    """
     return csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table,
                                 do_batch, bigquery.WriteDisposition.WRITE_TRUNCATE)
 
 
 def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
+    """
+    Loads a csv file into BigQuery with option to specify disposition
+
+    :param schema: Dictionary of field name (key) and description (value)
+    :type schema: dict
+    :param csv_uri: Bucket location of the file in the form of gs://working_bucket/filename.csv
+    :type csv_uri: basestring
+    :param dataset_id: Name of the dataset where the table will be created
+    :type dataset_id: basestring
+    :param targ_table: Name of the table to be created
+    :type targ_table: basestring
+    :param do_batch: Should the BQ job be run in Batch Mode? Slower but uses less quotas
+    :type do_batch: bool
+    :param write_depo: Should the table be overwritten or appended?
+    :type write_depo: class
+    :return: Whether the BQ job was completed
+    :rtype: bool
+    """
     client = bigquery.Client()
 
     dataset_ref = client.dataset(dataset_id)
@@ -992,6 +1026,19 @@ def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_in
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
     Merge schema descriptions (if any) and ISB-added descriptions with inferred type data
+
+    :param scraped: JSON file name with scraped table schema
+    :type scraped: basestring
+    :param augmented: JSON file name of table schema
+    :type augmented: basestring
+    :param typing_tups: List of tuples with (name, type)
+    :type typing_tups: list
+    :param holding_list: Filename for where to save a list of field names
+    :type holding_list: basestring
+    :param holding_dict: Filename for where to save a dictionary of fields and descriptions
+    :type holding_dict: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     schema_list = []
     if scraped is not None:
@@ -1040,10 +1087,16 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
 
 def typing_tups_to_schema_list(typing_tups, holding_list):
-    #
-    # Need to create a typed list for the initial TSV import:
-    #
+    """
+    Need to create a typed list for the initial TSV import
 
+    :param typing_tups: List of tuples with (name, type)
+    :type typing_tups: list
+    :param holding_list: Filename for where to save a list of field names
+    :type holding_list: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
+    """
     typed_schema = []
     for tup in typing_tups:
         no_desc = {
@@ -1062,6 +1115,15 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
     """
     Update the Schema of a Table
     Final derived table needs the schema descriptions to be installed.
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param schema_dict_loc: Filename for where to dictionary of fields and descriptions is saved
+    :type schema_dict_loc: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     try:
         with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -1075,10 +1137,19 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
-
-# The below three functions break the multiple schema steps into distinct pieces
-# retrieve a schema from a table, update it using a dictionary of new values, write to BQ
 def retrieve_table_schema(target_dataset, dest_table, project=None):
+    """
+    retrieve a schema from a table
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Table schema
+    :rtype: dict
+    """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
@@ -1090,14 +1161,38 @@ def retrieve_table_schema(target_dataset, dest_table, project=None):
 
 
 def update_table_schema(schema, add_dict):
+    """
+    Combine original field schema to a new dictionary of field schema
+
+    :param schema: Original table field schema
+    :type schema: dict
+    :param add_dict: Dictionary of field schema to add to the original field schema
+    :type add_dict: dict
+    :return: A combined schema with the original and added field schema
+    :rtype: dict
+    """
     schema_dict = {field.name: field for field in schema}
     for key in add_dict:
-        schema_dict[key] = bigquery.SchemaField( key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'] )
+        schema_dict[key] = bigquery.SchemaField(key, add_dict[key]['type'], u'NULLABLE', add_dict[key]['desc'])
     updated_schema = [schema_dict[key] for key in schema_dict]
     return updated_schema
 
 
 def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
+    """
+    Update field schema on table
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param new_schema: Dictionary of field schema to update table with
+    :type new_schema: dict
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
+    """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         table_ref = client.dataset(target_dataset).table(dest_table)
@@ -1113,7 +1208,17 @@ def write_schema_to_table(target_dataset, dest_table, new_schema, project=None):
 def update_schema_with_dict(target_dataset, dest_table, full_schema, project=None):
     """
     Update the Schema of a Table
-    Final derived table needs the schema descriptions to be installed.
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param full_schema: Dictionary of Table Schema
+    :type full_schema: dict
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
     """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
@@ -1136,8 +1241,16 @@ def update_schema_with_dict(target_dataset, dest_table, full_schema, project=Non
 
 def update_description(target_dataset, dest_table, desc):
     """
-    Update the Description of a Table¶
-    Final derived table needs a description
+    Update the description of a table
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param desc: Description to update table with
+    :type desc: basestring
+    :return: Whether the function succeeded
+    :rtype: bool
     """
     client = bigquery.Client()
     table_ref = client.dataset(target_dataset).table(dest_table)
@@ -1150,6 +1263,17 @@ def update_description(target_dataset, dest_table, desc):
 def update_status_tag(target_dataset, dest_table, status, project=None):
     """
     Update the status tag of a big query table once a new version of the table has been created
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param status: The value you want to change the table label to
+    :type status: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function works
+    :rtype: bool
     """
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
@@ -1260,6 +1384,17 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     STAB = "table_name"
     transfer_schema(TDS, DTAB, SDS, STAB)
 
+    :param target_dataset: Dataset name of the view to be updated
+    :type target_dataset: basestring
+    :param dest_table: Name of the view to be updated
+    :type dest_table: basestring
+    :param source_dataset: Dataset name of where the schema is coming from
+    :type source_dataset: basestring
+    :param source_table: Table name of where the schema is coming from
+    :type source_table: basestring
+    :return: Whether the function worked
+    :rtype: bool
+
     """
 
     client = bigquery.Client()
@@ -1280,6 +1415,13 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
 def list_schema(source_dataset, source_table):
     """
     List schema
+
+    :param source_dataset: Dataset name
+    :type source_dataset: basestring
+    :param source_table: Table name
+    :type source_table: basestring
+    :return: whether the function worked
+    :rtype: bool
     """
 
     client = bigquery.Client()
@@ -1332,7 +1474,16 @@ using tags.
 
 
 def customize_labels_and_desc(file_tag, tag_map_list):
+    """
+    Updates schema files to fill in dynamic variables within the json files
 
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :param tag_map_list: List of tags to values
+    :type tag_map_list: list
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
@@ -1373,7 +1524,20 @@ Take the labels and description of a BQ table and get them installed
 
 
 def install_labels_and_desc(dataset, table_name, file_tag, project=None):
+    """
+    Update table schema
 
+    :param dataset: Dataset Name
+    :type dataset: basestring
+    :param table_name: Table Name
+    :type table_name: basestring
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :param project: Project Name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
@@ -1461,9 +1625,15 @@ be arguments to the bq command used to update the dataset.
 
 def generate_dataset_desc_file(dict_file, file_tag):
 
-    #
-    # Read in the chunks and write them out into pieces the bq command can use
-    #
+    """
+    Read in the chunks and write them out into pieces the bq command can use
+    :param dict_file: Schema Json file
+    :type dict_file: basestring
+    :param file_tag: File prefix for the workflow
+    :type file_tag: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
 
     try:
         with open(dict_file, mode='r') as bqt_dict_file:
@@ -1484,7 +1654,18 @@ Take the description of a BQ dataset and get it installed
 
 
 def install_dataset_desc(dataset_id, file_tag, project=None):
+    """
+    Update Dataset Description
 
+    :param dataset_id: Dataset name
+    :type dataset_id: basestring
+    :param file_tag: Json schema file
+    :type file_tag: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function worked
+    :rtype: bool
+    """
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
