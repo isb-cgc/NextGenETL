@@ -537,7 +537,9 @@ def main(args):
 
         print('Compare {} to {}'.format(old_current_table, previous_ver_table))
 
-        compare = compare_two_tables(publish_full_table_id_current, previous_ver_table, params['BQ_AS_BATCH'])
+        compare = compare_two_tables(publish_full_table_id_current,
+                                     f"{publish_project}.{publish_dataset_id}.{previous_ver_table}",
+                                     params['BQ_AS_BATCH'])
 
         num_rows = compare.total_rows
 
