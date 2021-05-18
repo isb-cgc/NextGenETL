@@ -183,9 +183,9 @@ def main(args):
 
     # todo bq variables
 
-    upload_table = f"params['PROGRAM']_params['DATA_TYPE']"
-    manifest_table = f"params['PROGRAM']_params['DATA_TYPE']_manifest"
-    pull_list_table = f"params['PROGRAM']_params['DATA_TYPE']_pull_list"
+    upload_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}"
+    manifest_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_manifest"
+    pull_list_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_pull_list"
     draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
 
