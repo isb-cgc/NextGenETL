@@ -34,7 +34,11 @@ def main(args):
 
     source_table = args[1]
     target_table = args[2]
-
+    target_split = target_table.split('.')
+    try:
+        delete_table = delete_table_bq_job(target_split[1], target_split[2], target_split[0])
+    except:
+        print('table deletion failed')
     publish_table(source_table, target_table)
 
 if __name__ == "__main__":
