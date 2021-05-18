@@ -626,18 +626,35 @@ if [ "${PUBLISH_TABLES}" == "run" ]; then
     echo "Running PUBLISH_TABLES"
     source ~/pyVenvForThree/bin/activate
     cd ${REL_ROOT}/${RELNAME}-forBQ
-    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_slide2caseIDmap \
-                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_slide2caseIDmap
-    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_aliquot2caseIDmap \
-                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_aliquot2caseIDmap
-    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_caseData \
-                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_caseData
-    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_fileData_legacy \
-                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_fileData_legacy
+    python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_slide2caseIDmap \
+                                        ${PUB_PROJECT}.${PUB_DATASET}_versioned.slide2caseIDmap_${PUB_RELNAME}
+    python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_aliquot2caseIDmap \
+                                        ${PUB_PROJECT}.${PUB_DATASET}_versioned.aliquot2caseIDmap_${PUB_RELNAME}
+    python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_caseData \
+                                        ${PUB_PROJECT}.${PUB_DATASET}_versioned.caseData_${PUB_RELNAME}
+    python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_fileData_legacy \
+                                        ${PUB_PROJECT}.${PUB_DATASET}_versioned.fileData_legacy_${PUB_RELNAME}
     # Note what we call "current" is now being called "active" in the published table:
-    python3 ../scripts/publish_table.py ${SOURCE_PROJ_AND_DATASET_AND_REL}_fileData_current \
-                                        ${PUBLISH_PROJ_AND_DATASET_AND_REL}_fileData_active
+    python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_fileData_current \
+                                        ${PUB_PROJECT}.${PUB_DATASET}_versioned.fileData_active_${PUB_RELNAME}
     deactivate
+fi
+
+if [ "${PUBLISH_TO_CURRENT}" == "run" ]; then
+   echo "Running PUBLISH_TO_CURRENT"
+   source ~/pyVenvForThree/bin/activate
+   cd ${REL_ROOT}/${RELNAME}-forBQ
+   python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_slide2caseIDmap \
+	   			       ${PUB_PROJECT}.${PUB_DATASET}.slide2caseIDmap_current
+   python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_aliquot2caseIDmap \
+   				       ${PUB_PROJECT}.${PUB_DATASET}.aliquot2caseIDmap_current
+   python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_caseData \
+	                               ${PUB_PROJECT}.${PUB_DATASET}.caseData_current
+   python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_fileData_legacy \
+   				       ${PUB_PROJECT}.${PUB_DATASET}.fileData_legacy_current
+   python3 ../scripts/publish_table.py ${WORKING_PROJECT}.${DATASET}.${RELNAME}_fileData_current \
+	                               ${PUB_PROJECT}.${PUB_DATASET}.fileData_active_current
+   deactivate
 fi
 
 #
