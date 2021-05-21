@@ -405,10 +405,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         table_id_no_release = _versioned_table_id.replace(current_gdc_release, '')
 
         for release in range(last_gdc_release, oldest_etl_release - 1, -1):
-            prev_release_table_name = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
-            prev_release_table_id = construct_table_id(project=bq_params['DEV_PROJECT'],
-                                                       dataset=bq_params['DEV_DATASET'],
-                                                       table_name=prev_release_table_name)
+            prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
             if exists_bq_table(prev_release_table_id):
                 # found last release table, stop iterating
                 return prev_release_table_id
