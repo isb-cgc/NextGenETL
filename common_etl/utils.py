@@ -443,7 +443,8 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
     versioned_table_id = {versioned_table_id}
     current_table_id = {current_table_id}
     """)
-    exit()
+
+    time.sleep(5)
 
     if exists_bq_table(source_table_id):
         print(f"Publishing {versioned_table_id}")
