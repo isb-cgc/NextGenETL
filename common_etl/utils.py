@@ -409,7 +409,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
         data_type = split_table_id[-1]
         data_type = data_type.replace(rel_prefix, '').strip('_')
-        data_type = data_type.replace(public_dataset, '')
+        data_type = data_type.replace(public_dataset + '_', '')
 
         curr_table_name = construct_table_name_from_list([data_type, data_source, 'current'])
         curr_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
