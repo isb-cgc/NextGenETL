@@ -29,7 +29,7 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, wri
                               get_scratch_fp, upload_to_bucket, get_graphql_api_response, has_fatal_error,
                               load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
-                              update_schema, update_table_metadata, construct_table_name, construct_table_id,
+                              update_table_metadata, construct_table_name, construct_table_id,
                               add_generic_table_metadata, add_column_descriptions)
 
 from common_etl.support import (bq_harness_with_result)

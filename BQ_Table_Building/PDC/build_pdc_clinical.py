@@ -29,7 +29,7 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, create_and_upload_schema_for_json,
-                              retrieve_bq_schema_object, make_string_bq_friendly)
+                              retrieve_bq_schema_object)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
