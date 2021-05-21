@@ -1120,11 +1120,10 @@ def copy_tables_into_public_project(publish_table_list):
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-    for table_name in publish_table_list:
-        split_table_name = table_name.split('_')
+    for src_table_id in publish_table_list:
+        split_table_name = src_table_id.split('_')
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
-        src_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
         publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
