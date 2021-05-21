@@ -1121,7 +1121,8 @@ def copy_tables_into_public_project(publish_table_list):
 
     """
     for src_table_id in publish_table_list:
-        split_table_name = src_table_id.split('_')
+        table_name = src_table_id.split('.')[2]
+        split_table_name = table_name.split('_')
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
 
