@@ -1126,6 +1126,9 @@ def copy_tables_into_public_project(publish_table_list):
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
 
+        if public_dataset == "BEATAML1":
+            public_dataset = "BEATAML1_0"
+
         publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
 
 
