@@ -1666,7 +1666,7 @@ def main(args):
         view_queries = {
             "BEATAML1_0": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1682,7 +1682,7 @@ def main(args):
             """,
             "CGCI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1707,7 +1707,7 @@ def main(args):
             """,
             "CMI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1722,7 +1722,7 @@ def main(args):
             """,
             "CPTAC": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1745,7 +1745,7 @@ def main(args):
             """,
             "CTSP": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1762,7 +1762,7 @@ def main(args):
             """,
             "FM": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1778,7 +1778,7 @@ def main(args):
             """,
             "GENIE": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1794,7 +1794,7 @@ def main(args):
             """,
             "HCMI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1819,7 +1819,7 @@ def main(args):
             """,
             "MMRF": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1835,7 +1835,7 @@ def main(args):
             """,
             "NCICCR": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1851,7 +1851,7 @@ def main(args):
             """,
             "OHSU": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1867,7 +1867,7 @@ def main(args):
             """,
             "ORGANOID": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1883,7 +1883,7 @@ def main(args):
             """,
             "TARGET": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1899,7 +1899,7 @@ def main(args):
             """,
             "TCGA": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,            
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,            
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1922,7 +1922,7 @@ def main(args):
             """,
             "VAREPOP": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1940,7 +1940,7 @@ def main(args):
             """,
             "WCDT": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
