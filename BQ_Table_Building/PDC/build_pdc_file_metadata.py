@@ -57,7 +57,7 @@ def make_files_per_study_query(study_id):
             file_location 
             file_size 
             data_category 
-            file_xsWXSv
+            file_format
             signedUrl {{
                 url
             }}
