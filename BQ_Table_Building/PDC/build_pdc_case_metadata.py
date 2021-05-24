@@ -282,7 +282,9 @@ def main(args):
                                       table_name=table_name)
 
         load_table_from_query(BQ_PARAMS, table_id, aliquot_to_case_id_query)
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                             table_id=table_id,
+                                             metadata_file=BQ_PARAMS['GENERIC_ALIQ_MAP_METADATA_FILE'])
 
     if "publish_case_metadata_tables" in steps:
         # Publish master case metadata table

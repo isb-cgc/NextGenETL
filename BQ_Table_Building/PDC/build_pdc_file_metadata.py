@@ -414,7 +414,9 @@ def main(args):
                               table_id=full_table_id,
                               query=make_associated_entities_query())
 
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, full_table_id)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                             table_id=full_table_id,
+                                             metadata_file=BQ_PARAMS['GENERIC_ASSOC_ENTITY_METADATA_FILE'])
 
     if 'create_file_count_table' in steps:
         # creates case_id -> file count mapping table, used for case metadata table

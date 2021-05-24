@@ -478,9 +478,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         change_status_to_archived(versioned_table_id)
 
 
-
-
-
 def await_insert_job(bq_params, client, table_id, bq_job):
     """
 
@@ -1419,7 +1416,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     def aggregate_column_data_types():
         """
-
         Open tsv file and aggregate data types for each column.
         """
         with open(tsv_fp, 'r') as tsv_file:
@@ -1473,11 +1469,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     # if no header list supplied here, headers are generated from header_row.
     columns = get_column_list()
 
-    """
-    if types_dict:
-        data_types_dict = types_dict
-    else:
-    """
     if not header_list and not header_row and not isinstance(header_row, int):
         has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
     if header_row and header_list:

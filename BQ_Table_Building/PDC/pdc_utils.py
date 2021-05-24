@@ -431,7 +431,8 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
     :param schema_tags:
     :param metadata_file:
     """
-    schema_tags['version'] = api_params['RELEASE']
+    # remove underscore, add decimal to version number
+    schema_tags['version'] = ".".join(api_params['RELEASE'].split('_'))
     schema_tags['extracted-month-year'] = api_params['EXTRACTED_MONTH_YEAR']
 
     add_generic_table_metadata(bq_params=bq_params,

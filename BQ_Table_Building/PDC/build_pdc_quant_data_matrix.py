@@ -668,7 +668,7 @@ def main(args):
         update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
                                              table_id=final_refseq_table_id,
                                              schema_tags=schema_tags,
-                                             metadata_file=BQ_PARAMS['GENERIC_REFSEQ_TABLE_METDATA_FILE'])
+                                             metadata_file=BQ_PARAMS['GENERIC_REFSEQ_TABLE_METADATA_FILE'])
 
         if exists_bq_table(final_refseq_table_id):
             delete_bq_table(refseq_table_id)
