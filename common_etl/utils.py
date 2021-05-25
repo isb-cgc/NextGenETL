@@ -407,7 +407,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
                                                                  source_table_id=source_table_id,
                                                                  public_dataset=public_dataset)
-    previous_versioned_table_id = find_most_recent_published_table_id(versioned_table_id)
+    previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
     # TESTING PUBLISH
     if exists_bq_table(source_table_id):
