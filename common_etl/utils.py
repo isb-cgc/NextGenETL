@@ -383,7 +383,7 @@ def list_bq_tables(dataset_id, release=None):
     return table_list
 
 
-def publish_table(api_params, bq_params, public_dataset, source_table_id, overwrite=False):
+def publish_table(api_params, bq_params, public_dataset, source_table_id, overwrite=False, include_data_source=True):
     """
 
     Publish production BigQuery tables using source_table_id:
@@ -396,6 +396,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
     :param public_dataset: publish dataset location
     :param source_table_id: source (dev) table id
     :param overwrite: If True, replace existing BigQuery table; defaults to False
+    :param include_data_source: whether to include data source in final table names
     """
 
     def get_publish_table_ids():
@@ -410,10 +411,14 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_type = data_type.replace(rel_prefix, '').strip('_')
         data_type = data_type.replace(public_dataset + '_', '')
 
-        curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
-        curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+        if include_data_source:
+            curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+            vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+        else:
+            curr_table_name = construct_table_name_from_list([data_type, 'current'])
+            vers_table_name = construct_table_name_from_list([data_type, rel_prefix])
 
-        vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+        curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
         vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
 
         return curr_table_id, vers_table_id

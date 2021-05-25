@@ -396,7 +396,8 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=file_metadata_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      include_data_source=False)
 
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
@@ -404,7 +405,8 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      include_data_source=False)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
