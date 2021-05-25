@@ -397,7 +397,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_type = split_table_id[-1]
         data_type = data_type.replace(rel_prefix, '').strip('_')
         data_type = data_type.replace(public_dataset + '_', '')
-        data_type = data_type.replace(api_params['DATA_SOURCE'] + '_', '')
+        data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
 
         print(f"data_type: {data_type}")
 
