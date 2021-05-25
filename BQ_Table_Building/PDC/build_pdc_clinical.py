@@ -608,7 +608,6 @@ def get_publish_table_ids_clinical(api_params, bq_params, source_table_id, publi
     # derive data type from table id
     data_type = split_table_id[-1]
     data_type = data_type.replace(rel_prefix, '').strip('_')
-    data_type = data_type.replace(public_dataset + '_', '')
     data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
 
     curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
