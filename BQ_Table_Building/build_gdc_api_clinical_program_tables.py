@@ -1668,6 +1668,8 @@ def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset
     vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
     vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
 
+    return curr_table_id, vers_table_id
+
 
 def main(args):
     """Script execution function.

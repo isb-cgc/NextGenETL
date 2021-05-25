@@ -436,21 +436,21 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
                                                                         source_table_id)}
                   """)
 
-
-
-
     '''
     if exists_bq_table(source_table_id):
-        print(f"Publishing {versioned_table_id}")
-        copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
-
-        print(f"Publishing {current_table_id}")
-        copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
-
-        print(f"Updating friendly name for {versioned_table_id}\n")
-        is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
-        update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
-        change_status_to_archived(previous_versioned_table_id)
+        if publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
+            print(f"Publishing {versioned_table_id}")
+            copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
+    
+            print(f"Publishing {current_table_id}")
+            copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
+    
+            print(f"Updating friendly name for {versioned_table_id}\n")
+            is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
+            update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
+            change_status_to_archived(previous_versioned_table_id)
+        else:
+            print(f"{source_table_id} not published, no changes detected (most recent: {previous_versioned_table_id})")
     '''
 
 
