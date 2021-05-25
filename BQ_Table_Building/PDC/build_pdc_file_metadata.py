@@ -394,11 +394,6 @@ def main(args):
         # Publish master file metadata table
         file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
         file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
-        publish_table(API_PARAMS, BQ_PARAMS,
-                      public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
-                      source_table_id=file_metadata_table_id,
-                      overwrite=True,
-                      include_data_source=False)
 
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
