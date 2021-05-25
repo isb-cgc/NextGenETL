@@ -460,7 +460,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
                 # stop at oldest mass-published version, 1_17, if no previous table found
                 # todo switch back to 17
-                if last_major_rel_num == 1 and last_minor_rel_num == 9:
+                if last_major_rel_num == 1 and last_minor_rel_num == 8:
                     return None
         else:
             print(f"Set up release diff check in publish_tables for data source {api_params['DATA_SOURCE']}")
