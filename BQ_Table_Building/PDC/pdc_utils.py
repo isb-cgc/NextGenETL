@@ -546,8 +546,8 @@ def find_most_recent_published_table_id_uniprot(api_params, versioned_table_id):
     max_month = 12
 
     split_release = api_params['UNIPROT_RELEASE'].split('_')
-    last_year = split_release[0]
-    last_month = split_release[1]
+    last_year = int(split_release[0])
+    last_month = int(split_release[1])
 
     while True:
         if last_month > 1 and last_year >= oldest_year:
