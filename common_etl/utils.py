@@ -399,6 +399,8 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_type = data_type.replace(public_dataset + '_', '')
         data_type = data_type.replace(api_params['DATA_SOURCE'] + '_', '')
 
+        print(f"data_type: {data_type}")
+
         if include_data_source:
             curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
             vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
