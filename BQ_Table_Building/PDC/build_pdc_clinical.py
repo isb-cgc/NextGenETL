@@ -617,6 +617,8 @@ def get_publish_table_ids_clinical(api_params, bq_params, source_table_id, publi
     vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
 
     return curr_table_id, vers_table_id
+
+
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -744,21 +746,18 @@ def main(args):
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
                                                      release=API_PARAMS['RELEASE'])
 
-        removal_list = ['clinical_diagnoses_', 'clinical_', "_pdc_" + API_PARAMS['RELEASE']]
+        filtered_clinical_table_list = list()
 
-        excluded_tables = [
-            f"case_clinical_diagnoses_{API_PARAMS['RELEASE']}",
-            f"case_clinical_demographic_{API_PARAMS['RELEASE']}"
-        ]
+        for table in current_clinical_table_list:
+            table_name = table.split('.')[-1]
+            if table_name[0:4] != 'case':
+                filtered_clinical_table_list.append(table)
 
-        for table_name in current_clinical_table_list:
-            if table_name in excluded_tables:
-                continue
-
+        for table_name in filtered_clinical_table_list:
             project_short_name = table_name
 
             # strip table name down to project short name; use as key to look up program dataset name
-            for rem_str in removal_list:
+            for rem_str in ['clinical_diagnoses_', 'clinical_', f"_pdc_{API_PARAMS['RELEASE']}"]:
                 if rem_str in project_short_name:
                     project_short_name = project_short_name.replace(rem_str, '')
 
