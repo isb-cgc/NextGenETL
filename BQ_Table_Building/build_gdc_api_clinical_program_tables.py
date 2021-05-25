@@ -1619,6 +1619,51 @@ def get_cases_by_program(program):
     return cases
 
 
+def find_most_recent_published_table_id(api_params, versioned_table_id):
+    """
+    Function for locating published table id for dataset's previous release, if it exists
+    :param api_params: api_params supplied in yaml config
+    :param versioned_table_id: public versioned table id for current release
+    :return: last published table id, if any; otherwise None
+    """
+    oldest_etl_release = 26  # the oldest table release we published
+    last_gdc_release = int(api_params['RELEASE']) - 1
+    current_gdc_release = get_rel_prefix(api_params)
+    table_id_no_release = versioned_table_id.replace(current_gdc_release, '')
+
+    for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+        prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
+        if exists_bq_table(prev_release_table_id):
+            # found last release table, stop iterating
+            return prev_release_table_id
+
+    return None
+
+
+def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    rel_prefix = get_rel_prefix(api_params)
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(public_dataset + '_', '')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+
 def main(args):
     """Script execution function.
 

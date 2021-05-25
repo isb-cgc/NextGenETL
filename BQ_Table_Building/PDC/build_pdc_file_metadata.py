@@ -29,7 +29,8 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_modified_temp_table, get_prefix,
-                                             update_table_schema_from_generic_pdc)
+                                             update_table_schema_from_generic_pdc, get_publish_table_ids_metadata,
+                                             find_most_recent_published_table_id)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -399,14 +400,23 @@ def main(args):
                       overwrite=True,
                       include_data_source=False)
 
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                      source_table_id=file_metadata_table_id,
+                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True)
+
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
         mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
+
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,
-                      overwrite=True,
-                      include_data_source=False)
+                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

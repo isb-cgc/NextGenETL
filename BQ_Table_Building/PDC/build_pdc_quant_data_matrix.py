@@ -10,12 +10,15 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
-                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table)
+                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table,
+                              construct_table_name_from_list)
 
 from common_etl.support import compare_two_tables
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
-                                             get_prefix, build_obj_from_pdc_api, build_table_from_jsonl)
+                                             get_prefix, build_obj_from_pdc_api, build_table_from_jsonl,
+                                             get_publish_table_ids_metadata, find_most_recent_published_table_id,
+                                             find_most_recent_published_table_id_uniprot)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -520,6 +523,51 @@ def make_quant_table_query(raw_table_id, study):
         """
 
 
+def get_publish_table_ids_quant(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+
+    rel_prefix = api_params['RELEASE']
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(public_dataset + '_', '')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+    return curr_table_id, vers_table_id
+
+
+def get_publish_table_ids_refseq(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    split_table_id = source_table_id.split('.')
+
+    current_table_name = split_table_id[-1].replace(api_params['UNIPROT_RELEASE'], 'current')
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{current_table_name}"
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{split_table_id[-1]}"
+
+    return curr_table_id, vers_table_id
+
+
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -819,12 +867,12 @@ def main(args):
                                                  release=API_PARAMS['UNIPROT_RELEASE'])
         refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{refseq_table_name}"
 
-        # todo fix flow for refseq
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=refseq_table_id,
-                      overwrite=True,
-                      include_data_source=False)
+                      get_publish_table_ids=get_publish_table_ids_refseq,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
+                      overwrite=True)
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -834,8 +882,9 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=gene_table_id,
-                      overwrite=True,
-                      include_data_source=False)
+                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True)
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
@@ -846,6 +895,8 @@ def main(args):
                 publish_table(API_PARAMS, BQ_PARAMS,
                               public_dataset=study['program_short_name'],
                               source_table_id=quant_table_id,
+                              get_publish_table_ids=get_publish_table_ids_quant,
+                              find_most_recent_published_table_id=find_most_recent_published_table_id,
                               overwrite=True)
 
     end = time.time() - start_time

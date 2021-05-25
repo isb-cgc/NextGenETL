@@ -30,7 +30,7 @@ from common_etl.utils import (get_filename, get_filepath, get_query_results, wri
                               load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, copy_bq_table, exists_bq_table,
                               update_table_metadata, construct_table_name, construct_table_id,
-                              add_generic_table_metadata, add_column_descriptions)
+                              add_generic_table_metadata, add_column_descriptions, construct_table_name_from_list)
 
 from common_etl.support import (bq_harness_with_result)
 
@@ -483,3 +483,83 @@ def get_project_program_names(api_params, bq_params, project_submitter_id):
         return project_name_dict
 
 
+def find_most_recent_published_table_id(api_params, versioned_table_id):
+    """
+    Function for locating published table id for dataset's previous release, if it exists
+    :param api_params: api_params supplied in yaml config
+    :param versioned_table_id: public versioned table id for current release
+    :return: last published table id, if any; otherwise None
+    """
+    # todo assuming PDC will use 2-digit minor releases -- check
+    max_minor_release_num = 99
+    split_current_etl_release = api_params['RELEASE'][1:].split("_")
+    # set to current release initially, decremented in loop
+    last_major_rel_num = int(split_current_etl_release[0])
+    last_minor_rel_num = int(split_current_etl_release[1])
+
+    while True:
+        if last_minor_rel_num > 0 and last_major_rel_num >= 1:
+            last_minor_rel_num -= 1
+        elif last_major_rel_num > 1:
+            last_major_rel_num -= 1
+            last_minor_rel_num = max_minor_release_num
+        else:
+            return None
+
+        table_id_no_release = versioned_table_id.replace(f"_{api_params['RELEASE']}", '')
+        prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+
+        if exists_bq_table(prev_release_table_id):
+            # found last release table, stop iterating
+            return prev_release_table_id
+
+
+def get_publish_table_ids_metadata(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    rel_prefix = api_params['RELEASE']
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(public_dataset + '_', '')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+    return curr_table_id, vers_table_id
+
+
+def find_most_recent_published_table_id_uniprot(api_params, versioned_table_id):
+    # oldest uniprot release used in published dataset
+    oldest_year = 2021
+    max_month = 12
+
+    split_release = api_params['UNIPROT_RELEASE'].split('_')
+    last_year = split_release[0]
+    last_month = split_release[1]
+
+    while True:
+        if last_month > 1 and last_year >= oldest_year:
+            last_month -= 1
+        elif last_year > oldest_year:
+            last_year -= 1
+            last_month = max_month
+        else:
+            return None
+
+        table_id_no_release = versioned_table_id.replace(f"_{api_params['UNIPROT_RELEASE']}", '')
+        prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month}"
+
+        if exists_bq_table(prev_release_table_id):
+            return prev_release_table_id
