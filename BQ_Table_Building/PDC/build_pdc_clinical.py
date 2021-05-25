@@ -718,12 +718,18 @@ def main(args):
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
                                                      release=API_PARAMS['RELEASE'])
-        current_clinical_table_list.pop(f"case_clinical_diagnoses_{API_PARAMS['RELEASE']}")
-        current_clinical_table_list.pop(f"case_clinical_demographic_{API_PARAMS['RELEASE']}")
 
         removal_list = ['clinical_diagnoses_', 'clinical_', "_pdc_" + API_PARAMS['RELEASE']]
 
+        excluded_tables = [
+            f"case_clinical_diagnoses_{API_PARAMS['RELEASE']}",
+            f"case_clinical_demographic_{API_PARAMS['RELEASE']}"
+        ]
+
         for table_name in current_clinical_table_list:
+            if table_name in excluded_tables:
+                continue
+
             project_short_name = table_name
 
             # strip table name down to project short name; use as key to look up program dataset name
