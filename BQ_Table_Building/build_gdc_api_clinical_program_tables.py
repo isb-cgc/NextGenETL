@@ -1129,7 +1129,12 @@ def copy_tables_into_public_project(publish_table_list):
         if public_dataset == "BEATAML1":
             public_dataset = "BEATAML1_0"
 
-        publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=public_dataset,
+                      source_table_id=src_table_id,
+                      get_publish_table_ids=get_publish_table_ids,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True)
 
 
 def make_biospecimen_stub_view_query(program):

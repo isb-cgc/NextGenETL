@@ -33,6 +33,7 @@ import yaml
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
 
+from common_etl.support import bq_harness_with_result, compare_two_tables_sql
 
 #   API HELPERS
 
@@ -386,6 +387,21 @@ def change_status_to_archived(archived_table_id):
         print("Couldn't find a table to archive. Might be that this is the first table release?")
 
 
+def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
+    if not previous_table_id:
+        return True
+
+    compare_result = bq_harness_with_result(sql=compare_two_tables_sql(previous_table_id, current_table_id),
+                                            do_batch=bq_params['DO_BATCH'],
+                                            verbose=False)
+
+    if not compare_result:
+        return True
+
+    for row in compare_result:
+        return True if row else False
+
+
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
                   find_most_recent_published_table_id, overwrite=False):
     """
@@ -415,7 +431,13 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
                   versioned_table_id = {versioned_table_id}
                   current_table_id = {current_table_id}
                   last_published_table_id = {previous_versioned_table_id}
+                  should this be published? {publish_new_version_tables(bq_params, 
+                                                                        previous_versioned_table_id, 
+                                                                        source_table_id)}
                   """)
+
+
+
 
     '''
     if exists_bq_table(source_table_id):
