@@ -87,13 +87,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     return json_res
 
 
-def get_rel_prefix(api_params, return_last_version=False, version=None):
+def get_rel_prefix(api_params):
     """
 
     Get API release version (set in yaml config).
     :param api_params: API params, supplied via yaml config
-    :param return_last_version: if True, returns release version prior to newest
-    :param version: release version string
     :return: release version number (with prefix, if included)
     """
     rel_prefix = ''
@@ -101,19 +99,8 @@ def get_rel_prefix(api_params, return_last_version=False, version=None):
     if 'REL_PREFIX' in api_params and api_params['REL_PREFIX']:
         rel_prefix += api_params['REL_PREFIX']
 
-    if version:
-        rel_prefix += version
-        return rel_prefix
-
     if 'RELEASE' in api_params and api_params['RELEASE']:
         rel_number = api_params['RELEASE']
-
-        if return_last_version:
-            if api_params['DATA_SOURCE'] == 'gdc':
-                rel_number = str(int(rel_number) - 1)
-            elif api_params['DATA_SOURCE'] == 'pdc':
-                rel_number = api_params['PREV_RELEASE']
-
         rel_prefix += rel_number
 
     return rel_prefix
@@ -410,6 +397,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
         data_type = split_table_id[-1]
         data_type = data_type.replace(rel_prefix, '').strip('_')
         data_type = data_type.replace(public_dataset + '_', '')
+        data_type = data_type.replace(api_params['DATA_SOURCE'] + '_', '')
 
         if include_data_source:
             curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])

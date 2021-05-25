@@ -8,7 +8,7 @@ from google.cloud import storage
 from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket,
                               get_graphql_api_response, has_fatal_error, create_and_load_table_from_tsv, create_tsv_row,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
-                              create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
+                              create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
                               make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table)
 
@@ -403,7 +403,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
 
         return lines_written
 
-
+# todo is this used?
 def get_quant_files():
     """
 
@@ -416,9 +416,8 @@ def get_quant_files():
 
     for blob in blobs:
         filename = blob.name.split('/')[-1]
-        version = get_rel_prefix(API_PARAMS)
         # kind of a hacky fix, but we'll move to CDA before it matters (before there are 9000+ studies)
-        if "quant" in filename and "schema" not in filename and version in filename and "PDC0" in filename:
+        if "quant" in filename and "schema" not in filename and API_PARAMS['RELEASE'] in filename and "PDC0" in filename:
             files.add(filename)
 
     return files
@@ -468,11 +467,11 @@ def get_quant_table_name(study, is_final, include_release=True):
     else:
         study_name = study['study_name']
         study_name = change_study_name_to_table_name_format(study_name)
-        version = get_rel_prefix(API_PARAMS)
         analytical_fraction = study['analytical_fraction'].lower()
 
         # return table name in following format: quant_<analyte>_<study_name>_pdc_<version>
-        return "_".join([quant_prefix, analytical_fraction, study_name, API_PARAMS['DATA_SOURCE'], version])
+        return "_".join([quant_prefix, analytical_fraction, study_name, API_PARAMS['DATA_SOURCE'],
+                         API_PARAMS['RELEASE']])
 
 
 def make_quant_table_query(raw_table_id, study):
