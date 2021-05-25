@@ -440,6 +440,8 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
             current_minor_rel_num = last_minor_rel_num = int(split_current_etl_release[1])
 
             while True:
+                print(last_major_rel_num)
+                print(last_minor_rel_num)
                 if current_minor_rel_num > 0:
                     last_major_rel_num = last_major_rel_num
                     last_minor_rel_num = last_minor_rel_num - 1
