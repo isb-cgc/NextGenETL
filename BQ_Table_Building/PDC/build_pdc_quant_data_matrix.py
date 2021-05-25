@@ -10,7 +10,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object, get_rel_prefix,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
-                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table)
+                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table)
 
 from common_etl.support import compare_two_tables
 
@@ -762,7 +762,7 @@ def main(args):
 
                 raw_quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
                 raw_quant_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                        dataset=BQ_PARAMS['QUANT_DATASET'],
+                                                        dataset=BQ_PARAMS['QUANT_RAW_DATASET'],
                                                         table_name=raw_quant_table_name)
 
                 unversioned_quant_table_name = get_quant_table_name(study_id_dict,
@@ -789,13 +789,13 @@ def main(args):
         for study in studies_list:
             raw_table_name = get_quant_table_name(study, is_final=False)
             raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['QUANT_DATASET'],
+                                              dataset=BQ_PARAMS['QUANT_RAW_DATASET'],
                                               table_name=raw_table_name)
 
             if exists_bq_table(raw_table_id):
                 final_dev_table_name = get_quant_table_name(study, is_final=True)
                 final_dev_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                        dataset=BQ_PARAMS['QUANT_DATASET'],
+                                                        dataset=BQ_PARAMS['QUANT_FINAL_DATASET'],
                                                         table_name=final_dev_table_name)
                 final_quant_table_query = make_quant_table_query(raw_table_id, study)
 
@@ -814,9 +814,37 @@ def main(args):
                                                      table_id=final_dev_table_id,
                                                      schema_tags=schema_tags)
 
-    if 'publish_quant_and_mapping_tables' in steps:
-        pass
-        # todo version diff testing and publish step
+    if 'publish_refseq_mapping_table' in steps:
+        refseq_table_name = construct_table_name(API_PARAMS,
+                                                 prefix=BQ_PARAMS['REFSEQ_UNIPROT_FINAL_TABLE'],
+                                                 release=API_PARAMS['UNIPROT_RELEASE'])
+        refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{refseq_table_name}"
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                      source_table_id=refseq_table_id,
+                      overwrite=True)
+
+    if 'publish_gene_and_quant_tables' in steps:
+        # publish gene mapping table
+        gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
+        gene_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{gene_table_name}"
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                      source_table_id=gene_table_id,
+                      overwrite=True)
+
+        # check for quant table (for each study) and publish if one exists
+        for study in studies_list:
+            quant_table_name = get_quant_table_name(study, is_final=True)
+            quant_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['QUANT_FINAL_DATASET']}.{quant_table_name}"
+
+            if exists_bq_table(quant_table_id):
+                publish_table(API_PARAMS, BQ_PARAMS,
+                              public_dataset=study['program_short_name'],
+                              source_table_id=quant_table_id,
+                              overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

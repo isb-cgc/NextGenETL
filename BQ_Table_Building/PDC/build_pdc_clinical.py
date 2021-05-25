@@ -607,7 +607,7 @@ def main(args):
     pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=False)
 
     if 'build_cases_jsonl' in steps:
-        endpoint = "allCases"
+        endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
@@ -625,7 +625,7 @@ def main(args):
                                joined_record_list=joined_cases_list)
 
     if 'build_cases_table' in steps:
-        endpoint = "allCases"
+        endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
@@ -633,7 +633,7 @@ def main(args):
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint=endpoint, schema=schema)
 
     if 'build_case_diagnoses_jsonl' in steps:
-        endpoint = "paginatedCaseDiagnosesPerStudy"
+        endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
@@ -653,7 +653,7 @@ def main(args):
                                joined_record_list=joined_cases_list)
 
     if 'build_case_diagnoses_table' in steps:
-        endpoint = "paginatedCaseDiagnosesPerStudy"
+        endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
@@ -664,7 +664,7 @@ def main(args):
                                schema=schema)
 
     if 'build_case_demographics_jsonl' in steps:
-        endpoint = "paginatedCaseDemographicsPerStudy"
+        endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
@@ -684,7 +684,7 @@ def main(args):
                                joined_record_list=joined_cases_list)
 
     if 'build_case_demographics_table' in steps:
-        endpoint = "paginatedCaseDemographicsPerStudy"
+        endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
         schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
@@ -707,13 +707,13 @@ def main(args):
 
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
-        dataset_map = dict()
+        project_dataset_map = dict()
 
-        for study in pdc_study_ids:
-            project_submitter_id = study['project_submitter_id']
-            project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
-            project_short_name = project_name_dict['project_short_name']
-            dataset_map[project_short_name] = project_name_dict['program_short_name']
+        pdc_study_details = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
+
+        for study in pdc_study_details:
+            project_short_name = study['project_short_name']
+            project_dataset_map[project_short_name] = study['program_short_name']
 
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
@@ -731,8 +731,10 @@ def main(args):
 
             clinical_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['CLINICAL_DATASET'], table_name)
 
+            public_dataset = project_dataset_map[project_short_name]
+
             publish_table(API_PARAMS, BQ_PARAMS,
-                          public_dataset=dataset_map[project_short_name],
+                          public_dataset=public_dataset,
                           source_table_id=clinical_table_id,
                           overwrite=True)
 

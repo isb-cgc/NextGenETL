@@ -290,9 +290,8 @@ def main(args):
         # Publish master case metadata table
 
         case_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
-        case_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                    dataset=BQ_PARAMS['META_DATASET'],
-                                                    table_name=case_metadata_table_name)
+        case_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{case_metadata_table_name}"
+
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=case_metadata_table_id,
@@ -300,9 +299,8 @@ def main(args):
 
         # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
-        mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=mapping_table_name)
+        mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
+
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,

@@ -398,53 +398,78 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
     :param overwrite: If True, replace existing BigQuery table; defaults to False
     """
 
-    def find_last_published_release_table_id_gdc(_versioned_table_id):
-        oldest_etl_release = 26  # the oldest table release we published
-        last_gdc_release = int(api_params['RELEASE']) - 1
-        current_gdc_release = get_rel_prefix(api_params)
-        table_id_no_release = _versioned_table_id.replace(current_gdc_release, '')
-
-        for release in range(last_gdc_release, oldest_etl_release - 1, -1):
-            prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
-            if exists_bq_table(prev_release_table_id):
-                # found last release table, stop iterating
-                return prev_release_table_id
-
-        return None
-
     def get_publish_table_ids():
         """
         Create current and versioned table ids.
         """
         rel_prefix = get_rel_prefix(api_params)
-        data_source = api_params['DATA_SOURCE']
-
         split_table_id = source_table_id.split('.')
 
+        # derive data type from table id
         data_type = split_table_id[-1]
         data_type = data_type.replace(rel_prefix, '').strip('_')
         data_type = data_type.replace(public_dataset + '_', '')
 
-        curr_table_name = construct_table_name_from_list([data_type, data_source, 'current'])
-        curr_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
-        vers_table_name = construct_table_name_from_list([data_type, data_source, rel_prefix])
-        vers_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset + '_versioned', vers_table_name)
+        curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+        curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+
+        vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+        vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
         return curr_table_id, vers_table_id
+
+    def find_last_published_release_table_id(_versioned_table_id):
+        if api_params['DATA_SOURCE'] == 'gdc':
+            oldest_etl_release = 26  # the oldest table release we published
+            last_gdc_release = int(api_params['RELEASE']) - 1
+            current_gdc_release = get_rel_prefix(api_params)
+            table_id_no_release = _versioned_table_id.replace(current_gdc_release, '')
+
+            for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+                prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
+                if exists_bq_table(prev_release_table_id):
+                    # found last release table, stop iterating
+                    return prev_release_table_id
+
+            return None
+        elif api_params['DATA_SOURCE'] == 'pdc':
+            # todo assuming PDC will use 2-digit minor releases -- check
+            max_minor_release_num = 99
+            split_current_etl_release = bq_params['RELEASE'][1:].split("_")
+            current_major_rel_num = last_major_rel_num = int(split_current_etl_release[0])
+            current_minor_rel_num = last_minor_rel_num = int(split_current_etl_release[1])
+
+            while True:
+                if current_minor_rel_num > 0:
+                    last_major_rel_num = last_major_rel_num
+                    last_minor_rel_num = last_minor_rel_num - 1
+                elif current_major_rel_num > 1:
+                    last_major_rel_num = last_major_rel_num - 1
+                    last_minor_rel_num = max_minor_release_num
+                else:
+                    return None
+
+                table_id_no_release = _versioned_table_id.replace(bq_params['RELEASE'], '')
+
+                prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+                if exists_bq_table(prev_release_table_id):
+                    # found last release table, stop iterating
+                    return prev_release_table_id
+
+                # stop at oldest mass-published version, 1_17, if no previous table found
+                if last_major_rel_num == 1 and last_minor_rel_num == 17:
+                    return None
+        else:
+            print(f"Set up release diff check in publish_tables for data source {api_params['DATA_SOURCE']}")
+            return None
 
     def change_status_to_archived(_versioned_table_id):
         """
         Change last version status label to archived.
         """
-        client = bigquery.Client()
-        if api_params["DATA_SOURCE"] == 'gdc':
-            prev_table_id = find_last_published_release_table_id_gdc(_versioned_table_id)
-        else:
-            current_release_tag = get_rel_prefix(api_params)
-            stripped_table_id = source_table_id.replace(current_release_tag, "")
-            previous_release_tag = get_rel_prefix(api_params, return_last_version=True)
-            prev_table_id = stripped_table_id + previous_release_tag
-
         try:
+            client = bigquery.Client()
+            prev_table_id = find_last_published_release_table_id(_versioned_table_id)
             prev_table = client.get_table(prev_table_id)
             prev_table.labels['status'] = 'archived'
             client.update_table(prev_table, ["labels"])
@@ -454,14 +479,17 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
 
     current_table_id, versioned_table_id = get_publish_table_ids()
 
-    print(f"""
-    source_table_id = {source_table_id}
-    versioned_table_id = {versioned_table_id}
-    current_table_id = {current_table_id}
-    """)
+    # TESTING PUBLISH
+    if exists_bq_table(source_table_id):
+        print(f"""
+            source_table_id = {source_table_id}
+            versioned_table_id = {versioned_table_id}
+            current_table_id = {current_table_id}
+            last_published_table_id = {find_last_published_release_table_id(versioned_table_id)}
+        """)
 
-    time.sleep(5)
-
+    # todo turn on actual publishing step
+    """
     if exists_bq_table(source_table_id):
         print(f"Publishing {versioned_table_id}")
         copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
@@ -476,6 +504,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
                              is_gdc=is_gdc)
 
         change_status_to_archived(versioned_table_id)
+    """
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):

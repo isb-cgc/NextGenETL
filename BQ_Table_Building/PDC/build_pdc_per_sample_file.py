@@ -13,7 +13,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 def make_webapp_per_sample_view_query():
     meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
 
-    file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
+    file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
     file_metadata_table_id = f"{meta_dataset}.{file_metadata_table_name}"
 
     file_assoc_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])

@@ -315,7 +315,7 @@ def make_retrieve_all_studies_query(api_params, bq_params, output_name):
 
     return f"""
     SELECT pdc_study_id, submitter_id_name AS study_name, embargo_date, 
-        project_submitter_id, analytical_fraction, program_short_name, project_friendly_name
+        project_submitter_id, analytical_fraction, program_short_name, project_short_name, project_friendly_name
     FROM  `{table_id}`
     """
 
@@ -399,6 +399,7 @@ def get_pdc_study_ids(api_params, bq_params, include_embargoed_studies=False):
         return embargoed_pdc_study_ids + pdc_study_ids
 
     print_embargoed_studies(embargoed_studies_list)
+
     return pdc_study_ids
 
 
@@ -409,8 +410,8 @@ def get_pdc_studies_list(api_params, bq_params, include_embargoed=False):
     :param bq_params: BQ params from YAML config 
     :param include_embargoed: If True, returns every PDC study regardless of embargo status; defaults to False, which
         will return only non-embargoed study ids
-    :return: a list of study dict objects containing the following keys: pdc_study_id, study_name, embargo_date,
-        project_submitter_id, analytical_fraction
+    :return: a list of study dict objects containing the following keys: program_short_name, project_friendly_name,
+        project_submitter_id, pdc_study_id, study_name (AKA submitter_id_name), embargo_date, analytical_fraction
     """
 
     studies_list, embargoed_studies_list = get_pdc_split_studies_lists(api_params, bq_params)

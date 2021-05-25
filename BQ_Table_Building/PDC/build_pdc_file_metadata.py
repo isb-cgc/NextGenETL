@@ -229,61 +229,6 @@ def alter_files_per_study_json(files_per_study_obj_list):
         files_per_study_obj['url'] = url
 
 
-def get_file_ids():
-    """
-    Generates a list of file ids from table created using filesPerStudy endpoint data.
-    :return: file ids list
-    """
-
-    files_per_study_endpoint = API_PARAMS['PER_STUDY_FILE_ENDPOINT']
-    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
-
-    fps_table_name = construct_table_name(API_PARAMS,
-                                          prefix=get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
-    dataset = API_PARAMS['ENDPOINT_SETTINGS'][files_per_study_endpoint]['dataset']
-    fps_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{dataset}.{fps_table_name}"
-
-    curr_file_ids = get_query_results(make_file_id_query(fps_table_id))
-
-    fm_table_name = construct_table_name(API_PARAMS,
-                                         prefix=get_prefix(API_PARAMS, file_metadata_endpoint),
-                                         release=API_PARAMS['PREV_RELEASE'])
-    dataset = API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset']
-    fm_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{dataset}.{fm_table_name}"
-
-    old_file_ids = get_query_results(make_file_id_query(fm_table_id))
-
-    curr_file_id_set = set()
-    old_file_id_set = set()
-
-    for old_file in old_file_ids:
-        file_id = old_file['file_id']
-        old_file_id_set.add(file_id)
-
-    for curr_file in curr_file_ids:
-        file_id = curr_file['file_id']
-        curr_file_id_set.add(file_id)
-
-    new_file_ids = curr_file_id_set - old_file_id_set
-
-    return new_file_ids
-
-
-def get_previous_version_file_metadata():
-    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
-    prefix = get_prefix(API_PARAMS, file_metadata_endpoint)
-    dataset = API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset']
-    table_name = construct_table_name(API_PARAMS, prefix=prefix, release=API_PARAMS['PREV_RELEASE'])
-    table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{dataset}.{table_name}"
-
-    query = f"""
-    SELECT * 
-    FROM {table_id}
-    """
-
-    return get_query_results(query)
-
-
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -435,7 +380,7 @@ def main(args):
         load_table_from_query(BQ_PARAMS, file_count_table_id, query)
 
     if 'build_file_metadata_table' in steps:
-        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
+        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
         full_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
         load_table_from_query(BQ_PARAMS,
@@ -446,7 +391,7 @@ def main(args):
 
     if "publish_file_metadata_tables" in steps:
         # Publish master file metadata table
-        file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
+        file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
         file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
