@@ -820,10 +820,12 @@ def main(args):
                                                  release=API_PARAMS['UNIPROT_RELEASE'])
         refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{refseq_table_name}"
 
+        # todo fix flow for refseq
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=refseq_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      include_data_source=False)
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -833,7 +835,8 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=gene_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      include_data_source=False)
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
