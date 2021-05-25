@@ -449,7 +449,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
                 else:
                     return None
 
-                table_id_no_release = _versioned_table_id.replace(bq_params['RELEASE'], '')
+                table_id_no_release = _versioned_table_id.replace(api_params['RELEASE'], '')
 
                 prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
                 if exists_bq_table(prev_release_table_id):
