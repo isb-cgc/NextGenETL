@@ -1,0 +1,26 @@
+[
+    {
+        "name": "AA_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Amino_Acid",
+        "type": "string"
+    },
+    {
+        "name": "Three_letter_code",
+        "type": "string"
+    },
+    {
+        "name": "One_letter_code",
+        "type": "string"
+    },
+    {
+        "name": "Polarity",
+        "type": "string"
+    },
+    {
+        "name": "Side_group",
+        "type": "string"
+    }
+]

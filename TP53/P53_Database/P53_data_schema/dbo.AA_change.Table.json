@@ -1,0 +1,82 @@
+[
+    {
+        "name": "AAchange_ID",
+        "type": "integer"
+    },
+    {
+        "name": "AAchange",
+        "type": "string"
+    },
+    {
+        "name": "ProtDescription",
+        "type": "string"
+    },
+    {
+        "name": "Codon_Number",
+        "type": "integer"
+    },
+    {
+        "name": "Mutant_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rateAA",
+        "type": "float"
+    },
+    {
+        "name": "GD",
+        "type": "float"
+    },
+    {
+        "name": "AGVGDClass_2006",
+        "type": "string"
+    },
+    {
+        "name": "AGVGDClass",
+        "type": "string"
+    },
+    {
+        "name": "SIFTClass_2006",
+        "type": "string"
+    },
+    {
+        "name": "SIFTClass",
+        "type": "string"
+    },
+    {
+        "name": "Polyphen2",
+        "type": "string"
+    },
+    {
+        "name": "REVEL",
+        "type": "float"
+    },
+    {
+        "name": "BayesDel",
+        "type": "float"
+    },
+    {
+        "name": "TransactivationClass",
+        "type": "string"
+    },
+    {
+        "name": "DNE_LOFclass",
+        "type": "string"
+    },
+    {
+        "name": "DNEclass",
+        "type": "string"
+    },
+    {
+        "name": "StructureFunctionClass",
+        "type": "string"
+    },
+    {
+        "name": "SwissProtLink",
+        "type": "string"
+    },
+    {
+        "name": "Complex",
+        "type": "string"
+    }
+]
