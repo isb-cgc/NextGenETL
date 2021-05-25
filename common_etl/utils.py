@@ -436,8 +436,9 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
             # todo assuming PDC will use 2-digit minor releases -- check
             max_minor_release_num = 99
             split_current_etl_release = api_params['RELEASE'][1:].split("_")
-            current_major_rel_num = last_major_rel_num = int(split_current_etl_release[0])
-            current_minor_rel_num = last_minor_rel_num = int(split_current_etl_release[1])
+            # set to current release initially, decremented in loop
+            last_major_rel_num = int(split_current_etl_release[0])
+            last_minor_rel_num = int(split_current_etl_release[1])
 
             while True:
                 if last_minor_rel_num > 0 and last_major_rel_num >= 1:
@@ -449,8 +450,10 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
                     return None
 
                 table_id_no_release = _versioned_table_id.replace(api_params['RELEASE'], '')
-
                 prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+
+                print(prev_release_table_id)
+
                 if exists_bq_table(prev_release_table_id):
                     # found last release table, stop iterating
                     return prev_release_table_id
