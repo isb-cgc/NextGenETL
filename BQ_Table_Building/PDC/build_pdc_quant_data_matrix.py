@@ -852,39 +852,32 @@ def main(args):
 
                 program_labels_list = study['program_labels'].split("; ")
 
-                study_friendly_name = study['study_name'].upper().replace('- ', '')
-                print(study_friendly_name)
+                schema_tags = {
+                    "project-name": study['program_short_name'],
+                    "study-name": study["study_name"],
+                    "pdc-study-id": study["pdc_study_id"],
+                    "study-name-upper": study['study_friendly_name'].upper(),
+                }
 
                 if len(program_labels_list) > 2:
                     has_fatal_error("PDC quant isn't set up to handle >2 program labels yet; needs to be added.")
                 elif len(program_labels_list) == 0:
                     has_fatal_error(f"No program label included for {study['project_name']}, add to PDCStudy.yaml")
-                elif len(program_labels_list) == 2:
-                    schema_tags = {
-                        "project-name": study['program_short_name'],
-                        "study-name": study["study_name"],
-                        "pdc-study-id": study["pdc_study_id"],
-                        "study-name-upper": study_friendly_name,
-                        "program-name-0-lower": program_labels_list[0].lower(),
-                        "program-name-1-lower": program_labels_list[1].lower()
-                    }
+                elif len(program_labels_list) == 1:
+                    schema_tags['program-name-lower'] = study['program_labels'].lower()
+
+                    update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_dev_table_id,
+                                                     schema_tags=schema_tags)
+                else:
+                    schema_tags['program-name-0-lower'] = program_labels_list[0].lower()
+                    schema_tags['program-name-1-lower'] = program_labels_list[1].lower()
+                    generic_metadata_file = BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
 
                     update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
                                                          table_id=final_dev_table_id,
                                                          schema_tags=schema_tags,
-                                                         metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
-                else:
-                    schema_tags = {
-                        "project-name": study['program_short_name'],
-                        "study-name": study["study_name"],
-                        "pdc-study-id": study["pdc_study_id"],
-                        "study-name-upper": study_friendly_name,
-                        "program-name-lower": study['program_labels'].lower()
-                    }
-
-                    update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                         table_id=final_dev_table_id,
-                                                         schema_tags=schema_tags)
+                                                         metadata_file=generic_metadata_file)
 
     if 'publish_refseq_mapping_table' in steps:
         refseq_table_name = construct_table_name(API_PARAMS,
