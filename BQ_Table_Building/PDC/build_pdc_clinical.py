@@ -573,14 +573,27 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
         project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
-        if program_
+        program_labels_list = project_name_dict['program_labels'].split("; ")
 
-        schema_tags = {
-            "project-name": project_name_dict['project_name'],
-            "mapping-name": "",
-            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
-            "program-name-lower": project_name_dict['program_short_name'].lower()
-        }
+        if len(program_labels_list) > 2:
+            has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+        elif len(program_labels_list) == 0:
+            has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+        elif len(project_name_dict['program_labels'].split("; ")) == 2:
+            schema_tags = {
+                "project-name": project_name_dict['project_name'],
+                "mapping-name": "",
+                "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+                "program-name-0-lower": program_labels_list[0].lower(),
+                "program-name-1-lower": program_labels_list[1].lower()
+            }
+        else:
+            schema_tags = {
+                "project-name": project_name_dict['project_name'],
+                "mapping-name": "",
+                "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+                "program-name-lower": project_name_dict['program_labels'].lower()
+            }
 
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
@@ -591,9 +604,15 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
                                                            project_submitter_id=project_submitter_id,
                                                            clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
 
-            update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                 table_id=final_table_id,
-                                                 schema_tags=schema_tags)
+            if 'program-name-1-lower' in schema_tags:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags,
+                                                     metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
+            else:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags)
 
         if clinical_diagnoses_records:
             schema_tags['mapping-name'] = 'DIAGNOSES '
@@ -607,9 +626,15 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
                                                            project_submitter_id=project_submitter_id,
                                                            clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
 
-            update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                 table_id=final_table_id,
-                                                 schema_tags=schema_tags)
+            if 'program-name-1-lower' in schema_tags:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags,
+                                                     metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
+            else:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags)
 
 
 def get_publish_table_ids_clinical(api_params, bq_params, source_table_id, public_dataset):
