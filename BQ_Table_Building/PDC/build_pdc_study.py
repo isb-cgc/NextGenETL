@@ -99,6 +99,7 @@ def alter_all_programs_json(all_programs_json_obj):
                 project['project_short_name'] = None
                 project['program_short_name'] = None
                 project['project_friendly_name'] = None
+                project['program_labels'] = None
                 print(f"""\n**Unmapped project submitter id: {project['project_submitter_id']}. 
                       Add to bq_params['PROJECT_MAP'] and rerun study workflow.\n""")
             else:
@@ -106,6 +107,7 @@ def alter_all_programs_json(all_programs_json_obj):
                 project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
                 project['program_short_name'] = project_shortname_mapping['PROGRAM_SHORT_NAME']
                 project['project_friendly_name'] = project_shortname_mapping['PROJECT_FRIENDLY_NAME']
+                project['program_labels'] = project_shortname_mapping['PROGRAM_LABELS']
 
             studies = project.pop("studies", None)
             for study in studies:
