@@ -445,14 +445,17 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             print(f"Publishing {current_table_id}")
             copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
     
-            print(f"Updating friendly name for {versioned_table_id}\n")
+            print(f"Updating friendly name for {versioned_table_id}")
             is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
             update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
 
             if previous_versioned_table_id:
+                print(f"Archiving {previous_versioned_table_id}")
                 change_status_to_archived(previous_versioned_table_id)
         else:
-            print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})\n")
+            print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})")
+
+        print()
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
