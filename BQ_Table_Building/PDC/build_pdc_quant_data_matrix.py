@@ -539,7 +539,6 @@ def get_publish_table_ids_quant(api_params, bq_params, source_table_id, public_d
     # derive data type from table id
     data_type = split_table_id[-1]
     data_type = data_type.replace(rel_prefix, '').strip('_')
-    data_type = data_type.replace(public_dataset + '_', '')
     data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
 
     curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
@@ -915,7 +914,8 @@ def main(args):
                               source_table_id=quant_table_id,
                               get_publish_table_ids=get_publish_table_ids_quant,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True)
+                              overwrite=True,
+                              test_mode=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
