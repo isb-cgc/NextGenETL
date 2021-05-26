@@ -489,11 +489,9 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
     """
     cases_with_no_clinical_data = list()
 
+    modified_cases_by_project = dict()
+
     for project_name, project_dict in cases_by_project.items():
-
-        print(project_dict)
-        exit()
-
         for case in project_dict['cases']:
             case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
 
@@ -515,11 +513,19 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
                 case.update(demographic_record)
 
+    exclude_case_id_set = set()
 
-    print(cases_with_no_clinical_data)
-    exit()
+    for case in cases_with_no_clinical_data:
+        exclude_case_id_set.add(case[0])
 
-    print(f"{len(cases_with_no_clinical_data)} cases with no clinical data")
+    for project_name, project_dict in cases_by_project.items():
+        modified_cases_by_project[project_name] = list()
+
+        for case in project_dict['cases']:
+            if case['case_id'] not in exclude_case_id_set:
+                modified_cases_by_project[project_name].append(case)
+
+    return modified_cases_by_project
 
 
 def build_per_project_clinical_tables(cases_by_project_submitter):
@@ -733,10 +739,16 @@ def main(args):
         demographics_by_case, diagnosis_by_case = get_diagnosis_demographic_records_by_case()
 
         # retrieve case demographic and diagnoses for case, pop, add to case record
-        append_diagnosis_demographic_to_case(cases_by_project_submitter, diagnosis_by_case, demographics_by_case)
+        cases_by_project = append_diagnosis_demographic_to_case(cases_by_project=cases_by_project_submitter,
+                                                                diagnosis_by_case=diagnosis_by_case,
+                                                                demographic_by_case=demographics_by_case)
+
+        print(f"before: {len(cases_by_project_submitter)}")
+        print(f"after: {len(cases_by_project)}")
+        exit()
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
-        build_per_project_clinical_tables(cases_by_project_submitter)
+        build_per_project_clinical_tables(cases_by_project)
 
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
