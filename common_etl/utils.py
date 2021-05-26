@@ -403,7 +403,7 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
 
 
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
-                  find_most_recent_published_table_id, overwrite=False):
+                  find_most_recent_published_table_id, overwrite=False, test_mode=False):
     """
 
     Publish production BigQuery tables using source_table_id:
@@ -425,20 +425,20 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
                                                                  public_dataset=public_dataset)
     previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
-    # TESTING PUBLISH
-    if exists_bq_table(source_table_id):
-        print(f"""source_table_id = {source_table_id}
-                  versioned_table_id = {versioned_table_id}
-                  current_table_id = {current_table_id}
-                  last_published_table_id = {previous_versioned_table_id}
-                  should this be published? {publish_new_version_tables(bq_params, 
-                                                                        previous_versioned_table_id, 
-                                                                        source_table_id)}
-                  """)
+    publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
 
-    '''
+    if test_mode:
+        if exists_bq_table(source_table_id):
+            print(f"""source_table_id = {source_table_id}
+                      versioned_table_id = {versioned_table_id}
+                      current_table_id = {current_table_id}
+                      last_published_table_id = {previous_versioned_table_id}
+                      publish_new_version = {publish_new_version}
+                      """)
+        return
+
     if exists_bq_table(source_table_id):
-        if publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
+        if publish_new_version:
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
     
@@ -448,10 +448,11 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             print(f"Updating friendly name for {versioned_table_id}\n")
             is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
             update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
-            change_status_to_archived(previous_versioned_table_id)
+
+            if previous_versioned_table_id:
+                change_status_to_archived(previous_versioned_table_id)
         else:
-            print(f"{source_table_id} not published, no changes detected (most recent: {previous_versioned_table_id})")
-    '''
+            print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})\n")
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
