@@ -746,13 +746,6 @@ def main(args):
                                                                 diagnosis_by_case=diagnosis_by_case,
                                                                 demographic_by_case=demographics_by_case)
 
-        for project_key in cases_by_project_submitter.keys():
-            print(project_key)
-            print(f"before: {len(cases_by_project_submitter[project_key]['cases'])}")
-            print(f"after: {len(cases_by_project[project_key]['cases'])}")
-            print()
-        exit()
-
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
         build_per_project_clinical_tables(cases_by_project)
 
