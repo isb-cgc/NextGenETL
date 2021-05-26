@@ -743,8 +743,8 @@ def main(args):
                                                                 diagnosis_by_case=diagnosis_by_case,
                                                                 demographic_by_case=demographics_by_case)
 
-        print(f"before: {len(cases_by_project_submitter['CPTAC3-Discovery'])}")
-        print(f"after: {len(cases_by_project['CPTAC3-Discovery'])}")
+        print(f"before: {cases_by_project_submitter['CPTAC3-Discovery']}\n")
+        print(f"after: {cases_by_project['CPTAC3-Discovery']}")
         exit()
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
