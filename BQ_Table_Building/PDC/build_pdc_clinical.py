@@ -491,6 +491,9 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
     for project_name, project_dict in cases_by_project.items():
 
+        print(project_dict)
+        exit()
+
         for case in project_dict['cases']:
             case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
 
@@ -511,6 +514,7 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
                 demographic_record = demographic_by_case[case_id_key_tuple]
 
                 case.update(demographic_record)
+
 
     print(cases_with_no_clinical_data)
     exit()
