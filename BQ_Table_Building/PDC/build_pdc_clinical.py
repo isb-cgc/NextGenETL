@@ -579,7 +579,7 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
             has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
         elif len(program_labels_list) == 0:
             has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
-        elif len(project_name_dict['program_labels'].split("; ")) == 2:
+        elif len(program_labels_list) == 2:
             schema_tags = {
                 "project-name": project_name_dict['project_name'],
                 "mapping-name": "",
