@@ -111,6 +111,9 @@ def alter_all_programs_json(all_programs_json_obj):
 
             studies = project.pop("studies", None)
             for study in studies:
+                # add study friendly name from yaml mapping
+                study['study_friendly_name'] = BQ_PARAMS['STUDY_FRIENDLY_NAME_MAP'][study['pdc_study_id']]
+
                 # grab a few add't fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
