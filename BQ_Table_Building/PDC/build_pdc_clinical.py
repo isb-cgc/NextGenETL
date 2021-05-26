@@ -563,6 +563,9 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
             "program-name-lower": project_name_dict['program_short_name'].lower()
         }
 
+        print(clinical_records)
+        exit()
+
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
                                                                         project_submitter_id=project_submitter_id,
