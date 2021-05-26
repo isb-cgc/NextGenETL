@@ -512,6 +512,9 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
                 case.update(demographic_record)
 
+    print(cases_with_no_clinical_data)
+    exit()
+
     print(f"{len(cases_with_no_clinical_data)} cases with no clinical data")
 
 
@@ -562,9 +565,6 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
             "friendly-project-name-upper": project_name_dict['project_friendly_name'],
             "program-name-lower": project_name_dict['program_short_name'].lower()
         }
-
-        print(clinical_records)
-        exit()
 
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
