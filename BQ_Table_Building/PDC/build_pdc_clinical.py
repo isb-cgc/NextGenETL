@@ -519,11 +519,13 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
         exclude_case_id_set.add(case[0])
 
     for project_name, project_dict in cases_by_project.items():
+
+        modified_cases_by_project[project_name] = dict()
         modified_cases_by_project[project_name]['cases'] = list()
 
         for case in project_dict['cases']:
             if case['case_id'] not in exclude_case_id_set:
-                modified_cases_by_project[project_name].append(case)
+                modified_cases_by_project[project_name]['cases'].append(case)
 
     return modified_cases_by_project
 
