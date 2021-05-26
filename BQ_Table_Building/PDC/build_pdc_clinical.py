@@ -519,7 +519,7 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
         exclude_case_id_set.add(case[0])
 
     for project_name, project_dict in cases_by_project.items():
-        modified_cases_by_project[project_name] = list()
+        modified_cases_by_project[project_name]['cases'] = list()
 
         for case in project_dict['cases']:
             if case['case_id'] not in exclude_case_id_set:
@@ -743,8 +743,8 @@ def main(args):
                                                                 diagnosis_by_case=diagnosis_by_case,
                                                                 demographic_by_case=demographics_by_case)
 
-        print(f"before: {cases_by_project_submitter['CPTAC3-Discovery']}\n")
-        print(f"after: {cases_by_project['CPTAC3-Discovery']}")
+        print(f"before: {len(cases_by_project_submitter['CPTAC3-Discovery'])}")
+        print(f"after: {len(cases_by_project['CPTAC3-Discovery'])}")
         exit()
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
