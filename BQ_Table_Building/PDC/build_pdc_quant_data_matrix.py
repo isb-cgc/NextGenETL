@@ -445,9 +445,22 @@ def get_quant_table_name(study, is_final, include_release=True):
         """
         _study_name = _study_name.replace(study['analytical_fraction'], "")
         study_name_list = _study_name.split(" ")
+        hyphen_split_study_name_list = list()
+
+        for study_name_part in study_name_list:
+            if '-' in study_name_part:
+                hyphen_study_name_part_list = study_name_part.split('-')
+
+                for name_part in hyphen_study_name_part_list:
+                    hyphen_split_study_name_list.append(name_part)
+            else:
+                hyphen_split_study_name_list.append(study_name_part)
+
+
         new_study_name_list = list()
 
-        for name in study_name_list:
+        for name in hyphen_split_study_name_list:
+
             if not name:
                 continue
             if not name.isupper():
@@ -914,7 +927,8 @@ def main(args):
                               source_table_id=quant_table_id,
                               get_publish_table_ids=get_publish_table_ids_quant,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True)
+                              overwrite=True,
+                              test_mode=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

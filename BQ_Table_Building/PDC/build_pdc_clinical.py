@@ -815,7 +815,8 @@ def main(args):
                           source_table_id=clinical_table_id,
                           get_publish_table_ids=get_publish_table_ids_clinical,
                           find_most_recent_published_table_id=find_most_recent_published_table_id,
-                          overwrite=True)
+                          overwrite=True,
+                          test_mode=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
