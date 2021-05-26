@@ -573,6 +573,8 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
 
         project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
+        if program_
+
         schema_tags = {
             "project-name": project_name_dict['project_name'],
             "mapping-name": "",
