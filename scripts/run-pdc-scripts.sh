@@ -46,7 +46,7 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="PDCPerSampleFile.yaml"
     SCRIPT_FILE="build_pdc_per_sample_file.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant, per_sample_file"
     exit 1
 fi
 
