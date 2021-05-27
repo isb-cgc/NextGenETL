@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Induced_ID",
+        "type": "integer"
+    },
+    {
+        "name": "IRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Exposure_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Model",
+        "type": "string"
+    },
+    {
+        "name": "Clone_ID",
+        "type": "string"
+    },
+    {
+        "name": "Add_Info",
+        "type": "string"
+    }
+]

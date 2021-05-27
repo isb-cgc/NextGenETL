@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Morphology_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Morphology",
+        "type": "string"
+    },
+    {
+        "name": "Morpho_code",
+        "type": "string"
+    },
+    {
+        "name": "Code_source",
+        "type": "string"
+    },
+    {
+        "name": "Morphogroup_ID",
+        "type": "integer"
+    }
+]

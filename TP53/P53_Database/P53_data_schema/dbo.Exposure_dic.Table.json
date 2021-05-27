@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Exposure_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Exposure",
+        "type": "string"
+    },
+    {
+        "name": "Exposure_group",
+        "type": "string"
+    }
+]

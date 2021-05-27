@@ -1,0 +1,14 @@
+[
+    {
+        "name": "p53mut_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Family_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    }
+]

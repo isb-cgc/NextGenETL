@@ -1,0 +1,150 @@
+[
+    {
+        "name": "Location_ID",
+        "type": "integer"
+    },
+    {
+        "name": "ExonIntron",
+        "type": "string"
+    },
+    {
+        "name": "Genomic_nt",
+        "type": "integer"
+    },
+    {
+        "name": "P53_Position",
+        "type": "string"
+    },
+    {
+        "name": "Coding_nt",
+        "type": "string"
+    },
+    {
+        "name": "Codon_number",
+        "type": "integer"
+    },
+    {
+        "name": "CpG_site",
+        "type": "string"
+    },
+    {
+        "name": "Splice_site",
+        "type": "string"
+    },
+    {
+        "name": "Other_site",
+        "type": "string"
+    },
+    {
+        "name": "Base",
+        "type": "string"
+    },
+    {
+        "name": "Base_hg38",
+        "type": "string"
+    },
+    {
+        "name": "Context_coding_3",
+        "type": "string"
+    },
+    {
+        "name": "Base_number",
+        "type": "integer"
+    },
+    {
+        "name": "hg18_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg19_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg38_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    },
+    {
+        "name": "p53beta",
+        "type": "string"
+    },
+    {
+        "name": "p53gamma",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53beta",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53gamma",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53beta",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53gamma",
+        "type": "string"
+    },
+    {
+        "name": "deltap53",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t1",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t2",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t3",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t4",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t5",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t6",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t7",
+        "type": "string"
+    },
+    {
+        "name": "LRG_321t8",
+        "type": "string"
+    },
+    {
+        "name": "ensTP53_203",
+        "type": "string"
+    },
+    {
+        "name": "ensTP53_228",
+        "type": "string"
+    },
+    {
+        "name": "ensTP53_202",
+        "type": "string"
+    }
+]

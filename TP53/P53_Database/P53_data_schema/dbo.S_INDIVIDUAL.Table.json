@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sex",
+        "type": "string"
+    },
+    {
+        "name": "Ethnicity",
+        "type": "string"
+    },
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Geo_area",
+        "type": "string"
+    },
+    {
+        "name": "TP53polymorphism",
+        "type": "string"
+    },
+    {
+        "name": "Germline_mutation",
+        "type": "string"
+    },
+    {
+        "name": "Family_history",
+        "type": "string"
+    },
+    {
+        "name": "Infectious_agent",
+        "type": "string"
+    },
+    {
+        "name": "Tobacco_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Alcohol_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Exposure_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Occupation",
+        "type": "string"
+    },
+    {
+        "name": "Other_information",
+        "type": "string"
+    }
+]

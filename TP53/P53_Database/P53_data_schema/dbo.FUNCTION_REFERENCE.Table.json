@@ -1,0 +1,42 @@
+[
+    {
+        "name": "FRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cross_FRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Title",
+        "type": "string"
+    },
+    {
+        "name": "Authors",
+        "type": "string"
+    },
+    {
+        "name": "Ref_Year",
+        "type": "integer"
+    },
+    {
+        "name": "Start_page",
+        "type": "integer"
+    },
+    {
+        "name": "Journal",
+        "type": "string"
+    },
+    {
+        "name": "Volume",
+        "type": "integer"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    }
+]
