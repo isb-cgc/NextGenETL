@@ -456,7 +456,6 @@ def get_quant_table_name(study, is_final, include_release=True):
             else:
                 hyphen_split_study_name_list.append(study_name_part)
 
-
         new_study_name_list = list()
 
         for name in hyphen_split_study_name_list:
@@ -879,8 +878,8 @@ def main(args):
                     schema_tags['program-name-lower'] = study['program_labels'].lower()
 
                     update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
-                                                     table_id=final_dev_table_id,
-                                                     schema_tags=schema_tags)
+                                                         table_id=final_dev_table_id,
+                                                         schema_tags=schema_tags)
                 else:
                     schema_tags['program-name-0-lower'] = program_labels_list[0].lower()
                     schema_tags['program-name-1-lower'] = program_labels_list[1].lower()
@@ -919,8 +918,7 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids_metadata,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=True)
+                      overwrite=True)
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
@@ -933,8 +931,7 @@ def main(args):
                               source_table_id=quant_table_id,
                               get_publish_table_ids=get_publish_table_ids_quant,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True,
-                              test_mode=True)
+                              overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
