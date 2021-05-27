@@ -438,11 +438,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
         return
 
     if exists_bq_table(source_table_id):
-        print(versioned_table_id)
-        print(current_table_id)
-
-    """
-    if exists_bq_table(source_table_id):
         if publish_new_version:
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
@@ -461,7 +456,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})")
 
         print()
-    """
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
