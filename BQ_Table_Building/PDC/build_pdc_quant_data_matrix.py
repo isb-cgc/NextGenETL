@@ -892,6 +892,8 @@ def main(args):
                                                          metadata_file=generic_metadata_file)
 
     if 'publish_refseq_mapping_table' in steps:
+        print("Publishing RefSeq table!")
+
         refseq_table_name = construct_table_name(API_PARAMS,
                                                  prefix=BQ_PARAMS['REFSEQ_UNIPROT_FINAL_TABLE'],
                                                  release=API_PARAMS['UNIPROT_RELEASE'])
@@ -907,6 +909,7 @@ def main(args):
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
+        print("Publishing gene and quant tables!")
         gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
         gene_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{gene_table_name}"
 
