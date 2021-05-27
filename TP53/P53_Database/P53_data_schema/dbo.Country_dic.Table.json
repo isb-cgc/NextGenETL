@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Country",
+        "type": "string"
+    },
+    {
+        "name": "Population",
+        "type": "string"
+    },
+    {
+        "name": "Region",
+        "type": "string"
+    },
+    {
+        "name": "Development",
+        "type": "string"
+    }
+]

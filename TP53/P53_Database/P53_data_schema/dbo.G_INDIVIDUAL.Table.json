@@ -1,0 +1,66 @@
+[
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Family_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Individual_code",
+        "type": "string"
+    },
+    {
+        "name": "FamilyCase_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Ethnicity",
+        "type": "string"
+    },
+    {
+        "name": "Geo_area",
+        "type": "string"
+    },
+    {
+        "name": "Generation",
+        "type": "integer"
+    },
+    {
+        "name": "Sex",
+        "type": "string"
+    },
+    {
+        "name": "Germline_carrier",
+        "type": "string"
+    },
+    {
+        "name": "Mode_of_inheritance",
+        "type": "string"
+    },
+    {
+        "name": "Dead",
+        "type": "boolean"
+    },
+    {
+        "name": "Unaffected",
+        "type": "boolean"
+    },
+    {
+        "name": "Age",
+        "type": "integer"
+    },
+    {
+        "name": "TP53polymorphisms",
+        "type": "string"
+    },
+    {
+        "name": "MDM2polymorphisms",
+        "type": "string"
+    },
+    {
+        "name": "Add_info",
+        "type": "string"
+    }
+]

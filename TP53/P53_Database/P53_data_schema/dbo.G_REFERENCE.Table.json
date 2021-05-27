@@ -1,0 +1,54 @@
+[
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "PubMed_entry",
+        "type": "string"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Title",
+        "type": "string"
+    },
+    {
+        "name": "Authors",
+        "type": "string"
+    },
+    {
+        "name": "G_Ref_Year",
+        "type": "integer"
+    },
+    {
+        "name": "Journal",
+        "type": "string"
+    },
+    {
+        "name": "Volume",
+        "type": "integer"
+    },
+    {
+        "name": "Start_page",
+        "type": "integer"
+    },
+    {
+        "name": "End_page",
+        "type": "integer"
+    },
+    {
+        "name": "Abstract",
+        "type": "string"
+    },
+    {
+        "name": "Address",
+        "type": "string"
+    },
+    {
+        "name": "Comment",
+        "type": "string"
+    }
+]

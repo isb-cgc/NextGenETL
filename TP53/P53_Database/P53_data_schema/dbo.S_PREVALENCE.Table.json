@@ -1,0 +1,34 @@
+[
+    {
+        "name": "Prevalence_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Topo_code",
+        "type": "string"
+    },
+    {
+        "name": "Morpho_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_analyzed",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_mutated",
+        "type": "integer"
+    },
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Comment",
+        "type": "string"
+    }
+]

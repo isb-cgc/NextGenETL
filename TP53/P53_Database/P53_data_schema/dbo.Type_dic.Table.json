@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Type_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Type",
+        "type": "string"
+    },
+    {
+        "name": "Type_group",
+        "type": "string"
+    },
+    {
+        "name": "Type_group1",
+        "type": "string"
+    },
+    {
+        "name": "Type_group2",
+        "type": "string"
+    },
+    {
+        "name": "Type_group3",
+        "type": "string"
+    }
+]

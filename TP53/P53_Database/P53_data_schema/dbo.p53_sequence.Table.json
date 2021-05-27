@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Codon_number",
+        "type": "integer"
+    },
+    {
+        "name": "WT_codon",
+        "type": "string"
+    },
+    {
+        "name": "WT_AA",
+        "type": "string"
+    },
+    {
+        "name": "Conserved",
+        "type": "boolean"
+    },
+    {
+        "name": "Conservation_rate",
+        "type": "string"
+    },
+    {
+        "name": "GV",
+        "type": "float"
+    },
+    {
+        "name": "Conserved_domain",
+        "type": "string"
+    },
+    {
+        "name": "Domain_function",
+        "type": "string"
+    },
+    {
+        "name": "Residue_function",
+        "type": "string"
+    },
+    {
+        "name": "Hotspot",
+        "type": "string"
+    },
+    {
+        "name": "SA",
+        "type": "float"
+    },
+    {
+        "name": "Motif",
+        "type": "string"
+    },
+    {
+        "name": "Structural_motif2",
+        "type": "string"
+    },
+    {
+        "name": "Structural_motif",
+        "type": "string"
+    },
+    {
+        "name": "Structural_group",
+        "type": "integer"
+    }
+]

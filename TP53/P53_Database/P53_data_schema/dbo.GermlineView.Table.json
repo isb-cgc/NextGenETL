@@ -1,0 +1,274 @@
+[
+    {
+        "name": "Family_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Family_code",
+        "type": "string"
+    },
+    {
+        "name": "Class",
+        "type": "string"
+    },
+    {
+        "name": "Generations_analyzed",
+        "type": "integer"
+    },
+    {
+        "name": "Germline_mutation",
+        "type": "string"
+    },
+    {
+        "name": "Country",
+        "type": "string"
+    },
+    {
+        "name": "Population",
+        "type": "string"
+    },
+    {
+        "name": "Region",
+        "type": "string"
+    },
+    {
+        "name": "Development",
+        "type": "string"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "hg18_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg19_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg38_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "ExonIntron",
+        "type": "string"
+    },
+    {
+        "name": "Codon_number",
+        "type": "integer"
+    },
+    {
+        "name": "Description",
+        "type": "string"
+    },
+    {
+        "name": "c_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description_GRCh38",
+        "type": "string"
+    },
+    {
+        "name": "Type",
+        "type": "string"
+    },
+    {
+        "name": "WT_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "Splice_site",
+        "type": "string"
+    },
+    {
+        "name": "CpG_site",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "WT_codon",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_codon",
+        "type": "string"
+    },
+    {
+        "name": "WT_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_AA",
+        "type": "string"
+    },
+    {
+        "name": "Effect",
+        "type": "string"
+    },
+    {
+        "name": "AGVGDClass",
+        "type": "string"
+    },
+    {
+        "name": "SIFTClass",
+        "type": "string"
+    },
+    {
+        "name": "Polyphen2",
+        "type": "string"
+    },
+    {
+        "name": "REVEL",
+        "type": "float"
+    },
+    {
+        "name": "BayesDel",
+        "type": "float"
+    },
+    {
+        "name": "TransactivationClass",
+        "type": "string"
+    },
+    {
+        "name": "DNE_LOFclass",
+        "type": "string"
+    },
+    {
+        "name": "DNEclass",
+        "type": "string"
+    },
+    {
+        "name": "ProtDescription",
+        "type": "string"
+    },
+    {
+        "name": "COSMIClink",
+        "type": "integer"
+    },
+    {
+        "name": "CLINVARlink",
+        "type": "integer"
+    },
+    {
+        "name": "TCGA_ICGC_GENIE_count",
+        "type": "integer"
+    },
+    {
+        "name": "Hotspot",
+        "type": "string"
+    },
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Individual_code",
+        "type": "string"
+    },
+    {
+        "name": "FamilyCase",
+        "type": "string"
+    },
+    {
+        "name": "FamilyCase_group",
+        "type": "string"
+    },
+    {
+        "name": "Sex",
+        "type": "string"
+    },
+    {
+        "name": "Germline_carrier",
+        "type": "string"
+    },
+    {
+        "name": "Mode_of_inheritance",
+        "type": "string"
+    },
+    {
+        "name": "Dead",
+        "type": "boolean"
+    },
+    {
+        "name": "Unaffected",
+        "type": "boolean"
+    },
+    {
+        "name": "Age",
+        "type": "integer"
+    },
+    {
+        "name": "Tumor_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Topography",
+        "type": "string"
+    },
+    {
+        "name": "Morphology",
+        "type": "string"
+    },
+    {
+        "name": "Age_at_diagnosis",
+        "type": "integer"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Short_topo",
+        "type": "string"
+    },
+    {
+        "name": "ShortTumor",
+        "type": "string"
+    },
+    {
+        "name": "Effect_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Structural_motif",
+        "type": "string"
+    },
+    {
+        "name": "Type_ID",
+        "type": "integer"
+    },
+    {
+        "name": "StatisticGraphGermline",
+        "type": "string"
+    },
+    {
+        "name": "Morphogroup",
+        "type": "string"
+    },
+    {
+        "name": "AAchange",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rateAA",
+        "type": "float"
+    },
+    {
+        "name": "Other_infos",
+        "type": "string"
+    },
+    {
+        "name": "GermlineView_ID",
+        "type": "integer"
+    }
+]

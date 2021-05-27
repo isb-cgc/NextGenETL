@@ -1,0 +1,38 @@
+[
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cross_Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Title",
+        "type": "string"
+    },
+    {
+        "name": "Authors",
+        "type": "string"
+    },
+    {
+        "name": "S_Ref_Year",
+        "type": "integer"
+    },
+    {
+        "name": "Journal",
+        "type": "string"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Exclude_analysis",
+        "type": "boolean"
+    },
+    {
+        "name": "WGS_WXS",
+        "type": "string"
+    }
+]

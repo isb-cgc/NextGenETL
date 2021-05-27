@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Codon",
+        "type": "string"
+    },
+    {
+        "name": "Amino_Acid",
+        "type": "string"
+    }
+]

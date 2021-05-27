@@ -1,0 +1,18 @@
+[
+    {
+        "name": "Tobacco_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Tobacco",
+        "type": "string"
+    },
+    {
+        "name": "Related_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Tobacco_search",
+        "type": "string"
+    }
+]

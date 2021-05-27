@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Tumor_origin_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Tumor_origin",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_origin_group",
+        "type": "string"
+    }
+]

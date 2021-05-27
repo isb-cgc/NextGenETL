@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Tumor_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Subtopo_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Morpho_ID",
+        "type": "integer"
+    },
+    {
+        "name": "ShortTumor",
+        "type": "string"
+    },
+    {
+        "name": "Age_at_diagnosis",
+        "type": "integer"
+    },
+    {
+        "name": "Predict_class",
+        "type": "string"
+    },
+    {
+        "name": "LOH",
+        "type": "string"
+    },
+    {
+        "name": "P53_IHC",
+        "type": "string"
+    },
+    {
+        "name": "Somatic_mutation",
+        "type": "string"
+    },
+    {
+        "name": "Grade",
+        "type": "string"
+    },
+    {
+        "name": "Stage",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_origin",
+        "type": "string"
+    },
+    {
+        "name": "Sample_source",
+        "type": "string"
+    },
+    {
+        "name": "Add_Info",
+        "type": "string"
+    }
+]
