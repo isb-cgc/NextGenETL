@@ -910,6 +910,7 @@ def main(args):
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
         print("Publishing gene and quant tables!")
+
         gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
         gene_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{gene_table_name}"
 
@@ -918,9 +919,9 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids_metadata,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=True)
+                      overwrite=True)
 
+        '''
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
             quant_table_name = get_quant_table_name(study, is_final=True)
@@ -934,6 +935,7 @@ def main(args):
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
                               overwrite=True,
                               test_mode=True)
+        '''
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
