@@ -1,4 +1,5 @@
 import time
+import sys
 
 from common_etl.utils import (has_fatal_error, load_config, format_seconds, construct_table_name,
                               create_view_from_query)
