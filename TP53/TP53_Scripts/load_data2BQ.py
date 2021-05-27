@@ -1,6 +1,5 @@
 import concurrent.futures
 from google.cloud.bigquery import schema
-import pandas as pd 
 import os 
 from google.cloud import bigquery 
 import json
@@ -20,7 +19,8 @@ def upload_to_bq(table_id,
         schema=schema,
         source_format=bigquery.SourceFormat.CSV, 
         skip_leading_rows=1,
-        write_disposition = "WRITE_TRUNCATE",
+        write_disposition="WRITE_TRUNCATE",
+        allow_quoted_newlines=True
     )
     
     # Upload dataframe 2 BigQuery
@@ -61,8 +61,11 @@ def clean_and_write_out(a_file,
             stripped_row = list(map(lambda x: x.strip(), row))
             if stripped_row != []:
                 lines.append(stripped_row)
-
-        lines.pop()
+                
+        for line in lines[-1]: 
+            if 'selected' in line: 
+                lines.pop() 
+        
         writer.writerows(lines)
     
 def process_csv_files(file_name):
