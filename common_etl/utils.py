@@ -437,8 +437,9 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
                       """)
         return
 
-    print(versioned_table_id)
-    print(current_table_id)
+    if exists_bq_table(source_table_id):
+        print(versioned_table_id)
+        print(current_table_id)
 
     """
     if exists_bq_table(source_table_id):
