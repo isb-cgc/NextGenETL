@@ -44,7 +44,6 @@ def make_webapp_per_sample_view_query():
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
-
     steps = None
 
     try:
@@ -54,8 +53,8 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_per_sample_webapp_view' in steps:
-        app_per_sample_view_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW'])
-        webapp_per_sample_view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{app_per_sample_view_name}"
+        per_sample_view_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW'])
+        webapp_per_sample_view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['WEBAPP_DATASET']}.{per_sample_view_name}"
         create_view_from_query(view_id=webapp_per_sample_view_id, view_query=make_webapp_per_sample_view_query())
 
     end = time.time() - start_time
