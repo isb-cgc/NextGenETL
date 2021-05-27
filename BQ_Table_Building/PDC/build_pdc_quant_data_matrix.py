@@ -919,9 +919,9 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids_metadata,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=True)
 
-        '''
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
             quant_table_name = get_quant_table_name(study, is_final=True)
@@ -935,7 +935,6 @@ def main(args):
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
                               overwrite=True,
                               test_mode=True)
-        '''
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
