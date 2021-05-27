@@ -29,9 +29,10 @@ def make_webapp_per_sample_view_query():
     return f"""
         SELECT fm.file_id, fa.case_id as case_node_id, 
             'PDC' as source_node, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, 
-            ac.project_name, null as project_name_suffix, s.program_short_name as program_name,
+            ac.project_name, CAST(null AS STRING) as project_name_suffix, s.program_short_name as program_name,
             fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type as data_type, 
-            fm.file_format as data_format, fm.instrument as platform, fm.file_name, null as cloud_path, fm.`access`
+            fm.file_format as data_format, fm.instrument as platform, fm.file_name, CAST(null AS STRING) as cloud_path, 
+            fm.`access`
         FROM `{file_metadata_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
             ON fm.file_id = fa.file_id
