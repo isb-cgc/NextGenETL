@@ -52,6 +52,10 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    print(API_PARAMS)
+    print(BQ_PARAMS)
+    print(steps)
+
     if 'build_per_sample_webapp_view' in steps:
         print("Creating per-sample webapp view query!")
 
