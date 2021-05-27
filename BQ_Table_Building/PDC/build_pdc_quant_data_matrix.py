@@ -902,7 +902,8 @@ def main(args):
                       source_table_id=refseq_table_id,
                       get_publish_table_ids=get_publish_table_ids_refseq,
                       find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=True)
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -914,7 +915,8 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids_metadata,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=True)
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
