@@ -1600,21 +1600,21 @@ def find_most_recent_release(dataset, base_table, project=None):
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         release = ''  # variable for the most recent release
         table_create = ''  # the most recently created table
-        # Iterate through all of the tables in a dataset
-        for t in list(client.list_tables(dataset)):
-            # If the table has a newer create date then the one in table_create date, check if the table name matches
-            # the base table name, if so then save the release number
+        # subset the tables for those that match the desired one
+        table_subset = [t for t in client.list_tables(dataset) if t.table_id[:len(base_table)] == base_table]
+        if not table_subset:
+            print('No older versions to compare to')
+            return False
+        for t in table_subset:
+            # If the table has a newer create date then the one in table_create date, replace current value
             if table_create < str(t.created):
-                len_base_table = len(base_table)
-                if t.table_id[:len_base_table] == base_table:
-                    table_create = str(t.created)
-                    release = t.table_id[len(base_table):]
+                table_create = str(t.created)
+                release = t.table_id[len(base_table):]
     except Exception as ex:
         print(ex)
         return False
 
     return release
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1777,9 +1777,10 @@ Are two tables exactly the same?
 
 def compare_two_tables(old_table, new_table, do_batch):
     old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
-
+    
     old_schema = retrieve_table_schema(old_table_spl[1], old_table_spl[2], old_table_spl[0])
     new_schema = retrieve_table_schema(new_table_spl[1], new_table_spl[2], new_table_spl[0])
+
     if len(old_schema) != len(new_schema):
         return 'Number of fields do not match'
     sql = compare_two_tables_sql(old_table, new_table)
@@ -1812,7 +1813,7 @@ def evaluate_table_union(bq_results):
     return True/False"""
     if not bq_results:
         print('Table comparison failed')
-        return False
+        return Exception
     if bq_results == 'Number of fields do not match':
         print(bq_results)
         return 'different'
@@ -1846,8 +1847,7 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
             # remove old table
             elif table_moved:
                 print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(dataset,
-                                                   table.format('current'), project)
+                delete_table = delete_table_bq_job(dataset, table.format('current'), project)
 
                 if not delete_table:
                     print('delete table failed')
