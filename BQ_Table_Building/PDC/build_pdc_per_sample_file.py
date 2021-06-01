@@ -26,13 +26,40 @@ def make_webapp_per_sample_view_query():
     study_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, 'allPrograms'))
     study_table_id = f"{meta_dataset}.{study_table_name}"
 
+    """
+    SELECT fm.file_id AS file_pdc_id, # changed
+    fa.case_id AS case_pdc_id, # changed
+    ac.sample_id AS sample_pdc_id, # changed
+    ac.sample_submitter_id AS sample_barcode, # changed 
+    ac.project_name AS project_short_name, # changed
+    fm.file_type AS file_type, # added
+    fm.file_size, # added
+    """
+
     return f"""
-        SELECT fm.file_id, fa.case_id as case_node_id, 
-            'PDC' as source_node, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, 
-            ac.project_name, CAST(null AS STRING) as project_name_suffix, s.program_short_name as program_name,
-            fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type as data_type, 
-            fm.file_format as data_format, fm.instrument as platform, fm.file_name, CAST(null AS STRING) as cloud_path, 
-            fm.`access`
+        SELECT fm.file_id AS file_pdc_id,  
+            fa.case_id AS case_pdc_id, 
+            ac.case_submitter_id AS case_barcode, 
+            ac.sample_id AS sample_pdc_id, 
+            ac.sample_submitter_id AS sample_barcode, 
+            ac.sample_type, 
+            ac.project_name AS project_short_name, 
+            CAST(NULL AS STRING) AS project_name_suffix, 
+            s.program_short_name AS program_name,
+            fm.file_type AS data_type,
+            fm.data_category, 
+            fm.experiment_type AS experimental_strategy,
+            fm.file_type AS file_type,
+            fm.file_size,
+            fm.file_format AS data_format, 
+            fm.instrument AS platform, 
+            fm.file_name as file_name_key, 
+            CAST(NULL AS STRING) AS index_file_id, 
+            CAST(NULL AS STRING) AS index_file_name_key, 
+            CAST(NULL AS STRING) AS index_file_size,
+            CAST(NULL AS STRING) AS cloud_path, 
+            fm.`access`,
+            CAST(NULL AS STRING) AS acl
         FROM `{file_metadata_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
             ON fm.file_id = fa.file_id
