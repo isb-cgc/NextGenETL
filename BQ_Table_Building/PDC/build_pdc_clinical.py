@@ -29,7 +29,7 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, create_and_upload_schema_for_json,
-                              retrieve_bq_schema_object, construct_table_name_from_list)
+                              retrieve_bq_schema_object, construct_table_name_from_list, create_view_from_query)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -816,6 +816,30 @@ def main(args):
                           get_publish_table_ids=get_publish_table_ids_clinical,
                           find_most_recent_published_table_id=find_most_recent_published_table_id,
                           overwrite=True)
+
+    if 'create_solr_views' in steps:
+        release = BQ_PARAMS['RELEASE']
+
+        solr_query = f"""
+        SELECT cl.case_id AS case_pdc_id, 
+            cl.case_submitter_id AS case_barcode,
+            st.project_short_name,
+            cl.primary_site, 
+            cl.disease_type, 
+            cl.gender, 
+            cl.primary_diagnosis, 
+            cl.last_known_disease_status,
+            cl.tissue_or_organ_of_origin,
+            CAST(null AS STRING) AS disease_code
+        FROM isb-project-zero.PDC_clinical.clinical_georgetown_lung_cancer_pdc_{release} cl
+        JOIN isb-project-zero.PDC_metadata.studies_{release} st
+            ON st.project_submitter_id = cl.project_submitter_id
+        """
+
+        view_id = f'isb-project-zero.webapp_tables_for_solr.georgetown_lung_cancer_{release}'
+
+        create_view_from_query(view_id=view_id, view_query=solr_query)
+
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

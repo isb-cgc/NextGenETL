@@ -1098,12 +1098,20 @@ def resolve_type_conflict(field, types_set):
 
 def resolve_type_conflicts(types_dict):
     """
-    # todo convert to new schema generation
-    Iteratively resolve type conflicts in flattened dict (used by GDC clinical).
-    :param types_dict: dict of field: types set values
+    Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
+    select the superseding type.)
+    :param types_dict: dict containing columns and all detected data types
+    :type types_dict: dict {str: set}
+    :return dict containing the column name and its BigQuery data type.
+    :rtype dict of {str: str}
     """
+
+    type_dict = dict()
+
     for field, types_set in types_dict.items():
-        types_dict[field] = resolve_type_conflict(field, types_set)
+        type_dict[field] = resolve_type_conflict(field, types_set)
+
+    return type_dict
 
 
 def recursively_detect_object_structures(nested_obj):
@@ -1393,20 +1401,20 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     return column_list
 
 
-def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows=0, row_check_interval=1):
+def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
     """
     Open tsv file and aggregate data types for each column.
     :param tsv_fp: tsv dataset filepath used to analyze the data types
     :type tsv_fp: str
     :param column_headers: list of ordered column headers
     :type column_headers: list
-    :param skip_rows: number of rows to skip before analysis (to avoid header rows); defaults to skipping 0 rows
+    :param skip_rows: number of (header) rows to skip before starting analysis
     :type skip_rows: int
-    :param row_check_interval: used to skip rows in large datasets; defaults to checking every row.
-               example: setting to 10 means the function will check data types for every 10th row
-    :type row_check_interval: int
+    :param sample_interval: sampling interval, used to skip rows in large datasets; defaults to checking every row
+               example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
     :return dict of column keys, with value sets representing all data types found for that column
-    :rtype dict {string: set}
+    :rtype dict {str: set}
     """
     data_types_dict = dict()
 
@@ -1425,7 +1433,7 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows=0, row_che
             if not row:
                 break
 
-            if count % row_check_interval == 0:
+            if count % sample_interval == 0:
 
                 row_list = row.split('\t')
 
@@ -1495,9 +1503,9 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
-    resolve_type_conflicts(data_types_dict)
+    data_type_dict = resolve_type_conflicts(data_types_dict)
 
-    schema_obj = create_schema_object(column_headers, data_types_dict)
+    schema_obj = create_schema_object(column_headers, data_type_dict)
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
