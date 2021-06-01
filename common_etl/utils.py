@@ -1349,6 +1349,124 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
                                include_release=include_release)
 
 
+def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
+    """
+    Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
+        NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
+    :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
+    :type header_list: list
+    :param tsv_fp: Optional string filepath; provided if column names are being obtained directly from tsv header
+    :type tsv_fp: str
+    :param header_row_index: Optional header row index, if deriving column names from tsv file
+    :type header_row_index: int
+    :return list of columns with BQ-compatible names
+    :rtype list
+    """
+
+    if not header_list and not header_row_index and not isinstance(header_row_index, int):
+        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
+    if header_row_index and header_list:
+        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
+
+    column_list = list()
+
+    if header_list:
+        for column in header_list:
+            column = make_string_bq_friendly(column)
+            column_list.append(column)
+    else:
+        with open(tsv_fp, 'r') as tsv_file:
+            if header_row_index:
+                for index in range(header_row_index):
+                    tsv_file.readline()
+
+            column_row = tsv_file.readline()
+            columns = column_row.split('\t')
+
+            if len(columns) == 0:
+                has_fatal_error("No column name values supplied by header row index")
+
+            for column in columns:
+                column = make_string_bq_friendly(column)
+                column_list.append(column)
+
+    return column_list
+
+
+def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows=0, row_check_interval=1):
+    """
+    Open tsv file and aggregate data types for each column.
+    :param tsv_fp: tsv dataset filepath used to analyze the data types
+    :type tsv_fp: str
+    :param column_headers: list of ordered column headers
+    :type column_headers: list
+    :param skip_rows: number of rows to skip before analysis (to avoid header rows); defaults to skipping 0 rows
+    :type skip_rows: int
+    :param row_check_interval: used to skip rows in large datasets; defaults to checking every row.
+               example: setting to 10 means the function will check data types for every 10th row
+    :type row_check_interval: int
+    :return dict of column keys, with value sets representing all data types found for that column
+    :rtype dict {string: set}
+    """
+    data_types_dict = dict()
+
+    for column in column_headers:
+        data_types_dict[column] = set()
+
+    with open(tsv_fp, 'r') as tsv_file:
+        for i in range(skip_rows):
+            tsv_file.readline()
+
+        count = 0
+
+        while True:
+            row = tsv_file.readline()
+
+            if not row:
+                break
+
+            if count % row_check_interval == 0:
+
+                row_list = row.split('\t')
+
+                for idx, value in enumerate(row_list):
+                    value_type = check_value_type(value)
+                    data_types_dict[column_headers[idx]].add(value_type)
+
+            count += 1
+
+    return data_types_dict
+
+
+def create_schema_object(column_headers, data_types_dict):
+    """
+    Create BigQuery SchemaField object representation.
+    :param column_headers: list of column names
+    :type column_headers: list
+    :param data_types_dict: dictionary of column names and their types
+        (should have been run through resolve_type_conflicts() prior to use here)
+    :type data_types_dict: dict of {str: str}
+    :return BQ schema field object list
+    """
+    schema_field_object_list = list()
+
+    for column_name in column_headers:
+        # override typing for ids, even those which are actually in
+
+        schema_field = {
+            "name": column_name,
+            "type": data_types_dict[column_name],
+            "mode": "NULLABLE",
+            "description": ''
+        }
+
+        schema_field_object_list.append(schema_field)
+
+    return {
+        "fields": schema_field_object_list
+    }
+
+
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
                                      skip_rows=0, row_check_interval=1, release=None):
     """
@@ -1365,107 +1483,21 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
     """
 
-    def get_column_list():
-        """
-        Return a list of column headers using header_list, if provided, OR from the tab-separated file row at the index
-        specified by header_row (specifying both header_list and header_row in parent function triggers a fatal error).
-        """
-        column_list = list()
-
-        if header_list:
-            for _column in header_list:
-                _column = make_string_bq_friendly(_column)
-                column_list.append(_column)
-        else:
-            with open(tsv_fp, 'r') as _tsv_file:
-                if header_row:
-                    for index in range(header_row):
-                        _tsv_file.readline()
-
-                column_row = _tsv_file.readline()
-                _columns = column_row.split('\t')
-
-                if len(_columns) == 0:
-                    has_fatal_error("No column name values supplied by header row index")
-
-                for _column in _columns:
-                    _column = make_string_bq_friendly(_column)
-                    column_list.append(_column)
-
-        return column_list
-
-    def aggregate_column_data_types():
-        """
-        Open tsv file and aggregate data types for each column.
-        """
-        with open(tsv_fp, 'r') as tsv_file:
-            for i in range(skip_rows):
-                tsv_file.readline()
-
-            count = 0
-
-            while True:
-                row = tsv_file.readline()
-
-                if not row:
-                    break
-
-                if count % row_check_interval == 0:
-
-                    row_list = row.split('\t')
-
-                    for idx, value in enumerate(row_list):
-                        value_type = check_value_type(value)
-                        data_types_dict[columns[idx]].add(value_type)
-
-                count += 1
-
-    def create_schema_object():
-        """
-        Create BigQuery SchemaField object representation.
-        """
-        schema_field_object_list = list()
-
-        for column_name in columns:
-            # override typing for ids, even those which are actually in
-
-            schema_field = {
-                "name": column_name,
-                "type": data_types_dict[column_name],
-                "mode": "NULLABLE",
-                "description": ''
-            }
-
-            schema_field_object_list.append(schema_field)
-
-        return {
-            "fields": schema_field_object_list
-        }
-
     print(f"Creating schema for {table_name}")
 
     # third condition required to account for header row at 0 index
 
     # if no header list supplied here, headers are generated from header_row.
-    columns = get_column_list()
+    column_headers = get_column_list_tsv(header_list, tsv_fp, header_row)
 
-    if not header_list and not header_row and not isinstance(header_row, int):
-        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
-    if header_row and header_list:
-        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
     if isinstance(header_row, int) and header_row >= skip_rows:
         has_fatal_error("Header row not excluded by skip_rows.")
 
-    data_types_dict = dict()
-
-    for column in columns:
-        data_types_dict[column] = set()
-
-    aggregate_column_data_types()
+    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
     resolve_type_conflicts(data_types_dict)
 
-    schema_obj = create_schema_object()
+    schema_obj = create_schema_object(column_headers, data_types_dict)
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
