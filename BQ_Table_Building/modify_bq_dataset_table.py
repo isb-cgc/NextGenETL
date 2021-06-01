@@ -43,7 +43,7 @@ def main(args):
     if 'output_table_list' in steps:
         for dataset in BQ_PARAMS['LIST_TABLES_DATASETS']:
             print(f"\n Tables in {dataset}:")
-            list_bq_tables(dataset)
+            print(list_bq_tables(dataset))
 
     if 'copy_tables' in steps:
         for existing_table_id, new_table_id in BQ_PARAMS['COPY_TABLES'].items():
