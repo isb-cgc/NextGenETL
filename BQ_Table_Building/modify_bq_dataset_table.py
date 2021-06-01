@@ -24,7 +24,7 @@ import time
 import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, delete_bq_table, delete_bq_dataset, load_config,
-                              update_table_labels, copy_bq_table)
+                              update_table_labels, copy_bq_table, list_bq_tables)
 
 BQ_PARAMS = dict()
 YAML_HEADERS = ('bq_params', 'steps')
@@ -39,6 +39,11 @@ def main(args):
         BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
+
+    if 'output_table_list' in steps:
+        for dataset in BQ_PARAMS['LIST_TABLES_DATASETS']:
+            print(f"\n Tables in {dataset}:")
+            list_bq_tables(dataset)
 
     if 'copy_tables' in steps:
         for existing_table_id, new_table_id in BQ_PARAMS['COPY_TABLES'].items():

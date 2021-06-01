@@ -836,7 +836,7 @@ def main(args):
             ON st.project_submitter_id = cl.project_submitter_id
         """
 
-        view_id = f'isb-project-zero.webapp_tables_for_solr.georgetown_lung_cancer_{release}'
+        view_id = f'isb-project-zero.webapp_tables_for_solr.clinical_georgetown_lung_cancer_pdc_{release}'
 
         create_view_from_query(view_id=view_id, view_query=solr_query)
 
