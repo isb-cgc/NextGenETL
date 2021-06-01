@@ -818,7 +818,7 @@ def main(args):
                           overwrite=True)
 
     if 'create_solr_views' in steps:
-        release = BQ_PARAMS['RELEASE']
+        release = API_PARAMS['RELEASE']
 
         solr_query = f"""
         SELECT cl.case_id AS case_pdc_id, 
@@ -839,7 +839,6 @@ def main(args):
         view_id = f'isb-project-zero.webapp_tables_for_solr.georgetown_lung_cancer_{release}'
 
         create_view_from_query(view_id=view_id, view_query=solr_query)
-
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
