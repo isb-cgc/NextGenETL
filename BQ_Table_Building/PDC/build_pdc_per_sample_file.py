@@ -30,7 +30,7 @@ def make_webapp_per_sample_view_query():
     return f"""
         SELECT fm.file_id, fa.case_id, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type,
             s.project_short_name, s.program_short_name, fm.file_type, fm.data_category, fm.experiment_type, 
-            fm.file_type, fm.file_size, fm.file_format, fm.instrument, fm.file_name, fm.`access`
+            fm.file_size, fm.file_format, fm.instrument, fm.file_name, fm.`access`
         FROM `{file_metadata_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
         ON fm.file_id = fa.file_id
@@ -53,7 +53,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_per_sample_webapp_view' in steps:
-        per_sample_view_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW'])
+        per_sample_view_name = f"{BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW']}"
         webapp_per_sample_view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['WEBAPP_DATASET']}.{per_sample_view_name}"
 
         print("Creating webapp view!")
