@@ -15,13 +15,13 @@ def make_webapp_per_sample_view_query():
     dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
     prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
 
-    file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
+    file_metadata_table_name = f"{BQ_PARAMS['FILE_METADATA_TABLE']}_current"
     file_metadata_table_id = f"{prod_meta_dataset}.{file_metadata_table_name}"
 
-    file_assoc_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+    file_assoc_table_name = f"{BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE']}_current"
     file_assoc_table_id = f"{prod_meta_dataset}.{file_assoc_table_name}"
 
-    aliquot_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+    aliquot_table_name = f"{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_current"
     aliquot_table_id = f"{prod_meta_dataset}.{aliquot_table_name}"
 
     study_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, 'allPrograms'))
