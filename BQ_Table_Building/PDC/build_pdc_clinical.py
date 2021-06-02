@@ -844,7 +844,7 @@ def main(args):
         SELECT st.program_short_name, 
         ARRAY_TO_STRING(SPLIT(st.project_short_name, '_'), '-') AS project_short_name, 
         cl.case_id AS case_pdc_id, 
-        cl.submitter_id AS case_barcode, 
+        cl.case_submitter_id AS case_barcode, 
         atc.sample_id AS sample_pdc_id, 
         atc.sample_submitter_id AS sample_barcode
         FROM {BQ_PARAMS['PROD_PROJECT']}.GPRP.clinical_georgetown_lung_cancer_pdc_current cl
