@@ -818,12 +818,13 @@ def main(args):
                           overwrite=True)
 
     if 'create_solr_views' in steps:
-        release = API_PARAMS['RELEASE']
+        prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
+        webapp_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['WEBAPP_DATASET']}"
 
-        solr_query = f"""
+        clinical_query = f"""
         SELECT cl.case_id AS case_pdc_id, 
             cl.case_submitter_id AS case_barcode,
-            st.project_short_name,
+            ARRAY_TO_STRING(SPLIT(st.project_short_name, '_'), '-') AS project_short_name, 
             cl.primary_site, 
             cl.disease_type, 
             cl.gender, 
@@ -831,14 +832,30 @@ def main(args):
             cl.last_known_disease_status,
             cl.tissue_or_organ_of_origin,
             CAST(null AS STRING) AS disease_code
-        FROM isb-project-zero.PDC_clinical.clinical_georgetown_lung_cancer_pdc_{release} cl
-        JOIN isb-project-zero.PDC_metadata.studies_{release} st
+        FROM {BQ_PARAMS['PROD_PROJECT']}.GPRP.clinical_georgetown_lung_cancer_pdc_current cl
+        JOIN {BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.studies_{API_PARAMS['RELEASE']} st
             ON st.project_submitter_id = cl.project_submitter_id
         """
 
-        view_id = f'isb-project-zero.webapp_tables_for_solr.clinical_georgetown_lung_cancer_pdc_{release}'
+        clinical_view_id = f"{webapp_dataset}.clinical_georgetown_lung_cancer_pdc"
+        create_view_from_query(view_id=clinical_view_id, view_query=clinical_query)
 
-        create_view_from_query(view_id=view_id, view_query=solr_query)
+        biospec_query = f"""
+        SELECT st.program_short_name, 
+        ARRAY_TO_STRING(SPLIT(st.project_short_name, '_'), '-') AS project_short_name, 
+        cl.case_id AS case_pdc_id, 
+        cl.submitter_id AS case_barcode, 
+        atc.sample_id AS sample_pdc_id, 
+        atc.sample_submitter_id AS sample_barcode
+        FROM {BQ_PARAMS['PROD_PROJECT']}.GPRP.clinical_georgetown_lung_cancer_pdc_current cl
+        JOIN {prod_meta_dataset}.{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_current atc
+            ON cl.case_id = atc.case_id
+        JOIN {BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.studies_{API_PARAMS['RELEASE']} st
+            ON st.project_submitter_id = cl.project_submitter_id
+        """
+
+        biospec_view_id = f"{webapp_dataset}.biospecimen_stub_georgetown_lung_cancer_pdc"
+        create_view_from_query(view_id=biospec_view_id, view_query=biospec_query)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
