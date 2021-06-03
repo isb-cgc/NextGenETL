@@ -38,7 +38,7 @@ def load_config(yaml_config):
     if yaml_dict is None:
         return None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['friendly_name_fixes'], yaml_dict['steps']
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -48,7 +48,10 @@ def clean_shadow_project(shadow_client, shadow_project):
 
     dataset_ids = []
     for dataset in shadow_client.list_datasets():
+        print(shadow_client.project, dataset.dataset_id)
         dataset_ids.append(dataset.dataset_id)
+
+    input("DANGER !!! Check the project!! ARE YOU SURE? Press Enter (2X?)to continue...")
 
     for did in dataset_ids:
         shadow_client.delete_dataset(did, delete_contents=True, not_found_ok=True)
@@ -64,8 +67,10 @@ def shadow_datasets(source_client, shadow_client, shadow_project, skip_datasets,
 
     dataset_list = source_client.list_datasets()
     for src_dataset in dataset_list:
+        print("checking %s" % src_dataset.dataset_id)
         # Some datasets (security logs) should be ignored outright:
         if src_dataset.dataset_id in skip_datasets:
+            print("skipping %s" % src_dataset.dataset_id)
             continue
         table_list = list(source_client.list_tables(src_dataset.dataset_id))
         # If it is already empty in the source, we do not delete it later when tables are deleted
@@ -93,7 +98,7 @@ Create all empty shadow tables
 '''
 
 def create_all_shadow_tables(source_client, shadow_client, source_project, target_project,
-                             do_batch, shadow_prefix, skip_datasets, do_tables):
+                             do_batch, shadow_prefix, skip_datasets, do_tables, fn_fixes):
 
     dataset_list = source_client.list_datasets()
 
@@ -152,6 +157,11 @@ def create_all_shadow_tables(source_client, shadow_client, source_project, targe
 
                 targ_table.friendly_name = tbl_obj.friendly_name
                 print("Table {} FN: {}".format(table_id, tbl_obj.friendly_name))
+                if (use_query is not None) and (targ_table.friendly_name is None):
+                    print(table_id)
+                    if table_id in fn_fixes:
+                        targ_table.friendly_name = fn_fixes[table_id]
+                        print("Repaired missing FN for {}: Now {}".format(table_id, targ_table.friendly_name))
                 targ_table.description = tbl_obj.description
 
                 if tbl_obj.labels is not None:
@@ -269,7 +279,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps = load_config(yaml_file.read())
+        params, friendly_name_fix_list, steps = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
@@ -284,6 +294,13 @@ def main(args):
 
     source_client = bigquery.Client(project=source_project)
     shadow_client = bigquery.Client(project=shadow_project)
+
+    friendly_name_fixes = {}
+    if friendly_name_fix_list is not None:
+        for fix in friendly_name_fix_list:
+            tab, fn = next(iter(fix.items()))
+            print(tab, fn)
+            friendly_name_fixes[tab] = fn
 
     if 'show_friendly_names' in steps:
         success = dumpViewFriendlyNames(source_client, source_project, skip_datasets)
@@ -317,7 +334,7 @@ def main(args):
     if 'create_all_shadow_tables' in steps:
         # Create just tables:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets, True)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, True, None)
         if not success:
             print("create_all_shadow_tables failed")
             return
@@ -325,7 +342,7 @@ def main(args):
     if 'create_all_shadow_views' in steps:
         # Create just views:
         success = create_all_shadow_tables(source_client, shadow_client, source_project,
-                                           shadow_project, do_batch, shadow_prefix, skip_datasets, False)
+                                           shadow_project, do_batch, shadow_prefix, skip_datasets, False, friendly_name_fixes)
         if not success:
             print("create_all_shadow_views failed")
             return
