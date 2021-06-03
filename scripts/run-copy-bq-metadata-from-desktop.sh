@@ -18,7 +18,7 @@
 # Working on the desktop, you need to run this to authenticate:
 #
 
-gcloud auth login ${1}
+#gcloud auth application-default login
 
 source ~/setEnvVarsForDesktop.sh
 
@@ -35,4 +35,6 @@ popd > /dev/null
 cd ..
 python3 ./BQ_Table_Building/transfer_project_bq_metadata.py ${CONFIG_DIR}/BQMetadataTransfer.yaml
 deactivate
+
+#gcloud auth application-default revoke
 
