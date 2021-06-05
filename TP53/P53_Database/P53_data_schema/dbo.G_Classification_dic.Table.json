@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Class_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Classification",
+        "type": "string"
+    },
+    {
+        "name": "Class",
+        "type": "string"
+    }
+]

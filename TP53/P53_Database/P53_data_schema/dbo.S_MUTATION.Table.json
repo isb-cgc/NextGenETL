@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Mutation_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    }
+]

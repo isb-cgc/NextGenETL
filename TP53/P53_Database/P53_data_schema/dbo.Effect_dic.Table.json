@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Effect_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Effect",
+        "type": "string"
+    }
+]

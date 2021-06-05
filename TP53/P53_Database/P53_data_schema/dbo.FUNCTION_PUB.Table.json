@@ -1,0 +1,58 @@
+[
+    {
+        "name": "Function_ID",
+        "type": "integer"
+    },
+    {
+        "name": "FRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "AAchangeID",
+        "type": "integer"
+    },
+    {
+        "name": "Codon72AA",
+        "type": "string"
+    },
+    {
+        "name": "Conserved_WT_Function",
+        "type": "string"
+    },
+    {
+        "name": "Loss_of_Function",
+        "type": "string"
+    },
+    {
+        "name": "Dominant_Negative_Activity",
+        "type": "string"
+    },
+    {
+        "name": "Gain_of_Function",
+        "type": "string"
+    },
+    {
+        "name": "Temperature_Sensitivity",
+        "type": "string"
+    },
+    {
+        "name": "Cell_assay",
+        "type": "string"
+    },
+    {
+        "name": "Cell_lines",
+        "type": "string"
+    },
+    {
+        "name": "Method",
+        "type": "string"
+    },
+    {
+        "name": "Temp_ref",
+        "type": "string"
+    },
+    {
+        "name": "Assay_design",
+        "type": "string"
+    }
+]
