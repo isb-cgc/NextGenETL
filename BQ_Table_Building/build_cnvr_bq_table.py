@@ -32,7 +32,9 @@ import yaml
 import io
 from git import Repo
 from json import loads as json_loads
-from createSchemaP3 import build_schema
+#from createSchemaP3 import build_schema
+
+from common_etl.utils import get_column_list_tsv, aggregate_column_data_types_tsv, resolve_type_conflicts
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
@@ -139,6 +141,27 @@ def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different colu
         FROM a2
         JOIN `{0}` b ON a2.aliquot_gdc_id = b.GDC_Aliquot
         '''.format(cnv_table, aliquot_table)
+
+def find_types(file, sample_interval): # may need to add skip_rows later
+    """
+    Finds the field type for each column in the file
+    :param file: file name
+    :type file: basestring
+    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
+        example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return: a tuple with a list of [field, field type]
+    :rtype: tuple ([field, field_type])
+    """
+    column_list = get_column_list_tsv(file, 1)
+    field_types = aggregate_column_data_types_tsv(file, column_list, sample_interval=sample_interval)
+    final_field_types = resolve_type_conflicts(field_types)
+    typing_tups = []
+    for column in column_list:
+        tup = (column, final_field_types[column])
+        typing_tups.append(tup)
+
+    return typing_tups
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -286,7 +309,8 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
         schema_dict_loc = "{}_schema.json".format(full_file_prefix)
         build_combined_schema(None, schema_dict_loc,
