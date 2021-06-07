@@ -64,7 +64,7 @@ def get_program_list():
     :return: list of research programs participating in GDC data sharing
     """
 
-    return [res[0] for res in bq_harness_with_result(make_program_list_query(), BQ_PARAMS['DO_BATCH'])]
+    return [res[0] for res in bq_harness_with_result(make_program_list_query(), BQ_PARAMS['DO_BATCH'], verbose=False)]
 
 
 def get_one_to_many_tables(record_counts):
@@ -1120,13 +1120,21 @@ def copy_tables_into_public_project(publish_table_list):
     """Move production-ready bq tables onto the public-facing production server.
 
     """
-    for table_name in publish_table_list:
+    for src_table_id in publish_table_list:
+        table_name = src_table_id.split('.')[2]
         split_table_name = table_name.split('_')
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
-        src_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
-        publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
+        if public_dataset == "BEATAML1":
+            public_dataset = "BEATAML1_0"
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=public_dataset,
+                      source_table_id=src_table_id,
+                      get_publish_table_ids=get_publish_table_ids,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True)
 
 
 def make_biospecimen_stub_view_query(program):
@@ -1215,7 +1223,7 @@ def build_publish_table_list(programs, to_remove_list=False):
     for tables_to_compare in table_comparison_list:
         previous_table_id = tables_to_compare[0]
         current_table_id = tables_to_compare[1]
-        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'])
+        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'], verbose=False)
 
         if not res:
             publish_table_list.append(current_table_id)
@@ -1463,8 +1471,9 @@ def compare_gdc_releases():
     print(f"\n\n*** {old_rel} -> {new_rel} GDC Clinical Data Comparison Report ***")
 
     # which fields have been removed?
-    removed_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=True),
-                                                BQ_PARAMS['DO_BATCH'])
+    removed_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=True),
+                                                do_batch=BQ_PARAMS['DO_BATCH'],
+                                                verbose=False)
     print("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
@@ -1474,7 +1483,9 @@ def compare_gdc_releases():
             print(row[0])
 
     # which fields were added?
-    added_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=False), BQ_PARAMS['DO_BATCH'])
+    added_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=False),
+                                              do_batch=BQ_PARAMS['DO_BATCH'],
+                                              verbose=False)
     print("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
@@ -1484,7 +1495,9 @@ def compare_gdc_releases():
             print(row[0])
 
     # any changes in field data type?
-    datatype_diff_res = bq_harness_with_result(make_datatype_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    datatype_diff_res = bq_harness_with_result(sql=make_datatype_diff_query(old_rel, new_rel),
+                                               do_batch=BQ_PARAMS['DO_BATCH'],
+                                               verbose=False)
     print("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
@@ -1495,7 +1508,9 @@ def compare_gdc_releases():
 
     # any case ids removed?
     print("\nRemoved case ids:")
-    removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel),
+                                                  BQ_PARAMS['DO_BATCH'],
+                                                  verbose=False)
 
     if removed_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1505,7 +1520,9 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nAdded case id counts:")
-    added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel),
+                                                BQ_PARAMS['DO_BATCH'],
+                                                verbose=False)
 
     if added_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1515,7 +1532,9 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nTable count changes: ")
-    table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel),
+                                             BQ_PARAMS['DO_BATCH'],
+                                             verbose=False)
 
     if table_count_res.total_rows == 0:
         print("<none>")
@@ -1528,7 +1547,9 @@ def compare_gdc_releases():
             print(f"{program_name}: {prev_table_cnt} table(s) in {old_rel}, {new_table_cnt} table(s) in {new_rel}")
 
     print("\nAdded tables: ")
-    added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel),
+                                             BQ_PARAMS['DO_BATCH'],
+                                             verbose=False)
 
     if added_table_res.total_rows == 0:
         print("<none>")
@@ -1596,11 +1617,58 @@ def get_cases_by_program(program):
         )
     """
 
-    for case_row in bq_harness_with_result(query, BQ_PARAMS['DO_BATCH']):
+    for case_row in bq_harness_with_result(query, BQ_PARAMS['DO_BATCH'], verbose=False):
         case_items = dict(case_row.items())
         cases.append(case_items)
 
     return cases
+
+
+def find_most_recent_published_table_id(api_params, versioned_table_id):
+    """
+    Function for locating published table id for dataset's previous release, if it exists
+    :param api_params: api_params supplied in yaml config
+    :param versioned_table_id: public versioned table id for current release
+    :return: last published table id, if any; otherwise None
+    """
+    oldest_etl_release = 26  # the oldest table release we published
+    last_gdc_release = int(api_params['RELEASE']) - 1
+    current_gdc_release = get_rel_prefix(api_params)
+    table_id_no_release = versioned_table_id.replace(current_gdc_release, '')
+
+    for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+        prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
+        if exists_bq_table(prev_release_table_id):
+            # found last release table, stop iterating
+            return prev_release_table_id
+
+    return None
+
+
+def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    rel_prefix = get_rel_prefix(api_params)
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(public_dataset + '_', '')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+    return curr_table_id, vers_table_id
 
 
 def main(args):
@@ -1653,7 +1721,7 @@ def main(args):
         view_queries = {
             "BEATAML1_0": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1669,7 +1737,7 @@ def main(args):
             """,
             "CGCI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1694,7 +1762,7 @@ def main(args):
             """,
             "CMI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1709,7 +1777,7 @@ def main(args):
             """,
             "CPTAC": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1732,7 +1800,7 @@ def main(args):
             """,
             "CTSP": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1749,7 +1817,7 @@ def main(args):
             """,
             "FM": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1765,7 +1833,7 @@ def main(args):
             """,
             "GENIE": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1781,7 +1849,7 @@ def main(args):
             """,
             "HCMI": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1806,7 +1874,7 @@ def main(args):
             """,
             "MMRF": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1822,7 +1890,7 @@ def main(args):
             """,
             "NCICCR": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1838,7 +1906,7 @@ def main(args):
             """,
             "OHSU": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1854,7 +1922,7 @@ def main(args):
             """,
             "ORGANOID": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1870,7 +1938,7 @@ def main(args):
             """,
             "TARGET": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1886,7 +1954,7 @@ def main(args):
             """,
             "TCGA": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,            
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,            
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1909,7 +1977,7 @@ def main(args):
             """,
             "VAREPOP": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
@@ -1927,7 +1995,7 @@ def main(args):
             """,
             "WCDT": """
             SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
             cl.demo__ethnicity AS ethnicity, 
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 

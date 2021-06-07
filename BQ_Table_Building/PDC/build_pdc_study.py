@@ -23,8 +23,8 @@ import sys
 import time
 
 from common_etl.utils import (format_seconds, get_graphql_api_response, has_fatal_error, load_config)
-from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl)
-
+from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
+                                             get_prefix)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -67,14 +67,14 @@ def make_study_query(pdc_study_id):
     Creates a graphQL string for querying the PDC API's study endpoint.
     :return: GraphQL query string
     """
-    return """{{ 
-        study (pdc_study_id: \"{}\" acceptDUA: true) {{ 
+    return f"""{{ 
+        study (pdc_study_id: \"{pdc_study_id}\" acceptDUA: true) {{ 
             study_name
             disease_type
             primary_site
             embargo_date
         }} 
-    }}""".format(pdc_study_id)
+    }}"""
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -87,7 +87,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
     for program in all_programs_json_obj:
         program['program_name'] = program.pop("name", None)
-        print("Processing {}".format(program['program_name']))
+        print(f"Processing {program['program_name']}")
         projects = program.pop("projects", None)
         for project in projects:
             project['project_name'] = project.pop("name", None)
@@ -95,8 +95,25 @@ def alter_all_programs_json(all_programs_json_obj):
             if project['project_submitter_id'] == 'CPTAC2 Retrospective':
                 project['project_submitter_id'] = 'CPTAC-2'
 
+            if project['project_submitter_id'] not in BQ_PARAMS['PROJECT_MAP']:
+                project['project_short_name'] = None
+                project['program_short_name'] = None
+                project['project_friendly_name'] = None
+                project['program_labels'] = None
+                print(f"""\n**Unmapped project submitter id: {project['project_submitter_id']}. 
+                      Add to bq_params['PROJECT_MAP'] and rerun study workflow.\n""")
+            else:
+                project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
+                project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
+                project['program_short_name'] = project_shortname_mapping['PROGRAM_SHORT_NAME']
+                project['project_friendly_name'] = project_shortname_mapping['PROJECT_FRIENDLY_NAME']
+                project['program_labels'] = project_shortname_mapping['PROGRAM_LABELS']
+
             studies = project.pop("studies", None)
             for study in studies:
+                # add study friendly name from yaml mapping
+                study['study_friendly_name'] = BQ_PARAMS['STUDY_FRIENDLY_NAME_MAP'][study['pdc_study_id']]
+
                 # grab a few add't fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
@@ -117,7 +134,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
 def main(args):
     start_time = time.time()
-    print("PDC study metadata script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC study metadata script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -128,16 +145,21 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_studies_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS, endpoint='allPrograms', request_function=make_all_programs_query,
-                               alter_json_function=alter_all_programs_json)
+        joined_record_list = build_obj_from_pdc_api(API_PARAMS,
+                                                    endpoint='allPrograms',
+                                                    request_function=make_all_programs_query,
+                                                    alter_json_function=alter_all_programs_json)
 
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allPrograms'),
+                               joined_record_list=joined_record_list)
     if 'build_studies_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint='allPrograms',
                                infer_schema=True)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

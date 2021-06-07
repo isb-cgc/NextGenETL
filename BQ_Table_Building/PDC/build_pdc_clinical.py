@@ -28,12 +28,14 @@ from google.cloud import bigquery
 from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
-                              construct_table_name, construct_table_id)
+                              construct_table_name, construct_table_id, create_and_upload_schema_for_json,
+                              retrieve_bq_schema_object, construct_table_name_from_list, create_view_from_query)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, get_records, update_column_metadata,
-                                             update_pdc_table_metadata)
+                                             get_filename, get_records, write_jsonl_and_upload, get_prefix,
+                                             update_table_schema_from_generic_pdc, get_project_program_names,
+                                             find_most_recent_published_table_id)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -118,8 +120,9 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return ''' {{ 
-        paginatedCaseDiagnosesPerStudy(pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{
+    return f''' 
+    {{ paginatedCaseDiagnosesPerStudy
+        (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{
             total caseDiagnosesPerStudy {{
                 case_id
                 case_submitter_id
@@ -192,7 +195,7 @@ def make_cases_diagnoses_query(pdc_study_id, offset, limit):
                 size
             }}
         }}
-    }}'''.format(pdc_study_id, offset, limit)
+    }}'''
 
 
 def make_cases_demographics_query(pdc_study_id, offset, limit):
@@ -203,8 +206,9 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
     :param limit: maximum number of records to return
     :return: GraphQL query string
     """
-    return """{{ 
-        paginatedCaseDemographicsPerStudy (pdc_study_id: "{0}" offset: {1} limit: {2} acceptDUA: true) {{ 
+    return f"""
+    {{ paginatedCaseDemographicsPerStudy 
+        (pdc_study_id: "{pdc_study_id}" offset: {offset} limit: {limit} acceptDUA: true) {{ 
             total caseDemographicsPerStudy {{ 
                 case_id 
                 case_submitter_id
@@ -231,7 +235,7 @@ def make_cases_demographics_query(pdc_study_id, offset, limit):
                 size 
             }} 
         }} 
-    }}""".format(pdc_study_id, offset, limit)
+    }}"""
 
 
 def alter_case_demographics_json(json_obj_list, pdc_study_id):
@@ -272,15 +276,16 @@ def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
         case['pdc_study_id'] = pdc_study_id
 
 
-def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False, infer_schema=False, schema=None):
+def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnoses=False, infer_schema=False,
+                                       schema=None):
     """
     Remove columns where only null values would exist for entire table,
         then construct temporary project-level clinical table.
     :param records: clinical case record dictionary
-    :param project_name: name of project to which the case records belong
+    :param project_submitter_id: name of project to which the case records belong
     :param is_diagnoses: if True, the temp table is a supplement to the project's clinical table,
         due to some cases having multiple diagnosis records; defaults to False
-    :param infer_schema: if True, script will use BQ's native schema inference; defaults to False
+    :param infer_schema: if True, script will use BigQuery's native schema inference; defaults to False
     :param schema: list of SchemaFields representing desired BQ table schema; defaults to None
     :return: newly created BQ table id
     """
@@ -303,7 +308,7 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
 
     clinical_jsonl_filename = get_filename(API_PARAMS,
                                            file_extension='jsonl',
-                                           prefix=project_name,
+                                           prefix=project_submitter_id,
                                            suffix=clinical_type)
 
     clinical_scratch_fp = get_scratch_fp(BQ_PARAMS, clinical_jsonl_filename)
@@ -314,18 +319,18 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
                      scratch_fp=clinical_scratch_fp,
                      delete_local=True)
 
-    prefix = "_".join(["temp", project_name, clinical_type])
+    prefix = "_".join(["temp", project_submitter_id, clinical_type])
 
     clinical_or_child_table_name = construct_table_name(API_PARAMS, prefix=prefix)
     clinical_or_child_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                  dataset=BQ_PARAMS['CLINICAL_DATASET'],
-                                                  table_name=clinical_or_child_table_name)
+                                                    dataset=BQ_PARAMS['CLINICAL_DATASET'],
+                                                    table_name=clinical_or_child_table_name)
 
     if not infer_schema and not schema:
         schema_filename = infer_schema_file_location_by_table_id(clinical_or_child_table_id)
         schema = load_bq_schema_from_json(BQ_PARAMS, schema_filename)
 
-    print("Creating {}:".format(clinical_or_child_table_id))
+    print(f"Creating {clinical_or_child_table_id}:")
 
     create_and_load_table_from_jsonl(BQ_PARAMS,
                                      jsonl_file=clinical_jsonl_filename,
@@ -335,17 +340,19 @@ def remove_nulls_and_create_temp_table(records, project_name, is_diagnoses=False
     return clinical_or_child_table_id
 
 
-def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
+def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_type):
     """
+
     Using column ordering provided in YAML config file, builds a BQ table from the previously created,
-        temporary clinical table. Deletes temporary table upon completion.
+    temporary clinical table. Deletes temporary table upon completion.
     :param temp_table_id: full BQ table id of temporary table
-    :param project_name: Name of PDC project associated with the clinical records
+    :param project_submitter_id: Name of PDC project associated with the clinical records
     :param clinical_type: Type of clinical table, e.g. 'clinical,' 'clinical_diagnoses'
     """
 
     def make_subquery_string(nested_field_list):
         """
+
         Build subquery representing new column ordering for demographic and/or diagnoses columns.
         :param nested_field_list: List of fields nested by field group
         :return: subquery string portion of table-building sql query
@@ -358,48 +365,45 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
                 select_list = [tup[0] for tup in sorted(fields[field], key=lambda t: t[1])]
                 select_str = ", ".join(select_list)
 
-                subquery = """
+                subquery = f"""
                     , ARRAY(
                         SELECT AS STRUCT
-                            {0}
-                        FROM clinical.{1}
-                    ) AS {1}
-                """.format(select_str, field)
+                            {select_str}
+                        FROM clinical.{field}
+                    ) AS {field}
+                """
 
                 subqueries += subquery
 
         return subqueries
 
-    def make_ordered_clinical_table_query(fields):
+    def make_ordered_clinical_table_query(_fields):
         """
         Sort list by index, output list of column names for use in sql query
         """
-        select_parent_list = [tup[0] for tup in sorted(fields['parent_level'], key=lambda t: t[1])]
+        select_parent_list = [tup[0] for tup in sorted(_fields['parent_level'], key=lambda t: t[1])]
         select_parent_query_str = ", ".join(select_parent_list)
 
-        fields.pop("parent_level")
+        _fields.pop("parent_level")
 
-        subquery_str = make_subquery_string(fields.keys())
+        subquery_str = make_subquery_string(_fields.keys())
 
-        return """
-        SELECT {}
-        {}
-        FROM {} clinical
-        """.format(select_parent_query_str, subquery_str, temp_table_id)
+        return f"""
+        SELECT {select_parent_query_str}
+        {subquery_str}
+        FROM {temp_table_id} clinical
+        """
 
     client = bigquery.Client()
     temp_table = client.get_table(temp_table_id)
     table_schema = temp_table.schema
 
-    clinical_project_table_prefix = "_".join([clinical_type,
-                                              BQ_PARAMS["PROJECT_MAP"][project_name]["SHORT_NAME"],
-                                              API_PARAMS['DATA_SOURCE']])
+    project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
 
-    clinical_project_table_name = construct_table_name(API_PARAMS, prefix=clinical_project_table_prefix)
+    clinical_project_prefix = f"{clinical_type}_{project_name_dict['project_short_name']}_{API_PARAMS['DATA_SOURCE']}"
 
-    clinical_project_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                 dataset=BQ_PARAMS['CLINICAL_DATASET'],
-                                                 table_name=clinical_project_table_name)
+    table_name = construct_table_name(API_PARAMS, prefix=clinical_project_prefix)
+    clinical_project_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['CLINICAL_DATASET']}.{table_name}"
 
     fields = {"parent_level": list()}
 
@@ -419,8 +423,9 @@ def create_ordered_clinical_table(temp_table_id, project_name, clinical_type):
                           table_id=clinical_project_table_id,
                           query=make_ordered_clinical_table_query(fields))
 
-    update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=clinical_project_table_id)
     delete_bq_table(temp_table_id)
+
+    return clinical_project_table_id
 
 
 def get_cases_by_project_submitter(studies_list):
@@ -437,9 +442,6 @@ def get_cases_by_project_submitter(studies_list):
             'cases': list(),
             'max_diagnosis_count': 0
         }
-
-    # NOTE: remove when fixed by PDC
-    cases_by_project_submitter['LUAD-100'] = {'cases': list(), 'max_diagnosis_count': 0}
 
     # get all case records, append to list for its project submitter id
     for case in get_cases():
@@ -487,8 +489,9 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
     """
     cases_with_no_clinical_data = list()
 
-    for project_name, project_dict in cases_by_project.items():
+    modified_cases_by_project = dict()
 
+    for project_name, project_dict in cases_by_project.items():
         for case in project_dict['cases']:
             case_id_key_tuple = (case['case_id'], case['case_submitter_id'])
 
@@ -510,22 +513,35 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
                 case.update(demographic_record)
 
-    # NOTE: remove when fixed by PDC
-    cases_by_project['Academia Sinica LUAD-100'] = cases_by_project.pop('LUAD-100')
+    exclude_case_id_set = set()
 
-    print("{} cases with no clinical data".format(len(cases_with_no_clinical_data)))
+    for case in cases_with_no_clinical_data:
+        exclude_case_id_set.add(case[0])
+
+    for project_name, project_dict in cases_by_project.items():
+
+        if project_name not in modified_cases_by_project:
+            modified_cases_by_project[project_name] = dict()
+            modified_cases_by_project[project_name]['cases'] = list()
+            modified_cases_by_project[project_name]['max_diagnosis_count'] = project_dict['max_diagnosis_count']
+
+        for case in project_dict['cases']:
+            if case['case_id'] not in exclude_case_id_set:
+                modified_cases_by_project[project_name]['cases'].append(case)
+
+    return modified_cases_by_project
 
 
-def build_per_project_clinical_tables(cases_by_project):
+def build_per_project_clinical_tables(cases_by_project_submitter):
     """
     Manages construction of null filtering, clinical data retrieval, and per-project clinical table creation
-    :param cases_by_project: dict of form project_submitter_id : cases list
+    :param cases_by_project_submitter: dict of form project_submitter_id : cases list
     """
-    for project_name, project_dict in cases_by_project.items():
+    for project_submitter_id, project_dict in cases_by_project_submitter.items():
         record_count = len(project_dict['cases'])
         max_diagnosis_count = project_dict['max_diagnosis_count']
 
-        print("{}: {} records, {} max diagnoses".format(project_name, record_count, max_diagnosis_count))
+        print(f"\n{project_submitter_id}: {record_count} records, {max_diagnosis_count} max diagnoses")
 
         clinical_records = []
         clinical_diagnoses_records = []
@@ -555,29 +571,100 @@ def build_per_project_clinical_tables(cases_by_project):
 
             clinical_records.append(clinical_case_record)
 
+        project_name_dict = get_project_program_names(API_PARAMS, BQ_PARAMS, project_submitter_id)
+
+        program_labels_list = project_name_dict['program_labels'].split("; ")
+
+        if len(program_labels_list) > 2:
+            has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+        elif len(program_labels_list) == 0:
+            has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+        elif len(program_labels_list) == 2:
+            schema_tags = {
+                "project-name": project_name_dict['project_name'],
+                "mapping-name": "",
+                "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+                "program-name-0-lower": program_labels_list[0].lower(),
+                "program-name-1-lower": program_labels_list[1].lower()
+            }
+        else:
+            schema_tags = {
+                "project-name": project_name_dict['project_name'],
+                "mapping-name": "",
+                "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+                "program-name-lower": project_name_dict['program_labels'].lower()
+            }
+
         if clinical_records:
             temp_clinical_table_id = remove_nulls_and_create_temp_table(records=clinical_records,
-                                                                        project_name=project_name,
+                                                                        project_submitter_id=project_submitter_id,
                                                                         infer_schema=True)
 
-            create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
+            final_table_id = create_ordered_clinical_table(temp_table_id=temp_clinical_table_id,
+                                                           project_submitter_id=project_submitter_id,
+                                                           clinical_type=BQ_PARAMS['CLINICAL_TABLE'])
+
+            if 'program-name-1-lower' in schema_tags:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags,
+                                                     metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
+            else:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags)
 
         if clinical_diagnoses_records:
+            schema_tags['mapping-name'] = 'DIAGNOSES '
+
             temp_diagnoses_table_id = remove_nulls_and_create_temp_table(records=clinical_diagnoses_records,
-                                                                         project_name=project_name,
+                                                                         project_submitter_id=project_submitter_id,
                                                                          is_diagnoses=True,
                                                                          infer_schema=True)
 
-            create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
-                                          project_name=project_name,
-                                          clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+            final_table_id = create_ordered_clinical_table(temp_table_id=temp_diagnoses_table_id,
+                                                           project_submitter_id=project_submitter_id,
+                                                           clinical_type=BQ_PARAMS['CLINICAL_DIAGNOSES_TABLE'])
+
+            if 'program-name-1-lower' in schema_tags:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags,
+                                                     metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
+            else:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=final_table_id,
+                                                     schema_tags=schema_tags)
+
+
+def get_publish_table_ids_clinical(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    rel_prefix = api_params['RELEASE']
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+    return curr_table_id, vers_table_id
 
 
 def main(args):
     start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -590,91 +677,188 @@ def main(args):
     pdc_study_ids = get_pdc_study_ids(API_PARAMS, BQ_PARAMS, include_embargoed_studies=False)
 
     if 'build_cases_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="allCases",
-                               request_function=make_cases_query,
-                               alter_json_function=alter_cases_query)
+        endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_query,
+                                                   alter_json_function=alter_cases_query)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allCases'),
+                               joined_record_list=joined_cases_list)
 
     if 'build_cases_table' in steps:
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint="allCases",
-                               infer_schema=True)
+        endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint=endpoint, schema=schema)
 
     if 'build_case_diagnoses_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="paginatedCaseDiagnosesPerStudy",
-                               request_function=make_cases_diagnoses_query,
-                               alter_json_function=alter_case_diagnoses_json,
-                               ids=pdc_study_ids,
-                               insert_id=True)
+        endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_diagnoses_query,
+                                                   alter_json_function=alter_case_diagnoses_json,
+                                                   ids=pdc_study_ids,
+                                                   insert_id=True)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint),
+                               joined_record_list=joined_cases_list)
 
     if 'build_case_diagnoses_table' in steps:
+        endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint='paginatedCaseDiagnosesPerStudy',
-                               infer_schema=True)
+                               endpoint=endpoint,
+                               infer_schema=False,
+                               schema=schema)
 
     if 'build_case_demographics_jsonl' in steps:
-        build_obj_from_pdc_api(API_PARAMS,
-                               endpoint="paginatedCaseDemographicsPerStudy",
-                               request_function=make_cases_demographics_query,
-                               alter_json_function=alter_case_demographics_json,
-                               ids=pdc_study_ids,
-                               insert_id=True)
+        endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                   endpoint=endpoint,
+                                                   request_function=make_cases_demographics_query,
+                                                   alter_json_function=alter_case_demographics_json,
+                                                   ids=pdc_study_ids,
+                                                   insert_id=True)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=joined_cases_list,
+                                          table_name=table_name,
+                                          include_release=True)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint),
+                               joined_record_list=joined_cases_list)
 
     if 'build_case_demographics_table' in steps:
-        build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
-                               endpoint='paginatedCaseDemographicsPerStudy',
-                               infer_schema=True)
+        endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
+        table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
+
+        schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name)
+
+        build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint=endpoint, schema=schema)
 
     if 'build_case_clinical_jsonl_and_tables_per_project' in steps:
         studies_list = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
         # get unique project_submitter_ids from studies_list
-        cases_by_project = get_cases_by_project_submitter(studies_list)
+        cases_by_project_submitter = get_cases_by_project_submitter(studies_list)
 
         # get demographic and diagnosis records for each case, and append to cases_by_project dictionary
         demographics_by_case, diagnosis_by_case = get_diagnosis_demographic_records_by_case()
 
         # retrieve case demographic and diagnoses for case, pop, add to case record
-        append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, demographics_by_case)
+        cases_by_project = append_diagnosis_demographic_to_case(cases_by_project=cases_by_project_submitter,
+                                                                diagnosis_by_case=diagnosis_by_case,
+                                                                demographic_by_case=demographics_by_case)
 
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
         build_per_project_clinical_tables(cases_by_project)
 
-    if 'update_clinical_tables_metadata' in steps:
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['CLINICAL_TABLE'])
-
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
-        dataset_map = dict()
+        project_dataset_map = dict()
 
-        for project_submitter_id in BQ_PARAMS['PROJECT_MAP']:
-            key = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['SHORT_NAME']
-            val = BQ_PARAMS['PROJECT_MAP'][project_submitter_id]['DATASET']
-            dataset_map[key] = val
+        pdc_study_details = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
+
+        for study in pdc_study_details:
+            project_short_name = study['project_short_name']
+            project_dataset_map[project_short_name] = study['program_short_name']
 
         # iterate over existing dev project clinical tables for current API version
         current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
                                                      release=API_PARAMS['RELEASE'])
 
-        removal_list = ['clinical_diagnoses_', 'clinical_', "_pdc_" + API_PARAMS['RELEASE']]
+        filtered_clinical_table_list = list()
 
-        for table_name in current_clinical_table_list:
-            project_shortname = table_name
+        for table in current_clinical_table_list:
+            table_name = table.split('.')[-1]
+            if table_name[0:4] != 'case':
+                filtered_clinical_table_list.append(table)
 
-            # strip table name down to project shortname in order to derive clinical dataset
-            for rem_str in removal_list:
-                if rem_str in project_shortname:
-                    project_shortname = project_shortname.replace(rem_str, '')
+        for table_name in filtered_clinical_table_list:
+            project_short_name = table_name
+
+            # strip table name down to project short name; use as key to look up program dataset name
+            for rem_str in ['clinical_diagnoses_', 'clinical_', f"_pdc_{API_PARAMS['RELEASE']}"]:
+                if rem_str in project_short_name:
+                    project_short_name = project_short_name.replace(rem_str, '')
 
             clinical_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['CLINICAL_DATASET'], table_name)
 
+            public_dataset = project_dataset_map[project_short_name]
+
             publish_table(API_PARAMS, BQ_PARAMS,
-                          public_dataset=dataset_map[project_shortname],
+                          public_dataset=public_dataset,
                           source_table_id=clinical_table_id,
+                          get_publish_table_ids=get_publish_table_ids_clinical,
+                          find_most_recent_published_table_id=find_most_recent_published_table_id,
                           overwrite=True)
 
+    if 'create_solr_views' in steps:
+        prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
+        webapp_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['WEBAPP_DATASET']}"
+
+        clinical_query = f"""
+        SELECT cl.case_id AS case_pdc_id, 
+            cl.case_submitter_id AS case_barcode,
+            ARRAY_TO_STRING(SPLIT(st.project_short_name, '_'), '-') AS project_short_name, 
+            cl.primary_site, 
+            cl.disease_type, 
+            cl.gender, 
+            cl.primary_diagnosis, 
+            cl.last_known_disease_status,
+            cl.tissue_or_organ_of_origin,
+            CAST(null AS STRING) AS disease_code
+        FROM {BQ_PARAMS['PROD_PROJECT']}.GPRP.clinical_georgetown_lung_cancer_pdc_current cl
+        JOIN {BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.studies_{API_PARAMS['RELEASE']} st
+            ON st.project_submitter_id = cl.project_submitter_id
+        """
+
+        clinical_view_id = f"{webapp_dataset}.clinical_georgetown_lung_cancer_pdc"
+        create_view_from_query(view_id=clinical_view_id, view_query=clinical_query)
+
+        biospec_query = f"""
+        SELECT st.program_short_name, 
+        ARRAY_TO_STRING(SPLIT(st.project_short_name, '_'), '-') AS project_short_name, 
+        cl.case_id AS case_pdc_id, 
+        cl.case_submitter_id AS case_barcode, 
+        atc.sample_id AS sample_pdc_id, 
+        atc.sample_submitter_id AS sample_barcode
+        FROM {BQ_PARAMS['PROD_PROJECT']}.GPRP.clinical_georgetown_lung_cancer_pdc_current cl
+        JOIN {prod_meta_dataset}.{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_current atc
+            ON cl.case_id = atc.case_id
+        JOIN {BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.studies_{API_PARAMS['RELEASE']} st
+            ON st.project_submitter_id = cl.project_submitter_id
+        """
+
+        biospec_view_id = f"{webapp_dataset}.biospecimen_stub_georgetown_lung_cancer_pdc"
+        create_view_from_query(view_id=biospec_view_id, view_query=biospec_query)
+
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

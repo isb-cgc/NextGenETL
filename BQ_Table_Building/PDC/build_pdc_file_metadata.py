@@ -25,12 +25,12 @@ import sys
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, retrieve_bq_schema_object,
                               publish_table, construct_table_name, create_and_upload_schema_for_json,
-                              get_graphql_api_response, write_list_to_jsonl_and_upload, construct_table_id,
-                              create_view_from_query)
+                              get_graphql_api_response, write_list_to_jsonl_and_upload)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_filename, create_modified_temp_table, update_column_metadata,
-                                             update_pdc_table_metadata, get_prefix)
+                                             get_filename, create_modified_temp_table, get_prefix,
+                                             update_table_schema_from_generic_pdc, get_publish_table_ids_metadata,
+                                             find_most_recent_published_table_id)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -45,8 +45,8 @@ def make_files_per_study_query(study_id):
     :return: GraphQL query string
     """
 
-    return """
-    {{ filesPerStudy (pdc_study_id: \"{}\" acceptDUA: true) {{
+    return f"""
+    {{ filesPerStudy (pdc_study_id: \"{study_id}\" acceptDUA: true) {{
             pdc_study_id 
             study_submitter_id
             study_name 
@@ -63,7 +63,7 @@ def make_files_per_study_query(study_id):
                 url
             }}
         }} 
-    }}""".format(study_id)
+    }}"""
 
 
 def make_file_id_query(table_id):
@@ -72,11 +72,11 @@ def make_file_id_query(table_id):
     :param table_id: files_per_study metadata table id
     :return: sql query string
     """
-    return """
+    return f"""
     SELECT file_id
-    FROM `{}`
+    FROM `{table_id}`
     ORDER BY file_id
-    """.format(table_id)
+    """
 
 
 def make_file_metadata_query(file_id):
@@ -85,8 +85,8 @@ def make_file_metadata_query(file_id):
     :return: GraphQL query string
     """
 
-    return """
-    {{ fileMetadata(file_id: \"{}\" acceptDUA: true) {{
+    return f"""
+    {{ fileMetadata(file_id: \"{file_id}\" acceptDUA: true) {{
         file_id 
         fraction_number 
         experiment_type 
@@ -105,7 +105,7 @@ def make_file_metadata_query(file_id):
             }}
         }} 
     }}    
-    """.format(file_id)
+    """
 
 
 def make_associated_entities_query():
@@ -115,22 +115,18 @@ def make_associated_entities_query():
     """
     table_name = construct_table_name(API_PARAMS,
                                       prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
+    table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
-    table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                  dataset=BQ_PARAMS['META_DATASET'],
-                                  table_name=table_name)
-
-    return """
-    SELECT  file_id, 
+    return f"""
+    SELECT DISTINCT file_id, 
             aliquots.case_id AS case_id, 
             aliquots.aliquot_id AS entity_id, 
             aliquots.aliquot_submitter_id AS entity_submitter_id, 
             "aliquot" AS entity_type
-    FROM `{}`
+    FROM `{table_id}`
     CROSS JOIN UNNEST(aliquots) AS aliquots
-    WHERE case_id IS NOT NULL OR entity_id IS NOT NULL
-    GROUP BY file_id, case_id, entity_id, entity_submitter_id, entity_type
-    """.format(table_id)
+    """
+    # WHERE case_id IS NOT NULL OR aliquots.aliquot_id IS NOT NULL
 
 
 def make_combined_file_metadata_query():
@@ -139,59 +135,24 @@ def make_combined_file_metadata_query():
     publishable file metadata table.
     :return: sql query string
     """
-    file_metadata_table_name = construct_table_name(API_PARAMS,
-                                                    prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
+    file_metadata_prefix = get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT'])
+    file_metadata_table_name = construct_table_name(API_PARAMS, prefix=file_metadata_prefix)
+    file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
 
-    file_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=file_metadata_table_name)
+    files_per_study_endpoint = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
+    file_per_study_table_name = construct_table_name(API_PARAMS, prefix=files_per_study_endpoint)
+    file_per_study_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_per_study_table_name}"
 
-    file_per_study_table_name = construct_table_name(API_PARAMS,
-                                                     prefix=get_prefix(API_PARAMS,
-                                                                       API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
-
-    file_per_study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                 dataset=BQ_PARAMS['META_DATASET'],
-                                                 table_name=file_per_study_table_name)
-
-    return """
+    return f"""
     SELECT distinct fps.file_id, fps.file_name, fps.embargo_date, fps.pdc_study_ids,
         fm.study_run_metadata_id, fm.study_run_metadata_submitter_id,
         fps.file_format, fps.file_type, fps.data_category, fps.file_size, 
         fm.fraction_number, fm.experiment_type, fm.plex_or_dataset_name, fm.analyte, fm.instrument, 
         fps.md5sum, fps.url, "open" AS `access`
-    FROM `{}` AS fps
-    INNER JOIN `{}` AS fm
+    FROM `{file_per_study_table_id}` AS fps
+    INNER JOIN `{file_metadata_table_id}` AS fm
         ON fm.file_id = fps.file_id
-    """.format(file_per_study_table_id, file_metadata_table_id)
-
-
-def make_webapp_per_sample_view_query():
-    file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
-    file_metadata_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=file_metadata_table_name)
-
-    file_assoc_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-    file_assoc_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=file_assoc_table_name)
-
-    aliquot_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
-    aliquot_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                dataset=BQ_PARAMS['META_DATASET'],
-                                                table_name=aliquot_table_name)
-    return f"""
-        SELECT fm.file_id, fa.case_id, 
-            ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type, ac.project_name, ac.program_name,
-            fm.data_category, fm.experiment_type as experimental_strategy, fm.file_type, fm.file_format as data_format, 
-            fm.instrument as platform, fm.file_name as file_name_key, fm.`access`
-        FROM `{file_metadata_table_id}` fm
-        JOIN `{file_assoc_table_id}` fa
-            ON fm.file_id = fa.file_id
-        JOIN `{aliquot_table_id}` ac
-            ON fa.case_id = ac.case_id
-        """
+    """
 
 
 def modify_api_file_metadata_table_query(fm_table_id):
@@ -204,11 +165,11 @@ def modify_api_file_metadata_table_query(fm_table_id):
     """
     temp_table_id = fm_table_id + "_temp"
 
-    return """
+    return f"""
         WITH grouped_instruments AS (
             SELECT file_id, 
                 ARRAY_TO_STRING(ARRAY_AGG(instrument), ';') as instruments
-            FROM `{0}`
+            FROM `{temp_table_id}`
         GROUP BY file_id
         )
 
@@ -216,9 +177,9 @@ def modify_api_file_metadata_table_query(fm_table_id):
             f.study_run_metadata_submitter_id, f.study_run_metadata_id, f.plex_or_dataset_name,
             f.fraction_number, f.aliquots
         FROM grouped_instruments g
-        LEFT JOIN `{0}` f
+        LEFT JOIN `{temp_table_id}` f
             ON g.file_id = f.file_id
-        """.format(temp_table_id)
+        """
 
 
 def modify_per_study_file_table_query(fps_table_id):
@@ -231,19 +192,15 @@ def modify_per_study_file_table_query(fps_table_id):
     """
     temp_table_id = fps_table_id + "_temp"
 
-    study_table_name = construct_table_name(API_PARAMS,
-                                            prefix=get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT']))
+    study_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['STUDY_ENDPOINT']))
+    study_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{study_table_name}"
 
-    study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                        dataset=BQ_PARAMS['META_DATASET'],
-                                        table_name=study_table_name)
-
-    return """
+    return f"""
     WITH grouped_study_ids AS (
         SELECT fps.file_id, stud.embargo_date, 
             ARRAY_TO_STRING(ARRAY_AGG(stud.pdc_study_id), ';') AS pdc_study_ids
-        FROM `{0}` fps
-        JOIN `{1}` stud
+        FROM `{temp_table_id}` fps
+        JOIN `{study_table_id}` stud
             ON fps.pdc_study_id = stud.pdc_study_id
     GROUP BY fps.file_id, stud.embargo_date
     )
@@ -252,9 +209,9 @@ def modify_per_study_file_table_query(fps_table_id):
         f.data_category, f.file_format, f.file_type, f.file_size, f.md5sum, 
         SPLIT(f.url, '?')[OFFSET(0)] AS url
     FROM grouped_study_ids g
-    INNER JOIN `{0}` f
+    INNER JOIN `{temp_table_id}` f
         ON g.file_id = f.file_id
-    """.format(temp_table_id, study_table_id)
+    """
 
 
 def alter_files_per_study_json(files_per_study_obj_list):
@@ -268,74 +225,14 @@ def alter_files_per_study_json(files_per_study_obj_list):
         url = signed_url.pop('url', None)
 
         if not url:
-            print("url not found in filesPerStudy response:\n{}\n".format(files_per_study_obj))
+            print(f"url not found in filesPerStudy response:\n{files_per_study_obj}\n")
 
         files_per_study_obj['url'] = url
 
 
-def get_file_ids():
-    """
-    Generates a list of file ids from table created using filesPerStudy endpoint data.
-    :return: file ids list
-    """
-
-    files_per_study_endpoint = API_PARAMS['PER_STUDY_FILE_ENDPOINT']
-    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
-
-    fps_table_name = construct_table_name(API_PARAMS,
-                                          prefix=get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT']))
-
-    fps_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                      dataset=API_PARAMS['ENDPOINT_SETTINGS'][files_per_study_endpoint]['dataset'],
-                                      table_name=fps_table_name)
-
-    curr_file_ids = get_query_results(make_file_id_query(fps_table_id))
-
-    fm_table_name = construct_table_name(API_PARAMS,
-                                         prefix=get_prefix(API_PARAMS, file_metadata_endpoint),
-                                         release=API_PARAMS['PREV_RELEASE'])
-
-    fm_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                     dataset=API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset'],
-                                     table_name=fm_table_name)
-
-    old_file_ids = get_query_results(make_file_id_query(fm_table_id))
-
-    curr_file_id_set = set()
-    old_file_id_set = set()
-
-    for old_file in old_file_ids:
-        file_id = old_file['file_id']
-        old_file_id_set.add(file_id)
-
-    for curr_file in curr_file_ids:
-        file_id = curr_file['file_id']
-        curr_file_id_set.add(file_id)
-
-    new_file_ids = curr_file_id_set - old_file_id_set
-
-    return new_file_ids
-
-
-def get_previous_version_file_metadata():
-    file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
-    prefix = get_prefix(API_PARAMS, file_metadata_endpoint)
-    dataset = API_PARAMS['ENDPOINT_SETTINGS'][file_metadata_endpoint]['dataset']
-
-    table_name = construct_table_name(API_PARAMS, prefix, release=API_PARAMS['PREV_RELEASE'])
-    table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], dataset=dataset, table_name=table_name)
-
-    query = """
-    SELECT * 
-    FROM {}
-    """.format(table_id)
-
-    return get_query_results(query)
-
-
 def main(args):
     start_time = time.time()
-    print("PDC script started at {}".format(time.strftime("%x %X", time.localtime())))
+    print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
 
     steps = None
 
@@ -370,11 +267,8 @@ def main(args):
                                schema=schema)
 
     if 'alter_per_study_file_table' in steps:
-        fps_table_name = construct_table_name(API_PARAMS,
-                                              prefix=per_study_file_prefix)
-        fps_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                          dataset=BQ_PARAMS['META_DATASET'],
-                                          table_name=fps_table_name)
+        fps_table_name = construct_table_name(API_PARAMS, prefix=per_study_file_prefix)
+        fps_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{fps_table_name}"
 
         print(" - Modifying files per study table via query.")
 
@@ -386,14 +280,13 @@ def main(args):
         file_metadata_list = []
 
         fps_prefix = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
-        files_per_study_table_name = construct_table_name(API_PARAMS, prefix=fps_prefix)
-        files_per_study_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                      dataset=BQ_PARAMS['META_DATASET'],
-                                                      table_name=files_per_study_table_name)
-        current_version_file_ids_query = """
+        files_per_study_tablename = construct_table_name(API_PARAMS, prefix=fps_prefix)
+        files_per_study_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{files_per_study_tablename}"
+
+        current_version_file_ids_query = f"""
         SELECT distinct file_id
-        FROM `{}`
-        """.format(files_per_study_table_id)
+        FROM `{files_per_study_table_id}`
+        """
 
         per_study_file_id_set = set()
         current_version_file_ids_res = get_query_results(current_version_file_ids_query)
@@ -402,13 +295,13 @@ def main(args):
             per_study_file_id_set.add(current_version_file_id[0])
 
         # retrieve new file metadata and add to existing file metadata list
-        print("Getting {} file metadata records".format(len(per_study_file_id_set)))
+        print(f"Getting {len(per_study_file_id_set)} file metadata records")
 
         for count, file_id in enumerate(per_study_file_id_set):
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
             if 'data' not in file_metadata_res:
-                print("No data returned by file metadata query for {}".format(file_id))
+                print(f"No data returned by file metadata query for {file_id}")
                 continue
 
             file_metadata_endpoint = API_PARAMS['FILE_METADATA_ENDPOINT']
@@ -421,15 +314,17 @@ def main(args):
                 file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
-                print("{} of {} records retrieved".format(count, len(per_study_file_id_set)))
+                print(f"{count} of {len(per_study_file_id_set)} records retrieved")
 
         jsonl_filename = get_filename(API_PARAMS,
                                       file_extension='jsonl',
-                                      prefix=API_PARAMS['FILE_METADATA_ENDPOINT'])
+                                      prefix=file_metadata_prefix)
         local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
 
         # must occur prior to jsonl write, because this also normalizes the data
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, file_metadata_list, file_metadata_prefix,
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
+                                          record_list=file_metadata_list,
+                                          table_name=file_metadata_prefix,
                                           include_release=True)
 
         write_list_to_jsonl(local_filepath, file_metadata_list)
@@ -446,10 +341,9 @@ def main(args):
     if 'alter_api_file_metadata_table' in steps:
         fm_table_name = construct_table_name(API_PARAMS,
                                              prefix=file_metadata_prefix)
+        fm_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{fm_table_name}"
 
-        fm_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                         dataset=BQ_PARAMS['META_DATASET'],
-                                         table_name=fm_table_name)
+        print(modify_api_file_metadata_table_query(fm_table_id))
 
         create_modified_temp_table(BQ_PARAMS,
                                    table_id=fm_table_id,
@@ -460,91 +354,67 @@ def main(args):
         # or it'll have an aliquot id. If this ever changes, we'll need to adjust, but not expected that it will.
         table_name = construct_table_name(API_PARAMS,
                                           prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-
-        full_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                           dataset=BQ_PARAMS['META_DATASET'],
-                                           table_name=table_name)
+        full_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
         load_table_from_query(BQ_PARAMS,
                               table_id=full_table_id,
-                              query=make_associated_entities_query)
+                              query=make_associated_entities_query())
 
-        update_column_metadata(API_PARAMS, BQ_PARAMS, table_id=full_table_id)
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                             table_id=full_table_id,
+                                             metadata_file=BQ_PARAMS['GENERIC_ASSOC_ENTITY_METADATA_FILE'])
 
     if 'create_file_count_table' in steps:
         # creates case_id -> file count mapping table, used for case metadata table
-        mapping_table_name = construct_table_name(API_PARAMS,
-                                                  prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-        mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=mapping_table_name)
+        mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
 
-        query = """
+        query = f"""
         SELECT case_id, count(file_id) AS file_id_count 
-        FROM `{}` 
+        FROM `{mapping_table_id}` 
         GROUP BY case_id
-        """.format(mapping_table_id)
+        """
 
-        file_count_table_name = construct_table_name(API_PARAMS,
-                                                     prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
-        file_count_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                 dataset=BQ_PARAMS['META_DATASET'],
-                                                 table_name=file_count_table_name)
+        file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
+        file_count_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_count_table_name}"
 
         load_table_from_query(BQ_PARAMS, file_count_table_id, query)
 
     if 'build_file_metadata_table' in steps:
-        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA'])
-        full_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                           dataset=BQ_PARAMS['META_DATASET'],
-                                           table_name=table_name)
+        table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
+        full_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
         load_table_from_query(BQ_PARAMS,
                               table_id=full_table_id,
                               query=make_combined_file_metadata_query())
 
-        update_column_metadata(API_PARAMS, BQ_PARAMS, full_table_id)
-
-    if 'build_per_sample_webapp_view' in steps:
-        webapp_per_sample_view_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW'])
-        webapp_per_sample_view_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                       dataset=BQ_PARAMS['META_DATASET'],
-                                                       table_name=webapp_per_sample_view_name)
-        create_view_from_query(view_id=webapp_per_sample_view_id, view_query=make_webapp_per_sample_view_query())
-
-    if 'update_file_metadata_tables_metadata' in steps:
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['FILE_METADATA'])
-        update_pdc_table_metadata(API_PARAMS, BQ_PARAMS, table_type=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, full_table_id)
 
     if "publish_file_metadata_tables" in steps:
         # Publish master file metadata table
-        file_metadata_table_name = construct_table_name(API_PARAMS,
-                                                        prefix=BQ_PARAMS['FILE_METADATA'])
-
-        file_metadata_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                                    dataset=BQ_PARAMS['META_DATASET'],
-                                                    table_name=file_metadata_table_name)
+        file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
+        file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
 
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=file_metadata_table_id,
+                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True)
 
         # Publish master associated entities table
-        mapping_table_name = construct_table_name(API_PARAMS,
-                                                  prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
-
-        mapping_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=mapping_table_name)
+        mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
 
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,
+                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True)
 
     end = time.time() - start_time
-    print("Finished program execution in {}!\n".format(format_seconds(end)))
+    print(f"Finished program execution in {format_seconds(end)}!\n")
 
 
 if __name__ == '__main__':

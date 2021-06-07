@@ -33,6 +33,7 @@ import yaml
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
 
+from common_etl.support import bq_harness_with_result, compare_two_tables_sql
 
 #   API HELPERS
 
@@ -87,13 +88,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     return json_res
 
 
-def get_rel_prefix(api_params, return_last_version=False, version=None):
+def get_rel_prefix(api_params):
     """
 
     Get API release version (set in yaml config).
     :param api_params: API params, supplied via yaml config
-    :param return_last_version: if True, returns release version prior to newest
-    :param version: release version string
     :return: release version number (with prefix, if included)
     """
     rel_prefix = ''
@@ -101,19 +100,8 @@ def get_rel_prefix(api_params, return_last_version=False, version=None):
     if 'REL_PREFIX' in api_params and api_params['REL_PREFIX']:
         rel_prefix += api_params['REL_PREFIX']
 
-    if version:
-        rel_prefix += version
-        return rel_prefix
-
     if 'RELEASE' in api_params and api_params['RELEASE']:
         rel_number = api_params['RELEASE']
-
-        if return_last_version:
-            if api_params['DATA_SOURCE'] == 'gdc':
-                rel_number = str(int(rel_number) - 1)
-            elif api_params['DATA_SOURCE'] == 'pdc':
-                rel_number = api_params['PREV_RELEASE']
-
         rel_prefix += rel_number
 
     return rel_prefix
@@ -257,15 +245,21 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def add_generic_table_metadata(bq_params, table_id, schema_tags):
+def add_generic_table_metadata(bq_params, table_id, schema_tags, metadata_file=None):
     """
 
+    todo
     :param bq_params: bq_params supplied in yaml config
     :param table_id: table id for which to add the metadata
     :param schema_tags: dictionary of generic schema tag keys and values
-    :return:
+    :param metadata_file:
     """
-    metadata_dir = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_TABLE_METADATA_FILEPATH']}"
+    generic_schema_path = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_SCHEMA_DIR']}"
+
+    if not metadata_file:
+        metadata_dir = f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}"
+    else:
+        metadata_dir = f"{generic_schema_path}/{metadata_file}"
     # adapts path for vm
     metadata_fp = get_filepath(metadata_dir)
 
@@ -294,6 +288,8 @@ def add_column_descriptions(bq_params, table_id):
     field_desc_fp = f"{bq_params['BQ_REPO']}/{bq_params['FIELD_DESCRIPTION_FILEPATH']}"
     field_desc_fp = get_filepath(field_desc_fp)
 
+    if not os.path.exists(field_desc_fp):
+        has_fatal_error("BQEcosystem field description path not found", FileNotFoundError)
     with open(field_desc_fp) as field_output:
         descriptions = json.load(field_output)
 
@@ -375,7 +371,39 @@ def list_bq_tables(dataset_id, release=None):
     return table_list
 
 
-def publish_table(api_params, bq_params, public_dataset, source_table_id, overwrite=False):
+def change_status_to_archived(archived_table_id):
+    """
+
+    Changes the status label of archived_table_id to 'archived.'
+    :param archived_table_id: id for table that is being archived
+    """
+    try:
+        client = bigquery.Client()
+        prev_table = client.get_table(archived_table_id)
+        prev_table.labels['status'] = 'archived'
+        client.update_table(prev_table, ["labels"])
+        assert prev_table.labels['status'] == 'archived'
+    except NotFound:
+        print("Couldn't find a table to archive. Might be that this is the first table release?")
+
+
+def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
+    if not previous_table_id:
+        return True
+
+    compare_result = bq_harness_with_result(sql=compare_two_tables_sql(previous_table_id, current_table_id),
+                                            do_batch=bq_params['DO_BATCH'],
+                                            verbose=False)
+
+    if not compare_result:
+        return True
+
+    for row in compare_result:
+        return True if row else False
+
+
+def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
+                  find_most_recent_published_table_id, overwrite=False, test_mode=False):
     """
 
     Publish production BigQuery tables using source_table_id:
@@ -388,61 +416,46 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, overwr
     :param public_dataset: publish dataset location
     :param source_table_id: source (dev) table id
     :param overwrite: If True, replace existing BigQuery table; defaults to False
+    :param get_publish_table_ids: function that returns public table ids based on the source table id
+    :param find_most_recent_published_table_id: function that returns previous versioned table id, if any
     """
 
-    def get_publish_table_ids():
-        """
-        Create current and versioned table ids.
-        """
-        rel_prefix = get_rel_prefix(api_params)
-        data_source = api_params['DATA_SOURCE']
+    current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
+                                                                 source_table_id=source_table_id,
+                                                                 public_dataset=public_dataset)
+    previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
-        split_table_id = source_table_id.split('.')
+    publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
 
-        data_type = split_table_id[-1]
-        data_type = data_type.replace(rel_prefix, '').strip('_')
-
-        curr_table_name = construct_table_name_from_list([data_type, data_source, 'current'])
-        curr_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset, curr_table_name)
-        vers_table_name = construct_table_name_from_list([data_type, data_source, rel_prefix])
-        vers_table_id = construct_table_id(bq_params['PROD_PROJECT'], public_dataset + '_versioned', vers_table_name)
-        return curr_table_id, vers_table_id
-
-    def change_status_to_archived():
-        """
-        Change last version status label to archived.
-        """
-        client = bigquery.Client()
-        current_release_tag = get_rel_prefix(api_params)
-
-        stripped_table_id = source_table_id.replace(current_release_tag, "")
-        previous_release_tag = get_rel_prefix(api_params, return_last_version=True)
-        prev_table_id = stripped_table_id + previous_release_tag
-
-        try:
-            prev_table = client.get_table(prev_table_id)
-            prev_table.labels['status'] = 'archived'
-            client.update_table(prev_table, ["labels"])
-            assert prev_table.labels['status'] == 'archived'
-        except NotFound:
-            print("Couldn't find a table to archive. Might be that this is the first table release?")
-
-    current_table_id, versioned_table_id = get_publish_table_ids()
+    if test_mode:
+        if exists_bq_table(source_table_id):
+            print(f"""source_table_id = {source_table_id}
+                      versioned_table_id = {versioned_table_id}
+                      current_table_id = {current_table_id}
+                      last_published_table_id = {previous_versioned_table_id}
+                      publish_new_version = {publish_new_version}
+                      """)
+        return
 
     if exists_bq_table(source_table_id):
-        print(f"Publishing {versioned_table_id}")
-        copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
+        if publish_new_version:
+            print(f"Publishing {versioned_table_id}")
+            copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
+    
+            print(f"Publishing {current_table_id}")
+            copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
+    
+            print(f"Updating friendly name for {versioned_table_id}")
+            is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
+            update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
 
-        print(f"Publishing {current_table_id}")
-        copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
+            if previous_versioned_table_id:
+                print(f"Archiving {previous_versioned_table_id}")
+                change_status_to_archived(previous_versioned_table_id)
+        else:
+            print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})")
 
-        print(f"Updating friendly name for {versioned_table_id}\n")
-        is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
-        update_friendly_name(api_params,
-                             table_id=versioned_table_id,
-                             is_gdc=is_gdc)
-
-        change_status_to_archived()
+        print()
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
@@ -854,6 +867,15 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
 
+def write_list_to_tsv(fp, tsv_list):
+    with open(fp, "w") as tsv_file:
+        for row in tsv_list:
+            tsv_row = create_tsv_row(row)
+            tsv_file.write(tsv_row)
+
+    print(f"{len(tsv_list)} rows written to {fp}!")
+
+
 def create_tsv_row(row_list, null_marker="None"):
     """
 
@@ -1076,12 +1098,20 @@ def resolve_type_conflict(field, types_set):
 
 def resolve_type_conflicts(types_dict):
     """
-    # todo convert to new schema generation
-    Iteratively resolve type conflicts in flattened dict (used by GDC clinical).
-    :param types_dict: dict of field: types set values
+    Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
+    select the superseding type.)
+    :param types_dict: dict containing columns and all detected data types
+    :type types_dict: dict {str: set}
+    :return dict containing the column name and its BigQuery data type.
+    :rtype dict of {str: str}
     """
+
+    type_dict = dict()
+
     for field, types_set in types_dict.items():
-        types_dict[field] = resolve_type_conflict(field, types_set)
+        type_dict[field] = resolve_type_conflict(field, types_set)
+
+    return type_dict
 
 
 def recursively_detect_object_structures(nested_obj):
@@ -1327,119 +1357,155 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
                                include_release=include_release)
 
 
-def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     types_dict=None, skip_rows=0, release=None):
+def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
+    """
+    Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
+        NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
+    :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
+    :type header_list: list
+    :param tsv_fp: Optional string filepath; provided if column names are being obtained directly from tsv header
+    :type tsv_fp: str
+    :param header_row_index: Optional header row index, if deriving column names from tsv file
+    :type header_row_index: int
+    :return list of columns with BQ-compatible names
+    :rtype list
     """
 
-    todo
-    :param api_params: api_params supplied in yaml config
-    :param bq_params: bq_params supplied in yaml config
-    :param table_name: name of table belonging to schema
-    :param tsv_fp: path to tsv data file, parsed to create schema
-    :param header_list: optional, list of header strings
-    :param header_row:
-    :param skip_rows:
-    :param release:
-    :param types_dict:
-    """
+    if not header_list and not header_row_index and not isinstance(header_row_index, int):
+        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
+    if header_row_index and header_list:
+        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
 
-    def get_column_list():
-        """
-        Return a list of column headers using header_list, if provided, OR from the tab-separated file row at the index
-        specified by header_row (specifying both header_list and header_row in parent function triggers a fatal error).
-        """
-        column_list = list()
+    column_list = list()
 
-        if header_list:
-            for _column in header_list:
-                _column = make_string_bq_friendly(_column)
-                column_list.append(_column)
-        else:
-            with open(tsv_fp, 'r') as _tsv_file:
-                for index in range(header_row):
-                    _tsv_file.readline()
-
-                column_row = _tsv_file.readline()
-                _columns = column_row.split('\t')
-
-                if len(_columns) == 0:
-                    has_fatal_error("No column name values supplied by header row index")
-
-                for _column in _columns:
-                    _column = make_string_bq_friendly(_column)
-                    column_list.append(_column)
-
-        return column_list
-
-    def aggregate_column_data_types():
-        """
-        Open tsv file and aggregate data types for each column.
-        """
+    if header_list:
+        for column in header_list:
+            column = make_string_bq_friendly(column)
+            column_list.append(column)
+    else:
         with open(tsv_fp, 'r') as tsv_file:
-            for i in range(skip_rows):
-                tsv_file.readline()
+            if header_row_index:
+                for index in range(header_row_index):
+                    tsv_file.readline()
 
-            while True:
-                row = tsv_file.readline()
+            column_row = tsv_file.readline()
+            columns = column_row.split('\t')
 
-                if not row:
-                    break
+            if len(columns) == 0:
+                has_fatal_error("No column name values supplied by header row index")
+
+            for column in columns:
+                column = make_string_bq_friendly(column)
+                column_list.append(column)
+
+    return column_list
+
+
+def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
+    """
+    Open tsv file and aggregate data types for each column.
+    :param tsv_fp: tsv dataset filepath used to analyze the data types
+    :type tsv_fp: str
+    :param column_headers: list of ordered column headers
+    :type column_headers: list
+    :param skip_rows: number of (header) rows to skip before starting analysis
+    :type skip_rows: int
+    :param sample_interval: sampling interval, used to skip rows in large datasets; defaults to checking every row
+               example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return dict of column keys, with value sets representing all data types found for that column
+    :rtype dict {str: set}
+    """
+    data_types_dict = dict()
+
+    for column in column_headers:
+        data_types_dict[column] = set()
+
+    with open(tsv_fp, 'r') as tsv_file:
+        for i in range(skip_rows):
+            tsv_file.readline()
+
+        count = 0
+
+        while True:
+            row = tsv_file.readline()
+
+            if not row:
+                break
+
+            if count % sample_interval == 0:
 
                 row_list = row.split('\t')
 
                 for idx, value in enumerate(row_list):
                     value_type = check_value_type(value)
-                    data_types_dict[columns[idx]].add(value_type)
+                    data_types_dict[column_headers[idx]].add(value_type)
 
-    def create_schema_object():
-        """
-        Create BigQuery SchemaField object representation.
-        """
-        schema_field_object_list = list()
+            count += 1
 
-        for column_name in columns:
-            # override typing for ids, even those which are actually in
+    return data_types_dict
 
-            schema_field = {
-                "name": column_name,
-                "type": data_types_dict[column_name],
-                "mode": "NULLABLE",
-                "description": ''
-            }
 
-            schema_field_object_list.append(schema_field)
+def create_schema_object(column_headers, data_types_dict):
+    """
+    Create BigQuery SchemaField object representation.
+    :param column_headers: list of column names
+    :type column_headers: list
+    :param data_types_dict: dictionary of column names and their types
+        (should have been run through resolve_type_conflicts() prior to use here)
+    :type data_types_dict: dict of {str: str}
+    :return BQ schema field object list
+    """
+    schema_field_object_list = list()
 
-        return {
-            "fields": schema_field_object_list
+    for column_name in column_headers:
+        # override typing for ids, even those which are actually in
+
+        schema_field = {
+            "name": column_name,
+            "type": data_types_dict[column_name],
+            "mode": "NULLABLE",
+            "description": ''
         }
+
+        schema_field_object_list.append(schema_field)
+
+    return {
+        "fields": schema_field_object_list
+    }
+
+
+def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
+                                     skip_rows=0, row_check_interval=1, release=None):
+    """
+
+    Create and upload schema for a file in tsv format.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name: name of table belonging to schema
+    :param tsv_fp: path to tsv data file, parsed to create schema
+    :param header_list: optional, list of header strings
+    :param header_row: optional, integer index of header row within the file
+    :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
+    :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
+    :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
+    """
 
     print(f"Creating schema for {table_name}")
 
     # third condition required to account for header row at 0 index
 
     # if no header list supplied here, headers are generated from header_row.
-    columns = get_column_list()
+    column_headers = get_column_list_tsv(header_list, tsv_fp, header_row)
 
-    if types_dict:
-        data_types_dict = types_dict
-    else:
-        if not header_list and not header_row and not isinstance(header_row, int):
-            has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
-        if header_row and header_list:
-            has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
-        if isinstance(header_row, int) and header_row >= skip_rows:
-            has_fatal_error("Header row not excluded by skip_rows.")
+    if isinstance(header_row, int) and header_row >= skip_rows:
+        has_fatal_error("Header row not excluded by skip_rows.")
 
-        data_types_dict = dict()
+    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
-        for column in columns:
-            data_types_dict[column] = set()
+    data_type_dict = resolve_type_conflicts(data_types_dict)
 
-        aggregate_column_data_types()
-
-        resolve_type_conflicts(data_types_dict)
-
-    schema_obj = create_schema_object()
+    schema_obj = create_schema_object(column_headers, data_type_dict)
 
     schema_filename = get_filename(api_params,
                                    file_extension='json',
@@ -1452,7 +1518,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         json.dump(schema_obj, schema_json_file, indent=4)
 
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
-
 
 
 #   MISC UTILS
