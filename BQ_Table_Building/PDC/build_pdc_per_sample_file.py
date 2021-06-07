@@ -29,7 +29,8 @@ def make_webapp_per_sample_view_query():
 
     return f"""
         SELECT fm.file_id, fa.case_id, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type,
-            s.project_short_name, s.program_short_name, fm.file_type, fm.data_category, fm.experiment_type, 
+            REPLACE(s.project_short_name, '_', '-') as project_short_name, s.program_short_name, fm.file_type, 
+            fm.data_category, fm.experiment_type, 
             fm.file_size, fm.file_format, fm.instrument, fm.file_name,
             REPLACE(fm.url, 'https://d3iwtkuvwz4jtf.cloudfront.net/', 's3://pdcdatastore/') as file_name_key, 
             fm.`access`
