@@ -124,9 +124,20 @@ def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different colu
                           b.aliquot_gdc_id
                    FROM a1
                    JOIN `{1}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id)
+            a3 AS (SELECT a2.project_short_name,
+                          a2.case_barcode,
+                          a2.sample_barcode,
+                          a2.aliquot_barcode,
+                          a2.case_gdc_id,
+                          a2.sample_gdc_id,
+                          a2.aliquot_gdc_id,
+                          b.primary_site
+                    FROM a2
+                    JOIN `{2}` b ON a2.case_gdc_id = b.case_gdc_id)
         SELECT
             project_short_name,
             case_barcode,
+            primary_site,
             sample_barcode,
             aliquot_barcode,
             chromosome,
@@ -138,8 +149,8 @@ def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different colu
             sample_gdc_id,
             aliquot_gdc_id,
             source_file_id AS file_gdc_id
-        FROM a2
-        JOIN `{0}` b ON a2.aliquot_gdc_id = b.GDC_Aliquot
+        FROM a3
+        JOIN `{0}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
         '''.format(cnv_table, aliquot_table)
 
 def find_types(file, sample_interval): # may need to add skip_rows later
