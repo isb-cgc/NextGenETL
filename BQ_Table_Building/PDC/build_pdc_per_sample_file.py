@@ -57,7 +57,7 @@ def make_webapp_per_sample_view_query():
         """
 
 
-def make_project_level_per_sample_query(project_short_name):
+def make_project_level_per_sample_query(project_submitter_id):
     file_table_id, case_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
 
     # todo change query after next file metadata pull
@@ -91,7 +91,7 @@ def make_project_level_per_sample_query(project_short_name):
             ON ac.case_id = cm.case_id
         JOIN `{study_table_id}` s
             ON s.project_id = cm.project_id
-        WHERE s.project_short_name = '{project_short_name}'
+        WHERE s.project_submitter_id = '{project_submitter_id}'
         """
 
 
@@ -127,9 +127,6 @@ def main(args):
             project_table_id = f"{dev_meta_dataset}.{project_table_name}"
 
             project_query = make_project_level_per_sample_query(project['project_submitter_id'])
-
-            print(project_query)
-            continue
 
             load_table_from_query(BQ_PARAMS, table_id=project_table_id, query=project_query)
 
