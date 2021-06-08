@@ -425,9 +425,29 @@ def get_pdc_studies_list(api_params, bq_params, include_embargoed=False):
 
 
 def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
-    projects_set = set()
+    """
+    Returns current list of PDC projects (pulled from study metadata table).
+    :param api_params: API params from YAML config
+    :param bq_params: BQ params from YAML config
+    :param include_embargoed: If True, returns every PDC project regardless of embargo status; defaults to False, which
+        will only exclude projects in which *all* of the project's studies are currently embargoed.
+    :return: a list of project dict objects with project_submitter_id as the key, and containing the following keys: program_short_name, project_friendly_name,
+             study_friendly_name, project_submitter_id, pdc_study_id, study_name (AKA submitter_id_name), embargo_date,
+             analytical_fraction
+    """
+    projects_list = list()
 
     studies_list = get_pdc_studies_list(api_params, bq_params, include_embargoed)
+
+    for study in studies_list:
+        project_dict = {
+            'project_submitter_id': study['project_submitter_id'],
+            'program_short_name': study['program_short_name'],
+            'project_friendly_name': study['project_friendly_name'],
+        }
+        projects_list.append(project_dict)
+
+    return projects_list
 
 
 def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict(), metadata_file=None):
