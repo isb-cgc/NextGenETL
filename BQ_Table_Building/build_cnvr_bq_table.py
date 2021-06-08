@@ -40,7 +40,7 @@ from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_cl
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
                                build_pull_list_with_bq, BucketPuller, build_combined_schema, \
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, publish_table
+                               generate_table_detail_files, compare_two_tables, publish_table
 
 
 '''
@@ -405,22 +405,23 @@ def main(args):
     # Update the per-field descriptions:
     #
 
-    # todo: do this by current & versioned
+    for table in update_schema_tables:
+        schema_release = 'current' if table == 'current' else release
+        if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
+            print('update_field_descriptions')
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            schema_dict = {}
+            with open(schema_dict_loc, mode='r') as schema_hold_dict:
+                full_schema_list = json_loads(schema_hold_dict.read())
+            for entry in full_schema_list:
+                schema_dict[entry['name']] = {'description': entry['description']}
 
-    if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
-        print('update_field_descriptions')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        schema_dict = {}
-        with open(schema_dict_loc, mode='r') as schema_hold_dict:
-            full_schema_list = json_loads(schema_hold_dict.read())
-        for entry in full_schema_list:
-            schema_dict[entry['name']] = {'description': entry['description']}
+            success = update_schema_with_dict(params['TARGET_DATASET'], draft_table.format(schema_release), schema_dict)
+            if not success:
+                print("update_field_descriptions failed")
+                return
 
-        success = update_schema_with_dict(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], schema_dict)
-        if not success:
-            print("update_field_descriptions failed")
-            return
     # todo check that table is new step
 
     #
@@ -436,13 +437,70 @@ def main(args):
             return
 
     #
+    # compare and remove old current table
+    #
+
+    # compare the two tables
+    if 'compare_remove_old_current' in steps:
+        """
+        This step compares the old current table to the old versioned duplicate then deletes the old current table,
+        if the two tables are the same
+        """
+        # Table that is currently in production under the current table dataset that is to be replaced
+        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
+                                              publication_table.format('current'))
+        # Previous versioned table that should match the table in the current dataset
+        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                               publication_table.format("".join(["r",
+                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        # Temporary location to save a copy of the previous table
+        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                       "_".join([params['PROGRAM'],
+                                                 publication_table.format("".join(["r",
+                                                                                   str(params['PREVIOUS_RELEASE'])])),
+                                                 'backup']))
+
+        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+        # Compare the two previous tables to make sure they are exactly the same
+        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        """
+        If the tables are exactly the same, the row count from compare_two_tables should be 0, the query will give the 
+        number of rows that are different between the two tables
+        """
+        num_rows = compare.total_rows
+
+        if num_rows == 0:
+            print('the tables are the same')
+        else:
+            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+
+        if not compare:
+            print('compare_tables failed')
+            return
+        # move old table to a temporary location
+        elif compare and num_rows == 0:
+            print('Move old table to temp location')
+            # Save the previous current table to a temporary location
+            table_moved = publish_table(old_current_table, table_temp)
+
+            if not table_moved:
+                print('Old Table was not moved and will not be deleted')
+            # remove old table
+            elif table_moved:
+                print('Deleting old table: {}'.format(old_current_table))
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
+                                                   params['PUBLICATION_PROJECT'])
+                if not delete_table:
+                    print('delete table failed')
+                    return
+
+
+    #
     # publish table:
     #
 
     # todo: do publish steps per current/versioned table
-
-    # todo: add remove old current table step
-
     if 'publish' in steps:
 
         source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
