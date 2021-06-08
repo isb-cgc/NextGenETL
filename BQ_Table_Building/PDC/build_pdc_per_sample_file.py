@@ -18,6 +18,9 @@ def get_mapping_table_ids():
     file_metadata_table_name = f"{BQ_PARAMS['FILE_METADATA_TABLE']}_current"
     file_metadata_table_id = f"{prod_meta_dataset}.{file_metadata_table_name}"
 
+    case_metadata_table_name = f"{BQ_PARAMS['CASE_METADATA_TABLE']}_current"
+    case_metadata_table_id = f"{prod_meta_dataset}.{case_metadata_table_name}"
+
     file_assoc_table_name = f"{BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE']}_current"
     file_assoc_table_id = f"{prod_meta_dataset}.{file_assoc_table_name}"
 
@@ -28,11 +31,11 @@ def get_mapping_table_ids():
     study_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, 'allPrograms'))
     study_table_id = f"{dev_meta_dataset}.{study_table_name}"
 
-    return file_metadata_table_id, file_assoc_table_id, aliquot_table_id, study_table_id
+    return file_metadata_table_id, case_metadata_table_id, file_assoc_table_id, aliquot_table_id, study_table_id
 
 
 def make_webapp_per_sample_view_query():
-    file_metadata_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
+    file_table_id, case_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
 
     # todo change query after next file metadata pull
     return f"""
@@ -42,18 +45,20 @@ def make_webapp_per_sample_view_query():
             fm.file_size, fm.file_format, fm.instrument, fm.file_name,
             REPLACE(fm.url, 'https://d3iwtkuvwz4jtf.cloudfront.net/', 's3://pdcdatastore/') AS file_name_key, 
             fm.`access`
-        FROM `{file_metadata_table_id}` fm
+        FROM `{file_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
             ON fm.file_id = fa.file_id
         JOIN `{aliquot_table_id}` ac
             ON fa.case_id = ac.case_id
+        JOIN `{case_table_id}` cm
+            ON ac.case_id = cm.case_id
         JOIN `{study_table_id}` s
-            ON s.project_name = ac.project_name
+            ON s.project_id = cm.project_id
         """
 
 
-def make_project_level_per_sample_query(project_submitter_id):
-    file_metadata_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
+def make_project_level_per_sample_query(project_short_name):
+    file_table_id, case_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
 
     # todo change query after next file metadata pull
     return f"""
@@ -77,14 +82,16 @@ def make_project_level_per_sample_query(project_submitter_id):
             fm.file_name,
             REPLACE(fm.url, 'https://d3iwtkuvwz4jtf.cloudfront.net/', 's3://pdcdatastore/') AS file_location, 
             fm.`access`
-        FROM `{file_metadata_table_id}` fm
+        FROM `{file_table_id}` fm
         JOIN `{file_assoc_table_id}` fa
             ON fm.file_id = fa.file_id
         JOIN `{aliquot_table_id}` ac
             ON fa.case_id = ac.case_id
+        JOIN `{case_table_id}` cm
+            ON ac.case_id = cm.case_id
         JOIN `{study_table_id}` s
-            ON s.project_name = ac.project_name
-        WHERE s.project_submitter_id = '{project_submitter_id}'
+            ON s.project_id = cm.project_id
+        WHERE s.project_short_name = '{project_short_name}'
         """
 
 
@@ -99,7 +106,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    projects_list = get_pdc_projects_list(API_PARAMS, BQ_PARAMS, include_embargoed=True)
+    projects_list = get_project_program_names(api_params, bq_params, project_submitter_id)
 
     if 'build_per_sample_webapp_view' in steps:
         per_sample_view_name = f"{BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW']}"

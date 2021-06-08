@@ -442,7 +442,7 @@ def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
     studies_list = get_pdc_studies_list(api_params, bq_params, include_embargoed)
 
     for study in studies_list:
-        if study['project_submitter_id'] not in projects_set:
+        if study['project_short_name'] not in projects_set:
 
             project_dict = {
                 'project_friendly_name': study['project_friendly_name'],
@@ -452,14 +452,13 @@ def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
             }
 
             projects_list.append(project_dict)
-            projects_set.add(study['project_submitter_id'])
+            projects_set.add(study['project_short_name'])
 
     return projects_list
 
 
 def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict(), metadata_file=None):
     """
-
     todo
     :param api_params:
     :param bq_params:
@@ -480,7 +479,6 @@ def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema
 
 def get_project_program_names(api_params, bq_params, project_submitter_id):
     """
-
     todo
     :param api_params:
     :param bq_params:
