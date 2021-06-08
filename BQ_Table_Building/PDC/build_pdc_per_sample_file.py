@@ -116,6 +116,10 @@ def main(args):
         create_view_from_query(view_id=webapp_per_sample_view_id, view_query=make_webapp_per_sample_view_query())
 
     if 'build_project_level_per_sample_tables' in steps:
+
+        print(projects_list)
+        exit()
+
         dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
         table_prefix = f"{BQ_PARAMS['PROJECT_PER_SAMPLE_FILE_TABLE']}"
         table_suffix = f"{API_PARAMS['DATA_SOURCE']}_{API_PARAMS['RELEASE']}"
