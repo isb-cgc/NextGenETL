@@ -28,7 +28,7 @@ def make_webapp_per_sample_view_query():
     study_table_id = f"{dev_meta_dataset}.{study_table_name}"
 
     return f"""
-        SELECT fm.file_id, fa.case_id, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type,
+        SELECT distinct fm.file_id, fa.case_id, ac.case_submitter_id, ac.sample_id, ac.sample_submitter_id, ac.sample_type,
             REPLACE(s.project_short_name, '_', '-') as project_short_name, s.program_short_name, fm.file_type, 
             fm.data_category, fm.experiment_type, 
             fm.file_size, fm.file_format, fm.instrument, fm.file_name,
@@ -61,6 +61,10 @@ def main(args):
 
         print("Creating webapp view!")
         create_view_from_query(view_id=webapp_per_sample_view_id, view_query=make_webapp_per_sample_view_query())
+
+    if 'build_project_level_per_sample_tables' in steps:
+        pass
+
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

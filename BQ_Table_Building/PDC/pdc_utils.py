@@ -424,6 +424,12 @@ def get_pdc_studies_list(api_params, bq_params, include_embargoed=False):
     return studies_list
 
 
+def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
+    projects_set = set()
+
+    studies_list = get_pdc_studies_list(api_params, bq_params, include_embargoed)
+
+
 def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=dict(), metadata_file=None):
     """
 
