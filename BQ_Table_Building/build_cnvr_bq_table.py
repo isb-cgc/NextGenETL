@@ -57,9 +57,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None, None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['update_schema_tables'], \
+           yaml_dict['schema_tags'], yaml_dict['steps']
 
 
 '''
@@ -108,7 +109,6 @@ def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table
 '''
 def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different columns names
 
-    # todo add primary site
     # todo may need to join on sample_id also
 
     return '''
@@ -199,7 +199,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, bq_filters, steps = load_config(yaml_file.read())
+        params, bq_filters, update_schema_tables, schema_tags, steps = load_config(yaml_file.read())
 
 
     #
@@ -216,6 +216,8 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     # todo bq variables
+    # Which release is the workflow running on?
+    release = "".join(["r", str(params['RELEASE'])])
 
     upload_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}"
     manifest_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_manifest"
@@ -304,28 +306,64 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    # todo schema steps run over both current and versioned tables
-    if 'process_git_schemas' in steps:
-        print('process_git_schema')
-        # Where do we dump the schema git repository?
-        schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['SCHEMA_FILE_NAME'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        # Write out the details
-        success = generate_table_detail_files(schema_file, full_file_prefix)
-        if not success:
-            print("process_git_schemas failed")
-            return
+    for table in update_schema_tables:
+        if table == 'current':
+            use_schema = params['SCHEMA_FILE_NAME']
+            schema_release = 'current'
+        else:
+            use_schema = params['VER_SCHEMA_FILE_NAME']
+            schema_release = release
 
-    # todo replace_schema_tag step
+        if 'process_git_schemas' in steps:
+            print('process_git_schema')
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
 
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-        build_combined_schema(None, schema_dict_loc,
-                              typing_tups, hold_schema_list, hold_schema_dict)
+        # Customize generic schema to this data program:
+        if 'replace_schema_tags' in steps:
+            print('replace_schema_tags')
+            pn = params['PROGRAM']
+            dataset_tuple = (pn, pn.replace(".", "_"))
+            tag_map_list = []
+            for tag_pair in schema_tags:
+                for tag in tag_pair:
+                    val = tag_pair[tag]
+                    use_pair = {}
+                    tag_map_list.append(use_pair)
+                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+                        chunks = val.split('-', 1)
+                        if chunks[1] == 'programs':
+                            if val.find('~lcbqs-') == 0:
+                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+                            else:
+                                rep_val = dataset_tuple[0]
+                        elif chunks[1] == 'builds':
+                            rep_val = params['BUILD']
+                        else:
+                            raise Exception()
+                        if val.find('~lc-') == 0:
+                            rep_val = rep_val.lower()
+                        use_pair[tag] = rep_val
+                    else:
+                        use_pair[tag] = val
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+
+        if 'analyze_the_schema' in steps:
+            print('analyze_the_schema')
+            #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list, hold_schema_dict)
+
+
 
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
