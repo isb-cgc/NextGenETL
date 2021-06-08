@@ -437,16 +437,22 @@ def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
     """
     projects_list = list()
 
+    projects_set = set()
+
     studies_list = get_pdc_studies_list(api_params, bq_params, include_embargoed)
 
     for study in studies_list:
-        project_dict = {
-            'project_friendly_name': study['project_friendly_name'],
-            'project_short_name': study['project_short_name'],
-            'project_submitter_id': study['project_submitter_id'],
-            'program_short_name': study['program_short_name']
-        }
-        projects_list.append(project_dict)
+        if study['project_submitter_id'] not in projects_set:
+
+            project_dict = {
+                'project_friendly_name': study['project_friendly_name'],
+                'project_short_name': study['project_short_name'],
+                'project_submitter_id': study['project_submitter_id'],
+                'program_short_name': study['program_short_name']
+            }
+
+            projects_list.append(project_dict)
+            projects_set.add(study['project_submitter_id'])
 
     return projects_list
 
