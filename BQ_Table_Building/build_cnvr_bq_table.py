@@ -388,9 +388,18 @@ def main(args):
         if not success:
             print("Join job failed")
 
-    # todo create a current table step
+    # Create second table
+    if 'create_current_table' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format(release))
+        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                         draft_table.format('current'))
 
-    # todo check that table is new step
+        success = publish_table(source_table, current_dest)
+
+        if not success:
+            print("create current table failed")
+            return
 
     #
     # Update the per-field descriptions:
@@ -412,6 +421,7 @@ def main(args):
         if not success:
             print("update_field_descriptions failed")
             return
+    # todo check that table is new step
 
     #
     # Add description and labels to the target table:
