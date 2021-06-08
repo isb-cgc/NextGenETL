@@ -116,20 +116,21 @@ def main(args):
         create_view_from_query(view_id=webapp_per_sample_view_id, view_query=make_webapp_per_sample_view_query())
 
     if 'build_project_level_per_sample_tables' in steps:
-
-        print(projects_list)
-        exit()
-
-        dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
-        table_prefix = f"{BQ_PARAMS['PROJECT_PER_SAMPLE_FILE_TABLE']}"
-        table_suffix = f"{API_PARAMS['DATA_SOURCE']}_{API_PARAMS['RELEASE']}"
-
         print("Building project-level per-sample metadata tables!")
 
         for project in projects_list:
+            dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
+            table_prefix = f"{BQ_PARAMS['PROJECT_PER_SAMPLE_FILE_TABLE']}"
+            table_suffix = f"{API_PARAMS['DATA_SOURCE']}_{API_PARAMS['RELEASE']}"
+
             project_table_name = f"{table_prefix}_{project['project_short_name']}_{table_suffix}"
             project_table_id = f"{dev_meta_dataset}.{project_table_name}"
+
             project_query = make_project_level_per_sample_query(project['project_submitter_id'])
+
+            print(project_query)
+            continue
+
             load_table_from_query(BQ_PARAMS, table_id=project_table_id, query=project_query)
 
     end = time.time() - start_time
