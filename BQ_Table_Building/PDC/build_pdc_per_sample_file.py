@@ -106,7 +106,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    projects_list = get_project_program_names(api_params, bq_params, project_submitter_id)
+    projects_list = get_pdc_projects_list(API_PARAMS, BQ_PARAMS, include_embargoed=True)
 
     if 'build_per_sample_webapp_view' in steps:
         per_sample_view_name = f"{BQ_PARAMS['WEBAPP_PER_SAMPLE_VIEW']}"
