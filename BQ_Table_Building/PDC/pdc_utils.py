@@ -518,6 +518,34 @@ def get_project_program_names(api_params, bq_params, project_submitter_id):
         return project_name_dict
 
 
+def get_project_level_schema_tags(api_params, bq_params, project_submitter_id):
+    project_name_dict = get_project_program_names(api_params, bq_params, project_submitter_id)
+
+    program_labels_list = project_name_dict['program_labels'].split("; ")
+
+    if len(program_labels_list) > 2:
+        has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+    elif len(program_labels_list) == 0:
+        has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+    elif len(program_labels_list) == 2:
+        schema_tags = {
+            "project-name": project_name_dict['project_name'],
+            "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+            "program-name-0-lower": program_labels_list[0].lower(),
+            "program-name-1-lower": program_labels_list[1].lower()
+        }
+    else:
+        schema_tags = {
+            "project-name": project_name_dict['project_name'],
+            "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+            "program-name-lower": project_name_dict['program_labels'].lower()
+        }
+
+    return schema_tags
+
+
 def find_most_recent_published_table_id(api_params, versioned_table_id):
     """
     Function for locating published table id for dataset's previous release, if it exists

@@ -4,7 +4,8 @@ import sys
 from common_etl.utils import (has_fatal_error, load_config, format_seconds, construct_table_name,
                               create_view_from_query, load_table_from_query)
 
-from BQ_Table_Building.PDC.pdc_utils import (get_prefix, get_pdc_projects_list)
+from BQ_Table_Building.PDC.pdc_utils import (get_prefix, get_pdc_projects_list, get_project_program_names,
+                                             get_project_level_schema_tags, update_table_schema_from_generic_pdc)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -129,6 +130,19 @@ def main(args):
             project_query = make_project_level_per_sample_query(project['project_submitter_id'])
 
             load_table_from_query(BQ_PARAMS, table_id=project_table_id, query=project_query)
+
+            schema_tags = get_project_level_schema_tags(API_PARAMS, BQ_PARAMS,
+                                                        project_submitter_id=project['project_submitter_id'])
+
+            if 'program-name-1-lower' in schema_tags:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=project_table_id,
+                                                     schema_tags=schema_tags,
+                                                     metadata_file=BQ_PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
+            else:
+                update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
+                                                     table_id=project_table_id,
+                                                     schema_tags=schema_tags)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
