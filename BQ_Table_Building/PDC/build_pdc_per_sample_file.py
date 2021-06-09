@@ -2,10 +2,11 @@ import time
 import sys
 
 from common_etl.utils import (has_fatal_error, load_config, format_seconds, construct_table_name,
-                              create_view_from_query, load_table_from_query)
+                              create_view_from_query, load_table_from_query, exists_bq_table, publish_table)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_prefix, get_pdc_projects_list, get_project_program_names,
-                                             get_project_level_schema_tags, update_table_schema_from_generic_pdc)
+                                             get_project_level_schema_tags, update_table_schema_from_generic_pdc,
+                                             find_most_recent_published_table_id)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -96,6 +97,18 @@ def make_project_level_per_sample_query(project_submitter_id):
         """
 
 
+def get_publish_table_ids_per_sample(api_params, bq_params, source_table_id, public_dataset):
+    source_table_name = source_table_id.split('.')[-1]
+
+    base_table_name = source_table_name.replace(api_params['RELEASE'], "")
+    curr_table_name = f"{base_table_name}_current"
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{source_table_name}"
+
+    return curr_table_id, vers_table_id
+
+
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -143,6 +156,23 @@ def main(args):
                 update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
                                                      table_id=project_table_id,
                                                      schema_tags=schema_tags)
+
+    if 'publish_project_level_per_sample_tables' in steps:
+        for project in projects_list:
+            dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
+            src_table_prefix = f"{BQ_PARAMS['PROJECT_PER_SAMPLE_FILE_TABLE']}"
+            src_table_suffix = f"{API_PARAMS['DATA_SOURCE']}_{API_PARAMS['RELEASE']}"
+            src_per_sample_table_name = f"{src_table_prefix}_{project['project_short_name']}_{src_table_suffix}"
+            src_per_sample_table_id = f"{dev_meta_dataset}.{src_per_sample_table_name}"
+
+            if exists_bq_table(src_per_sample_table_id):
+                publish_table(API_PARAMS, BQ_PARAMS,
+                              public_dataset=project['program_short_name'],
+                              source_table_id=src_per_sample_table_id,
+                              get_publish_table_ids=get_publish_table_ids_per_sample,
+                              find_most_recent_published_table_id=find_most_recent_published_table_id,
+                              overwrite=True
+                              )
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

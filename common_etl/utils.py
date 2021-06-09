@@ -421,6 +421,12 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
                                                                  source_table_id=source_table_id,
                                                                  public_dataset=public_dataset)
+
+    print(current_table_id)
+    print(versioned_table_id)
+    print()
+    return
+
     previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
     publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
