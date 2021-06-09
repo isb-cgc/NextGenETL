@@ -416,16 +416,13 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     :param overwrite: If True, replace existing BigQuery table; defaults to False
     :param get_publish_table_ids: function that returns public table ids based on the source table id
     :param find_most_recent_published_table_id: function that returns previous versioned table id, if any
+    :param test_mode: outputs the source table id, versioned and current published table ids,
+           last published table id (if any) and whether the dataset would be published if test_mode=False
     """
 
     current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
                                                                  source_table_id=source_table_id,
                                                                  public_dataset=public_dataset)
-
-    print(current_table_id)
-    print(versioned_table_id)
-    print()
-    return
 
     previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
