@@ -257,11 +257,9 @@ def add_generic_table_metadata(bq_params, table_id, schema_tags, metadata_file=N
     generic_schema_path = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_SCHEMA_DIR']}"
 
     if not metadata_file:
-        metadata_dir = f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}"
+        metadata_fp = get_filepath(f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}")
     else:
-        metadata_dir = f"{generic_schema_path}/{metadata_file}"
-    # adapts path for vm
-    metadata_fp = get_filepath(metadata_dir)
+        metadata_fp = get_filepath(f"{generic_schema_path}/{metadata_file}")
 
     with open(metadata_fp) as file_handler:
         table_schema = ''
