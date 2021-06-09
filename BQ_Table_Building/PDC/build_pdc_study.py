@@ -168,7 +168,7 @@ def modify_study_table():
 
     res = get_query_results(query)
 
-    for row in res():
+    for row in res:
         print(row['primary_site'])
         print(row['pdc_study_id'])
         print(row['disease_type'])
