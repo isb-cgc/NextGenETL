@@ -24,7 +24,7 @@ import time
 import json
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              get_query_results)
+                              get_query_results, get_filename, create_and_load_table_from_jsonl)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
                                              get_prefix)
 
@@ -158,9 +158,10 @@ def alter_all_programs_json(all_programs_json_obj):
 
 def modify_study_table():
     study_list = list()
-    curr_table_id = "isb-project-zero.PDC_metadata.studies_V1_17"
-    dest_table_id = "isb-project-zero.PDC_metadata.studies_V1_17_new"
 
+    prefix = 'studies_new'
+    curr_table_id = "isb-project-zero.PDC_metadata.studies_V1_17"
+    dest_table_id = f"isb-project-zero.PDC_metadata.{prefix}_V1_17_new"
     project_metadata = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
@@ -169,33 +170,25 @@ def modify_study_table():
     res = get_query_results(query)
 
     for row in res:
-        print(dict(row))
-        print(row['primary_site'])
-        print(row['pdc_study_id'])
-        print(row['disease_type'])
-        print(row['study_friendly_name'])
-        print(row['acquisition_type'])
-        print(row['experiment_type'])
-        print(row['analytical_fraction'])
-        print(row['program_labels'])
-        print(row['submitter_id_name'])
-        print(row['study_submitter_id'])
-        print(row['project_friendly_name'])
-        print(row['study_id'])
-        print(row['program_name'])
-        print(row['project_submitter_id'])
-        print(row['program_short_name'])
-        print(row['project_id'])
-        print(row['project_name'])
-        print(row['end_date'])
-        print(row['program_manager'])
-        print(row['embargo_date'])
-        print(row['program_id'])
-        print(row['study_name'])
-        print(row['program_submitter_id'])
-        print(row['project_short_name'])
-        print(row['start_date'])
-        exit()
+        study = dict(row)
+        pdc_study_id = study['pdc_study_id']
+        project_submitter_id = study['project_submitter_id']
+        study['study_friendly_name'] = study_friendly_names[pdc_study_id]
+        study['project_short_name'] = project_metadata[project_submitter_id]['project_short_name']
+        study['project_friendly_name'] = project_metadata[project_submitter_id]['project_friendly_name']
+        study['program_short_name'] = project_metadata[project_submitter_id]['program_short_name']
+        study['program_labels'] = project_metadata[project_submitter_id]['program_labels']
+        study_list.append(study)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=prefix,
+                               joined_record_list=study_list)
+
+        jsonl_filename = get_filename(API_PARAMS,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+
+        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_filename, dest_table_id)
 
 
 def main(args):
