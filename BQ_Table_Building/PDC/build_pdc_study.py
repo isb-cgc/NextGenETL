@@ -23,7 +23,8 @@ import sys
 import time
 import json
 
-from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config)
+from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
+                              get_query_results)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
                                              get_prefix)
 
@@ -155,6 +156,22 @@ def alter_all_programs_json(all_programs_json_obj):
     all_programs_json_obj.extend(temp_programs_json_obj_list)
 
 
+def modify_study_table():
+    study_list = list()
+    curr_table_id = "isb-project-zero.PDC_metadata.studies_V1_17"
+    dest_table_id = "isb-project-zero.PDC_metadata.studies_V1_17_new"
+
+    project_metadata = get_project_metadata()
+    study_friendly_names = get_study_friendly_names()
+
+    query = f"SELECT * FROM {curr_table_id}"
+
+    res = get_query_results(query)
+
+    for row in res():
+        print(row)
+
+
 def main(args):
     start_time = time.time()
     print(f"PDC study metadata script started at {time.strftime('%x %X', time.localtime())}")
@@ -180,6 +197,9 @@ def main(args):
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint='allPrograms',
                                infer_schema=True)
+
+    if 'modify_study_table' in steps:
+        modify_study_table()
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
