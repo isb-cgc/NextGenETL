@@ -169,7 +169,32 @@ def modify_study_table():
     res = get_query_results(query)
 
     for row in res():
-        print(row)
+        print(row['primary_site'])
+        print(row['pdc_study_id'])
+        print(row['disease_type'])
+        print(row['study_friendly_name'])
+        print(row['acquisition_type'])
+        print(row['experiment_type'])
+        print(row['analytical_fraction'])
+        print(row['program_labels'])
+        print(row['submitter_id_name'])
+        print(row['study_submitter_id'])
+        print(row['project_friendly_name'])
+        print(row['study_id'])
+        print(row['program_name'])
+        print(row['project_submitter_id'])
+        print(row['program_short_name'])
+        print(row['project_id'])
+        print(row['project_name'])
+        print(row['end_date'])
+        print(row['program_manager'])
+        print(row['embargo_date'])
+        print(row['program_id'])
+        print(row['study_name'])
+        print(row['program_submitter_id'])
+        print(row['project_short_name'])
+        print(row['start_date'])
+        exit()
 
 
 def main(args):
