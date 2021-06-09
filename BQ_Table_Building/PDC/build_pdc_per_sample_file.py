@@ -134,8 +134,6 @@ def main(args):
             schema_tags = get_project_level_schema_tags(API_PARAMS, BQ_PARAMS,
                                                         project_submitter_id=project['project_submitter_id'])
 
-            print(schema_tags)
-
             if 'program-name-1-lower' in schema_tags:
                 update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS,
                                                      table_id=project_table_id,
