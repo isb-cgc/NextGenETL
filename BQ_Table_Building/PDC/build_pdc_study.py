@@ -21,6 +21,7 @@ SOFTWARE.
 """
 import sys
 import time
+import json
 
 from common_etl.utils import (format_seconds, get_graphql_api_response, has_fatal_error, load_config)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
@@ -29,6 +30,22 @@ from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+
+
+def get_project_metadata():
+    project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    project_metadata_fp = f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}"
+
+    with open(project_metadata_fp, 'r') as fh:
+        return json.load(fh)
+
+
+def get_study_friendly_names():
+    project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    study_metadata_fp = f"{project_metadata_path}/{BQ_PARAMS['STUDY_FRIENDLY_NAME_FILE']}"
+
+    with open(study_metadata_fp, 'r') as fh:
+        return json.load(fh)
 
 
 def make_all_programs_query():
@@ -145,6 +162,13 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_studies_jsonl' in steps:
+        project_metadata = get_project_metadata()
+        study_friendly_names = get_study_friendly_names()
+
+        print(project_metadata)
+        print(study_friendly_names)
+        exit()
+
         joined_record_list = build_obj_from_pdc_api(API_PARAMS,
                                                     endpoint='allPrograms',
                                                     request_function=make_all_programs_query,
