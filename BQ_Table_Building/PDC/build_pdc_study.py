@@ -188,7 +188,7 @@ def modify_study_table():
                                       file_extension='jsonl',
                                       prefix=prefix)
 
-        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_filename, dest_table_id)
+    create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_filename, dest_table_id)
 
 
 def main(args):
