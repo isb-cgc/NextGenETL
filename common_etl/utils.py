@@ -187,7 +187,7 @@ def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict
     print("Labels updated successfully!\n")
 
 
-def update_friendly_name(api_params, table_id, is_gdc, custom_name=None):
+def update_friendly_name(api_params, table_id, is_gdc=None, custom_name=None):
     """
 
     Modify BigQuery table's friendly name.

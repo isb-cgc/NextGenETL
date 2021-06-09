@@ -100,6 +100,9 @@ def alter_all_programs_json(all_programs_json_obj):
     prior to writing it to a file.
     :param all_programs_json_obj: list of json objects to mutate
     """
+    project_metadata = get_project_metadata()
+    study_friendly_names = get_study_friendly_names()
+
     temp_programs_json_obj_list = list()
 
     for program in all_programs_json_obj:
@@ -109,18 +112,21 @@ def alter_all_programs_json(all_programs_json_obj):
         for project in projects:
             project['project_name'] = project.pop("name", None)
 
+            # Per past discussion, the retrospective is excluded here
             if project['project_submitter_id'] == 'CPTAC2 Retrospective':
                 project['project_submitter_id'] = 'CPTAC-2'
 
-            if project['project_submitter_id'] not in BQ_PARAMS['PROJECT_MAP']:
+            if project['project_submitter_id'] not in project_metadata:
+                project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+                project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
                 project['project_short_name'] = None
                 project['program_short_name'] = None
                 project['project_friendly_name'] = None
                 project['program_labels'] = None
-                print(f"""\n**Unmapped project submitter id: {project['project_submitter_id']}. 
-                      Add to bq_params['PROJECT_MAP'] and rerun study workflow.\n""")
+                print(f"""\n**Unmapped project_submitter_id: {project['project_submitter_id']}. 
+                      Add project metadata to {project_metadata_fp} and rerun study workflow.\n""")
             else:
-                project_shortname_mapping = BQ_PARAMS['PROJECT_MAP'][project['project_submitter_id']]
+                project_shortname_mapping = project_metadata[project['project_submitter_id']]
                 project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
                 project['program_short_name'] = project_shortname_mapping['PROGRAM_SHORT_NAME']
                 project['project_friendly_name'] = project_shortname_mapping['PROJECT_FRIENDLY_NAME']
@@ -129,7 +135,7 @@ def alter_all_programs_json(all_programs_json_obj):
             studies = project.pop("studies", None)
             for study in studies:
                 # add study friendly name from yaml mapping
-                study['study_friendly_name'] = BQ_PARAMS['STUDY_FRIENDLY_NAME_MAP'][study['pdc_study_id']]
+                study['study_friendly_name'] = study_friendly_names[study['pdc_study_id']]
 
                 # grab a few add't fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
@@ -162,13 +168,6 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_studies_jsonl' in steps:
-        project_metadata = get_project_metadata()
-        study_friendly_names = get_study_friendly_names()
-
-        print(project_metadata)
-        print(study_friendly_names)
-        exit()
-
         joined_record_list = build_obj_from_pdc_api(API_PARAMS,
                                                     endpoint='allPrograms',
                                                     request_function=make_all_programs_query,

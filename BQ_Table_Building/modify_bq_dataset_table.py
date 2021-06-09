@@ -24,7 +24,7 @@ import time
 import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, delete_bq_table, delete_bq_dataset, load_config,
-                              update_table_labels, copy_bq_table, list_bq_tables)
+                              update_table_labels, copy_bq_table, list_bq_tables, update_friendly_name)
 
 BQ_PARAMS = dict()
 YAML_HEADERS = ('bq_params', 'steps')
@@ -76,6 +76,13 @@ def main(args):
                 labels_to_add = table_labels[table_id]["add"]
 
             update_table_labels(table_id, labels_to_remove, labels_to_add)
+
+    if 'update_friendly_names' in steps:
+        table_friendly_names = BQ_PARAMS['FRIENDLY_NAME_UPDATES']
+
+        for table_id in table_friendly_names.keys():
+            # api_params is none because we're supplying custom names, so it's unused
+            update_friendly_name(api_params=None, table_id=table_id, custom_name=table_friendly_names[table_id])
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
