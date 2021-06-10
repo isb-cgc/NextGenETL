@@ -26,7 +26,7 @@ import json
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
                               get_query_results, get_filename, create_and_load_table_from_jsonl)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
-                                             get_prefix)
+                                             get_prefix, update_table_schema_from_generic_pdc)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -156,41 +156,6 @@ def alter_all_programs_json(all_programs_json_obj):
     all_programs_json_obj.extend(temp_programs_json_obj_list)
 
 
-def modify_study_table():
-    study_list = list()
-
-    prefix = 'studies_new'
-    curr_table_id = "isb-project-zero.PDC_metadata.studies_V1_17"
-    dest_table_id = f"isb-project-zero.PDC_metadata.{prefix}_V1_17"
-    project_metadata = get_project_metadata()
-    study_friendly_names = get_study_friendly_names()
-
-    query = f"SELECT * FROM {curr_table_id}"
-
-    res = get_query_results(query)
-
-    for row in res:
-        study = dict(row)
-        pdc_study_id = study['pdc_study_id']
-        project_submitter_id = study['project_submitter_id']
-        study['study_friendly_name'] = study_friendly_names[pdc_study_id]
-        study['project_short_name'] = project_metadata[project_submitter_id]['project_short_name']
-        study['project_friendly_name'] = project_metadata[project_submitter_id]['project_friendly_name']
-        study['program_short_name'] = project_metadata[project_submitter_id]['program_short_name']
-        study['program_labels'] = project_metadata[project_submitter_id]['program_labels']
-        study_list.append(study)
-
-    write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
-                           prefix=prefix,
-                           joined_record_list=study_list)
-
-    jsonl_filename = get_filename(API_PARAMS,
-                                  file_extension='jsonl',
-                                  prefix=prefix)
-
-    create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_filename, dest_table_id)
-
-
 def main(args):
     start_time = time.time()
     print(f"PDC study metadata script started at {time.strftime('%x %X', time.localtime())}")
@@ -217,8 +182,14 @@ def main(args):
                                endpoint='allPrograms',
                                infer_schema=True)
 
-    if 'modify_study_table' in steps:
-        modify_study_table()
+    if 'publish_studies_table' in steps:
+        source_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
+        source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{source_table_name}"
+
+        print(source_table_id)
+        exit()
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=source_table_id)
+
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
