@@ -40,7 +40,7 @@ from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_cl
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
                                build_pull_list_with_bq, BucketPuller, build_combined_schema, \
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, compare_two_tables, publish_table
+                               generate_table_detail_files, compare_two_tables, publish_table, update_status_tag
 
 
 '''
@@ -107,7 +107,7 @@ def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table
 # ### SQL Code For Final Table Generation
 # Original author: Sheila Reynolds
 '''
-def merge_bq_sql(cnv_table, aliquot_table): # todo: update to use different columns names
+def merge_bq_sql(cnv_table, aliquot_table):
 
     # todo may need to join on sample_id also
 
@@ -217,13 +217,13 @@ def main(args):
 
     # todo bq variables
     # Which release is the workflow running on?
-    release = "".join(["r", str(params['RELEASE'])])
+    release = f"r{str(params['RELEASE'])}"
 
     upload_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}"
-    manifest_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_manifest"
-    pull_list_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_pull_list"
-    draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-    publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
+    manifest_table = f"{upload_table}_manifest"
+    pull_list_table = f"{upload_table}_pull_list"
+    draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
+    publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"  # todo update format
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -238,8 +238,8 @@ def main(args):
         print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['TARGET_DATASET'],
+        manifest_success = get_the_bq_manifest(params['FILEDATA_TABLE'].format(release), bq_filters, max_files,
+                                               params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
                                                params['BQ_AS_BATCH'])
@@ -256,10 +256,10 @@ def main(args):
 
     if 'build_pull_list' in steps:
         print('build_pull_list')
-        full_manifest = f"params['WORKING_PROJECT'].params['TARGET_DATASET'].params['BQ_MANIFEST_TABLE']"
-        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'],  # todo: update param to have version
-                                          params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                          params['BQ_PULL_LIST_TABLE'],
+        full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
+        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(release),
+                                          params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+                                          pull_list_table,
                                           params['WORKING_BUCKET'],
                                           params['BUCKET_PULL_LIST'],
                                           local_pull_list, params['BQ_AS_BATCH'])
@@ -303,7 +303,7 @@ def main(args):
             repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
             repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
         except Exception as ex:
-            print("pull_table_info_from_git failed: {}".format(str(ex)))
+            print(f"pull_table_info_from_git failed: {str(ex)}")
             return
 
     for table in update_schema_tables:
@@ -317,8 +317,8 @@ def main(args):
         if 'process_git_schemas' in steps:
             print('process_git_schema')
             # Where do we dump the schema git repository?
-            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            schema_file = f"{params['SCHEMA_REPO_LOCAL']}/{params['RAW_SCHEMA_DIR']}/{use_schema}"
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -352,7 +352,7 @@ def main(args):
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
 
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
@@ -363,9 +363,8 @@ def main(args):
             build_combined_schema(None, schema_dict_loc,
                                   typing_tups, hold_schema_list, hold_schema_dict)
 
-
-
-    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+    bucket_target_blob = f"{params['WORKING_BUCKET_DIR']}/" \
+                         f"{params['DATE']}-{params['PROGRAM']}-{params['DATA_TYPE']}.tsv"
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
@@ -376,24 +375,22 @@ def main(args):
         bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
         full_target_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                              params['TARGET_DATASET'],
+                                              params['SCRATCH_DATASET'],
                                               params['TARGET_TABLE'])
         success = join_with_aliquot_table(full_target_table, params['ALIQUOT_TABLE'],
-                                          params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
+                                          params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
         if not success:
             print("Join job failed")
 
     # Create second table
     if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format(release))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format('current'))
+        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{schema_release}"
+        current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
 
         success = publish_table(source_table, current_dest)
 
@@ -409,7 +406,7 @@ def main(args):
         schema_release = 'current' if table == 'current' else release
         if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
             print('update_field_descriptions')
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -417,12 +414,10 @@ def main(args):
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
 
-            success = update_schema_with_dict(params['TARGET_DATASET'], draft_table.format(schema_release), schema_dict)
+            success = update_schema_with_dict(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}", schema_dict)
             if not success:
                 print("update_field_descriptions failed")
                 return
-
-    # todo check that table is new step
 
     #
     # Add description and labels to the target table:
@@ -431,7 +426,7 @@ def main(args):
     if 'update_table_description' in steps:
         print('update_table_description')
         full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        success = install_labels_and_desc(params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
@@ -500,21 +495,40 @@ def main(args):
     # publish table:
     #
 
-    # todo: do publish steps per current/versioned table
     if 'publish' in steps:
+        print('publish tables')
+        tables = ['versioned', 'current']
 
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                         params['FINAL_TARGET_TABLE'])
-        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                             params['PUBLICATION_TABLE'])
-
-        success = publish_table(source_table, publication_dest)
+        for table in tables:
+            if table == 'versioned':
+                print(table)
+                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                                     publication_table.format(release))
+            elif table == 'current':
+                print(table)
+                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
+                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
+                                                     params['PUBLICATION_DATASET'],
+                                                     publication_table.format('current'))
+            success = publish_table(source_table, publication_dest)
 
         if not success:
             print("publish table failed")
             return
 
-    # todo add update_status_tag step
+    # Update previous versioned table with archived tag
+    if 'update_status_tag' in steps:
+        print('Update previous table')
+
+        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    'archived', params['PUBLICATION_PROJECT'])
+
+        if not success:
+            print("update status tag table failed")
+            return
 
     #
     # Clear out working temp tables:
@@ -524,7 +538,7 @@ def main(args):
         dump_table_tags = ['TARGET_TABLE']
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
-            delete_table_bq_job(params['TARGET_DATASET'], table)
+            delete_table_bq_job(params['SCRATCH_DATASET'], table)
 
     # todo add archive tables step
 
