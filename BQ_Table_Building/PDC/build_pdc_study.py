@@ -161,7 +161,7 @@ def modify_study_table():
 
     prefix = 'studies_new'
     curr_table_id = "isb-project-zero.PDC_metadata.studies_V1_17"
-    dest_table_id = f"isb-project-zero.PDC_metadata.{prefix}_V1_17_new"
+    dest_table_id = f"isb-project-zero.PDC_metadata.{prefix}_V1_17"
     project_metadata = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
