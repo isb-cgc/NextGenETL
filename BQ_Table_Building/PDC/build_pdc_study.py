@@ -186,8 +186,6 @@ def main(args):
         source_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
         source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{source_table_name}"
 
-        print(source_table_id)
-        exit()
         update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=source_table_id)
 
 
