@@ -171,8 +171,7 @@ def main(args):
                               source_table_id=src_per_sample_table_id,
                               get_publish_table_ids=get_publish_table_ids_per_sample,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True,
-                              test_mode=True)
+                              overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
