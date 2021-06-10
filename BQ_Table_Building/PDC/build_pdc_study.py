@@ -184,7 +184,7 @@ def main(args):
 
     if 'publish_studies_table' in steps:
         source_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
-        source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{source_table_name}"
+        source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{source_table_name}"
 
         print(source_table_id)
         exit()
