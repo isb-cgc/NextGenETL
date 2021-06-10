@@ -24,7 +24,7 @@ import time
 import json
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              get_query_results, get_filename, create_and_load_table_from_jsonl)
+                              get_query_results, get_filename, create_and_load_table_from_jsonl, load_table_from_query)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
                                              get_prefix, update_table_schema_from_generic_pdc)
 
@@ -178,15 +178,55 @@ def main(args):
                                prefix=get_prefix(API_PARAMS, 'allPrograms'),
                                joined_record_list=joined_record_list)
     if 'build_studies_table' in steps:
+        """
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS,
                                endpoint='allPrograms',
                                infer_schema=True)
+        """
+        raw_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
+        raw_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{raw_table_name}"
+
+        # update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=raw_table_id)
+
+        final_table_name = f"{BQ_PARAMS['STUDIES_TABLE']}_{API_PARAMS['RELEASE']}"
+        final_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{final_table_name}"
+
+        ordered_query = f"""
+        SELECT embargo_date,
+        study_name,
+        study_submitter_id,
+        submitter_id_name,
+        pdc_study_id,
+        study_id,
+        study_friendly_name,
+        analytical_fraction,
+        disease_type,
+        primary_site,
+        acquisition_type,
+        experiment_type,
+        project_id,
+        project_submitter_id,
+        project_name,
+        project_short_name,
+        project_friendly_name,
+        program_id,
+        program_submitter_id,
+        program_name,
+        program_short_name,
+        program_manager,
+        program_labels,
+        start_date,
+        end_date
+        FROM {raw_table_id}
+        ORDER BY pdc_study_id
+        """
+
+        load_table_from_query(BQ_PARAMS, table_id=final_table_id, query=ordered_query)
 
     if 'publish_studies_table' in steps:
-        source_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
-        source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{source_table_name}"
+        pass
 
-        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=source_table_id)
+
 
 
     end = time.time() - start_time
