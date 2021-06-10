@@ -180,13 +180,13 @@ def modify_study_table():
         study['program_labels'] = project_metadata[project_submitter_id]['program_labels']
         study_list.append(study)
 
-        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
-                               prefix=prefix,
-                               joined_record_list=study_list)
+    write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                           prefix=prefix,
+                           joined_record_list=study_list)
 
-        jsonl_filename = get_filename(API_PARAMS,
-                                      file_extension='jsonl',
-                                      prefix=prefix)
+    jsonl_filename = get_filename(API_PARAMS,
+                                  file_extension='jsonl',
+                                  prefix=prefix)
 
     create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_filename, dest_table_id)
 
