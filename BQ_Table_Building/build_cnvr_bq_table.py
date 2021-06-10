@@ -72,7 +72,7 @@ WARNING! Currently hardwired to CNV file heading!
 '''
 
 def concat_all_files(all_files, one_big_tsv):
-    print("building {}".format(one_big_tsv))
+    print(f"building {one_big_tsv}")
     first = True
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
@@ -97,9 +97,9 @@ Merge Skeleton With Aliquot Data
 Creates the final BQ table by joining the skeleton with the aliquot ID info
 '''
 
-def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table, do_batch):
+def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch):
 
-    sql = merge_bq_sql(cnv_table, aliquot_table)
+    sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 '''
@@ -107,14 +107,14 @@ def join_with_aliquot_table(cnv_table, aliquot_table, target_dataset, dest_table
 # ### SQL Code For Final Table Generation
 # Original author: Sheila Reynolds
 '''
-def merge_bq_sql(cnv_table, aliquot_table):
+def merge_bq_sql(cnv_table, aliquot_table, case_table):
 
     # todo may need to join on sample_id also
 
-    return '''
+    return f'''
         WITH
             a1 AS (SELECT DISTINCT GDC_Aliquot
-                   FROM `{0}`),
+                   FROM `{cnv_table}`),
             a2 AS (SELECT b.project_id AS project_short_name,
                           b.case_barcode,
                           b.sample_barcode,
@@ -123,7 +123,7 @@ def merge_bq_sql(cnv_table, aliquot_table):
                           b.sample_gdc_id,
                           b.aliquot_gdc_id
                    FROM a1
-                   JOIN `{1}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id)
+                   JOIN `{aliquot_table}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id)
             a3 AS (SELECT a2.project_short_name,
                           a2.case_barcode,
                           a2.sample_barcode,
@@ -133,7 +133,7 @@ def merge_bq_sql(cnv_table, aliquot_table):
                           a2.aliquot_gdc_id,
                           b.primary_site
                     FROM a2
-                    JOIN `{2}` b ON a2.case_gdc_id = b.case_gdc_id)
+                    JOIN `{case_table}` b ON a2.case_gdc_id = b.case_gdc_id)
         SELECT
             project_short_name,
             case_barcode,
@@ -150,8 +150,8 @@ def merge_bq_sql(cnv_table, aliquot_table):
             aliquot_gdc_id,
             source_file_id AS file_gdc_id
         FROM a3
-        JOIN `{0}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
-        '''.format(cnv_table, aliquot_table)
+        JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
+        '''
 
 def find_types(file, sample_interval): # may need to add skip_rows later
     """
@@ -189,7 +189,7 @@ def main(args):
 
     if len(args) != 2:
         print(" ")
-        print(" Usage : {} <configuration_yaml>".format(args[0]))
+        print(" Usage : {args[0]} <configuration_yaml>")
         return
 
     print('job started')
@@ -207,13 +207,13 @@ def main(args):
     #
 
     home = expanduser("~")
-    local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    one_big_tsv = "{}/{}".format(home, params['ONE_BIG_TSV'])
-    manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
-    local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
-    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
+    local_files_dir = f"{home}/{params['LOCAL_FILES_DIR']}"
+    one_big_tsv = f"{home}/{params['ONE_BIG_TSV']}"
+    manifest_file = f"{home}/{params['MANIFEST_FILE']}"
+    local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
+    file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
+    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
+    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
     # todo bq variables
     # Which release is the workflow running on?
@@ -223,7 +223,7 @@ def main(args):
     manifest_table = f"{upload_table}_manifest"
     pull_list_table = f"{upload_table}_pull_list"
     draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
-    publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"  # todo update format
+    publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -238,7 +238,7 @@ def main(args):
         print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(params['FILEDATA_TABLE'].format(release), bq_filters, max_files,
+        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_release", bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
@@ -257,7 +257,7 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
         full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
-        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(release),
+        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_release",
                                           params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                           pull_list_table,
                                           params['WORKING_BUCKET'],
@@ -284,7 +284,7 @@ def main(args):
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
-                traversal_list.write("{}\n".format(line))
+                traversal_list.write("{line}\n")
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
@@ -358,8 +358,8 @@ def main(args):
             print('analyze_the_schema')
             #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{params['FINAL_TARGET_TABLE']}"
+            schema_dict_loc = f"{full_file_prefix}_schema.json"
             build_combined_schema(None, schema_dict_loc,
                                   typing_tups, hold_schema_list, hold_schema_dict)
 
@@ -372,18 +372,17 @@ def main(args):
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
+        bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
         csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
-        full_target_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                              params['SCRATCH_DATASET'],
-                                              params['TARGET_TABLE'])
-        success = join_with_aliquot_table(full_target_table, params['ALIQUOT_TABLE'],
-                                          params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'], params['BQ_AS_BATCH'])
+        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{params["TARGET_TABLE"]}'
+        success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{release}",
+                                          params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'],
+                                          params['BQ_AS_BATCH'])  # todo add case table
         if not success:
             print("Join job failed")
 
@@ -407,7 +406,7 @@ def main(args):
         if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
             print('update_field_descriptions')
             full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
+            schema_dict_loc = f"{full_file_prefix}_schema.json"
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
                 full_schema_list = json_loads(schema_hold_dict.read())
@@ -425,7 +424,7 @@ def main(args):
 
     if 'update_table_description' in steps:
         print('update_table_description')
-        full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
+        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{params['FINAL_TARGET_TABLE']}"
         success = install_labels_and_desc(params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
         if not success:
             print("update_table_description failed")
@@ -442,21 +441,16 @@ def main(args):
         if the two tables are the same
         """
         # Table that is currently in production under the current table dataset that is to be replaced
-        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                              publication_table.format('current'))
+        old_current_table = f'{params["PUBLICATION_PROJECT"]}.{params["PUBLICATION_DATASET"]}.' \
+                            f'{publication_table}_current'
         # Previous versioned table that should match the table in the current dataset
-        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                               publication_table.format("".join(["r",
-                                                                                 str(params['PREVIOUS_RELEASE'])])))
+        previous_ver_table = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
+                             f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}"
         # Temporary location to save a copy of the previous table
-        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                       "_".join([params['PROGRAM'],
-                                                 publication_table.format("".join(["r",
-                                                                                   str(params['PREVIOUS_RELEASE'])])),
-                                                 'backup']))
+        table_temp = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.' \
+                     f'{params["PROGRAM"]}_{publication_table}_r{str(params["PREVIOUS_RELEASE"])}_backup'
 
-        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
+        print(f'Compare {old_current_table} to {previous_ver_table}')
         # Compare the two previous tables to make sure they are exactly the same
         compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
         """
@@ -468,7 +462,7 @@ def main(args):
         if num_rows == 0:
             print('the tables are the same')
         else:
-            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
+            print(f'the tables are NOT the same and differ by {num_rows} rows')
 
         if not compare:
             print('compare_tables failed')
@@ -483,8 +477,8 @@ def main(args):
                 print('Old Table was not moved and will not be deleted')
             # remove old table
             elif table_moved:
-                print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
+                print(f'Deleting old table: {old_current_table}')
+                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], f"{publication_table}_current",
                                                    params['PUBLICATION_PROJECT'])
                 if not delete_table:
                     print('delete table failed')
@@ -503,15 +497,13 @@ def main(args):
             if table == 'versioned':
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                                     publication_table.format(release))
+                publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
+                                   f"{publication_table}_release"
             elif table == 'current':
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     params['PUBLICATION_DATASET'],
-                                                     publication_table.format('current'))
+                publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}." \
+                                   f"{publication_table}_current"
             success = publish_table(source_table, publication_dest)
 
         if not success:
@@ -523,7 +515,7 @@ def main(args):
         print('Update previous table')
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
+                                    f"{publication_table}_r{str(params['PREVIOUS_RELEASE']}",
                                     'archived', params['PUBLICATION_PROJECT'])
 
         if not success:
