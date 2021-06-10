@@ -576,7 +576,19 @@ def find_most_recent_published_table_id(api_params, versioned_table_id):
             # found last release table, stop iterating
             return prev_release_table_id
 
+def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset):
+    source_table_name = source_table_id.split('.')[-1]
 
+    base_table_name = source_table_name.replace(api_params['RELEASE'], "")
+    curr_table_name = f"{base_table_name}current"
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{source_table_name}"
+
+    return curr_table_id, vers_table_id
+
+
+# todo use get_publish_table_ids wherever possible, is better
 def get_publish_table_ids_metadata(api_params, bq_params, source_table_id, public_dataset):
     """
     Create current and versioned table ids.
