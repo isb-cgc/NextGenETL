@@ -185,9 +185,6 @@ def main(args):
         """
         raw_table_name = f"{get_prefix(API_PARAMS, 'allPrograms')}_{API_PARAMS['RELEASE']}"
         raw_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{raw_table_name}"
-
-        # update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=raw_table_id)
-
         final_table_name = f"{BQ_PARAMS['STUDIES_TABLE']}_{API_PARAMS['RELEASE']}"
         final_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{final_table_name}"
 
@@ -221,7 +218,9 @@ def main(args):
         ORDER BY pdc_study_id
         """
 
-        load_table_from_query(BQ_PARAMS, table_id=final_table_id, query=ordered_query)
+        # load_table_from_query(BQ_PARAMS, table_id=final_table_id, query=ordered_query)
+
+        update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=final_table_id)
 
     if 'publish_studies_table' in steps:
         pass
