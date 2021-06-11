@@ -35,7 +35,8 @@ from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, get_records, write_jsonl_and_upload, get_prefix,
                                              update_table_schema_from_generic_pdc, get_project_program_names,
-                                             find_most_recent_published_table_id, get_project_level_schema_tags)
+                                             find_most_recent_published_table_id, get_project_level_schema_tags,
+                                             get_publish_table_ids)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -615,31 +616,6 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
                                                      schema_tags=schema_tags)
 
 
-def get_publish_table_ids_clinical(api_params, bq_params, source_table_id, public_dataset):
-    """
-    Create current and versioned table ids.
-    :param api_params: api_params supplied in yaml config
-    :param bq_params: bq_params supplied in yaml config
-    :param source_table_id: id of source table (located in dev project)
-    :param public_dataset: base name of dataset in public project where table should be published
-    :return: public current table id, public versioned table id
-    """
-    rel_prefix = api_params['RELEASE']
-    split_table_id = source_table_id.split('.')
-
-    # derive data type from table id
-    data_type = split_table_id[-1]
-    data_type = data_type.replace(rel_prefix, '').strip('_')
-    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
-
-    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
-    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
-    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
-    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
-
-    return curr_table_id, vers_table_id
-
-
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -791,7 +767,7 @@ def main(args):
             publish_table(API_PARAMS, BQ_PARAMS,
                           public_dataset=public_dataset,
                           source_table_id=clinical_table_id,
-                          get_publish_table_ids=get_publish_table_ids_clinical,
+                          get_publish_table_ids=get_publish_table_ids,
                           find_most_recent_published_table_id=find_most_recent_published_table_id,
                           overwrite=True)
 
