@@ -13,8 +13,6 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table,
                               construct_table_name_from_list)
 
-from common_etl.support import compare_two_tables
-
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_publish_table_ids, find_most_recent_published_table_id,
@@ -282,13 +280,12 @@ def alter_paginated_gene_list(json_obj_list):
             for authority_record in authority_records:
                 split_authority = authority_record.split(':')
 
-                if len(split_authority) == 2:
-                    auth = split_authority[0]
-                    gene_id = split_authority[1]
-                elif len(split_authority) > 2:
+                if len(split_authority) > 2:
                     has_fatal_error(f"Authority should split into <= two elements. Actual: {gene_authority}")
-
-                authority_records_dict[auth] = gene_id
+                elif len(split_authority) == 2:
+                    gene_id = split_authority[1]
+                    auth = split_authority[0]
+                    authority_records_dict[auth] = gene_id
 
             # this is a mouse gene database, exclude
             if "MGI" in authority_records_dict:
@@ -406,7 +403,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
 
         return lines_written
 
-# todo is this used?
+
 def get_quant_files():
     """
 
@@ -420,7 +417,8 @@ def get_quant_files():
     for blob in blobs:
         filename = blob.name.split('/')[-1]
         # kind of a hacky fix, but we'll move to CDA before it matters (before there are 9000+ studies)
-        if "quant" in filename and "schema" not in filename and API_PARAMS['RELEASE'] in filename and "PDC0" in filename:
+        if "quant" in filename and "schema" not in filename and API_PARAMS['RELEASE'] in filename \
+                and "PDC0" in filename:
             files.add(filename)
 
     return files
@@ -533,32 +531,6 @@ def make_quant_table_query(raw_table_id, study):
             INNER JOIN `{aliquot_run_table_id}` AS aliq 
                 ON q.aliquot_run_metadata_id = aliq.aliquot_run_metadata_id
         """
-
-
-def get_publish_table_ids_quant(api_params, bq_params, source_table_id, public_dataset):
-    """
-    Create current and versioned table ids.
-    :param api_params: api_params supplied in yaml config
-    :param bq_params: bq_params supplied in yaml config
-    :param source_table_id: id of source table (located in dev project)
-    :param public_dataset: base name of dataset in public project where table should be published
-    :return: public current table id, public versioned table id
-    """
-
-    rel_prefix = api_params['RELEASE']
-    split_table_id = source_table_id.split('.')
-
-    # derive data type from table id
-    data_type = split_table_id[-1]
-    data_type = data_type.replace(rel_prefix, '').strip('_')
-    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
-
-    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
-    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
-    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
-    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
-
-    return curr_table_id, vers_table_id
 
 
 def get_publish_table_ids_refseq(api_params, bq_params, source_table_id, public_dataset):
@@ -765,24 +737,11 @@ def main(args):
             raw_quant_tsv_file = get_quant_table_name(study_id_dict, is_final=False) + '.tsv'
             quant_tsv_path = get_scratch_fp(BQ_PARAMS, raw_quant_tsv_file)
 
-            # todo change gene_symbol to gene name?
-            # todo move to generic schema
-
             raw_quant_header = ['aliquot_run_metadata_id',
                                 'aliquot_submitter_id',
                                 'study_name',
                                 'gene_symbol',
                                 'protein_abundance_log2ratio']
-
-            """
-            data_types_dict = {
-                'aliquot_run_metadata_id': 'STRING',
-                'aliquot_submitter_id': 'STRING',
-                'study_name': 'STRING',
-                'gene_symbol': 'STRING',
-                'protein_abundance_log2ratio': 'FLOAT64'
-            }
-            """
 
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
@@ -929,7 +888,7 @@ def main(args):
                 publish_table(API_PARAMS, BQ_PARAMS,
                               public_dataset=study['program_short_name'],
                               source_table_id=quant_table_id,
-                              get_publish_table_ids=get_publish_table_ids_quant,
+                              get_publish_table_ids=get_publish_table_ids,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
                               overwrite=True)
 
