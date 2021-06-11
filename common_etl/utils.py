@@ -431,12 +431,13 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
     if test_mode:
         if exists_bq_table(source_table_id):
-            print(f"""source_table_id = {source_table_id}
-                      versioned_table_id = {versioned_table_id}
-                      current_table_id = {current_table_id}
-                      last_published_table_id = {previous_versioned_table_id}
-                      publish_new_version = {publish_new_version}
-                      """)
+            print(f"""
+                source_table_id = {source_table_id}
+                versioned_table_id = {versioned_table_id}
+                current_table_id = {current_table_id}
+                last_published_table_id = {previous_versioned_table_id}
+                publish_new_version = {publish_new_version}
+            """)
         return
 
     if exists_bq_table(source_table_id):
