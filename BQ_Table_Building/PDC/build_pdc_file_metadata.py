@@ -29,7 +29,7 @@ from common_etl.utils import (get_query_results, format_seconds, write_list_to_j
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_modified_temp_table, get_prefix,
-                                             update_table_schema_from_generic_pdc, get_publish_table_ids_metadata,
+                                             update_table_schema_from_generic_pdc, get_publish_table_ids,
                                              find_most_recent_published_table_id)
 
 API_PARAMS = dict()
@@ -398,7 +398,7 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=file_metadata_table_id,
-                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True)
 
@@ -409,7 +409,7 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=mapping_table_id,
-                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True)
 

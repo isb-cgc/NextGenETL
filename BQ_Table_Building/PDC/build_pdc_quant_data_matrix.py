@@ -17,7 +17,7 @@ from common_etl.support import compare_two_tables
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl,
-                                             get_publish_table_ids_metadata, find_most_recent_published_table_id,
+                                             get_publish_table_ids, find_most_recent_published_table_id,
                                              find_most_recent_published_table_id_uniprot)
 
 API_PARAMS = dict()
@@ -916,7 +916,7 @@ def main(args):
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
                       source_table_id=gene_table_id,
-                      get_publish_table_ids=get_publish_table_ids_metadata,
+                      get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True)
 
