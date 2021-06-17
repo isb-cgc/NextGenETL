@@ -29,7 +29,7 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, create_and_upload_schema_for_json,
-                              retrieve_bq_schema_object, construct_table_name_from_list, create_view_from_query)
+                              retrieve_bq_schema_object, create_view_from_query)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -45,8 +45,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def make_cases_query():
     """
-
-    Creates a graphQL string for querying the PDC API's allCases endpoint.
+    Create a graphQL string for querying the PDC API's allCases endpoint.
     :return: GraphQL query string
     """
     return """{
@@ -66,7 +65,12 @@ def make_cases_query():
     }"""
 
 
-def alter_cases_query(cases_obj_list):
+def alter_case_objects(cases_obj_list):
+    """
+    Function used to alter case objects prior to insertion into jsonl file.
+    :param cases_obj_list: List of case dict objects
+    """
+
     for case_obj in cases_obj_list:
         if case_obj['project_submitter_id'] == 'CPTAC2 Retrospective':
             case_obj['project_submitter_id'] = 'CPTAC-2'
@@ -280,12 +284,12 @@ def alter_case_diagnoses_json(json_obj_list, pdc_study_id):
 def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnoses=False, infer_schema=False,
                                        schema=None):
     """
-    Remove columns where only null values would exist for entire table,
-        then construct temporary project-level clinical table.
+    Remove columns where only null values would exist for entire table, then construct temporary project-level
+    clinical table.
     :param records: clinical case record dictionary
     :param project_submitter_id: name of project to which the case records belong
-    :param is_diagnoses: if True, the temp table is a supplement to the project's clinical table,
-        due to some cases having multiple diagnosis records; defaults to False
+    :param is_diagnoses: if True, the temp table is a supplement to the project's clinical table, due to some cases
+    having multiple diagnosis records; defaults to False
     :param infer_schema: if True, script will use BigQuery's native schema inference; defaults to False
     :param schema: list of SchemaFields representing desired BQ table schema; defaults to None
     :return: newly created BQ table id
@@ -343,7 +347,6 @@ def remove_nulls_and_create_temp_table(records, project_submitter_id, is_diagnos
 
 def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_type):
     """
-
     Using column ordering provided in YAML config file, builds a BQ table from the previously created,
     temporary clinical table. Deletes temporary table upon completion.
     :param temp_table_id: full BQ table id of temporary table
@@ -353,7 +356,6 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
 
     def make_subquery_string(nested_field_list):
         """
-
         Build subquery representing new column ordering for demographic and/or diagnoses columns.
         :param nested_field_list: List of fields nested by field group
         :return: subquery string portion of table-building sql query
@@ -431,7 +433,7 @@ def create_ordered_clinical_table(temp_table_id, project_submitter_id, clinical_
 
 def get_cases_by_project_submitter(studies_list):
     """
-    Retrieve list of cases based on project submitter id
+    Retrieve list of cases based on project submitter id.
     :param studies_list: list of PDC studies
     :return: Dictionary in form {"project_submitter_id" : [case list]}
     """
@@ -457,7 +459,7 @@ def get_cases_by_project_submitter(studies_list):
 
 def get_diagnosis_demographic_records_by_case():
     """
-    Retrieve diagnoses and demographic records for each case
+    Retrieve diagnoses and demographic records for each case.
     :return: Two dicts: demographic_records_by_case_id, diagnosis_records_by_case_id
     """
     # get all demographic records
@@ -483,7 +485,7 @@ def get_diagnosis_demographic_records_by_case():
 
 def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, demographic_by_case):
     """
-    Merge diagnosis and demographic records with cases_by_project dict
+    Merge diagnosis and demographic records with cases_by_project dict.
     :param cases_by_project: Dict of project submitter ids : cases list
     :param diagnosis_by_case: Dict of case_ids : diagnosis list
     :param demographic_by_case: Dict of case_ids : demographic list
@@ -535,7 +537,7 @@ def append_diagnosis_demographic_to_case(cases_by_project, diagnosis_by_case, de
 
 def build_per_project_clinical_tables(cases_by_project_submitter):
     """
-    Manages construction of null filtering, clinical data retrieval, and per-project clinical table creation
+    Construction of null filtering, clinical data retrieval, and per-project clinical table creation.
     :param cases_by_project_submitter: dict of form project_submitter_id : cases list
     """
     for project_submitter_id, project_dict in cases_by_project_submitter.items():
@@ -637,7 +639,7 @@ def main(args):
         joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
                                                    endpoint=endpoint,
                                                    request_function=make_cases_query,
-                                                   alter_json_function=alter_cases_query)
+                                                   alter_json_function=alter_case_objects)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=joined_cases_list,
@@ -772,6 +774,7 @@ def main(args):
                           overwrite=True)
 
     if 'create_solr_views' in steps:
+        # todo abstract this
         prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
         webapp_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['WEBAPP_DATASET']}"
 

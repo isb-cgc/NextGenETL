@@ -41,10 +41,9 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def make_files_per_study_query(study_id):
     """
-    Creates a graphQL string for querying the PDC API's filesPerStudy endpoint.
+    Create a graphQL string for querying the PDC API's filesPerStudy endpoint.
     :return: GraphQL query string
     """
-
     return f"""
     {{ filesPerStudy (pdc_study_id: \"{study_id}\" acceptDUA: true) {{
             pdc_study_id 
@@ -81,10 +80,9 @@ def make_file_id_query(table_id):
 
 def make_file_metadata_query(file_id):
     """
-    Creates a graphQL string for querying the PDC API's fileMetadata endpoint.
+    Create a graphQL string for querying the PDC API's fileMetadata endpoint.
     :return: GraphQL query string
     """
-
     return f"""
     {{ fileMetadata(file_id: \"{file_id}\" acceptDUA: true) {{
         file_id 
@@ -113,8 +111,7 @@ def make_associated_entities_query():
     Create sql query to retrieve all associated entity records from file metadata table.
     :return: sql query string
     """
-    table_name = construct_table_name(API_PARAMS,
-                                      prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
+    table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT']))
     table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{table_name}"
 
     return f"""
@@ -157,9 +154,8 @@ def make_combined_file_metadata_query():
 
 def modify_api_file_metadata_table_query(fm_table_id):
     """
-    Modify api file metadata table in order to merge duplicate file_id rows,
-    by combining those with two instrument values into one entry. The two instrument values become a comma-delimited
-    string stored in "instruments" column.
+    Modify api file metadata table in order to merge duplicate file_id rows by combining those with two instrument
+    values into one entry. The two instrument values become a comma-delimited string stored in "instruments" column.
     :param fm_table_id: file metadata BQ table id
     :return: sql query string
     """
@@ -184,9 +180,8 @@ def modify_api_file_metadata_table_query(fm_table_id):
 
 def modify_per_study_file_table_query(fps_table_id):
     """
-    Modify api files per study table in order to merge duplicate file_id rows,
-    by combining those with multiple PDC study ids into one row. The PDC study ids become a comma-delimited
-    string.
+    Modify api files per study table in order to merge duplicate file_id rows, by combining those with multiple PDC
+    study ids into one row. The PDC study ids become a comma-delimited string.
     :param fps_table_id: files per study BQ table id
     :return: sql query string
     """

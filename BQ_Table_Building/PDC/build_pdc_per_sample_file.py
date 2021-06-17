@@ -14,6 +14,10 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def get_mapping_table_ids():
+    """
+    Create mapping table ids used in multiple queries (in order to avoid code duplication).
+    :return: tuple of five table id strings: file metadata, case metadata, file associated entities, aliquots, studies
+    """
     dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
     prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
 
@@ -37,6 +41,10 @@ def get_mapping_table_ids():
 
 
 def make_webapp_per_sample_view_query():
+    """
+    Make query for webapp per-sample view.
+    :return: query string for webapp per-sample view
+    """
     file_table_id, case_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
 
     # todo change query after next file metadata pull
@@ -60,6 +68,11 @@ def make_webapp_per_sample_view_query():
 
 
 def make_project_level_per_sample_query(project_submitter_id):
+    """
+    todo
+    :param project_submitter_id:
+    :return:
+    """
     file_table_id, case_table_id, file_assoc_table_id, aliquot_table_id, study_table_id = get_mapping_table_ids()
 
     # todo change query after next file metadata pull

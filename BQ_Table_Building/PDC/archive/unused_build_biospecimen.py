@@ -29,8 +29,7 @@ from common_etl.utils import (format_seconds, has_fatal_error, load_config, cons
                               update_schema, publish_table, create_and_upload_schema_for_json, construct_table_id)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_pdc_study_ids,
-                                             get_prefix,
-                                             write_jsonl_and_upload, update_pdc_table_metadata)
+                                             get_prefix, write_jsonl_and_upload)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()

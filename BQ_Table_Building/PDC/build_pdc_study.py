@@ -26,33 +26,17 @@ import json
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
                               load_table_from_query, publish_table)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
-                                             get_prefix, update_table_schema_from_generic_pdc,
-                                             find_most_recent_published_table_id, get_publish_table_ids)
+                                             get_prefix, update_table_schema_from_generic_pdc, get_publish_table_ids,
+                                             find_most_recent_published_table_id)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def get_project_metadata():
-    project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
-    project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
-
-    with open(project_metadata_fp, 'r') as fh:
-        return json.load(fh)
-
-
-def get_study_friendly_names():
-    project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
-    study_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['STUDY_FRIENDLY_NAME_FILE']}")
-
-    with open(study_metadata_fp, 'r') as fh:
-        return json.load(fh)
-
-
 def make_all_programs_query():
     """
-    Creates a graphQL string for querying the PDC API's allPrograms endpoint.
+    Create a graphQL string for querying the PDC API's allPrograms endpoint.
     :return: GraphQL query string
     """
     return """{
@@ -83,7 +67,7 @@ def make_all_programs_query():
 
 def make_study_query(pdc_study_id):
     """
-    Creates a graphQL string for querying the PDC API's study endpoint.
+    Create a graphQL string for querying the PDC API's study endpoint.
     :return: GraphQL query string
     """
     return f"""{{ 
@@ -94,6 +78,37 @@ def make_study_query(pdc_study_id):
             embargo_date
         }} 
     }}"""
+
+
+def get_project_metadata():
+    """
+    Get project metadata to merge into studies table from BQEcosystem/MetadataMappings/pdc_project_metadata.json.
+    :return dict of project dicts of the following form. Key equals PDC field "project_submitter_id."
+    Example project dict:
+        { "CPTAC-TCGA": {
+            "project_short_name": "CPTAC_TCGA",
+            "project_friendly_name": "CPTAC-TCGA",
+            "program_short_name": "TCGA",
+            "program_labels": "cptac2; tcga"
+        }
+    """
+    metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    project_metadata_fp = get_filepath(f"{metadata_mappings_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
+
+    with open(project_metadata_fp, 'r') as fh:
+        return json.load(fh)
+
+
+def get_study_friendly_names():
+    """
+    Get project metadata to merge into studies table from BQEcosystem/MetadataMappings/pdc_project_metadata.json.
+    :return: Dict of { "pdc_study_id": "STUDY FRIENDLY NAME" } strings
+    """
+    metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    study_metadata_fp = get_filepath(f"{metadata_mappings_path}/{BQ_PARAMS['STUDY_FRIENDLY_NAME_FILE']}")
+
+    with open(study_metadata_fp, 'r') as fh:
+        return json.load(fh)
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -121,12 +136,10 @@ def alter_all_programs_json(all_programs_json_obj):
             if project['project_submitter_id'] not in project_metadata:
                 project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
                 project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
-                project['project_short_name'] = None
-                project['program_short_name'] = None
-                project['project_friendly_name'] = None
-                project['program_labels'] = None
-                print(f"""\n**Unmapped project_submitter_id: {project['project_submitter_id']}. 
-                      Add project metadata to {project_metadata_fp} and rerun study workflow.\n""")
+                has_fatal_error(f"""
+                    *** Unmapped project_submitter_id: {project['project_submitter_id']}. 
+                    Add project metadata to {project_metadata_fp} and rerun study workflow.
+                """)
             else:
                 project_shortname_mapping = project_metadata[project['project_submitter_id']]
                 project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
@@ -137,9 +150,18 @@ def alter_all_programs_json(all_programs_json_obj):
             studies = project.pop("studies", None)
             for study in studies:
                 # add study friendly name from yaml mapping
+                if study['pdc_study_id'] not in study_friendly_names:
+                    metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+                    study_names_fp = get_filepath(f"{metadata_mappings_path}/{BQ_PARAMS['STUDY_FRIENDLY_NAME_FILE']}")
+
+                    has_fatal_error(f"""
+                        *** Unmapped study friendly name for {study['pdc_study_id']}. 
+                        Add study friendly name to BQEcosystem path {study_names_fp} and rerun study workflow.
+                    """)
+
                 study['study_friendly_name'] = study_friendly_names[study['pdc_study_id']]
 
-                # grab a few add't fields from study endpoint
+                # grab a few additional fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
 

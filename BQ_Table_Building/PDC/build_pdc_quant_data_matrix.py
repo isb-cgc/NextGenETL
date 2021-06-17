@@ -5,13 +5,12 @@ import requests
 from functools import cmp_to_key
 from google.cloud import storage
 
-from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket,
+from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp, upload_to_bucket, write_list_to_tsv,
                               get_graphql_api_response, has_fatal_error, create_and_load_table_from_tsv, create_tsv_row,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
-                              create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                              create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, construct_table_id,
-                              make_string_bq_friendly, write_list_to_tsv, delete_bq_table, publish_table,
-                              construct_table_name_from_list)
+                              create_and_upload_schema_for_tsv, retrieve_bq_schema_object, delete_bq_table,
+                              create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, publish_table,
+                              make_string_bq_friendly)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -25,7 +24,6 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def retrieve_uniprot_kb_genes():
     """
-
     Retrieve Swiss-Prot ids and gene names from UniProtKB REST API.
     :return: REST API response text (tsv)
     """
@@ -41,17 +39,14 @@ def retrieve_uniprot_kb_genes():
 
 def make_uniprot_query():
     """
-
     Make query to select Swiss-Prot id from UniProt table.
     :return: sql query string
     """
     uniprot_table_name = construct_table_name(API_PARAMS,
                                               prefix=BQ_PARAMS['UNIPROT_TABLE'],
                                               release=API_PARAMS['UNIPROT_RELEASE'])
+    uniprot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{uniprot_table_name}"
 
-    uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                          dataset=BQ_PARAMS['META_DATASET'],
-                                          table_name=uniprot_table_name)
     return f"""
         SELECT Entry AS uniprot_id
         FROM `{uniprot_table_id}`
@@ -60,10 +55,9 @@ def make_uniprot_query():
 
 def make_refseq_filtered_status_mapping_query(refseq_table_id):
     """
-
-    Create query to filter refseq - uniprot mapping data; where both uniprot reviewed and unreviewed records
-    exist for a given RefSeq id, keep only the reviewed record.
-    :param refseq_table_id: reference to intermediate refseq->uniprot mapping table.
+    Create query to filter refseq - uniprot mapping data; where both uniprot reviewed and unreviewed records exist
+    for a given RefSeq id, keep only the reviewed record.
+    :param refseq_table_id: reference to intermediate refseq->uniprot mapping table
     :return: filter query, used for final mapping table creation
     """
     return f"""
@@ -89,7 +83,6 @@ def make_refseq_filtered_status_mapping_query(refseq_table_id):
 
 def sort_swissprot_by_age(a, b):
     """
-
     Comparator for Swiss-Prot ids. To use:
         compare_uniprot_ids = cmp_to_key(sort_swissprot_by_age)
         uniprot_list.sort(key=compare_uniprot_ids)
@@ -124,7 +117,6 @@ def sort_swissprot_by_age(a, b):
 
 def is_uniprot_accession_number(id_str):
     """
-
     Determine whether id_str is a valid UniProt accession number based on canonical format.
         To qualify as a UniProt accession number, all must be true:
         is length 6 or 10?
@@ -193,7 +185,6 @@ def is_uniprot_accession_number(id_str):
 
 def filter_uniprot_accession_nums(proteins_str):
     """
-
     Filter proteins list, searching for ids in UniProt accession number format.
     :param proteins_str: semi-colon delimited string of protein ids
     :return: semi-colon delimited string of UniProt accession number ids
@@ -238,6 +229,12 @@ def filter_swissprot_accession_nums(proteins, swissprot_set):
 
 
 def make_paginated_gene_query(offset, limit):
+    """
+    Make GraphQL query to retrieve gene data from PDC API.
+    :param offset: Pagination offset (first record index to return)
+    :param limit: Pagination limit (max records to return)
+    :return: Paginated gene query string
+    """
     return f"""
         {{
           getPaginatedGenes(offset:{offset} limit: {limit} acceptDUA:true) {{ 
@@ -267,6 +264,11 @@ def make_paginated_gene_query(offset, limit):
 
 
 def alter_paginated_gene_list(json_obj_list):
+    """
+
+    :param json_obj_list:
+    :return:
+    """
     compare_uniprot_ids = cmp_to_key(sort_swissprot_by_age)
     swissprot_set = {row[0] for row in get_query_results(make_uniprot_query())}
     for gene in json_obj_list:
@@ -327,21 +329,16 @@ def alter_paginated_gene_list(json_obj_list):
 
 def make_quant_data_matrix_query(pdc_study_id, data_type):
     """
-
     Create graphQL string for querying the PDC API's quantDataMatrix endpoint.
     :param pdc_study_id: PDC study id for query argument
     :param data_type: Data type for query argument (e.g. log2_ratio)
     :return: GraphQL query string
     """
-
-    return f'''{{ 
-            quantDataMatrix(pdc_study_id: \"{pdc_study_id}\" data_type: \"{data_type}\" acceptDUA: true) 
-        }}'''
+    return f'{{ quantDataMatrix(pdc_study_id: \"{pdc_study_id}\" data_type: \"{data_type}\" acceptDUA: true) }}'
 
 
 def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
     """
-
     Output quant data rows in tsv format, for future BQ ingestion.
     :param study_id_dict: dictionary of study ids
     :param data_type: data type of API request, e.g. log2_ratio
@@ -406,7 +403,6 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
 
 def get_quant_files():
     """
-
     Get set of quant data matrix files from Google Cloud Bucket.
     :return: file name set
     """
@@ -426,7 +422,6 @@ def get_quant_files():
 
 def get_quant_table_name(study, is_final, include_release=True):
     """
-
     Get quant table name for given study.
     :param study: study metadata dict
     :param is_final: if True, query is requesting published table name; otherwise dev table name
@@ -436,7 +431,6 @@ def get_quant_table_name(study, is_final, include_release=True):
 
     def change_study_name_to_table_name_format(_study_name):
         """
-
         Convert study name to table name format.
         :param _study_name: PDC study associated with table data
         :return: table name
@@ -497,13 +491,9 @@ def make_quant_table_query(raw_table_id, study):
     analytical_fraction = study['analytical_fraction']
 
     aliquot_run_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_RUN_METADATA_TABLE'])
-    aliquot_run_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=aliquot_run_table_name)
+    aliquot_run_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{aliquot_run_table_name}"
     gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
-    gene_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                       dataset=BQ_PARAMS['META_DATASET'],
-                                       table_name=gene_table_name)
+    gene_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{gene_table_name}"
 
     if analytical_fraction == 'Proteome':
         return f"""
@@ -604,16 +594,15 @@ def main(args):
         print("UniProt table built!")
 
     if 'create_refseq_table' in steps:
-        # todo it'd be nice to clean this up some; it works but we tacked stuff on, it could probably be consolidated
+        # todo it'd be nice to clean this up some--it works, but we tacked stuff on; could be simplified
         print("Building RefSeq mapping table!")
         refseq_id_list = list()
 
         uniprot_table_name = construct_table_name(API_PARAMS,
                                                   prefix=BQ_PARAMS['UNIPROT_TABLE'],
                                                   release=API_PARAMS['UNIPROT_RELEASE'])
-        uniprot_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['META_DATASET'],
-                                              table_name=uniprot_table_name)
+        uniprot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{uniprot_table_name}"
+
         res = get_query_results(f"SELECT * FROM {uniprot_table_id}")
 
         for row in res:
@@ -669,12 +658,12 @@ def main(args):
         refseq_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                   table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                                   release=API_PARAMS['UNIPROT_RELEASE'])
+
         refseq_table_name = construct_table_name(API_PARAMS,
                                                  prefix=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
                                                  release=API_PARAMS['UNIPROT_RELEASE'])
-        refseq_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                             dataset=BQ_PARAMS['META_DATASET'],
-                                             table_name=refseq_table_name)
+        refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{refseq_table_name}"
+
         create_and_load_table_from_tsv(BQ_PARAMS,
                                        tsv_file=refseq_file_name,
                                        table_id=refseq_table_id,
@@ -684,9 +673,8 @@ def main(args):
         final_refseq_table_name = construct_table_name(API_PARAMS,
                                                        prefix=BQ_PARAMS['REFSEQ_UNIPROT_FINAL_TABLE'],
                                                        release=API_PARAMS['UNIPROT_RELEASE'])
-        final_refseq_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                   dataset=BQ_PARAMS['META_DATASET'],
-                                                   table_name=final_refseq_table_name)
+        final_refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{final_refseq_table_name}"
+
         load_table_from_query(BQ_PARAMS,
                               table_id=final_refseq_table_id,
                               query=make_refseq_filtered_status_mapping_query(refseq_table_id))
@@ -777,10 +765,8 @@ def main(args):
             else:
                 print(f"Building table for {raw_quant_tsv_file}")
 
-                raw_quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
-                raw_quant_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                        dataset=BQ_PARAMS['QUANT_RAW_DATASET'],
-                                                        table_name=raw_quant_table_name)
+                raw_quant_table = get_quant_table_name(study=study_id_dict, is_final=False)
+                raw_quant_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['QUANT_RAW_DATASET']}.{raw_quant_table}"
 
                 unversioned_quant_table_name = get_quant_table_name(study_id_dict,
                                                                     is_final=False,
@@ -795,7 +781,7 @@ def main(args):
                                                schema=raw_quant_schema)
                 built_table_counts[study_id_dict['analytical_fraction']] += 1
 
-        print("quantDataMatrix table counts per analytical fraction: ")
+        print("quantDataMatrix table counts per analytical fraction:")
 
         for analytical_fraction in built_table_counts.keys():
             print(f" - {analytical_fraction}: {built_table_counts[analytical_fraction]}")
@@ -805,15 +791,12 @@ def main(args):
 
         for study in studies_list:
             raw_table_name = get_quant_table_name(study, is_final=False)
-            raw_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                              dataset=BQ_PARAMS['QUANT_RAW_DATASET'],
-                                              table_name=raw_table_name)
+            raw_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['QUANT_RAW_DATASET']}.{raw_table_name}"
 
             if exists_bq_table(raw_table_id):
-                final_dev_table_name = get_quant_table_name(study, is_final=True)
-                final_dev_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
-                                                        dataset=BQ_PARAMS['QUANT_FINAL_DATASET'],
-                                                        table_name=final_dev_table_name)
+                final_table_name = get_quant_table_name(study, is_final=True)
+                final_dev_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['QUANT_FINAL_DATASET']}.{final_table_name}"
+
                 final_quant_table_query = make_quant_table_query(raw_table_id, study)
 
                 load_table_from_query(BQ_PARAMS,
