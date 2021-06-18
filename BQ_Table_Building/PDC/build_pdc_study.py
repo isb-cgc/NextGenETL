@@ -171,10 +171,10 @@ def alter_all_programs_json(all_programs_json_obj):
                 check_project_mapping_data(project_shortname_map=project_shortname_map,
                                            project_submitter_id=project['project_submitter_id'])
 
-                project['project_short_name'] = project_shortname_map['PROJECT_SHORT_NAME']
-                project['program_short_name'] = project_shortname_map['PROGRAM_SHORT_NAME']
-                project['project_friendly_name'] = project_shortname_map['PROJECT_FRIENDLY_NAME']
-                project['program_labels'] = project_shortname_map['PROGRAM_LABELS']
+                project['project_short_name'] = project_shortname_map['project_short_name']
+                project['program_short_name'] = project_shortname_map['program_short_name']
+                project['project_friendly_name'] = project_shortname_map['project_friendly_name']
+                project['program_labels'] = project_shortname_map['program_labels']
 
             studies = project.pop("studies", None)
             for study in studies:
