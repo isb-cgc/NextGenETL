@@ -230,7 +230,6 @@ def main(args):
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
-    # todo bq variables
     # Which release is the workflow running on?
     release = f"r{str(params['RELEASE'])}"
 
