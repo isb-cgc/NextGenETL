@@ -342,7 +342,8 @@ def get_pdc_study_ids(api_params, bq_params, include_embargoed_studies=False):
         print("\nStudies excluded due to data embargo:")
 
         for study in sorted(embargoed_studies_list, key=lambda item: item['study_name']):
-            print(f" - {study['study_name']} ({study['pdc_study_id']}, expires {study['embargo_date']})\n")
+            print(f" - {study['study_name']} ({study['pdc_study_id']}, expires {study['embargo_date']})")
+        print()
 
         return pdc_study_ids
 
