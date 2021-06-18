@@ -196,14 +196,12 @@ def find_types(file, sample_interval): # may need to add skip_rows later
 
     return typing_tups
 
-'''
-----------------------------------------------------------------------------------------------
-Main Control Flow
-Note that the actual steps run are configured in the YAML input! This allows you
-to e.g. skip previously run steps.
-'''
 def main(args):
-
+    """
+    Main Control Flow
+    Note that the actual steps run are configured in the YAML input! This allows you
+    to e.g. skip previously run steps.
+    """
     if not confirm_google_vm():
         print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
         return
