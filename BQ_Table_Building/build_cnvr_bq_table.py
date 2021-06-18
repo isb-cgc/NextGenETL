@@ -401,8 +401,9 @@ def main(args):
         print('add_aliquot_fields')
         full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_{release}_draft'
         success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
+                                          f"{params['CASE_TABLE']}_{metadata_rel}",
                                           params['SCRATCH_DATASET'], f"{draft_table}_{release}",
-                                          params['BQ_AS_BATCH'])  # todo add case table
+                                          params['BQ_AS_BATCH'])
         if not success:
             print("Join job failed")
 
