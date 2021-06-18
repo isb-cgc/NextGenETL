@@ -117,13 +117,20 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
-'''
-----------------------------------------------------------------------------------------------
-# ### SQL Code For Final Table Generation
-# Original author: Sheila Reynolds
-'''
 def merge_bq_sql(cnv_table, aliquot_table, case_table):
+    """
+    SQL Code For Final Table Generation
+    Original author: Sheila Reynolds
 
+    :param cnv_table: Raw Copy Number table name
+    :type cnv_table: basestring
+    :param aliquot_table: Metadata Aliquot table name
+    :type aliquot_table: basestring
+    :param case_table: Metadata Case table name
+    :type case_table: basestring
+    :return: Sting with query to join the tables together
+    :rtype: basestring
+    """
     # todo may need to join on sample_id also
 
     return f'''
