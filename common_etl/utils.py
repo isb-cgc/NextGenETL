@@ -436,7 +436,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             """)
 
         if publish_new_version:
-            print(f"""\t\t\tTables to publish:
+            print(f"""\t\t*** Tables to publish ***
             - {versioned_table_id}
             - {current_table_id}
             """)
