@@ -82,7 +82,7 @@ def make_study_query(pdc_study_id):
 
 def get_project_metadata():
     """
-    Get project metadata to merge into studies table from BQEcosystem/MetadataMappings/pdc_project_metadata.json.
+    Load project metadata from BQEcosystem/MetadataMappings/pdc_project_metadata.json as dict.
     :return dict of project dicts of the following form. Key equals PDC field "project_submitter_id."
     Example project dict:
         { "CPTAC-TCGA": {
@@ -101,14 +101,36 @@ def get_project_metadata():
 
 def get_study_friendly_names():
     """
-    Get project metadata to merge into studies table from BQEcosystem/MetadataMappings/pdc_project_metadata.json.
-    :return: Dict of { "pdc_study_id": "STUDY FRIENDLY NAME" } strings
+    Load study friendly names json file (from BQEcosystem/MetadataMappings/pdc_study_friendly_name_map.json) as dict.
+    :return: dict of { "pdc_study_id": "STUDY FRIENDLY NAME" } strings
     """
     metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
     study_metadata_fp = get_filepath(f"{metadata_mappings_path}/{BQ_PARAMS['STUDY_FRIENDLY_NAME_FILE']}")
 
     with open(study_metadata_fp, 'r') as fh:
         return json.load(fh)
+
+
+def check_project_mapping_data(project_shortname_map, project_submitter_id):
+    """
+    Check that all necessary user-supplied data is included in BQEcosystem/MetadataMappings/pdc_project_metadata.json.
+    :param project_shortname_map: dict representation of project objects found in pdc_project_metadata.json
+    :param project_submitter_id: project submitter id key, used to look up project metadata in project_shortname_map
+    """
+    project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
+
+    project_mapping_keys_list = ['project_short_name', 'program_short_name', 'project_friendly_name', 'program_labels']
+
+    for mapping_key in project_mapping_keys_list:
+        if mapping_key not in project_shortname_map:
+            has_fatal_error(f"""
+                *** {mapping_key} not in mapping for {project_submitter_id}. Add to {project_metadata_fp} and rerun.
+            """)
+        elif not project_shortname_map[mapping_key]:
+            has_fatal_error(f"""
+                *** {mapping_key} is blank for {project_submitter_id}. Add to {project_metadata_fp} and rerun.
+            """)
 
 
 def alter_all_programs_json(all_programs_json_obj):
@@ -125,27 +147,34 @@ def alter_all_programs_json(all_programs_json_obj):
     for program in all_programs_json_obj:
         program['program_name'] = program.pop("name", None)
         print(f"Processing {program['program_name']}")
+
         projects = program.pop("projects", None)
         for project in projects:
             project['project_name'] = project.pop("name", None)
+            print(f" - {project['project_name']}")
 
             # Per past discussion, the retrospective is excluded here
             if project['project_submitter_id'] == 'CPTAC2 Retrospective':
                 project['project_submitter_id'] = 'CPTAC-2'
 
+            project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+            project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
+
             if project['project_submitter_id'] not in project_metadata:
-                project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
-                project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
                 has_fatal_error(f"""
                     *** Unmapped project_submitter_id: {project['project_submitter_id']}. 
                     Add project metadata to {project_metadata_fp} and rerun study workflow.
                 """)
             else:
-                project_shortname_mapping = project_metadata[project['project_submitter_id']]
-                project['project_short_name'] = project_shortname_mapping['PROJECT_SHORT_NAME']
-                project['program_short_name'] = project_shortname_mapping['PROGRAM_SHORT_NAME']
-                project['project_friendly_name'] = project_shortname_mapping['PROJECT_FRIENDLY_NAME']
-                project['program_labels'] = project_shortname_mapping['PROGRAM_LABELS']
+                project_shortname_map = project_metadata[project['project_submitter_id']]
+
+                check_project_mapping_data(project_shortname_map=project_shortname_map,
+                                           project_submitter_id=project['project_submitter_id'])
+
+                project['project_short_name'] = project_shortname_map['PROJECT_SHORT_NAME']
+                project['program_short_name'] = project_shortname_map['PROGRAM_SHORT_NAME']
+                project['project_friendly_name'] = project_shortname_map['PROJECT_FRIENDLY_NAME']
+                project['program_labels'] = project_shortname_map['PROGRAM_LABELS']
 
             studies = project.pop("studies", None)
             for study in studies:
