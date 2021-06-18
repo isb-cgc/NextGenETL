@@ -152,11 +152,12 @@ def alter_all_programs_json(all_programs_json_obj):
         print("Projects:")
         for project in projects:
             project['project_name'] = project.pop("name", None)
-            print(f" - {project['project_name']}")
 
             # Per past discussion, the retrospective is excluded here
             if project['project_submitter_id'] == 'CPTAC2 Retrospective':
                 project['project_submitter_id'] = 'CPTAC-2'
+
+            print(f" - {project['project_name']}")
 
             project_metadata_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
             project_metadata_fp = get_filepath(f"{project_metadata_path}/{BQ_PARAMS['PROJECT_METADATA_FILE']}")
@@ -268,7 +269,8 @@ def main(args):
                       source_table_id=source_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

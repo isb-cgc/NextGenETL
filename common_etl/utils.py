@@ -274,7 +274,7 @@ def add_column_descriptions(bq_params, table_id):
     :param table_id:
     :return:
     """
-    print("\nAdding column descriptions!")
+    print("\t - Adding column descriptions!")
 
     field_desc_fp = f"{bq_params['BQ_REPO']}/{bq_params['FIELD_DESCRIPTION_FILEPATH']}"
     field_desc_fp = get_filepath(field_desc_fp)
@@ -388,7 +388,6 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
     compare_result = bq_harness_with_result(sql=compare_two_tables_sql(previous_table_id, current_table_id),
                                             do_batch=bq_params['DO_BATCH'],
                                             verbose=False)
-
     if not compare_result:
         return True
 
@@ -396,7 +395,6 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
         return True if row else False
 
 
-# todo make things explicitly declare not test mode?
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
                   find_most_recent_published_table_id, overwrite=False, test_mode=True):
     """

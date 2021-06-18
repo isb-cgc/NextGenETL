@@ -334,6 +334,7 @@ def main(args):
                                schema=schema)
 
     if 'alter_api_file_metadata_table' in steps:
+        print("Altering file_api_metadata (merging duplicated records with different 'instrument' values).")
         fm_table_name = construct_table_name(API_PARAMS,
                                              prefix=file_metadata_prefix)
         fm_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{fm_table_name}"
@@ -393,7 +394,8 @@ def main(args):
                       source_table_id=file_metadata_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
@@ -404,7 +406,8 @@ def main(args):
                       source_table_id=mapping_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

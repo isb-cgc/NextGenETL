@@ -734,6 +734,7 @@ def main(args):
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if lines_written > 0:
+                print()
                 create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=unversioned_quant_table_name,
                                                  tsv_fp=quant_tsv_path, header_list=raw_quant_header, skip_rows=1,
                                                  row_check_interval=100)
@@ -846,7 +847,7 @@ def main(args):
                       get_publish_table_ids=get_publish_table_ids_refseq,
                       find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
                       overwrite=True,
-                      test_mode=True)
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -860,7 +861,8 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
@@ -873,7 +875,8 @@ def main(args):
                               source_table_id=quant_table_id,
                               get_publish_table_ids=get_publish_table_ids,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True)
+                              overwrite=True,
+                              test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

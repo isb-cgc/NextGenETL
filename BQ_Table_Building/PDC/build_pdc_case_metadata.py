@@ -296,7 +296,8 @@ def main(args):
                       source_table_id=case_metadata_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
         # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
@@ -307,7 +308,8 @@ def main(args):
                       source_table_id=mapping_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

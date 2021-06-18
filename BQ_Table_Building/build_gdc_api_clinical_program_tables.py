@@ -1070,7 +1070,8 @@ def copy_tables_into_public_project(publish_table_list):
                       source_table_id=src_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True)
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
 
 def make_biospecimen_stub_view_query(program):
