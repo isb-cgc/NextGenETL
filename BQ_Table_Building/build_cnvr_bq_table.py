@@ -94,14 +94,26 @@ def concat_all_files(all_files, one_big_tsv):
                         outfile.write('\n')
                     first = False
 
-'''
-----------------------------------------------------------------------------------------------
-Merge Skeleton With Aliquot Data
-Creates the final BQ table by joining the skeleton with the aliquot ID info
-'''
-
 def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch):
+    """
+    Merge Skeleton With Aliquot Data
+    Creates the final BQ table by joining the skeleton with the aliquot ID info
 
+    :param cnv_table: Raw Copy Number table name
+    :type cnv_table: basestring
+    :param aliquot_table: Metadata Aliquot table name
+    :type aliquot_table: basestring
+    :param case_table: Metadata Case table name
+    :type case_table: basestring
+    :param target_dataset: Scratch data set name
+    :type target_dataset: basestring
+    :param dest_table: Name of table to create
+    :type dest_table: basestring
+    :param do_batch: Run the BQ job in Batch mode?
+    :type do_batch: bool
+    :return: Whether the query succeeded
+    :rtype: bool
+    """
     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
