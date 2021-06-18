@@ -424,7 +424,7 @@ def main(args):
 
     for table in update_schema_tables:
         schema_release = 'current' if table == 'current' else release
-        if 'update_field_descriptions' in steps: # todo does this need to be update_final_schema?
+        if 'update_field_descriptions' in steps:
             print('update_field_descriptions')
             full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
             schema_dict_loc = f"{full_file_prefix}_schema.json"
