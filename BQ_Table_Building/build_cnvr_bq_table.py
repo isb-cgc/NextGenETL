@@ -358,7 +358,7 @@ def main(args):
             print('analyze_the_schema')
             #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{params['FINAL_TARGET_TABLE']}"
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
             schema_dict_loc = f"{full_file_prefix}_schema.json"
             build_combined_schema(None, schema_dict_loc,
                                   typing_tups, hold_schema_list, hold_schema_dict)
@@ -375,20 +375,20 @@ def main(args):
         bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], params['TARGET_TABLE'], params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], f"{draft_table}_{release}_draft", params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
-        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{params["TARGET_TABLE"]}'
+        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_{release}_draft'
         success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{release}",
-                                          params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'],
+                                          params['SCRATCH_DATASET'], f"{draft_table}_{release}",
                                           params['BQ_AS_BATCH'])  # todo add case table
         if not success:
             print("Join job failed")
 
     # Create second table
     if 'create_current_table' in steps:
-        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{schema_release}"
+        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
         current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
 
         success = publish_table(source_table, current_dest)
@@ -424,8 +424,8 @@ def main(args):
 
     if 'update_table_description' in steps:
         print('update_table_description')
-        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{params['FINAL_TARGET_TABLE']}"
-        success = install_labels_and_desc(params['SCRATCH_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
+        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
+        success = install_labels_and_desc(params['SCRATCH_DATASET'], f"{draft_table}_{release}", full_file_prefix)
         if not success:
             print("update_table_description failed")
             return
@@ -498,12 +498,12 @@ def main(args):
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
                 publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
-                                   f"{publication_table}_release"
+                                   f"{publication_table}_release"  # todo: update publication
             elif table == 'current':
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
                 publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}." \
-                                   f"{publication_table}_current"
+                                   f"{publication_table}_current"  # todo: update publication
             success = publish_table(source_table, publication_dest)
 
         if not success:
@@ -516,7 +516,7 @@ def main(args):
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                     f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}_archived",
-                                    params['PUBLICATION_PROJECT'])
+                                    params['PUBLICATION_PROJECT'])  # todo: update publication
 
         if not success:
             print("update status tag table failed")
@@ -527,7 +527,7 @@ def main(args):
     #
 
     if 'dump_working_tables' in steps:
-        dump_table_tags = ['TARGET_TABLE']
+        dump_table_tags = [f"{draft_table}_current", f"{draft_table}_{release}"]
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
             delete_table_bq_job(params['SCRATCH_DATASET'], table)
