@@ -16,11 +16,6 @@ limitations under the License.
 
 """
 
-# Overall to dos
-# todo: add docstrings
-# todo: convert to python3.9 with f stings
-#
-
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
 '''
