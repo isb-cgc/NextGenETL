@@ -397,6 +397,8 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
         else:
             return False
 
+    return False
+
 
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
                   find_most_recent_published_table_id, overwrite=False, test_mode=True):
