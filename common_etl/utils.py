@@ -435,11 +435,11 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             publish_new_version? {publish_new_version}
             """)
 
-        if publish_new_version:
-            print(f"""\t*** Tables to publish ***
-            - {versioned_table_id}
-            - {current_table_id}
-            """)
+            if publish_new_version:
+                print(f"""\t*** Tables to publish ***
+                - {versioned_table_id}
+                - {current_table_id}
+                """)
         return
 
     if exists_bq_table(source_table_id):
