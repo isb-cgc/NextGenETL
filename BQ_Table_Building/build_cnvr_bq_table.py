@@ -225,6 +225,12 @@ def main(args):
     draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
     publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"
 
+    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+        print("The input release is before new metadata process, "
+              "please specify which release of the metadata to use.")
+
+    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else release
+
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
@@ -238,7 +244,7 @@ def main(args):
         print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_release", bq_filters, max_files,
+        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_r{metadata_rel}", bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
@@ -257,7 +263,7 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
         full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
-        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_release",
+        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_r{metadata_rel}",
                                           params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                           pull_list_table,
                                           params['WORKING_BUCKET'],
@@ -380,7 +386,7 @@ def main(args):
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
         full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_{release}_draft'
-        success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{release}",
+        success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
                                           params['SCRATCH_DATASET'], f"{draft_table}_{release}",
                                           params['BQ_AS_BATCH'])  # todo add case table
         if not success:
