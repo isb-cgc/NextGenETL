@@ -149,6 +149,7 @@ def alter_all_programs_json(all_programs_json_obj):
         print(f"Processing {program['program_name']}")
 
         projects = program.pop("projects", None)
+        print("Projects:")
         for project in projects:
             project['project_name'] = project.pop("name", None)
             print(f" - {project['project_name']}")
@@ -177,7 +178,9 @@ def alter_all_programs_json(all_programs_json_obj):
                 project['program_labels'] = project_shortname_map['program_labels']
 
             studies = project.pop("studies", None)
+            print("\tStudies:")
             for study in studies:
+                print(f"\t - {study['study_name']} (embargo date: {study['embargo_date']}")
                 # add study friendly name from yaml mapping
                 if study['pdc_study_id'] not in study_friendly_names:
                     metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
