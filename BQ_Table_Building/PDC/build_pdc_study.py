@@ -180,7 +180,6 @@ def alter_all_programs_json(all_programs_json_obj):
             studies = project.pop("studies", None)
             print("\tStudies:")
             for study in studies:
-                print(f"\t - {study['submitter_id_name']} (embargo date: {study['embargo_date']}")
                 # add study friendly name from yaml mapping
                 if study['pdc_study_id'] not in study_friendly_names:
                     metadata_mappings_path = f"{BQ_PARAMS['BQ_REPO']}/{BQ_PARAMS['PROJECT_STUDY_METADATA_DIR']}"
@@ -196,6 +195,7 @@ def alter_all_programs_json(all_programs_json_obj):
                 # grab a few additional fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
+                print(f"\t - {study_metadata['study_name']} (embargo date: {study_metadata['embargo_date']}")
 
                 # ** unpacks each dictionary's items without altering program and project
                 study_obj = {**program, **project, **study, **study_metadata}
