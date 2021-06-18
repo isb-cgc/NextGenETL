@@ -524,7 +524,7 @@ def main(args):
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
                 publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}." \
-                                   f"{publication_table}_current"  # todo: update publication
+                                   f"{publication_table}_current"
             success = publish_table(source_table, publication_dest)
 
         if not success:
@@ -537,7 +537,7 @@ def main(args):
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
                                     f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}_archived",
-                                    params['PUBLICATION_PROJECT'])  # todo: update publication
+                                    params['PUBLICATION_PROJECT'])
 
         if not success:
             print("update status tag table failed")
