@@ -146,7 +146,7 @@ def alter_all_programs_json(all_programs_json_obj):
 
     for program in all_programs_json_obj:
         program['program_name'] = program.pop("name", None)
-        print(f"Processing {program['program_name']}")
+        print(f"\n{program['program_name']}")
 
         projects = program.pop("projects", None)
         print("Projects:")
@@ -195,7 +195,10 @@ def alter_all_programs_json(all_programs_json_obj):
                 # grab a few additional fields from study endpoint
                 json_res = get_graphql_api_response(API_PARAMS, make_study_query(study['pdc_study_id']))
                 study_metadata = json_res['data']['study'][0]
-                print(f"\t - {study_metadata['study_name']} (embargo date: {study_metadata['embargo_date']}")
+                if study_metadata['embargo_date']:
+                    print(f"\t - {study_metadata['study_name']} (embargo date: {study_metadata['embargo_date']})")
+                else:
+                    print(f"\t - {study_metadata['study_name']}")
 
                 # ** unpacks each dictionary's items without altering program and project
                 study_obj = {**program, **project, **study, **study_metadata}
