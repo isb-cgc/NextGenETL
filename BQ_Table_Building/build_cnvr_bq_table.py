@@ -42,13 +42,15 @@ from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_cl
                                delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
                                generate_table_detail_files, compare_two_tables, publish_table, update_status_tag
 
-
-'''
-----------------------------------------------------------------------------------------------
-The configuration reader. Parses the YAML configuration into dictionaries
-'''
 def load_config(yaml_config):
+    """
+    The configuration reader. Parses the YAML configuration into dictionaries
 
+    :param yaml_config: Read in YAML file
+    :type yaml_config: TextIO
+    :return: Dictionaries with Configurations in YAML file
+    :rtype: dict
+    """
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
     try:
@@ -62,16 +64,17 @@ def load_config(yaml_config):
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['update_schema_tables'], \
            yaml_dict['schema_tags'], yaml_dict['steps']
 
-
-'''
-----------------------------------------------------------------------------------------------
-# ### Concatenate all Files
-# Gather up all files and glue them into one big one. We also add columns for the
-`source_file_name` and `source_file_id` (which is the name of the directory it is in).
-WARNING! Currently hardwired to CNV file heading!
-'''
-
 def concat_all_files(all_files, one_big_tsv):
+    """
+    Concatenate all Files. Gather up all files and glue them into one big one. We also add columns for the
+    `source_file_name` and `source_file_id` (which is the name of the directory it is in).
+    WARNING! Currently hardwired to CNV file heading!
+
+    :param all_files: List of all files to be glued together
+    :type all_files: list
+    :param one_big_tsv: Name of glued together output file
+    :type one_big_tsv: str
+    """
     print(f"building {one_big_tsv}")
     first = True
     with open(one_big_tsv, 'w') as outfile:
