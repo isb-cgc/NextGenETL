@@ -489,10 +489,10 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             if previous_versioned_table_id:
                 print(f"Archiving {previous_versioned_table_id}")
                 change_status_to_archived(previous_versioned_table_id)
-        else:
-            print(f"{source_table_id} not published, no changes detected (compared to {previous_versioned_table_id})")
+                print()
 
-        print()
+        else:
+            print(f"{source_table_id} not published, no changes detected")
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
