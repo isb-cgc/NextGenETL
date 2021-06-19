@@ -462,7 +462,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
         if publish_new_version:
             delay = 5
 
-            print(f"""\nPublishing the following tables:
+            print(f"""\n\nPublishing the following tables:
             - {versioned_table_id}
             - {current_table_id}
             """)
@@ -479,7 +479,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
     
-            print(f"Publishing {current_table_id}\n")
+            print(f"Publishing {current_table_id}")
             copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
     
             print(f"Updating friendly name for {versioned_table_id}")
