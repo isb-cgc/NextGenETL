@@ -479,7 +479,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
     
-            print(f"Publishing {current_table_id}")
+            print(f"Publishing {current_table_id}\n")
             copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
     
             print(f"Updating friendly name for {versioned_table_id}")
