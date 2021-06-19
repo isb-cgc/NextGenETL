@@ -29,6 +29,8 @@ import datetime
 import requests
 import yaml
 
+from threading import Timer
+
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
 
@@ -444,6 +446,19 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
     if exists_bq_table(source_table_id):
         if publish_new_version:
+            publish_timer = Timer(5, print, ['Proceeding.'])
+
+            print("Publishing the following tables to production project in 5 seconds:")
+            print(versioned_table_id)
+            print(current_table_id)
+
+            publish_timer.start()
+            response = input("Press space bar to cancel. ")
+            publish_timer.cancel()
+
+            if response:
+                exit("Publish aborted; exiting.")
+
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
     
