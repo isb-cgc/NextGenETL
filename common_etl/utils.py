@@ -446,18 +446,20 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
     if exists_bq_table(source_table_id):
         if publish_new_version:
-            publish_timer = Timer(5, print, ['Proceeding.'])
+            print(f"""\nPublishing the following tables to production in 5 seconds:
+            - {versioned_table_id}
+            - {current_table_id}
+            """)
 
-            print("Publishing the following tables to production project in 5 seconds:")
-            print(versioned_table_id)
-            print(current_table_id)
-
+            publish_timer = Timer(2, print, ['Proceeding.'])
             publish_timer.start()
-            response = input("Press space bar to cancel. ")
+            response = input("\nPress space bar to cancel... ")
             publish_timer.cancel()
 
             if response:
                 exit("Publish aborted; exiting.")
+            else:
+
 
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
