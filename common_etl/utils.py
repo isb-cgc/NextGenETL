@@ -460,7 +460,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
     if exists_bq_table(source_table_id):
         if publish_new_version:
-            delay = 5
+            delay = 3
 
             print(f"""\nPublishing the following tables:
             - {versioned_table_id}
