@@ -28,8 +28,7 @@ import re
 import datetime
 import requests
 import yaml
-
-from threading import Timer
+import select
 
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
@@ -402,6 +401,21 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
     return False
 
 
+def input_with_timeout(seconds, input_string):
+    input_poll = select.poll()
+    input_poll.register(sys.stdin.fileno(), select.POLLIN)
+
+    while True:
+        events = input_poll.poll(seconds * 1000)  # milliseconds
+
+        if not events:
+            return None
+
+        for fileno, event in events:
+            if fileno == sys.stdin.fileno():
+                return input(input_string)
+
+
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
                   find_most_recent_published_table_id, overwrite=False, test_mode=True):
     """
@@ -451,10 +465,8 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             - {current_table_id}
             """)
 
-            publish_timer = Timer(2, print, ['Proceeding.'])
-            publish_timer.start()
-            response = input("\nPress space bar to cancel... ")
-            publish_timer.cancel()
+            response = input_with_timeout(seconds=5,
+                                          input_string="\nPress space bar to cancel... ")
 
             if response:
                 exit("Publish aborted; exiting.")
