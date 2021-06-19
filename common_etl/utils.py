@@ -401,7 +401,7 @@ def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
     return False
 
 
-def input_with_timeout(seconds, input_string):
+def input_with_timeout(seconds):
     input_poll = select.poll()
     input_poll.register(sys.stdin.fileno(), select.POLLIN)
 
@@ -413,7 +413,7 @@ def input_with_timeout(seconds, input_string):
 
         for fileno, event in events:
             if fileno == sys.stdin.fileno():
-                return input(input_string)
+                return input()
 
 
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
@@ -460,15 +460,19 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
     if exists_bq_table(source_table_id):
         if publish_new_version:
-            print(f"""\nPublishing the following tables to production in 5 seconds:
+            delay = 5
+
+            print(f"""\nPublishing the following tables:
             - {versioned_table_id}
             - {current_table_id}
             """)
+            print(f"Proceed? Y/n (continues automatically in {delay} seconds) --> ")
 
-            response = input_with_timeout(seconds=5,
-                                          input_string="\nPress space bar to cancel... ")
+            response = input_with_timeout(seconds=delay)
 
-            if response:
+            response = str(response).lower()
+
+            if response == 'n':
                 exit("Publish aborted; exiting.")
 
             print(f"Publishing {versioned_table_id}")
