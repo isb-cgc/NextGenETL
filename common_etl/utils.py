@@ -458,8 +458,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
 
             if response:
                 exit("Publish aborted; exiting.")
-            else:
-
 
             print(f"Publishing {versioned_table_id}")
             copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
