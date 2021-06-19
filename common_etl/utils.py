@@ -466,7 +466,7 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
             - {versioned_table_id}
             - {current_table_id}
             """)
-            print(f"Proceed? Y/n (continues automatically in {delay} seconds) --> ", end='')
+            print(f"Proceed? Y/n (continues automatically in {delay} seconds)")
 
             response = input_with_timeout(seconds=delay)
 
