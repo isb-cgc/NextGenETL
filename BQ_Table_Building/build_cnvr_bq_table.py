@@ -140,7 +140,7 @@ def merge_bq_sql(cnv_table, aliquot_table, case_table):
                           b.sample_gdc_id,
                           b.aliquot_gdc_id
                    FROM a1
-                   JOIN `{aliquot_table}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id)
+                   JOIN `{aliquot_table}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id),
             a3 AS (SELECT a2.project_short_name,
                           a2.case_barcode,
                           a2.sample_barcode,
