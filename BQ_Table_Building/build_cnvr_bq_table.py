@@ -258,7 +258,7 @@ def main(args):
         print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_r{metadata_rel}", bq_filters, max_files,
+        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_{metadata_rel}", bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                                manifest_table, params['WORKING_BUCKET'],
                                                params['BUCKET_MANIFEST_TSV'], manifest_file,
