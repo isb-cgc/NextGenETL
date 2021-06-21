@@ -7,5 +7,6 @@
     {"name": "read_count", "description": "From the GDC file"},
     {"name": "reads_per_million_miRNA_mapped", "description": "From the GDC file"},
     {"name": "cross_mapped", "description": "From the GDC file"},
+    {"name": "sample_type_name", "description: "The longer name of the sample type; eg. Primary Tumor, Recurrent Tumor, etc"},
     {"name": "fileUUID", "description": "GDC identifier for file with this data (ISB-CGC added column)"}
 ]
