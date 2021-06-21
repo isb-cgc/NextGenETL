@@ -182,7 +182,9 @@ def find_types(file, sample_interval): # may need to add skip_rows later
     :rtype: tuple ([field, field_type])
     """
     column_list = get_column_list_tsv(file, 1)
-    field_types = aggregate_column_data_types_tsv(file, column_list, sample_interval=sample_interval)
+    field_types = aggregate_column_data_types_tsv(file, column_list,
+                                                  sample_interval=sample_interval,
+                                                  skip_rows=1)
     final_field_types = resolve_type_conflicts(field_types)
     typing_tups = []
     for column in column_list:
