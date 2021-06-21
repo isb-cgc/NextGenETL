@@ -380,11 +380,10 @@ def main(args):
             print('analyze_the_schema')
             #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            print(typing_tups)
-            # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            # schema_dict_loc = f"{full_file_prefix}_schema.json"
-            # build_combined_schema(None, schema_dict_loc,
-            #                       typing_tups, hold_schema_list, hold_schema_dict)
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            schema_dict_loc = f"{full_file_prefix}_schema.json"
+            build_combined_schema(None, schema_dict_loc,
+                                  typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob = f"{params['WORKING_BUCKET_DIR']}/" \
                          f"{params['DATE']}-{params['PROGRAM']}-{params['DATA_TYPE']}.tsv"
