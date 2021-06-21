@@ -277,7 +277,7 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
         full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
-        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_r{metadata_rel}",
+        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_{metadata_rel}",
                                           params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                           pull_list_table,
                                           params['WORKING_BUCKET'],
@@ -466,10 +466,10 @@ def main(args):
                             f'{publication_table}_current'
         # Previous versioned table that should match the table in the current dataset
         previous_ver_table = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
-                             f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}"
+                             f"{publication_table}_{str(params['PREVIOUS_RELEASE'])}"
         # Temporary location to save a copy of the previous table
         table_temp = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.' \
-                     f'{params["PROGRAM"]}_{publication_table}_r{str(params["PREVIOUS_RELEASE"])}_backup'
+                     f'{params["PROGRAM"]}_{publication_table}_{str(params["PREVIOUS_RELEASE"])}_backup'
 
         print(f'Compare {old_current_table} to {previous_ver_table}')
         # Compare the two previous tables to make sure they are exactly the same
@@ -536,7 +536,7 @@ def main(args):
         print('Update previous table')
 
         success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                    f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}_archived",
+                                    f"{publication_table}_{str(params['PREVIOUS_RELEASE'])}_archived",
                                     params['PUBLICATION_PROJECT'])
 
         if not success:
