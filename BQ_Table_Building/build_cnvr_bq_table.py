@@ -181,7 +181,7 @@ def find_types(file, sample_interval): # may need to add skip_rows later
     :return: a tuple with a list of [field, field type]
     :rtype: tuple ([field, field_type])
     """
-    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=1)
+    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
     field_types = aggregate_column_data_types_tsv(file, column_list,
                                                   sample_interval=sample_interval,
                                                   skip_rows=1)
