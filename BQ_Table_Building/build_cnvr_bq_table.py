@@ -304,7 +304,7 @@ def main(args):
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
-                traversal_list.write("{line}\n")
+                traversal_list.write(f"{line}\n")
 
     if 'concat_all_files' in steps:
         print('concat_all_files')
