@@ -277,7 +277,7 @@ def main(args):
     if 'build_pull_list' in steps:
         print('build_pull_list')
         full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
-        success = build_pull_list_with_bq(full_manifest, f"{params['INDEXD_BQ_TABLE']}_{metadata_rel}",
+        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(metadata_rel),
                                           params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                           pull_list_table,
                                           params['WORKING_BUCKET'],
