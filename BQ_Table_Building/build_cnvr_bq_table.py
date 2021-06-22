@@ -449,17 +449,18 @@ def main(args):
                 print("update_field_descriptions failed")
                 return
 
-    #
-    # Add description and labels to the target table:
-    #
+        #
+        # Add description and labels to the target table:
+        #
 
-    if 'update_table_description' in steps:
-        print('update_table_description')
-        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
-        success = install_labels_and_desc(params['SCRATCH_DATASET'], f"{draft_table}_{release}", full_file_prefix)
-        if not success:
-            print("update_table_description failed")
-            return
+        if 'update_table_description' in steps:
+            print('update_table_description')
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            success = install_labels_and_desc(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}",
+                                              full_file_prefix)
+            if not success:
+                print("update_table_description failed")
+                return
 
     #
     # compare and remove old current table
