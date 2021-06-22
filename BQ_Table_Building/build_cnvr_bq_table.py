@@ -375,7 +375,7 @@ def main(args):
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
 
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
