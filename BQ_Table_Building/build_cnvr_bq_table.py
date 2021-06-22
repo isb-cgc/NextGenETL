@@ -33,9 +33,10 @@ from common_etl.utils import get_column_list_tsv, aggregate_column_data_types_ts
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, BucketPuller, build_combined_schema, \
-                               delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, compare_two_tables, publish_table, update_status_tag
+                               build_pull_list_with_bq, BucketPuller, build_combined_schema,\
+                               customize_labels_and_desc, delete_table_bq_job, install_labels_and_desc, \
+                               update_schema_with_dict, generate_table_detail_files, compare_two_tables, \
+                               publish_table, update_status_tag
 
 def load_config(yaml_config):
     """
@@ -374,7 +375,14 @@ def main(args):
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
+
+            # Write out the details
+            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+
+            if not success:
+                print("replace_schema_tags failed")
+                return False
 
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
