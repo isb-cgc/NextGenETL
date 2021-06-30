@@ -113,7 +113,7 @@ def main():
         '../P53_Database/P53_data_csv/I_REFERENCE.csv',
         '../P53_Database/P53_data_csv/INDUCED_MUTATIONS.csv',
         '../P53_Database/P53_data_csv/ISOFORMS_STATUS.csv',
-        '../P53_Database/P53_data_csv/Location.csv'
+        '../P53_Database/P53_data_csv/Location.csv',
         '../P53_Database/P53_data_csv/MOUSE_MODEL.csv',
         '../P53_Database/P53_data_csv/Morphology_dic.csv',
         '../P53_Database/P53_data_csv/MUTATION.csv',
@@ -123,12 +123,12 @@ def main():
         '../P53_Database/P53_data_csv/S_MUTATION.csv',
         '../P53_Database/P53_data_csv/S_PREVALENCE.csv',
         '../P53_Database/P53_data_csv/S_PROGNOSIS.csv',
-        '../P53_Database/P53_data_csv/S_REFERENCE.csv'
+        '../P53_Database/P53_data_csv/S_REFERENCE.csv',
         '../P53_Database/P53_data_csv/S_SAMPLE.csv',
         '../P53_Database/P53_data_csv/Sample_source_dic.csv',
         '../P53_Database/P53_data_csv/SomaticRefView.csv',
         '../P53_Database/P53_data_csv/SomaticView.csv',
-        '../P53_Database/P53_data_csv/SPLICING_PREDICTION.csv'
+        '../P53_Database/P53_data_csv/SPLICING_PREDICTION.csv',
         '../P53_Database/P53_data_csv/Subtopography_dic.csv',
         '../P53_Database/P53_data_csv/Tobacco_dic.csv',
         '../P53_Database/P53_data_csv/Topo_morphoDraft.csv',
