@@ -6,6 +6,7 @@ import json
 import csv
 
 
+
 def upload_to_bq(table_id,
                  csv,
                  schema):
@@ -66,12 +67,12 @@ def clean_and_write_out(a_file,
         writer.writerows(lines)
 
 
-def process_csv_files(file_name):
+def process_csv_files(file_name, tier):
     # Extract file name for BigQuery TABLE_ID
     file_name_and_ext = os.path.basename(file_name)
     basename = os.path.splitext(file_name_and_ext)[0]
     final_csv_path = os.path.join(f'../Cleaned_P53_CSV/{basename}.csv')
-    table_id = f'P53_data.{basename}'
+    table_id = f'isb-cgc-tp53-{tier}.P53_data.{basename}'
 
     schema = get_json_schema(basename)
 
@@ -136,13 +137,13 @@ def main():
         '../P53_Database/P53_data_csv/Type_dic.csv',
         '../P53_Database/P53_data_csv/p53_sequence.csv'
     ]
-
+    TIER = os.environ.get('TIER')
     abs_path = [os.path.abspath(a_file) for a_file in file_name]
 
     # Synchronous 
     if arg.lower() == 'n' or arg.lower() == 'no':
         for a_file in abs_path:
-            process_csv_files(a_file)
+            process_csv_files(a_file, TIER)
 
     # Parallelized 
     if arg.lower() == 'y' or arg.lower() == 'yes':
@@ -151,4 +152,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
