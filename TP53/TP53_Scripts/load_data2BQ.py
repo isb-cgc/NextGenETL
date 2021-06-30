@@ -137,7 +137,7 @@ def main():
         '../P53_Database/P53_data_csv/Type_dic.csv',
         '../P53_Database/P53_data_csv/p53_sequence.csv'
     ]
-    TIER = os.environ.get('TIER')
+    TIER = os.environ.get('TIER', 'test')
     print(TIER)
     abs_path = [os.path.abspath(a_file) for a_file in file_name]
 
