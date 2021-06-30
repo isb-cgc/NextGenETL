@@ -79,9 +79,9 @@ def process_csv_files(file_name, tier):
     clean_and_write_out(file_name,
                         final_csv_path)
 
-    upload_to_bq(table_id,
-                 final_csv_path,
-                 schema)
+    # upload_to_bq(table_id,
+    #              final_csv_path,
+    #              schema)
 
 
 def main():
