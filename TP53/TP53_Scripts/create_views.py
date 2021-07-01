@@ -1,7 +1,8 @@
 
 from google.cloud import bigquery
 from google.cloud.bigquery import query
-from google.cloud.bigquery import client 
+from google.cloud.bigquery import client
+import os
 
 def generate_table(tier, view_id, query):
     client = bigquery.Client(project='isb-cgc-tp53-{tier}'.format(tier=tier))
