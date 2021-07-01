@@ -1,19 +1,18 @@
 import concurrent.futures
-from google.cloud.bigquery import schema
-import os
+# from google.cloud.bigquery import schema
 from google.cloud import bigquery
 import json
 import csv
-
+import os
 
 
 def upload_to_bq(table_id,
                  csv,
                  schema):
     # Job Configuration for BigQuery
-    tier = os.environ.get('TIER', 'test')
+    project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-test')
 
-    client = bigquery.Client(project='isb-cgc-tp53-{tier}'.format(tier=tier))
+    client = bigquery.Client(project=project)
 
     job_config = bigquery.LoadJobConfig(
         schema=schema,
