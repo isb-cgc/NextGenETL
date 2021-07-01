@@ -20,8 +20,18 @@ def cellLineMutationStats(partial_id):
     view_id = f'{partial_id}.CellLineMutationStats'
     view_query = f'''
         SELECT      
-            s_mut.Mutation_ID, l.Codon_number, l.hg38_Chr17_coordinates, l.hg19_Chr17_coordinates, e.Effect, t.Type, 
-            m.Description, m.Type_ID, m.Effect_ID, m.Mutant_nucleotide, m.Mutant_codon, s_sam.Sample_source_ID
+            s_mut.Mutation_ID,
+            l.Codon_number,
+            l.hg38_Chr17_coordinates,
+            l.hg19_Chr17_coordinates,
+            e.Effect,
+            t.Type,
+            m.Description,
+            m.Type_ID,
+            m.Effect_ID,
+            m.Mutant_nucleotide,
+            m.Mutant_codon,
+            s_sam.Sample_source_ID
         FROM
             `{partial_id}.MUTATION` as m
         INNER JOIN
@@ -45,9 +55,9 @@ def cellLineMutationStats(partial_id):
         INNER JOIN
             `{partial_id}.S_SAMPLE` as s_sam
         ON s_mut.Sample_ID = s_sam.Sample_ID
-        WHERE (s_sam.Sample_source_ID = 4)
-        
+        WHERE (s_sam.Sample_source_ID = 4);
     '''
+    print(view_query)
     return view_id, view_query
 
 def somaticTumorStats(partial_id):
