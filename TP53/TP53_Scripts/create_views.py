@@ -16,7 +16,39 @@ def generate_table(view_id, query):
     print(f"Created {view.table_type}: {str(view.reference)}")
 
 
-    
+def cellLineMutationStats(partial_id):
+    view_id = f'{partial_id}.SomaticTumoreStats'
+    view_query = f'''
+        SELECT      
+            s_mut.Mutation_ID, l.Codon_number, l.hg38_Chr17_coordinates, l.hg19_Chr17_coordinates, e.Effect, t.Type, 
+            m.Description, m.Type_ID, m.Effect_ID, m.Mutant_nucleotide, m.Mutant_codon, s_sam.Sample_source_ID
+        FROM
+            `{partial_id}.MUTATION` as m
+        INNER JOIN
+            `{partial_id}.Location` as l
+        ON m.Location_ID = l.Location_ID
+        INNER JOIN
+            `{partial_id}.Genetic_code` as g
+        ON m.Mutant_codon = g.Codon
+        INNER JOIN
+            `{partial_id}.p53_sequence` as s
+        ON l.Codon_number = s.Codon_number
+        INNER JOIN
+            `{partial_id}.Effect_dic` as e
+        ON m.Effect_ID = e.Effect_ID
+        INNER JOIN
+            `{partial_id}.Type_dic` as t
+        ON m.Type_ID = t.Type_ID
+        INNER JOIN
+            `{partial_id}.S_MUTATION` as s_mut
+        ON m.MUT_ID = s_mut.MUT_ID
+        INNER JOIN
+            `{partial_id}.S_SAMPLE` as s_sam
+        ON s_mut.Sample_ID = s_sam.Sample_ID
+        WHERE (s_sam.Sample_source_ID = 4)
+        '''
+    return view_id, view_query
+
 def somaticTumorStats(partial_id):
     view_id = f'{partial_id}.SomaticTumoreStats'    
     view_query = f'''
@@ -1331,7 +1363,10 @@ def main():
         prognosisDownload,
         somaticDownload,
         somaticRefDownload,
-        somaticTumorStats
+        somaticTumorStats,
+
+        cellLineMutationStats,
+
     ]
     
     
