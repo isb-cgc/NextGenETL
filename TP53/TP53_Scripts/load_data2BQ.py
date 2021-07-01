@@ -76,9 +76,9 @@ def process_csv_files(file_name, tier):
 
     schema = get_json_schema(basename)
 
-    clean_and_write_out(file_name,
-                        final_csv_path)
-
+    # clean_and_write_out(file_name,
+    #                     final_csv_path)
+    print(table_id)
     upload_to_bq(table_id,
                  final_csv_path,
                  schema)
