@@ -3,9 +3,9 @@ from google.cloud import bigquery
 from google.cloud.bigquery import query
 from google.cloud.bigquery import client 
 
-def generate_table(view_id, query):
-    client = bigquery.Client()
-    
+def generate_table(tier, view_id, query):
+    client = bigquery.Client(project='isb-cgc-tp53-{tier}'.format(tier=tier))
+
     view = bigquery.Table(view_id)
     view.view_query = query 
     
@@ -1303,8 +1303,8 @@ def main():
        full id ("Project.Dataset.Table"). view_query is the query which will create the view. 
        
     '''
-    
-    project = 'isb-cgc-tp53-dev'
+    tier = os.environ.get('TIER', 'test')
+    project = 'isb-cgc-tp53-{tier}'.format(tier=tier)
     dataset = 'P53_data'
     
     # Project ID and Dataset ID 
@@ -1336,7 +1336,7 @@ def main():
     
     for function in functions:
         view_id, view_query = function(parital_id)
-        generate_table(view_id, 
+        generate_table(tier, view_id,
                        view_query)
 
 if __name__ == '__main__':
