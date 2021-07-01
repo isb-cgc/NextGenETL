@@ -11,7 +11,7 @@ def upload_to_bq(table_id,
                  csv,
                  schema):
     # Job Configuration for BigQuery
-    TIER = os.environ.get('TIER', 'test')
+    tier = os.environ.get('TIER', 'test')
 
     client = bigquery.Client(project='isb-cgc-tp53-{tier}'.format(tier=tier))
 
