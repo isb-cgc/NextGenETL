@@ -11,7 +11,7 @@ def generate_table(view_id, query):
     view = bigquery.Table(view_id)
     view.view_query = query 
     
-    view = client.create_table(view)
+    view = client.create_table(view, exists_ok=True)
     
     print(f"Created {view.table_type}: {str(view.reference)}")
 
