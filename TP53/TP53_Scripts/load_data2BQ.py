@@ -77,9 +77,8 @@ def process_csv_files(file_name):
 
     schema = get_json_schema(basename)
 
-    # clean_and_write_out(file_name,
-    #                     final_csv_path)
-    print(table_id)
+    clean_and_write_out(file_name,
+                        final_csv_path)
     upload_to_bq(table_id,
                  final_csv_path,
                  schema)
@@ -100,6 +99,7 @@ def main():
         '../P53_Database/P53_data_csv/Exposure_dic.csv',
         '../P53_Database/P53_data_csv/FUNCTION_PUB.csv',
         '../P53_Database/P53_data_csv/FUNCTION_REFERENCE.csv',
+        '../P53_Database/P53_data_csv/FUNCTION_ISHIOKA.csv',
         '../P53_Database/P53_data_csv/G_Classification_dic.csv',
         '../P53_Database/P53_data_csv/G_FAMILY.csv',
         '../P53_Database/P53_data_csv/G_FamilyCase_dic.csv',
