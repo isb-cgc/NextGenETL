@@ -17,7 +17,7 @@ def generate_table(view_id, query):
 
 
 def cellLineMutationStats(partial_id):
-    view_id = f'{partial_id}.SomaticTumoreStats'
+    view_id = f'{partial_id}.CellLineMutationStats'
     view_query = f'''
         SELECT      
             s_mut.Mutation_ID, l.Codon_number, l.hg38_Chr17_coordinates, l.hg19_Chr17_coordinates, e.Effect, t.Type, 
