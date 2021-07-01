@@ -46,11 +46,12 @@ def cellLineMutationStats(partial_id):
             `{partial_id}.S_SAMPLE` as s_sam
         ON s_mut.Sample_ID = s_sam.Sample_ID
         WHERE (s_sam.Sample_source_ID = 4)
-        '''
+        
+    '''
     return view_id, view_query
 
 def somaticTumorStats(partial_id):
-    view_id = f'{partial_id}.SomaticTumoreStats'    
+    view_id = f'{partial_id}.SomaticTumorStats'
     view_query = f'''
     SELECT    
     topo.StatisticGraph, topo.Short_topo, COUNT(topo.Short_topo) AS DatasetRx, ref.Exclude_analysis
@@ -1364,7 +1365,6 @@ def main():
         somaticDownload,
         somaticRefDownload,
         somaticTumorStats,
-
         cellLineMutationStats,
 
     ]
