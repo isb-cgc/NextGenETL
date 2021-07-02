@@ -1516,8 +1516,170 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
-#   MISC UTILS
+def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
+                                 find_most_recent_published_table_id, source_table_id, public_dataset, id_key):
+    """
+    Compare new table with previous version.
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param get_publish_table_ids:
+    :param find_most_recent_published_table_id:
+    :param source_table_id:
+    :param public_dataset:
+    :param id_key:
+    :return:
+    """
+    def make_field_diff_query(is_removed_query):
+        """
+        Make query for comparing two tables' field sets.
+        :param is_removed_query: True if query retrieves removed fields; False if retrieves added fields
+        """
+        if is_removed_query:
+            split_outer_table_id = previous_table_id.split('.')
+            dataset_outer = ".".join(split_outer_table_id[:1])
+            table_name_outer = split_outer_table_id[2]
 
+            split_inner_table_id = source_table_id.split('.')
+            dataset_inner = ".".join(split_inner_table_id[:1])
+            table_name_inner = split_inner_table_id[2]
+        else:
+            split_outer_table_id = source_table_id.split('.')
+            dataset_outer = ".".join(split_outer_table_id[:1])
+            table_name_outer = split_outer_table_id[2]
+
+            split_inner_table_id = previous_table_id.split('.')
+            dataset_inner = ".".join(split_inner_table_id[:1])
+            table_name_inner = split_inner_table_id[2]
+
+        return f"""
+            SELECT field_path AS field
+            FROM `{dataset_outer}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE field_path NOT IN (
+                SELECT field_path 
+                FROM `{dataset_inner}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={table_name_inner}
+            )
+            AND table_name={table_name_outer}
+        """
+
+    def make_datatype_diff_query():
+        """Make query for comparing two tables' field data types."""
+        return f"""
+            WITH old_data_types as (
+                SELECT field_path, data_type
+                FROM `{previous_dataset}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={previous_table_name}
+            ), new_data_types as (
+                SELECT field_path, data_type
+                FROM `{source_dataset}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={source_table_name}                
+            ),
+            distinct_data_types as (
+                old_data_types
+                UNION ALL 
+                new_data_types
+                GROUP BY field_path, data_type
+            )
+            SELECT field_path
+            FROM distinct_data_types
+            GROUP BY field_path
+            HAVING COUNT(field_path) > 1
+        """
+
+    def make_removed_ids_query():
+        """Make query for finding removed ids in newly released dataset."""
+        return f"""
+            SELECT {id_key}
+            FROM `{previous_table_id}`
+            WHERE {id_key} NOT IN (
+                SELECT {id_key} 
+                FROM `{source_table_id}`
+            )    
+        """
+
+    def make_added_ids_query():
+        """
+        Make query for finding added id count for newly released dataset.
+        :return: query string for table comparison
+        """
+        return f"""
+            SELECT count({id_key}) as added_id_count
+            FROM `{source_table_id}`
+            WHERE {id_key} NOT IN (
+                SELECT {id_key} 
+                FROM `{previous_table_id}`
+            )
+        """
+
+    curr_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset)
+    previous_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
+
+    split_source_table_id = source_table_id.split('.')
+    source_dataset = ".".join(split_source_table_id[:1])
+    source_table_name = split_source_table_id[2]
+
+    split_previous_table_id = previous_table_id.split('.')
+    previous_dataset = ".".join(split_previous_table_id[:1])
+    previous_table_name = split_previous_table_id[2]
+
+    print(f"\nTable Comparison Report ***")
+    print(f"New table (dev): {source_table_id} \nLast published table: {previous_table_id}")
+
+    # which fields have been removed?
+    removed_fields_res = bq_harness_with_result(sql=make_field_diff_query(is_removed_query=True),
+                                                do_batch=False, verbose=False)
+
+    print("\nRemoved fields:")
+    if removed_fields_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in removed_fields_res:
+            print(row[0])
+
+    # which fields were added?
+    added_fields_res = bq_harness_with_result(sql=make_field_diff_query(is_removed_query=False), 
+                                              do_batch=False, verbose=False)
+
+    print("\nNew fields:")
+    if added_fields_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in added_fields_res:
+            print(row[0])
+
+    # any changes in field data type?
+    datatype_diff_res = bq_harness_with_result(sql=make_datatype_diff_query(), do_batch=False, verbose=False)
+
+    print("\nColumns with data type change:")
+    if datatype_diff_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in datatype_diff_res:
+            print(row[0])
+
+    print("\nRemoved case ids:")
+    removed_case_ids_res = bq_harness_with_result(make_removed_ids_query(id_key), do_batch=False, verbose=False)
+
+    if removed_case_ids_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in removed_case_ids_res:
+            print(row[0])
+
+    print("\nAdded case id count:")
+    added_case_ids_res = bq_harness_with_result(make_added_ids_query(id_key), do_batch=False, verbose=False)
+
+    if added_case_ids_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in added_case_ids_res:
+            print(f"{row[0]}: {row[1]} new case ids")
+
+    print("\n*** End Report ***\n\n")
+
+
+#   MISC UTILS
 def make_string_bq_friendly(string):
     """
     todo

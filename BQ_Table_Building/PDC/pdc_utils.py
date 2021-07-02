@@ -544,7 +544,6 @@ def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset
     base_table_name = source_table_name.replace(api_params['RELEASE'], "")
     curr_table_name = f"{base_table_name}current"
     curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
-
     vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{source_table_name}"
 
     return curr_table_id, vers_table_id
