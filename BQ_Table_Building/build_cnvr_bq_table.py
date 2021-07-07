@@ -477,7 +477,7 @@ def main(args):
                             f'{publication_table}_current'
         # Previous versioned table that should match the table in the current dataset
         previous_ver_table = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
-                             f"{publication_table}_{str(params['PREVIOUS_RELEASE'])}"
+                             f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}"
         # Temporary location to save a copy of the previous table
         table_temp = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.' \
                      f'{params["PROGRAM"]}_{publication_table}_{str(params["PREVIOUS_RELEASE"])}_backup'
@@ -546,8 +546,8 @@ def main(args):
     if 'update_status_tag' in steps:
         print('Update previous table')
 
-        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                    f"{publication_table}_{str(params['PREVIOUS_RELEASE'])}_archived",
+        success = update_status_tag(f"{params['PUBLICATION_DATASET']}_versioned",\
+                                    f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}",
                                     params['PUBLICATION_PROJECT'])
 
         if not success:
