@@ -530,7 +530,7 @@ def main(args):
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
                 publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
-                                   f"{publication_table}_release"
+                                   f"{publication_table}_{release}"
             elif table == 'current':
                 print(table)
                 source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
