@@ -1,22 +1,23 @@
 
 from google.cloud import bigquery
-from google.cloud.bigquery import query
-from google.cloud.bigquery import client 
+# from google.cloud.bigquery import query
+# from google.cloud.bigquery import client
+import os
 
 def generate_table(view_id, query):
-    client = bigquery.Client()
-    
+    project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-test')
+    client = bigquery.Client(project=project)
+
     view = bigquery.Table(view_id)
     view.view_query = query 
     
-    view = client.create_table(view)
+    view = client.create_table(view, exists_ok=True)
     
     print(f"Created {view.table_type}: {str(view.reference)}")
 
 
-    
 def somaticTumorStats(partial_id):
-    view_id = f'{partial_id}.SomaticTumoreStats'    
+    view_id = f'{partial_id}.SomaticTumorStats'
     view_query = f'''
     SELECT    
     topo.StatisticGraph, topo.Short_topo, COUNT(topo.Short_topo) AS DatasetRx, ref.Exclude_analysis
@@ -1111,7 +1112,7 @@ def cellLineMutationStats(partial_id):
         `{partial_id}.S_MUTATION` as s_mut ON m.MUT_ID = s_mut.MUT_ID INNER JOIN
         `{partial_id}.S_SAMPLE` as s_sam ON s_mut.Sample_ID = s_sam.Sample_ID
     WHERE 
-        s_sam.Sample_source_ID = 4)
+        s_sam.Sample_source_ID = 4
     
     '''
     
@@ -1303,8 +1304,7 @@ def main():
        full id ("Project.Dataset.Table"). view_query is the query which will create the view. 
        
     '''
-    
-    project = 'isb-cgc-tp53-dev'
+    project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-test')
     dataset = 'P53_data'
     
     # Project ID and Dataset ID 
@@ -1330,13 +1330,15 @@ def main():
         prognosisDownload,
         somaticDownload,
         somaticRefDownload,
-        somaticTumorStats
+        somaticTumorStats,
+        cellLineMutationStats,
+
     ]
     
     
     for function in functions:
         view_id, view_query = function(parital_id)
-        generate_table(view_id, 
+        generate_table(view_id,
                        view_query)
 
 if __name__ == '__main__':

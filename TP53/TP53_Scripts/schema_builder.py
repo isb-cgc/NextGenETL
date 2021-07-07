@@ -85,8 +85,10 @@ def main():
     
     arg = input('Would you like to run this in parallel? (Y/n): ')
     
-    file_names =  ['../P53_Database/P53/dbo.AA_change.Table.sql',
-                   '../P53_Database/P53/dbo.AA_codes.Table.sql',
+    file_names =  [
+        '../P53_Database/P53/dbo.FUNCTION_ISHIOKA.Table.sql',
+                # '../P53_Database/P53/dbo.AA_change.Table.sql',
+                # '../P53_Database/P53/dbo.AA_codes.Table.sql',
                 #    '../P53_Database/P53/dbo.GermlineRefView.Table.sql',
                 #    '../P53_Database/P53/dbo.GermlineView.Table.sql',
                 #    '../P53_Database/P53/dbo.SomaticView.Table.sql'
