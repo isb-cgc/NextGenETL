@@ -484,7 +484,7 @@ def main(args):
         success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
                                           f"{params['CASE_TABLE']}_{metadata_rel}",
                                           params['SCRATCH_DATASET'], f"{draft_table}_{release}",
-                                          params['BQ_AS_BATCH'])
+                                          params['BQ_AS_BATCH'], hold_schema_dict)
         if not success:
             print("Join job failed")
 
