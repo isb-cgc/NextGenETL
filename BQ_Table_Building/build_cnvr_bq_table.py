@@ -91,7 +91,7 @@ def concat_all_files(all_files, one_big_tsv):
                     first = False
 
 def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch,
-                            hold_schema_list):
+                            hold_schema_dict):
     """
     Merge Skeleton With Aliquot Data
     Creates the final BQ table by joining the skeleton with the aliquot ID info
@@ -108,14 +108,14 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     :type dest_table: basestring
     :param do_batch: Run the BQ job in Batch mode?
     :type do_batch: bool
-    :param hold_schema_list: Schema Dictionary file
-    :type hold_schema_list: basestring
+    :param hold_schema_dict: Schema Dictionary file
+    :type hold_schema_dict: basestring
     :return: Whether the query succeeded
     :rtype: bool
     """
-    with open(hold_schema_list, mode='r') as schema_hold_dict:
+    with open(hold_schema_dict, mode='r') as schema_hold_dict:
         cnv_schema = json_loads(schema_hold_dict.read())
-    print(cnv_schema)
+    print(cnv_schema.keys())
     # if "Major_Copy_Number" in cnv_schema:
     #     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     #     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
@@ -484,7 +484,7 @@ def main(args):
         success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
                                           f"{params['CASE_TABLE']}_{metadata_rel}",
                                           params['SCRATCH_DATASET'], f"{draft_table}_{release}",
-                                          params['BQ_AS_BATCH'], hold_schema_list)
+                                          params['BQ_AS_BATCH'], hold_schema_dict)
         if not success:
             print("Join job failed")
 
