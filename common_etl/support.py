@@ -1147,8 +1147,8 @@ def retrieve_table_schema(target_dataset, dest_table, project=None):
     :type dest_table: basestring
     :param project: Project name
     :type project: basestring
-    :return: Table schema
-    :rtype: dict
+    :return: Table schema in a list of Schema Objects
+    :rtype: list
     """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
