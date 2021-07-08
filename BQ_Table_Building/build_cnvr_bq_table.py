@@ -115,7 +115,7 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     """
     with open(hold_schema_list, mode='r') as schema_hold_dict:
         cnv_schema = json_loads(schema_hold_dict.read())
-    print(cnv_schema.keys())
+    print(cnv_schema)
     # if "Major_Copy_Number" in cnv_schema:
     #     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     #     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
