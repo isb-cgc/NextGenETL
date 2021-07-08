@@ -33,7 +33,7 @@ from common_etl.utils import get_column_list_tsv, aggregate_column_data_types_ts
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, BucketPuller, build_combined_schema,\
+                               build_pull_list_with_bq, BucketPuller, build_combined_schema, retrieve_table_schema, \
                                customize_labels_and_desc, delete_table_bq_job, install_labels_and_desc, \
                                update_schema_with_dict, generate_table_detail_files, compare_two_tables, \
                                publish_table, update_status_tag
@@ -110,10 +110,77 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     :return: Whether the query succeeded
     :rtype: bool
     """
-    sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    project, dataset, table = cnv_table.split(".")
+    cnv_schema = retrieve_table_schema(dataset, table, project)
+    if "Major_Copy_Number" in cnv_schema:
+        sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
+        return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    if "Num_Probes" in cnv_schema:
+        sql = merge_bq_sql_masked(cnv_table, aliquot_table, case_table)
+        return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    else:
+        print("New CNV schema, check field names")
+        return False
 
 def merge_bq_sql(cnv_table, aliquot_table, case_table):
+    """
+    SQL Code For Final Table Generation
+
+    :param cnv_table: Raw Copy Number table name
+    :type cnv_table: basestring
+    :param aliquot_table: Metadata Aliquot table name
+    :type aliquot_table: basestring
+    :param case_table: Metadata Case table name
+    :type case_table: basestring
+    :return: Sting with query to join the tables together
+    :rtype: basestring
+    """
+    # todo may need to join on sample_id also
+
+    return f'''
+            WITH
+            a1 AS (SELECT DISTINCT GDC_Aliquot
+                   FROM `{cnv_table}`),
+            a2 AS (SELECT b.project_id AS project_short_name,
+                          b.case_barcode,
+                          b.sample_barcode,
+                          b.aliquot_barcode,
+                          b.case_gdc_id,
+                          b.sample_gdc_id,
+                          b.aliquot_gdc_id
+                   FROM a1
+                   JOIN `{aliquot_table}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id),
+            a3 AS (SELECT a2.project_short_name,
+                          a2.case_barcode,
+                          a2.sample_barcode,
+                          a2.aliquot_barcode,
+                          a2.case_gdc_id,
+                          a2.sample_gdc_id,
+                          a2.aliquot_gdc_id,
+                          b.primary_site
+                    FROM a2
+                    JOIN `{case_table}` b ON a2.case_gdc_id = b.case_gdc_id)
+        SELECT
+            project_short_name,
+            case_barcode,
+            primary_site,
+            sample_barcode,
+            aliquot_barcode,
+            chromosome,
+            start AS start_pos,
+            `end` AS end_pos,
+            copy_number,
+            major_copy_number,
+            minor_copy_number,
+            case_gdc_id,
+            sample_gdc_id,
+            aliquot_gdc_id,
+            source_file_id AS file_gdc_id
+        FROM a3
+        JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
+    '''
+
+def merge_bq_sql_masked(cnv_table, aliquot_table, case_table):
     """
     SQL Code For Final Table Generation
     Original author: Sheila Reynolds
