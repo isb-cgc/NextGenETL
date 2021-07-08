@@ -112,15 +112,16 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     """
     project, dataset, table = cnv_table.split(".")
     cnv_schema = retrieve_table_schema(dataset, table, project)
-    if "Major_Copy_Number" in cnv_schema:
-        sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
-        return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-    if "Num_Probes" in cnv_schema:
-        sql = merge_bq_sql_masked(cnv_table, aliquot_table, case_table)
-        return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-    else:
-        print("New CNV schema, check field names")
-        return False
+    print(cnv_schema)
+    # if "Major_Copy_Number" in cnv_schema:
+    #     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
+    #     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    # if "Num_Probes" in cnv_schema:
+    #     sql = merge_bq_sql_masked(cnv_table, aliquot_table, case_table)
+    #     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    # else:
+    #     print("New CNV schema, check field names")
+    #     return False
 
 def merge_bq_sql(cnv_table, aliquot_table, case_table):
     """
