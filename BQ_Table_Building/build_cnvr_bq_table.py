@@ -90,8 +90,7 @@ def concat_all_files(all_files, one_big_tsv):
                         outfile.write('\n')
                     first = False
 
-def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table,
-                            do_batch, hold_schema_list):
+def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch, hold_schema_list):
     """
     Merge Skeleton With Aliquot Data
     Creates the final BQ table by joining the skeleton with the aliquot ID info
