@@ -116,10 +116,10 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     with open(hold_schema_dict, mode='r') as schema_hold_dict:
         cnv_schema = json_loads(schema_hold_dict.read())
 
-    if "Major_Copy_Number" in cnv_schema:
+    if "major_copy_number" in cnv_schema:
         sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
         return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-    if "Num_Probes" in cnv_schema:
+    if "num_probes" in cnv_schema:
         sql = merge_bq_sql_masked(cnv_table, aliquot_table, case_table)
         return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
     else:
