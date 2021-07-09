@@ -242,7 +242,7 @@ def merge_bq_sql_masked(cnv_table, aliquot_table, case_table):
         JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
         '''
 
-def find_types(file, sample_interval): # may need to add skip_rows later
+def find_types(file, sample_interval):
     """
     Finds the field type for each column in the file
     :param file: file name
@@ -264,6 +264,87 @@ def find_types(file, sample_interval): # may need to add skip_rows later
         typing_tups.append(tup)
 
     return typing_tups
+
+def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch, schema):
+    with open(schema, mode='r') as schema:
+        cnv_schema = json_loads(schema.read())
+
+    if "major_copy_number" in cnv_schema:
+        sql = merge_samples_by_aliquot_sql(input_table)
+        return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
+    if "num_probes" in cnv_schema:
+        sql = merge_samples_by_aliquot_sql_masked(input_table)
+        return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
+
+def merge_samples_by_aliquot_sql(input_table):
+    return f"""
+        SELECT
+            project_short_name,
+            case_barcode,
+            primary_site,
+            string_agg(sample_barcode, ';') as sample_barcode,
+            aliquot_barcode,
+            chromosome,
+            start_pos,
+            end_pos,
+            copy_number,
+            major_copy_number,
+            minor_copy_number,
+            case_gdc_id,
+            string_agg(sample_gdc_id, ';') as sample_gdc_id,
+            aliquot_gdc_id,
+            file_gdc_id
+        FROM
+            `{input_table}`
+        GROUP BY
+            project_short_name,
+            case_barcode,
+            primary_site,
+            aliquot_barcode,
+            chromosome,
+            start_pos,
+            end_pos,
+            copy_number,
+            major_copy_number,
+            minor_copy_number,
+            case_gdc_id,
+            aliquot_gdc_id,
+            file_gdc_id
+    """
+
+def merge_samples_by_aliquot_sql_masked(input_table):
+    return f"""
+        SELECT
+            project_short_name,
+            case_barcode,
+            primary_site,
+            string_agg(sample_barcode, ';') as sample_barcode,
+            aliquot_barcode,
+            chromosome,
+            start_pos,
+            end_pos,
+            num_probes,
+            segment_mean,
+            case_gdc_id,
+            string_agg(sample_gdc_id, ';') as sample_gdc_id,
+            aliquot_gdc_id,
+            file_gdc_id
+        FROM
+            `{input_table}`
+        GROUP BY
+            project_short_name,
+            case_barcode,
+            primary_site,
+            aliquot_barcode,
+            chromosome,
+            start_pos,
+            end_pos,
+            num_probes,
+            segment_mean,
+            case_gdc_id,
+            aliquot_gdc_id,
+            file_gdc_id
+    """
 
 def main(args):
     """
@@ -457,7 +538,6 @@ def main(args):
 
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
-            #typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
             full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
             schema_dict_loc = f"{full_file_prefix}_schema.json"
@@ -476,17 +556,25 @@ def main(args):
         bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], f"{draft_table}_{release}_draft", params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], f"{draft_table}_initial",
+                  params['BQ_AS_BATCH'])
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
-        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_{release}_draft'
+        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_initial'
         success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
                                           f"{params['CASE_TABLE']}_{metadata_rel}",
-                                          params['SCRATCH_DATASET'], f"{draft_table}_{release}",
+                                          params['SCRATCH_DATASET'], f"{draft_table}_w_metadata",
                                           params['BQ_AS_BATCH'], hold_schema_dict)
         if not success:
             print("Join job failed")
+
+    # For CPTAC there are instances where multiple samples are merged into the same aliquot
+    # for these cases we join the rows by concatenating the samples with semicolons
+    if 'merge_same_aliq_samples' in steps:
+        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_w_metadata"
+        merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
+                                 params['BQ_AS_BATCH'], hold_schema_dict)
 
     # Create second table
     if 'create_current_table' in steps:
