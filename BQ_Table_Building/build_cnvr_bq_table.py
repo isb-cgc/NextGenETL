@@ -242,29 +242,6 @@ def merge_bq_sql_masked(cnv_table, aliquot_table, case_table):
         JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
         '''
 
-def find_types(file, sample_interval):
-    """
-    Finds the field type for each column in the file
-    :param file: file name
-    :type file: basestring
-    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
-        example: sample_interval == 10 will sample every 10th row
-    :type sample_interval: int
-    :return: a tuple with a list of [field, field type]
-    :rtype: tuple ([field, field_type])
-    """
-    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
-    field_types = aggregate_column_data_types_tsv(file, column_list,
-                                                  sample_interval=sample_interval,
-                                                  skip_rows=1)
-    final_field_types = resolve_type_conflicts(field_types)
-    typing_tups = []
-    for column in column_list:
-        tup = (column, final_field_types[column])
-        typing_tups.append(tup)
-
-    return typing_tups
-
 def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch, schema):
     with open(schema, mode='r') as schema:
         cnv_schema = json_loads(schema.read())
@@ -345,6 +322,29 @@ def merge_samples_by_aliquot_sql_masked(input_table):
             aliquot_gdc_id,
             file_gdc_id
     """
+
+def find_types(file, sample_interval):
+    """
+    Finds the field type for each column in the file
+    :param file: file name
+    :type file: basestring
+    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
+        example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return: a tuple with a list of [field, field type]
+    :rtype: tuple ([field, field_type])
+    """
+    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
+    field_types = aggregate_column_data_types_tsv(file, column_list,
+                                                  sample_interval=sample_interval,
+                                                  skip_rows=1)
+    final_field_types = resolve_type_conflicts(field_types)
+    typing_tups = []
+    for column in column_list:
+        tup = (column, final_field_types[column])
+        typing_tups.append(tup)
+
+    return typing_tups
 
 def main(args):
     """
