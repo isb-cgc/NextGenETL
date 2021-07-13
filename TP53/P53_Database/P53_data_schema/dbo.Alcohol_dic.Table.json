@@ -1,0 +1,18 @@
+[
+    {
+        "name": "Alcohol_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Alcohol",
+        "type": "string"
+    },
+    {
+        "name": "Related_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Alcohol_search",
+        "type": "string"
+    }
+]

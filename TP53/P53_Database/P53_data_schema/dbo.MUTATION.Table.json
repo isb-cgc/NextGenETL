@@ -1,0 +1,94 @@
+[
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Location_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Description",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "c_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description_GRCh38",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_hg19",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_hg38",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_NM_000546",
+        "type": "string"
+    },
+    {
+        "name": "Type_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Mutant_codon",
+        "type": "string"
+    },
+    {
+        "name": "AAchangeID",
+        "type": "integer"
+    },
+    {
+        "name": "Effect_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Experimental_data",
+        "type": "string"
+    },
+    {
+        "name": "EffectGroup3",
+        "type": "integer"
+    },
+    {
+        "name": "Mut_rate",
+        "type": "float"
+    },
+    {
+        "name": "Polymorphism",
+        "type": "string"
+    },
+    {
+        "name": "COSMIClink",
+        "type": "integer"
+    },
+    {
+        "name": "CLINVARlink",
+        "type": "integer"
+    },
+    {
+        "name": "TCGA_ICGC_GENIE_count",
+        "type": "integer"
+    },
+    {
+        "name": "cBioportalCount",
+        "type": "integer"
+    },
+    {
+        "name": "CompleteDescription",
+        "type": "boolean"
+    }
+]

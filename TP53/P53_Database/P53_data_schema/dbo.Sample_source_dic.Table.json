@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Sample_source_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_source",
+        "type": "string"
+    },
+    {
+        "name": "Sample_source_group",
+        "type": "string"
+    }
+]

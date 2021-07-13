@@ -1,0 +1,46 @@
+[
+    {
+        "name": "Family_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Class_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Germline_mutation",
+        "type": "string"
+    },
+    {
+        "name": "Family_code",
+        "type": "string"
+    },
+    {
+        "name": "Generations_analyzed",
+        "type": "integer"
+    },
+    {
+        "name": "Total_tumor_number",
+        "type": "integer"
+    },
+    {
+        "name": "Other_infos",
+        "type": "string"
+    },
+    {
+        "name": "MPT",
+        "type": "string"
+    },
+    {
+        "name": "AllClass",
+        "type": "string"
+    }
+]

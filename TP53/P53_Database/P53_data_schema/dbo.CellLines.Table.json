@@ -1,0 +1,34 @@
+[
+    {
+        "name": "CellLine_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_ID",
+        "type": "integer"
+    },
+    {
+        "name": "TP53status",
+        "type": "string"
+    },
+    {
+        "name": "ATCC_ID",
+        "type": "string"
+    },
+    {
+        "name": "Cosmic_ID",
+        "type": "integer"
+    },
+    {
+        "name": "depmap_ID",
+        "type": "string"
+    },
+    {
+        "name": "Protein_status",
+        "type": "string"
+    },
+    {
+        "name": "Add_info",
+        "type": "string"
+    }
+]
