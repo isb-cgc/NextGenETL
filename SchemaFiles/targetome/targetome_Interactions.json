@@ -1,0 +1,19 @@
+[
+    {"name": "interactionID", "type": "integer", "mode": "nullable", "description": "ID for Targetome drug to target interaction"},
+    {"name": "drugID", "type": "integer", "mode": "nullable", "description": "ID of drug involved in interaction"},
+    {"name": "targetID", "type": "integer", "mode": "nullable", "description": "ID of target (e.g., protein, DNA, RNA) involved in interaction"},
+    {"name": "interactionType", "type": "string", "mode": "nullable", "description": "Type of Targetome interaction, e.g., Antagonist, Inhibition, etc."},
+    {"name": "drugName", "type": "string", "mode": "nullable", "description": "Name of the Targetome drug"},
+    {"name": "drug_approvalDate", "type": "string", "mode": "nullable", "description": "Date drug was approved for use"},
+    {"name": "drug_atcClassID", "type": "string", "mode": "nullable", "description": "Anatomical Therapeutic Chemical (ATC) drug classification ID"},
+    {"name": "drug_atcClassName", "type": "string", "mode": "nullable", "description": "Anatomical Therapeutic Chemical (ATC) drug classification name"},
+    {"name": "drug_atcClassStatus", "type": "string", "mode": "nullable", "description": "Anatomical Therapeutic Chemical (ATC) approval status"},
+    {"name": "drug_epcClassID", "type": "string", "mode": "nullable", "description": "FDA Established Pharmacologic Class (EPC) drug classification ID"},
+    {"name": "drug_epcClassName", "type": "string", "mode": "nullable", "description": "FDA Established Pharmacologic Class (EPC) drug classification name"},
+    {"name": "targetName", "type": "string", "mode": "nullable", "description": "Name of Targetome target"},
+    {"name": "targetType", "type": "string", "mode": "nullable", "description": "Type of Targetome target (e.g., protein, DNA, or RNA)"},
+    {"name": "target_uniprotID", "type": "string", "mode": "nullable", "description": "Uniprot ID of Targetome target"},
+    {"name": "targetSpecies", "type": "string", "mode": "nullable", "description": "Species of Targetome target"},
+    {"name": "sourceID", "type": "string", "mode": "nullable", "description": "ID for source supporting Targetome interaction"},
+    {"name": "expID", "type": "string", "mode": "nullable", "description": "ID for experimental evidence supporting Targetome interaction"}
+]

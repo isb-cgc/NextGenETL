@@ -1,0 +1,8 @@
+[
+    {"name": "sourceID", "type": "integer", "mode": "nullable", "description": "ID for source supporting Targetome interaction"},
+    {"name": "PubMedID", "type": "string", "mode": "nullable", "description": "PubMedID identifying literature"},
+    {"name": "databaseName", "type": "string", "mode": "nullable", "description": "Name of database from which supporting evidence and literature are obtained"},
+    {"name": "db_version", "type": "string", "mode": "nullable", "description": "Database version"},
+    {"name": "db_downloadURL", "type": "string", "mode": "nullable", "description": "URL from which database was downloaded"},
+    {"name": "db_downloadDate", "type": "string", "mode": "nullable", "description": "Date on which database was downloaded"}
+]

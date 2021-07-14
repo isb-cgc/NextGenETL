@@ -1,0 +1,4 @@
+[
+    {"name": "drugID", "type": "integer", "mode": "nullable", "description": "Unique ID of the Targetome drug"},
+    {"name": "synonym", "type": "string", "mode": "nullable", "description": "Synonym or alias for the Targetome drug"}
+]
