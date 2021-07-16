@@ -822,14 +822,14 @@ def get_filepath(dir_path, filename=None):
     return '/'.join(join_list)
 
 
-def get_scratch_fp(bq_params, filename):
+def get_scratch_fp(params, filename):
     """
     Construct filepath for VM output file.
     :param filename: name of the file
-    :param bq_params: bq param object from yaml config
+    :param params: bq param object from yaml config
     :return: output filepath for VM
     """
-    return get_filepath(bq_params['SCRATCH_DIR'], filename)
+    return get_filepath(params['SCRATCH_DIR'], filename)
 
 
 def json_datetime_to_str_converter(obj):
