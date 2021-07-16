@@ -140,8 +140,10 @@ def fix_position_data_type(tsv_file):
         else:
             contents[row_count] = contents[row_count].strip("\n")
 
-        with open(tsv_file, "w") as tsv_out:
-            tsv_out.write("\n".join(contents))
+    with open(tsv_file, "w") as tsv_out:
+        for row in contents:
+            tsv_out.write(row)
+            tsv_out.write("\n")
 
 def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch,
                             hold_schema_dict):
