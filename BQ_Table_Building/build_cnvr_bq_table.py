@@ -33,7 +33,7 @@ from common_etl.utils import get_column_list_tsv, aggregate_column_data_types_ts
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, BucketPuller, build_combined_schema, retrieve_table_schema, \
+                               build_pull_list_with_bq, BucketPuller, build_combined_schema, check_value_type, \
                                customize_labels_and_desc, delete_table_bq_job, install_labels_and_desc, \
                                update_schema_with_dict, generate_table_detail_files, compare_two_tables, \
                                publish_table, update_status_tag
@@ -89,6 +89,58 @@ def concat_all_files(all_files, one_big_tsv):
                         outfile.write('source_file_id' if first else gdc_id)
                         outfile.write('\n')
                     first = False
+
+def check_position_data_type(tsv_file):
+    """
+    Due to the GDC workflow pipeline, some of the chromosome position numbers are converted to
+    scientific notation when the file is written out of R. This function checks for these inconsistencies
+
+    :param tsv_file: TSV Data file to check the start and end position for scientific notation
+    :type tsv_file: basestring
+    """
+    with open(tsv_file, "r") as tsv:
+        contents = tsv.readlines()
+    for row_count, line in enumerate(contents):
+      if row_count != 0:
+        line_split = line.split()
+        if check_value_type(line_split[2]) != 'INT64':
+            print('Value in Start Pos column is incorrect. Run replace scientific notation step.\n')
+            print(f"The value is {line_split[2]} in row {row_count}\n")
+        elif check_value_type(line_split[3]) != 'INT64':
+            print('Value in End Pos column is incorrect. Run replace scientific notation step.\n')
+            print(f"The value is {line_split[3]} in row {row_count}\n")
+
+def fix_position_data_type(tsv_file):
+    """
+    Converts scientific notation to an integer for each row of a file if the scientific notation is found in either
+    position column.
+
+    :param tsv_file: TSV Data file to check the start and end position for scientific notation
+    :type tsv_file: basestring
+    """
+    with open(tsv_file, 'r') as tsv_in:
+        contents = tsv_in.readlines()
+    for row_count, line in enumerate(contents):
+        if row_count != 0:
+            line_split = line.split()
+            if check_value_type(line_split[2]) != 'INT64':
+                print(f"Old value for Start Position at {row_count} was {line_split[2]}\n")
+                line_split[2] = int(float(line_split[2]))
+                print(f"\tnew value is {line_split[2]}\n")
+            elif check_value_type(line_split[3]) != 'INT64':
+                print(f"Old value for Start Position at {row_count} was {line_split[3]}\n")
+                line_split[3] = int(float(line_split[3]))
+                print(f"\tnew value is {line_split[3]}\n")
+            else:
+                line_split[2] = line_split[2]
+                line_split[3] = line_split[3]
+
+            contents[row_count] = '\t'.join(str(item) for item in line_split)
+        else:
+            contents[row_count] = contents[row_count].strip("\n")
+
+        with open(tsv_file, "w") as tsv_out:
+            tsv_out.write("\n".join(contents))
 
 def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch,
                             hold_schema_dict):
@@ -198,7 +250,6 @@ def merge_bq_sql_masked(cnv_table, aliquot_table, case_table):
     :return: Sting with query to join the tables together
     :rtype: basestring
     """
-    # todo may need to join on sample_id also
 
     return f'''
         WITH
@@ -466,6 +517,18 @@ def main(args):
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
         concat_all_files(all_files, one_big_tsv)
+
+    if 'check_position_data_type' in steps:
+        # Due to the GDC workflow pipeline, some of the chromosome position numbers are converted to
+        # scientific notation when the file is written out of R. This steps checks for these inconsistencies
+        print('checking the data type of the chromosome position columns')
+        check_position_data_type(one_big_tsv)
+
+    if 'fix_position_data' in steps:
+        # This function fixes any scientific notation that was found by the check_position_data_type step. This step
+        # can be skipped if no scientific notation was found.
+        print('Fixing rows with scientific notation in them')
+        fix_position_data_type(one_big_tsv)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
