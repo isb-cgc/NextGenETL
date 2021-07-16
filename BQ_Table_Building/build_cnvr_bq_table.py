@@ -29,11 +29,12 @@ from git import Repo
 from json import loads as json_loads
 #from createSchemaP3 import build_schema
 
-from common_etl.utils import get_column_list_tsv, aggregate_column_data_types_tsv, resolve_type_conflicts
+from common_etl.utils import check_value_type, get_column_list_tsv, \
+                             aggregate_column_data_types_tsv, resolve_type_conflicts
 
 from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, BucketPuller, build_combined_schema, check_value_type, \
+                               build_pull_list_with_bq, BucketPuller, build_combined_schema, \
                                customize_labels_and_desc, delete_table_bq_job, install_labels_and_desc, \
                                update_schema_with_dict, generate_table_detail_files, compare_two_tables, \
                                publish_table, update_status_tag
