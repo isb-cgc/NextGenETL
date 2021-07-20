@@ -372,37 +372,37 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    if 'process_git_schemas' in steps:
-        print('process_git_schemas')
-        for f in all_files:
-            # get base name without extension of tsv to infer the json file
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            # Where do we dump the schema git repository?
-            schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
-            )
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
+#    if 'process_git_schemas' in steps:
+#        print('process_git_schemas')
+#        for f in all_files:
+#            # get base name without extension of tsv to infer the json file
+#            base_name = os.path.splitext(os.path.basename(f))[0]
+#            # Where do we dump the schema git repository?
+#            schema_file = "{}/{}/{}.json".format(
+#                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+#            )
+#            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
             # Write out the details
-            success = generate_table_detail_files(schema_file, full_file_prefix)
-            if not success:
-                print("process_git_schemas failed")
-                return
+#            success = generate_table_detail_files(schema_file, full_file_prefix)
+#            if not success:
+#                print("process_git_schemas failed")
+#                return
 
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        for f in all_files:
+#    if 'analyze_the_schema' in steps:
+#        print('analyze_the_schema')
+#        for f in all_files:
         #for k in group_dict:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
-            )
-            typing_tups = build_schema(f, params['SCHEMA_SAMPLE_SKIPS'])
+#            base_name = os.path.splitext(os.path.basename(f))[0]
+#            schema_file = "{}/{}/{}.json".format(
+#                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+#            )
+#            typing_tups = build_schema(f, params['SCHEMA_SAMPLE_SKIPS'])
             #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
             #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-            hold_schema_dict_for_group = hold_schema_dict.format(base_name)
-            hold_schema_list_for_group = hold_schema_list.format(base_name)
-            build_combined_schema(None, schema_file,
-                                  typing_tups, hold_schema_list_for_group, hold_schema_dict_for_group)
+#            hold_schema_dict_for_group = hold_schema_dict.format(base_name)
+#            hold_schema_list_for_group = hold_schema_list.format(base_name)
+#            build_combined_schema(None, schema_file,
+#                                  typing_tups, hold_schema_list_for_group, hold_schema_dict_for_group)
 
 #    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 #
@@ -411,14 +411,23 @@ def main(args):
 #        for k in group_dict:
 #            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob.format(k), one_big_tsv.format(k))
 #
-#    if 'create_bq_from_tsv' in steps:
-#        print('create_bq_from_tsv')
+    if 'create_bq_from_tsv' in steps:
+        print('create_bq_from_tsv')
+        for f in pull_list:
+            base_name = os.path.splitext(os.path.basename(f))[0]
 #        for k in group_dict:
 #            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob.format(k))
 #            with open(hold_schema_list.format(k), mode='r') as schema_hold_dict:
 #                typed_schema = json_loads(schema_hold_dict.read())
-#            csv_to_bq(typed_schema, bucket_src_url, params['TARGET_DATASET'],
-#                      params['FINAL_TARGET_TABLE'].format(k.replace(".", "_").replace("-", "_")), params['BQ_AS_BATCH'])
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+            )
+            with open(schema_file, mode='r') as schema_fh:
+                schema = json_loads(schema_fh.read())
+            print('schema: ', schema_file)
+            print('table: ', base_name)
+            csv_to_bq(schema['schema']['fields'], f, params['TARGET_DATASET'],
+                      base_name, params['BQ_AS_BATCH'])
 #
 #    if 'add_aliquot_fields' in steps:
 #        print('add_aliquot_fields')
