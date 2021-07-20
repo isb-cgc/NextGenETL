@@ -127,17 +127,12 @@ def build_program_list(all_files):
     
     return sorted(programs)
 
-'''
-----------------------------------------------------------------------------------------------
-First BQ Processing: Add Aliquot IDs
+'''First BQ Processing: Add Aliquot IDs
 The GDC file UUID for the isoform file was pulled from the bucket path.
 We need aliquots, samples, and associated barcodes. We get this by first attaching
-the aliquot IDs using the file table that provides aliquot UUIDs for files.
-
-'''
+the aliquot IDs using the file table that provides aliquot UUIDs for files.'''
 
 def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
-
     sql = attach_aliquot_ids_sql(maf_table, file_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
@@ -188,6 +183,7 @@ def attach_barcodes_sql(temp_table, aliquot_table, case_table):
             c.case_barcode,
             c.sample_barcode,
             c.aliquot_barcode,
+            c.sample_type_name,
             c.case_gdc_id,
             c.sample_gdc_id,
             a.aliquot_gdc_id,
@@ -199,12 +195,13 @@ def attach_barcodes_sql(temp_table, aliquot_table, case_table):
         a1.case_barcode,
         a1.sample_barcode,
         a1.aliquot_barcode,
-        c.primary_site,
+        b.primary_site,
+        a1.sample_type_name,
         a1.case_gdc_id,
         a1.sample_gdc_id,
         a1.aliquot_gdc_id,
         a1.fileUUID
-    FROM a1 JOIN `{2}` as c ON a1.case_barcode = c.case_barcode and a1.project_short_name = c.project_id
+    FROM a1 JOIN `{2}` as b ON a1.case_barcode = b.case_barcode and a1.project_short_name = b.project_id
     '''.format(temp_table, aliquot_table, case_table)
 
 '''
@@ -238,6 +235,7 @@ def final_join_sql(isoform_table, barcodes_table):
                b.cross_mapped,
                b.miRNA_transcript,
                b.miRNA_accession,
+               a.sample_type_name,
                a.case_gdc_id,
                a.sample_gdc_id,
                a.aliquot_gdc_id,
@@ -245,13 +243,55 @@ def final_join_sql(isoform_table, barcodes_table):
         FROM `{0}` as a JOIN `{1}` as b ON a.fileUUID = b.fileUUID
         '''.format(barcodes_table, isoform_table)
 
-'''
-----------------------------------------------------------------------------------------------
-file_info() function
-File name includes important information, extract that out. Important! The order and
-semantics of this list matches that of the extraFields parameter!
+def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
+    sql = merge_samples_by_aliquot_sql(input_table)
+    print(sql)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
-'''
+def merge_samples_by_aliquot_sql(input_table):
+    return '''
+    SELECT 
+        project_short_name,
+        case_barcode,
+        string_agg(sample_barcode, ';') as sample_barcode,
+        aliquot_barcode,
+        primary_site,
+        miRNA_id,
+        chromosome,
+        start_pos,
+        end_pos,
+        strand,
+        read_count,
+        reads_per_million_miRNA_mapped,
+        cross_mapped,
+        sample_type_name,
+        case_gdc_id,
+        string_agg(sample_gdc_id, ';') as sample_gdc_id,
+        aliquot_gdc_id,
+        file_gdc_id
+    FROM `{0}`
+    GROUP BY
+        project_short_name,
+        case_barcode,
+        aliquot_barcode,
+        primary_site,
+        miRNA_id,
+        chromosome,
+        start_pos,
+        end_pos,
+        strand,
+        read_count,
+        reads_per_million_miRNA_mapped,
+        cross_mapped,
+        sample_type_name,
+        case_gdc_id,
+        aliquot_gdc_id,
+        file_gdc_id'''.format(input_table)
+
+
+'''file_info() function
+File name includes important information, extract that out. Important! The order and
+semantics of this list matches that of the extraFields parameter!'''
 def file_info(aFile, program_prefix):
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
@@ -259,9 +299,7 @@ def file_info(aFile, program_prefix):
     fileUUID = path_pieces[-2]
     return [ fileUUID ]
 
-'''
-----------------------------------------------------------------------------------------------
-Main Control Flow
+'''Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
 to e.g. skip previously run steps.
 '''
@@ -415,11 +453,16 @@ def main(args):
                                            params['SCRATCH_DATASET'], 
                                            params['BARCODE_STEP_2_TABLE'])        
         success = final_merge(skel_table, barcodes_table, params['SCRATCH_DATASET'], 
-                              draft_table, params['BQ_AS_BATCH'])
+                              draft_table+'_merge', params['BQ_AS_BATCH'])
         if not success:
             print("Join job failed")
             return
     
+    if 'merge_same_aliq_samples' in steps:
+        print('merging multi-sample aliquots')
+        source_table = '{}.{}.{}_merge'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table )
+        merge_samples_by_aliquot( source_table, draft_table, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'] )
+
     # The derived table we generate has no field descriptions. Add them by pulling from the current table and updating with any new schema fields
     if 'update_final_schema' in steps:
         schema = retrieve_table_schema(params['PROGRAM'], final_table+'_current', params['PUBLICATION_PROJECT'])
