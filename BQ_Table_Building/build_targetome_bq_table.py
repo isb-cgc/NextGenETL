@@ -77,43 +77,20 @@ def convert_excel_to_csv(all_files, local_files_dir):
 
 '''
 ----------------------------------------------------------------------------------------------
-# ### Concatentate all Files
-# Gather up all files and glue them into one big one. We also add columns for the
-`source_file_name` and `source_file_id` (which is the name of the directory it is in).
-WARNING! Currently hardwired to CNV file heading!
+# ### Fix null values
 '''
 
-def concat_all_files(all_files, one_big_tsv, na_values):
-    print("building {}".format(one_big_tsv))
-
-    all_fields, per_file = build_a_header(all_files)
-    saf = sorted(all_fields)
-
-    with open(one_big_tsv, 'w') as outfile:
-        outfile.write('\t'.join(saf))
-        outfile.write('\n')
-        for filename in all_files:
-            key_dict = {}
-            skipping = True
-            with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
-                cols_for_file = per_file[filename]
-                for line in readfile:
-                    split_line = line.rstrip('\n').split("\t")
-                    if split_line[0].startswith("CDE_ID"):
-                        skipping = False
-                        continue
-                    if not skipping:
-                        for i in range(len(split_line)):
-                            key_dict[cols_for_file[i]] = "" if split_line[i] in na_values else split_line[i]
-
-                    write_line = []
-                    for col in saf:
-                        if col in key_dict:
-                            write_line.append(key_dict[col])
-                        else:
-                            write_line.append("")
-                    outfile.write('\t'.join(write_line))
-                    outfile.write('\n')
+def fix_null_values(orig_file, fixed_file, na_values):
+    print("processing {}".format(fixed_file))
+    with open(fixed_file, 'w') as outfile:
+        with open(orig_file, 'r') as readfile:
+            for line in readfile:
+                split_line = line.rstrip('\n').split("\t")
+                write_line = []
+                for i in range(len(split_line)):
+                    write_line.append("" if split_line[i] in na_values else split_line[i])
+                outfile.write('\t'.join(write_line))
+                outfile.write('\n')
     return
 
 '''
@@ -243,7 +220,7 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    one_big_tsv = "{}/{}".format(home, params['ONE_BIG_TSV'])
+    fixed_tsv = "{}/{}".format(home, params['FIXED_TSV'])
     manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
@@ -251,7 +228,7 @@ def main(args):
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     print('local_files_dir: ', local_files_dir)
-    print('one_big_tsv: ', one_big_tsv)
+    print('fixed_tsv: ', fixed_tsv)
     print('manifest_file: ', manifest_file)
     print('local_pull_list: ', local_pull_list)
     print('file_traversal_list: ', file_traversal_list)
@@ -259,64 +236,18 @@ def main(args):
     print('hold_schema_list: ', hold_schema_list)
 
 
-    #
-    # Actual fields have brackets:
-    #
-
-    na_set = set()
-#    for val in na_values:
-#        na_set.add("[{}]".format(val))
+    na_set = set(na_values)
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
     #
-    # Use the filter set to build a manifest. Note that if a pull list is
-    # provided, these steps can be omitted:
+    # Download original TSV files in the local_pull_list from bucket:
     #
 
-#    if 'build_manifest_from_filters' in steps:
-#        print('build_manifest_from_filters')
-#        max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-#
-#        manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
-#                                               params['WORKING_PROJECT'], params['TARGET_DATASET'],
-#                                               params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
-#                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
-#                                               params['BQ_AS_BATCH'])
-#        if not manifest_success:
-#            print("Failure generating manifest")
-#            return
-#
-    #
-    # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
-    # created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step. If creating a pull
-    # list, uses BQ as long as you have built the manifest using BQ (that route uses the BQ Manifest
-    # table that was created).
-    #
-
-#    if 'build_pull_list' in steps:
-#        print('build_pull_list')
-#        full_manifest = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-#                                          params['TARGET_DATASET'],
-#                                          params['BQ_MANIFEST_TABLE'])
-#        success = build_pull_list_with_bq_public(full_manifest, params['INDEXD_BQ_TABLE'],
-#                                          params['WORKING_PROJECT'], params['TARGET_DATASET'],
-#                                          params['BQ_PULL_LIST_TABLE'],
-#                                          params['WORKING_BUCKET'],
-#                                          params['BUCKET_PULL_LIST'],
-#                                          local_pull_list, params['BQ_AS_BATCH'])
-#
-#        if not success:
-#            print("Build pull list failed")
-#            return;
-#    #
-    # Now hitting GDC cloud buckets. Get the files in the pull list:
-    #
-
-    if 'download_from_gdc' in steps:
-        print('download_from_gdc')
+    if 'download_raw_data' in steps:
+        print('download_raw_data')
         print('dirname: ', os.path.dirname(local_pull_list))
         pull_from_buckets(
             [
@@ -339,25 +270,12 @@ def main(args):
             for line in all_files:
                 traversal_list.write("{}\n".format(line))
 
-#    if 'group_by_type' in steps:
-#        print('group_by_type')
-#        print(file_traversal_list)
-#        with open(file_traversal_list, mode='r') as traversal_list_file:
-#            all_files = traversal_list_file.read().splitlines()
-#        group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
-#        pprint.pprint(group_dict)
+    if 'fix_null_values' in steps:
+        print('fix_null_values')
+        for f in all_files:
+            base_name = os.path.splitext(os.path.basename(f))[0]
+            fix_null_values(f, fixed_tsv.format(base_name), na_set)
 
-#    if 'convert_excel_to_csv' in steps:
-#        print('convert_excel_to_csv')
-#        with open(file_traversal_list, mode='r') as traversal_list_file:
-#            all_files = traversal_list_file.read().splitlines()
-#        convert_excel_to_csv(all_files, local_files_dir)
-#
-#    if 'concat_all_files' in steps:
-#        print('concat_all_files')
-#        for k, v in group_dict.items():
-#            concat_all_files(v, one_big_tsv.format(k), na_set)
-#
     #
     # Schemas and table descriptions are maintained in the github repo:
     #
@@ -372,61 +290,64 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-#    if 'process_git_schemas' in steps:
-#        print('process_git_schemas')
-#        for f in all_files:
-#            # get base name without extension of tsv to infer the json file
-#            base_name = os.path.splitext(os.path.basename(f))[0]
-#            # Where do we dump the schema git repository?
-#            schema_file = "{}/{}/{}.json".format(
-#                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
-#            )
-#            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
+    if 'process_git_schemas' in steps:
+        print('process_git_schemas')
+        for f in all_files:
+            # get base name without extension of tsv to infer the json file
+            base_name = os.path.splitext(os.path.basename(f))[0]
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+            )
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
             # Write out the details
-#            success = generate_table_detail_files(schema_file, full_file_prefix)
-#            if not success:
-#                print("process_git_schemas failed")
-#                return
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
 
-#    if 'analyze_the_schema' in steps:
-#        print('analyze_the_schema')
-#        for f in all_files:
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        for f in all_files:
         #for k in group_dict:
-#            base_name = os.path.splitext(os.path.basename(f))[0]
-#            schema_file = "{}/{}/{}.json".format(
-#                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
-#            )
-#            typing_tups = build_schema(f, params['SCHEMA_SAMPLE_SKIPS'])
+            base_name = os.path.splitext(os.path.basename(f))[0]
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+            )
+            typing_tups = build_schema(fixed_tsv.format(base_name), params['SCHEMA_SAMPLE_SKIPS'])
+            pprint.pprint(typing_tups)
             #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
             #schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-#            hold_schema_dict_for_group = hold_schema_dict.format(base_name)
-#            hold_schema_list_for_group = hold_schema_list.format(base_name)
-#            build_combined_schema(None, schema_file,
-#                                  typing_tups, hold_schema_list_for_group, hold_schema_dict_for_group)
+            hold_schema_dict_for_file = hold_schema_dict.format(base_name)
+            hold_schema_list_for_file = hold_schema_list.format(base_name)
+            build_combined_schema(None, None,
+                                  typing_tups, hold_schema_list_for_file, hold_schema_dict_for_file)
 
-#    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
-#
-#    if 'upload_to_bucket' in steps:
-#        print('upload_to_bucket')
-#        for k in group_dict:
-#            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob.format(k), one_big_tsv.format(k))
+    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+
+    if 'upload_to_bucket' in steps:
+        print('upload_to_bucket')
+        for f in all_files:
+            base_name = os.path.splitext(os.path.basename(f))[0]
+            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob.format(base_name), fixed_tsv.format(base_name))
 #
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        for f in pull_list:
+        for f in all_files:
             base_name = os.path.splitext(os.path.basename(f))[0]
 #        for k in group_dict:
-#            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob.format(k))
+            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob.format(base_name))
 #            with open(hold_schema_list.format(k), mode='r') as schema_hold_dict:
 #                typed_schema = json_loads(schema_hold_dict.read())
             schema_file = "{}/{}/{}.json".format(
                 params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
             )
-            with open(schema_file, mode='r') as schema_fh:
+            hold_schema_list_for_file = hold_schema_list.format(base_name)
+            with open(hold_schema_list_for_file, mode='r') as schema_fh:
                 schema = json_loads(schema_fh.read())
-            print('schema: ', schema_file)
+            print('schema: ', hold_schema_list_for_file)
             print('table: ', base_name)
-            csv_to_bq(schema['schema']['fields'], f, params['TARGET_DATASET'],
+            csv_to_bq(schema, bucket_src_url, params['TARGET_DATASET'],
                       base_name, params['BQ_AS_BATCH'])
 #
 #    if 'add_aliquot_fields' in steps:
