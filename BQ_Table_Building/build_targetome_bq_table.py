@@ -27,16 +27,14 @@ import re
 from os.path import expanduser
 import yaml
 import io
-import pandas as pd
 from git import Repo
 from json import loads as json_loads
 from createSchemaP3 import build_schema
-import pprint
 
-from common_etl.support import get_the_bq_manifest, confirm_google_vm, create_clean_target, \
-                               generic_bq_harness, build_file_list, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq_public, BucketPuller, build_combined_schema, \
-                               delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
+from common_etl.support import confirm_google_vm, create_clean_target, \
+                               build_file_list, upload_to_bucket, csv_to_bq, \
+                               BucketPuller, build_combined_schema, \
+                               install_labels_and_desc, update_schema_with_dict, \
                                generate_table_detail_files, publish_table, pull_from_buckets
 
 
@@ -53,9 +51,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None
+        return None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['bq_filters'], yaml_dict['no_data_values'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['no_data_values'], yaml_dict['steps']
 
 
 '''
@@ -100,7 +98,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, bq_filters, na_values, steps = load_config(yaml_file.read())
+        params, na_values, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
@@ -109,22 +107,15 @@ def main(args):
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
     fixed_tsv = "{}/{}".format(home, params['FIXED_TSV'])
-    manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
     local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
-    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     print('local_files_dir: ', local_files_dir)
     print('fixed_tsv: ', fixed_tsv)
-    print('manifest_file: ', manifest_file)
     print('local_pull_list: ', local_pull_list)
-    print('file_traversal_list: ', file_traversal_list)
     print('hold_schema_dict: ', hold_schema_dict)
     print('hold_schema_list: ', hold_schema_list)
-
-
-    na_set = set(na_values)
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -136,13 +127,10 @@ def main(args):
 
     if 'download_raw_data' in steps:
         print('download_raw_data')
-        print('dirname: ', os.path.dirname(local_pull_list))
         pull_from_buckets(
-            [
-                'gs://{}/{}/targetome_pull_list.tsv'.format(
-                    params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR']
-                )
-            ],
+            ['gs://{}/{}/targetome_pull_list.tsv'.format(
+                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR']
+            )],
             os.path.dirname(local_files_dir)
         )
         with open(local_pull_list, mode='r') as pull_list_file:
@@ -151,18 +139,18 @@ def main(args):
         bp = BucketPuller(10)
         bp.pull_from_buckets(pull_list, local_files_dir)
 
+    file_base_names = {}
     if 'build_file_list' in steps:
         print('build_file_list')
         all_files = build_file_list(local_files_dir)
-        with open(file_traversal_list, mode='w') as traversal_list:
-            for line in all_files:
-                traversal_list.write("{}\n".format(line))
+        # pre-calculate file base names
+        for f in all_files:
+            file_base_names[f] = os.path.splitext(os.path.basename(f))[0]
 
     if 'fix_null_values' in steps:
         print('fix_null_values')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            fix_null_values(f, fixed_tsv.format(base_name), na_set)
+            fix_null_values(f, fixed_tsv.format(file_base_names[f]), set(na_values))
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -181,13 +169,11 @@ def main(args):
     if 'process_git_schemas' in steps:
         print('process_git_schemas')
         for f in all_files:
-            # get base name without extension of tsv to infer the json file
-            base_name = os.path.splitext(os.path.basename(f))[0]
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
             )
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -197,36 +183,47 @@ def main(args):
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            typing_tups = build_schema(fixed_tsv.format(base_name), params['SCHEMA_SAMPLE_SKIPS'])
-            hold_schema_dict_for_file = hold_schema_dict.format(base_name)
-            hold_schema_list_for_file = hold_schema_list.format(base_name)
-            build_combined_schema(None, None,
-                                  typing_tups, hold_schema_list_for_file, hold_schema_dict_for_file)
+            typing_tups = build_schema(
+                fixed_tsv.format(file_base_names[f]), params['SCHEMA_SAMPLE_SKIPS']
+            )
+            hold_schema_dict_for_file = hold_schema_dict.format(file_base_names[f])
+            hold_schema_list_for_file = hold_schema_list.format(file_base_names[f])
+            build_combined_schema(
+                None, None, typing_tups, hold_schema_list_for_file, hold_schema_dict_for_file
+            )
 
     bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob.format(base_name), fixed_tsv.format(base_name))
+            upload_to_bucket(
+                params['WORKING_BUCKET'],
+                bucket_target_blob.format(file_base_names[f]),
+                fixed_tsv.format(file_base_names[f])
+            )
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob.format(base_name))
-            schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], base_name
+            bucket_src_url = 'gs://{}/{}'.format(
+                params['WORKING_BUCKET'], bucket_target_blob.format(file_base_names[f])
             )
-            hold_schema_list_for_file = hold_schema_list.format(base_name)
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
+            )
+            hold_schema_list_for_file = hold_schema_list.format(file_base_names[f])
             with open(hold_schema_list_for_file, mode='r') as schema_fh:
                 schema = json_loads(schema_fh.read())
             print('schema: ', hold_schema_list_for_file)
-            print('table: ', base_name)
-            csv_to_bq(schema, bucket_src_url, params['TARGET_DATASET'],
-                      base_name, params['BQ_AS_BATCH'])
+            print('table: ', file_base_names[f])
+            csv_to_bq(
+                schema,
+                bucket_src_url,
+                params['TARGET_DATASET'],
+                file_base_names[f],
+                params['BQ_AS_BATCH']
+            )
 
     #
     # Update the per-field descriptions:
@@ -235,8 +232,7 @@ def main(args):
     if 'update_field_descriptions' in steps:
         print('update_field_descriptions')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -244,7 +240,9 @@ def main(args):
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
 
-            success = update_schema_with_dict(params['TARGET_DATASET'], base_name, schema_dict)
+            success = update_schema_with_dict(
+                params['TARGET_DATASET'], file_base_names[f], schema_dict
+            )
             if not success:
                 print("update_field_descriptions failed")
                 return
@@ -256,9 +254,10 @@ def main(args):
     if 'update_table_description' in steps:
         print('update_table_description')
         for f in all_files:
-            base_name = os.path.splitext(os.path.basename(f))[0]
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], base_name)
-            success = install_labels_and_desc(params['TARGET_DATASET'], base_name, full_file_prefix)
+            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+            success = install_labels_and_desc(
+                params['TARGET_DATASET'], file_base_names[f], full_file_prefix
+            )
             if not success:
                 print("update_table_description failed")
                 return
@@ -267,28 +266,20 @@ def main(args):
     # publish table:
     #
 
-#    if 'publish' in steps:
-#
-#        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'],
-#                                         params['FINAL_TARGET_TABLE'])
-#        publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-#                                             params['PUBLICATION_TABLE'])
-#
-#        success = publish_table(source_table, publication_dest)
-#
-#        if not success:
-#            print("publish table failed")
-#            return
-#
-    #
-    # Clear out working temp tables:
-    #
+    if 'publish' in steps:
+        print('publish')
+        for f in all_files:
+            source_table = '{}.{}.{}'.format(
+                params['WORKING_PROJECT'], params['TARGET_DATASET'], file_base_names[f]
+            )
+            publication_dest = '{}.{}.{}'.format(
+                params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'], file_base_names[f]
+            )
+            success = publish_table(source_table, publication_dest)
 
-#    if 'dump_working_tables' in steps:
-#        dump_table_tags = ['TARGET_TABLE']
-#        dump_tables = [params[x] for x in dump_table_tags]
-#        for table in dump_tables:
-#            delete_table_bq_job(params['TARGET_DATASET'], table)
+            if not success:
+                print("publish table {} failed".format(file_base_names[f]))
+                return
 
     print('job completed')
 
