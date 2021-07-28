@@ -395,7 +395,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
                                          aliquot_metadata[i]['aliquot_submitter_id'],
                                          study_name,
                                          gene_symbol,
-                                         log2_ratio]))
+                                         float(log2_ratio)]))
             lines_written += 1
 
         return lines_written
