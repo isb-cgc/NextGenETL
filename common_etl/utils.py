@@ -1499,6 +1499,8 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
+    print(data_types_dict)
+
     data_type_dict = resolve_type_conflicts(data_types_dict)
 
     schema_obj = create_schema_object(column_headers, data_type_dict)

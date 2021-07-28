@@ -395,7 +395,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
                                          aliquot_metadata[i]['aliquot_submitter_id'],
                                          study_name,
                                          gene_symbol,
-                                         float(log2_ratio)]))
+                                         log2_ratio]))
             lines_written += 1
 
         return lines_written
@@ -734,16 +734,18 @@ def main(args):
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if lines_written > 0:
-                print()
-                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=unversioned_quant_table_name,
-                                                 tsv_fp=quant_tsv_path, header_list=raw_quant_header, skip_rows=1,
-                                                 row_check_interval=100)
+                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
+                                                 table_name=unversioned_quant_table_name,
+                                                 tsv_fp=quant_tsv_path,
+                                                 header_list=raw_quant_header,
+                                                 skip_rows=1,
+                                                 row_check_interval=1)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print(f"\n{lines_written} lines written for {study_id_dict['study_name']}")
-                print(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
+                print(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!\n")
             else:
-                print(f"\n{lines_written} lines written for {study_id_dict['study_name']}; not uploaded.")
+                print(f"\n{lines_written} lines written for {study_id_dict['study_name']}; not uploaded.\n")
 
     if 'build_quant_tables' in steps:
         print("Building quant tables...")
