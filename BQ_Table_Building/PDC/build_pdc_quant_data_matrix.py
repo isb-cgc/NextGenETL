@@ -762,7 +762,7 @@ def main(args):
             raw_quant_tsv_file = f"{quant_table_name}.tsv"
 
             if raw_quant_tsv_file not in quant_blob_files:
-                print(f'Skipping table build for {raw_quant_tsv_file} (jsonl not found in bucket)')
+                print(f'Skipping table build for {raw_quant_tsv_file} (file not found in bucket)')
             else:
                 print(f"Building table for {raw_quant_tsv_file}")
 
@@ -774,6 +774,8 @@ def main(args):
                                                                     include_release=False)
                 raw_quant_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                              table_name=unversioned_quant_table_name)
+
+                print(raw_quant_schema)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=raw_quant_tsv_file,
