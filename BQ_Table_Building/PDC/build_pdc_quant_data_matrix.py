@@ -777,8 +777,6 @@ def main(args):
                 raw_quant_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
                                                              table_name=unversioned_quant_table_name)
 
-                print(raw_quant_schema)
-
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=raw_quant_tsv_file,
                                                table_id=raw_quant_table_id,
