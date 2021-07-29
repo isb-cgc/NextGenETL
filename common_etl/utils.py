@@ -965,6 +965,8 @@ def check_value_type(value):
         return "INT64"
     if isinstance(value, float):
         return "FLOAT64"
+    if value != value:  # NaN case
+        return "FLOAT64"
     if isinstance(value, list):
         return "ARRAY"
     if isinstance(value, dict):
