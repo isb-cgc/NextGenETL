@@ -23,6 +23,7 @@ CLINICAL_ARG="clinical"
 FILE_ARG="file"
 STUDY_ARG="study"
 QUANT_ARG="quant"
+PER_SAMPLE_FILE_ARG="per_sample_file"
 
 SHARED_CONFIG_FILE="PDCSharedConfig.yaml"
 
@@ -41,8 +42,11 @@ elif [[ ${SCRIPT_NAME} = ${STUDY_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${QUANT_ARG} ]] ; then
     CONFIG_FILE="PDCQuant.yaml"
     SCRIPT_FILE="build_pdc_quant_data_matrix.py"
+elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
+    CONFIG_FILE="PDCPerSampleFile.yaml"
+    SCRIPT_FILE="build_pdc_per_sample_file.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant, per_sample_file"
     exit 1
 fi
 

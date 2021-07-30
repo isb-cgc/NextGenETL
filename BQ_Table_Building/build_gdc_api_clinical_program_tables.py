@@ -24,15 +24,15 @@ import time
 import sys
 
 from google.cloud import bigquery
-from google.api_core.exceptions import NotFound
+# from google.api_core.exceptions import NotFound
 
 from common_etl.utils import (get_rel_prefix, has_fatal_error, get_scratch_fp, create_and_load_table_from_jsonl,
                               write_list_to_jsonl, upload_to_bucket, construct_table_id, create_view_from_query,
-                              list_bq_tables, format_seconds, load_config, construct_table_name_from_list,
-                              publish_table, construct_table_name, add_generic_table_metadata, add_column_descriptions,
+                              format_seconds, load_config, construct_table_name_from_list, publish_table,
+                              construct_table_name, add_generic_table_metadata, add_column_descriptions,
                               exists_bq_table, delete_bq_table)
 
-from common_etl.support import compare_two_tables_sql, bq_harness_with_result
+from common_etl.support import (compare_two_tables_sql, bq_harness_with_result)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -44,7 +44,6 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 def make_program_list_query():
     """
-
     Create program list query.
     :return: program list query string
     """
@@ -59,17 +58,14 @@ def make_program_list_query():
 
 def get_program_list():
     """
-
     Get list of the programs which have contributed data to GDC's research program.
     :return: list of research programs participating in GDC data sharing
     """
-
-    return [res[0] for res in bq_harness_with_result(make_program_list_query(), BQ_PARAMS['DO_BATCH'])]
+    return [res[0] for res in bq_harness_with_result(make_program_list_query(), BQ_PARAMS['DO_BATCH'], verbose=False)]
 
 
 def get_one_to_many_tables(record_counts):
     """
-
     Get one-to-many tables that will be created for program.
     :param record_counts: dict max field group record counts for program
     :return: set of table names (representing field groups which cannot be flattened)
@@ -85,11 +81,10 @@ def get_one_to_many_tables(record_counts):
 
 def get_full_table_name(program, table):
     """
-
     Get the full name used in table_id for a given table.
     :param program: name of the program to with the data belongs
     :param table: Name of desired table
-    :return: String representing table name used by BQ.
+    :return: String representing table name used by BQ
     """
     table_name = [get_rel_prefix(API_PARAMS), program, BQ_PARAMS['MASTER_TABLE']]
 
@@ -105,7 +100,6 @@ def get_full_table_name(program, table):
 
 def get_bq_name(field, arg_fg=None):
     """
-
     Get column name (in bq format) from full field name.
     :param field: if not table_path, full field name; else short field name
     :param arg_fg: field group containing field
@@ -171,7 +165,6 @@ def get_bq_name(field, arg_fg=None):
 
 def parse_bq_schema_obj(schema, fg, schema_list=None):
     """
-
     Recursively construct schema using existing metadata in main clinical table.
     :param schema: dict of flattened schema entries
     :param fg: current field group name
@@ -189,18 +182,14 @@ def parse_bq_schema_obj(schema, fg, schema_list=None):
         if schema_field['type'] == 'RECORD':
             # if nested, recurse down to the next level
             parse_bq_schema_obj(schema, field_key, schema_field['fields'])
-
-            field_config = API_PARAMS['FIELD_CONFIG']
         else:
             # not a nested field entry--do we need to prefix the schema field name?
-            # schema_field['name'] = get_bq_name(field_key)
             schema_field['name'] = field_key.split('.')[-1]
             schema[field_key] = schema_field
 
 
 def create_schema_dict():
     """
-
     Create schema dict using master table's bigquery.table.Table.schema attribute.
     :return: flattened schema dict in format:
         {full field name: {name: 'name', type: 'field_type', description: 'description'}}
@@ -227,7 +216,6 @@ def create_schema_dict():
 
 def get_table_suffixes():
     """Get abbreviations for field groups as designated in yaml config.
-
     :return: dict of {field_group: abbreviation_suffix}
     """
     suffixes = dict()
@@ -240,9 +228,9 @@ def get_table_suffixes():
 
 def build_column_order_dict():
     """
-    Using table order provided in YAML, with additional ordering for reference
-    columns added during one-to-many table creation.
-    :return: dict of str column names : int representing position.
+    Using table order provided in YAML, with additional ordering for reference columns added during
+    one-to-many table creation.
+    :return: dict of str column names : int representing position
     """
     column_orders = dict()
     # list of fields in order, grouped by field_grp
@@ -275,13 +263,11 @@ def build_column_order_dict():
 
 def flatten_tables(field_groups, record_counts):
     """
-
-    From dict containing table_name keys and sets of column names, remove
-    excluded columns and merge into parent table if the field group can be
-    flattened for this program.
+    From dict containing table_name keys and sets of column names, remove excluded columns and merge into parent table
+    if the field group can be flattened for this program.
     :param field_groups: dict of tables and columns
     :param record_counts: set of table names
-    :return: flattened table column dict.
+    :return: flattened table column dict
     """
     tables = get_one_to_many_tables(record_counts)  # supplemental tables required
     table_columns = dict()
@@ -308,7 +294,6 @@ def flatten_tables(field_groups, record_counts):
 
 def examine_case(set_fields, record_counts, field_grp, field_grp_name):
     """
-
     Recursively examines case and updates dicts of non-null fields and max record counts.
     :param set_fields: current dict of non-null fields for each field group
     :param record_counts: dict of max field group record counts observed in program so far
@@ -352,10 +337,9 @@ def examine_case(set_fields, record_counts, field_grp, field_grp_name):
 
 def find_program_structure(cases):
     """
-
     Determine table structure required for the given program.
     :param cases: dict of program's case records
-    :return: dict of tables and columns, dict with maximum record count for this program's field groups.
+    :return: dict of tables and columns, dict with maximum record count for this program's field groups
     """
 
     fgs = {}
@@ -380,7 +364,6 @@ def find_program_structure(cases):
 
 def get_parent_fg(tables, field_name):
     """
-
     Get field's parent table name.
     :param tables: list of table names for program
     :param field_name: full field name for which to retrieve parent table
@@ -400,7 +383,6 @@ def get_parent_fg(tables, field_name):
 
 def get_field_name(field_col_key):
     """
-
     Get short field name from full field or bq column name.
     :param field_col_key: full field or bq column name
     :return: short field name
@@ -415,7 +397,6 @@ def get_field_name(field_col_key):
 
 def get_field_group_id_key_name(field_group):
     """
-
     Retrieve the id key used to uniquely identify a table record.
     :param field_group: table for which to determine the id key
     :return: str representing table key
@@ -426,7 +407,6 @@ def get_field_group_id_key_name(field_group):
 
 def merge_fg_and_field(field_group, field):
     """
-
     Get full field key ("{field_group}.{field_name}"}.
     :param field_group: field group to which the field belongs
     :param field: field name
@@ -437,7 +417,6 @@ def merge_fg_and_field(field_group, field):
 
 def get_long_field_group_id_key(field_group):
     """
-
     Retrieve the id key used to uniquely identify a table record.
     :param field_group: table for which to determine the id key
     :return: str representing table key
@@ -455,7 +434,6 @@ def get_long_field_group_id_key(field_group):
 
 def get_sorted_fg_depths(record_counts, reverse=False):
     """
-
     Return a sorted dict of field groups: depths.
     :param record_counts: dict containing field groups and associated record counts
     :param reverse: if True, sort in DESC order, otherwise sort in ASC order
@@ -471,7 +449,6 @@ def get_sorted_fg_depths(record_counts, reverse=False):
 
 def get_count_column_index(table_name, column_order_dict):
     """
-
     Get index of child table record count reference column.
     :param table_name: table for which to get index
     :param column_order_dict: dict containing column indexes
@@ -488,7 +465,6 @@ def get_count_column_index(table_name, column_order_dict):
 
 def generate_id_schema_entry(column, parent_table, program):
     """
-
     Create schema entry for inserted parent reference id.
     :param column: parent id column
     :param parent_table: parent table name
@@ -514,7 +490,6 @@ def generate_id_schema_entry(column, parent_table, program):
 
 def generate_count_schema_entry(count_id_key, table):
     """
-
     Create schema entry for one-to-many record count field.
     :param count_id_key: count field name
     :param table: table name
@@ -532,7 +507,6 @@ def generate_count_schema_entry(count_id_key, table):
 
 def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
     """
-
     Add reference id fields to the tables under construction.
     :param schema: dict containing schema records
     :param columns: dict containing table column keys
@@ -555,13 +529,11 @@ def insert_ref_id_keys(schema, columns, column_order, field_grp, id_tuple):
 
 def add_record_count_refs(schema, columns, column_order, table):
     """
-
-     Add reference columns containing record counts for associated BQ tables.
+    Add reference columns containing record counts for associated BQ tables.
     :param schema: dict containing schema records
     :param columns: dict containing table column keys
     :param column_order: dict containing relative position of all fields in  the db
-    :param table: Name of a table located in BQ, associated with one or more GDC field
-    groups
+    :param table: Name of a table located in BQ, associated with one or more GDC field groups
     """
     # add one-to-many record count column to parent table
     parent_table = get_parent_fg(columns.keys(), table)
@@ -575,11 +547,9 @@ def add_record_count_refs(schema, columns, column_order, table):
 
 def add_ref_columns(columns, record_counts, schema=None, program=None):
     """
-
     Add reference columns generated by separating and flattening data.
 
     Possible types:
-
     - _count column representing # of child records found in supplemental table
     - case_id, used to reference main table records
     - pid, used to reference nearest un-flattened ancestor table
@@ -587,8 +557,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None):
     :param columns: dict containing table column keys
     :param record_counts: field group count dict
     :param schema: dict containing schema records
-    :param program: the program from which the cases originate.
-    the insertion of irrelevant reference columns
+    :param program: the program from which the cases originate
     :return: table_columns, schema_dict, column_order_dict
     """
     column_orders = dict()
@@ -644,8 +613,7 @@ def add_ref_columns(columns, record_counts, schema=None, program=None):
 
 def merge_column_orders(schema, columns, record_counts, column_orders):
     """
-
-    Merge flattenable column order dicts
+    Merge flattenable column order dicts.
     :param schema: dict containing schema records
     :param columns: dict containing table column keys
     :param record_counts: field group count dict
@@ -679,7 +647,6 @@ def merge_column_orders(schema, columns, record_counts, column_orders):
 
 def remove_null_fields(columns, merged_orders):
     """
-
     Remove fields composed of only null values for a program, thus making the tables less sparse.
     :param columns: dict containing table column keys
     :param merged_orders: merged dict of field groups: fields with index position data
@@ -693,7 +660,6 @@ def remove_null_fields(columns, merged_orders):
 
 def create_schema_lists(schema, record_counts, merged_orders):
     """
-
     Create smaller schemas for each table, containing only columns contained there.
     :param schema: dict containing schema records
     :param record_counts: field group count dict
@@ -733,10 +699,8 @@ def create_schema_lists(schema, record_counts, merged_orders):
 
 def get_excluded_fields_all_fgs(fgs):
     """
-
-    Get a list of fields for each field group to exclude from the tables
-    from yaml config (API_PARAMS['FIELD_CONFIG']['excluded_fields'] or
-    API_PARAMS['FIELD_CONFIG']['app_excluded_fields'] for the web app).
+    Get a list of fields for each field group to exclude from the tables from yaml config--
+    API_PARAMS['FIELD_CONFIG']['excluded_fields'] or API_PARAMS['FIELD_CONFIG']['app_excluded_fields'] for the web app.
     :param fgs: list of expand field groups included from API call
     :return: set of fields to exclude
     """
@@ -783,7 +747,6 @@ def remove_excluded_fields(case, field_grp, excluded):
 
 def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
     """
-
     Recursively traverse the case json object, creating dict of format: {field_group: [records]}
     :param record: the case data object to recurse and flatten
     :param fg: name of the case's field group currently being processed.
@@ -858,7 +821,6 @@ def flatten_case_entry(record, fg, flat_case, case_id, pid, pid_name):
 
 def flatten_case(case):
     """
-
     Convert nested case object into a flattened representation of its records.
     :param case: dict containing case data
     :return: flattened case dict
@@ -882,7 +844,7 @@ def flatten_case(case):
 
 def get_record_idx(flat_case, field_grp, record_id):
     """
-    Get index of record associated with record_id from flattened_case
+    Get index of record associated with record_id from flattened_case.
     :param flat_case: dict containing {field group names: list of record dicts}
     :param field_grp: field group containing record_id
     :param record_id: id of record for which to retrieve position
@@ -903,7 +865,7 @@ def get_record_idx(flat_case, field_grp, record_id):
 
 def merge_single_entry_fgs(flat_case, record_counts):
     """
-    # Merge flatten-able field groups.
+    Merge flatten-able field groups.
     :param flat_case: flattened case dict
     :param record_counts: field group count dict
     """
@@ -932,7 +894,6 @@ def merge_single_entry_fgs(flat_case, record_counts):
 
 def get_record_counts(flat_case, record_counts):
     """
-
     Get record counts for field groups in case record.
     :param flat_case: flattened dict containing case record entries
     :param record_counts: field group count dict
@@ -978,9 +939,8 @@ def get_record_counts(flat_case, record_counts):
 
 def merge_or_count_records(flattened_case, record_counts):
     """
-    If program field group has max record count of 1, flattens into parent table.
-    Otherwise, counts record in one-to-many table and adds count field to parent record
-    in flattened_case
+    If program field group has max record count of 1, flatten into parent table. Otherwise, count record in
+    one-to-many table and add count field to parent record in flattened_case.
     :param flattened_case: flattened dict containing case record's values
     :param record_counts: field group count dict max counts for program's field group
     records
@@ -994,8 +954,7 @@ def merge_or_count_records(flattened_case, record_counts):
 
 def create_and_load_tables(program, cases, schemas, record_counts):
     """
-    Create jsonl row files for future insertion, store in GC storage bucket,
-    then insert the new table schemas and data.
+    Create jsonl row files for future insertion, store in GC storage bucket, then insert the new table schemas and data.
     :param program: program for which to create tables
     :param cases: case records to insert into BQ for program
     :param schemas: dict of schema lists for all of this program's tables
@@ -1054,16 +1013,15 @@ def create_and_load_tables(program, cases, schemas, record_counts):
 
 def update_table_schema_from_generic(program, table_id, schema_tags):
     """
-
-    todo
-    :param program:
-    :param table_id:
-    :param schema_tags:
-    :return:
+    Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
+    :param program: Dataset program name
+    :param table_id: Table id for which metadata will be added
+    :param schema_tags: dict of tags to substitute into generic schema file (used for customization)
     """
     if schema_tags is None:
         schema_tags = dict()
 
+    # used for the one-off case of BEATAML requiring special naming
     if program == "BEATAML1_0":
         schema_tags['program-name-upper'] = "BEATAML1.0"
         schema_tags['program-name-lower'] = "beataml"
@@ -1093,45 +1051,31 @@ def update_table_schema_from_generic(program, table_id, schema_tags):
     add_column_descriptions(BQ_PARAMS, table_id)
 
 
-def change_status_to_archived(table_id):
-    """
-    todo
-    :param table_id:
-    :return:
-    """
-    client = bigquery.Client()
-    current_release_tag = get_rel_prefix(API_PARAMS)
-    stripped_table_id = table_id.replace(current_release_tag, "")
-    previous_release_tag = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
-    prev_table_id = stripped_table_id + previous_release_tag
-
-    try:
-        prev_table = client.get_table(prev_table_id)
-        prev_table.labels['status'] = 'archived'
-        print(f"labels: {prev_table.labels}")
-        client.update_table(prev_table, ["labels"])
-
-        assert prev_table.labels['status'] == 'archived'
-    except NotFound:
-        print("Not writing archived label for table that didn't exist in a previous version.")
-
-
 def copy_tables_into_public_project(publish_table_list):
-    """Move production-ready bq tables onto the public-facing production server.
-
     """
-    for table_name in publish_table_list:
+    Move production-ready bq tables onto the public-facing production server.
+    :param publish_table_list: List of table ids which are new or differ from previous versions (to publish)
+    """
+    for src_table_id in publish_table_list:
+        table_name = src_table_id.split('.')[2]
         split_table_name = table_name.split('_')
         split_table_name.pop(0)
         public_dataset = split_table_name.pop(0)
-        src_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['DEV_DATASET'], table_name)
 
-        publish_table(API_PARAMS, BQ_PARAMS, public_dataset, src_table_id, overwrite=True)
+        if public_dataset == "BEATAML1":
+            public_dataset = "BEATAML1_0"
+
+        publish_table(API_PARAMS, BQ_PARAMS,
+                      public_dataset=public_dataset,
+                      source_table_id=src_table_id,
+                      get_publish_table_ids=get_publish_table_ids,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id,
+                      overwrite=True,
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
 
 
 def make_biospecimen_stub_view_query(program):
     """
-
     Create biospecimen view query.
     :param program: Program name for which to create biospecimen view
     :return: biospecimen view query
@@ -1147,7 +1091,6 @@ def make_biospecimen_stub_view_query(program):
 
 def build_biospecimen_stub_view(program):
     """
-
     Create one-to-many biospecimen view for webapp integration.
     :param program: program to which cases belong
     """
@@ -1160,6 +1103,11 @@ def build_biospecimen_stub_view(program):
 
 
 def find_last_release_table_id(base_table_name):
+    """
+    Find last released table id for a given dataset, if any.
+    :param base_table_name: base table name, excluding release
+    :return: previous release's table id, if any; otherwise None
+    """
     oldest_etl_release = 27  # the oldest table release we published
     last_gdc_release = int(API_PARAMS['RELEASE']) - 1
 
@@ -1177,10 +1125,9 @@ def find_last_release_table_id(base_table_name):
 
 def build_publish_table_list(programs, to_remove_list=False):
     """
-    todo
-    :return:
+    Build list of tables for publishing (which are either new or differ from previous version).
+    :return: List of tables to publish for current data release
     """
-
     mapping_suffixes_list = list()
 
     for field_group in API_PARAMS['FIELD_CONFIG'].keys():
@@ -1215,7 +1162,8 @@ def build_publish_table_list(programs, to_remove_list=False):
     for tables_to_compare in table_comparison_list:
         previous_table_id = tables_to_compare[0]
         current_table_id = tables_to_compare[1]
-        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'])
+        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'],
+                                     verbose=False)
 
         if not res:
             publish_table_list.append(current_table_id)
@@ -1235,8 +1183,7 @@ def build_publish_table_list(programs, to_remove_list=False):
 
 def create_tables(program, cases, schema):
     """
-    Run the overall script which creates schemas, modifies data, prepares it for loading,
-    and creates the databases.
+    Run the overall script which creates schemas, modifies data, prepares it for loading, and creates the databases.
     :param program: the source for the inserted cases data
     :param cases: dict representations of clinical case data from GDC
     :param schema:  schema file for BQ table creation
@@ -1263,52 +1210,15 @@ def create_tables(program, cases, schema):
     create_and_load_tables(program, cases, schemas, record_counts)
 
 
-def make_release_fields_comparison_query(old_rel, new_rel):
-    """
-
-    todo
-    :param old_rel:
-    :param new_rel:
-    :return:
-    """
-    return f"""
-        SELECT table_name AS release, field_path AS field
-        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-        WHERE field_path IN (
-            SELECT field_path 
-            FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-            WHERE table_name='{old_rel}_clinical' 
-                OR table_name='{new_rel}_clinical'
-           GROUP BY field_path
-           HAVING COUNT(field_path) <= 1)
-    """
-
-
-def find_release_changed_data_types_query(old_rel, new_rel):
-    """
-
-    todo
-    :param old_rel:
-    :param new_rel:
-    :return:
-    """
-    return f"""
-        SELECT field_path, data_type, COUNT(field_path) AS distinct_data_type_cnt 
-        FROM `isb-project-zero`.GDC_Clinical_Data.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
-        WHERE (table_name='{old_rel}_clinical' OR table_name='{new_rel}_clinical')
-            AND (data_type = 'INT64' OR data_type = 'FLOAT64' OR data_type = 'STRING' OR data_type = 'BOOL')
-        GROUP BY field_path, data_type 
-        HAVING distinct_data_type_cnt <= 1
-    """
-
-
+# todo do we still want to create this report? If so, look over queries to confirm validity
+'''
 def make_field_diff_query(old_rel, new_rel, removed_fields):
     """
-    todo
-    :param old_rel:
-    :param new_rel:
-    :param removed_fields:
-    :return:
+    Make query for comparing two dataset table versions.
+    :param old_rel: Currently release version number
+    :param new_rel: New release version number
+    :param removed_fields: 
+    :return: query for table comparison
     """
     check_rel = old_rel if removed_fields else new_rel
 
@@ -1348,7 +1258,6 @@ def make_datatype_diff_query(old_rel, new_rel):
 
 def make_removed_case_ids_query(old_rel, new_rel):
     """
-
     todo
     :param old_rel:
     :param new_rel:
@@ -1428,7 +1337,6 @@ def make_tables_diff_query(old_rel, new_rel):
 
 def make_new_table_list_query(old_rel, new_rel):
     """
-
     todo
     :param old_rel:
     :param new_rel:
@@ -1463,8 +1371,9 @@ def compare_gdc_releases():
     print(f"\n\n*** {old_rel} -> {new_rel} GDC Clinical Data Comparison Report ***")
 
     # which fields have been removed?
-    removed_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=True),
-                                                BQ_PARAMS['DO_BATCH'])
+    removed_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=True),
+                                                do_batch=BQ_PARAMS['DO_BATCH'],
+                                                verbose=False)
     print("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
@@ -1474,7 +1383,9 @@ def compare_gdc_releases():
             print(row[0])
 
     # which fields were added?
-    added_fields_res = bq_harness_with_result(make_field_diff_query(old_rel, new_rel, removed_fields=False), BQ_PARAMS['DO_BATCH'])
+    added_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=False),
+                                              do_batch=BQ_PARAMS['DO_BATCH'],
+                                              verbose=False)
     print("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
@@ -1484,7 +1395,9 @@ def compare_gdc_releases():
             print(row[0])
 
     # any changes in field data type?
-    datatype_diff_res = bq_harness_with_result(make_datatype_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    datatype_diff_res = bq_harness_with_result(sql=make_datatype_diff_query(old_rel, new_rel),
+                                               do_batch=BQ_PARAMS['DO_BATCH'],
+                                               verbose=False)
     print("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
@@ -1495,7 +1408,9 @@ def compare_gdc_releases():
 
     # any case ids removed?
     print("\nRemoved case ids:")
-    removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel),
+                                                  BQ_PARAMS['DO_BATCH'],
+                                                  verbose=False)
 
     if removed_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1505,7 +1420,9 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nAdded case id counts:")
-    added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel),
+                                                BQ_PARAMS['DO_BATCH'],
+                                                verbose=False)
 
     if added_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1515,7 +1432,9 @@ def compare_gdc_releases():
 
     # any case ids added?
     print("\nTable count changes: ")
-    table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel),
+                                             BQ_PARAMS['DO_BATCH'],
+                                             verbose=False)
 
     if table_count_res.total_rows == 0:
         print("<none>")
@@ -1528,7 +1447,9 @@ def compare_gdc_releases():
             print(f"{program_name}: {prev_table_cnt} table(s) in {old_rel}, {new_table_cnt} table(s) in {new_rel}")
 
     print("\nAdded tables: ")
-    added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel), BQ_PARAMS['DO_BATCH'])
+    added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel),
+                                             BQ_PARAMS['DO_BATCH'],
+                                             verbose=False)
 
     if added_table_res.total_rows == 0:
         print("<none>")
@@ -1537,11 +1458,12 @@ def compare_gdc_releases():
             print(row[0])
 
     print("\n*** End Report ***\n\n")
+'''
 
 
 def output_report(start, steps):
     """
-    Outputs a basic report of script's results, including total processing
+    Output a basic report of script's results, including total processing
     time and which steps were specified in YAML.
     :param start: float representing script's start time.
     :param steps: set of steps to be performed (configured in YAML)
@@ -1570,7 +1492,6 @@ def output_report(start, steps):
 
 def get_cases_by_program(program):
     """Get a dict obj containing all the cases associated with a given program.
-
     :param program: the program from which the cases originate
     :return: cases dict
     """
@@ -1596,11 +1517,357 @@ def get_cases_by_program(program):
         )
     """
 
-    for case_row in bq_harness_with_result(query, BQ_PARAMS['DO_BATCH']):
+    for case_row in bq_harness_with_result(query, BQ_PARAMS['DO_BATCH'], verbose=False):
         case_items = dict(case_row.items())
         cases.append(case_items)
 
     return cases
+
+
+def find_most_recent_published_table_id(api_params, versioned_table_id):
+    """
+    Function for locating published table id for dataset's previous release, if it exists
+    :param api_params: api_params supplied in yaml config
+    :param versioned_table_id: public versioned table id for current release
+    :return: last published table id, if any; otherwise None
+    """
+    oldest_etl_release = 26  # the oldest table release we published
+    last_gdc_release = int(api_params['RELEASE']) - 1
+    current_gdc_release = get_rel_prefix(api_params)
+    table_id_no_release = versioned_table_id.replace(current_gdc_release, '')
+
+    for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+        prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
+        if exists_bq_table(prev_release_table_id):
+            # found last release table, stop iterating
+            return prev_release_table_id
+
+    return None
+
+
+def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset):
+    """
+    Create current and versioned table ids.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param source_table_id: id of source table (located in dev project)
+    :param public_dataset: base name of dataset in public project where table should be published
+    :return: public current table id, public versioned table id
+    """
+    rel_prefix = get_rel_prefix(api_params)
+    split_table_id = source_table_id.split('.')
+
+    # derive data type from table id
+    data_type = split_table_id[-1]
+    data_type = data_type.replace(rel_prefix, '').strip('_')
+    data_type = data_type.replace(public_dataset + '_', '')
+    data_type = data_type.replace(api_params['DATA_SOURCE'], '').strip('_')
+
+    curr_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], 'current'])
+    curr_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}.{curr_table_name}"
+    vers_table_name = construct_table_name_from_list([data_type, api_params['DATA_SOURCE'], rel_prefix])
+    vers_table_id = f"{bq_params['PROD_PROJECT']}.{public_dataset}_versioned.{vers_table_name}"
+
+    return curr_table_id, vers_table_id
+
+
+def make_view_queries():
+    release_number = API_PARAMS["RELEASE"]
+
+    # todo make programmatic
+    return {
+        "BEATAML1_0": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_BEATAML1_0_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "CGCI": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            d.diag__diagnosis_id AS diagnosis_id,
+            d.diag__morphology AS morphology,
+            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            d.diag__tumor_grade AS tumor_grade,
+            d.diag__tumor_stage AS tumor_stage,
+            d.diag__age_at_diagnosis AS age_at_diagnosis,
+            d.diag__prior_malignancy AS prior_malignancy,
+            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_CGCI_clinical cl
+            JOIN isb-project-zero.GDC_Clinical_Data.r{release_number}_CGCI_clinical_diagnoses d 
+                ON cl.case_id = d.case_id
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "CMI": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_CMI_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "CPTAC": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_CPTAC_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "CTSP": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_CTSP_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "FM": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_FM_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "GENIE": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_grade AS tumor_grade,
+            cl.diag__tumor_stage AS tumor_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_GENIE_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "HCMI": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            d.diag__diagnosis_id AS diagnosis_id,
+            d.diag__morphology AS morphology,
+            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            d.diag__tumor_grade AS tumor_grade,
+            d.diag__age_at_diagnosis AS age_at_diagnosis,
+            d.diag__prior_malignancy AS prior_malignancy,
+            d.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_HCMI_clinical cl
+            JOIN isb-project-zero.GDC_Clinical_Data.r{release_number}_HCMI_clinical_diagnoses d 
+                ON cl.case_id = d.case_id
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "MMRF": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_MMRF_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "NCICCR": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_NCICCR_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "OHSU": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_OHSU_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "ORGANOID": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_ORGANOID_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "TARGET": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_TARGET_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "TCGA": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,            
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
+            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
+            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
+            cl.exp__pack_years_smoked AS pack_years_smoked,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_TCGA_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "VAREPOP": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__prior_malignancy AS prior_malignancy,
+            cl.exp__alcohol_history AS alcohol_history
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_VAREPOP_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """,
+        "WCDT": f"""
+            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
+            CAST(null AS STRING) AS disease_code, meta.program_name, meta.project_id as project_short_name,
+            cl.demo__ethnicity AS ethnicity, 
+            cl.demo__gender AS gender, 
+            cl.demo__race AS race, 
+            cl.demo__vital_status AS vital_status,
+            cl.diag__morphology AS morphology,
+            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            cl.diag__tumor_stage AS tumor_stage,
+            cl.diag__age_at_diagnosis AS age_at_diagnosis,
+            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
+            FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_WCDT_clinical cl
+            JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
+                ON meta.case_gdc_id = cl.case_id
+            """
+    }
 
 
 def main(args):
@@ -1630,7 +1897,7 @@ def main(args):
 
         if 'create_biospecimen_stub_tables' in steps:
             # these tables are used to populate the per-program clinical tables and the webapp tables
-            print(" - Creating biospecimen stub tables!")
+            print(" - Creating biospecimen stub views!")
             build_biospecimen_stub_view(orig_program)
 
         if 'create_and_load_tables' in steps:
@@ -1650,299 +1917,7 @@ def main(args):
             print(f"{orig_program} processed in {format_seconds(prog_end)}!\n")
 
     if "build_view_queries" in steps:
-        view_queries = {
-            "BEATAML1_0": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_BEATAML1_0_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "CGCI": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            d.diag__diagnosis_id AS diagnosis_id,
-            d.diag__morphology AS morphology,
-            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            d.diag__tumor_grade AS tumor_grade,
-            d.diag__tumor_stage AS tumor_stage,
-            d.diag__age_at_diagnosis AS age_at_diagnosis,
-            d.diag__prior_malignancy AS prior_malignancy,
-            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            cl.exp__pack_years_smoked AS pack_years_smoked,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical cl
-            JOIN isb-project-zero.GDC_Clinical_Data.r29_CGCI_clinical_diagnoses d 
-                ON cl.case_id = d.case_id
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "CMI": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CMI_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "CPTAC": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__prior_malignancy AS prior_malignancy,
-            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            cl.exp__pack_years_smoked AS pack_years_smoked,
-            cl.exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CPTAC_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "CTSP": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__prior_malignancy AS prior_malignancy,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_CTSP_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "FM": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_FM_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "GENIE": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_grade AS tumor_grade,
-            cl.diag__tumor_stage AS tumor_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_GENIE_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "HCMI": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            d.diag__diagnosis_id AS diagnosis_id,
-            d.diag__morphology AS morphology,
-            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            d.diag__tumor_grade AS tumor_grade,
-            d.diag__age_at_diagnosis AS age_at_diagnosis,
-            d.diag__prior_malignancy AS prior_malignancy,
-            d.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            d.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            d.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            cl.exp__pack_years_smoked AS pack_years_smoked,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical cl
-            JOIN isb-project-zero.GDC_Clinical_Data.r29_HCMI_clinical_diagnoses d 
-                ON cl.case_id = d.case_id
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "MMRF": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_MMRF_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "NCICCR": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_NCICCR_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "OHSU": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_OHSU_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "ORGANOID": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_ORGANOID_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "TARGET": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_TARGET_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "TCGA": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,            
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__prior_malignancy AS prior_malignancy,
-            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            cl.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
-            cl.diag__ajcc_pathologic_n AS ajcc_pathologic_n,
-            cl.diag__ajcc_pathologic_t AS ajcc_pathologic_t,
-            cl.exp__pack_years_smoked AS pack_years_smoked,
-            cl.exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_TCGA_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "VAREPOP": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__prior_malignancy AS prior_malignancy,
-            cl.exp__alcohol_history AS alcohol_history
-            FROM isb-project-zero.GDC_Clinical_Data.r29_VAREPOP_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """,
-            "WCDT": """
-            SELECT cl.case_id AS case_gdc_id, cl.submitter_id AS case_barcode, cl.disease_type, cl.primary_site, 
-            null as disease_code, meta.program_name, meta.project_id as project_short_name,
-            cl.demo__ethnicity AS ethnicity, 
-            cl.demo__gender AS gender, 
-            cl.demo__race AS race, 
-            cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
-            FROM isb-project-zero.GDC_Clinical_Data.r29_WCDT_clinical cl
-            JOIN isb-project-zero.GDC_metadata.rel29_caseData meta
-                ON meta.case_gdc_id = cl.case_id
-            """
-        }
+        view_queries = make_view_queries()
 
         for program, view_query in view_queries.items():
             program_view_name = f"webapp_{get_rel_prefix(API_PARAMS)}_{program}"
