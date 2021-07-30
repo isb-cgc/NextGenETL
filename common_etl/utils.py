@@ -29,6 +29,7 @@ import datetime
 import requests
 import yaml
 import select
+from distutils import util
 
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
@@ -444,6 +445,8 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
 
     if test_mode:
+
+
         if exists_bq_table(source_table_id):
             print(f"""
             source_table_id = {source_table_id}
@@ -974,27 +977,32 @@ def check_value_type(value):
     if not value:
         return None
 
-    # check to see if value is numeric, float or int; differentiates between these types and datetime or ids,
-    # which may be composed of only numbers or symbols
-    if '.' in value and ':' not in value:
-        split_value = value.split('.')
-        if len(split_value) == 2:
-            if split_value[0].isdigit() and split_value[1].isdigit():
-                # if in float form, but fraction is .0, .00, etc., then consider it an integer
-                if int(split_value[1]) == 0:
+    # A sequence of numbers starting with a 0 represents a string id,
+    # but int() check will pass and data loss would occur.
+    if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
+        return "STRING"
+
+    # check to see if value is numeric, float or int;
+    # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
+    if '.' in value and ':' not in value and "E+" not in value and "E-" not in value:
+        try:
+            int(value)
+            return "INT64"
+        except ValueError:
+            try:
+                float(value)
+                decimal_val = int(value.split('.')[1])
+
+                # if digits right of decimal place are all zero, float can safely be cast as an int
+                if not decimal_val:
                     return "INT64"
                 return "FLOAT64"
-        return "STRING"
+            except ValueError:
+                return "STRING"
 
     # numeric values are numbers with special encoding, like an exponent or sqrt symbol
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
-    elif value.isdigit():
-        return "INT64"
-
-    # a sequence of numbers starting with a 0 has to be explicitly classified as a, otherwise data loss will occur
-    elif value.startswith("0") and ':' not in value and '-' not in value:
-        return "STRING"
 
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
@@ -1019,8 +1027,23 @@ def check_value_type(value):
     if re.fullmatch(timestamp_pattern, value):
         return "TIMESTAMP"
 
-    # This shouldn't really be returned--in case of some missed edge case, however, it's safe to default to string.
-    return "STRING"
+    try:
+        util.strtobool(value)
+        return "BOOL"
+    except ValueError:
+        pass
+
+    # Final check for int and float values. This will catch a simple integers
+    # or edge case float values, like infinity, scientific notation, etc.
+    try:
+        int(value)
+        return "INT64"
+    except ValueError:
+        try:
+            float(value)
+            return "FLOAT64"
+        except ValueError:
+            return "STRING"
 
 
 def resolve_type_conflict(field, types_set):
