@@ -1464,7 +1464,9 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                     value = value.strip()
                     value_type = check_value_type(value)
 
-                    print(f"idx: {idx}, value: {value}, value_type: {value_type}")
+                    if idx == 4:
+
+                        print(f"value: {value}, value_type: {value_type}")
 
                     data_types_dict[column_headers[idx]].add(value_type)
 
