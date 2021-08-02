@@ -396,7 +396,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
                                          study_name,
                                          gene_symbol,
                                          log2_ratio]))
-            lines_written += 1
+                lines_written += 1
 
         return lines_written
 
