@@ -197,7 +197,8 @@ def somaticDownload(partial_id):
     ref.Cross_Ref_ID,
     ref.PubMed,
     ref.Exclude_analysis,
-    ref.WGS_WXS
+    ref.WGS_WXS,
+    CONCAT('https://www.ncbi.nlm.nih.gov/pubmed/',ref.PubMed) AS PubMedLink
     FROM
     `{partial_id}.S_INDIVIDUAL` AS si
     INNER JOIN
@@ -818,7 +819,8 @@ def germlineDownload(partial_id):
     fam.Ref_ID,
     fam.Other_infos,
     mut.p53mut_ID,
-    gt.Add_Info
+    gt.Add_Info,
+    CONCAT('https://www.ncbi.nlm.nih.gov/pubmed/',ref.PubMed) AS PubMedLink
     FROM
     `{partial_id}.G_FamilyCase_dic` AS fc
     RIGHT OUTER JOIN
