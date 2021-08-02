@@ -1464,7 +1464,7 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                     value = value.strip()
                     value_type = check_value_type(value)
 
-                    if idx == 4:
+                    if idx == 4 and value_type != 'FLOAT64':
 
                         print(f"value: {value}, value_type: {value_type}")
 
