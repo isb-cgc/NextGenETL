@@ -1,0 +1,399 @@
+"Codon_number","WT_codon","WT_AA","Conserved","Conservation_rate","GV","Conserved_domain","Domain_function","Residue_function","Hotspot","SA","Motif","Structural_motif2","Structural_motif","Structural_group"
+0,"NA","NA",false,"",,"","NA","NA","no",,"NA","NA","NA",0
+1,"ATG","Met",true,"",0.0000,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+2,"GAG","Glu",false,"",232.6700,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+3,"GAG","Glu",false,"",61.2800,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+4,"CCG","Pro",false,"",111.8800,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+5,"CAG","Gln",false,"",244.5300,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+6,"TCA","Ser",false,"",232.6700,"","Transactivation TAD1","Phosphorylation site","no",,"","NA","N-term/Transactivation",5
+7,"GAT","Asp",false,"",236.7800,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+8,"CCT","Pro",false,"",242.2300,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+9,"AGC","Ser",false,"",353.8600,"","Transactivation TAD1","Phosphorylation site","no",,"","NA","N-term/Transactivation",5
+10,"GTC","Val",false,"",235.2700,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+11,"GAG","Glu",false,"",222.8100,"","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+12,"CCC","Pro",false,"",240.0200,"","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+13,"CCT","Pro",true,"95%",353.8600,"1","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+14,"CTG","Leu",true,"95%",234.7200,"1","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+15,"AGT","Ser",true,"100%",221.8500,"1","Transactivation TAD1/NES","Phosphorylation site","no",,"","NA","N-term/Transactivation/NES",5
+16,"CAG","Gln",true,"95%",78.7800,"1","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+17,"GAA","Glu",true,"95%",29.2700,"1","Transactivation TAD1/NES","NA","no",,"","NA","N-term/Transactivation/NES",5
+18,"ACA","Thr",false,"",123.7400,"1","Transactivation TAD1/NES","Phosphorylation site","no",,"","H","N-term/Transactivation/NES",5
+19,"TTT","Phe",true,"100%",0.0000,"1","Transactivation TAD1/NES","Transactivation","no",,"","H","N-term/Transactivation/NES",5
+20,"TCA","Ser",false,"",162.9100,"1","Transactivation TAD1/NES","Phosphorylation site","no",,"","H","N-term/Transactivation/NES",5
+21,"GAC","Asp",false,"",200.8900,"1","Transactivation TAD1/NES","NA","no",,"","H","N-term/Transactivation/NES",5
+22,"CTA","Leu",true,"100%",0.0000,"1","Transactivation TAD1/NES","Transactivation","no",,"","H","N-term/Transactivation/NES",5
+23,"TGG","Trp",true,"100%",0.0000,"1","Transactivation TAD1/NES","Transactivation","no",,"","H","N-term/Transactivation/NES",5
+24,"AAA","Lys",false,"",241.8500,"","Transactivation TAD1/NES","NA","no",,"","H","N-term/Transactivation/NES",5
+25,"CTA","Leu",false,"",235.0700,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+26,"CTT","Leu",false,"",234.7200,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+27,"CCT","Pro",false,"",208.6300,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+28,"GAA","Glu",false,"",353.8600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+29,"AAC","Asn",false,"",353.8600,"","Transactivation TAD1","Isoaspartyl methylation site","no",,"","NA","N-term/Transactivation",5
+30,"AAC","Asn",false,"",353.8600,"","Transactivation TAD1","Isoaspartyl methylation site","no",,"","NA","N-term/Transactivation",5
+31,"GTT","Val",false,"",353.8600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+32,"CTG","Leu",false,"",353.8600,"","Transactivation TAD1","NA","yes",,"","NA","N-term/Transactivation",5
+33,"TCC","Ser",false,"",353.8600,"","Transactivation TAD1","Phosphorylation site","yes",,"","NA","N-term/Transactivation",5
+34,"CCC","Pro",false,"",353.8600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+35,"TTG","Leu",false,"",353.8600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+36,"CCG","Pro",false,"",353.8600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+37,"TCC","Ser",false,"",353.8600,"","Transactivation TAD1","Phosphorylation site","no",,"","NA","N-term/Transactivation",5
+38,"CAA","Gln",false,"",271.1900,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+39,"GCA","Ala",false,"",221.6600,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+40,"ATG","Met",false,"",138.3400,"","Transactivation TAD1","NA","no",,"","NA","N-term/Transactivation",5
+41,"GAT","Asp",false,"",105.7000,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+42,"GAT","Asp",false,"",90.4100,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+43,"TTG","Leu",false,"",30.9200,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+44,"ATG","Met",false,"",126.9900,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+45,"CTG","Leu",false,"",210.9700,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+46,"TCC","Ser",false,"",242.2200,"","Transactivation TAD2","Phosphorylation site","no",,"","NA","N-term/Transactivation",5
+47,"CCG","Pro",false,"",119.2900,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+48,"GAC","Asp",false,"",118.3200,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+49,"GAT","Asp",false,"",96.2000,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+50,"ATT","Ile",false,"",149.9300,"","Transactivation TAD2","NA","no",,"","NA","N-term/Transactivation",5
+51,"GAA","Glu",false,"",164.7400,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+52,"CAA","Gln",false,"",94.0600,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+53,"TGG","Trp",false,"",222.1200,"","Transactivation TAD2","NA","yes",,"","NA","N-term",5
+54,"TTC","Phe",false,"",177.0800,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+55,"ACT","Thr",false,"",233.6400,"","Transactivation TAD2","Phosphorylation site","no",,"","NA","N-term",5
+56,"GAA","Glu",false,"",353.8600,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+57,"GAC","Asp",false,"",353.8600,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+58,"CCA","Pro",false,"",353.8600,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+59,"GGT","Gly",false,"",353.8600,"","Transactivation TAD2","NA","no",,"","NA","N-term",5
+60,"CCA","Pro",false,"",353.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+61,"GAT","Asp",false,"",236.7800,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+62,"GAA","Glu",false,"",173.8800,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+63,"GCT","Ala",false,"",193.6100,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+64,"CCC","Pro",false,"",97.7800,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+65,"AGA","Arg",false,"",164.2500,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+66,"ATG","Met",false,"",135.4200,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+67,"CCA","Pro",false,"",155.4700,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+68,"GAG","Glu",false,"",236.7800,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+69,"GCT","Ala",false,"",101.0000,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+70,"GCT","Ala",false,"",117.5900,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+71,"CCC","Pro",false,"",208.6400,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+72,"CCC","Pro/Arg",false,"",353.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+73,"GTG","Val",false,"",353.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+74,"GCC","Ala",false,"",353.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+75,"CCT","Pro",false,"",353.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+76,"GCA","Ala",false,"",228.8600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+77,"CCA","Pro",false,"",251.7100,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+78,"GCA","Ala",false,"",271.1700,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+79,"GCT","Ala",false,"",133.0900,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+80,"CCT","Pro",false,"",162.5600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+81,"ACA","Thr",false,"",235.3800,"","SH3-like/Pro-rich","Phosphorylation site","no",,"","NA","SH3-like/Pro-rich",5
+82,"CCG","Pro",false,"",263.5000,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+83,"GCG","Ala",false,"",263.5000,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+84,"GCC","Ala",false,"",263.5000,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+85,"CCT","Pro",false,"",244.5300,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+86,"GCA","Ala",false,"",61.1400,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+87,"CCA","Pro",false,"",106.2100,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+88,"GCC","Ala",false,"",26.8700,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+89,"CCC","Pro",false,"",123.4700,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+90,"TCC","Ser",false,"",123.8100,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+91,"TGG","Trp",false,"",160.6100,"","SH3-like/Pro-rich","NA","yes",,"","NA","SH3-like/Pro-rich",5
+92,"CCC","Pro",false,"",70.5600,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+93,"CTG","Leu",false,"",110.8500,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+94,"TCA","Ser",false,"",57.7500,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+95,"TCT","Ser",false,"",174.3400,"","SH3-like/Pro-rich","NA","no",,"","NA","SH3-like/Pro-rich",5
+96,"TCT","Ser",false,"",155.4700,"","SH3-like/Pro-rich","NA","no",88.8000,"","NA","SH3-like/Pro-rich",5
+97,"GTC","Val",true,"100%",0.0000,"","SH3-like/Pro-rich","NA","no",48.4000,"","NA","SH3-like/Pro-rich",5
+98,"CCT","Pro",true,"100%",0.0000,"","SH3-like/Pro-rich","Partially exposed","no",26.9000,"","NA","SH3-like/Pro-rich",5
+99,"TCC","Ser",false,"",79.7900,"","NA","NA","no",53.6000,"","NA","N-term",5
+100,"CAG","Gln",false,"",75.1400,"","NA","NA","no",39.5000,"","NA","N-term",5
+101,"AAA","Lys",false,"",130.9800,"","NA","Ubiquitination site","no",73.3000,"","NA","N-term",5
+102,"ACC","Thr",false,"",85.0800,"","DNA binding","Exposed","no",68.7000,"","NA","NDBL/beta-sheets",3
+103,"TAC","Tyr",true,"95%",0.0000,"","DNA binding","NA","no",46.6000,"","NA","NDBL/beta-sheets",3
+104,"CAG","Gln",false,"",119.3800,"","DNA binding","Exposed","yes",54.9000,"","NA","NDBL/beta-sheets",3
+105,"GGC","Gly",true,"100%",0.0000,"","DNA binding","Buried","yes",16.0000,"","NA","NDBL/beta-sheets",3
+106,"AGC","Ser",false,"",135.8100,"","DNA binding","Exposed","no",87.0000,"","NA","NDBL/beta-sheets",3
+107,"TAC","Tyr",false,"",101.5400,"","DNA binding","NA","yes",20.5000,"","NA","NDBL/beta-sheets",3
+108,"GGT","Gly",false,"",93.7700,"","DNA binding","Buried","no",9.0000,"","NA","NDBL/beta-sheets",3
+109,"TTC","Phe",true,"95%",21.8200,"","DNA binding","Buried","yes",0.4000,"","NA","NDBL/beta-sheets",3
+110,"CGT","Arg",false,"",44.9100,"","DNA binding","Partially exposed","yes",32.8000,"S","S1","NDBL/beta-sheets",3
+111,"CTG","Leu",true,"95%",30.9200,"","DNA binding","Buried","yes",17.9000,"S","S1","NDBL/beta-sheets",3
+112,"GGC","Gly",false,"",147.4200,"","DNA binding","Buried","no",18.7000,"S","S1","NDBL/beta-sheets",3
+113,"TTC","Phe",true,"100%",0.0000,"","DNA binding","Buried","yes",19.8000,"L","L1","NDBL/beta-sheets",3
+114,"TTG","Leu",false,"",135.1900,"","DNA binding","NA","no",45.4000,"L","L1","NDBL/beta-sheets",3
+115,"CAT","His",false,"",40.7900,"","DNA binding","Exposed","no",98.9000,"L","L1","L1/S/H2",2
+116,"TCT","Ser",false,"",115.5800,"","DNA binding","Partially exposed","no",40.7000,"L","L1","L1/S/H2",2
+117,"GGG","Gly",true,"95%",0.0000,"2","DNA binding","Partially exposed","no",40.7000,"L","L1","L1/S/H2",2
+118,"ACA","Thr",true,"100%",0.0000,"2","DNA binding","NA","no",32.1000,"L","L1","L1/S/H2",2
+119,"GCC","Ala",true,"100%",0.0000,"2","DNA binding","DNA binding","no",60.4000,"L","L1","L1/S/H2",2
+120,"AAG","Lys",true,"100%",0.0000,"2","DNA binding","Acetylation/Ubiquitination site","yes",60.4000,"L","L1","L1/S/H2",2
+121,"TCT","Ser",true,"100%",0.0000,"2","DNA binding","DNA binding","no",39.2000,"L","L1","L1/S/H2",2
+122,"GTG","Val",true,"100%",0.0000,"2","DNA binding","Buried","no",19.6000,"L","L1","L1/S/H2",2
+123,"ACT","Thr",false,"",81.0400,"2","DNA binding","Partially exposed","no",39.7000,"L","L1","L1/S/H2",2
+124,"TGC","Cys",false,"",214.3600,"2","DNA binding","S-glutathionylation site","no",8.7000,"S","S2","L1/S/H2",2
+125,"ACG","Thr",true,"100%",0.0000,"2","DNA binding","Buried","yes",0.6000,"S","S2","L1/S/H2",2
+126,"TAC","Tyr",true,"95%",0.0000,"2","DNA binding","Buried","yes",16.9000,"S","S2","L1/S/H2",2
+127,"TCC","Ser",true,"100%",0.0000,"2","DNA binding","Buried","yes",0.0000,"S","S2","L1/S/H2",2
+128,"CCT","Pro",false,"",95.3800,"2","DNA binding","Exposed","no",71.9000,"L","L","L1/S/H2",2
+129,"GCC","Ala",false,"",182.3800,"2","DNA binding","Exposed","no",87.6000,"L","L","L1/S/H2",2
+130,"CTC","Leu",true,"100%",0.0000,"2","DNA binding","Partially exposed","yes",27.7000,"L","L","L1/S/H2",2
+131,"AAC","Asn",true,"95%",0.0000,"2","DNA binding","Partially exposed","yes",42.6000,"L","L","L1/S/H2",2
+132,"AAG","Lys",true,"100%",0.0000,"2","DNA binding","Ubiquitination site","yes",6.1000,"S","S2'","L1/S/H2",2
+133,"ATG","Met",false,"",30.9200,"2","DNA binding","Buried","yes",0.1000,"S","S2'","L1/S/H2",2
+134,"TTT","Phe",false,"",21.6100,"2","DNA binding","Buried","yes",0.0000,"S","S2'","L1/S/H2",2
+135,"TGC","Cys",true,"100%",0.0000,"2","DNA binding","Buried","yes",0.0000,"S","S2'","L1/S/H2",2
+136,"CAA","Gln",true,"95%",42.8100,"2","DNA binding","Buried","yes",17.7000,"L","L","NDBL/beta-sheets",3
+137,"CTG","Leu",true,"100%",0.0000,"2","DNA binding","Partially exposed","no",27.4000,"L","L","NDBL/beta-sheets",3
+138,"GCC","Ala",true,"100%",0.0000,"2","DNA binding","Partially exposed","no",45.5000,"L","L","NDBL/beta-sheets",3
+139,"AAG","Lys",true,"100%",0.0000,"2","DNA binding","Ubiquitination site","no",43.9000,"L","L","NDBL/beta-sheets",3
+140,"ACC","Thr",true,"95%",37.5600,"2","DNA binding","Partially exposed","no",30.7000,"L","L","NDBL/beta-sheets",3
+141,"TGC","Cys",true,"95%",0.0000,"2","DNA binding","S-glutathionylation site","yes",0.0000,"S","S3","NDBL/beta-sheets",3
+142,"CCT","Pro",true,"100%",0.0000,"2","DNA binding","Buried","no",16.4000,"S","S3","NDBL/beta-sheets",3
+143,"GTG","Val",true,"95%",30.9200,"2","DNA binding","Buried","yes",0.0000,"S","S3","NDBL/beta-sheets",3
+144,"CAG","Gln",false,"",112.4400,"","DNA binding","Buried","yes",18.8000,"S","S3","NDBL/beta-sheets",3
+145,"CTG","Leu",false,"",30.9200,"","DNA binding","Buried","no",0.7000,"S","S3","NDBL/beta-sheets",3
+146,"TGG","Trp",false,"",127.3600,"","DNA binding","Partially exposed","yes",33.0000,"S","S3","NDBL/beta-sheets",3
+147,"GTT","Val",true,"95%",0.0000,"","DNA binding","Buried","no",16.9000,"L","L","NDBL/beta-sheets",3
+148,"GAT","Asp",false,"",118.4000,"","DNA binding","Exposed","no",75.0000,"L","L","NDBL/beta-sheets",3
+149,"TCC","Ser",false,"",123.9200,"","DNA binding","Phosphorylation/O-GlcNAcylation site","no",45.0000,"L","L","NDBL/beta-sheets",3
+150,"ACA","Thr",false,"",58.2700,"","DNA binding","Phosphorylation site","no",60.3000,"L","L","NDBL/beta-sheets",3
+151,"CCC","Pro",true,"100%",0.0000,"","DNA binding","Buried","yes",3.0000,"L","L","NDBL/beta-sheets",3
+152,"CCG","Pro",true,"100%",0.0000,"","DNA binding","Partially exposed","yes",43.8000,"L","L","NDBL/beta-sheets",3
+153,"CCC","Pro",false,"",119.3800,"","DNA binding","Exposed","no",92.8000,"L","L","NDBL/beta-sheets",3
+154,"GGC","Gly",false,"",79.3500,"","DNA binding","Partially exposed","yes",45.1000,"L","L","NDBL/beta-sheets",3
+155,"ACC","Thr",false,"",57.7500,"","DNA binding","Phosphorylation site","yes",2.5000,"L","L","NDBL/beta-sheets",3
+156,"CGC","Arg",false,"",227.4000,"","DNA binding","Partially exposed","no",23.1000,"S","S4","NDBL/beta-sheets",3
+157,"GTC","Val",false,"",30.9200,"","DNA binding","Buried","yes",0.7000,"S","S4","NDBL/beta-sheets",3
+158,"CGC","Arg",true,"100%",0.0000,"","DNA binding","Buried","yes",14.0000,"S","S4","NDBL/beta-sheets",3
+159,"GCC","Ala",true,"100%",0.0000,"","DNA binding","Buried","yes",0.2000,"S","S4","NDBL/beta-sheets",3
+160,"ATG","Met",false,"",81.0400,"","DNA binding","Buried","no",14.1000,"S","S4","NDBL/beta-sheets",3
+161,"GCC","Ala",true,"100%",0.0000,"","DNA binding","Buried","yes",8.8000,"S","S4","NDBL/beta-sheets",3
+162,"ATC","Ile",false,"",28.6800,"","DNA binding","Buried","no",0.2000,"S","S4","NDBL/beta-sheets",3
+163,"TAC","Tyr",true,"100%",0.0000,"","DNA binding","Buried","yes",1.0000,"S","S4","NDBL/beta-sheets",3
+164,"AAG","Lys",true,"100%",0.0000,"","DNA binding","Acetylation/Ubiquitination site","yes",46.7000,"L","L2","L2/L3",1
+165,"CAG","Gln",false,"",53.2300,"","DNA binding","Partially exposed","yes",38.0000,"L","L2","L2/L3",1
+166,"TCA","Ser",false,"",144.0800,"","DNA binding","Exposed","no",77.0000,"L","L2","L2/L3",1
+167,"CAG","Gln",false,"",29.2700,"","DNA binding","Exposed","yes",66.9000,"L","L2","L2/L3",1
+168,"CAC","His",false,"",100.0000,"","DNA binding","Partially exposed","yes",28.3000,"L","L2","L2/L3",1
+169,"ATG","Met",false,"",20.5200,"","DNA binding","Partially exposed","no",21.1000,"L","L2","L2/L3",1
+170,"ACG","Thr",false,"",58.0200,"","DNA binding","Exposed","no",65.9000,"L","L2","L2/L3",1
+171,"GAG","Glu",false,"",0.0000,"3","DNA binding","Partially exposed","no",45.3000,"L","L2","L2/L3",1
+172,"GTT","Val",true,"100%",0.0000,"3","DNA binding","Partially exposed","yes",24.5000,"L","L2","L2/L3",1
+173,"GTG","Val",true,"100%",0.0000,"3","DNA binding","Buried","yes",6.1000,"L","L2","L2/L3",1
+174,"AGG","Arg",true,"95%",26.0000,"3","DNA binding","Partially exposed","no",40.7000,"L","L2","L2/L3",1
+175,"CGC","Arg",true,"100%",0.0000,"3","DNA binding","Buried","yes",6.5000,"L","L2","L2/L3",1
+176,"TGC","Cys",false,"",0.0000,"3","DNA binding","Zn binding","yes",4.1000,"L","L2","L2/L3",1
+177,"CCC","Pro",true,"100%",0.0000,"3","DNA binding","Exposed","no",64.0000,"H","H1","L2/L3",1
+178,"CAC","His",true,"100%",0.0000,"3","DNA binding","Exposed","yes",60.5000,"H","H1","L2/L3",1
+179,"CAT","His",true,"100%",0.0000,"3","DNA binding","Zn binding","yes",27.5000,"H","H1","L2/L3",1
+180,"GAG","Glu",false,"",0.0000,"3","DNA binding","Partially exposed","no",30.9000,"H","H1","L2/L3",1
+181,"CGC","Arg",false,"",0.0000,"3","DNA binding","Exposed","yes",82.0000,"H","H1","L2/L3",1
+182,"TGC","Cys",false,"",155.1600,"","DNA binding","S-glutathionylation site","no",54.8000,"L","L2","L2/L3",1
+183,"TCA","Ser",false,"",138.8000,"","DNA binding","Phosphorylation site","no",27.7000,"L","L2","L2/L3",1
+184,"GAT","Asp",false,"",112.6600,"","DNA binding","Exposed","no",63.3000,"L","L2","L2/L3",1
+185,"AGC","Ser",false,"",76.9700,"","DNA binding","Exposed","no",52.8000,"L","L2","L2/L3",1
+186,"GAT","Asp",false,"",44.6000,"","DNA binding","Exposed","no",55.5000,"L","L2","L2/L3",1
+187,"GGT","Gly",false,"",94.9000,"","DNA binding","Exposed","yes",95.5000,"L","L2","L2/L3",1
+188,"CTG","Leu",false,"",96.1900,"","DNA binding","Partially exposed","no",42.3000,"L","L2","L2/L3",1
+189,"GCC","Ala",true,"100%",0.0000,"","DNA binding","Buried","no",3.6000,"L","L2","L2/L3",1
+190,"CCT","Pro",true,"100%",0.0000,"","DNA binding","Partially exposed","yes",22.9000,"L","L2","L2/L3",1
+191,"CCT","Pro",false,"",26.8700,"","DNA binding","Partially exposed","no",43.8000,"L","L2","L2/L3",1
+192,"CAG","Gln",false,"",98.3500,"","DNA binding","Partially exposed","yes",21.1000,"L","L2","L2/L3",1
+193,"CAT","His",true,"100%",0.0000,"","DNA binding","Buried","yes",1.9000,"L","L2","L2/L3",1
+194,"CTT","Leu",true,"100%",0.0000,"","DNA binding","Buried","yes",3.1000,"L","L2","L2/L3",1
+195,"ATC","Ile",false,"",10.1200,"","DNA binding","Buried","yes",5.3000,"S","S5","NDBL/beta-sheets",3
+196,"CGA","Arg",true,"100%",0.0000,"","DNA binding","Buried","yes",5.4000,"S","S5","NDBL/beta-sheets",3
+197,"GTG","Val",true,"95%",0.0000,"","DNA binding","Buried","yes",3.9000,"S","S5","NDBL/beta-sheets",3
+198,"GAA","Glu",true,"100%",0.0000,"","DNA binding","Partially exposed","yes",40.5000,"S","S5","NDBL/beta-sheets",3
+199,"GGA","Gly",true,"100%",0.0000,"","DNA binding","Exposed","no",104.8000,"L","L","NDBL/beta-sheets",3
+200,"AAT","Asn",true,"95%",0.0000,"","DNA binding","Partially exposed","no",32.2000,"L","L","NDBL/beta-sheets",3
+201,"TTG","Leu",false,"",135.1900,"","DNA binding","Exposed","no",92.0000,"L","L","NDBL/beta-sheets",3
+202,"CGT","Arg",false,"",98.7800,"","DNA binding","Exposed","no",70.4000,"L","L","NDBL/beta-sheets",3
+203,"GTG","Val",false,"",70.5600,"","DNA binding","Buried","no",7.8000,"L","L","NDBL/beta-sheets",3
+204,"GAG","Glu",false,"",149.4600,"","DNA binding","Partially exposed","no",43.5000,"S","S6","NDBL/beta-sheets",3
+205,"TAT","Tyr",true,"100%",0.0000,"","DNA binding","Buried","yes",16.1000,"S","S6","NDBL/beta-sheets",3
+206,"TTG","Leu",false,"",162.5200,"","DNA binding","Partially exposed","no",32.7000,"S","S6","NDBL/beta-sheets",3
+207,"GAT","Asp",false,"",44.6000,"","DNA binding","Partially exposed","no",35.4000,"S","S6","NDBL/beta-sheets",3
+208,"GAC","Asp",true,"100%",0.0000,"","DNA binding","Partially exposed","yes",36.6000,"L","L","NDBL/beta-sheets",3
+209,"AGA","Arg",false,"",154.3300,"","DNA binding","Exposed","no",87.9000,"L","L","NDBL/beta-sheets",3
+210,"AAC","Asn",false,"",148.9100,"","DNA binding","Exposed","no",87.1000,"L","L","NDBL/beta-sheets",3
+211,"ACT","Thr",true,"95%",57.7500,"","DNA binding","Phosphorylation site","no",24.7000,"L","L","NDBL/beta-sheets",3
+212,"TTT","Phe",false,"",174.3400,"","DNA binding","Exposed","no",68.9000,"L","L","NDBL/beta-sheets",3
+213,"CGA","Arg",true,"100%",0.0000,"","DNA binding","Buried","yes",3.6000,"L","L","NDBL/beta-sheets",3
+214,"CAT","His",true,"95%",0.0000,"","DNA binding","Buried","yes",9.6000,"S","S7","NDBL/beta-sheets",3
+215,"AGT","Ser",true,"100%",0.0000,"","DNA binding","Phosphorylation site","yes",2.4000,"S","S7","NDBL/beta-sheets",3
+216,"GTG","Val",true,"100%",0.0000,"","DNA binding","Buried","yes",1.3000,"S","S7","NDBL/beta-sheets",3
+217,"GTG","Val",false,"",204.6400,"","DNA binding","Buried","no",1.5000,"S","S7","NDBL/beta-sheets",3
+218,"GTG","Val",true,"100%",0.0000,"","DNA binding","Buried","yes",1.7000,"S","S7","NDBL/beta-sheets",3
+219,"CCC","Pro",true,"100%",0.0000,"","DNA binding","Partially exposed","no",20.4000,"S","S7","NDBL/beta-sheets",3
+220,"TAT","Tyr",true,"100%",0.0000,"","DNA binding","Buried","yes",8.0000,"L","L","NDBL/beta-sheets",3
+221,"GAG","Glu",true,"100%",0.0000,"","DNA binding","Exposed","no",68.3000,"L","L","NDBL/beta-sheets",3
+222,"CCG","Pro",false,"",103.8300,"","DNA binding","Exposed","no",54.6000,"L","L","NDBL/beta-sheets",3
+223,"CCT","Pro",true,"100%",0.0000,"","DNA binding","Partially exposed","no",28.1000,"L","L","NDBL/beta-sheets",3
+224,"GAG","Glu",false,"",29.2700,"","DNA binding","Exposed","yes",82.1000,"L","L","NDBL/beta-sheets",3
+225,"GTT","Val",false,"",96.1900,"","DNA binding","Exposed","yes",103.8000,"L","L","NDBL/beta-sheets",3
+226,"GGC","Gly",false,"",93.7700,"","DNA binding","Exposed","no",105.3000,"L","L","NDBL/beta-sheets",3
+227,"TCT","Ser",false,"",103.6800,"","DNA binding","Partially exposed","no",49.4000,"L","L","NDBL/beta-sheets",3
+228,"GAC","Asp",false,"",44.6000,"","DNA binding","Exposed","no",77.3000,"L","L","NDBL/beta-sheets",3
+229,"TGT","Cys",false,"",214.7500,"","DNA binding","Partially exposed","no",21.6000,"L","L","NDBL/beta-sheets",3
+230,"ACC","Thr",true,"100%",0.0000,"","DNA binding","Buried","no",11.7000,"S","S8","NDBL/beta-sheets",3
+231,"ACC","Thr",true,"95%",0.0000,"","DNA binding","Partially exposed","no",40.6000,"S","S8","NDBL/beta-sheets",3
+232,"ATC","Ile",false,"",28.6800,"","DNA binding","Buried","yes",6.4000,"S","S8","NDBL/beta-sheets",3
+233,"CAC","His",false,"",98.6900,"","DNA binding","Partially exposed","no",40.0000,"S","S8","NDBL/beta-sheets",3
+234,"TAC","Tyr",false,"",35.6800,"4","DNA binding","Buried","yes",1.1000,"S","S8","NDBL/beta-sheets",3
+235,"AAC","Asn",false,"",93.8800,"4","DNA binding","Buried","no",11.0000,"S","S8","NDBL/beta-sheets",3
+236,"TAC","Tyr",false,"",21.6100,"4","DNA binding","Buried","yes",0.0000,"S","S8","NDBL/beta-sheets",3
+237,"ATG","Met",true,"100%",0.0000,"4","DNA binding","Buried","yes",7.7000,"L","L3","L2/L3",1
+238,"TGT","Cys",true,"100%",0.0000,"4","DNA binding","Zn binding","yes",0.5000,"L","L3","L2/L3",1
+239,"AAC","Asn",true,"100%",0.0000,"4","DNA binding","DNA binding","yes",30.6000,"L","L3","L2/L3",1
+240,"AGT","Ser",true,"100%",0.0000,"4","DNA binding","Buried","no",8.7000,"L","L3","L2/L3",1
+241,"TCC","Ser",true,"100%",0.0000,"4","DNA binding","DNA binding","yes",40.1000,"L","L3","L2/L3",1
+242,"TGC","Cys",true,"100%",0.0000,"4","DNA binding","Zn binding","yes",10.1000,"L","L3","L2/L3",1
+243,"ATG","Met",true,"100%",0.0000,"4","DNA binding","DNA binding","no",61.1000,"L","L3","L2/L3",1
+244,"GGC","Gly",true,"100%",0.0000,"4","DNA binding","Exposed","yes",69.3000,"L","L3","L2/L3",1
+245,"GGC","Gly",true,"100%",0.0000,"4","DNA binding","Buried","yes",7.6000,"L","L3","L2/L3",1
+246,"ATG","Met",true,"100%",0.0000,"4","DNA binding","Buried","yes",0.5000,"L","L3","L2/L3",1
+247,"AAC","Asn",true,"100%",0.0000,"4","DNA binding","DNA binding","yes",47.3000,"L","L3","L2/L3",1
+248,"CGG","Arg",true,"100%",0.0000,"4","DNA binding","DNA binding","yes",70.7000,"L","L3","L2/L3",1
+249,"AGG","Arg",true,"100%",0.0000,"4","DNA binding","Buried","yes",14.2000,"L","L3","L2/L3",1
+250,"CCC","Pro",true,"95%",0.0000,"4","DNA binding","Partially exposed","yes",32.5000,"L","L3","L2/L3",1
+251,"ATC","Ile",true,"100%",0.0000,"4","DNA binding","Buried","yes",0.1000,"S","S9","NDBL/beta-sheets",3
+252,"CTC","Leu",true,"95%",0.0000,"4","DNA binding","Buried","no",7.8000,"S","S9","NDBL/beta-sheets",3
+253,"ACC","Thr",true,"100%",0.0000,"4","DNA binding","Buried","no",0.0000,"S","S9","NDBL/beta-sheets",3
+254,"ATC","Ile",true,"100%",0.0000,"4","DNA binding","Buried","yes",5.0000,"S","S9","NDBL/beta-sheets",3
+255,"ATC","Ile",false,"",4.8600,"4","DNA binding","ADP-ribosylation site","yes",0.0000,"S","S9","NDBL/beta-sheets",3
+256,"ACA","Thr",true,"100%",0.0000,"4","DNA binding","Buried","no",13.0000,"S","S9","NDBL/beta-sheets",3
+257,"CTG","Leu",true,"100%",0.0000,"4","DNA binding","Buried","yes",0.2000,"S","S9","NDBL/beta-sheets",3
+258,"GAA","Glu",true,"100%",0.0000,"4","DNA binding","ADP-ribosylation","yes",6.8000,"S","S9","NDBL/beta-sheets",3
+259,"GAC","Asp",false,"",103.1600,"","DNA binding","ADP-ribosylation","yes",12.9000,"L","L","NDBL/beta-sheets",3
+260,"TCC","Ser",false,"",97.5900,"","DNA binding","Exposed","no",71.8000,"L","L","NDBL/beta-sheets",3
+261,"AGT","Ser",false,"",195.1100,"","DNA binding","Exposed","yes",69.6000,"L","L","NDBL/beta-sheets",3
+262,"GGT","Gly",true,"100%",0.0000,"","DNA binding","Partially exposed","yes",47.0000,"L","L","NDBL/beta-sheets",3
+263,"AAT","Asn",false,"",152.3300,"","DNA binding","Exposed","no",66.2000,"L","L","NDBL/beta-sheets",3
+264,"CTA","Leu",false,"",30.9200,"","DNA binding","Partially exposed","no",42.7000,"S","S10","NDBL/beta-sheets",3
+265,"CTG","Leu",true,"100%",0.0000,"","DNA binding","Buried","yes",16.2000,"S","S10","NDBL/beta-sheets",3
+266,"GGA","Gly",true,"100%",0.0000,"","DNA binding","Buried","yes",0.1000,"S","S10","NDBL/beta-sheets",3
+267,"CGG","Arg",true,"100%",0.0000,"","DNA binding","Buried","yes",12.8000,"S","S10","NDBL/beta-sheets",3
+268,"AAC","Asn",false,"",95.8100,"","DNA binding","Buried","no",15.8000,"S","S10","NDBL/beta-sheets",3
+269,"AGC","Ser",false,"",111.6700,"","DNA binding","Phosphorylation site","no",23.7000,"S","S10","NDBL/beta-sheets",3
+270,"TTT","Phe",true,"100%",0.0000,"5","DNA binding","Buried","yes",0.7000,"S","S10","NDBL/beta-sheets",3
+271,"GAG","Glu",true,"100%",0.0000,"5","DNA binding","Buried","yes",11.2000,"S","S10","NDBL/beta-sheets",3
+272,"GTG","Val",true,"100%",0.0000,"5","DNA binding","Buried","yes",1.1000,"S","S10","L1/S/H2",2
+273,"CGT","Arg",true,"100%",0.0000,"5","DNA binding","DNA binding","yes",33.5000,"S","S10","L1/S/H2",2
+274,"GTT","Val",true,"100%",0.0000,"5","DNA binding","Buried","yes",1.0000,"S","S10","L1/S/H2",2
+275,"TGT","Cys",true,"100%",0.0000,"5","DNA binding","DNA binding","yes",7.9000,"L","L","L1/S/H2",2
+276,"GCC","Ala",true,"100%",0.0000,"5","DNA binding","DNA binding","no",62.6000,"L","L","L1/S/H2",2
+277,"TGT","Cys",true,"100%",0.0000,"5","DNA binding","DNA binding","yes",14.1000,"L","L","L1/S/H2",2
+278,"CCT","Pro",true,"100%",0.0000,"5","DNA binding","Buried","yes",0.0000,"H","H2","L1/S/H2",2
+279,"GGG","Gly",true,"100%",0.0000,"5","DNA binding","Buried","no",0.0000,"H","H2","L1/S/H2",2
+280,"AGA","Arg",true,"100%",0.0000,"5","DNA binding","DNA binding","yes",47.6000,"H","H2","L1/S/H2",2
+281,"GAC","Asp",true,"100%",0.0000,"5","DNA binding","Buried","yes",12.0000,"H","H2","L1/S/H2",2
+282,"CGG","Arg",true,"100%",0.0000,"5","DNA binding","Buried","yes",13.5000,"H","H2","L1/S/H2",2
+283,"CGC","Arg",false,"",26.0000,"5","DNA binding","DNA binding","no",45.6000,"H","H2","L1/S/H2",2
+284,"ACA","Thr",true,"95%",89.2800,"5","DNA binding","Phosphorylation site","no",42.4000,"H","H2","L1/S/H2",2
+285,"GAG","Glu",true,"95%",0.0000,"5","DNA binding","Partially exposed","yes",26.6000,"H","H2","L1/S/H2",2
+286,"GAA","Glu",true,"100%",0.0000,"5","DNA binding","Partially exposed","yes",32.1000,"H","H2","L1/S/H2",2
+287,"GAG","Glu",false,"",87.3600,"","DNA binding","Exposed","no",67.8000,"H","H2","L1/S/H2",2
+288,"AAT","Asn",true,"95%",0.0000,"","DNA binding","Exposed","no",67.2000,"","NA","NDBL/beta-sheets",3
+289,"CTC","Leu",false,"",35.6800,"","DNA binding","Exposed","no",110.2000,"","NA","NDBL/beta-sheets",3
+290,"CGC","Arg",false,"",81.6400,"","DNA binding","NA","no",,"","NA","NDBL/beta-sheets",3
+291,"AAG","Lys",true,"100%",0.0000,"","DNA binding","Ubiquitination site","no",,"","NA","NDBL/beta-sheets",3
+292,"AAA","Lys",false,"",108.9300,"","DNA binding","Ubiquitination site","no",,"","NA","NDBL/beta-sheets",3
+293,"GGG","Gly",false,"",135.0000,"","NA","NA","no",,"","NA","C-term",5
+294,"GAG","Glu",false,"",147.0400,"","NA","NA","yes",,"","NA","C-term",5
+295,"CCT","Pro",false,"",154.9300,"","NA","NA","no",,"","NA","C-term",5
+296,"CAC","His",false,"",224.1500,"","NA","NA","no",,"","NA","C-term",5
+297,"CAC","His",false,"",231.1100,"","NA","NA","no",,"","NA","C-term",5
+298,"GAG","Glu",false,"",353.8600,"","NA","NA","yes",,"","NA","C-term",5
+299,"CTG","Leu",false,"",353.8600,"","NA","NA","no",,"","NA","C-term",5
+300,"CCC","Pro",false,"",353.8600,"","NA","NA","no",,"","NA","C-term",5
+301,"CCA","Pro",false,"",215.3100,"","NA","NA","no",,"","NA","C-term",5
+302,"GGG","Gly",false,"",131.3200,"","NA","NA","no",,"","NA","C-term",5
+303,"AGC","Ser",false,"",123.4700,"","NA","NA","no",,"","NA","C-term",5
+304,"ACT","Thr",false,"",79.0400,"","NA","NA","no",,"","NA","C-term",5
+305,"AAG","Lys",true,"95%",0.0000,"","NA","Acetylation site","no",,"","NA","C-term/NLS",5
+306,"CGA","Arg",true,"95%",0.0000,"","NA","NA","yes",,"","NA","C-term/NLS",5
+307,"GCA","Ala",false,"",130.0200,"","NA","NA","yes",,"","NA","C-term/NLS",5
+308,"CTG","Leu",false,"",14.3000,"","NA","NA","no",,"","NA","C-term/NLS",5
+309,"CCC","Pro",false,"",123.9200,"","NA","NA","no",,"","NA","C-term/NLS",5
+310,"AAC","Asn",false,"",125.6600,"","NA","NA","no",,"","NA","C-term/NLS",5
+311,"AAC","Asn",false,"",202.6000,"","NA","NA","no",,"","NA","C-term/NLS",5
+312,"ACC","Thr",false,"",79.0200,"","NA","NA","no",,"","NA","C-term/NLS",5
+313,"AGC","Ser",false,"",79.7900,"","NA","Phosphorylation site","no",,"","NA","C-term/NLS",5
+314,"TCC","Ser",false,"",99.1300,"","NA","Phosphorylation site","no",,"","NA","C-term/NLS",5
+315,"TCT","Ser",false,"",130.8700,"","NA","Phosphorylation site","no",,"","NA","C-term/NLS",5
+316,"CCC","Pro",false,"",174.0900,"","NLS","NA","no",,"","NA","C-term/NLS",5
+317,"CAG","Gln",false,"",97.5900,"","NLS","NA","yes",,"","NA","C-term/NLS",5
+318,"CCA","Pro",false,"",109.6000,"","NLS","NA","no",,"","NA","C-term/NLS",5
+319,"AAG","Lys",false,"",0.0000,"","NLS","NA","no",,"","NA","C-term/NLS",5
+320,"AAG","Lys",false,"",116.4200,"","NLS","Acetylation/Ubiquitination site","no",,"","NA","C-term/NLS",5
+321,"AAA","Lys",false,"",113.5500,"","NLS","Ubiquitination site","no",,"","NA","C-term/NLS",5
+322,"CCA","Pro",false,"",109.5500,"","NLS","NA","no",,"","NA","C-term/NLS",5
+323,"CTG","Leu",false,"",144.0800,"","Tetramerisation","NA","no",,"","NA","C-term/tetramerisation",3
+324,"GAT","Asp",true,"100%",0.0000,"","Tetramerisation","NA","no",,"","NA","C-term/tetramerisation",3
+325,"GGA","Gly",false,"",105.1800,"","Tetramerisation","NA","no",,"","NA","C-term/tetramerisation",3
+326,"GAA","Glu",true,"100%",0.0000,"","Tetramerisation","NA","no",,"S","NA","C-term/tetramerisation",3
+327,"TAT","Tyr",false,"",33.0500,"","Tetramerisation","Nitration","no",,"S","NA","C-term/tetramerisation",3
+328,"TTC","Phe",true,"95%",0.0000,"","Tetramerisation","Tetramerisation","no",,"S","NA","C-term/tetramerisation",3
+329,"ACC","Thr",false,"",92.2500,"","Tetramerisation","NA","no",,"S","NA","C-term/tetramerisation",3
+330,"CTT","Leu",true,"95%",0.0000,"","Tetramerisation","Tetramerisation","no",,"S","NA","C-term/tetramerisation",3
+331,"CAG","Gln",false,"",56.6400,"","Tetramerisation","NA","yes",,"S","NA","C-term/tetramerisation",3
+332,"ATC","Ile",false,"",28.6800,"","Tetramerisation","Tetramerisation","yes",,"S","NA","C-term/tetramerisation",3
+333,"CGT","Arg",false,"",26.0000,"","Tetramerisation","Methylation site","no",,"S","NA","C-term/tetramerisation",3
+334,"GGG","Gly",true,"100%",0.0000,"","Tetramerisation","NA","no",,"","NA","C-term/tetramerisation",3
+335,"CGT","Arg",false,"",97.0300,"","Tetramerisation","Methylation site","no",,"H","H","C-term/tetramerisation",3
+336,"GAG","Glu",false,"",129.6500,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+337,"CGC","Arg",true,"95%",0.0000,"","Tetramerisation","Tetramerisation/Methylation site","yes",,"H","H","C-term/tetramerisation",3
+338,"TTC","Phe",false,"",21.6100,"","Tetramerisation","Tetramerisation","no",,"H","H","C-term/tetramerisation",3
+339,"GAG","Glu",true,"95%",0.0000,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+340,"ATG","Met",false,"",10.1200,"","Tetramerisation/NES","Tetramerisation","no",,"H","H","C-term/tetramerisation",3
+341,"TTC","Phe",false,"",21.8200,"","Tetramerisation/NES","Tetramerisation","no",,"H","H","C-term/tetramerisation",3
+342,"CGA","Arg",false,"",26.0000,"","Tetramerisation/NES","NA","yes",,"H","H","C-term/tetramerisation",3
+343,"GAG","Glu",false,"",95.1400,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+344,"CTG","Leu",false,"",4.8600,"","Tetramerisation/NES","Tetramerisation","no",,"H","H","C-term/tetramerisation",3
+345,"AAT","Asn",true,"100%",0.0000,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+346,"GAG","Glu",false,"",44.6000,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+347,"GCC","Ala",false,"",99.1300,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+348,"TTG","Leu",true,"95%",0.0000,"","Tetramerisation/NES","Tetramerisation","no",,"H","H","C-term/tetramerisation",3
+349,"GAA","Glu",true,"95%",29.2700,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+350,"CTC","Leu",true,"95%",0.0000,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+351,"AAG","Lys",false,"",141.9200,"","Tetramerisation/NES","NA","no",,"H","H","C-term/tetramerisation",3
+352,"GAT","Asp",false,"",44.6000,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+353,"GCC","Ala",false,"",138.8000,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+354,"CAG","Gln",false,"",164.2500,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+355,"GCT","Ala",false,"",128.8400,"","Tetramerisation","NA","no",,"H","H","C-term/tetramerisation",3
+356,"GGG","Gly",false,"",110.2100,"","Tetramerisation","NA","no",,"","NA","C-term/tetramerisation",3
+357,"AAG","Lys",false,"",138.3300,"","NA","NA","no",,"","NA","C-term",5
+358,"GAG","Glu",false,"",108.9300,"","NA","NA","no",,"","NA","C-term",5
+359,"CCA","Pro",false,"",103.9700,"","NA","NA","no",,"","NA","C-term",5
+360,"GGG","Gly",false,"",186.2400,"","NA","NA","no",,"","NA","C-term",5
+361,"GGG","Gly",false,"",152.3300,"","NA","NA","no",,"","NA","C-term",5
+362,"AGC","Ser",false,"",228.9300,"","NA","NA","no",,"","NA","C-term",5
+363,"AGG","Arg",false,"",0.0000,"","Regulation","NA","no",,"","NA","C-term",5
+364,"GCT","Ala",false,"",123.6800,"","Regulation","NA","no",,"","NA","C-term",5
+365,"CAC","His",false,"",256.5000,"","Regulation","NA","no",,"","NA","C-term",5
+366,"TCC","Ser",false,"",260.1700,"","Regulation","Phosphorylation site","no",,"","NA","C-term",5
+367,"AGC","Ser",false,"",260.2300,"","Regulation","NA","no",,"","NA","C-term",5
+368,"CAC","His",false,"",266.7900,"","Regulation","NA","no",,"","NA","C-term",5
+369,"CTG","Leu",false,"",138.3000,"","Regulation","NA","no",,"","NA","C-term",5
+370,"AAG","Lys",false,"",93.8800,"","Regulation/NLS","Acetylation/Methylation/Ubiquitination site","no",,"","NA","C-term",5
+371,"TCC","Ser",false,"",158.4200,"","Regulation/NLS","Phosphorylation site","no",,"","NA","C-term",5
+372,"AAA","Lys",false,"",238.7100,"","Regulation/NLS","Acetylation/Methylation/Ubiquitination site","no",,"","NA","C-term",5
+373,"AAG","Lys",false,"",239.2500,"","Regulation/NLS","Acetylation/Methylation/Ubiquitination site","no",,"","NA","C-term",5
+374,"GGT","Gly",false,"",244.9500,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+375,"CAG","Gln",false,"",244.6700,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+376,"TCT","Ser",false,"",228.8600,"","Regulation/NLS","Phosphorylation site","no",,"","NA","C-term",5
+377,"ACC","Thr",false,"",215.9600,"","Regulation","Phosphorylation site","no",,"","NA","C-term",5
+378,"TCC","Ser",false,"",208.5500,"","Regulation","Phosphorylation site","no",,"","NA","C-term",5
+379,"CGC","Arg",false,"",203.2700,"","Regulation","NA","no",,"","NA","C-term",5
+380,"CAT","His",false,"",97.5300,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+381,"AAA","Lys",true,"100%",0.0000,"","Regulation/NLS","Acetylation/Ubiquitination site","no",,"","NA","C-term",5
+382,"AAA","Lys",false,"",0.0000,"","Regulation/NLS","Acetylation/Methylation/Ubiquitination site","no",,"","NA","C-term",5
+383,"CTC","Leu",false,"",126.9900,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+384,"ATG","Met",false,"",14.3000,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+385,"TTC","Phe",false,"",119.2300,"","Regulation/NLS","NA","no",,"","NA","C-term",5
+386,"AAG","Lys",true,"95%",0.0000,"","Regulation/NLS","Sumoylation/Ubiquitination site","no",,"","NA","C-term",5
+387,"ACA","Thr",false,"",251.5900,"","Regulation","Phosphorylation site","no",,"","NA","C-term",5
+388,"GAA","Glu",false,"",246.1500,"","Regulation","NA","no",,"","NA","C-term",5
+389,"GGG","Gly",false,"",87.1700,"","Regulation","NA","no",,"","NA","C-term",5
+390,"CCT","Pro",false,"",144.0800,"","Regulation","NA","no",,"","NA","C-term",5
+391,"GAC","Asp",true,"100%",0.0000,"","Regulation","NA","no",,"","NA","C-term",5
+392,"TCA","Ser",true,"100%",208.5500,"","Regulation","Phosphorylation site","no",,"","NA","C-term",5
+393,"GAC","Asp",true,"95%",222.8100,"","Regulation","NA","no",,"","NA","C-term",5
+394,"TGA","STOP",false,"",,"","NA","NA","no",,"","NA","C-term",0
+
+395 rows selected. 
+

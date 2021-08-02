@@ -1,0 +1,11 @@
+"Alcohol_ID","Alcohol","Related_ID","Alcohol_search"
+1,"drinker (NOS)",1,"drinker"
+2,"non-drinker",2,"non-drinker"
+3,"drinker (heavy)",1,"drinker"
+4,"drinker (moderate)",1,"drinker"
+5,"drinker (light)",1,"drinker"
+6,"drinker (ex)",1,"drinker"
+7,"NA",0,"NA"
+
+7 rows selected. 
+
