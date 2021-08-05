@@ -395,7 +395,8 @@ def main(args):
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      id_keys="file_id")
 
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
@@ -407,7 +408,8 @@ def main(args):
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      id_keys="file_id, entity_id")
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

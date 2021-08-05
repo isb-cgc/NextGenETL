@@ -396,7 +396,7 @@ def build_quant_tsv(study_id_dict, data_type, tsv_fp, header):
                                          study_name,
                                          gene_symbol,
                                          log2_ratio]))
-            lines_written += 1
+                lines_written += 1
 
         return lines_written
 
@@ -739,7 +739,7 @@ def main(args):
                                                  tsv_fp=quant_tsv_path,
                                                  header_list=raw_quant_header,
                                                  skip_rows=1,
-                                                 row_check_interval=1)
+                                                 row_check_interval=100)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print(f"\n{lines_written} lines written for {study_id_dict['study_name']}")
@@ -849,7 +849,8 @@ def main(args):
                       get_publish_table_ids=get_publish_table_ids_refseq,
                       find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      id_keys="refseq_id")
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -864,7 +865,8 @@ def main(args):
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      id_keys="gene_id")
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
@@ -878,7 +880,8 @@ def main(args):
                               get_publish_table_ids=get_publish_table_ids,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
                               overwrite=True,
-                              test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                              test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                              id_keys="aliquot_id")
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

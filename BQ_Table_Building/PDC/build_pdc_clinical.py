@@ -772,7 +772,8 @@ def main(args):
                           get_publish_table_ids=get_publish_table_ids,
                           find_most_recent_published_table_id=find_most_recent_published_table_id,
                           overwrite=True,
-                          test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                          test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                          id_keys="case_id")
 
     if 'create_solr_views' in steps:
         # todo abstract this

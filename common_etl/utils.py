@@ -418,13 +418,14 @@ def input_with_timeout(seconds):
 
 
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
-                  find_most_recent_published_table_id, overwrite=False, test_mode=True):
+                  find_most_recent_published_table_id, overwrite=False, test_mode=True, id_keys="case_id"):
     """
     Publish production BigQuery tables using source_table_id:
         - create current/versioned table ids
         - publish tables
         - update friendly name for versioned table
         - change last version tables' status labels to archived
+    :param id_keys:
     :param api_params: api params from yaml config
     :param bq_params: bq params from yaml config
     :param public_dataset: publish dataset location
@@ -445,20 +446,27 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
 
     if test_mode:
-
-
         if exists_bq_table(source_table_id):
             print(f"""
-            source_table_id = {source_table_id}
-            last_published_table_id = {previous_versioned_table_id}
-            publish_new_version? {publish_new_version}
+            Current source table: {source_table_id}
+            Last published table: {previous_versioned_table_id}
+            Publish new version? {publish_new_version}
             """)
 
             if publish_new_version:
-                print(f"""\t*** Tables to publish ***
+                print(f"""
+                Tables to publish:
                 - {versioned_table_id}
                 - {current_table_id}
                 """)
+
+                output_compare_tables_report(api_params, bq_params,
+                                             get_publish_table_ids=get_publish_table_ids,
+                                             find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                             source_table_id=source_table_id,
+                                             public_dataset=public_dataset,
+                                             id_keys=id_keys)
+
         return
 
     if exists_bq_table(source_table_id):
@@ -528,6 +536,10 @@ def await_insert_job(bq_params, client, table_id, bq_job):
             ValueError)
 
     table = client.get_table(table_id)
+
+    if table.num_rows == 0:
+        has_fatal_error(f"[ERROR] Insert job for {table_id} inserted 0 rows. Exiting.")
+
     print(f" done. {table.num_rows} rows inserted.")
 
 
@@ -1461,9 +1473,12 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 row_list = row.split('\t')
 
                 for idx, value in enumerate(row_list):
+                    value = value.strip()
                     value_type = check_value_type(value)
 
-                    print(f"idx: {idx}, value: {value}, value_type: {value_type}")
+                    if idx == 4 and value_type != 'FLOAT64':
+
+                        print(f"value: {value}, value_type: {value_type}")
 
                     data_types_dict[column_headers[idx]].add(value_type)
 
@@ -1547,7 +1562,7 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
 
 def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
-                                 find_most_recent_published_table_id, source_table_id, public_dataset, id_key):
+                                 find_most_recent_published_table_id, source_table_id, public_dataset, id_keys):
     """
     Compare new table with previous version.
     todo
@@ -1557,7 +1572,6 @@ def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
     :param find_most_recent_published_table_id:
     :param source_table_id:
     :param public_dataset:
-    :param id_key:
     :return:
     """
     def make_field_diff_query(is_removed_query):
@@ -1620,10 +1634,10 @@ def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
     def make_removed_ids_query():
         """Make query for finding removed ids in newly released dataset."""
         return f"""
-            SELECT {id_key}
+            SELECT {id_keys}
             FROM `{previous_table_id}`
-            WHERE {id_key} NOT IN (
-                SELECT {id_key} 
+            WHERE CONCAT({id_keys}) NOT IN (
+                SELECT CONCAT({id_keys}) 
                 FROM `{source_table_id}`
             )    
         """
@@ -1634,10 +1648,10 @@ def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
         :return: query string for table comparison
         """
         return f"""
-            SELECT count({id_key}) as added_id_count
+            SELECT count({id_keys}) as added_id_count
             FROM `{source_table_id}`
-            WHERE {id_key} NOT IN (
-                SELECT {id_key} 
+            WHERE CONCAT({id_keys}) NOT IN (
+                SELECT CONCAT({id_keys})
                 FROM `{previous_table_id}`
             )
         """
