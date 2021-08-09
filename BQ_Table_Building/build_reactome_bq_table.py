@@ -32,11 +32,11 @@ from json import loads as json_loads
 import pprint
 from createSchemaP3 import build_schema
 
-from common_etl.support import confirm_google_vm, create_clean_target, \
-                               build_file_list, upload_to_bucket, csv_to_bq, \
-                               BucketPuller, build_combined_schema, \
+from common_etl.support import confirm_google_vm, create_clean_target, build_file_list, \
+                               upload_to_bucket, csv_to_bq, BucketPuller, build_combined_schema, \
                                install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, publish_table, pull_from_buckets
+                               generate_table_detail_files, publish_table, pull_from_buckets, \
+                               generic_bq_harness
 
 
 '''
@@ -195,38 +195,76 @@ def main(args):
                 params['BQ_AS_BATCH']
             )
 
+    if 'create_physical_entity_table' in steps:
+        print('create_physical_entity_table')
 
-    # create BQ derived tables
-    #SELECT
-    #  DISTINCT ens.source_id AS ensembl_id,
-    #    uni.source_id as uniprot_id,
-    #    ens.pe_stable_id as pe_stable_id,
-    #    REGEXP_EXTRACT(ens.pe_name, r"^(.*) \[.*\]$") AS pe_name,
-    #    REGEXP_EXTRACT(ens.pe_name, r"^.* \[(.*)\]$") as pe_location
-    #FROM
-    #  `isb-project-zero.reactome.tmp_ensembl2reactome_pe_all_levels_v77` AS ens
-    #  FULL OUTER JOIN `isb-project-zero.reactome.tmp_uniprot2reactome_pe_all_levels_v77` as uni
-    #  ON ens.pe_stable_id = uni.pe_stable_id
-    #WHERE ens.species = 'Homo sapiens'
-    #ORDER BY ens.pe_stable_id
+        tmp_ensembl2reactome_table = 'tmp_ensembl2reactome_pe_all_levels_v77'
+        tmp_uniprot2reactome_table = 'tmp_uniprot2reactome_pe_all_levels_v77'
+        physical_entity_table = 'physical_entity'
 
+        physical_entity_sql = '''
+          SELECT
+            DISTINCT
+              ens.source_id AS ensembl_id,
+              uni.source_id AS uniprot_id,
+              COALESCE(ens.pe_stable_id, uni.pe_stable_id) AS stable_id,
+              REGEXP_EXTRACT(COALESCE(ens.pe_name, uni.pe_name), r"^(.*) \[.*\]$") AS name,
+              REGEXP_EXTRACT(COALESCE(ens.pe_name, uni.pe_name), r"^.* \[(.*)\]$") AS location
+          FROM
+            `{0}.{1}.{2}` AS ens
+          FULL OUTER JOIN `{0}.{1}.{3}` AS uni
+            ON ens.pe_stable_id = uni.pe_stable_id
+          WHERE ens.species = 'Homo sapiens'
+          ORDER BY stable_id
+        '''.format(
+            params['WORKING_PROJECT'],
+            params['TARGET_DATASET'],
+            tmp_ensembl2reactome_table,
+            tmp_uniprot2reactome_table
+        )
 
-    #SELECT
-    #  DISTINCT ens.pathway_stable_id AS ens_stable_id,
-    #    uni.pathway_stable_id as uni_stable_id,
-    #    ens.url as ens_url,
-    #    uni.url as uni_url,
-    #    ens.pathway_name as ens_pathway_name,
-    #    uni.pathway_name as uni_pathway_name,
-    #    ens.species as ens_species,
-    #    uni.species as uni_species
-    #FROM
-    #  `isb-project-zero.reactome.tmp_ensembl2reactome_pe_all_levels_v77` AS ens
-    #  FULL OUTER JOIN `isb-project-zero.reactome.tmp_uniprot2reactome_pe_all_levels_v77` as uni
-    #  ON ens.pathway_stable_id = uni.pathway_stable_id
-    #WHERE ens.species = 'Homo sapiens'
-    #ORDER BY ens_stable_id
+        generic_bq_harness(
+            physical_entity_sql,
+            params['TARGET_DATASET'],
+            physical_entity_table,
+            params['BQ_AS_BATCH'],
+            True
+        )
 
+    if 'create_pathway_table' in steps:
+        print('create_pathway_table')
+
+        tmp_ensembl2reactome_table = 'tmp_ensembl2reactome_pe_all_levels_v77'
+        tmp_uniprot2reactome_table = 'tmp_uniprot2reactome_pe_all_levels_v77'
+        pathway_table = 'pathway'
+
+        pathway_sql = '''
+          SELECT
+            DISTINCT
+              COALESCE(ens.pathway_stable_id, uni.pathway_stable_id) AS stable_id,
+              COALESCE(ens.url, uni.url) AS url,
+              COALESCE(ens.pathway_name, uni.pathway_name) AS name,
+              COALESCE(ens.species, uni.species) AS species
+            FROM
+              `{0}.{1}.{2}` AS ens
+            FULL OUTER JOIN `{0}.{1}.{3}` AS uni
+              ON ens.pathway_stable_id = uni.pathway_stable_id
+            WHERE COALESCE(ens.species, uni.species) = 'Homo sapiens'
+            ORDER BY stable_id
+        '''.format(
+            params['WORKING_PROJECT'],
+            params['TARGET_DATASET'],
+            tmp_ensembl2reactome_table,
+            tmp_uniprot2reactome_table
+        )
+
+        generic_bq_harness(
+            pathway_sql,
+            params['TARGET_DATASET'],
+            pathway_table,
+            params['BQ_AS_BATCH'],
+            True
+        )
 
     #
     # Update the per-field descriptions:
