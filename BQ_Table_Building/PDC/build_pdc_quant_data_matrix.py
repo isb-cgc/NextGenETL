@@ -1,3 +1,25 @@
+"""
+Copyright 2021, Institute for Systems Biology
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import time
 import sys
 import requests
@@ -10,7 +32,7 @@ from common_etl.utils import (get_query_results, format_seconds, get_scratch_fp,
                               load_table_from_query, exists_bq_table, load_config, construct_table_name,
                               create_and_upload_schema_for_tsv, retrieve_bq_schema_object, delete_bq_table,
                               create_and_upload_schema_for_json, write_list_to_jsonl_and_upload, publish_table,
-                              make_string_bq_friendly)
+                              make_string_bq_friendly, test_table_for_version_changes)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_studies_list, get_filename, update_table_schema_from_generic_pdc,
                                              get_prefix, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -835,6 +857,44 @@ def main(args):
                                                          schema_tags=schema_tags,
                                                          metadata_file=generic_metadata_file)
 
+    if 'test_new_version_refseq_mapping_table' in steps:
+        refseq_table_name = construct_table_name(API_PARAMS,
+                                                 prefix=BQ_PARAMS['REFSEQ_UNIPROT_FINAL_TABLE'],
+                                                 release=API_PARAMS['UNIPROT_RELEASE'])
+        refseq_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{refseq_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=refseq_table_id,
+                                       get_publish_table_ids=get_publish_table_ids_refseq,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
+                                       id_keys="refseq_id")
+
+    if 'test_new_version_gene_and_quant_tables' in steps:
+
+        gene_table_name = construct_table_name(API_PARAMS, prefix=get_prefix(API_PARAMS, API_PARAMS['GENE_ENDPOINT']))
+        gene_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{gene_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=gene_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="gene_id")
+
+        # check for quant table (for each study) and publish if one exists
+        for study in studies_list:
+            quant_table_name = get_quant_table_name(study, is_final=True)
+            quant_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['QUANT_FINAL_DATASET']}.{quant_table_name}"
+
+            if exists_bq_table(quant_table_id):
+                test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                               public_dataset=study['program_short_name'],
+                                               source_table_id=quant_table_id,
+                                               get_publish_table_ids=get_publish_table_ids,
+                                               find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                               id_keys="aliquot_id")
+
     if 'publish_refseq_mapping_table' in steps:
         print("Publishing RefSeq table!")
 
@@ -848,9 +908,7 @@ def main(args):
                       source_table_id=refseq_table_id,
                       get_publish_table_ids=get_publish_table_ids_refseq,
                       find_most_recent_published_table_id=find_most_recent_published_table_id_uniprot,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
-                      id_keys="refseq_id")
+                      overwrite=True)
 
     if 'publish_gene_and_quant_tables' in steps:
         # publish gene mapping table
@@ -864,9 +922,7 @@ def main(args):
                       source_table_id=gene_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
-                      id_keys="gene_id")
+                      overwrite=True)
 
         # check for quant table (for each study) and publish if one exists
         for study in studies_list:
@@ -879,9 +935,7 @@ def main(args):
                               source_table_id=quant_table_id,
                               get_publish_table_ids=get_publish_table_ids,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True,
-                              test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
-                              id_keys="aliquot_id")
+                              overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
