@@ -417,6 +417,39 @@ def input_with_timeout(seconds):
                 return input()
 
 
+def test_table_for_version_changes(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
+                                   find_most_recent_published_table_id, id_keys="case_id"):
+
+    current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
+                                                                 source_table_id=source_table_id,
+                                                                 public_dataset=public_dataset)
+
+    previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
+
+    publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
+
+    if exists_bq_table(source_table_id):
+        print(f"""
+            Current source table: {source_table_id}
+            Last published table: {previous_versioned_table_id}
+            Publish new version? {publish_new_version}
+            """)
+
+        if publish_new_version:
+            print(f"""
+                Tables to publish:
+                - {versioned_table_id}
+                - {current_table_id}
+                """)
+
+            output_compare_tables_report(api_params, bq_params,
+                                         get_publish_table_ids=get_publish_table_ids,
+                                         find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                         source_table_id=source_table_id,
+                                         public_dataset=public_dataset,
+                                         id_keys=id_keys)
+
+
 def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
                   find_most_recent_published_table_id, overwrite=False, test_mode=True, id_keys="case_id"):
     """
@@ -444,30 +477,6 @@ def publish_table(api_params, bq_params, public_dataset, source_table_id, get_pu
     previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
 
     publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
-
-    if test_mode:
-        if exists_bq_table(source_table_id):
-            print(f"""
-            Current source table: {source_table_id}
-            Last published table: {previous_versioned_table_id}
-            Publish new version? {publish_new_version}
-            """)
-
-            if publish_new_version:
-                print(f"""
-                Tables to publish:
-                - {versioned_table_id}
-                - {current_table_id}
-                """)
-
-                output_compare_tables_report(api_params, bq_params,
-                                             get_publish_table_ids=get_publish_table_ids,
-                                             find_most_recent_published_table_id=find_most_recent_published_table_id,
-                                             source_table_id=source_table_id,
-                                             public_dataset=public_dataset,
-                                             id_keys=id_keys)
-
-        return
 
     if exists_bq_table(source_table_id):
         if publish_new_version:

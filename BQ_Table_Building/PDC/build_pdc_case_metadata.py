@@ -25,7 +25,7 @@ import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, load_table_from_query,
                               retrieve_bq_schema_object, publish_table, create_and_upload_schema_for_json,
-                              write_list_to_jsonl_and_upload)
+                              write_list_to_jsonl_and_upload, test_table_for_version_changes)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_prefix,
                                              update_table_schema_from_generic_pdc, get_publish_table_ids,
@@ -286,6 +286,29 @@ def main(args):
                                              table_id=table_id,
                                              metadata_file=BQ_PARAMS['GENERIC_ALIQ_MAP_METADATA_FILE'])
 
+    if 'test_new_version_case_metadata_table' in steps:
+        case_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
+        case_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{case_metadata_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=case_metadata_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="case_id")
+
+    if 'test_new_version_aliquot_to_case_mapping_table' in steps:
+        # Publish aliquot to case mapping table
+        mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
+        mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=mapping_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="aliquot_id")
+
     if "publish_case_metadata_tables" in steps:
         # Publish master case metadata table
         case_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['CASE_METADATA_TABLE'])
@@ -296,9 +319,7 @@ def main(args):
                       source_table_id=case_metadata_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
-                      id_keys="case_id")
+                      overwrite=True)
 
         # Publish aliquot to case mapping table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['ALIQUOT_TO_CASE_TABLE'])
@@ -309,9 +330,7 @@ def main(args):
                       source_table_id=mapping_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
-                      id_keys="aliquot_id")
+                      overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
