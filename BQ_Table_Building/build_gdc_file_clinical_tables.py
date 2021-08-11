@@ -210,7 +210,7 @@ def main(args):
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
 
-            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_DATA_SUFFIX']}"
+            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
 
             manifest_success = get_the_bq_manifest(file_table=file_table_id,
