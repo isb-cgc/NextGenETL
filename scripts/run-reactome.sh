@@ -19,10 +19,10 @@ source ~/setEnvVars.sh
 export MY_VENV=~/virtualEnvETL
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
-#mkdir -p ~/config
-#pushd ~/config > /dev/null
-#gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ReactomeBQBuild.yaml .
-#popd > /dev/null
+mkdir -p ~/config
+pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/ReactomeBQBuild.yaml .
+popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate

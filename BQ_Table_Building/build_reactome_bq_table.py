@@ -36,7 +36,7 @@ from common_etl.support import confirm_google_vm, create_clean_target, build_fil
                                upload_to_bucket, csv_to_bq, BucketPuller, build_combined_schema, \
                                install_labels_and_desc, update_schema_with_dict, \
                                generate_table_detail_files, publish_table, pull_from_buckets, \
-                               generic_bq_harness
+                               generic_bq_harness, delete_table_bq_job
 
 
 '''
@@ -52,9 +52,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['no_data_values'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
 
 '''
@@ -66,7 +66,10 @@ to e.g. skip previously run steps.
 def main(args):
 
     if not confirm_google_vm():
-        print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
+        print(
+            'This job needs to run on a Google Cloud Compute Engine '
+            'to avoid storage egress charges [EXITING]'
+        )
         return
 
     if len(args) != 2:
@@ -81,7 +84,7 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, na_values, steps = load_config(yaml_file.read())
+        params, steps = load_config(yaml_file.read())
 
     #
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
@@ -89,51 +92,28 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    #local_file_list = "{}/{}/{}/{}".format(
-    #    home, params['LOCAL_FILES_DIR'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
-    #)
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     print('local_files_dir: ', local_files_dir)
-    #print('local_file_list: ', local_file_list)
-
     print('hold_schema_dict: ', hold_schema_dict)
     print('hold_schema_list: ', hold_schema_list)
 
     #
-    # Parse table list
-    # 
+    # Parse table lists and add release number
+    #
+
+    for t in params['TMP_TABLE_LIST']:
+        params['TMP_TABLE_LIST'][t] = params['TMP_TABLE_LIST'][t].format(params['RELEASE'])
     for t in params['TABLE_LIST']:
         params['TABLE_LIST'][t] = params['TABLE_LIST'][t].format(params['RELEASE'])
 
+    pprint.pprint(params['TMP_TABLE_LIST'])
     pprint.pprint(params['TABLE_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
-
-    #
-    # Download file list from bucket, each file corresponds to a table
-    #
-
-    #file_list = []
-    #file_base_names = {}
-    #if 'download_file_list' in steps:
-    #    print('download_file_list')
-    #    pull_from_buckets(
-    #        ['gs://{}/{}/{}'.format(
-    #            params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
-    #        )],
-    #        local_files_dir
-    #    )
-    #    with open(local_file_list, mode='r') as file_list_fh:
-    #        file_list = file_list_fh.read().splitlines()
-
-    #    for f in file_list:
-    #        file_base_names[f] = os.path.splitext(os.path.basename(f))[0]
-
-    #pprint.pprint(file_base_names)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -149,39 +129,47 @@ def main(args):
             print("pull_table_info_from_git failed: {}".format(str(ex)))
             return
 
-    #if 'process_git_schemas' in steps:
-    #    print('process_git_schemas')
-    #    for f in all_files:
-    #        # Where do we dump the schema git repository?
-    #        schema_file = "{}/{}/{}.json".format(
-    #            params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
-    #        )
-    #        full_file_prefix = "{}/{}".format(local_files_dir, file_base_names[f])
-    #        # Write out the details
-    #        success = generate_table_detail_files(schema_file, full_file_prefix)
-    #        if not success:
-    #            print("process_git_schemas failed")
-    #            return
+    if 'process_git_schemas' in steps:
+        print('process_git_schemas')
+        for t in params['TABLE_LIST']:
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TABLE_LIST'][t]
+            )
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
+
+    #
+    # Load temp tables from raw data
+    #
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        for t in params['TABLE_LIST']:
-            print('table: ', params['TABLE_LIST'][t])
+        for t in params['TMP_TABLE_LIST']:
+            print('table: ', params['TMP_TABLE_LIST'][t])
             bucket_src_url = 'gs://{}/{}/{}.tsv'.format(
-                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['TABLE_LIST'][t]
+                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['TMP_TABLE_LIST'][t]
             )
             schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TABLE_LIST'][t]
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TMP_TABLE_LIST'][t]
             )
             with open(schema_file, mode='r') as schema_fh:
                 schema = json_loads(schema_fh.read())
             csv_to_bq(
                 schema['schema']['fields'],
                 bucket_src_url,
-                params['TARGET_DATASET'],
-                params['TABLE_LIST'][t],
+                params['WORKING_DATASET'],
+                params['TMP_TABLE_LIST'][t],
                 params['BQ_AS_BATCH']
             )
+
+    #
+    # Create derived, final tables from temp tables
+    #
 
     if 'create_physical_entity_table' in steps:
         print('create_physical_entity_table')
@@ -202,15 +190,15 @@ def main(args):
           ORDER BY stable_id
         '''.format(
             params['WORKING_PROJECT'],
-            params['TARGET_DATASET'],
-            params['TABLE_LIST']['ensembl2reactome'],
-            params['TABLE_LIST']['uniprot2reactome']
+            params['WORKING_DATASET'],
+            params['TMP_TABLE_LIST']['ensembl2reactome'],
+            params['TMP_TABLE_LIST']['uniprot2reactome']
         )
 
         generic_bq_harness(
             physical_entity_sql,
-            params['TARGET_DATASET'],
-            'physical_entity',
+            params['WORKING_DATASET'],
+            params['TABLE_LIST']['physical_entity'],
             params['BQ_AS_BATCH'],
             True
         )
@@ -233,15 +221,15 @@ def main(args):
             ORDER BY stable_id
         '''.format(
             params['WORKING_PROJECT'],
-            params['TARGET_DATASET'],
-            params['TABLE_LIST']['ensembl2reactome'],
-            params['TABLE_LIST']['uniprot2reactome']
+            params['WORKING_DATASET'],
+            params['TMP_TABLE_LIST']['ensembl2reactome'],
+            params['TMP_TABLE_LIST']['uniprot2reactome']
         )
 
         generic_bq_harness(
             pathway_sql,
-            params['TARGET_DATASET'],
-            'pathway',
+            params['WORKING_DATASET'],
+            params['TABLE_LIST']['pathway'],
             params['BQ_AS_BATCH'],
             True
         )
@@ -261,15 +249,15 @@ def main(args):
           WHERE species = 'Homo sapiens'
         '''.format(
             params['WORKING_PROJECT'],
-            params['TARGET_DATASET'],
-            params['TABLE_LIST']['ensembl2reactome'],
-            params['TABLE_LIST']['uniprot2reactome']
+            params['WORKING_DATASET'],
+            params['TMP_TABLE_LIST']['ensembl2reactome'],
+            params['TMP_TABLE_LIST']['uniprot2reactome']
         )
 
         generic_bq_harness(
             pathway_sql,
-            params['TARGET_DATASET'],
-            'pe_to_pathway',
+            params['WORKING_DATASET'],
+            params['TABLE_LIST']['pe_to_pathway'],
             params['BQ_AS_BATCH'],
             True
         )
@@ -287,19 +275,18 @@ def main(args):
             ON pathway_rel.child_id = pathway_child.stable_id
         '''.format(
             params['WORKING_PROJECT'],
-            params['TARGET_DATASET'],
-            params['TABLE_LIST']['pathways_hierarchy'],
-            'pathway'
+            params['WORKING_DATASET'],
+            params['TMP_TABLE_LIST']['pathways_relation'],
+            params['TABLE_LIST']['pathway']
         )
 
         generic_bq_harness(
             pathway_sql,
-            params['TARGET_DATASET'],
-            'pathway_hierarchy',
+            params['WORKING_DATASET'],
+            params['TABLE_LIST']['pathway_hierarchy'],
             params['BQ_AS_BATCH'],
             True
         )
-
 
     #
     # Update the per-field descriptions:
@@ -307,8 +294,8 @@ def main(args):
 
     if 'update_field_descriptions' in steps:
         print('update_field_descriptions')
-        for f in all_files:
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -317,7 +304,7 @@ def main(args):
                 schema_dict[entry['name']] = {'description': entry['description']}
 
             success = update_schema_with_dict(
-                params['TARGET_DATASET'], file_base_names[f], schema_dict
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], schema_dict
             )
             if not success:
                 print("update_field_descriptions failed")
@@ -329,27 +316,45 @@ def main(args):
 
     if 'update_table_description' in steps:
         print('update_table_description')
-        for f in all_files:
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
             success = install_labels_and_desc(
-                params['TARGET_DATASET'], file_base_names[f], full_file_prefix
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], full_file_prefix
             )
             if not success:
                 print("update_table_description failed")
                 return
 
     #
-    # publish table:
+    # Delete temp tables
+    #
+
+    if 'delete_temp_tables' in steps:
+        for t in params['TMP_TABLE_LIST']:
+            print('Deleting temp table: {}.{}.{}'.format(
+                params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TMP_TABLE_LIST'][t]
+            ))
+            success = delete_table_bq_job(
+                params['WORKING_DATASET'], params['TMP_TABLE_LIST'][t], params['WORKING_PROJECT']
+            )
+            if not success:
+                print('delete_temp_tables failed')
+                return
+
+    #
+    # Publish tables
     #
 
     if 'publish' in steps:
         print('publish')
-        for f in all_files:
+        for t in params['TABLE_LIST']:
             source_table = '{}.{}.{}'.format(
-                params['WORKING_PROJECT'], params['TARGET_DATASET'], file_base_names[f]
+                params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TABLE_LIST'][t]
             )
             publication_dest = '{}.{}.{}'.format(
-                params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'], file_base_names[f]
+                params['PUBLICATION_PROJECT'],
+                params['PUBLICATION_DATASET'],
+                params['TABLE_LIST'][t]
             )
             success = publish_table(source_table, publication_dest)
 
