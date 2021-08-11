@@ -204,7 +204,7 @@ def main(args):
         manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
         file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
-        bucket_tsv = f"{BQ_PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+        bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
 
         if 'build_manifest_from_filters' in steps:
             print('build_manifest_from_filters')
