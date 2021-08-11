@@ -401,6 +401,24 @@ def get_pdc_projects_list(api_params, bq_params, include_embargoed=False):
     return projects_list
 
 
+def create_project_dataset_map(api_params, bq_params):
+    """
+    todo
+    :param api_params:
+    :param bq_params:
+    :return:
+    """
+    project_dataset_map = dict()
+
+    pdc_study_details = get_pdc_studies_list(api_params, bq_params, include_embargoed=False)
+
+    for study in pdc_study_details:
+        project_short_name = study['project_short_name']
+        project_dataset_map[project_short_name] = study['program_short_name']
+
+    return project_dataset_map
+
+
 def update_table_schema_from_generic_pdc(api_params, bq_params, table_id, schema_tags=None, metadata_file=None):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).

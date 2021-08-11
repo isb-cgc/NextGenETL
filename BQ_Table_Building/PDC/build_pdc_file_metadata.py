@@ -25,7 +25,7 @@ import sys
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, retrieve_bq_schema_object,
                               publish_table, construct_table_name, create_and_upload_schema_for_json,
-                              get_graphql_api_response, write_list_to_jsonl_and_upload)
+                              get_graphql_api_response, write_list_to_jsonl_and_upload, test_table_for_version_changes)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_modified_temp_table, get_prefix,
@@ -384,6 +384,28 @@ def main(args):
 
         update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, full_table_id)
 
+    if 'test_new_version_file_metadata_table' in steps:
+        file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
+        file_metadata_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_metadata_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=file_metadata_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="file_id")
+
+    if 'test_new_version_assoc_entities_table' in steps:
+        mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
+        mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=mapping_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="file_id, entity_id")
+
     if "publish_file_metadata_tables" in steps:
         # Publish master file metadata table
         file_metadata_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_METADATA_TABLE'])
@@ -394,8 +416,7 @@ def main(args):
                       source_table_id=file_metadata_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      overwrite=True)
 
         # Publish master associated entities table
         mapping_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE'])
@@ -406,8 +427,7 @@ def main(args):
                       source_table_id=mapping_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

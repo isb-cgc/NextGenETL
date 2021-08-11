@@ -29,14 +29,14 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, create_and_upload_schema_for_json,
-                              retrieve_bq_schema_object, create_view_from_query)
+                              retrieve_bq_schema_object, create_view_from_query, test_table_for_version_changes)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, get_records, write_jsonl_and_upload, get_prefix,
                                              update_table_schema_from_generic_pdc, get_project_program_names,
                                              find_most_recent_published_table_id, get_project_level_schema_tags,
-                                             get_publish_table_ids)
+                                             get_publish_table_ids, create_project_dataset_map)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -618,6 +618,25 @@ def build_per_project_clinical_tables(cases_by_project_submitter):
                                                      schema_tags=schema_tags)
 
 
+def create_filtered_clinical_table_list():
+    """
+    todo
+    :return:
+    """
+    # iterate over existing dev project clinical tables for current API version
+    current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
+                                                 release=API_PARAMS['RELEASE'])
+
+    filtered_clinical_table_list = list()
+
+    for table in current_clinical_table_list:
+        table_name = table.split('.')[-1]
+        if table_name[0:4] != 'case':
+            filtered_clinical_table_list.append(table)
+
+    return filtered_clinical_table_list
+
+
 def main(args):
     start_time = time.time()
     print(f"PDC script started at {time.strftime('%x %X', time.localtime())}")
@@ -733,26 +752,33 @@ def main(args):
         # build clinical tables--flattens or creates supplemental diagnoses tables as needed
         build_per_project_clinical_tables(cases_by_project)
 
+    if 'test_new_version_clinical_tables' in steps:
+        project_dataset_map = create_project_dataset_map(API_PARAMS, BQ_PARAMS)
+        filtered_clinical_table_list = create_filtered_clinical_table_list()
+
+        for table_name in filtered_clinical_table_list:
+            project_short_name = table_name
+
+            # strip table name down to project short name; use as key to look up program dataset name
+            for rem_str in ['clinical_diagnoses_', 'clinical_', f"_pdc_{API_PARAMS['RELEASE']}"]:
+                if rem_str in project_short_name:
+                    project_short_name = project_short_name.replace(rem_str, '')
+
+            clinical_table_id = construct_table_id(BQ_PARAMS['DEV_PROJECT'], BQ_PARAMS['CLINICAL_DATASET'], table_name)
+
+            public_dataset = project_dataset_map[project_short_name]
+
+            test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                           public_dataset=public_dataset,
+                                           source_table_id=clinical_table_id,
+                                           get_publish_table_ids=get_publish_table_ids,
+                                           find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                           id_keys="case_id")
+
     if "publish_clinical_tables" in steps:
         # create dict of project short names and the dataset they belong to
-        project_dataset_map = dict()
-
-        pdc_study_details = get_pdc_studies_list(API_PARAMS, BQ_PARAMS, include_embargoed=False)
-
-        for study in pdc_study_details:
-            project_short_name = study['project_short_name']
-            project_dataset_map[project_short_name] = study['program_short_name']
-
-        # iterate over existing dev project clinical tables for current API version
-        current_clinical_table_list = list_bq_tables(dataset_id=BQ_PARAMS['CLINICAL_DATASET'],
-                                                     release=API_PARAMS['RELEASE'])
-
-        filtered_clinical_table_list = list()
-
-        for table in current_clinical_table_list:
-            table_name = table.split('.')[-1]
-            if table_name[0:4] != 'case':
-                filtered_clinical_table_list.append(table)
+        project_dataset_map = create_project_dataset_map(API_PARAMS, BQ_PARAMS)
+        filtered_clinical_table_list = create_filtered_clinical_table_list()
 
         for table_name in filtered_clinical_table_list:
             project_short_name = table_name
@@ -771,8 +797,7 @@ def main(args):
                           source_table_id=clinical_table_id,
                           get_publish_table_ids=get_publish_table_ids,
                           find_most_recent_published_table_id=find_most_recent_published_table_id,
-                          overwrite=True,
-                          test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                          overwrite=True)
 
     if 'create_solr_views' in steps:
         # todo abstract this

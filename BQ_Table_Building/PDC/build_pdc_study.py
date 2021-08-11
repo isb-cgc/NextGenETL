@@ -24,7 +24,7 @@ import time
 import json
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              load_table_from_query, publish_table)
+                              load_table_from_query, publish_table, test_table_for_version_changes)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
                                              get_prefix, update_table_schema_from_generic_pdc, get_publish_table_ids,
                                              find_most_recent_published_table_id)
@@ -260,6 +260,17 @@ def main(args):
 
         update_table_schema_from_generic_pdc(API_PARAMS, BQ_PARAMS, table_id=final_table_id)
 
+    if 'test_new_version_studies_table' in steps:
+        source_table_name = f"{BQ_PARAMS['STUDIES_TABLE']}_{API_PARAMS['RELEASE']}"
+        source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{source_table_name}"
+
+        test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                       public_dataset=BQ_PARAMS['PUBLIC_META_DATASET'],
+                                       source_table_id=source_table_id,
+                                       get_publish_table_ids=get_publish_table_ids,
+                                       find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                       id_keys="pdc_study_id")
+
     if 'publish_studies_table' in steps:
         source_table_name = f"{BQ_PARAMS['STUDIES_TABLE']}_{API_PARAMS['RELEASE']}"
         source_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{source_table_name}"
@@ -269,8 +280,7 @@ def main(args):
                       source_table_id=source_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
-                      overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                      overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")

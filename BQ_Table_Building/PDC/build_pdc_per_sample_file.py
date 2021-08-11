@@ -2,7 +2,8 @@ import time
 import sys
 
 from common_etl.utils import (has_fatal_error, load_config, format_seconds, construct_table_name,
-                              create_view_from_query, load_table_from_query, exists_bq_table, publish_table)
+                              create_view_from_query, load_table_from_query, exists_bq_table, publish_table,
+                              test_table_for_version_changes)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_prefix, get_pdc_projects_list, get_publish_table_ids,
                                              get_project_level_schema_tags, update_table_schema_from_generic_pdc,
@@ -158,6 +159,22 @@ def main(args):
                                                      table_id=project_table_id,
                                                      schema_tags=schema_tags)
 
+    if 'test_new_version_per_sample_tables' in steps:
+        for project in projects_list:
+            dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
+            src_table_prefix = f"{BQ_PARAMS['PROJECT_PER_SAMPLE_FILE_TABLE']}"
+            src_table_suffix = f"{API_PARAMS['DATA_SOURCE']}_{API_PARAMS['RELEASE']}"
+            src_per_sample_table_name = f"{src_table_prefix}_{project['project_short_name']}_{src_table_suffix}"
+            src_per_sample_table_id = f"{dev_meta_dataset}.{src_per_sample_table_name}"
+
+            if exists_bq_table(src_per_sample_table_id):
+                test_table_for_version_changes(API_PARAMS, BQ_PARAMS,
+                                               public_dataset=project['program_short_name'],
+                                               source_table_id=src_per_sample_table_id,
+                                               get_publish_table_ids=get_publish_table_ids,
+                                               find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                               id_keys="file_id, sample_id")
+
     if 'publish_project_level_per_sample_tables' in steps:
         for project in projects_list:
             dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
@@ -172,8 +189,7 @@ def main(args):
                               source_table_id=src_per_sample_table_id,
                               get_publish_table_ids=get_publish_table_ids,
                               find_most_recent_published_table_id=find_most_recent_published_table_id,
-                              overwrite=True,
-                              test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'])
+                              overwrite=True)
 
     end = time.time() - start_time
     print(f"Finished program execution in {format_seconds(end)}!\n")
