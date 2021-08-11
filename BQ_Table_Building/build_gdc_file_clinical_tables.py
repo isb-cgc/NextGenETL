@@ -205,6 +205,7 @@ def main(args):
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
         file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
         bucket_tsv = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+        bucket_path = f"{BQ_PARAMS['WORKING BUCKET']}/{BQ_PARAMS['WORKING_BUCKET_DIR']}"
 
         if 'build_manifest_from_filters' in steps:
             print('build_manifest_from_filters')
@@ -219,7 +220,7 @@ def main(args):
                                                    project=BQ_PARAMS['WORKING_PROJECT'],
                                                    tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
                                                    tmp_bq=BQ_PARAMS['BQ_MANIFEST_TABLE'],
-                                                   tmp_bucket=PARAMS['WORKING_BUCKET'],
+                                                   tmp_bucket=bucket_path,
                                                    tmp_bucket_file=bucket_tsv,
                                                    local_file=manifest_file,
                                                    do_batch=BQ_PARAMS['BQ_AS_BATCH'])
