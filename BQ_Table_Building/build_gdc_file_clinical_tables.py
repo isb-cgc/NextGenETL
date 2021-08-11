@@ -199,11 +199,9 @@ def main(args):
 
     local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
 
-    print(programs)
-    exit()
-
     for program in programs:
-        print(program)
+        print(programs['program']['filters'])
+        continue
         one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
         manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
@@ -212,7 +210,7 @@ def main(args):
 
         if 'build_manifest_from_filters' in steps:
             print('build_manifest_from_filters')
-            filter_dict = program['filters']
+            filter_dict = programs['program']['filters']
 
             file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_DATA_SUFFIX']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
