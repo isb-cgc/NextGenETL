@@ -208,7 +208,7 @@ def main(args):
 
         if 'build_manifest_from_filters' in steps:
             print('build_manifest_from_filters')
-            filter_dict = None  # todo
+            filter_dict = program['filters']
 
             file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_DATA_SUFFIX']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
