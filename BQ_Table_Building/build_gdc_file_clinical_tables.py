@@ -200,6 +200,7 @@ def main(args):
     local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
 
     for program in programs:
+        print(program)
         one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
         manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
