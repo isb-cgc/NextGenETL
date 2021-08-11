@@ -59,24 +59,6 @@ def load_config(yaml_config):
 
 '''
 ----------------------------------------------------------------------------------------------
-Fix null values
-'''
-def fix_null_values(orig_file, fixed_file, na_values):
-    print("processing {}".format(fixed_file))
-    with open(fixed_file, 'w') as outfile:
-        with open(orig_file, 'r') as readfile:
-            for line in readfile:
-                split_line = line.rstrip('\n').split("\t")
-                write_line = []
-                for i in range(len(split_line)):
-                    write_line.append("" if split_line[i] in na_values else split_line[i])
-                outfile.write('\t'.join(write_line))
-                outfile.write('\n')
-    return
-
-
-'''
-----------------------------------------------------------------------------------------------
 Main Control Flow
 Note that the actual steps run are configured in the YAML input! This allows you
 to e.g. skip previously run steps.
@@ -107,18 +89,25 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    #fixed_tsv = "{}/{}".format(home, params['FIXED_TSV'])
-    local_file_list = "{}/{}/{}/{}".format(
-        home, params['LOCAL_FILES_DIR'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
-    )
+    #local_file_list = "{}/{}/{}/{}".format(
+    #    home, params['LOCAL_FILES_DIR'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
+    #)
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     print('local_files_dir: ', local_files_dir)
-    print('local_file_list: ', local_file_list)
+    #print('local_file_list: ', local_file_list)
 
     print('hold_schema_dict: ', hold_schema_dict)
     print('hold_schema_list: ', hold_schema_list)
+
+    #
+    # Parse table list
+    # 
+    for t in params['TABLE_LIST']:
+        params['TABLE_LIST'][t] = params['TABLE_LIST'][t].format(params['RELEASE'])
+
+    pprint.pprint(params['TABLE_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -128,23 +117,23 @@ def main(args):
     # Download file list from bucket, each file corresponds to a table
     #
 
-    file_list = []
-    file_base_names = {}
-    if 'download_file_list' in steps:
-        print('download_file_list')
-        pull_from_buckets(
-            ['gs://{}/{}/{}'.format(
-                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
-            )],
-            local_files_dir
-        )
-        with open(local_file_list, mode='r') as file_list_fh:
-            file_list = file_list_fh.read().splitlines()
+    #file_list = []
+    #file_base_names = {}
+    #if 'download_file_list' in steps:
+    #    print('download_file_list')
+    #    pull_from_buckets(
+    #        ['gs://{}/{}/{}'.format(
+    #            params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['FILE_LIST']
+    #        )],
+    #        local_files_dir
+    #    )
+    #    with open(local_file_list, mode='r') as file_list_fh:
+    #        file_list = file_list_fh.read().splitlines()
 
-        for f in file_list:
-            file_base_names[f] = os.path.splitext(os.path.basename(f))[0]
+    #    for f in file_list:
+    #        file_base_names[f] = os.path.splitext(os.path.basename(f))[0]
 
-    pprint.pprint(file_base_names)
+    #pprint.pprint(file_base_names)
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -176,31 +165,26 @@ def main(args):
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        for f in file_list:
+        for t in params['TABLE_LIST']:
+            print('table: ', params['TABLE_LIST'][t])
             bucket_src_url = 'gs://{}/{}/{}.tsv'.format(
-                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], file_base_names[f]
+                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR'], params['TABLE_LIST'][t]
             )
             schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TABLE_LIST'][t]
             )
             with open(schema_file, mode='r') as schema_fh:
                 schema = json_loads(schema_fh.read())
-            print('schema: ', schema_file)
-            print('table: ', file_base_names[f])
             csv_to_bq(
                 schema['schema']['fields'],
                 bucket_src_url,
                 params['TARGET_DATASET'],
-                file_base_names[f],
+                params['TABLE_LIST'][t],
                 params['BQ_AS_BATCH']
             )
 
     if 'create_physical_entity_table' in steps:
         print('create_physical_entity_table')
-
-        tmp_ensembl2reactome_table = 'tmp_ensembl2reactome_pe_all_levels_v77'
-        tmp_uniprot2reactome_table = 'tmp_uniprot2reactome_pe_all_levels_v77'
-        physical_entity_table = 'physical_entity'
 
         physical_entity_sql = '''
           SELECT
@@ -219,24 +203,20 @@ def main(args):
         '''.format(
             params['WORKING_PROJECT'],
             params['TARGET_DATASET'],
-            tmp_ensembl2reactome_table,
-            tmp_uniprot2reactome_table
+            params['TABLE_LIST']['ensembl2reactome'],
+            params['TABLE_LIST']['uniprot2reactome']
         )
 
         generic_bq_harness(
             physical_entity_sql,
             params['TARGET_DATASET'],
-            physical_entity_table,
+            'physical_entity',
             params['BQ_AS_BATCH'],
             True
         )
 
     if 'create_pathway_table' in steps:
         print('create_pathway_table')
-
-        tmp_ensembl2reactome_table = 'tmp_ensembl2reactome_pe_all_levels_v77'
-        tmp_uniprot2reactome_table = 'tmp_uniprot2reactome_pe_all_levels_v77'
-        pathway_table = 'pathway'
 
         pathway_sql = '''
           SELECT
@@ -254,17 +234,72 @@ def main(args):
         '''.format(
             params['WORKING_PROJECT'],
             params['TARGET_DATASET'],
-            tmp_ensembl2reactome_table,
-            tmp_uniprot2reactome_table
+            params['TABLE_LIST']['ensembl2reactome'],
+            params['TABLE_LIST']['uniprot2reactome']
         )
 
         generic_bq_harness(
             pathway_sql,
             params['TARGET_DATASET'],
-            pathway_table,
+            'pathway',
             params['BQ_AS_BATCH'],
             True
         )
+
+    if 'create_pe_to_pathway_table' in steps:
+        print('create_pe_to_pathway_table')
+
+        pathway_sql = '''
+          SELECT
+            DISTINCT pe_stable_id, pathway_stable_id, evidence_code
+          FROM `{0}.{1}.{2}`
+          WHERE species = 'Homo sapiens'
+          UNION DISTINCT
+          SELECT
+            DISTINCT pe_stable_id, pathway_stable_id, evidence_code
+          FROM `{0}.{1}.{3}`
+          WHERE species = 'Homo sapiens'
+        '''.format(
+            params['WORKING_PROJECT'],
+            params['TARGET_DATASET'],
+            params['TABLE_LIST']['ensembl2reactome'],
+            params['TABLE_LIST']['uniprot2reactome']
+        )
+
+        generic_bq_harness(
+            pathway_sql,
+            params['TARGET_DATASET'],
+            'pe_to_pathway',
+            params['BQ_AS_BATCH'],
+            True
+        )
+
+    if 'create_pathway_hierarchy_table' in steps:
+        print('create_pathway_hierarchy_table')
+
+        pathway_sql = '''
+          SELECT
+            DISTINCT parent_id, child_id
+          FROM `{0}.{1}.{2}` AS pathway_rel
+          INNER JOIN `{0}.{1}.{3}` AS pathway_parent
+            ON pathway_rel.parent_id = pathway_parent.stable_id
+          INNER JOIN `{0}.{1}.{3}` AS pathway_child
+            ON pathway_rel.child_id = pathway_child.stable_id
+        '''.format(
+            params['WORKING_PROJECT'],
+            params['TARGET_DATASET'],
+            params['TABLE_LIST']['pathways_hierarchy'],
+            'pathway'
+        )
+
+        generic_bq_harness(
+            pathway_sql,
+            params['TARGET_DATASET'],
+            'pathway_hierarchy',
+            params['BQ_AS_BATCH'],
+            True
+        )
+
 
     #
     # Update the per-field descriptions:
