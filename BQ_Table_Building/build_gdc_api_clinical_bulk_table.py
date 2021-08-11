@@ -59,18 +59,19 @@ def request_data_from_gdc_api(curr_index):
         if res.status_code == requests.codes.ok:
             return res
 
-        err_list.append("{}".format(res.raise_for_status()))
+        err_list.append(f"{res.raise_for_status()}")
 
         restart_idx = curr_index
-        err_list.append('API request returned status code {}.'.format(res.status_code))
+        err_list.append(f'API request returned status code {res.status_code}.')
 
         if BQ_PARAMS['IO_MODE'] == 'a':
-            err_list.append('Script is being run in "append" mode. To resume, set '
-                            'START_INDEX = {} in yaml config.'.format(restart_idx))
+            err_list.append(f"""
+            Script is being run in "append" mode. To resume, set START_INDEX = {restart_idx} in yaml config.
+            """)
     except requests.exceptions.MissingSchema as err:
         err_list.append(err)
 
-    has_fatal_error("{}\n(HINT: incorrect ENDPOINT url in yaml config?".format(err_list))
+    has_fatal_error(f"{err_list}\n(HINT: incorrect ENDPOINT url in yaml config?")
     return None
 
 
@@ -96,8 +97,8 @@ def extract_api_response_json(local_path):
 
         total_pages = response_json['pagination']['pages']
         response_cases = response_json['hits']
-        assert len(response_cases) > 0, "paginated case result length == 0 \nresult: {}".format(response.json())
-        print("Fetched page {} of {}".format(response_json['pagination']['page'], total_pages))
+        assert len(response_cases) > 0, f"paginated case result length == 0 \nresult: {response.json()}"
+        print(f"Fetched page {response_json['pagination']['page']} of {total_pages}")
 
         for response_case in response_cases:
             for field in API_PARAMS['EXCLUDE_FIELDS']:
@@ -136,7 +137,7 @@ def main(args):
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error("{}".format(err), ValueError)
+        has_fatal_error(f"{err}", ValueError)
 
     bulk_table_name = construct_table_name(API_PARAMS,
                                            prefix=get_rel_prefix(API_PARAMS),
@@ -196,7 +197,7 @@ def main(args):
                                          schema=bulk_table_schema)
 
     end = format_seconds(time.time() - start)
-    print("Script executed in {}\n".format(end))
+    print(f"Script executed in {end}\n")
 
 
 if __name__ == '__main__':
