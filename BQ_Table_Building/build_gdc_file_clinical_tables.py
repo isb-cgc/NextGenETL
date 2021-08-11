@@ -228,14 +228,14 @@ def main(args):
 
         if 'build_pull_list' in steps:
             print('build_pull_list')
-            full_manifest = '{}.{}.{}'.format(PARAMS['WORKING_PROJECT'],
-                                              PARAMS['TARGET_DATASET'],
-                                              PARAMS['BQ_MANIFEST_TABLE'])
+            full_manifest = '{}.{}.{}'.format(BQ_PARAMS['WORKING_PROJECT'],
+                                              BQ_PARAMS['TARGET_DATASET'],
+                                              BQ_PARAMS['BQ_MANIFEST_TABLE'])
             success = build_pull_list_with_bq_public(full_manifest,
-                                                     PARAMS['INDEXD_BQ_TABLE'],
-                                                     PARAMS['WORKING_PROJECT'],
-                                                     PARAMS['TARGET_DATASET'],
-                                                     PARAMS['BQ_PULL_LIST_TABLE'],
+                                                     BQ_PARAMS['INDEXD_BQ_TABLE'],
+                                                     BQ_PARAMS['WORKING_PROJECT'],
+                                                     BQ_PARAMS['TARGET_DATASET'],
+                                                     BQ_PARAMS['BQ_PULL_LIST_TABLE'],
                                                      PARAMS['WORKING_BUCKET'],
                                                      PARAMS['BUCKET_PULL_LIST'],
                                                      local_pull_list,
