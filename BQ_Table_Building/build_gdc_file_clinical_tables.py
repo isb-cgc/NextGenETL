@@ -239,7 +239,7 @@ def main(args):
                                                      PARAMS['WORKING_BUCKET'],
                                                      PARAMS['BUCKET_PULL_LIST'],
                                                      local_pull_list,
-                                                     PARAMS['BQ_AS_BATCH'])
+                                                     BQ_PARAMS['BQ_AS_BATCH'])
 
             if not success:
                 print("Build pull list failed")
