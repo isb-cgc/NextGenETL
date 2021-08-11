@@ -199,6 +199,9 @@ def main(args):
 
     local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
 
+    print(programs)
+    exit()
+
     for program in programs:
         print(program)
         one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
