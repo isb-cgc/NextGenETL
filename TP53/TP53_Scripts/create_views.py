@@ -1293,7 +1293,17 @@ def cellLineDownload(partial_id):
     '''
     return view_id, view_query
     
-    
+
+
+
+def splicingPredictionView(partial_id):
+    view_id = f'{partial_id}.SPLICING_PREDICTION_VIEW'
+    view_query = f'''
+        SELECT * 
+        FROM `{partial_id}.SPLICING_PREDICTION`
+        WHERE Source NOT LIKE 'HSF%'
+    '''
+    return view_id, view_query
 
 
 def main():
@@ -1334,6 +1344,7 @@ def main():
         somaticRefDownload,
         somaticTumorStats,
         cellLineMutationStats,
+        splicingPredictionView
 
     ]
     
