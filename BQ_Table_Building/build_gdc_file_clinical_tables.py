@@ -226,6 +226,25 @@ def main(args):
             if not manifest_success:
                 has_fatal_error("Failure generating manifest")
 
+        if 'build_pull_list' in steps:
+            print('build_pull_list')
+            full_manifest = '{}.{}.{}'.format(PARAMS['WORKING_PROJECT'],
+                                              PARAMS['TARGET_DATASET'],
+                                              PARAMS['BQ_MANIFEST_TABLE'])
+            success = build_pull_list_with_bq_public(full_manifest,
+                                                     PARAMS['INDEXD_BQ_TABLE'],
+                                                     PARAMS['WORKING_PROJECT'],
+                                                     PARAMS['TARGET_DATASET'],
+                                                     PARAMS['BQ_PULL_LIST_TABLE'],
+                                                     PARAMS['WORKING_BUCKET'],
+                                                     PARAMS['BUCKET_PULL_LIST'],
+                                                     local_pull_list,
+                                                     PARAMS['BQ_AS_BATCH'])
+
+            if not success:
+                print("Build pull list failed")
+                return
+
         if 'download_from_gdc' in steps:
             print('download_from_gdc')
             with open(manifest_file, mode='r') as pull_list_file:
