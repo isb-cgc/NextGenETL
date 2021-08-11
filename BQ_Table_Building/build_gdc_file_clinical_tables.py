@@ -228,7 +228,7 @@ def main(args):
 
         if 'download_from_gdc' in steps:
             print('download_from_gdc')
-            with open(local_pull_list, mode='r') as pull_list_file:
+            with open(manifest_file, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
             print("Preparing to download %s files from buckets\n" % len(pull_list))
             bp = BucketPuller(10)
