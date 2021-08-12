@@ -312,7 +312,7 @@ def merge_samples_by_aliquot_sql(input_table):
             project_short_name,
             case_barcode,
             primary_site,
-            string_agg(sample_barcode, ';') as sample_barcode,
+            string_agg(distinct sample_barcode, ';') as sample_barcode,
             aliquot_barcode,
             chromosome,
             start_pos,
@@ -321,7 +321,7 @@ def merge_samples_by_aliquot_sql(input_table):
             major_copy_number,
             minor_copy_number,
             case_gdc_id,
-            string_agg(sample_gdc_id, ';') as sample_gdc_id,
+            string_agg(distinct sample_gdc_id, ';') as sample_gdc_id,
             aliquot_gdc_id,
             file_gdc_id
         FROM
@@ -348,7 +348,7 @@ def merge_samples_by_aliquot_sql_masked(input_table):
             project_short_name,
             case_barcode,
             primary_site,
-            string_agg(sample_barcode, ';') as sample_barcode,
+            string_agg(distinct sample_barcode, ';') as sample_barcode,
             aliquot_barcode,
             chromosome,
             start_pos,
@@ -356,7 +356,7 @@ def merge_samples_by_aliquot_sql_masked(input_table):
             num_probes,
             segment_mean,
             case_gdc_id,
-            string_agg(sample_gdc_id, ';') as sample_gdc_id,
+            string_agg(distinct sample_gdc_id, ';') as sample_gdc_id,
             aliquot_gdc_id,
             file_gdc_id
         FROM
