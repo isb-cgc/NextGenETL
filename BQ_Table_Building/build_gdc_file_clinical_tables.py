@@ -114,6 +114,10 @@ def group_by_suffixes(all_files):
     :param all_files: todo
     :return:
     """
+
+    print(all_files)
+    exit()
+
     full_and_name = []
     names_only = []
     for filename in all_files:
@@ -207,6 +211,8 @@ def main(args):
         bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
 
         if 'build_manifest_from_filters' in steps:
+            # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
+            # Write to file, create BQ table
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
 
@@ -227,6 +233,7 @@ def main(args):
                 has_fatal_error("Failure generating manifest")
 
         if 'build_pull_list' in steps:
+            # Build list of file paths in the GDC cloud, create file and bq table
             print('build_pull_list')
             full_manifest = '{}.{}.{}'.format(BQ_PARAMS['WORKING_PROJECT'],
                                               BQ_PARAMS['TARGET_DATASET'],
@@ -246,6 +253,7 @@ def main(args):
                 return
 
         if 'download_from_gdc' in steps:
+            # download files and pull
             print('download_from_gdc')
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
