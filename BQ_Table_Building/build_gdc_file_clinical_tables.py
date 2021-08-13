@@ -28,7 +28,7 @@ import os
 import pandas as pd
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              load_table_from_query, publish_table, get_scratch_fp)
+                              load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
                                 build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
@@ -203,26 +203,33 @@ def main(args):
     local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
 
     for program in programs:
+        file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
+        file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
+
         one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
         manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
         file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
         bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+        manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
+        manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
+        bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
+        indexd_bq_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}_{BQ_PARAMS['INDEXD_BQ_TABLE_SUFFIX']}"
+        indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{indexd_bq_table_name}"
+        final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
             # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
             # Write to file, create BQ table
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
-            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
-            file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
 
             manifest_success = get_the_bq_manifest(file_table=file_table_id,
                                                    filter_dict=filter_dict,
                                                    max_files=None,
                                                    project=BQ_PARAMS['WORKING_PROJECT'],
                                                    tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
-                                                   tmp_bq=BQ_PARAMS['BQ_MANIFEST_TABLE'],
+                                                   tmp_bq=manifest_table_name,
                                                    tmp_bucket=PARAMS['WORKING_BUCKET'],
                                                    tmp_bucket_file=bucket_tsv,
                                                    local_file=manifest_file,
@@ -233,18 +240,15 @@ def main(args):
         if 'build_pull_list' in steps:
             # Build list of file paths in the GDC cloud, create file and bq table
             print('build_pull_list')
-            full_manifest = '{}.{}.{}'.format(BQ_PARAMS['WORKING_PROJECT'],
-                                              BQ_PARAMS['TARGET_DATASET'],
-                                              BQ_PARAMS['BQ_MANIFEST_TABLE'])
-            success = build_pull_list_with_bq_public(full_manifest,
-                                                     BQ_PARAMS['INDEXD_BQ_TABLE'],
-                                                     BQ_PARAMS['WORKING_PROJECT'],
-                                                     BQ_PARAMS['TARGET_DATASET'],
-                                                     BQ_PARAMS['BQ_PULL_LIST_TABLE'],
-                                                     PARAMS['WORKING_BUCKET'],
-                                                     PARAMS['BUCKET_PULL_LIST'],
-                                                     local_pull_list,
-                                                     BQ_PARAMS['BQ_AS_BATCH'])
+            success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
+                                                     indexd_table=indexd_bq_table_id,
+                                                     project=BQ_PARAMS['WORKING_PROJECT'],
+                                                     tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
+                                                     tmp_bq=bq_pull_list_table_name,
+                                                     tmp_bucket=PARAMS['WORKING_BUCKET'],
+                                                     tmp_bucket_file=PARAMS['BUCKET_PULL_LIST'],
+                                                     local_file=local_pull_list,
+                                                     do_batch=BQ_PARAMS['BQ_AS_BATCH'])
 
             if not success:
                 print("Build pull list failed")
