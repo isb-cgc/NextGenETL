@@ -131,14 +131,16 @@ def group_by_suffixes(all_files):
     path_group = []
     groups = set()
     p = re.compile('(^.*)_[a-z]+\.txt')
+
+    print(path_suff)
+    exit()
+
+
     for tup in path_suff:
         m = p.match(tup[1])
         group = m.group(1)
         path_group.append((tup[0], group))
         groups.add(group)
-
-    print(path_group)
-    exit()
 
     files_by_group = {}
 
