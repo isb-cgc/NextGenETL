@@ -115,9 +115,6 @@ def group_by_suffixes(all_files):
     :return:
     """
 
-    print(all_files)
-    exit()
-
     full_and_name = []
     names_only = []
     for filename in all_files:
@@ -126,6 +123,9 @@ def group_by_suffixes(all_files):
         names_only.append(just_name)
 
     prefix = longest_common_prefix(names_only)
+
+    print(prefix)
+    exit()
 
     path_suff = []
     for tup in full_and_name:
