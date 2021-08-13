@@ -108,7 +108,7 @@ def build_a_header(all_files):
     return all_fields, per_file
 
 
-def group_by_suffixes(all_files):
+def group_by_suffixes(all_files, file_suffix):
     """
     There are a mixture of files, each with a different schema. Group the files into the different sets
     :param all_files: todo
@@ -124,20 +124,17 @@ def group_by_suffixes(all_files):
 
     prefix = longest_common_prefix(names_only)
 
-    path_suff = []
+    path_suffix = []
     for tup in full_and_name:
-        path_suff.append((tup[0], tup[1][len(prefix):]))
+        path_suffix.append((tup[0], tup[1][len(prefix):]))
 
     path_group = []
     groups = set()
-    p = re.compile('(^.*)_[a-z]+\.txt')
+    p = re.compile(rf"(^.*)_[a-z]+\.{file_suffix}")
 
-    print(path_suff)
-    exit()
-
-
-    for tup in path_suff:
+    for tup in path_suffix:
         m = p.match(tup[1])
+
         group = m.group(1)
         path_group.append((tup[0], group))
         groups.add(group)
@@ -217,7 +214,6 @@ def main(args):
             # Write to file, create BQ table
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
-
             file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
 
@@ -272,9 +268,11 @@ def main(args):
 
         if 'group_by_type' in steps:
             print('group_by_type')
+
+            file_suffix = programs[program]['file_suffix']
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
-            group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
+            group_dict = group_by_suffixes(all_files, file_suffix) # WRITE OUT AS JSON!!
 
         if 'convert_excel_to_csv' in steps:
             print('convert_excel_to_csv')
