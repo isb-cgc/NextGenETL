@@ -133,9 +133,9 @@ def group_by_suffixes(all_files, file_suffix):
     p = re.compile(rf"(^.*)_[a-z]+\.{file_suffix}")
 
     for tup in path_suffix:
-        m = p.match(tup[1])
+        match = p.match(tup[1])
 
-        group = m.group(1)
+        group = match.group(1)
         path_group.append((tup[0], group))
         groups.add(group)
 
@@ -270,13 +270,19 @@ def main(args):
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
 
-        if 'group_by_type' in steps:
-            print('group_by_type')
-
-            file_suffix = programs[program]['file_suffix']
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-            group_dict = group_by_suffixes(all_files, file_suffix) # WRITE OUT AS JSON!!
+        """
+        I'm going to handle this differently. 
+        Not going to try to group by type, since this isn't actually relevant to TARGET as far as I can tell.
+        Will merge the files into one giant jsonl file instead. Okay if the files have different schemas, then.
+        If file_suffix == xlsx, then convert excel to csv before merging files.
+        Merge files.
+        Infer schema and upload file and schema to bucket.
+        Create BQ table.
+        Merge in aliquot fields.
+        Update field/table metadata.
+        Publish.
+        Delete working tables.
+        """
 
         if 'convert_excel_to_csv' in steps:
             print('convert_excel_to_csv')
