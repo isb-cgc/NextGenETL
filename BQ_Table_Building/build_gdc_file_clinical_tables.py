@@ -124,9 +124,6 @@ def group_by_suffixes(all_files):
 
     prefix = longest_common_prefix(names_only)
 
-    print(prefix)
-    exit()
-
     path_suff = []
     for tup in full_and_name:
         path_suff.append((tup[0], tup[1][len(prefix):]))
@@ -139,6 +136,9 @@ def group_by_suffixes(all_files):
         group = m.group(1)
         path_group.append((tup[0], group))
         groups.add(group)
+
+    print(path_group)
+    exit()
 
     files_by_group = {}
 
@@ -270,7 +270,6 @@ def main(args):
 
         if 'group_by_type' in steps:
             print('group_by_type')
-            print(file_traversal_list)
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
             group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
