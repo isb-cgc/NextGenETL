@@ -215,7 +215,7 @@ def main(args):
         manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
         bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
         indexd_bq_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['INDEXD_BQ_TABLE_SUFFIX']}"
-        indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{indexd_bq_table_name}"
+        indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_bq_table_name}"
         final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
