@@ -56,6 +56,7 @@ def concat_all_files(all_files, one_big_tsv):
     with open(one_big_tsv, 'w') as outfile:
         outfile.write('\t'.join(saf))
         outfile.write('\n')
+
         for filename in all_files:
             key_dict = {}
             skipping = True
@@ -111,6 +112,7 @@ def build_a_header(all_files):
 def group_by_suffixes(all_files, file_suffix):
     """
     There are a mixture of files, each with a different schema. Group the files into the different sets
+    :param file_suffix:
     :param all_files: todo
     :return:
     """
@@ -200,22 +202,16 @@ def main(args):
     if not programs:
         has_fatal_error("Specify program parameters in YAML.")
 
-    local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
+    local_files_dir = get_filepath(f"{PARAMS['SCRATCH_DIR']}/{PARAMS['LOCAL_FILES_DIR']}")
 
     for program in programs:
-        file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
-        file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
+        if not os.path.exists(f"{local_files_dir}/{program}"):
+            os.makedirs(f"{local_files_dir}/{program}")
 
-        one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
-        manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
+        local_files_dir = f"{local_files_dir}/{program}"
+
         local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
         file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
-        bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
-        manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
-        manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
-        bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
-        indexd_bq_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['INDEXD_BQ_TABLE_SUFFIX']}"
-        indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_bq_table_name}"
         final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
@@ -223,6 +219,13 @@ def main(args):
             # Write to file, create BQ table
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
+
+            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
+            file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
+            manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
+            bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+            manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
+            manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
 
             manifest_success = get_the_bq_manifest(file_table=file_table_id,
                                                    filter_dict=filter_dict,
@@ -240,6 +243,11 @@ def main(args):
         if 'build_pull_list' in steps:
             # Build list of file paths in the GDC cloud, create file and bq table
             print('build_pull_list')
+
+            bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
+            indexd_bq_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['INDEXD_BQ_TABLE_SUFFIX']}"
+            indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_bq_table_name}"
+
             success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
                                                      indexd_table=indexd_bq_table_id,
                                                      project=BQ_PARAMS['WORKING_PROJECT'],
@@ -249,7 +257,6 @@ def main(args):
                                                      tmp_bucket_file=PARAMS['BUCKET_PULL_LIST'],
                                                      local_file=local_pull_list,
                                                      do_batch=BQ_PARAMS['BQ_AS_BATCH'])
-
             if not success:
                 print("Build pull list failed")
                 return
@@ -292,6 +299,8 @@ def main(args):
 
         if 'concat_all_files' in steps:
             print('concat_all_files')
+            one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
+
             for k, v in group_dict.items():
                 concat_all_files(v, one_big_tsv.format(k))
 
