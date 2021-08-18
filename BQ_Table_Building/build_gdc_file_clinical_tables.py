@@ -202,17 +202,25 @@ def main(args):
     if not programs:
         has_fatal_error("Specify program parameters in YAML.")
 
-    local_files_dir = get_filepath(f"{PARAMS['SCRATCH_DIR']}/{PARAMS['LOCAL_FILES_DIR']}")
+    local_files_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}/{PARAMS['LOCAL_FILES_DIR']}")
+    base_file_name = PARAMS['BASE_FILE_NAME']
 
     for program in programs:
-        if not os.path.exists(f"{local_files_dir}/{program}"):
-            os.makedirs(f"{local_files_dir}/{program}")
+        local_program_dir = f"{local_files_dir_root}/{program}"
+        local_files_dir = f"{local_program_dir}/files"
 
-        local_files_dir = f"{local_files_dir}/{program}"
+        if not os.path.exists(local_program_dir):
+            os.makedirs(local_program_dir)
+        if not os.path.exists(local_files_dir):
+            os.makedirs(local_files_dir)
 
-        local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
-        file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
-        final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
+        local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
+        file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+
+        # the source metadata files have a different release notation (relXX vs rXX)
+        src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
+        
+        # final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
             # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
@@ -220,10 +228,12 @@ def main(args):
             print('build_manifest_from_filters')
             filter_dict = programs[program]['filters']
 
-            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_TABLE_SUFFIX']}"
+            file_table_name = f"{src_table_release}_{BQ_PARAMS['FILE_TABLE']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
-            manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
-            bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{BQ_PARAMS['FILE_TABLE_PREFIX']}_{PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+            
+            manifest_file = f"{local_program_dir}/{base_file_name}_{program}.tsv"
+
+            bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{src_table_release}_{base_file_name}_{program}.tsv"
             manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
             manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
 
@@ -245,11 +255,11 @@ def main(args):
             print('build_pull_list')
 
             bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
-            indexd_bq_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['INDEXD_BQ_TABLE_SUFFIX']}"
-            indexd_bq_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_bq_table_name}"
+            indexd_table_name = f"{src_table_release}_{BQ_PARAMS['INDEXD_TABLE']}"
+            indexd_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_table_name}"
 
             success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
-                                                     indexd_table=indexd_bq_table_id,
+                                                     indexd_table=indexd_table_id,
                                                      project=BQ_PARAMS['WORKING_PROJECT'],
                                                      tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
                                                      tmp_bq=bq_pull_list_table_name,
@@ -291,6 +301,7 @@ def main(args):
         Delete working tables.
         """
 
+        """        
         if 'convert_excel_to_csv' in steps:
             print('convert_excel_to_csv')
             with open(file_traversal_list, mode='r') as traversal_list_file:
@@ -299,11 +310,11 @@ def main(args):
 
         if 'concat_all_files' in steps:
             print('concat_all_files')
-            one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
+            one_big_tsv = get_scratch_fp(PARAMS, f"{base_file_name}_data_{program}.tsv", )
 
             for k, v in group_dict.items():
                 concat_all_files(v, one_big_tsv.format(k))
-
+        """
 
 if __name__ == '__main__':
     main(sys.argv)
