@@ -69,7 +69,8 @@ def concat_all_files(all_files, one_big_tsv):
                         continue
                     if not skipping:
                         for i in range(len(split_line)):
-                            key_dict[cols_for_file[i]] = "" if split_line[i] in PARAMS['NO_DATA_VALUES'] else split_line[i]
+                            key_dict[cols_for_file[i]] = "" if split_line[i] in PARAMS['NO_DATA_VALUES'] else \
+                                split_line[i]
 
                     write_line = []
                     for col in saf:
@@ -91,7 +92,7 @@ def build_a_header(all_files):
     per_file = {}
     for filename in all_files:
         per_file[filename] = []
-        with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
+        with open(filename, 'r', encoding="ISO-8859-1") as readfile:  # Having a problem with UTF-8
             header_lines = []
             for line in readfile:
                 # if we run into one field that is a pure number, it is no longer a header line
@@ -151,24 +152,39 @@ def group_by_suffixes(all_files, file_suffix):
     return files_by_group
 
 
-def convert_excel_to_csv(all_files, local_files_dir, header_idx):
+def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
     """
     Convert excel files to CSV files.
     :param all_files: todo
     :param local_files_dir:
     :return:
     """
+
+    tsv_files = []
+
     for filename in all_files:
         print(filename)
-        csv_filename = '.'.join(filename.split('.')[0:-1])
-        csv_filename = f"{csv_filename}.tsv"
+        tsv_filename = '.'.join(filename.split('.')[0:-1])
+        tsv_filename = f"{tsv_filename}.tsv"
 
         excel_data = pd.read_excel(io=filename,
                                    index_col=None,
                                    header=header_idx,
                                    engine='openpyxl')
-        excel_data.to_csv(csv_filename, sep='\t', index=False)
+        excel_data.to_csv(tsv_filename, sep='\t', index=False)
 
+        tsv_files.append(tsv_filename)
+
+    return tsv_files
+
+
+def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
+    for tsv_file in all_files:
+        idx = 0
+        with open(tsv_file) as tsv_fh:
+            lines = tsv_fh.readlines()
+            print(len(lines))
+            exit()
 
 def longest_common_prefix(str1):
     """
@@ -222,7 +238,7 @@ def main(args):
 
         # the source metadata files have a different release notation (relXX vs rXX)
         src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
-        
+
         # final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
@@ -233,7 +249,7 @@ def main(args):
 
             file_table_name = f"{src_table_release}_{BQ_PARAMS['FILE_TABLE']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
-            
+
             manifest_file = f"{local_program_dir}/{base_file_name}_{program}.tsv"
 
             bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{src_table_release}_{base_file_name}_{program}.tsv"
@@ -287,7 +303,6 @@ def main(args):
             print('\nbuild_file_list')
             all_files = build_file_list(local_files_dir)
 
-
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
@@ -296,10 +311,14 @@ def main(args):
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
-                    convert_excel_to_csv(all_files=all_files,
-                                         local_files_dir=local_files_dir,
-                                         header_idx=programs[program]['header_row_idx'])
+                    all_files = convert_excel_to_tsv(all_files=all_files,
+                                                     local_files_dir=local_files_dir,
+                                                     header_idx=programs[program]['header_row_idx'])
 
+        if 'convert_tsvs_to_merged_jsonl' in steps:
+            convert_tsvs_to_merged_jsonl(all_files,
+                                         programs[program]['header_row_idx'],
+                                         programs[program]['data_start_idx'])
 
         """
         I'm going to handle this differently. 
@@ -324,6 +343,7 @@ def main(args):
             for k, v in group_dict.items():
                 concat_all_files(v, one_big_tsv.format(k))
         """
+
 
 if __name__ == '__main__':
     main(sys.argv)
