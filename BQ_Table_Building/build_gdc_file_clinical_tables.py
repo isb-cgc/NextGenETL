@@ -167,10 +167,7 @@ def convert_excel_to_csv(all_files, local_files_dir, header_idx):
                                    index_col=None,
                                    header=header_idx,
                                    engine='openpyxl')
-        data_dict = excel_data.to_dict()
-
-        print(data_dict)
-        exit()
+        excel_data.to_csv(csv_filename, sep='\t')
 
 
 def longest_common_prefix(str1):
