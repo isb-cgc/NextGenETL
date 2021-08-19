@@ -307,6 +307,8 @@ def main(args):
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
 
+        all_files = traversal_list_file.read().splitlines()
+
         if 'convert_excel_to_csv' in steps:
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
