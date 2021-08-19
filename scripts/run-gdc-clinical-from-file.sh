@@ -10,7 +10,7 @@ gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GDCFileClinicalTablesBuil
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
-source ${MY_VENV}/bin/activate
+source /bin/activate
 popd > /dev/null
 
 mkdir -p ~/scratch
