@@ -10,7 +10,7 @@ gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/GDCFileClinicalTablesBuil
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
-source /bin/activate
+source bin/activate
 popd > /dev/null
 cd ..
 python3.9 ./BQ_Table_Building/build_gdc_file_clinical_tables.py ~/config/GDCFileClinicalTablesBuild.yaml
