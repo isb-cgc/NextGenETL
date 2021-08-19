@@ -307,10 +307,9 @@ def main(args):
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
 
-        all_files = traversal_list_file.read().splitlines()
-
         if 'convert_excel_to_csv' in steps:
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
+
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
                     all_files = convert_excel_to_tsv(all_files=all_files,
@@ -318,6 +317,15 @@ def main(args):
                                                      header_idx=programs[program]['header_row_idx'])
 
         if 'convert_tsvs_to_merged_jsonl' in steps:
+            all_tsv_files = []
+            all_files = traversal_list_file.read().splitlines()
+            if programs[program]['file_suffix'] == 'xlsx':
+                for file_name in all_files:
+                    tsv_filename = '.'.join(file_name.split('.')[0:-1])
+                    tsv_filename = f"{tsv_filename}.tsv"
+                    all_tsv_files.append(tsv_filename)
+                all_files = all_tsv_files
+
             convert_tsvs_to_merged_jsonl(all_files,
                                          programs[program]['header_row_idx'],
                                          programs[program]['data_start_idx'])
