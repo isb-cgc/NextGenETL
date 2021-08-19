@@ -183,8 +183,13 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
         idx = 0
         with open(tsv_file) as tsv_fh:
             lines = tsv_fh.readlines()
-            print(lines[0])
+            headers = lines[header_row_idx].strip().split('\t')
+
+            for item in headers:
+                print(item)
+
             exit()
+
 
 def longest_common_prefix(str1):
     """
