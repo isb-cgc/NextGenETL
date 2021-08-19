@@ -151,7 +151,7 @@ def group_by_suffixes(all_files, file_suffix):
     return files_by_group
 
 
-def convert_excel_to_csv(all_files, local_files_dir):
+def convert_excel_to_csv(all_files, local_files_dir, header_idx):
     """
     Convert excel files to CSV files.
     :param all_files: todo
@@ -160,12 +160,16 @@ def convert_excel_to_csv(all_files, local_files_dir):
     """
     for filename in all_files:
         print(filename)
-        page_dict = pd.read_excel(filename, None)
-        print(page_dict.keys())
-        _, just_name = os.path.split(filename)
-        for k, v in page_dict.items():
-            print(f"{local_files_dir}/{k}-{just_name}.tsv \n{v}")
-            #v.to_csv("{}/{}-{}.tsv".format(local_files_dir, k, just_name), sep = "\t", index = None, header=True)
+        csv_filename = '.'.join(filename.split('.')[0:-1])
+        csv_filename = f"{csv_filename}.csv"
+
+        excel_data = pd.read_excel(io=filename,
+                                  index_col=None,
+                                  header=header_idx)
+        data_dict = excel_data.to_dict()
+
+        print(data_dict)
+        exit()
 
 
 def longest_common_prefix(str1):
@@ -206,6 +210,7 @@ def main(args):
     base_file_name = PARAMS['BASE_FILE_NAME']
 
     for program in programs:
+        print(f"Running script for {program}")
         local_program_dir = f"{local_files_dir_root}/{program}"
         local_files_dir = f"{local_program_dir}/files"
 
@@ -215,7 +220,6 @@ def main(args):
             os.makedirs(local_files_dir)
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
-        file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
         src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
@@ -225,7 +229,7 @@ def main(args):
         if 'build_manifest_from_filters' in steps:
             # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
             # Write to file, create BQ table
-            print('build_manifest_from_filters')
+            print('\nbuild_manifest_from_filters')
             filter_dict = programs[program]['filters']
 
             file_table_name = f"{src_table_release}_{BQ_PARAMS['FILE_TABLE']}"
@@ -252,7 +256,7 @@ def main(args):
 
         if 'build_pull_list' in steps:
             # Build list of file paths in the GDC cloud, create file and bq table
-            print('build_pull_list')
+            print('\nbuild_pull_list')
 
             bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
             indexd_table_name = f"{src_table_release}_{BQ_PARAMS['INDEXD_TABLE']}"
@@ -273,7 +277,7 @@ def main(args):
 
         if 'download_from_gdc' in steps:
             # download files and pull
-            print('download_from_gdc')
+            print('\ndownload_from_gdc')
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
             print("Preparing to download %s files from buckets\n" % len(pull_list))
@@ -281,11 +285,23 @@ def main(args):
             bp.pull_from_buckets(pull_list, local_files_dir)
 
         if 'build_file_list' in steps:
-            print('build_file_list')
+            print('\nbuild_file_list')
             all_files = build_file_list(local_files_dir)
+
+            file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
+
+        if 'convert_excel_to_csv' in steps:
+            if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
+                with open(file_traversal_list, mode='r') as traversal_list_file:
+                    all_files = traversal_list_file.read().splitlines()
+                    convert_excel_to_csv(all_files=all_files,
+                                         local_files_dir=local_files_dir,
+                                         header_idx=programs[program]['header_row_idx'])
+
 
         """
         I'm going to handle this differently. 
@@ -302,11 +318,6 @@ def main(args):
         """
 
         """        
-        if 'convert_excel_to_csv' in steps:
-            print('convert_excel_to_csv')
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-            convert_excel_to_csv(all_files, local_files_dir)
 
         if 'concat_all_files' in steps:
             print('concat_all_files')
