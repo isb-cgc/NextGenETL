@@ -164,8 +164,9 @@ def convert_excel_to_csv(all_files, local_files_dir, header_idx):
         csv_filename = f"{csv_filename}.csv"
 
         excel_data = pd.read_excel(io=filename,
-                                  index_col=None,
-                                  header=header_idx)
+                                   index_col=None,
+                                   header=header_idx,
+                                   engine='openpyxl')
         data_dict = excel_data.to_dict()
 
         print(data_dict)
