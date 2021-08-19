@@ -161,13 +161,13 @@ def convert_excel_to_csv(all_files, local_files_dir, header_idx):
     for filename in all_files:
         print(filename)
         csv_filename = '.'.join(filename.split('.')[0:-1])
-        csv_filename = f"{csv_filename}.csv"
+        csv_filename = f"{csv_filename}.tsv"
 
         excel_data = pd.read_excel(io=filename,
                                    index_col=None,
                                    header=header_idx,
                                    engine='openpyxl')
-        excel_data.to_csv(csv_filename, sep='\t')
+        excel_data.to_csv(csv_filename, sep='\t', index=False)
 
 
 def longest_common_prefix(str1):
