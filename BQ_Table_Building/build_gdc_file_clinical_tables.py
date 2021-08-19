@@ -25,7 +25,7 @@ import time
 import json
 import re
 import os
-import pandas as pdpip
+import pandas as pd
 import openpyxl
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
