@@ -220,6 +220,7 @@ def main(args):
             os.makedirs(local_files_dir)
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
+        file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
         src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
@@ -288,7 +289,6 @@ def main(args):
             print('\nbuild_file_list')
             all_files = build_file_list(local_files_dir)
 
-            file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
 
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
