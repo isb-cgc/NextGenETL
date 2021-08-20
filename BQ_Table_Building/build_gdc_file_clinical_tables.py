@@ -188,10 +188,10 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
             row_count = len(lines)
             col_count = len(headers)
 
-            for row in range(data_start_idx, row_count):
+            for row_idx in range(data_start_idx, row_count):
                 row_dict = {}
 
-                split_row = row.strip().split('\t')
+                split_row = lines[row_idx].strip().split('\t')
 
                 for i in range(0, col_count):
                     row_dict[headers[i]] = split_row[i]
