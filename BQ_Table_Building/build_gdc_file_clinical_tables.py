@@ -180,15 +180,26 @@ def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
 
 def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
     for tsv_file in all_files:
-        idx = 0
+        json_list = []
         with open(tsv_file) as tsv_fh:
             lines = tsv_fh.readlines()
             headers = lines[header_row_idx].strip().split('\t')
 
-            for item in headers:
-                print(item)
+            row_count = len(lines)
+            col_count = len(headers)
 
-            exit()
+            for row in range(data_start_idx, row_count):
+                row_dict = {}
+
+                split_row = row.strip().split('\t')
+
+                for i in range(0, col_count):
+                    row_dict[headers[i]] = split_row[i]
+
+                json_list.append(row_dict)
+
+        print(json_list)
+        exit()
 
 
 def longest_common_prefix(str1):
