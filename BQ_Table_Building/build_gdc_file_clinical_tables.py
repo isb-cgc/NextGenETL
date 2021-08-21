@@ -683,6 +683,7 @@ def main(args):
 
         if 'find_matching_target_usis' in steps:
             if program == 'TARGET':
+                id_key_map = dict()
                 id_key = programs[program]['id_key']
                 with open(tables_file, 'r') as tables_fh:
                     table_ids = tables_fh.readlines()
@@ -701,7 +702,12 @@ def main(args):
                                                      verbose=False)
 
                     for row in results:
-                        print(row[0])
+                        if row not in id_key_map:
+                            id_key_map[row] = list()
+                        id_key_map[row].append(idx)
+
+                for id_key, id_table_list in id_key_map.items():
+                    print(f"{id_key}: {id_table_list}")
 
         """
         Create merged table.
