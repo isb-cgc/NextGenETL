@@ -180,8 +180,7 @@ def convert_excel_to_tsv(all_files, header_idx):
 
         # get rid of funky newline formatting in headers
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
-        excel_data = excel_data.replace(r'\\r',' ', regex=True)
-        excel_data = excel_data.replace(r'\\n',' ', regex=True)
+        excel_data = excel_data.replace(r'\r+\n+\t+',' ', regex=True)
         excel_data = excel_data.replace(r'_x000D_', ' ', regex=True)
 
         if excel_data.size == 0:
