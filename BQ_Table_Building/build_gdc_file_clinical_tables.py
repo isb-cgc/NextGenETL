@@ -178,7 +178,7 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    header=header_idx,
                                    engine='openpyxl')
 
-        if file_path == 'r29_TARGET_ALL_ClinicalData_Phase_II_Validation_20170525.xlsx':
+        if file_path == '/home/lauren/scratch/gdc_clinical_from_file/TARGET/files/r29_TARGET_ALL_ClinicalData_Phase_II_Validation_20170525.xlsx':
             print(excel_data.head())
 
         if excel_data.size == 0:
