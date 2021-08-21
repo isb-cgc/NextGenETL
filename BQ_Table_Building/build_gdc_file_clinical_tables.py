@@ -619,9 +619,16 @@ def main(args):
                     total_rows = results.total_rows
                     if total_rows > 0:
                         duplicate_key_tables.append(table_id)
-                        print(f"{table_id} has {total_rows} id keys with duplicate rows.")
                     else:
                         no_duplicate_key_tables.append(table_id)
+
+            print(f"Tables with duplicate id keys:")
+            for duplicate_key_table in duplicate_key_tables:
+                print(duplicate_key_table)
+
+            print(f"Tables with no duplicate id keys:")
+            for no_duplicate_key_table in no_duplicate_key_tables:
+                print(no_duplicate_key_table)
 
 
 
