@@ -137,6 +137,7 @@ def group_by_suffixes(all_files, file_suffix):
     p = re.compile(rf"(^.*)_[a-z]+\.{file_suffix}")
 
     for tup in path_suffix:
+        print(path_suffix)
         match = p.match(tup[1])
 
         group = match.group(1)
