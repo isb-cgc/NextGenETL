@@ -602,14 +602,13 @@ def main(args):
                             # todo this might need to be "" or something else
                             record_dict = OrderedDict.fromkeys(all_field_names_tuple, None)
 
-                            print(f"record_dict: {record_dict}")
-
                             row = file_rows[i].strip().split("\t")
 
                             for idx, val in enumerate(row):
                                 column_key = col_indices[idx]
                                 record_dict[column_key] = val
 
+                            print(f"record_dict: {record_dict}")
                             merged_record_list.append(record_dict)
 
                     with open(merged_file_path, 'w') as merged_tsv_fh:
