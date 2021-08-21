@@ -183,6 +183,7 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
     json_list = []
 
     for tsv_file in all_files:
+        print(tsv_file)
         with open(tsv_file) as tsv_fh:
             lines = tsv_fh.readlines()
             headers = lines[header_row_idx].strip().split('\t')
