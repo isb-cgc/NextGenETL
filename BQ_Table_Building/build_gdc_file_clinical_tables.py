@@ -614,10 +614,11 @@ def main(args):
 
                     with open(merged_file_path, 'w') as merged_tsv_fh:
                         header_row = "\t".join(all_field_names_tuple)
-                        print(header_row)
                         merged_tsv_fh.write(f"{header_row}\n")
 
                         for row in merged_record_list:
+                            print(row)
+                            exit()
                             tabbed_row = "\t".join(row.values())
                             merged_tsv_fh.write(f"{tabbed_row}\n")
                     merged_file_path_list.append(merged_file_path)
