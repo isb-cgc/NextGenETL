@@ -569,10 +569,14 @@ def main(args):
                 elif program == "TARGET":
                     file_type = "_".join(file_name_no_ext.split("_")[3:])
 
+                print(file_type)
+                continue
+
                 if file_type not in file_type_dicts:
                     file_type_dicts[file_type] = list()
 
                 file_type_dicts[file_type].append(file_path)
+            exit()
 
             for file_type, file_list in file_type_dicts.items():
                 full_header_set = set()
@@ -694,7 +698,7 @@ def main(args):
                 for idx, table_id in enumerate(table_ids):
                     query = f"""
                     SELECT {id_key}
-                    FROM {table_id}
+                    FROM {table_id.strip()}
                     """
 
                     results = bq_harness_with_result(sql=query,
