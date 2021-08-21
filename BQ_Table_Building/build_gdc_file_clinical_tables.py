@@ -185,6 +185,26 @@ def convert_excel_to_tsv(all_files, header_idx):
 
 def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None):
     with open(tsv_file) as tsv_fh:
+        header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+
+    final_headers = []
+
+    for i in range(0, len(header_row)):
+        column_name = header_row[i].strip()
+        column_name = make_string_bq_friendly(column_name)
+        column_name = column_name.lower()
+
+        if column_name in final_headers:
+            has_fatal_error(f"Duplicate column name '{column_name}' at idx {i} \nFile: {tsv_file}")
+
+        final_headers.append(column_name)
+
+    return final_headers
+
+
+'''
+def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None):
+    with open(tsv_file) as tsv_fh:
         lines = tsv_fh.readlines()
 
     headers = lines[header_row_idx].strip().split('\t')
@@ -216,7 +236,7 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
             has_fatal_error(error)
 
     return headers
-
+'''
 
 def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     with open(tsv_file, 'r') as tsv_fh:
@@ -469,7 +489,6 @@ def main(args):
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
-
                 header_row_idx = programs[program]['header_row_idx']
 
             if 'backup_header_row_idx' in programs[program]:
@@ -485,6 +504,8 @@ def main(args):
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
+
+
 
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
