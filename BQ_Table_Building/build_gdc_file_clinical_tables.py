@@ -501,8 +501,7 @@ def main(args):
                                                  schema_fp=schema_file_path,
                                                  delete_local=True)
 
-                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=False)
-
+                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
