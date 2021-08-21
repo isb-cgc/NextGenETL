@@ -180,18 +180,23 @@ def convert_excel_to_tsv(all_files, header_idx):
 
         # get rid of funky newline formatting in headers
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
-        excel_data = excel_data.replace(r'\\n', '', regex=True)
-
-        print(excel_data)
+        excel_data = excel_data.map(lambda x: x.replace('\r','').replace('\n', ''))
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
             continue
 
+        df_rows = excel_data.size
+
         excel_data.to_csv(tsv_filepath,
                           sep='\t',
                           index=False,
                           na_rep="None")
+
+        with open(tsv_filepath, 'r') as tsv_fh:
+            tsv_rows = len(tsv_fh.readlines())
+
+        print(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
 
         tsv_files.append(tsv_filepath)
 
