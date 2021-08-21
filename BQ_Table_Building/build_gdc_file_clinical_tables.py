@@ -679,6 +679,17 @@ def main(args):
             for no_duplicate_key_table in no_duplicate_key_tables:
                 print(no_duplicate_key_table)
 
+        if 'find_matching_target_usis' in steps:
+            if program == 'TARGET':
+                id_key = programs[program]['id_key']
+                with open(tables_file, 'r') as tables_fh:
+                    table_ids = tables_fh.readlines()
+
+                for table_id in table_ids:
+                    print(table_id)
+
+
+
         """
         Create merged table.
         Merge in aliquot fields.
