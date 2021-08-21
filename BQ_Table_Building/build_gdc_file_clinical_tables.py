@@ -26,6 +26,7 @@ import json
 import re
 import os
 import pandas as pd
+from collections import OrderedDict
 
 from common_etl.utils import (get_filepath, format_seconds, has_fatal_error, load_config, get_rel_prefix,
                               make_string_bq_friendly, create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
@@ -332,6 +333,38 @@ def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_r
 """
 
 
+def group_files_by_type(file_traversal_list, split_start_idx, split_end_idx=None):
+    """
+    todo
+    For TCGA, 2:-1
+    For TARGET, -1
+    :param file_traversal_list:
+    :param split_start_idx:
+    :param split_end_idx:
+    :return:
+    """
+    file_type_dicts = {}
+
+    with open(file_traversal_list, mode='r') as traversal_list_file:
+        all_files = traversal_list_file.read().splitlines()
+
+    for file_path in all_files:
+        file_name = file_path.split('/')[-1]
+        file_name_no_ext = ".".join(file_name.split('.')[:-1])
+
+        if not split_end_idx:
+            file_type = file_name_no_ext.split("_")[split_start_idx]
+        else:
+            file_type = "_".join(file_name_no_ext.split("_")[split_start_idx:split_end_idx])
+
+        if file_type not in file_type_dicts:
+            file_type_dicts[file_type] = list()
+
+        file_type_dicts[file_type].append(file_path)
+
+    return file_type_dicts
+
+
 def longest_common_prefix(str1):
     """
     Hat tip to: https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-70.php
@@ -426,6 +459,7 @@ def main(args):
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+        merged_files_list = f"{local_program_dir}/{get_rel_prefix(PARAMS)}_merged_tsvs.txt"
         tables_file = f"{local_program_dir}/{get_rel_prefix(PARAMS)}_tables_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
@@ -524,7 +558,75 @@ def main(args):
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
+        if 'create_merged_tsv' in steps:
+            if program == "TCGA":
+                merged_file_path_list = list()
+                file_type_groupings_dict = group_files_by_type(file_traversal_list=file_traversal_list,
+                                                               split_start_idx=2,
+                                                               split_end_idx=-1)
+
+                for file_type in file_type_groupings_dict:
+                    merged_file_name = f"{get_rel_prefix(PARAMS)}_{program}_{file_type}.tsv"
+                    merged_file_path = f"{local_files_dir}/{merged_file_name}"
+                    merged_record_list = list()
+                    all_field_names_set = set()
+
+                    file_list = file_type_groupings_dict[file_type]
+                    for file in file_list:
+                        try:
+                            with open(file, 'r') as tsv_fh:
+                                col_names = tsv_fh.readline().strip().split('\t')
+                        except UnicodeDecodeError:
+                            with open(file, 'r', encoding="ISO-8859-1") as tsv_fh:
+                                col_names = tsv_fh.readline().strip().split('\t')
+
+                        all_field_names_set.update(col_names)
+
+                    all_field_names_tuple = tuple(all_field_names_set)
+
+                    for tsv_file_path in file_list:
+                        try:
+                            with open(tsv_file_path, 'r') as tsv_fh:
+                                file_rows = tsv_fh.readlines()
+                        except UnicodeDecodeError:
+                            with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                                file_rows = tsv_fh.readlines()
+
+                        col_indices = file_rows[0].strip().split('\t')
+
+                        for i in range(1, len(file_rows)):
+                            # todo this might need to be "" or something else
+                            record_dict = OrderedDict.fromkeys(all_field_names_tuple, None)
+
+                            row = file_rows[i].strip().split("\t")
+
+                            for idx, val in enumerate(row):
+                                column_key = col_indices[idx]
+                                record_dict[column_key] = val
+
+                            merged_record_list.append(record_dict)
+
+                    with open(merged_file_path, 'w') as merged_tsv_fh:
+                        header_row = "\t".join(all_field_names_tuple)
+                        merged_tsv_fh.write(f"{header_row}\n")
+
+                        for row in merged_record_list:
+                            tabbed_row = "\t".join(row.values())
+                            merged_tsv_fh.write(f"{tabbed_row}\n")
+                    merged_file_path_list.append(merged_file_path)
+
+                with open(merged_files_list, 'w') as merged_fh:
+                    merged_fh.write("\n".join(merged_file_path_list))
+
+        if 'upload_merged_tsv' in steps:
+            if program == "TCGA":
+                with open(merged_files_list, 'r') as merged_fh:
+                    merged_file_paths = merged_fh.readlines()
+
+                print(merged_file_paths)
+
         if 'create_normalized_tsv' in steps:
+            grouped_files = group_files_by_type
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
@@ -554,6 +656,7 @@ def main(args):
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
 
+        """
         if 'find_like_columns' in steps:
             file_type_dicts = {}
 
@@ -598,7 +701,7 @@ def main(args):
 
                 for col_name in header_list:
                     print(f"{col_name}\t{header_dict[col_name]}")
-
+        """
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             print(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
