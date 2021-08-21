@@ -453,6 +453,7 @@ def main(args):
                         traversal_list_file.write(f"{line}\n")
 
         if 'prepare_tsv_for_ingestion' in steps:
+            print("\nprepare_tsv_for_ingestion")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
@@ -473,6 +474,7 @@ def main(args):
                                               data_start_idx=programs[program]['data_start_idx'])
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
+            print(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
