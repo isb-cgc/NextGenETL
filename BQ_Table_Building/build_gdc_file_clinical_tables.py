@@ -569,31 +569,29 @@ def main(args):
                 elif program == "TARGET":
                     file_type = file_name_no_ext.split("_")[-1]
 
-                print(file_type)
-                continue
-
                 if file_type not in file_type_dicts:
                     file_type_dicts[file_type] = list()
 
                 file_type_dicts[file_type].append(file_path)
-            exit()
 
             for file_type, file_list in file_type_dicts.items():
-                full_header_set = set()
-                headers_sets = list()
-
-                for file_path in file_list:
-                    with open(file_path, 'r') as fh:
-                        headers = fh.readline().strip().split('\t')
-                        full_header_set.update(headers)
-
-                    headers_sets.append(set(headers))
+                header_dict = dict()
 
                 print(f"\n***{program}: {file_type}***\n")
 
-                for idx, header_set in enumerate(headers_sets):
-                    print(f"#{idx} header_set: {sorted(header_set)}\n")
-                    # print(f"#{idx} missing columns: {len(full_header_set.difference(header_set))}")
+                for idx, file_path in enumerate(file_list):
+                    print(f"{idx}\t{file_path}")
+
+                for idx, file_path in enumerate(file_list):
+                    with open(file_path, 'r') as fh:
+                        headers = fh.readline().strip().split('\t')
+                        for header in headers:
+                            if header not in header_dict:
+                                header_dict[header] = list()
+                            header_dict[header].append(idx)
+
+                for header in sorted(header_dict):
+                    print(f"{header}\t{header_dict[header]}")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             print(f"upload_tsv_file_and_schema_to_bucket")
