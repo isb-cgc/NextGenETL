@@ -612,7 +612,7 @@ def main(args):
                     """
 
                     results = bq_harness_with_result(sql=query,
-                                                     do_batch=BQ_PARAMS['DO_BATCH'],
+                                                     do_batch=False,
                                                      verbose=False)
 
                     print(results)
