@@ -195,9 +195,10 @@ def convert_excel_to_tsv(all_files, header_idx):
                           na_rep="None")
 
         with open(tsv_filepath, 'r') as tsv_fh:
-            tsv_rows = len(tsv_fh.readlines())
+            tsv_rows = len(tsv_fh.readlines()) - 1
 
-        print(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
+        if df_rows != tsv_rows:
+            print(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
 
         tsv_files.append(tsv_filepath)
 
