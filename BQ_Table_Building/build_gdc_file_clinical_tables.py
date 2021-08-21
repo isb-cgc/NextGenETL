@@ -29,7 +29,9 @@ import pandas as pd
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
                               load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix,
-                              make_string_bq_friendly)
+                              make_string_bq_friendly, create_and_upload_schema_for_json,
+                              write_list_to_jsonl_and_upload, retrieve_bq_schema_object,
+                              create_and_load_table_from_jsonl)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
                                 build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
@@ -112,13 +114,14 @@ def build_a_header(all_files):
 
 
 def group_by_suffixes(all_files):
-
     full_and_name = []
     names_only = []
     for filename in all_files:
         path, just_name = os.path.split(filename)
         full_and_name.append((filename, just_name))
         names_only.append(just_name)
+
+    print(f"full_and_name: {f}")
 
     prefix = longest_common_prefix(names_only)
 
@@ -220,42 +223,40 @@ def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
     return tsv_files
 
 
-def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx, backup_header_row_idx):
+def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_row_idx):
     json_list = []
 
-    for tsv_file in all_files:
-        print(tsv_file)
-        with open(tsv_file) as tsv_fh:
-            lines = tsv_fh.readlines()
-            headers = lines[header_row_idx].strip().split('\t')
-            backup_headers = lines[backup_header_row_idx].strip().split('\t')
+    with open(tsv_file) as tsv_fh:
+        lines = tsv_fh.readlines()
+        headers = lines[header_row_idx].strip().split('\t')
+        backup_headers = lines[backup_header_row_idx].strip().split('\t')
 
-            row_count = len(lines)
-            col_count = len(headers)
+        row_count = len(lines)
+        col_count = len(headers)
 
-            for row_idx in range(data_start_idx, row_count):
-                row_dict = {}
+        for row_idx in range(data_start_idx, row_count):
+            row_dict = {}
 
-                split_row = lines[row_idx].strip().split('\t')
+            split_row = lines[row_idx].strip().split('\t')
 
-                for i in range(0, col_count):
-                    column_name = headers[i].strip()
+            for i in range(0, col_count):
+                column_name = headers[i].strip()
 
-                    if column_name == 'CDE_ID:':
-                        column_name = backup_headers[i].strip()
+                if column_name == 'CDE_ID:':
+                    column_name = backup_headers[i].strip()
 
+                column_name = make_string_bq_friendly(column_name)
+
+                if column_name in row_dict:
+                    column_name = backup_headers[i].strip()
                     column_name = make_string_bq_friendly(column_name)
 
-                    if column_name in row_dict:
-                        column_name = backup_headers[i].strip()
-                        column_name = make_string_bq_friendly(column_name)
+                if column_name not in row_dict:
+                    row_dict[column_name] = split_row[i].strip()
+                else:
+                    has_fatal_error(f"duplicate column name: {column_name}")
 
-                    if column_name not in row_dict:
-                        row_dict[column_name] = split_row[i].strip()
-                    else:
-                        has_fatal_error(f"duplicate column name: {column_name}")
-
-                json_list.append(row_dict)
+            json_list.append(row_dict)
 
     return json_list
 
@@ -280,7 +281,6 @@ def longest_common_prefix(str1):
 
 
 def group_by_suffixes(all_files):
-
     full_and_name = []
     names_only = []
     for filename in all_files:
@@ -335,15 +335,21 @@ def main(args):
         print(f"Running script for {program}")
         local_program_dir = f"{local_files_dir_root}/{program}"
         local_files_dir = f"{local_program_dir}/files"
+        local_schemas_dir = f"{local_program_dir}/schemas"
+        local_jsonl_dir = f"{local_program_dir}/jsonls"
 
         if not os.path.exists(local_program_dir):
             os.makedirs(local_program_dir)
         if not os.path.exists(local_files_dir):
             os.makedirs(local_files_dir)
+        if not os.path.exists(local_schemas_dir):
+            os.makedirs(local_schemas_dir)
+        if not os.path.exists(local_jsonl_dir):
+            os.makedirs(local_jsonl_dir)
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
-        tsv_traversal_list = f"{local_program_dir}/{base_file_name}_tsv_traversal_list_{program}.txt"
+        tables_file = f"{local_program_dir}/{get_rel_prefix(PARAMS)}_tables_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
         src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
@@ -432,27 +438,63 @@ def main(args):
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
-        if 'group_by_type' in steps:
-            print('\ngroup_by_type')
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-            group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
-            print(group_dict)
+        if 'create_raw_tables' in steps:
+            print("\ncreate_tables")
+            table_list = []
 
-        if 'convert_tsvs_to_merged_jsonl' in steps:
-            print("\nconvert_tsvs_to_merged_jsonl")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
-            json_list = convert_tsvs_to_merged_jsonl(all_files,
-                                                     programs[program]['header_row_idx'],
-                                                     programs[program]['data_start_idx'],
-                                                     programs[program]['backup_header_row_idx'])
+            for file in all_files:
+                json_list = convert_tsv_to_obj(file,
+                                               programs[program]['header_row_idx'],
+                                               programs[program]['data_start_idx'],
+                                               programs[program]['backup_header_row_idx'])
 
-            for row in json_list:
-                print(row)
+                file_name = file.split("/")[-1]
+                table_base_name = "_".join(file_name.split('.')[0:-1])
+                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
+                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
+                jsonl_file = f"{table_name}.jsonl"
+                jsonl_file_path = f"{local_jsonl_dir}/{jsonl_file}"
+                schema_file_path = f"{local_schemas_dir}/schema_{table_name}.json"
 
-        """
+                print(f"creating schema for {table_name}")
+
+                create_and_upload_schema_for_json(PARAMS, BQ_PARAMS,
+                                                  record_list=json_list,
+                                                  table_name=table_name,
+                                                  schema_fp=schema_file_path)
+
+                print(f"uploading file for {table_name} to bucket")
+                write_list_to_jsonl_and_upload(PARAMS, BQ_PARAMS,
+                                               prefix=None,
+                                               record_list=json_list,
+                                               local_filepath=jsonl_file_path)
+
+                table_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
+                                                         table_name=table_name,
+                                                         schema_fp=schema_file_path)
+
+                print(f"creating table: {table_id}")
+                create_and_load_table_from_jsonl(BQ_PARAMS,
+                                                 jsonl_file=jsonl_file,
+                                                 table_id=table_id,
+                                                 schema=table_schema)
+
+                table_list.append(table_id)
+
+                with open(tables_file, 'w') as tables_fh:
+                    for table_name in table_list:
+                        tables_fh.write(f"{table_name}\n")
+
+            print(f"\n\nTables created for {program}:")
+            for table in table_list:
+                print(table)
+            print('\n')
+
+
+    """
         I'm going to handle this differently. 
         Not going to try to group by type, since this isn't actually relevant to TARGET as far as I can tell.
         Will merge the files into one giant jsonl file instead. Okay if the files have different schemas, then.

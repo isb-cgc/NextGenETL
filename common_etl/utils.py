@@ -885,7 +885,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
             file_obj.write('\n')
 
 
-def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
+def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, local_filepath=None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
     :param api_params: api_params supplied in yaml config
@@ -893,10 +893,12 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
     """
-    jsonl_filename = get_filename(api_params,
-                                  file_extension='jsonl',
-                                  prefix=prefix)
-    local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+    if not local_filepath:
+        jsonl_filename = get_filename(api_params,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+        local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+
     write_list_to_jsonl(local_filepath, record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
@@ -1324,7 +1326,7 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True):
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True, schema_fp=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1334,25 +1336,28 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
     :param include_release:
     :return:
     """
-    schema_filename = get_filename(api_params=api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release,
-                                   include_release=include_release)
+    if not schema_fp:
+        schema_filename = get_filename(api_params=api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
 
-    download_from_bucket(bq_params, schema_filename)
+        download_from_bucket(bq_params, schema_filename)
 
-    with open(get_scratch_fp(bq_params, schema_filename), "r") as schema_json:
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, "r") as schema_json:
         schema_obj = json.load(schema_json)
         json_schema_obj_list = [field for field in schema_obj["fields"]]
-
-    schema = generate_bq_schema_fields(json_schema_obj_list)
+        schema = generate_bq_schema_fields(json_schema_obj_list)
 
     return schema
 
 
-def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None):
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None,
+                               schema_fp=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1369,14 +1374,15 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
         "fields": schema_list
     }
 
-    schema_filename = get_filename(api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release,
-                                   include_release=include_release)
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
 
-    schema_fp = get_scratch_fp(bq_params, schema_filename)
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
@@ -1384,7 +1390,8 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     upload_to_bucket(bq_params, schema_fp, delete_local=True)
 
 
-def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release):
+def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release=False,
+                                      schema_fp=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1399,7 +1406,8 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     generate_and_upload_schema(api_params, bq_params,
                                table_name=table_name,
                                data_types_dict=data_types_dict,
-                               include_release=include_release)
+                               include_release=include_release,
+                               schema_fp=schema_fp)
 
 
 def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
