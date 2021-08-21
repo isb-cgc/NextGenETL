@@ -1036,7 +1036,7 @@ def check_value_type(value):
     """
 
     # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
-    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
+    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-(0[1-9]|[1-2][0-9]|[3][0-1]|[1-9])"
     date_pattern = re.compile(date_re_str)
     if re.fullmatch(date_pattern, value):
         return "DATE"
