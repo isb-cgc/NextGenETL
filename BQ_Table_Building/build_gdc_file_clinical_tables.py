@@ -570,7 +570,8 @@ def main(args):
             print('\n')
 
         if 'find_duplicates_in_tables' in steps:
-            with open(())
+            pass
+            # with open(())
 
         """
         Create merged table.
