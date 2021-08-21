@@ -181,13 +181,6 @@ def convert_excel_to_tsv(all_files, header_idx):
         # get rid of funky newline formatting in headers
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
         excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["",""], regex=True)
-        """
-        excel_data = excel_data.replace(r'\\r+',' ', regex=True)
-        excel_data = excel_data.replace(r'\\n+',' ', regex=True)
-        excel_data = excel_data.replace(r'\\t+',' ', regex=True)
-        excel_data = excel_data.replace(r'\\r\\n', ' ')
-        excel_data = excel_data.replace(r'_x000D_', ' ', regex=True)
-        """
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
@@ -223,7 +216,10 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
         column_name = column_name.lower()
 
         if column_name in final_headers:
-            has_fatal_error(f"Duplicate column name '{column_name}' at idx {i} \nFile: {tsv_file}")
+            i = 1
+            while column_name in final_headers:
+                # give the duplicate column name a suffix
+                column_name = f"{column_name}_{str(i)}"
 
         final_headers.append(column_name)
 
