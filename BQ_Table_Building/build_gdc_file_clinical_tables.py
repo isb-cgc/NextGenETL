@@ -707,7 +707,7 @@ def main(args):
                             id_key_map[patient_barcode] = list()
                         id_key_map[patient_barcode].append(idx)
 
-                for patient_barcode, id_table_list in id_key_map.items():
+                for patient_barcode, id_table_list in sorted(id_key_map).items():
                     print(f"{patient_barcode}: {id_table_list}")
 
         """
