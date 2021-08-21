@@ -583,10 +583,10 @@ def main(args):
 
                     headers_sets.append(set(headers))
 
-                print(f"\n***{program}: {file_type}***")
+                print(f"\n***{program}: {file_type}***\n")
 
                 for idx, header_set in enumerate(headers_sets):
-                    print(f"#{idx} header_set: {header_set}\n")
+                    print(f"#{idx} header_set: {sorted(header_set)}\n")
                     # print(f"#{idx} missing columns: {len(full_header_set.difference(header_set))}")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
