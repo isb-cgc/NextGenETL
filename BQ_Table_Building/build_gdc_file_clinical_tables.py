@@ -599,6 +599,8 @@ def main(args):
             print('\n')
 
         if 'find_duplicates_in_tables' in steps:
+            duplicate_key_tables = []
+            no_duplicate_key_tables = []
             with open(tables_file, 'r') as tables_fh:
                 id_key = programs[program]['id_key']
 
@@ -614,8 +616,13 @@ def main(args):
                     results = bq_harness_with_result(sql=query,
                                                      do_batch=False,
                                                      verbose=False)
+                    total_rows = results.total_rows
+                    if total_rows > 0:
+                        duplicate_key_tables.append(table_id)
+                        print(f"{table_id} has {total_rows} id keys with duplicate rows.")
+                    else:
+                        no_duplicate_key_tables.append(table_id)
 
-                    print(results.total_rows)
 
 
         """
