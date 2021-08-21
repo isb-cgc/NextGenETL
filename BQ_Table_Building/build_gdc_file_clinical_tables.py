@@ -618,9 +618,9 @@ def main(args):
 
                         # print(header_row)
                         for row in merged_record_list:
-                            print(row.values())
+                            tabbed_row = "\t".join(list(row.values()))
+                            print(tabbed_row)
                             exit()
-                            tabbed_row = "\t".join(row.values())
                             merged_tsv_fh.write(f"{tabbed_row}\n")
                     merged_file_path_list.append(merged_file_path)
 
