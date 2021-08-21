@@ -179,7 +179,7 @@ def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
     return tsv_files
 
 
-def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
+def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx, backup_header_row_idx):
     json_list = []
 
     for tsv_file in all_files:
@@ -187,6 +187,7 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
         with open(tsv_file) as tsv_fh:
             lines = tsv_fh.readlines()
             headers = lines[header_row_idx].strip().split('\t')
+            backup_headers = lines[backup_header_row_idx].strip().split('\t')
 
             row_count = len(lines)
             col_count = len(headers)
@@ -197,8 +198,21 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
                 split_row = lines[row_idx].strip().split('\t')
 
                 for i in range(0, col_count):
-                    column_name = make_string_bq_friendly(headers[i])
-                    row_dict[column_name] = split_row[i].strip()
+                    column_name = headers[i].strip()
+
+                    if column_name == 'CDE_ID:':
+                        column_name = backup_headers[i].strip()
+
+                    column_name = make_string_bq_friendly(column_name)
+
+                    if column_name in row_dict:
+                        column_name = backup_headers[i].strip()
+                        column_name = make_string_bq_friendly(column_name)
+
+                    if column_name not in row_dict:
+                        row_dict[column_name] = split_row[i].strip()
+                    else:
+                        has_fatal_error(f"duplicate column name: {column_name}")
 
                 json_list.append(row_dict)
 
@@ -222,6 +236,40 @@ def longest_common_prefix(str1):
                 return short_str[:i]
 
     return short_str
+
+
+def group_by_suffixes(all_files):
+
+    full_and_name = []
+    names_only = []
+    for filename in all_files:
+        path, just_name = os.path.split(filename)
+        full_and_name.append((filename, just_name))
+        names_only.append(just_name)
+
+    prefix = longest_common_prefix(names_only)
+
+    path_suff = []
+    for tup in full_and_name:
+        path_suff.append((tup[0], tup[1][len(prefix):]))
+
+    path_group = []
+    groups = set()
+    p = re.compile('(^.*)_[a-z]+\.txt')
+    for tup in path_suff:
+        m = p.match(tup[1])
+        group = m.group(1)
+        path_group.append((tup[0], group))
+        groups.add(group)
+
+    files_by_group = {}
+
+    for file_tup in path_group:
+        if file_tup[1] not in files_by_group:
+            files_by_group[file_tup[1]] = []
+        files_by_group[file_tup[1]].append(file_tup[0])
+
+    return files_by_group
 
 
 def main(args):
@@ -343,6 +391,13 @@ def main(args):
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
+        if 'group_by_type' in steps:
+            print('\ngroup_by_type')
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+            group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
+            print(group_dict)
+
         if 'convert_tsvs_to_merged_jsonl' in steps:
             print("\nconvert_tsvs_to_merged_jsonl")
             with open(file_traversal_list, mode='r') as traversal_list_file:
@@ -350,7 +405,8 @@ def main(args):
 
             json_list = convert_tsvs_to_merged_jsonl(all_files,
                                                      programs[program]['header_row_idx'],
-                                                     programs[program]['data_start_idx'])
+                                                     programs[program]['data_start_idx'],
+                                                     programs[program]['backup_header_row_idx'])
 
             for row in json_list:
                 print(row)
