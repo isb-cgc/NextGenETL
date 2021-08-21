@@ -492,7 +492,6 @@ def main(args):
                             continue
 
                     traversal_list.write(f"{line}\n")
-
         if 'convert_excel_to_csv' in steps:
             print('\nconvert_excel_to_tsv')
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
@@ -522,10 +521,14 @@ def main(args):
                 backup_header_row_idx = None
 
             for tsv_file_path in all_files:
-                with open(tsv_file_path) as tsv_fh:
-                    row_count = len(tsv_fh.readlines())
-                    if row_count <= 1:
-                        print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
+                try:
+                    with open(tsv_file_path, 'r') as tsv_fh:
+                except UnicodeDecodeError:
+                    with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                        row_count = len(tsv_fh.readlines())
+
+                if row_count <= 1:
+                    print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
 
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
                                                          header_row_idx=header_row_idx,
