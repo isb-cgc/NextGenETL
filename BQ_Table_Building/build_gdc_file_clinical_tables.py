@@ -270,8 +270,12 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
 
 
 def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
-    with open(tsv_file, 'r') as tsv_fh:
-        lines = tsv_fh.readlines()
+    try:
+        with open(tsv_file, 'r') as tsv_fh:
+            lines = tsv_fh.readlines()
+    except UnicodeDecodeError:
+        with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
+            lines = tsv_fh.readlines()
 
     with open(tsv_file, 'w') as tsv_fh:
         header_row = "\t".join(headers)
