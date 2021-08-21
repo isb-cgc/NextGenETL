@@ -567,16 +567,10 @@ def main(args):
                 elif program == "TARGET":
                     file_type = "_".join(file_name_no_ext.split("_")[3:])
 
-                print(file_type)
-
                 if file_type not in file_type_dicts:
                     file_type_dicts[file_type] = list()
 
                 file_type_dicts[file_type].append(file_path)
-
-            print('')
-            print(file_type_dicts)
-            exit()
 
             for file_type, file_list in file_type_dicts.items():
                 full_header_set = set()
