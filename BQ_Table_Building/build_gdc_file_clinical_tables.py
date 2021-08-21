@@ -616,6 +616,7 @@ def main(args):
                         header_row = "\t".join(all_field_names_tuple)
                         merged_tsv_fh.write(f"{header_row}\n")
 
+                        print(header_row)
                         for row in merged_record_list:
                             print(row)
                             exit()
