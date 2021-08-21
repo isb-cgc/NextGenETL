@@ -180,8 +180,9 @@ def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
 
 
 def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
+    json_list = []
+
     for tsv_file in all_files:
-        json_list = []
         with open(tsv_file) as tsv_fh:
             lines = tsv_fh.readlines()
             headers = lines[header_row_idx].strip().split('\t')
@@ -200,9 +201,7 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
 
                 json_list.append(row_dict)
 
-        for row in json_list:
-            print(row)
-        exit()
+    return json_list
 
 
 def longest_common_prefix(str1):
@@ -328,7 +327,6 @@ def main(args):
 
         if 'convert_excel_to_csv' in steps:
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
-
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
                     all_files = convert_excel_to_tsv(all_files=all_files,
@@ -347,9 +345,12 @@ def main(args):
                     all_tsv_files.append(tsv_filename)
                 all_files = all_tsv_files
 
-            convert_tsvs_to_merged_jsonl(all_files,
-                                         programs[program]['header_row_idx'],
-                                         programs[program]['data_start_idx'])
+            json_list = convert_tsvs_to_merged_jsonl(all_files,
+                                                     programs[program]['header_row_idx'],
+                                                     programs[program]['data_start_idx'])
+
+            for row in json_list:
+                print(json_list)
 
         """
         I'm going to handle this differently. 
