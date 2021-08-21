@@ -535,10 +535,6 @@ def main(args):
                 print(table)
             print('\n')
 
-        if 'clean_up_temporary_files_and_tables' in steps:
-            for program in programs:
-                os.rmdir(f"{local_dir_root}/{program}")
-
         """
         if 'create_raw_tables' in steps:
             print("\ncreate_tables")
