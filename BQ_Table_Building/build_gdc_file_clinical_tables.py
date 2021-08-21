@@ -689,7 +689,7 @@ def main(args):
                     table_ids = tables_fh.readlines()
 
                 for idx, table_id in enumerate(table_ids):
-                    print(f"{idx}: {table_id}")
+                    print(f"{idx}: {table_id}", sep='')
 
                 for idx, table_id in enumerate(table_ids):
                     query = f"""
