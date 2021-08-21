@@ -163,7 +163,7 @@ def main(args):
         print("Inferring column data types and generating schema!")
         record_list = list()
 
-        download_from_bucket(BQ_PARAMS, jsonl_output_file)
+        download_from_bucket(API_PARAMS, jsonl_output_file)
 
         # Create list of record objects for schema analysis
         with open(scratch_fp) as jsonl_file:

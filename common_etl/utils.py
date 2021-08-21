@@ -812,18 +812,18 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename):
+def download_from_bucket(params, filename):
     """
     Download file from Google storage bucket onto VM.
     :param bq_params: BigQuery params
     :param filename: Name of file to download
     """
     storage_client = storage.Client(project="")
-    blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
-    bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+    blob_name = f"{params['WORKING_BUCKET_DIR']}/{filename}"
+    bucket = storage_client.bucket(params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    scratch_fp = get_scratch_fp(bq_params, filename)
+    scratch_fp = get_scratch_fp(params, filename)
     with open(scratch_fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 
