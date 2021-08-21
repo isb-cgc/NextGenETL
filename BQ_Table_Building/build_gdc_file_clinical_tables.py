@@ -584,7 +584,7 @@ def main(args):
 
                     all_field_names_tuple = tuple(all_field_names_set)
 
-                    print(f"all_field_names_tuple: {all_field_names_tuple}")
+                    # print(f"all_field_names_tuple: {all_field_names_tuple}")
 
                     for tsv_file_path in file_list:
                         try:
@@ -596,7 +596,7 @@ def main(args):
 
                         col_indices = file_rows[0].strip().split('\t')
 
-                        print(f"col_indices: {col_indices}")
+                        # print(f"col_indices: {col_indices}")
 
                         for i in range(1, len(file_rows)):
                             # todo this might need to be "" or something else
@@ -608,8 +608,9 @@ def main(args):
                                 column_key = col_indices[idx]
                                 record_dict[column_key] = val
 
-                            print(f"record_dict: {record_dict}")
                             merged_record_list.append(record_dict)
+
+                    print(merged_record_list)
 
                     with open(merged_file_path, 'w') as merged_tsv_fh:
                         header_row = "\t".join(all_field_names_tuple)
