@@ -1739,6 +1739,7 @@ def make_string_bq_friendly(string):
     :param string:
     :return:
     """
+    string = string.replace('%', 'percent')
     string = re.sub(r'[^A-Za-z0-9_ ]+', ' ', string)
     string = string.strip()
     string = re.sub(r'\s+', '_', string)

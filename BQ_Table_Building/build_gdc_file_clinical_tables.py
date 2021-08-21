@@ -28,7 +28,8 @@ import os
 import pandas as pd
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix)
+                              load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix,
+                              make_string_bq_friendly)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
                                 build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
@@ -194,11 +195,13 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
                 split_row = lines[row_idx].strip().split('\t')
 
                 for i in range(0, col_count):
-                    row_dict[headers[i]] = split_row[i]
+                    column_name = make_string_bq_friendly(headers[i])
+                    row_dict[column_name] = split_row[i]
 
                 json_list.append(row_dict)
 
-        print(json_list)
+        for row in json_list:
+            print(row)
         exit()
 
 
