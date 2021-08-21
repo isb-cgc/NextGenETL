@@ -334,6 +334,7 @@ def main(args):
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
+                    print(all_files)
                     all_files = convert_excel_to_tsv(all_files=all_files,
                                                      local_files_dir=local_files_dir,
                                                      header_idx=programs[program]['header_row_idx'])
