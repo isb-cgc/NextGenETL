@@ -628,7 +628,7 @@ def main(args):
         if 'upload_merged_tsv' in steps:
             if program == "TCGA":
                 with open(merged_files_list, 'r') as merged_fh:
-                    merged_file_paths = merged_fh.readlines()
+                    merged_file_paths = merged_fh.strip().readlines()
 
                 print(merged_file_paths)
 
