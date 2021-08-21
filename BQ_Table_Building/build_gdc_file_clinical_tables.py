@@ -178,14 +178,11 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    header=header_idx,
                                    engine='openpyxl')
 
-        if file_path == '/home/lauren/scratch/gdc_clinical_from_file/TARGET/files/r29_TARGET_ALL_ClinicalData_Phase_II_Validation_20170525.xlsx':
-            print(excel_data.head())
+        print(excel_data)
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
             continue
-        else:
-            print(f"xslx rows: {excel_data.size}")
 
         excel_data.to_csv(tsv_filepath, sep='\t', index=False)
 
@@ -519,8 +516,6 @@ def main(args):
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
-
-
 
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
