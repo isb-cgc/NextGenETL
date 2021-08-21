@@ -29,9 +29,9 @@ import pandas as pd
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
                               load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix,
-                              make_string_bq_friendly, create_and_upload_schema_for_json,
+                              make_string_bq_friendly, create_and_upload_schema_for_tsv,
                               write_list_to_jsonl_and_upload, retrieve_bq_schema_object,
-                              create_and_load_table_from_jsonl)
+                              create_and_load_table_from_jsonl, create_and_load_table_from_tsv)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
                                 build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
@@ -197,32 +197,74 @@ def group_by_suffixes(all_files, file_suffix):
 '''
 
 
-def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
+def convert_excel_to_tsv(all_files, header_idx):
     """
     Convert excel files to CSV files.
     :param all_files: todo
-    :param local_files_dir:
+    :param header_idx:
     :return:
     """
 
     tsv_files = []
 
-    for filename in all_files:
-        print(filename)
-        tsv_filename = '.'.join(filename.split('.')[0:-1])
-        tsv_filename = f"{tsv_filename}.tsv"
+    for file_path in all_files:
+        print(file_path)
+        tsv_filepath = '.'.join(file_path.split('.')[0:-1])
+        tsv_filepath = f"{tsv_filepath}.tsv"
 
-        excel_data = pd.read_excel(io=filename,
+        excel_data = pd.read_excel(io=file_path,
                                    index_col=None,
                                    header=header_idx,
                                    engine='openpyxl')
-        excel_data.to_csv(tsv_filename, sep='\t', index=False)
+        excel_data.to_csv(tsv_filepath, sep='\t', index=False)
 
-        tsv_files.append(tsv_filename)
+        tsv_files.append(tsv_filepath)
 
     return tsv_files
 
 
+def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None):
+    with open(tsv_file) as tsv_fh:
+        lines = tsv_fh.readlines()
+
+    headers = lines[header_row_idx].strip().split('\t')
+
+    if not backup_header_row_idx:
+        return headers
+
+    backup_headers = lines[backup_header_row_idx].strip().split('\t')
+    final_headers = []
+
+    col_count = len(headers)
+
+    for i in range(0, col_count):
+        column_name = headers[i].strip()
+
+        if column_name == 'CDE_ID:':
+            column_name = backup_headers[i].strip()
+
+        column_name = make_string_bq_friendly(column_name)
+
+        if column_name not in final_headers:
+            final_headers.append(column_name)
+        else:
+            has_fatal_error(f"duplicate column name: {column_name}")
+
+    return headers
+
+
+def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
+    with open(tsv_file, 'r') as tsv_fh:
+        lines = tsv_fh.readlines()
+
+    with open(tsv_file, 'w') as tsv_fh:
+        header_row = "\t".join(headers)
+        tsv_fh.write(f"{header_row}\n")
+
+        for i in range(data_start_idx, len(lines)):
+            tsv_fh.write(f"{lines[i]}\n")
+
+"""
 def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_row_idx):
     json_list = []
 
@@ -259,7 +301,7 @@ def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_r
             json_list.append(row_dict)
 
     return json_list
-
+"""
 
 def longest_common_prefix(str1):
     """
@@ -332,6 +374,15 @@ def main(args):
     base_file_name = PARAMS['BASE_FILE_NAME']
 
     for program in programs:
+        if 'filters' not in programs[program]:
+            has_fatal_error(f"'filters' not in programs section of yaml for {program}")
+        if 'header_row_idx' not in programs[program]:
+            has_fatal_error(f"'header_row_idx' not in programs section of yaml for {program}")
+        if 'data_start_idx' not in programs[program]:
+            has_fatal_error(f"'data_start_idx' not in programs section of yaml for {program}")
+        if 'file_suffix' not in programs[program]:
+            has_fatal_error(f"'file_suffix' not in programs section of yaml for {program}")
+
         print(f"Running script for {program}")
         local_program_dir = f"{local_files_dir_root}/{program}"
         local_files_dir = f"{local_program_dir}/files"
@@ -420,9 +471,11 @@ def main(args):
 
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
+                    """
                     if program == 'TARGET':
                         if '_CDE_' in line:
                             continue
+                    """
                     traversal_list.write(f"{line}\n")
 
         if 'convert_excel_to_csv' in steps:
@@ -431,26 +484,105 @@ def main(args):
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
                     all_files = convert_excel_to_tsv(all_files=all_files,
-                                                     local_files_dir=local_files_dir,
                                                      header_idx=programs[program]['header_row_idx'])
 
                 with open(file_traversal_list, mode='w') as traversal_list_file:
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
-        if 'create_raw_tables' in steps:
-            print("\ncreate_tables")
-            table_list = []
-
+        if 'prepare_tsv_for_ingestion' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
+            header_row_idx = programs[program]['header_row_idx']
+
+            if 'backup_header_row_idx' in programs[program]:
+                backup_header_row_idx = programs[program]['backup_header_row_idx']
+            else:
+                backup_header_row_idx = None
+
+            for tsv_file in all_files:
+                bq_column_names = create_bq_column_names(tsv_file=tsv_file,
+                                                         header_row_idx=header_row_idx,
+                                                         backup_header_row_idx=backup_header_row_idx)
+
+                create_tsv_with_final_headers(tsv_file=tsv_file,
+                                              headers=bq_column_names,
+                                              data_start_idx=programs[program]['data_start_idx'])
+
+        if 'upload_tsv_file_and_schema_to_bucket' in steps:
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            for tsv_file_path in all_files:
+                file_name = tsv_file_path.split("/")[-1]
+                table_base_name = "_".join(file_name.split('.')[0:-1])
+                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
+                schema_file_name = f"schema_{table_name}.json"
+                schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
+
+                print(f"creating schema for {table_name}")
+                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
+                                                 table_name=table_name,
+                                                 tsv_fp=tsv_file_path,
+                                                 header_row=0,
+                                                 skip_rows=1,
+                                                 row_check_interval=1,
+                                                 schema_fp=schema_file_path,
+                                                 delete_local=False)
+
+                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
+
+        if 'build_raw_tables' in steps:
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            table_list = []
+
+            for tsv_file_path in all_files:
+                file_name = tsv_file_path.split("/")[-1]
+                table_base_name = "_".join(file_name.split('.')[0:-1])
+                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
+                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
+                schema_file_name = f"schema_{table_name}.json"
+                schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
+
+                bq_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
+                                                      table_name=table_name,
+                                                      schema_filename=schema_file_name,
+                                                      schema_file_path=schema_file_path)
+
+                create_and_load_table_from_tsv(BQ_PARAMS,
+                                               tsv_file=file_name,
+                                               table_id=table_id,
+                                               num_header_rows=1,
+                                               schema=bq_schema)
+
+                table_list.append(table_id)
+
+            with open(tables_file, 'w') as tables_fh:
+                for table_name in table_list:
+                    tables_fh.write(f"{table_name}\n")
+
+            print(f"\n\nTables created for {program}:")
+            for table in table_list:
+                print(table)
+            print('\n')
+
+        """
+        if 'create_raw_tables' in steps:
+            print("\ncreate_tables")
+            table_list = []
+    
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+    
             for file in all_files:
                 json_list = convert_tsv_to_obj(file,
                                                programs[program]['header_row_idx'],
                                                programs[program]['data_start_idx'],
                                                programs[program]['backup_header_row_idx'])
-
+    
                 file_name = file.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
                 table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
@@ -458,42 +590,42 @@ def main(args):
                 jsonl_file = f"{table_name}.jsonl"
                 jsonl_file_path = f"{local_jsonl_dir}/{jsonl_file}"
                 schema_file_path = f"{local_schemas_dir}/schema_{table_name}.json"
-
+    
                 print(f"creating schema for {table_name}")
-
+    
                 create_and_upload_schema_for_json(PARAMS, BQ_PARAMS,
                                                   record_list=json_list,
                                                   table_name=table_name,
                                                   schema_fp=schema_file_path,
                                                   delete_local=False)
-
+    
                 print(f"uploading file for {table_name} to bucket")
                 write_list_to_jsonl_and_upload(PARAMS, BQ_PARAMS,
                                                prefix=None,
                                                record_list=json_list,
                                                local_filepath=jsonl_file_path)
-
+    
                 table_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
                                                          table_name=table_name,
                                                          schema_fp=schema_file_path)
-
+    
                 print(f"creating table: {table_id}")
                 create_and_load_table_from_jsonl(BQ_PARAMS,
                                                  jsonl_file=jsonl_file,
                                                  table_id=table_id,
                                                  schema=table_schema)
-
+    
                 table_list.append(table_id)
-
-                with open(tables_file, 'w') as tables_fh:
-                    for table_name in table_list:
-                        tables_fh.write(f"{table_name}\n")
-
+    
+            with open(tables_file, 'w') as tables_fh:
+                for table_name in table_list:
+                    tables_fh.write(f"{table_name}\n")
+    
             print(f"\n\nTables created for {program}:")
             for table in table_list:
                 print(table)
             print('\n')
-
+        """
 
         """
         I'm going to handle this differently. 
@@ -510,11 +642,10 @@ def main(args):
         """
 
         """        
-
         if 'concat_all_files' in steps:
             print('concat_all_files')
             one_big_tsv = get_scratch_fp(PARAMS, f"{base_file_name}_data_{program}.tsv", )
-
+    
             for k, v in group_dict.items():
                 concat_all_files(v, one_big_tsv.format(k))
         """

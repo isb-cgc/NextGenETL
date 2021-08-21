@@ -1326,7 +1326,8 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True, schema_fp=None):
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
+                              schema_filename=None, schema_fp=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1336,7 +1337,7 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
     :param include_release:
     :return:
     """
-    if not schema_fp:
+    if not schema_filename:
         schema_filename = get_filename(api_params=api_params,
                                        file_extension='json',
                                        prefix="schema",
@@ -1344,8 +1345,9 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
                                        release=release,
                                        include_release=include_release)
 
-        download_from_bucket(bq_params, schema_filename)
+    download_from_bucket(bq_params, schema_filename)
 
+    if not schema_fp:
         schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, "r") as schema_json:
@@ -1535,7 +1537,7 @@ def create_schema_object(column_headers, data_types_dict):
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     skip_rows=0, row_check_interval=1, release=None):
+                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
     """
     Create and upload schema for a file in tsv format.
     :param api_params: api_params supplied in yaml config
@@ -1566,17 +1568,18 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     schema_obj = create_schema_object(column_headers, data_type_dict)
 
-    schema_filename = get_filename(api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release)
-    schema_fp = get_scratch_fp(bq_params, schema_filename)
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release)
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
-    upload_to_bucket(bq_params, schema_fp, delete_local=True)
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
 
 
 def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
