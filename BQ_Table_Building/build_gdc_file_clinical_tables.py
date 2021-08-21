@@ -616,9 +616,9 @@ def main(args):
                         header_row = "\t".join(all_field_names_tuple)
                         merged_tsv_fh.write(f"{header_row}\n")
 
-                        print(header_row)
+                        # print(header_row)
                         for row in merged_record_list:
-                            print(row)
+                            print(row.values())
                             exit()
                             tabbed_row = "\t".join(row.values())
                             merged_tsv_fh.write(f"{tabbed_row}\n")
