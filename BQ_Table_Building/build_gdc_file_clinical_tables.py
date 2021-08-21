@@ -324,7 +324,10 @@ def main(args):
 
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
-                    traversal_list.write("{}\n".format(line))
+                    if program == 'TARGET':
+                        if '_CDE_' in line:
+                            continue
+                    traversal_list.write(f"{line}\n")
 
         if 'convert_excel_to_csv' in steps:
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
