@@ -584,8 +584,6 @@ def main(args):
 
                     all_field_names_tuple = tuple(all_field_names_set)
 
-                    print(all_field_names_tuple)
-
                     for tsv_file_path in file_list:
                         try:
                             with open(tsv_file_path, 'r') as tsv_fh:
@@ -595,6 +593,8 @@ def main(args):
                                 file_rows = tsv_fh.readlines()
 
                         col_indices = file_rows[0].strip().split('\t')
+
+                        print(col_indices)
 
                         for i in range(1, len(file_rows)):
                             # todo this might need to be "" or something else
