@@ -119,6 +119,9 @@ def group_by_suffixes(all_files, file_suffix):
     :return:
     """
 
+    print(all_files)
+    print(file_suffix)
+
     full_and_name = []
     names_only = []
     for filename in all_files:
