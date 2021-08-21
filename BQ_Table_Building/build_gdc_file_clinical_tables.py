@@ -158,7 +158,7 @@ def group_by_suffixes(all_files, file_suffix):
 '''
 
 
-def convert_excel_to_tsv(all_files, header_idx):
+def convert_excel_to_tsv(program, all_files, header_idx):
     """
     Convert excel files to CSV files.
     :param all_files: todo
@@ -171,6 +171,10 @@ def convert_excel_to_tsv(all_files, header_idx):
     for file_path in all_files:
         print(file_path)
         tsv_filepath = '.'.join(file_path.split('.')[0:-1])
+
+        if program == 'TARGET':
+            tsv_filepath = tsv_filepath[0:-9]
+
         tsv_filepath = f"{tsv_filepath}.tsv"
 
         excel_data = pd.read_excel(io=file_path,
@@ -182,7 +186,7 @@ def convert_excel_to_tsv(all_files, header_idx):
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
         excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["",""], regex=True)
         # drop all-null columns
-        excel_data = excel_data.dropna(axis=1, how='all')
+        # excel_data = excel_data.dropna(axis=1, how='all')
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
@@ -500,6 +504,7 @@ def main(args):
                             continue
 
                     traversal_list.write(f"{line}\n")
+
         if 'convert_excel_to_csv' in steps:
             print('\nconvert_excel_to_tsv')
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
@@ -509,7 +514,8 @@ def main(args):
                     for excel_file in all_files:
                         upload_to_bucket(BQ_PARAMS, scratch_fp=excel_file, delete_local=False)
 
-                    all_files = convert_excel_to_tsv(all_files=all_files,
+                    all_files = convert_excel_to_tsv(program=program,
+                                                     all_files=all_files,
                                                      header_idx=programs[program]['header_row_idx'])
 
                 with open(file_traversal_list, mode='w') as traversal_list_file:
@@ -527,6 +533,8 @@ def main(args):
                 backup_header_row_idx = programs[program]['backup_header_row_idx']
             else:
                 backup_header_row_idx = None
+
+            program_column_map = {}
 
             for tsv_file_path in all_files:
                 try:
@@ -553,6 +561,8 @@ def main(args):
                 schema_file_name = f"schema_{table_name}.json"
                 schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
 
+                program_column_map[table_base_name] = bq_column_names
+
                 create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
                                                  table_name=table_name,
                                                  tsv_fp=tsv_file_path,
@@ -563,6 +573,46 @@ def main(args):
                                                  delete_local=True)
 
                 upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
+
+            for table in program_column_map:
+                print(f"{table}: {sorted(program_column_map[table])}")
+
+        if 'find_like_columns' in steps:
+            file_type_dicts = {}
+
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            for file_path in all_files:
+                file_name = file_path.split('/')[-1]
+
+                if program == "TCGA":
+                    file_type = "_".join(file_name.split('_')[2:-1])
+                elif program == "TARGET":
+                    file_type = "_".join(file_name.split("_")[4:-1])
+
+                if file_type not in file_type_dicts:
+                    file_type_dicts[file_type] = list()
+
+                file_type_dicts[file_type].append(file_path)
+
+            for file_type, file_list in file_type_dicts.items():
+                full_header_set = set()
+                headers_sets = list()
+
+                print(file_type)
+                for file_path in file_list:
+                    with open(file_path, 'r') as fh:
+                        headers = fh.readline().split('\t')
+                        full_header_set.update(headers)
+
+                    headers_sets.append(set(headers))
+
+                for idx, header_set in enumerate(headers_sets):
+                    print(f"#{idx}:")
+                    print(f"missing columns: {full_header_set.difference(header_set)}")
+
+
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
@@ -629,8 +679,6 @@ def main(args):
             print(f"Tables with no duplicate id keys:")
             for no_duplicate_key_table in no_duplicate_key_tables:
                 print(no_duplicate_key_table)
-
-
 
         """
         Create merged table.
