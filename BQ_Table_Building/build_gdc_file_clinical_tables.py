@@ -180,7 +180,7 @@ def convert_excel_to_tsv(all_files, header_idx):
 
         # get rid of funky newline formatting in headers
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
-        # excel_data = excel_data.str.replace(r'\\n', '', regex=True)
+        excel_data = excel_data.replace(r'\\n', '', regex=True)
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
@@ -555,8 +555,6 @@ def main(args):
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
                                                       schema_dir=local_schemas_dir)
-
-                print(bq_schema)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=file_name,
