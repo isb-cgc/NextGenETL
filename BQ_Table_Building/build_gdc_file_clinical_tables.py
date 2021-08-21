@@ -575,6 +575,7 @@ def main(args):
 
             print('')
             print(file_type_dicts)
+            exit()
 
             for file_type, file_list in file_type_dicts.items():
                 full_header_set = set()
