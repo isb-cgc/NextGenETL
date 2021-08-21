@@ -522,8 +522,7 @@ def main(args):
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
-        if 'upload_tsv_file_and_schema_to_bucket' in steps:
-            print(f"upload_tsv_file_and_schema_to_bucket")
+        if 'create_normalized_tsv' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
@@ -533,8 +532,6 @@ def main(args):
                 backup_header_row_idx = programs[program]['backup_header_row_idx']
             else:
                 backup_header_row_idx = None
-
-            program_column_map = {}
 
             for tsv_file_path in all_files:
                 try:
@@ -554,28 +551,6 @@ def main(args):
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
-
-                file_name = tsv_file_path.split("/")[-1]
-                table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
-                schema_file_name = f"schema_{table_name}.json"
-                schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
-
-                program_column_map[table_base_name] = bq_column_names
-
-                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
-                                                 table_name=table_name,
-                                                 tsv_fp=tsv_file_path,
-                                                 header_row=0,
-                                                 skip_rows=1,
-                                                 row_check_interval=1,
-                                                 schema_fp=schema_file_path,
-                                                 delete_local=True)
-
-                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
-
-            for table in program_column_map:
-                print(f"{table}: {sorted(program_column_map[table])}")
 
         if 'find_like_columns' in steps:
             file_type_dicts = {}
@@ -612,6 +587,28 @@ def main(args):
                     print(f"#{idx}:")
                     print(f"missing columns: {full_header_set.difference(header_set)}")
 
+        if 'upload_tsv_file_and_schema_to_bucket' in steps:
+            print(f"upload_tsv_file_and_schema_to_bucket")
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            for tsv_file_path in all_files:
+                file_name = tsv_file_path.split("/")[-1]
+                table_base_name = "_".join(file_name.split('.')[0:-1])
+                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
+                schema_file_name = f"schema_{table_name}.json"
+                schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
+
+                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
+                                                 table_name=table_name,
+                                                 tsv_fp=tsv_file_path,
+                                                 header_row=0,
+                                                 skip_rows=1,
+                                                 row_check_interval=1,
+                                                 schema_fp=schema_file_path,
+                                                 delete_local=True)
+
+                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
 
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
