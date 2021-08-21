@@ -178,7 +178,7 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    header=header_idx,
                                    engine='openpyxl')
 
-        print(excel_data)
+        excel_data.columns.str.replace('\n', '')
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
