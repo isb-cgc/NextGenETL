@@ -566,16 +566,20 @@ def main(args):
                 elif program == "TARGET":
                     file_type = "_".join(file_name.split("_")[4:-1])
 
+                print(file_type)
+
                 if file_type not in file_type_dicts:
                     file_type_dicts[file_type] = list()
 
                 file_type_dicts[file_type].append(file_path)
 
+            print('')
+            print(file_type_dicts)
+
             for file_type, file_list in file_type_dicts.items():
                 full_header_set = set()
                 headers_sets = list()
 
-                print(file_type)
                 for file_path in file_list:
                     with open(file_path, 'r') as fh:
                         headers = fh.readline().split('\t')
