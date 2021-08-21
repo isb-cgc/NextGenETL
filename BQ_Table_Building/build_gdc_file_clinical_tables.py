@@ -480,18 +480,16 @@ def main(args):
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
+
+                    for excel_file in all_files:
+                        upload_to_bucket(BQ_PARAMS, scratch_fp=excel_file, delete_local=False)
+
                     all_files = convert_excel_to_tsv(all_files=all_files,
                                                      header_idx=programs[program]['header_row_idx'])
 
                 with open(file_traversal_list, mode='w') as traversal_list_file:
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
-
-        if 'prepare_tsv_for_ingestion' in steps:
-            print("\nprepare_tsv_for_ingestion")
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             print(f"upload_tsv_file_and_schema_to_bucket")
@@ -506,6 +504,12 @@ def main(args):
                 backup_header_row_idx = None
 
             for tsv_file_path in all_files:
+                with open(tsv_file_path) as tsv_fh:
+                    row_count = tsv_fh.readlines().strip().split('\t')
+                    if row_count <= 1:
+                        print()
+
+
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
                                                          header_row_idx=header_row_idx,
                                                          backup_header_row_idx=backup_header_row_idx)
@@ -571,7 +575,8 @@ def main(args):
 
         if 'find_duplicates_in_tables' in steps:
             pass
-            # with open(())
+            # with open(tables_file, 'r') as tables_fh:
+
 
         """
         Create merged table.
