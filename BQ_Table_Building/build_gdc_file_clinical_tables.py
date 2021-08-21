@@ -433,11 +433,14 @@ def main(args):
 
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
-                    """
+
+                    # this is a field description file with very weird formatting (newlines/special formatting
+                    # within cells). Doesn't seem like it's worth the trouble to load it.
+                    # Will glean the field descriptions from there, however.
                     if program == 'TARGET':
                         if '_CDE_' in line:
                             continue
-                    """
+
                     traversal_list.write(f"{line}\n")
 
         if 'convert_excel_to_csv' in steps:
