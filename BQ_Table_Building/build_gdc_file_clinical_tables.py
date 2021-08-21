@@ -627,10 +627,12 @@ def main(args):
 
         if 'upload_merged_tsv' in steps:
             if program == "TCGA":
+                merged_files_paths = list()
                 with open(merged_files_list, 'r') as merged_fh:
-                    merged_file_paths = merged_fh.strip().readlines()
+                    for file_name in merged_fh:
+                        merged_files_paths.append(file_name.strip())
 
-                print(merged_file_paths)
+                print(merged_files_paths)
 
         if 'create_normalized_tsv' in steps:
             grouped_files = group_files_by_type
