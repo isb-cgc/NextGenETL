@@ -516,7 +516,7 @@ def main(args):
                 bq_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
-                                                      schema_file_path=schema_file_path)
+                                                      schema_fp=schema_file_path)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=file_name,
