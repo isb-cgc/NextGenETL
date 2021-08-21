@@ -254,6 +254,7 @@ def main(args):
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+        tsv_traversal_list = f"{local_program_dir}/{base_file_name}_tsv_traversal_list_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
         src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
@@ -334,15 +335,20 @@ def main(args):
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
-                    print(all_files)
                     all_files = convert_excel_to_tsv(all_files=all_files,
                                                      local_files_dir=local_files_dir,
                                                      header_idx=programs[program]['header_row_idx'])
+
+                with open(file_traversal_list, mode='w') as traversal_list_file:
+                    for line in all_files:
+                        traversal_list.write(f"{line}\n")
 
         if 'convert_tsvs_to_merged_jsonl' in steps:
             print("\nconvert_tsvs_to_merged_jsonl")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
+                print(all_files)
+                exit()
 
             if programs[program]['file_suffix'] == 'xlsx':
                 all_tsv_files = []
