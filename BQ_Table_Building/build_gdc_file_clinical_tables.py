@@ -187,7 +187,7 @@ def convert_excel_to_tsv(all_files, header_idx):
             print(f"*** no rows found in excel file: {file_path}; skipping")
             continue
 
-        df_rows = excel_data.size
+        df_rows = len(excel_data)
 
         excel_data.to_csv(tsv_filepath,
                           sep='\t',
