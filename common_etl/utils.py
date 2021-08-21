@@ -1495,11 +1495,6 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     value_type = check_value_type(value)
-
-                    if idx == 4 and value_type != 'FLOAT64':
-
-                        print(f"value: {value}, value_type: {value_type}")
-
                     data_types_dict[column_headers[idx]].add(value_type)
 
             count += 1
@@ -1561,8 +1556,6 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
         has_fatal_error("Header row not excluded by skip_rows.")
 
     data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
-
-    print(data_types_dict)
 
     data_type_dict = resolve_type_conflicts(data_types_dict)
 

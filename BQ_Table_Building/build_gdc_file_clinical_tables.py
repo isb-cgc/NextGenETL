@@ -31,10 +31,10 @@ from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_resp
                               load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix,
                               make_string_bq_friendly, create_and_upload_schema_for_tsv,
                               write_list_to_jsonl_and_upload, retrieve_bq_schema_object,
-                              create_and_load_table_from_jsonl, create_and_load_table_from_tsv)
+                              create_and_load_table_from_jsonl, create_and_load_table_from_tsv, upload_to_bucket)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
-                                build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
+                                build_file_list, csv_to_bq, build_pull_list_with_bq_public,
                                 BucketPuller, build_combined_schema, delete_table_bq_job, install_labels_and_desc,
                                 update_schema_with_dict, generate_table_detail_files, publish_table)
 
@@ -483,7 +483,6 @@ def main(args):
                 schema_file_name = f"schema_{table_name}.json"
                 schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
 
-                print(f"creating schema for {table_name}")
                 create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
                                                  table_name=table_name,
                                                  tsv_fp=tsv_file_path,
