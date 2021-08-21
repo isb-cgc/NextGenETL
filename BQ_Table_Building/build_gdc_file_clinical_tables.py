@@ -600,7 +600,7 @@ def main(args):
 
                         for i in range(1, len(file_rows)):
                             # todo this might need to be "" or something else
-                            record_dict = OrderedDict.fromkeys(all_field_names_tuple, None)
+                            record_dict = OrderedDict.fromkeys(all_field_names_tuple, '')
 
                             row = file_rows[i].strip().split("\t")
 
