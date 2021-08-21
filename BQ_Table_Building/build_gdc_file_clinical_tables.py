@@ -475,6 +475,8 @@ def main(args):
                                                          header_row_idx=header_row_idx,
                                                          backup_header_row_idx=backup_header_row_idx)
 
+                print(bq_column_names)
+
                 create_tsv_with_final_headers(tsv_file=tsv_file,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
@@ -500,7 +502,7 @@ def main(args):
                                                  schema_fp=schema_file_path,
                                                  delete_local=False)
 
-                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
+                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=False)
 
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
