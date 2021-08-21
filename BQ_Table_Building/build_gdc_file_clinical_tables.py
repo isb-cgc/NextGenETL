@@ -611,11 +611,11 @@ def main(args):
                         HAVING COUNT({id_key}) > 1
                     """
 
-                    result = bq_harness_with_result(sql=query,
+                    results = bq_harness_with_result(sql=query,
                                                     do_batch=BQ_PARAMS['DO_BATCH'],
                                                     verbose=False)
 
-                    print(result)
+                    print(results)
 
 
         """
