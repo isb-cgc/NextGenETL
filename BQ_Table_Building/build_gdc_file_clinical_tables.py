@@ -593,7 +593,10 @@ def main(args):
                                 header_dict[header] = list()
                             header_dict[header].append(idx)
 
-                for col_name in sorted(header_dict, key=lambda k: len(header_dict[k]), reverse=True):
+                sorted_headers = " ".join(sorted(header_dict, key=lambda key: len(header_dict[key])))
+                header_list = sorted_headers.split(" ")
+
+                for col_name in header_list:
                     print(f"{col_name}\t{header_dict[col_name]}")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
