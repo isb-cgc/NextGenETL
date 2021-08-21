@@ -126,6 +126,8 @@ def group_by_suffixes(all_files, file_suffix):
         full_and_name.append((filename, just_name))
         names_only.append(just_name)
 
+        print(f"{filename}, {just_name}")
+
     prefix = longest_common_prefix(names_only)
 
     path_suffix = []
@@ -137,7 +139,6 @@ def group_by_suffixes(all_files, file_suffix):
     p = re.compile(rf"(^.*)_[a-z]+\.{file_suffix}")
 
     for tup in path_suffix:
-        print(path_suffix)
         match = p.match(tup[1])
 
         group = match.group(1)
