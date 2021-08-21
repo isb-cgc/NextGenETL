@@ -31,7 +31,8 @@ from common_etl.utils import (get_filepath, format_seconds, has_fatal_error, loa
                               make_string_bq_friendly, create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                               create_and_load_table_from_tsv, upload_to_bucket, load_table_from_query, publish_table)
 
-from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller)
+from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller,
+                                bq_harness_with_result)
 
 PARAMS = dict()
 BQ_PARAMS = dict()
@@ -177,6 +178,8 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    header=header_idx,
                                    engine='openpyxl')
 
+        if file_path == 'r29_TARGET_ALL_ClinicalData_Phase_II_Validation_20170525.xlsx':
+            print(excel_data.head())
 
         if excel_data.size == 0:
             print(f"*** no rows found in excel file: {file_path}; skipping")
@@ -573,8 +576,6 @@ def main(args):
             print('\n')
 
         if 'find_duplicates_in_tables' in steps:
-            pass
-
             with open(tables_file, 'r') as tables_fh:
                 id_key = programs[program]['id_key']
 
@@ -586,6 +587,12 @@ def main(args):
                         GROUP BY {id_key}
                         HAVING COUNT({id_key}) > 1
                     """
+
+                    result = bq_harness_with_result(sql=query,
+                                                    do_batch=BQ_PARAMS['DO_BATCH'],
+                                                    verbose=False)
+
+                    print(result)
 
 
         """
