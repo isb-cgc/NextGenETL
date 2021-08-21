@@ -584,6 +584,8 @@ def main(args):
 
                     all_field_names_tuple = tuple(all_field_names_set)
 
+                    print(f"all_field_names_tuple: {all_field_names_tuple}")
+
                     for tsv_file_path in file_list:
                         try:
                             with open(tsv_file_path, 'r') as tsv_fh:
@@ -594,11 +596,13 @@ def main(args):
 
                         col_indices = file_rows[0].strip().split('\t')
 
-                        print(col_indices)
+                        print(f"col_indices: {col_indices}")
 
                         for i in range(1, len(file_rows)):
                             # todo this might need to be "" or something else
                             record_dict = OrderedDict.fromkeys(all_field_names_tuple, None)
+
+                            print(f"record_dict: {record_dict}")
 
                             row = file_rows[i].strip().split("\t")
 
