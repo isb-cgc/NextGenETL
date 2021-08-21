@@ -111,6 +111,41 @@ def build_a_header(all_files):
     return all_fields, per_file
 
 
+def group_by_suffixes(all_files):
+
+    full_and_name = []
+    names_only = []
+    for filename in all_files:
+        path, just_name = os.path.split(filename)
+        full_and_name.append((filename, just_name))
+        names_only.append(just_name)
+
+    prefix = longest_common_prefix(names_only)
+
+    path_suff = []
+    for tup in full_and_name:
+        path_suff.append((tup[0], tup[1][len(prefix):]))
+
+    path_group = []
+    groups = set()
+    p = re.compile('(^.*)_[a-z]+\.txt')
+    for tup in path_suff:
+        m = p.match(tup[1])
+        group = m.group(1)
+        path_group.append((tup[0], group))
+        groups.add(group)
+
+    files_by_group = {}
+
+    for file_tup in path_group:
+        if file_tup[1] not in files_by_group:
+            files_by_group[file_tup[1]] = []
+        files_by_group[file_tup[1]].append(file_tup[0])
+
+    return files_by_group
+
+
+'''
 def group_by_suffixes(all_files, file_suffix):
     """
     There are a mixture of files, each with a different schema. Group the files into the different sets
@@ -156,6 +191,7 @@ def group_by_suffixes(all_files, file_suffix):
         files_by_group[file_tup[1]].append(file_tup[0])
 
     return files_by_group
+'''
 
 
 def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
