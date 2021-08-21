@@ -505,10 +505,9 @@ def main(args):
 
             for tsv_file_path in all_files:
                 with open(tsv_file_path) as tsv_fh:
-                    row_count = len(tsv_fh.readlines().split('\t'))
+                    row_count = len(tsv_fh.readlines())
                     if row_count <= 1:
-                        print(f"row count {row_count} for {tsv_file_path}")
-
+                        print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
 
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
                                                          header_row_idx=header_row_idx,
@@ -575,7 +574,18 @@ def main(args):
 
         if 'find_duplicates_in_tables' in steps:
             pass
-            # with open(tables_file, 'r') as tables_fh:
+
+            with open(tables_file, 'r') as tables_fh:
+                id_key = programs[program]['id_key']
+
+                table_ids = tables_fh.readlines()
+                for table_id in table_ids:
+                    query = f"""
+                        SELECT {id_key}, COUNT({id_key})
+                        FROM {table_id}
+                        GROUP BY {id_key}
+                        HAVING COUNT({id_key}) > 1
+                    """
 
 
         """
