@@ -179,7 +179,7 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    engine='openpyxl')
 
         # get rid of funky formatting in headers
-        excel_data = excel_data.columns.str.replace(r'\\n', '', regex=True)
+        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
         # excel_data = excel_data.str.replace(r'\\n', '', regex=True)
 
         if excel_data.size == 0:
