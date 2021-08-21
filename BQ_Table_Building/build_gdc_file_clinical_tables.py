@@ -183,8 +183,8 @@ def convert_excel_to_tsv(program, all_files, header_idx):
                                    engine='openpyxl')
 
         # get rid of funky newline formatting in headers
-        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
-        excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["",""], regex=True)
+        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r', '').replace('\n', ''))
+        excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["", ""], regex=True)
         # drop all-null columns
         # excel_data = excel_data.dropna(axis=1, how='all')
 
@@ -291,6 +291,7 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
                 break
             tsv_fh.write(f"{line}\n")
 
+
 """
 def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_row_idx):
     json_list = []
@@ -329,6 +330,7 @@ def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_r
 
     return json_list
 """
+
 
 def longest_common_prefix(str1):
     """
@@ -685,10 +687,21 @@ def main(args):
                 with open(tables_file, 'r') as tables_fh:
                     table_ids = tables_fh.readlines()
 
-                for table_id in table_ids:
-                    print(table_id)
+                for idx, table_id in enumerate(table_ids):
+                    print(f"{idx}: {table_id}")
 
+                for idx, table_id in enumerate(table_ids):
+                    query = f"""
+                    SELECT {id_key}
+                    FROM {table_id}
+                    """
 
+                    results = bq_harness_with_result(sql=query,
+                                                     do_batch=False,
+                                                     verbose=False)
+
+                    for row in results:
+                        print(row[0])
 
         """
         Create merged table.
