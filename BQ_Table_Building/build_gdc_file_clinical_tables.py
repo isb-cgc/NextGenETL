@@ -578,7 +578,7 @@ def main(args):
 
                 for file_path in file_list:
                     with open(file_path, 'r') as fh:
-                        headers = fh.readline().split('\t')
+                        headers = fh.readline().strip().split('\t')
                         full_header_set.update(headers)
 
                     headers_sets.append(set(headers))
