@@ -580,7 +580,10 @@ def main(args):
                 print(f"\n***{program}: {file_type}***\n")
 
                 for idx, file_path in enumerate(file_list):
-                    print(f"{idx}\t{file_path}")
+                    file_name = file_path.split('/')[-1]
+                    file_name_no_ext = ".".join(file_name.split('.')[:-1])
+
+                    print(f"{idx}\t{file_name_no_ext}")
 
                 for idx, file_path in enumerate(file_list):
                     with open(file_path, 'r') as fh:
@@ -590,8 +593,8 @@ def main(args):
                                 header_dict[header] = list()
                             header_dict[header].append(idx)
 
-                for header in sorted(header_dict):
-                    print(f"{header}\t{header_dict[header]}")
+                for col_name in sorted(header_dict, key=lambda k: len(header_dict[k]), reverse=True):
+                    print(f"{col_name}\t{header_dict[col_name]}")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             print(f"upload_tsv_file_and_schema_to_bucket")
