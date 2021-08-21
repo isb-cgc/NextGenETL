@@ -1357,7 +1357,7 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
 
 
 def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None,
-                               schema_fp=None):
+                               schema_fp=None, delete_local=True):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1387,11 +1387,11 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
-    upload_to_bucket(bq_params, schema_fp, delete_local=True)
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
 
 
 def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release=False,
-                                      schema_fp=None):
+                                      schema_fp=None, delete_local=True):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1407,7 +1407,8 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
                                table_name=table_name,
                                data_types_dict=data_types_dict,
                                include_release=include_release,
-                               schema_fp=schema_fp)
+                               schema_fp=schema_fp,
+                               delete_local=delete_local)
 
 
 def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):

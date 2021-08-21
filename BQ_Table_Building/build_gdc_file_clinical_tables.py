@@ -464,7 +464,8 @@ def main(args):
                 create_and_upload_schema_for_json(PARAMS, BQ_PARAMS,
                                                   record_list=json_list,
                                                   table_name=table_name,
-                                                  schema_fp=schema_file_path)
+                                                  schema_fp=schema_file_path,
+                                                  delete_local=False)
 
                 print(f"uploading file for {table_name} to bucket")
                 write_list_to_jsonl_and_upload(PARAMS, BQ_PARAMS,
