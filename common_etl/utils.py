@@ -812,7 +812,7 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename):
+def download_from_bucket(bq_params, filename, dir_path=None):
     """
     Download file from Google storage bucket onto VM.
     :param bq_params: BigQuery params
@@ -823,8 +823,11 @@ def download_from_bucket(bq_params, filename):
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    scratch_fp = get_scratch_fp(bq_params, filename)
-    with open(scratch_fp, 'wb') as file_obj:
+    if not dir_path:
+        fp = get_scratch_fp(bq_params, filename)
+    else:
+        fp = (f"{dir_path}/{filename}")
+    with open(fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 
 
@@ -1327,7 +1330,7 @@ def generate_bq_schema_fields(schema_obj_list):
 
 
 def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
-                              schema_filename=None, schema_fp=None):
+                              schema_filename=None, schema_dir=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1345,10 +1348,12 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
                                        release=release,
                                        include_release=include_release)
 
-    download_from_bucket(bq_params, schema_filename)
+    download_from_bucket(bq_params, filename=schema_filename, dir_path=schema_dir)
 
-    if not schema_fp:
+    if not schema_dir:
         schema_fp = get_scratch_fp(bq_params, schema_filename)
+    else:
+        schema_fp = f"{schema_dir}/{schema_filename}"
 
     with open(schema_fp, "r") as schema_json:
         schema_obj = json.load(schema_json)

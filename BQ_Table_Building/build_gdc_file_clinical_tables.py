@@ -209,6 +209,7 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
             column_name = backup_headers[i].strip()
 
         column_name = make_string_bq_friendly(column_name)
+        column_name = column_name.lower()
 
         if column_name not in final_headers:
             final_headers.append(column_name)
@@ -516,14 +517,13 @@ def main(args):
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
                 table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
-                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
+                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_RAW_DATASET']}.{table_name}"
                 schema_file_name = f"schema_{table_name}.json"
-                schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
 
                 bq_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
-                                                      schema_fp=schema_file_path)
+                                                      schema_dir=local_schemas_dir)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=file_name,
@@ -543,71 +543,7 @@ def main(args):
             print('\n')
 
         """
-        if 'create_raw_tables' in steps:
-            print("\ncreate_tables")
-            table_list = []
-    
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-    
-            for file in all_files:
-                json_list = convert_tsv_to_obj(file,
-                                               programs[program]['header_row_idx'],
-                                               programs[program]['data_start_idx'],
-                                               programs[program]['backup_header_row_idx'])
-    
-                file_name = file.split("/")[-1]
-                table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
-                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
-                jsonl_file = f"{table_name}.jsonl"
-                jsonl_file_path = f"{local_jsonl_dir}/{jsonl_file}"
-                schema_file_path = f"{local_schemas_dir}/schema_{table_name}.json"
-    
-                print(f"creating schema for {table_name}")
-    
-                create_and_upload_schema_for_json(PARAMS, BQ_PARAMS,
-                                                  record_list=json_list,
-                                                  table_name=table_name,
-                                                  schema_fp=schema_file_path,
-                                                  delete_local=False)
-    
-                print(f"uploading file for {table_name} to bucket")
-                write_list_to_jsonl_and_upload(PARAMS, BQ_PARAMS,
-                                               prefix=None,
-                                               record_list=json_list,
-                                               local_filepath=jsonl_file_path)
-    
-                table_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
-                                                         table_name=table_name,
-                                                         schema_fp=schema_file_path)
-    
-                print(f"creating table: {table_id}")
-                create_and_load_table_from_jsonl(BQ_PARAMS,
-                                                 jsonl_file=jsonl_file,
-                                                 table_id=table_id,
-                                                 schema=table_schema)
-    
-                table_list.append(table_id)
-    
-            with open(tables_file, 'w') as tables_fh:
-                for table_name in table_list:
-                    tables_fh.write(f"{table_name}\n")
-    
-            print(f"\n\nTables created for {program}:")
-            for table in table_list:
-                print(table)
-            print('\n')
-        """
-
-        """
-        I'm going to handle this differently. 
-        Not going to try to group by type, since this isn't actually relevant to TARGET as far as I can tell.
-        Will merge the files into one giant jsonl file instead. Okay if the files have different schemas, then.
-        If file_suffix == xlsx, then convert excel to csv before merging files.
-        Merge files.
-        Infer schema and upload file and schema to bucket.
-        Create BQ table.
+        Create merged table.
         Merge in aliquot fields.
         Update field/table metadata.
         Publish.
