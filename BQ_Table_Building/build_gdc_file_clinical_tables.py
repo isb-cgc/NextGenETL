@@ -593,7 +593,7 @@ def main(args):
                                 header_dict[header] = list()
                             header_dict[header].append(idx)
 
-                sorted_headers = " ".join(sorted(header_dict, key=lambda key: len(header_dict[key])))
+                sorted_headers = " ".join(sorted(header_dict, key=lambda key: len(header_dict[key]), reverse=True))
                 header_list = sorted_headers.split(" ")
 
                 for col_name in header_list:
