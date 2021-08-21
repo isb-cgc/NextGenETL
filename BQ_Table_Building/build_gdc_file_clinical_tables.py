@@ -689,7 +689,7 @@ def main(args):
                     table_ids = tables_fh.readlines()
 
                 for idx, table_id in enumerate(table_ids):
-                    print(f"{idx}: {table_id}", sep='')
+                    print(f"{idx}: {table_id.strip()}")
 
                 for idx, table_id in enumerate(table_ids):
                     query = f"""
@@ -707,8 +707,9 @@ def main(args):
                             id_key_map[patient_barcode] = list()
                         id_key_map[patient_barcode].append(idx)
 
-                for patient_barcode, id_table_list in sorted(id_key_map).items():
-                    print(f"{patient_barcode}: {id_table_list}")
+                for patient_barcode in sorted(id_key_map):
+                    if len(id_key_map[patient_barcode]) > 1:
+                        print(f"{patient_barcode}: {id_key_map[patient_barcode]}")
 
         """
         Create merged table.
