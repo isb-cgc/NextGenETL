@@ -615,7 +615,7 @@ def main(args):
                                                      do_batch=False,
                                                      verbose=False)
 
-                    print(results)
+                    print(results.total_rows)
 
 
         """
