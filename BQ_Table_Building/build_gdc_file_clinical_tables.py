@@ -330,6 +330,7 @@ def main(args):
                     traversal_list.write(f"{line}\n")
 
         if 'convert_excel_to_csv' in steps:
+            print('\nconvert_excel_to_tsv')
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
@@ -338,6 +339,7 @@ def main(args):
                                                      header_idx=programs[program]['header_row_idx'])
 
         if 'convert_tsvs_to_merged_jsonl' in steps:
+            print("\nconvert_tsvs_to_merged_jsonl")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
