@@ -211,18 +211,27 @@ def convert_excel_to_tsv(program, all_files, header_idx):
     return tsv_files
 
 
-def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None):
+def create_bq_column_names(tsv_file, header_row_idx, header_row_idxs_list=None):
     try:
         with open(tsv_file, 'r') as tsv_fh:
-            header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+            rows = tsv_fh.readlines()
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
-            header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+            rows = tsv_fh.readlines()
+
+    file_header_row = rows[header_row_idx].strip().split("\t")
+
+    if header_row_idxs_list:
+        header_rows_list = list()
+        for idx in header_row_idxs_list:
+            header_rows_list.append(rows[idx].strip().split('\t'))
+    else:
+        header_rows_list = None
 
     final_headers = []
 
-    for i in range(0, len(header_row)):
-        column_name = header_row[i].strip()
+    for i in range(0, len(file_header_row)):
+        column_name = file_header_row[i].strip()
         column_name = make_string_bq_friendly(column_name)
         column_name = column_name.lower()
 
@@ -234,7 +243,10 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
 
         final_headers.append(column_name)
 
-    return final_headers
+    if header_rows_list:
+        header_rows_list.append(final_headers)
+
+    return final_headers, header_rows_list
 
 
 '''
@@ -558,6 +570,40 @@ def main(args):
                     for line in all_files:
                         traversal_list_file.write(f"{line}\n")
 
+        if 'create_normalized_tsv' in steps:
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            header_row_idx = programs[program]['header_row_idx']
+
+            for tsv_file_path in all_files:
+                try:
+                    with open(tsv_file_path, 'r') as tsv_fh:
+                        row_count = len(tsv_fh.readlines())
+                except UnicodeDecodeError:
+                    with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                        row_count = len(tsv_fh.readlines())
+
+                if row_count <= 1:
+                    print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
+
+                if 'header_idxs_list' in programs[program]:
+                    header_row_idxs_list = programs[program]['header_idxs_list']
+                else:
+                    header_row_idxs_list = None
+
+                bq_column_names, header_rows_list = create_bq_column_names(tsv_file=tsv_file_path,
+                                                                           header_row_idx=header_row_idx,
+                                                                           header_row_idxs_list=header_row_idxs_list)
+
+                create_tsv_with_final_headers(tsv_file=tsv_file_path,
+                                              headers=bq_column_names,
+                                              data_start_idx=programs[program]['data_start_idx'])
+
+                if header_rows_list:
+                    pass
+                    # todo make column name mapping table
+
         if 'create_merged_tsv' in steps:
             if program == "TCGA":
                 merged_file_path_list = list()
@@ -584,8 +630,6 @@ def main(args):
 
                     all_field_names_tuple = tuple(all_field_names_set)
 
-                    # print(f"all_field_names_tuple: {all_field_names_tuple}")
-
                     for tsv_file_path in file_list:
                         try:
                             with open(tsv_file_path, 'r') as tsv_fh:
@@ -596,12 +640,8 @@ def main(args):
 
                         col_indices = file_rows[0].strip().split('\t')
 
-                        # print(f"col_indices: {col_indices}")
-
                         for i in range(1, len(file_rows)):
-                            # todo this might need to be "" or something else
                             record_dict = OrderedDict.fromkeys(all_field_names_tuple, '')
-
                             row = file_rows[i].strip().split("\t")
 
                             for idx, val in enumerate(row):
@@ -610,13 +650,10 @@ def main(args):
 
                             merged_record_list.append(record_dict)
 
-                    # print(merged_record_list)
-
                     with open(merged_file_path, 'w') as merged_tsv_fh:
                         header_row = "\t".join(all_field_names_tuple)
                         merged_tsv_fh.write(f"{header_row}\n")
 
-                        # print(header_row)
                         for row in merged_record_list:
                             tabbed_row = "\t".join(list(row.values()))
                             merged_tsv_fh.write(f"{tabbed_row}\n")
@@ -635,36 +672,6 @@ def main(args):
                 print(merged_files_paths)
 
             # todo
-
-        if 'create_normalized_tsv' in steps:
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-
-                header_row_idx = programs[program]['header_row_idx']
-
-            if 'backup_header_row_idx' in programs[program]:
-                backup_header_row_idx = programs[program]['backup_header_row_idx']
-            else:
-                backup_header_row_idx = None
-
-            for tsv_file_path in all_files:
-                try:
-                    with open(tsv_file_path, 'r') as tsv_fh:
-                        row_count = len(tsv_fh.readlines())
-                except UnicodeDecodeError:
-                    with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
-                        row_count = len(tsv_fh.readlines())
-
-                if row_count <= 1:
-                    print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
-
-                bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
-                                                         header_row_idx=header_row_idx,
-                                                         backup_header_row_idx=backup_header_row_idx)
-
-                create_tsv_with_final_headers(tsv_file=tsv_file_path,
-                                              headers=bq_column_names,
-                                              data_start_idx=programs[program]['data_start_idx'])
 
         """
         if 'find_like_columns' in steps:
@@ -770,6 +777,7 @@ def main(args):
                 print(table)
             print('\n')
 
+        '''
         if 'find_duplicates_in_tables' in steps:
             duplicate_key_tables = []
             no_duplicate_key_tables = []
@@ -801,7 +809,9 @@ def main(args):
             print(f"Tables with no duplicate id keys:")
             for no_duplicate_key_table in no_duplicate_key_tables:
                 print(no_duplicate_key_table)
+        '''
 
+        """
         if 'find_matching_target_usis' in steps:
             if program == 'TARGET':
                 id_key_map = dict()
@@ -813,10 +823,10 @@ def main(args):
                     print(f"{idx}: {table_id.strip()}")
 
                 for idx, table_id in enumerate(table_ids):
-                    query = f"""
+                    query = f'''
                     SELECT {id_key}
                     FROM {table_id.strip()}
-                    """
+                    '''
 
                     results = bq_harness_with_result(sql=query,
                                                      do_batch=False,
@@ -832,6 +842,7 @@ def main(args):
                     if len(id_key_map[patient_barcode]) > 1:
                         print(f"{patient_barcode}: {id_key_map[patient_barcode]}")
 
+        """
         """
         Create merged table.
         Merge in aliquot fields.
