@@ -220,14 +220,17 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
 
 def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     with open(tsv_file, 'r') as tsv_fh:
-        lines = tsv_fh.readlines().strip()
+        lines = tsv_fh.readlines()
 
     with open(tsv_file, 'w') as tsv_fh:
         header_row = "\t".join(headers)
         tsv_fh.write(f"{header_row}\n")
 
         for i in range(data_start_idx, len(lines)):
-            tsv_fh.write(f"{lines[i]}\n")
+            line = lines[i].strip()
+            if not line:
+                break
+            tsv_fh.write(f"{line}\n")
 
 """
 def convert_tsv_to_obj(tsv_file, header_row_idx, data_start_idx, backup_header_row_idx):
