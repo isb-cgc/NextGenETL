@@ -494,7 +494,7 @@ def main(args):
             print('\n')
 
 
-    """
+        """
         I'm going to handle this differently. 
         Not going to try to group by type, since this isn't actually relevant to TARGET as far as I can tell.
         Will merge the files into one giant jsonl file instead. Okay if the files have different schemas, then.
