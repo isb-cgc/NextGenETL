@@ -612,8 +612,8 @@ def main(args):
                     """
 
                     results = bq_harness_with_result(sql=query,
-                                                    do_batch=BQ_PARAMS['DO_BATCH'],
-                                                    verbose=False)
+                                                     do_batch=BQ_PARAMS['DO_BATCH'],
+                                                     verbose=False)
 
                     print(results)
 
