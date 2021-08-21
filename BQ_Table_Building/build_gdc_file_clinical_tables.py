@@ -347,23 +347,13 @@ def main(args):
             print("\nconvert_tsvs_to_merged_jsonl")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
-                print(all_files)
-                exit()
-
-            if programs[program]['file_suffix'] == 'xlsx':
-                all_tsv_files = []
-                for file_name in all_files:
-                    tsv_filename = '.'.join(file_name.split('.')[0:-1])
-                    tsv_filename = f"{tsv_filename}.tsv"
-                    all_tsv_files.append(tsv_filename)
-                all_files = all_tsv_files
 
             json_list = convert_tsvs_to_merged_jsonl(all_files,
                                                      programs[program]['header_row_idx'],
                                                      programs[program]['data_start_idx'])
 
             for row in json_list:
-                print(json_list)
+                print(row)
 
         """
         I'm going to handle this differently. 
