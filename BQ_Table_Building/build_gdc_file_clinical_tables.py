@@ -341,7 +341,7 @@ def main(args):
 
                 with open(file_traversal_list, mode='w') as traversal_list_file:
                     for line in all_files:
-                        traversal_list.write(f"{line}\n")
+                        traversal_list_file.write(f"{line}\n")
 
         if 'convert_tsvs_to_merged_jsonl' in steps:
             print("\nconvert_tsvs_to_merged_jsonl")
