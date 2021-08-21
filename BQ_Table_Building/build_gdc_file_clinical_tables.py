@@ -523,6 +523,7 @@ def main(args):
             for tsv_file_path in all_files:
                 try:
                     with open(tsv_file_path, 'r') as tsv_fh:
+                        row_count = len(tsv_fh.readlines())
                 except UnicodeDecodeError:
                     with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
                         row_count = len(tsv_fh.readlines())
