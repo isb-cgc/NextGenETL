@@ -560,11 +560,12 @@ def main(args):
 
             for file_path in all_files:
                 file_name = file_path.split('/')[-1]
+                file_name_no_ext = ".".join(file_name.split('.')[:-1])
 
                 if program == "TCGA":
-                    file_type = "_".join(file_name.split('_')[2:-1])
+                    file_type = "_".join(file_name_no_ext.split('_')[2:-1])
                 elif program == "TARGET":
-                    file_type = "_".join(file_name.split("_")[3:])
+                    file_type = "_".join(file_name_no_ext.split("_")[3:])
 
                 print(file_type)
 
