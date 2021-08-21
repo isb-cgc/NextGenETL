@@ -176,6 +176,14 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    index_col=None,
                                    header=header_idx,
                                    engine='openpyxl')
+
+
+        if excel_data.size == 0:
+            print(f"*** no rows found in excel file: {file_path}; skipping")
+            continue
+        else:
+            print(f"xslx rows: {excel_data.size}")
+
         excel_data.to_csv(tsv_filepath, sep='\t', index=False)
 
         tsv_files.append(tsv_filepath)
@@ -560,6 +568,9 @@ def main(args):
             for table in table_list:
                 print(table)
             print('\n')
+
+        if 'find_duplicates_in_tables' in steps:
+            with open(())
 
         """
         Create merged table.
