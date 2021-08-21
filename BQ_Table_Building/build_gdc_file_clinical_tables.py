@@ -567,7 +567,7 @@ def main(args):
                 if program == "TCGA":
                     file_type = "_".join(file_name_no_ext.split('_')[2:-1])
                 elif program == "TARGET":
-                    file_type = "_".join(file_name_no_ext.split("_")[-1])
+                    file_type = file_name_no_ext.split("_")[-1]
 
                 print(file_type)
                 continue
