@@ -618,15 +618,9 @@ def main(args):
 
                         # print(header_row)
                         for row in merged_record_list:
-                            try:
-                                tabbed_row = "\t".join(list(row.values()))
-                            except TypeError:
-                                print(row)
-                                exit()
-
+                            tabbed_row = "\t".join(list(row.values()))
                             merged_tsv_fh.write(f"{tabbed_row}\n")
                     merged_file_path_list.append(merged_file_path)
-                    print(merged_file_path_list)
 
                 with open(merged_files_list, 'w') as merged_fh:
                     merged_fh.write("\n".join(merged_file_path_list))
