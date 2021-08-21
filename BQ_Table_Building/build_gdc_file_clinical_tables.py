@@ -207,8 +207,12 @@ def convert_excel_to_tsv(all_files, header_idx):
 
 
 def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None):
-    with open(tsv_file) as tsv_fh:
-        header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+    try:
+        with open(tsv_file, 'r') as tsv_fh:
+            header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+    except UnicodeDecodeError:
+        with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
+            header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
 
     final_headers = []
 
