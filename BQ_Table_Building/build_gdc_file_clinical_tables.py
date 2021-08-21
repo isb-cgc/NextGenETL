@@ -113,41 +113,6 @@ def build_a_header(all_files):
     return all_fields, per_file
 
 
-def group_by_suffixes(all_files):
-    full_and_name = []
-    names_only = []
-    for filename in all_files:
-        path, just_name = os.path.split(filename)
-        full_and_name.append((filename, just_name))
-        names_only.append(just_name)
-
-    print(f"full_and_name: {f}")
-
-    prefix = longest_common_prefix(names_only)
-
-    path_suff = []
-    for tup in full_and_name:
-        path_suff.append((tup[0], tup[1][len(prefix):]))
-
-    path_group = []
-    groups = set()
-    p = re.compile('(^.*)_[a-z]+\.txt')
-    for tup in path_suff:
-        m = p.match(tup[1])
-        group = m.group(1)
-        path_group.append((tup[0], group))
-        groups.add(group)
-
-    files_by_group = {}
-
-    for file_tup in path_group:
-        if file_tup[1] not in files_by_group:
-            files_by_group[file_tup[1]] = []
-        files_by_group[file_tup[1]].append(file_tup[0])
-
-    return files_by_group
-
-
 '''
 def group_by_suffixes(all_files, file_suffix):
     """
@@ -370,7 +335,7 @@ def main(args):
     if not programs:
         has_fatal_error("Specify program parameters in YAML.")
 
-    local_files_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}/{PARAMS['LOCAL_FILES_DIR']}")
+    local_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}")
     base_file_name = PARAMS['BASE_FILE_NAME']
 
     for program in programs:
@@ -384,10 +349,9 @@ def main(args):
             has_fatal_error(f"'file_suffix' not in programs section of yaml for {program}")
 
         print(f"Running script for {program}")
-        local_program_dir = f"{local_files_dir_root}/{program}"
+        local_program_dir = f"{local_dir_root}/{program}"
         local_files_dir = f"{local_program_dir}/files"
         local_schemas_dir = f"{local_program_dir}/schemas"
-        local_jsonl_dir = f"{local_program_dir}/jsonls"
 
         if not os.path.exists(local_program_dir):
             os.makedirs(local_program_dir)
@@ -395,8 +359,6 @@ def main(args):
             os.makedirs(local_files_dir)
         if not os.path.exists(local_schemas_dir):
             os.makedirs(local_schemas_dir)
-        if not os.path.exists(local_jsonl_dir):
-            os.makedirs(local_jsonl_dir)
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
@@ -568,6 +530,10 @@ def main(args):
             for table in table_list:
                 print(table)
             print('\n')
+
+        if 'clean_up_temporary_files_and_tables' in steps:
+            for program in programs:
+                os.rmdir(f"{local_dir_root}/{program}")
 
         """
         if 'create_raw_tables' in steps:
