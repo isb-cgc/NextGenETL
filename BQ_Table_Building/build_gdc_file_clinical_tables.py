@@ -634,8 +634,9 @@ def main(args):
 
                 print(merged_files_paths)
 
+            # todo
+
         if 'create_normalized_tsv' in steps:
-            grouped_files = group_files_by_type
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
