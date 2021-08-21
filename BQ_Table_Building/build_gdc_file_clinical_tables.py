@@ -213,7 +213,11 @@ def create_bq_column_names(tsv_file, header_row_idx, backup_header_row_idx=None)
         if column_name not in final_headers:
             final_headers.append(column_name)
         else:
-            has_fatal_error(f"duplicate column name: {column_name}")
+            error = f"""
+            Duplicate column name '{column_name}' at idx {i}
+            File: {tsv_file}
+            """
+            has_fatal_error(error)
 
     return headers
 
