@@ -463,30 +463,29 @@ def main(args):
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
-            header_row_idx = programs[program]['header_row_idx']
-
-            if 'backup_header_row_idx' in programs[program]:
-                backup_header_row_idx = programs[program]['backup_header_row_idx']
-            else:
-                backup_header_row_idx = None
-
-            for tsv_file in all_files:
-                bq_column_names = create_bq_column_names(tsv_file=tsv_file,
-                                                         header_row_idx=header_row_idx,
-                                                         backup_header_row_idx=backup_header_row_idx)
-
-                print(bq_column_names)
-
-                create_tsv_with_final_headers(tsv_file=tsv_file,
-                                              headers=bq_column_names,
-                                              data_start_idx=programs[program]['data_start_idx'])
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             print(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
 
+
+                header_row_idx = programs[program]['header_row_idx']
+
+            if 'backup_header_row_idx' in programs[program]:
+                backup_header_row_idx = programs[program]['backup_header_row_idx']
+            else:
+                backup_header_row_idx = None
+
             for tsv_file_path in all_files:
+                bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
+                                                         header_row_idx=header_row_idx,
+                                                         backup_header_row_idx=backup_header_row_idx)
+
+                create_tsv_with_final_headers(tsv_file=tsv_file_path,
+                                              headers=bq_column_names,
+                                              data_start_idx=programs[program]['data_start_idx'])
+
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
                 table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
@@ -500,7 +499,7 @@ def main(args):
                                                  skip_rows=1,
                                                  row_check_interval=1,
                                                  schema_fp=schema_file_path,
-                                                 delete_local=False)
+                                                 delete_local=True)
 
                 upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=False)
 
@@ -521,6 +520,8 @@ def main(args):
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
                                                       schema_dir=local_schemas_dir)
+
+                print(bq_schema)
 
                 create_and_load_table_from_tsv(BQ_PARAMS,
                                                tsv_file=file_name,
