@@ -198,7 +198,7 @@ def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
 
                 for i in range(0, col_count):
                     column_name = make_string_bq_friendly(headers[i])
-                    row_dict[column_name] = split_row[i]
+                    row_dict[column_name] = split_row[i].strip()
 
                 json_list.append(row_dict)
 
