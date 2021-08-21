@@ -702,12 +702,13 @@ def main(args):
                                                      verbose=False)
 
                     for row in results:
-                        if row not in id_key_map:
-                            id_key_map[row] = list()
-                        id_key_map[row].append(idx)
+                        patient_barcode = row[0]
+                        if patient_barcode not in id_key_map:
+                            id_key_map[patient_barcode] = list()
+                        id_key_map[patient_barcode].append(idx)
 
-                for id_key, id_table_list in id_key_map.items():
-                    print(f"{id_key}: {id_table_list}")
+                for patient_barcode, id_table_list in id_key_map.items():
+                    print(f"{patient_barcode}: {id_table_list}")
 
         """
         Create merged table.
