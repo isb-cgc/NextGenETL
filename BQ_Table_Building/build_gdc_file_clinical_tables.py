@@ -505,9 +505,9 @@ def main(args):
 
             for tsv_file_path in all_files:
                 with open(tsv_file_path) as tsv_fh:
-                    row_count = tsv_fh.readlines().strip().split('\t')
+                    row_count = len(tsv_fh.readlines().split('\t'))
                     if row_count <= 1:
-                        print()
+                        print(f"row count {row_count} for {tsv_file_path}")
 
 
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path,
