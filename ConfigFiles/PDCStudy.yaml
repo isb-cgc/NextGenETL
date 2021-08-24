@@ -1,0 +1,27 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_study.py
+# Builds BQ table for PDC study/project/program metadata.
+#
+
+version: 1
+
+api_params: null
+
+bq_params:
+  # BQEcosystem path/files for user-supplied project and study table metadata.
+  PROJECT_STUDY_METADATA_DIR: MetadataMappings
+  PROJECT_METADATA_FILE: pdc_project_metadata.json
+  STUDY_FRIENDLY_NAME_FILE: pdc_study_friendly_name_map.json
+
+  # Generic table metadata schema file name
+  GENERIC_TABLE_METADATA_FILE: pdc_study.json
+
+steps:
+  # create studies jsonl file and upload to bucket
+  # - build_studies_jsonl
+
+  # create studies bq table in dev project
+  # - build_studies_table
+
+  # publish studies bq tables to production project
+  # - publish_studies_table

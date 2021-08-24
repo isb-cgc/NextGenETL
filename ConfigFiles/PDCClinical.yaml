@@ -1,0 +1,120 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_clinical.py
+# Builds BQ tables for PDC clinical data.
+#
+
+version: 1
+
+api_params: null
+
+bq_params:
+  # generic table metadata schema paths. Some PDC programs require two program label tags
+  # (e.g. cptac3 and tcga) and those programs use the GENERIC_TABLE_METADATA_FILE_2_PROGRAM file format.
+  GENERIC_TABLE_METADATA_FILE: pdc_clinical.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: pdc_clinical_multi_program.json
+
+  # BQ table column order
+  COLUMN_ORDER:
+    - case_id
+    - case_submitter_id
+    - project_submitter_id
+    - primary_site
+    - disease_type
+    - demographic_id
+    - demographic_submitter_id
+    - race
+    - ethnicity
+    - gender
+    - days_to_birth
+    - days_to_death
+    - year_of_birth
+    - year_of_death
+    - cause_of_death
+    - vital_status
+    - diagnosis_id
+    - diagnosis_submitter_id
+    - primary_diagnosis
+    - age_at_diagnosis
+    - year_of_diagnosis
+    - days_to_diagnosis
+    - days_to_hiv_diagnosis
+    - days_to_last_follow_up
+    - days_to_last_known_disease_status
+    - days_to_new_event
+    - days_to_recurrence
+    - days_to_best_overall_response
+    - ajcc_clinical_m
+    - ajcc_clinical_n
+    - ajcc_clinical_stage
+    - ajcc_clinical_t
+    - ajcc_pathologic_m
+    - ajcc_pathologic_n
+    - ajcc_pathologic_stage
+    - ajcc_pathologic_t
+    - ann_arbor_b_symptoms
+    - ann_arbor_clinical_stage
+    - ann_arbor_extranodal_involvement
+    - ann_arbor_pathologic_stage
+    - best_overall_response
+    - burkitt_lymphoma_clinical_variant
+    - circumferential_resection_margin
+    - classification_of_tumor
+    - colon_polyps_history
+    - figo_stage
+    - hiv_positive
+    - hpv_positive_type
+    - hpv_status
+    - iss_stage
+    - last_known_disease_status
+    - laterality
+    - ldh_level_at_diagnosis
+    - ldh_normal_range_upper
+    - lymph_nodes_positive
+    - lymphatic_invasion_present
+    - method_of_diagnosis
+    - morphology
+    - new_event_anatomic_site
+    - new_event_type
+    - overall_survival
+    - perineural_invasion_present
+    - prior_malignancy
+    - prior_treatment
+    - progression_free_survival
+    - progression_free_survival_event
+    - progression_or_recurrence
+    - residual_disease
+    - site_of_resection_or_biopsy
+    - tissue_or_organ_of_origin
+    - tumor_grade
+    - tumor_stage
+    - vascular_invasion_present
+
+
+
+steps:
+  # Build raw cases jsonl and schema files using allCases endpoint
+  # - build_cases_jsonl
+
+  # Create raw base cases table
+  # - build_cases_table
+
+  # Build raw case diagnoses jsonl and schema files using paginatedCaseDiagnosesPerStudy endpoint
+  # - build_case_diagnoses_jsonl
+
+  # Build raw case diagnoses table
+  # - build_case_diagnoses_table
+
+  # Build raw case demographics jsonl and schema files using paginatedCaseDemographicsPerStudy endpoint
+  # - build_case_demographics_jsonl
+
+  # Build raw case demographics table
+  # - build_case_demographics_table
+
+  # Build normalized clinical jsonl and tables per project
+  # - build_case_clinical_jsonl_and_tables_per_project
+
+  # Publish clinical table
+  # - publish_clinical_tables
+
+  # Create solr views
+  # - create_solr_views

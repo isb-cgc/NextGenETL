@@ -1,0 +1,41 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_file_metadata.py
+# Builds BQ tables for PDC file metadata.
+#
+
+version: 1
+
+api_params: null
+
+bq_params:
+  # generic schema paths
+  GENERIC_TABLE_METADATA_FILE: pdc_file_metadata.json
+  GENERIC_ASSOC_ENTITY_METADATA_FILE: pdc_assoc_entity.json
+
+
+steps:
+  # create per-study file metadata jsonl file and upload to bucket
+  # - build_per_study_file_jsonl
+
+  # create and alter per-study file metadata intermediate bq table in dev project
+  # - build_per_study_file_table
+  # - alter_per_study_file_table
+
+  # create file metadata (individual detail-level) jsonl file and upload to bucket
+  # - build_api_file_metadata_jsonl
+
+  # create and alter file metadata intermediate bq table in dev project
+  # - build_api_file_metadata_table
+  # - alter_api_file_metadata_table
+
+  # create associated entities mapping table
+  # - build_file_associated_entries_table
+
+  # create file count mapping table
+  # - create_file_count_table
+
+  # build final file metadata table in dev project
+  # - build_file_metadata_table
+
+  # publish file metadata tables to production project
+  # - publish_file_metadata_tables

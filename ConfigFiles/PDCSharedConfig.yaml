@@ -1,0 +1,158 @@
+#
+# YAML shared configuration file.
+# Used by PDC API BQ table building scripts.
+# GitHub repo: isb-cgc/NextGenETL
+# Directory: /BQ_Table_Building/PDC/
+
+version: 2
+
+api_params:
+  # Organization who published the original data
+  DATA_SOURCE: pdc
+  # Current release version
+  RELEASE: V1_21
+
+  # Current UniProt release version
+  UNIPROT_RELEASE: '2021_03'
+
+  # Used as generic schema tag
+  EXTRACTED_MONTH_YEAR: July 2021
+
+  # Base PDC API endpoint
+  ENDPOINT: https://pdc.cancer.gov/graphql
+
+  # GraphQL query endpoints
+  ALIQUOT_ENDPOINT: paginatedCasesSamplesAliquots
+  CASE_EXTERNAL_MAP_ENDPOINT: allCases
+  FILE_METADATA_ENDPOINT: fileMetadata
+  GENE_ENDPOINT: getPaginatedGenes
+  PER_STUDY_DEMOGRAPHIC_ENDPOINT: paginatedCaseDemographicsPerStudy
+  PER_STUDY_DIAGNOSES_ENDPOINT: paginatedCaseDiagnosesPerStudy
+  PER_STUDY_FILE_ENDPOINT: filesPerStudy
+  QUANT_ENDPOINT: quantDataMatrix
+  STUDY_ENDPOINT: allPrograms
+
+  # GraphQL API query config settings
+  ENDPOINT_SETTINGS:
+    allPrograms:
+      payload_key: allPrograms
+      is_paginated: false
+      output_name: studies_raw
+      dataset: PDC_metadata
+    quantDataMatrix:
+      payload_key: quantDataMatrix
+      is_paginated: false
+      output_name: quant
+      dataset: PDC
+    getPaginatedGenes:
+      payload_key: genesProper
+      is_paginated: true
+      batch_size: 1000
+      output_name: gene_info
+      dataset: PDC_metadata
+    allCases:
+      payload_key: allCases
+      is_paginated: false
+      output_name: case_external_mapping
+      dataset: PDC_metadata
+    paginatedCasesSamplesAliquots:
+      payload_key: casesSamplesAliquots
+      is_paginated: true
+      batch_size: 100
+      output_name: case_sample_aliquot_mapping
+      dataset: PDC_metadata
+    paginatedCaseDiagnosesPerStudy:
+      payload_key: caseDiagnosesPerStudy
+      is_paginated: true
+      batch_size: 100
+      output_name: case_clinical_diagnoses
+      dataset: PDC_clinical
+    paginatedCaseDemographicsPerStudy:
+      payload_key: caseDemographicsPerStudy
+      is_paginated: true
+      batch_size: 100
+      output_name: case_clinical_demographics
+      dataset: PDC_clinical
+    filesPerStudy:
+      payload_key: filesPerStudy
+      is_paginated: false
+      output_name: files_per_study
+      dataset: PDC_metadata
+    fileMetadata:
+      payload_key: fileMetadata
+      is_paginated: false
+      output_name: file_api_metadata
+      dataset: PDC_metadata
+
+bq_params:
+  # Publish test mode
+  PUBLISH_TEST_MODE: false
+
+  LOCATION: US
+
+  # Google file storage bucket
+  WORKING_BUCKET: next-gen-etl-scratch
+
+  # Personal directory within Google file storage bucket
+  WORKING_BUCKET_DIR: law
+
+  # Directory to which to write the jsonl files
+  SCRATCH_DIR: scratch
+
+  DO_BATCH: false
+
+  # Schema repo
+  BQ_REPO: BQEcosystem
+
+  # Table metadata directory in schema repo
+  TABLE_METADATA_DIR: TableMetadata
+
+  # Field description file suffix
+  FIELD_DESCRIPTION_FILEPATH: TableFieldUpdates/pdc_column_descriptions.json
+
+  # Generic table schema directory in BQEcosystem repo
+  GENERIC_SCHEMA_DIR: GenericSchemas
+
+  # BigQuery development project name
+  DEV_PROJECT: isb-project-zero
+
+  # BQ development datasets
+  QUANT_RAW_DATASET: PDC
+  QUANT_FINAL_DATASET: PDC_quant
+  META_DATASET: PDC_metadata
+  CLINICAL_DATASET: PDC_clinical
+  WEBAPP_DATASET: webapp_tables_for_solr
+
+  # BigQuery production project name
+  PROD_PROJECT: isb-cgc-bq
+
+  # BQ production datasets
+  PUBLIC_META_DATASET: PDC_metadata
+
+  # Final table name prefixes
+  ALIQUOT_RUN_METADATA_TABLE: aliquot_run_metadata
+  ALIQUOT_TO_CASE_TABLE: aliquot_to_case_mapping
+  CASE_METADATA_TABLE: case_metadata
+  CLINICAL_TABLE: clinical
+  CLINICAL_DIAGNOSES_TABLE: clinical_diagnoses
+  FILE_ASSOC_MAPPING_TABLE: file_associated_entity_mapping
+  FILE_COUNT_TABLE: file_count
+  FILE_METADATA_TABLE: file_metadata
+  PROJECT_PER_SAMPLE_FILE_TABLE: per_sample_file_metadata
+  REFSEQ_UNIPROT_TABLE: temp_refseq_mapping
+  REFSEQ_UNIPROT_FINAL_TABLE: refseq_mapping
+  STUDIES_TABLE: studies
+  UNIPROT_TABLE: uniprot
+
+  # Final view name prefixes
+  WEBAPP_PER_SAMPLE_VIEW: per_sample_file_pdc
+
+steps: null
+
+
+
+
+
+
+
+

@@ -1,0 +1,37 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_case_metadata.py
+# Builds BQ tables for PDC case metadata.
+#
+
+version: 2
+
+# no additional params used for this workflow
+api_params: null
+
+bq_params:
+  # generic schema paths
+  GENERIC_TABLE_METADATA_FILE: pdc_case_metadata.json
+  GENERIC_ALIQ_MAP_METADATA_FILE: pdc_aliquot_to_case_mapping.json
+
+  # ID key used for this data type
+  ID_KEY: case_id
+
+steps:
+  # Build case samples aliquots data and schema files and upload to google bucket
+  # - build_case_aliquot_jsonl
+
+  # Build case to aliquot mapping table
+  # - build_case_aliquot_table
+
+  # Build aliquot run metadata mapping table
+  # (not published to production; used for quant data matrix table building)
+  # - build_aliquot_run_metadata_map_table
+
+  # Build case metadata table
+  # - build_case_metadata_table
+
+  # Build aliquot to case mapping table
+  # - build_aliquot_to_case_id_map_table
+
+  # Publish case metadata and aliquot to case mapping tables to production
+  # - publish_case_metadata_tables
