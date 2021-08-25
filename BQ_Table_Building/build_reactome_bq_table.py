@@ -207,23 +207,42 @@ def main(args):
         print('create_pathway_table')
 
         pathway_sql = '''
+          WITH tmp_pathway AS (
+            SELECT
+              DISTINCT
+                COALESCE(ens.pathway_stable_id, uni.pathway_stable_id) AS stable_id,
+                COALESCE(ens.url, uni.url) AS url,
+                COALESCE(ens.pathway_name, uni.pathway_name) AS name,
+                COALESCE(ens.species, uni.species) AS species
+              FROM
+                `{0}.{1}.{2}` AS ens
+              FULL OUTER JOIN `{0}.{1}.{3}` AS uni
+                ON ens.pathway_stable_id = uni.pathway_stable_id
+              WHERE COALESCE(ens.species, uni.species) = 'Homo sapiens'
+              ORDER BY stable_id
+          )
           SELECT
-            DISTINCT
-              COALESCE(ens.pathway_stable_id, uni.pathway_stable_id) AS stable_id,
-              COALESCE(ens.url, uni.url) AS url,
-              COALESCE(ens.pathway_name, uni.pathway_name) AS name,
-              COALESCE(ens.species, uni.species) AS species
-            FROM
-              `{0}.{1}.{2}` AS ens
-            FULL OUTER JOIN `{0}.{1}.{3}` AS uni
-              ON ens.pathway_stable_id = uni.pathway_stable_id
-            WHERE COALESCE(ens.species, uni.species) = 'Homo sapiens'
-            ORDER BY stable_id
+            stable_id,
+            url,
+            name,
+            species,
+            IF(
+              stable_id NOT IN (
+                SELECT
+                  DISTINCT parent_id
+                FROM
+                  `{0}.{1}.{4}`
+              ),
+              TRUE,
+              FALSE
+            ) AS lowest_level
+          FROM tmp_pathway
         '''.format(
             params['WORKING_PROJECT'],
             params['WORKING_DATASET'],
             params['TMP_TABLE_LIST']['ensembl2reactome'],
-            params['TMP_TABLE_LIST']['uniprot2reactome']
+            params['TMP_TABLE_LIST']['uniprot2reactome'],
+            params['TMP_TABLE_LIST']['pathways_relation']
         )
 
         generic_bq_harness(
