@@ -270,10 +270,15 @@ def main(args):
         print('build_manifest_from_filters')
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'], bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['TARGET_DATASET'],
-                                               params['BQ_MANIFEST_TABLE'], params['WORKING_BUCKET'],
-                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
+        manifest_success = get_the_bq_manifest(params['FILE_TABLE'],
+                                               bq_filters,
+                                               max_files,
+                                               params['WORKING_PROJECT'],
+                                               params['TARGET_DATASET'],
+                                               params['BQ_MANIFEST_TABLE'],
+                                               params['WORKING_BUCKET'],
+                                               params['BUCKET_MANIFEST_TSV'],
+                                               manifest_file,
                                                params['BQ_AS_BATCH'])
         if not manifest_success:
             print("Failure generating manifest")

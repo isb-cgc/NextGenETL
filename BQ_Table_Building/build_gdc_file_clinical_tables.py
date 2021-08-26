@@ -28,7 +28,7 @@ import os
 import pandas as pd
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              load_table_from_query, publish_table, get_scratch_fp)
+                              load_table_from_query, publish_table, get_scratch_fp, get_rel_prefix)
 
 from common_etl.support import (get_the_bq_manifest, confirm_google_vm, create_clean_target, generic_bq_harness,
                                 build_file_list, upload_to_bucket, csv_to_bq, build_pull_list_with_bq_public,
@@ -56,6 +56,7 @@ def concat_all_files(all_files, one_big_tsv):
     with open(one_big_tsv, 'w') as outfile:
         outfile.write('\t'.join(saf))
         outfile.write('\n')
+
         for filename in all_files:
             key_dict = {}
             skipping = True
@@ -68,7 +69,8 @@ def concat_all_files(all_files, one_big_tsv):
                         continue
                     if not skipping:
                         for i in range(len(split_line)):
-                            key_dict[cols_for_file[i]] = "" if split_line[i] in PARAMS['NO_DATA_VALUES'] else split_line[i]
+                            key_dict[cols_for_file[i]] = "" if split_line[i] in PARAMS['NO_DATA_VALUES'] else \
+                                split_line[i]
 
                     write_line = []
                     for col in saf:
@@ -90,7 +92,7 @@ def build_a_header(all_files):
     per_file = {}
     for filename in all_files:
         per_file[filename] = []
-        with open(filename, 'r', encoding="ISO-8859-1") as readfile: # Having a problem with UTF-8
+        with open(filename, 'r', encoding="ISO-8859-1") as readfile:  # Having a problem with UTF-8
             header_lines = []
             for line in readfile:
                 # if we run into one field that is a pure number, it is no longer a header line
@@ -108,12 +110,14 @@ def build_a_header(all_files):
     return all_fields, per_file
 
 
-def group_by_suffixes(all_files):
+def group_by_suffixes(all_files, file_suffix):
     """
     There are a mixture of files, each with a different schema. Group the files into the different sets
+    :param file_suffix:
     :param all_files: todo
     :return:
     """
+
     full_and_name = []
     names_only = []
     for filename in all_files:
@@ -123,16 +127,18 @@ def group_by_suffixes(all_files):
 
     prefix = longest_common_prefix(names_only)
 
-    path_suff = []
+    path_suffix = []
     for tup in full_and_name:
-        path_suff.append((tup[0], tup[1][len(prefix):]))
+        path_suffix.append((tup[0], tup[1][len(prefix):]))
 
     path_group = []
     groups = set()
-    p = re.compile('(^.*)_[a-z]+\.txt')
-    for tup in path_suff:
-        m = p.match(tup[1])
-        group = m.group(1)
+    p = re.compile(rf"(^.*)_[a-z]+\.{file_suffix}")
+
+    for tup in path_suffix:
+        match = p.match(tup[1])
+
+        group = match.group(1)
         path_group.append((tup[0], group))
         groups.add(group)
 
@@ -146,21 +152,43 @@ def group_by_suffixes(all_files):
     return files_by_group
 
 
-def convert_excel_to_csv(all_files, local_files_dir):
+def convert_excel_to_tsv(all_files, local_files_dir, header_idx):
     """
     Convert excel files to CSV files.
     :param all_files: todo
     :param local_files_dir:
     :return:
     """
+
+    tsv_files = []
+
     for filename in all_files:
         print(filename)
-        page_dict = pd.read_excel(filename, None)
-        print(page_dict.keys())
-        _, just_name = os.path.split(filename)
-        for k, v in page_dict.items():
-            print(f"{local_files_dir}/{k}-{just_name}.tsv \n{v}")
-            #v.to_csv("{}/{}-{}.tsv".format(local_files_dir, k, just_name), sep = "\t", index = None, header=True)
+        tsv_filename = '.'.join(filename.split('.')[0:-1])
+        tsv_filename = f"{tsv_filename}.tsv"
+
+        excel_data = pd.read_excel(io=filename,
+                                   index_col=None,
+                                   header=header_idx,
+                                   engine='openpyxl')
+        excel_data.to_csv(tsv_filename, sep='\t', index=False)
+
+        tsv_files.append(tsv_filename)
+
+    return tsv_files
+
+
+def convert_tsvs_to_merged_jsonl(all_files, header_row_idx, data_start_idx):
+    for tsv_file in all_files:
+        idx = 0
+        with open(tsv_file) as tsv_fh:
+            lines = tsv_fh.readlines()
+            headers = lines[header_row_idx].strip().split('\t')
+
+            for item in headers:
+                print(item)
+
+            exit()
 
 
 def longest_common_prefix(str1):
@@ -197,28 +225,48 @@ def main(args):
     if not programs:
         has_fatal_error("Specify program parameters in YAML.")
 
-    local_files_dir = get_filepath(PARAMS['LOCAL_FILES_DIR'])  # todo
+    local_files_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}/{PARAMS['LOCAL_FILES_DIR']}")
+    base_file_name = PARAMS['BASE_FILE_NAME']
 
     for program in programs:
-        one_big_tsv = get_scratch_fp(PARAMS, f"{PARAMS['ONE_BIG_TSV_PREFIX']}_{program}.tsv", )
-        manifest_file = get_scratch_fp(PARAMS, f"{PARAMS['MANIFEST_FILE_PREFIX']}_{program}.tsv", )
-        local_pull_list = get_scratch_fp(PARAMS, f"{PARAMS['LOCAL_PULL_LIST_PREFIX']}_{program}.tsv", )
-        file_traversal_list = get_scratch_fp(PARAMS, f"{PARAMS['FILE_TRAVERSAL_LIST_PREFIX']}_{program}.txt", )
-        bucket_tsv = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}_{BQ_PARAMS['BUCKET_TSV_PREFIX']}_{program}.tsv"
+        print(f"Running script for {program}")
+        local_program_dir = f"{local_files_dir_root}/{program}"
+        local_files_dir = f"{local_program_dir}/files"
+
+        if not os.path.exists(local_program_dir):
+            os.makedirs(local_program_dir)
+        if not os.path.exists(local_files_dir):
+            os.makedirs(local_files_dir)
+
+        local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
+        file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+
+        # the source metadata files have a different release notation (relXX vs rXX)
+        src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
+
+        # final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
 
         if 'build_manifest_from_filters' in steps:
-            print('build_manifest_from_filters')
-            filter_dict = None  # todo
+            # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
+            # Write to file, create BQ table
+            print('\nbuild_manifest_from_filters')
+            filter_dict = programs[program]['filters']
 
-            file_table_name = f"{BQ_PARAMS['FILE_TABLE_PREFIX']}{PARAMS['RELEASE']}_{BQ_PARAMS['FILE_DATA_SUFFIX']}"
+            file_table_name = f"{src_table_release}_{BQ_PARAMS['FILE_TABLE']}"
             file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
+
+            manifest_file = f"{local_program_dir}/{base_file_name}_{program}.tsv"
+
+            bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{src_table_release}_{base_file_name}_{program}.tsv"
+            manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
+            manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
 
             manifest_success = get_the_bq_manifest(file_table=file_table_id,
                                                    filter_dict=filter_dict,
                                                    max_files=None,
                                                    project=BQ_PARAMS['WORKING_PROJECT'],
                                                    tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
-                                                   tmp_bq=BQ_PARAMS['BQ_MANIFEST_TABLE'],
+                                                   tmp_bq=manifest_table_name,
                                                    tmp_bucket=PARAMS['WORKING_BUCKET'],
                                                    tmp_bucket_file=bucket_tsv,
                                                    local_file=manifest_file,
@@ -226,8 +274,30 @@ def main(args):
             if not manifest_success:
                 has_fatal_error("Failure generating manifest")
 
+        if 'build_pull_list' in steps:
+            # Build list of file paths in the GDC cloud, create file and bq table
+            print('\nbuild_pull_list')
+
+            bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
+            indexd_table_name = f"{src_table_release}_{BQ_PARAMS['INDEXD_TABLE']}"
+            indexd_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_table_name}"
+
+            success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
+                                                     indexd_table=indexd_table_id,
+                                                     project=BQ_PARAMS['WORKING_PROJECT'],
+                                                     tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
+                                                     tmp_bq=bq_pull_list_table_name,
+                                                     tmp_bucket=PARAMS['WORKING_BUCKET'],
+                                                     tmp_bucket_file=PARAMS['BUCKET_PULL_LIST'],
+                                                     local_file=local_pull_list,
+                                                     do_batch=BQ_PARAMS['BQ_AS_BATCH'])
+            if not success:
+                print("Build pull list failed")
+                return
+
         if 'download_from_gdc' in steps:
-            print('download_from_gdc')
+            # download files and pull
+            print('\ndownload_from_gdc')
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
             print("Preparing to download %s files from buckets\n" % len(pull_list))
@@ -235,29 +305,61 @@ def main(args):
             bp.pull_from_buckets(pull_list, local_files_dir)
 
         if 'build_file_list' in steps:
-            print('build_file_list')
+            print('\nbuild_file_list')
             all_files = build_file_list(local_files_dir)
+
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
                     traversal_list.write("{}\n".format(line))
 
-        if 'group_by_type' in steps:
-            print('group_by_type')
-            print(file_traversal_list)
-            with open(file_traversal_list, mode='r') as traversal_list_file:
-                all_files = traversal_list_file.read().splitlines()
-            group_dict = group_by_suffixes(all_files) # WRITE OUT AS JSON!!
-
         if 'convert_excel_to_csv' in steps:
-            print('convert_excel_to_csv')
+            if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
+
+                with open(file_traversal_list, mode='r') as traversal_list_file:
+                    all_files = traversal_list_file.read().splitlines()
+                    all_files = convert_excel_to_tsv(all_files=all_files,
+                                                     local_files_dir=local_files_dir,
+                                                     header_idx=programs[program]['header_row_idx'])
+
+        if 'convert_tsvs_to_merged_jsonl' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
-            convert_excel_to_csv(all_files, local_files_dir)
+
+            if programs[program]['file_suffix'] == 'xlsx':
+                all_tsv_files = []
+                for file_name in all_files:
+                    tsv_filename = '.'.join(file_name.split('.')[0:-1])
+                    tsv_filename = f"{tsv_filename}.tsv"
+                    all_tsv_files.append(tsv_filename)
+                all_files = all_tsv_files
+
+            convert_tsvs_to_merged_jsonl(all_files,
+                                         programs[program]['header_row_idx'],
+                                         programs[program]['data_start_idx'])
+
+        """
+        I'm going to handle this differently. 
+        Not going to try to group by type, since this isn't actually relevant to TARGET as far as I can tell.
+        Will merge the files into one giant jsonl file instead. Okay if the files have different schemas, then.
+        If file_suffix == xlsx, then convert excel to csv before merging files.
+        Merge files.
+        Infer schema and upload file and schema to bucket.
+        Create BQ table.
+        Merge in aliquot fields.
+        Update field/table metadata.
+        Publish.
+        Delete working tables.
+        """
+
+        """        
 
         if 'concat_all_files' in steps:
             print('concat_all_files')
+            one_big_tsv = get_scratch_fp(PARAMS, f"{base_file_name}_data_{program}.tsv", )
+
             for k, v in group_dict.items():
                 concat_all_files(v, one_big_tsv.format(k))
+        """
 
 
 if __name__ == '__main__':
