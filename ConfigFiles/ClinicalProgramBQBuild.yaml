@@ -1,70 +1,568 @@
 #
-# YAML Configuration file used for script build_clinical_data_program_tables.py
-# Builds Program BQ tables for clinical data.
+# YAML Configuration file used for script build_clinical_data_bq_table.py
+# Builds BQ table for clinical data.
 #
 
 version: 3
 
+######################################################################################
+#
+#   api_params: configuration settings relating to the GDC API and its source data.
+#
+######################################################################################
 api_params:
   # GDC API endpoint for retrieval of cases dataset
-  # ENDPOINT: 'https://api.gdc.cancer.gov/cases'
-  ENDPOINT: URL/OF/API/ENDPOINT
+  ENDPOINT: https://api.gdc.cancer.gov/cases
 
-  TABLE_METADATA:
-    cases: # GDC expand field group name
-      prefix: # desired table_abbreviation (e.g. demo)--leave blank for cases
-      table_id_key: case_id # table's unique_id_key
-      excluded_fields: # list of fields to exclude from bq table
-        - submitter_id
-      column_order:
-        - biospecimen_type # list of field group's fields in desired bq table order
+  DATA_SOURCE: 'gdc'
 
-  # Determines table-level ordering, dictating ordering for merged tables
-  TABLE_ORDER:
-    - cases
-    # ...
-    - cases.follow_ups.molecular_tests
-
-  # Directory for VM scratch files
-  SCRATCH_DIR: local/directory/path
+  # in case we switch back to relXX from rXX
+  REL_PREFIX: 'r'
 
   # most recent GDC release number
-  GDC_RELEASE: relXX
+  RELEASE: '29'
 
+  # Configuration parameters for selecting how and which fields to include in the
+  # GDC clinical program tables:
+  # - prefix: how to modify field names by field group, in order to ensure uniqueness
+  # - table_suffix: suffix for base clinical table name, used to name one-to-many tables
+  # - id_key: unique identifier key for the field group
+  # - excluded_fields: fields to exclude from the public-facing BQ tables
+  # - app_excluded_fields: fields to exclude from webapp BQ tables (for Solr)
+  # - column_order: order in which to display columns in BQ table.
+  #     Note: when two field groups are merged together into one table, the order is first
+  #     determined by FG_CONFIG['order'], then by FIELD_CONFIG[fg]['column_order'].
+
+  FIELD_CONFIG:
+    cases: # GDC expand field group name
+      prefix:
+      table_suffix:
+      id_key: case_id
+      excluded_fields:
+        # Note -- these are excluded in the bulk table load script
+      column_order:
+        - submitter_id
+        - case_id
+        - primary_site
+        - disease_type
+        - index_date
+        - days_to_index
+        - consent_type
+        - days_to_consent
+        - lost_to_followup
+        - days_to_lost_to_followup
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.project:
+      prefix: proj
+      table_suffix: project
+      id_key: project_id
+      excluded_fields:
+        # Note -- these will be excluded in the bulk table load script next time, no need to include here
+        - released
+        - state
+        - releasable
+        - intended_release_date
+        - dbgap_accession_number
+      column_order:
+        - name
+        - project_id
+    cases.demographic:
+      prefix: demo
+      table_suffix: demographics
+      id_key: demographic_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - demographic_id
+        - gender
+        - race
+        - ethnicity
+        - country_of_residence_at_enrollment
+        - vital_status
+        - premature_at_birth
+        - weeks_gestation_at_birth
+        - days_to_birth
+        - year_of_birth
+        - age_is_obfuscated
+        - age_at_index
+        - year_of_death
+        - days_to_death
+        - cause_of_death
+        - cause_of_death_source
+        - occupation_duration_years
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.diagnoses:
+      prefix: diag
+      table_suffix: diagnoses
+      id_key: diagnosis_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - diagnosis_id
+        - ajcc_clinical_n
+        - masaoka_stage
+        - greatest_tumor_dimension
+        - percent_tumor_invasion
+        - mitosis_karyorrhexis_index
+        - ajcc_clinical_m
+        - anaplasia_present
+        - primary_diagnosis
+        - primary_gleason_grade
+        - days_to_last_known_disease_status   # deprecated
+        - gross_tumor_weight
+        - year_of_diagnosis
+        - best_overall_response
+        - international_prognostic_index
+        - perineural_invasion_present
+        - margins_involved_site
+        - peripancreatic_lymph_nodes_tested
+        - weiss_assessment_score
+        - inpc_histologic_group
+        - transglottic_extension
+        - figo_stage
+        - days_to_diagnosis
+        - progression_or_recurrence  # deprecated
+        - ajcc_pathologic_m
+        - inrg_stage
+        - days_to_recurrence
+        - inss_stage
+        - metastasis_at_diagnosis
+        - ovarian_specimen_status
+        - cog_rhabdomyosarcoma_risk_group
+        - gastric_esophageal_junction_involvement
+        - site_of_resection_or_biopsy
+        - ajcc_staging_system_edition
+        - icd_10_code
+        - laterality
+        - gleason_grade_group
+        - age_at_diagnosis
+        - peritoneal_fluid_cytological_status
+        - ajcc_clinical_t
+        - days_to_last_follow_up  # deprecated
+        - anaplasia_present_type
+        - enneking_msts_tumor_site
+        - breslow_thickness
+        - lymph_nodes_tested
+        - goblet_cells_columnar_mucosa_present
+        - metastasis_at_diagnosis_site
+        - supratentorial_localization
+        - ajcc_pathologic_stage
+        - esophageal_columnar_metaplasia_present
+        - tumor_grade   # deprecated
+        - lymph_nodes_positive
+        - tumor_largest_dimension_diameter
+        - last_known_disease_status  # deprecated
+        - pregnant_at_diagnosis
+        - irs_group
+        - ann_arbor_extranodal_involvement
+        - days_to_best_overall_response
+        - burkitt_lymphoma_clinical_variant
+        - residual_disease
+        - medulloblastoma_molecular_classification
+        - tumor_regression_grade
+        - enneking_msts_grade
+        - vascular_invasion_present
+        - child_pugh_classification
+        - first_symptom_prior_to_diagnosis
+        - enneking_msts_stage
+        - irs_stage
+        - esophageal_columnar_dysplasia_degree
+        - ajcc_clinical_stage
+        - ishak_fibrosis_score
+        - secondary_gleason_grade
+        - synchronous_malignancy
+        - gleason_patterns_percent
+        - lymph_node_involved_site
+        - tumor_depth
+        - morphology
+        - gleason_grade_tertiary
+        - ajcc_pathologic_t
+        - igcccg_stage
+        - inpc_grade
+        - largest_extrapelvic_peritoneal_focus
+        - figo_staging_edition_year
+        - lymphatic_invasion_present
+        - vascular_invasion_type
+        - wilms_tumor_histologic_subtype
+        - tumor_confined_to_organ_of_origin
+        - ovarian_surface_involvement
+        - cog_liver_stage
+        - classification_of_tumor
+        - margin_distance
+        - cog_renal_stage
+        - enneking_msts_metastasis
+        - ann_arbor_clinical_stage
+        - ann_arbor_pathologic_stage
+        - ann_arbor_b_symptoms
+        - ann_arbor_b_symptoms_described
+        - circumferential_resection_margin
+        - tumor_stage
+        - iss_stage
+        - tumor_focality
+        - prior_treatment
+        - peripancreatic_lymph_nodes_positive
+        - ajcc_pathologic_n
+        - method_of_diagnosis
+        - cog_neuroblastoma_risk_group
+        - tissue_or_organ_of_origin
+        - prior_malignancy
+        - eln_risk_classification
+        - satellite_nodule_present
+        - who_cns_grade
+        - who_nte_grade
+        - sites_of_involvement
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.diagnoses.annotations:
+      prefix: diag__anno
+      table_suffix: diagnoses_annotations
+      id_key: annotation_id
+      excluded_fields:
+        - submitter_id
+        - case_submitter_id
+        - entity_submitter_id
+      column_order:
+        - annotation_id
+        - entity_id
+        - creator
+        - entity_type
+        - category
+        - classification
+        - notes
+        - status
+        - state
+        - created_datetime
+        - updated_datetime
+        - legacy_created_datetime
+        - legacy_updated_datetime
+    cases.diagnoses.treatments:
+      prefix: diag__treat
+      table_suffix: diagnoses_treatments
+      id_key: treatment_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - treatment_id
+        - days_to_treatment_start
+        - number_of_cycles
+        - treatment_outcome
+        - reason_treatment_ended
+        - chemo_concurrent_to_radiation
+        - treatment_arm
+        - treatment_type
+        - treatment_effect
+        - treatment_anatomic_site
+        - treatment_or_therapy
+        - treatment_effect_indicator
+        - treatment_dose_units
+        - treatment_dose
+        - therapeutic_agents
+        - initial_disease_status
+        - days_to_treatment_end
+        - treatment_frequency
+        - regimen_or_line_of_therapy
+        - treatment_intent_type
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.exposures:
+      prefix: exp
+      table_suffix: exposures
+      id_key: exposure_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - exposure_id
+        - height
+        - weight
+        - bmi
+        - age_at_onset
+        - tobacco_use_per_day
+        - type_of_tobacco_used
+        - smoking_frequency
+        - marijuana_use_per_week
+        - tobacco_smoking_status
+        - tobacco_smoking_onset_year
+        - tobacco_smoking_quit_year
+        - years_smoked
+        - pack_years_smoked
+        - cigarettes_per_day
+        - time_between_waking_and_first_smoke
+        - secondhand_smoke_as_child
+        - smokeless_tobacco_quit_age
+        - exposure_type
+        - exposure_duration
+        - asbestos_exposure
+        - coal_dust_exposure
+        - environmental_tobacco_smoke_exposure
+        - radon_exposure
+        - respirable_crystalline_silica_exposure
+        - type_of_smoke_exposure
+        - alcohol_history
+        - alcohol_intensity
+        - alcohol_drinks_per_day
+        - alcohol_days_per_week
+        - alcohol_type
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.family_histories:
+      prefix: fam_hist
+      table_suffix: family_histories
+      id_key: family_history_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - family_history_id
+        - relatives_with_cancer_history_count
+        - relative_with_cancer_history
+        - relationship_primary_diagnosis
+        - relationship_type
+        - relationship_age_at_diagnosis
+        - relationship_gender
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.follow_ups:
+      prefix: follow
+      table_suffix: follow_ups
+      id_key: follow_up_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - follow_up_id
+        - days_to_follow_up
+        - days_to_progression_free
+        - height
+        - weight
+        - bmi
+        - progression_or_recurrence_type
+        - evidence_of_recurrence_type
+        - days_to_progression
+        - comorbidity
+        - days_to_comorbidity
+        - hysterectomy_type
+        - menopause_status
+        - hormonal_contraceptive_use
+        - dlco_ref_predictive_percent
+        - fev1_fvc_pre_bronch_percent
+        - fev1_ref_pre_bronch_percent
+        - diabetes_treatment_type
+        - hiv_viral_load
+        - aids_risk_factors
+        - barretts_esophagus_goblet_cells_present
+        - recist_targeted_regions_sum
+        - karnofsky_performance_status
+        - disease_response
+        - body_surface_area
+        - fev1_ref_post_bronch_percent
+        - viral_hepatitis_serologies
+        - adverse_event_grade
+        - comorbidity_method_of_diagnosis
+        - risk_factor_treatment
+        - scan_tracer_used
+        - hysterectomy_margins_involved
+        - pregnancy_outcome
+        - cdc_hiv_risk_factors
+        - reflux_treatment_type
+        - fev1_fvc_post_bronch_percent
+        - hpv_positive_type
+        - ecog_performance_status
+        - cd4_count
+        - progression_or_recurrence
+        - progression_or_recurrence_anatomic_site
+        - recist_targeted_regions_number
+        - pancreatitis_onset_year
+        - risk_factor
+        - haart_treatment_indicator
+        - adverse_event
+        - imaging_type
+        - imaging_result
+        - days_to_imaging
+        - hepatitis_sustained_virological_response
+        - immunosuppressive_treatment_type
+        - days_to_recurrence
+        - cause_of_response
+        - nadir_cd4_count
+        - days_to_adverse_event
+        - procedures_performed
+        - hormonal_contraceptive_type
+        - hormone_replacement_therapy_type
+        - state
+        - created_datetime
+        - updated_datetime
+    cases.follow_ups.molecular_tests:
+      prefix: follow__mol_test
+      table_suffix: follow_ups_molecular_tests
+      id_key: molecular_test_id
+      excluded_fields:
+        - submitter_id
+      column_order:
+        - molecular_test_id
+        - biospecimen_type
+        - biospecimen_volume
+        - variant_type
+        - variant_origin
+        - laboratory_test
+        - specialized_molecular_test
+        - test_analyte_type
+        - test_result
+        - transcript
+        - test_units
+        - pathogenicity
+        - aa_change
+        - blood_test_normal_range_upper
+        - loci_count
+        - antigen
+        - exon
+        - second_exon
+        - loci_abnormal_count
+        - zygosity
+        - test_value
+        - clonality
+        - molecular_consequence
+        - molecular_analysis_method
+        - gene_symbol
+        - second_gene_symbol
+        - chromosome
+        - locus
+        - copy_number
+        - mismatch_repair_mutation
+        - blood_test_normal_range_lower
+        - ploidy
+        - cell_count
+        - histone_family
+        - histone_variant
+        - intron
+        - cytoband
+        - mitotic_count
+        - mitotic_total_area
+        - state
+        - created_datetime
+        - updated_datetime
+
+
+  # Field group-level configuration parameters:
+  # - base_fg: first-generation ancestor field group (all other fgs were
+  #            originally nested within base_fg)
+  # - excluded_fgs: field groups to exclude from the webapp's program table builds
+  # - order: field group order -- determines which order a set of fields appears in,
+  #            relative to other fgs' fields in a merged table
+  # - last_keys_in_table: field keys listed here will always be ordered as the
+  #            last columns in any table in which they appear
+
+  FG_CONFIG:
+    base_fg: cases
+    order:
+      - cases
+      - cases.project
+      - cases.demographic
+      - cases.diagnoses
+      - cases.diagnoses.treatments
+      - cases.diagnoses.annotations
+      - cases.exposures
+      - cases.family_histories
+      - cases.follow_ups
+      - cases.follow_ups.molecular_tests
+    last_keys_in_table:
+      - cases.state
+      - cases.created_datetime
+      - cases.updated_datetime
+
+
+######################################################################################
+#
+#   bq_params: configuration settings for BigQuery and other Google Cloud services.
+#
+######################################################################################
 bq_params:
-  # What project are we in:
-  WORKING_PROJECT: your_working_project_id
+  PUBLISH_TEST_MODE: true
 
-  # Where is the BQ table dataset:
-  TARGET_DATASET: your_bq_dataset_name_in_working_project
+  ##
+  #  File Locations, GDC Release, Naming Conventions
+  ##
+  DO_BATCH: false
 
-  # Metadata reference dataset
-  METADATA_DATASET: GDC_metadata
+  # Directory for VM scratch files
+  SCRATCH_DIR: scratch
 
   # What bucket is going to get the text file heading to BQ?
-  WORKING_BUCKET: your_bucket_name
+  WORKING_BUCKET: <your-working-bucket-here>
 
   # What is the file path to the text file in the bucket:
-  WORKING_BUCKET_DIR: full/path/in/bucket # NO LEADING '/'
+  WORKING_BUCKET_DIR: <your-bucket-directory>
 
   # name for master table (will be prefixed with GDC_RELEASE value)
-  MASTER_TABLE: clinical_data
+  MASTER_TABLE: clinical
 
-  # Component of table name, differentiates that this is a clinical data table
-  # base program table name form: GDC_RELEASE + '_' + TABLE_PREFIX  + '_' + program_name
-  TABLE_PREFIX: clin
+  VERSIONED_SUFFIX: 'versioned'
 
-# Note that although the steps are given in the actual order here as
-# a list, changing the order here does not change the order of execution, which is fixed.
+  CURRENT_SUFFIX: 'current'
+
+  #
+  BIOSPECIMEN_SUFFIX: biospecimen_ref
+
+  ##
+  #  Github: Table/Column Metadata Changes
+  ##
+
+  #
+  BQ_REPO: BQEcosystem
+
+  #
+  GENERIC_TABLE_METADATA_FILE: gdc_clinical.json
+
+  #
+  FIELD_DESCRIPTION_FILEPATH: TableFieldUpdates/gdc_column_descriptions.json
+
+  ##
+  #  BigQuery API
+  ##
+
+  #
+  LOCATION: US
+
+  PROD_PROJECT: <production-project-here>
+
+  # What project are we in:
+  DEV_PROJECT: <development-project-here>
+
+  #
+  DEV_DATASET: <dev-dataset-here>
+
+  SCHEMA_TAGS:
+    extracted-month-year: "April 2021"
+
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
 steps:
+
+  # generate biospecimen stub tables
+  # - create_biospecimen_stub_tables
+
   # Parse and insert table data
-  - create_and_load_tables
+  # - create_and_load_tables
 
-  # Modify table metadata and field schemas
-  - modify_metadata_and_schemas
+  # Build view queries
+  # - build_view_queries
 
-  # Generate documentation files
-  - generate_documentation
+  # generate diff table list so that schemas can be created
+  # - list_tables_for_publication
 
-  # Run tests to confirm consistency in data across the various sources
-  - validate_data
+  # DON'T DO THIS UNTIL YOU'RE READY!
+  # - copy_tables_into_production
+  # remove any tables whose data hasn't changed from dev project
+  # - remove_redundant_tables
+

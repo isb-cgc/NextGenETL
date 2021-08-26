@@ -91,10 +91,10 @@ bq_params:
   LOCATION: US
 
   # Google file storage bucket
-  WORKING_BUCKET: next-gen-etl-scratch
+  WORKING_BUCKET: <your-working-bucket>
 
   # Personal directory within Google file storage bucket
-  WORKING_BUCKET_DIR: law
+  WORKING_BUCKET_DIR: <working-bucket-dir>
 
   # Directory to which to write the jsonl files
   SCRATCH_DIR: scratch
@@ -114,7 +114,7 @@ bq_params:
   GENERIC_SCHEMA_DIR: GenericSchemas
 
   # BigQuery development project name
-  DEV_PROJECT: isb-project-zero
+  DEV_PROJECT: <dev-project-here>
 
   # BQ development datasets
   QUANT_RAW_DATASET: PDC
@@ -124,7 +124,7 @@ bq_params:
   WEBAPP_DATASET: webapp_tables_for_solr
 
   # BigQuery production project name
-  PROD_PROJECT: isb-cgc-bq
+  PROD_PROJECT: <prod-project-here>
 
   # BQ production datasets
   PUBLIC_META_DATASET: PDC_metadata
