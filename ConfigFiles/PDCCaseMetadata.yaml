@@ -33,5 +33,9 @@ steps:
   # Build aliquot to case mapping table
   # - build_aliquot_to_case_id_map_table
 
+  # Test tables before publishing
+  # - test_new_version_case_metadata_table
+  # - test_new_version_aliquot_to_case_mapping_table
+
   # Publish case metadata and aliquot to case mapping tables to production
   # - publish_case_metadata_tables

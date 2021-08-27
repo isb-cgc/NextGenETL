@@ -37,5 +37,9 @@ steps:
   # build final file metadata table in dev project
   # - build_file_metadata_table
 
+  # Test tables before publishing
+  # - test_new_version_file_metadata_table
+  # - test_new_version_assoc_entities_table
+
   # publish file metadata tables to production project
   # - publish_file_metadata_tables

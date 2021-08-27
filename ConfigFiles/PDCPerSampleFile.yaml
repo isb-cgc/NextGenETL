@@ -20,5 +20,8 @@ steps:
   # build project-level per sample tables
   # - build_project_level_per_sample_tables
 
+  # Test tables before publishing
+  # - test_new_version_per_sample_tables
+
   # publish project-level per sample tables
   # - publish_project_level_per_sample_tables

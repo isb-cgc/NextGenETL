@@ -1,6 +1,6 @@
 #
-# YAML Configuration file used for script build_clinical_data_bq_table.py
-# Builds BQ table for clinical data.
+# YAML Configuration file used for script build_gdc_api_clinical_program_tables.py
+# Builds BQ program-level tables for clinical data.
 #
 
 version: 3

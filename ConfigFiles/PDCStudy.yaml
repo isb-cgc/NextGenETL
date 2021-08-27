@@ -23,5 +23,8 @@ steps:
   # create studies bq table in dev project
   # - build_studies_table
 
+  # Test tables before publishing
+  # - test_new_version_studies_table
+
   # publish studies bq tables to production project
   # - publish_studies_table

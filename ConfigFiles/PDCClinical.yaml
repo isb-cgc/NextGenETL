@@ -113,6 +113,9 @@ steps:
   # Build normalized clinical jsonl and tables per project
   # - build_case_clinical_jsonl_and_tables_per_project
 
+  # Test tables before publishing
+  # - test_new_version_clinical_tables
+
   # Publish clinical table
   # - publish_clinical_tables
 
