@@ -1,5 +1,5 @@
 #
-# YAML Configuration file used for script build_clinical_data_bq_table.py
+# YAML Configuration file used for script build_gdc_api_clinical_bulk_table.py
 # Builds BQ table for clinical data.
 #
 
@@ -9,6 +9,14 @@ api_params:
   # GDC API endpoint for retrieval of cases dataset
   ENDPOINT: https://api.gdc.cancer.gov/cases
 
+  # in case we switch back to relXX from rXX
+  REL_PREFIX: 'r'
+
+  # most recent GDC release number
+  # (NOTE: pulls data from the current release regardless of value here, not currently
+  # possible to specify a release number when making API calls.)
+  RELEASE: '29'
+
   # How many case records to retrieve per GDC API call. Larger batch sizes are more
   # likely to fail before completion, seems to work consistently at 2500
   BATCH_SIZE: 1000
@@ -17,9 +25,9 @@ api_params:
   START_INDEX: 0
 
   # List of 'expand' field groups to include in the clinical data bq table
-  PARENT_FG: cases
-
+  # PARENT_FG: cases
   EXPAND_FG_LIST:
+    - project
     - demographic
     - diagnoses
     - diagnoses.treatments
@@ -28,80 +36,50 @@ api_params:
     - family_histories
     - follow_ups
     - follow_ups.molecular_tests
-    - project
 
+  # fields to exclude from the api call
   EXCLUDE_FIELDS:
-    cases: # GDC expand field group name
-      - aliquot_ids
-      - analyte_ids
-      - case_autocomplete
-      - diagnosis_ids
-      - id
-      - portion_ids
-      - slide_ids
-      - submitter_aliquot_ids
-      - submitter_analyte_ids
-      - submitter_diagnosis_ids
-      - submitter_portion_ids
-      - submitter_slide_ids
-    cases.demographic:
-      - submitter_id
-    cases.diagnoses:
-      - submitter_id
-    cases.diagnoses.annotations:
-      - submitter_id
-      - case_submitter_id
-      - entity_submitter_id
-    cases.diagnoses.treatments:
-      - submitter_id
-    cases.exposures:
-      - submitter_id
-    cases.family_histories:
-      - submitter_id
-    cases.follow_ups:
-      - submitter_id
-    cases.follow_ups.molecular_tests:
-      - submitter_id
-    cases.project:
-      - released
-      - primary_site
-      - state
-      - disease_type
-      - releasable
-      - intended_release_date
-      - dbgap_accession_number
+    - aliquot_ids
+    - analyte_ids
+    - case_autocomplete
+    - diagnosis_ids
+    - id
+    - portion_ids
+    - sample_ids
+    - slide_ids
+    - submitter_aliquot_ids
+    - submitter_analyte_ids
+    - submitter_diagnosis_ids
+    - submitter_portion_ids
+    - submitter_sample_ids
+    - submitter_slide_ids
+    - project.primary_site
+    - project.disease_type
+    - project.released
+    - project.state
+    - project.releasable
+    - project.intended_release_date
+    - project.dbgap_accession_number
 
 bq_params:
   ##
   #  File Locations, GDC Release, Naming Conventions
   ##
 
+  # whether to load rows via batch (I've always used false)
+  DO_BATCH: FALSE
+
   # Directory to which to write the cases clinical data json file
-  SCRATCH_DIR: scratch
-
-  # File to which to write the cases clinical data json file
-  DATA_OUTPUT_FILE: clinical_data.jsonl
-
-  # 'a' if appending to existing cases json (for continuation of interrupted file build).
-  # 'w' if creating or overwriting existing CASES_JSON_FILE.
-  IO_MODE: 'w'
+  SCRATCH_DIR: <your-scratch-dir>
 
   # What bucket is going to get the text file heading to BQ?
-  WORKING_BUCKET: next-gen-etl-scratch
+  WORKING_BUCKET: <your-working-bucket>
 
   # What is the file path to the text file in the bucket:
-  WORKING_BUCKET_DIR: law
+  WORKING_BUCKET_DIR: <your-bucket-directory>
 
   # name for master table (will be prefixed with GDC_RELEASE value)
   MASTER_TABLE: clinical
-
-  # in case we switch back to relXX from rXX
-  REL_PREFIX: 'r'
-
-  # most recent GDC release number
-  # (NOTE: pulls data from the current release regardless of value here, not currently
-  # possible to specify a release number when making API calls.)
-  RELEASE: '28'
 
   LOCATION: US
 
@@ -110,20 +88,17 @@ bq_params:
   ##
 
   # What project are we in:
-  DEV_PROJECT: isb-project-zero
+  DEV_PROJECT: <your-dev-project>
 
   # Where is the BQ table dataset:
-  DEV_DATASET: GDC_Clinical_Data
+  DEV_DATASET: <your-dev-dataset>
 
+steps:
   # Note that although the steps are given in the actual order here as
   # a list, changing the order here does not change the order of execution, which is fixed.
 
-steps:
-  #- extract_api_response_json
+  # - build_and_upload_case_jsonl
 
-  - generate_jsonl_from_modified_api_json
+  # - create_schema
 
-  - upload_jsonl_to_cloud_storage
-
-  # Get the table schema/description/tags pulled from git (?) and build BQ Table
-  - build_bq_table
+  # - build_bq_table
