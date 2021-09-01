@@ -956,11 +956,15 @@ def main(args):
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                            params['SCRATCH_DATASET'],
                                            barcode_table)
-	#For CPTAC, create an intermediate combined table. In the next step, the aliquots (with multiple samples) will be merged , creating the final release table.
+	#For CPTAC, create an intermediate combined table.
+	#There are instances where multiple samples are merged into the same aliquot.
+        #For these cases we join the rows by concatenating the samples with semicolons, creating the final release table.
 	if 'merge_same_aliq_samples' in steps:
              success = final_merge(skel_table, barcodes_table,
                               params['SCRATCH_DATASET'], draft_table.format('combined_table'), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
+	     source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table.format('combined_table'))
+             merge_samples_by_aliquot( source_table, draft_table.format(release), params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])	
 	else:
 	     success = final_merge(skel_table, barcodes_table,
                               params['SCRATCH_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
@@ -968,13 +972,6 @@ def main(args):
         if not success:
             print("Join job failed")
             return
-
-	
-    # For CPTAC there are instances where multiple samples are merged into the same aliquot
-    # for these cases we join the rows by concatenating the samples with semicolons
-    if 'merge_same_aliq_samples' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table.format('combined_table'))
-        merge_samples_by_aliquot( source_table, draft_table.format(release), params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])	
 	
     #
     # Create second table
