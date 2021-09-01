@@ -956,7 +956,13 @@ def main(args):
         barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
                                            params['SCRATCH_DATASET'],
                                            barcode_table)
-        success = final_merge(skel_table, barcodes_table,
+	#For CPTAC, create an intermediate combined table. In the next step, the aliquots (with multiple samples) will be merged , creating the final release table.
+	if 'merge_same_aliq_samples' in steps:
+             success = final_merge(skel_table, barcodes_table,
+                              params['SCRATCH_DATASET'], draft_table.format('combined_table'), params['BQ_AS_BATCH'],
+                              params['PROGRAM'])
+	else:
+	     success = final_merge(skel_table, barcodes_table,
                               params['SCRATCH_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
