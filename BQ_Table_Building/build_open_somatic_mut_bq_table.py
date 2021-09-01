@@ -963,6 +963,13 @@ def main(args):
             print("Join job failed")
             return
 
+	
+    # For CPTAC there are instances where multiple samples are merged into the same aliquot
+    # for these cases we join the rows by concatenating the samples with semicolons
+    if 'merge_same_aliq_samples' in steps:
+        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table.format('combined_table'))
+        merge_samples_by_aliquot( source_table, draft_table.format(release), params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])	
+	
     #
     # Create second table
     #
