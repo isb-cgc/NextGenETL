@@ -1,0 +1,450 @@
+[
+    {
+        "name": "Mutation_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "hg18_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg19_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg38_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "ExonIntron",
+        "type": "string"
+    },
+    {
+        "name": "Codon_number",
+        "type": "integer"
+    },
+    {
+        "name": "Genomic_nt",
+        "type": "integer"
+    },
+    {
+        "name": "Description",
+        "type": "string"
+    },
+    {
+        "name": "c_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description_GRCh38",
+        "type": "string"
+    },
+    {
+        "name": "ProtDescription",
+        "type": "string"
+    },
+    {
+        "name": "COSMIClink",
+        "type": "integer"
+    },
+    {
+        "name": "CLINVARlink",
+        "type": "integer"
+    },
+    {
+        "name": "TCGA_ICGC_GENIE_count",
+        "type": "integer"
+    },
+    {
+        "name": "cBioportalCount",
+        "type": "integer"
+    },
+    {
+        "name": "Splice_site",
+        "type": "string"
+    },
+    {
+        "name": "CpG_site",
+        "type": "string"
+    },
+    {
+        "name": "Context_coding_3",
+        "type": "string"
+    },
+    {
+        "name": "Type",
+        "type": "string"
+    },
+    {
+        "name": "WT_nucleotide",
+        "type": "integer"
+    },
+    {
+        "name": "Mutant_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rate",
+        "type": "float"
+    },
+    {
+        "name": "WT_codon",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_codon",
+        "type": "string"
+    },
+    {
+        "name": "WT_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rateAA",
+        "type": "float"
+    },
+    {
+        "name": "Effect",
+        "type": "string"
+    },
+    {
+        "name": "Polymorphism",
+        "type": "string"
+    },
+    {
+        "name": "AGVGDClass",
+        "type": "string"
+    },
+    {
+        "name": "SIFTClass",
+        "type": "string"
+    },
+    {
+        "name": "Polyphen2",
+        "type": "string"
+    },
+    {
+        "name": "REVEL",
+        "type": "float"
+    },
+    {
+        "name": "BayesDel",
+        "type": "float"
+    },
+    {
+        "name": "StructureFunctionClass",
+        "type": "string"
+    },
+    {
+        "name": "TransactivationClass",
+        "type": "string"
+    },
+    {
+        "name": "DNE_LOFclass",
+        "type": "string"
+    },
+    {
+        "name": "DNEclass",
+        "type": "string"
+    },
+    {
+        "name": "Hotspot",
+        "type": "string"
+    },
+    {
+        "name": "Structural_motif",
+        "type": "string"
+    },
+    {
+        "name": "Sample_Name",
+        "type": "string"
+    },
+    {
+        "name": "Sample_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_source",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_origin",
+        "type": "string"
+    },
+    {
+        "name": "Topography",
+        "type": "string"
+    },
+    {
+        "name": "Short_topo",
+        "type": "string"
+    },
+    {
+        "name": "Topo_code",
+        "type": "string"
+    },
+    {
+        "name": "Sub_topography",
+        "type": "string"
+    },
+    {
+        "name": "Morphology",
+        "type": "string"
+    },
+    {
+        "name": "Morpho_code",
+        "type": "string"
+    },
+    {
+        "name": "Grade",
+        "type": "string"
+    },
+    {
+        "name": "Stage",
+        "type": "string"
+    },
+    {
+        "name": "TNM",
+        "type": "string"
+    },
+    {
+        "name": "p53_IHC",
+        "type": "string"
+    },
+    {
+        "name": "KRAS_status",
+        "type": "string"
+    },
+    {
+        "name": "Other_mutations",
+        "type": "string"
+    },
+    {
+        "name": "Other_associations",
+        "type": "string"
+    },
+    {
+        "name": "Add_Info",
+        "type": "string"
+    },
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sex",
+        "type": "string"
+    },
+    {
+        "name": "Age",
+        "type": "integer"
+    },
+    {
+        "name": "Ethnicity",
+        "type": "string"
+    },
+    {
+        "name": "Country",
+        "type": "string"
+    },
+    {
+        "name": "Population",
+        "type": "string"
+    },
+    {
+        "name": "Region",
+        "type": "string"
+    },
+    {
+        "name": "Development",
+        "type": "string"
+    },
+    {
+        "name": "Geo_area",
+        "type": "string"
+    },
+    {
+        "name": "TP53polymorphism",
+        "type": "string"
+    },
+    {
+        "name": "Germline_mutation",
+        "type": "string"
+    },
+    {
+        "name": "Family_history",
+        "type": "string"
+    },
+    {
+        "name": "Tobacco",
+        "type": "string"
+    },
+    {
+        "name": "Alcohol",
+        "type": "string"
+    },
+    {
+        "name": "Exposure",
+        "type": "string"
+    },
+    {
+        "name": "Infectious_agent",
+        "type": "string"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Exclude_analysis",
+        "type": "boolean"
+    },
+    {
+        "name": "WGS_WXS",
+        "type": "string"
+    },
+    {
+        "name": "AAchange_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Type_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Effect_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cross_Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Comment",
+        "type": "string"
+    },
+    {
+        "name": "Start_material",
+        "type": "string"
+    },
+    {
+        "name": "exon2",
+        "type": "boolean"
+    },
+    {
+        "name": "exon3",
+        "type": "boolean"
+    },
+    {
+        "name": "exon4",
+        "type": "boolean"
+    },
+    {
+        "name": "exon5",
+        "type": "boolean"
+    },
+    {
+        "name": "exon6",
+        "type": "boolean"
+    },
+    {
+        "name": "exon7",
+        "type": "boolean"
+    },
+    {
+        "name": "exon8",
+        "type": "boolean"
+    },
+    {
+        "name": "exon9",
+        "type": "boolean"
+    },
+    {
+        "name": "exon10",
+        "type": "boolean"
+    },
+    {
+        "name": "exon11",
+        "type": "boolean"
+    },
+    {
+        "name": "WAF1nWT",
+        "type": "float"
+    },
+    {
+        "name": "MDM2nWT",
+        "type": "float"
+    },
+    {
+        "name": "BAXnWT",
+        "type": "float"
+    },
+    {
+        "name": "h1433snWT",
+        "type": "float"
+    },
+    {
+        "name": "AIP1nWT",
+        "type": "float"
+    },
+    {
+        "name": "GADD45nWT",
+        "type": "float"
+    },
+    {
+        "name": "NOXAnWT",
+        "type": "float"
+    },
+    {
+        "name": "P53R2nWT",
+        "type": "float"
+    },
+    {
+        "name": "Morphogroup",
+        "type": "string"
+    },
+    {
+        "name": "Tobacco_search",
+        "type": "string"
+    },
+    {
+        "name": "Alcohol_search",
+        "type": "string"
+    },
+    {
+        "name": "AAchange",
+        "type": "string"
+    },
+    {
+        "name": "Sample_source_group",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_origin_group",
+        "type": "string"
+    },
+    {
+        "name": "SomaticView_ID",
+        "type": "integer"
+    }
+]

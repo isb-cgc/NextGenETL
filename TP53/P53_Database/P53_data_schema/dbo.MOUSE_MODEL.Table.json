@@ -1,0 +1,34 @@
+[
+    {
+        "name": "MM_ID",
+        "type": "integer"
+    },
+    {
+        "name": "AAchange",
+        "type": "string"
+    },
+    {
+        "name": "caMOD_ID",
+        "type": "string"
+    },
+    {
+        "name": "ModelDescription",
+        "type": "string"
+    },
+    {
+        "name": "TumorSites",
+        "type": "string"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Mref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Comment",
+        "type": "string"
+    }
+]

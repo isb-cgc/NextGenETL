@@ -1,0 +1,294 @@
+[
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "hg18_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg19_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "hg38_Chr17_coordinates",
+        "type": "integer"
+    },
+    {
+        "name": "ExonIntron",
+        "type": "string"
+    },
+    {
+        "name": "Codon_number",
+        "type": "integer"
+    },
+    {
+        "name": "Description",
+        "type": "string"
+    },
+    {
+        "name": "c_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description",
+        "type": "string"
+    },
+    {
+        "name": "g_description_GRCh38",
+        "type": "string"
+    },
+    {
+        "name": "ProtDescription",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_hg19",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_hg38",
+        "type": "string"
+    },
+    {
+        "name": "hgvs_NM_000546",
+        "type": "string"
+    },
+    {
+        "name": "Splice_site",
+        "type": "string"
+    },
+    {
+        "name": "CpG_site",
+        "type": "string"
+    },
+    {
+        "name": "Context_coding_3",
+        "type": "string"
+    },
+    {
+        "name": "Type",
+        "type": "string"
+    },
+    {
+        "name": "WT_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_nucleotide",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rate",
+        "type": "float"
+    },
+    {
+        "name": "WT_codon",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_codon",
+        "type": "string"
+    },
+    {
+        "name": "WT_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_AA",
+        "type": "string"
+    },
+    {
+        "name": "Mut_rateAA",
+        "type": "float"
+    },
+    {
+        "name": "Effect",
+        "type": "string"
+    },
+    {
+        "name": "Polymorphism",
+        "type": "string"
+    },
+    {
+        "name": "COSMIClink",
+        "type": "integer"
+    },
+    {
+        "name": "CLINVARlink",
+        "type": "integer"
+    },
+    {
+        "name": "TCGA_ICGC_GENIE_count",
+        "type": "integer"
+    },
+    {
+        "name": "Hotspot",
+        "type": "string"
+    },
+    {
+        "name": "SNPlink",
+        "type": "string"
+    },
+    {
+        "name": "gnomADlink",
+        "type": "string"
+    },
+    {
+        "name": "SourceDatabases",
+        "type": "string"
+    },
+    {
+        "name": "PubMedlink",
+        "type": "string"
+    },
+    {
+        "name": "Residue_function",
+        "type": "string"
+    },
+    {
+        "name": "Domain_function",
+        "type": "string"
+    },
+    {
+        "name": "Structural_motif",
+        "type": "string"
+    },
+    {
+        "name": "SA",
+        "type": "float"
+    },
+    {
+        "name": "TransactivationClass",
+        "type": "string"
+    },
+    {
+        "name": "DNE_LOFclass",
+        "type": "string"
+    },
+    {
+        "name": "DNEclass",
+        "type": "string"
+    },
+    {
+        "name": "StructureFunctionClass",
+        "type": "string"
+    },
+    {
+        "name": "AGVGDClass",
+        "type": "string"
+    },
+    {
+        "name": "SIFTClass",
+        "type": "string"
+    },
+    {
+        "name": "Polyphen2",
+        "type": "string"
+    },
+    {
+        "name": "BayesDel",
+        "type": "float"
+    },
+    {
+        "name": "REVEL",
+        "type": "float"
+    },
+    {
+        "name": "EffectGroup3",
+        "type": "integer"
+    },
+    {
+        "name": "SwissProtLink",
+        "type": "string"
+    },
+    {
+        "name": "WAF1nWT",
+        "type": "float"
+    },
+    {
+        "name": "MDM2nWT",
+        "type": "float"
+    },
+    {
+        "name": "BAXnWT",
+        "type": "float"
+    },
+    {
+        "name": "h1433snWT",
+        "type": "float"
+    },
+    {
+        "name": "AIP1nWT",
+        "type": "float"
+    },
+    {
+        "name": "GADD45nWT",
+        "type": "float"
+    },
+    {
+        "name": "NOXAnWT",
+        "type": "float"
+    },
+    {
+        "name": "P53R2nWT",
+        "type": "float"
+    },
+    {
+        "name": "AAchange",
+        "type": "string"
+    },
+    {
+        "name": "WAF1nWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "MDM2nWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "BAXnWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "h1433snWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "AIP1nWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "PUMAnWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "SubG1nWT_Saos2",
+        "type": "float"
+    },
+    {
+        "name": "Type_ID",
+        "type": "integer"
+    },
+    {
+        "name": "AAchange_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MutationView_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Somatic_count",
+        "type": "integer"
+    },
+    {
+        "name": "Germline_count",
+        "type": "integer"
+    },
+    {
+        "name": "CellLine_count",
+        "type": "integer"
+    }
+]

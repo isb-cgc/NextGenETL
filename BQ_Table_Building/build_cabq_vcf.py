@@ -795,7 +795,21 @@ def main(args):
         case_barcodes = iter(case_barcodes)
         entity_ids = iter(entity_ids)
         
-        
+    if 'load_metadata_from_csv' in steps:
+        df = pd.read_csv( params['FILE_URL_CSV'] )
+
+        print(f'Number of files to be processed: {len(df.index)}')
+        print(f'Number of projects in the program, {program_name}: {len(set(df["project_short_name"]))}')
+        print(f'Number of workflow types for the program, {program_name}: {len(set(df["analysis_workflow_type"]))}')
+
+        pbar = progress(total=len(df.index))
+        file_urls = iter(df['file_url'])
+        project_short_names = iter(df['project_short_name'])
+        file_names = iter(df['file_name'])
+        analysis_workflow_types = iter(df['analysis_workflow_type'])
+        case_barcodes = iter(df['case_barcode'])
+        entity_ids = iter(df['entity_id'])
+    
     if 'transform_vcf' in steps:
         print('* Transforming and Parsing the VCF Files!')
         

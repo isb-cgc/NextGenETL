@@ -1,0 +1,115 @@
+
+version: 1
+
+params:
+  RELEASE: "29"
+  REL_PREFIX: "r"
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: <your-working-bucket-here>
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: <your-working-bucket-directory-here> # DO NOT HAVE A LEADING /
+  # Where are the files going on the VM:
+  SCRATCH_DIR: <your-scratch-bucket-directory-here>
+
+  # Where do we stash the manifest in the bucket after we get it:
+  BUCKET_MANIFEST_TSV: manifest.tsv # DO NOT HAVE A LEADING /
+
+  # Where do we stash the pull_list in the bucket after we get it:
+  BUCKET_PULL_LIST: file_pull_list.txt # DO NOT HAVE A LEADING /
+
+  BASE_FILE_NAME: clin_files
+
+  # Not tossing 'Completed' or 'Discrepancy'
+  # Note: This was used in Bill's version--I don't think mine's actually using this yet
+  NO_DATA_VALUES:
+    - Not Available
+    - Not Applicable
+    - Not Evaluated
+    - Not Reported
+    - Not Tested
+    - Unknown
+
+bq_params:
+  LOCATION: US
+
+  # Sigh. It's a pain that these are duplicated. I put these into BQ PARAMS instead of API PARAMS and
+  # that's how some of my existing utils functions use them. I think it was a mistake. But going back
+  # to change it now would be an undertaking. So in using code Bill had already written that references
+  # support, but code I wrote that references utils, you need to include these three variables twice.
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: <your-working-bucket-here>
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: <your-working-bucket-directory-here> # DO NOT HAVE A LEADING /
+  # Where are the files going on the VM:
+  SCRATCH_DIR: <your-scratch-bucket-directory-here>
+
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What project are we in:
+  WORKING_PROJECT: isb-project-zero
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: clinical_from_files
+  TARGET_RAW_DATASET: clinical_from_files_raw
+
+  META_DATASET: GDC_metadata
+  MANIFEST_DATASET: GDC_manifests
+
+  # Source (dev) file metadata table name prefix (concatenated with [params['RELEASE'], '_', bq_params['FILE_TABLE_SUFFIX']])
+  SRC_TABLE_PREFIX: rel
+
+  # Source (dev) file metadata table name suffix (concatenated with [bq_params['FILE_TABLE_PREFIX'], params['RELEASE'], '_'])
+  FILE_TABLE: fileData_current
+
+  # Where is the table that maps gdc file IDs to gcs paths:
+  INDEXD_TABLE: GDCfileID_to_GCSurl
+
+# You can go to the GDC Data Portal Repository, build a filter, then click on the "Advanced Search"
+# button to see the key-value pairs you want:
+programs:
+  TARGET:
+    filters:
+      # I don't know why this a list of single-entry dictionaries, but it's required by the fcn in support.py
+      - program_name: "TARGET"
+      - data_format: "XLSX"
+      - data_category: "Clinical"
+    header_row_idx: 0
+    data_start_idx: 1
+    file_suffix: xlsx
+    id_key: target_usi
+  TCGA:
+    filters:
+      - program_name: "TCGA"
+      - data_format: "BCR Biotab"
+      - data_category: "Clinical"
+    header_row_idx: 1
+    header_idxs_list:
+      - 0
+      - 1
+      - 2
+    data_start_idx: 3
+    file_suffix: txt
+    id_key: bcr_patient_uuid
+
+steps:
+  # Get a manifest from our filters:
+  - build_manifest_from_filters
+  # Build the pull list from the manifest:
+  - build_pull_list
+  # Run the downloader on the manifest (caution: long!) into LOCAL_FILES_DIR
+  - download_from_gdc
+  # Build a file list from traversing LOCAL_FILES_DIR:
+  - build_file_list
+  # Do excel conversion
+  - convert_excel_to_csv
+  - create_normalized_tsv
+  - create_merged_tsv
+  - upload_merged_tsv
+  # - find_like_columns
+  # - upload_tsv_file_and_schema_to_bucket
+  # - find_like_columns
+  # - build_raw_tables
+  # - find_duplicates_in_tables
+  # - find_matching_target_usis

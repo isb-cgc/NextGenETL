@@ -1,0 +1,14 @@
+[
+    {
+        "name": "FamilyCase_ID",
+        "type": "integer"
+    },
+    {
+        "name": "FamilyCase",
+        "type": "string"
+    },
+    {
+        "name": "FamilyCase_group",
+        "type": "string"
+    }
+]

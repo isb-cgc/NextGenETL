@@ -24,821 +24,30 @@ import json
 import os
 import sys
 import time
-
+import re
+import datetime
 import requests
 import yaml
-from google.api_core.exceptions import NotFound
+import select
+from distutils import util
+
+from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
 
+from common_etl.support import bq_harness_with_result, compare_two_tables_sql
 
-#       GETTERS - YAML CONFIG
-
-
-def get_field_groups(api_params):
-    """Get field group list from build master table yaml config for GDC.
-
-    :param api_params: api param object from yaml config
-    :return: list of expand field groups
-    """
-    if 'FIELD_GROUPS' not in api_params:
-        has_fatal_error('FIELD_GROUPS not in api_params (check yaml config file)')
-    return ",".join(list(api_params['FIELD_GROUPS']))
-
-
-def get_required_fields(api_params, fg):
-    """Get list of required fields (used to create schema and load values into BQ table).
-
-    :param api_params: api param object from yaml config
-    :param fg: name of field group for which to retrieve required fields
-    :return: list of required fields (currently only returns fg's id key)
-    """
-    field_config = api_params['FIELD_CONFIG']
-
-    if fg in field_config and 'id_key' in field_config[fg]:
-        # this is a single entry list of the moment
-        return [get_field_key(fg, field_config[fg]['id_key'])]
-
-    return None
-
-
-def get_column_order_one_fg(api_params, fg):
-    """Get field/column order list associated with given field group from yaml config.
-
-    :param api_params: api param object from yaml config
-    :param fg: field group for which to retrieve field/column order list
-    :return: field group's column order list
-    """
-    if fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error("'{}' not found in FIELD_CONFIG in yaml config".format(fg))
-
-    fg_params = api_params['FIELD_CONFIG'][fg]
-
-    if not fg_params or 'column_order' not in fg_params:
-        has_fatal_error("No order for field group {} in yaml.".format(fg), KeyError)
-
-    # return full field key, in order, for given field_grp
-    return [get_field_key(fg, field) for field in fg_params['column_order']]
-
-
-def get_excluded_field_groups(api_params):
-    """Get a list of field groups (via yaml config) to exclude from the final tables.
-    Currently used in order to exclude fgs that would otherwise create duplicate columns
-    when merging fgs into a smaller # of tables, WHILE not utilizing fg prefixes
-    to create unique names (which is undesirable for web app integration, for instance).
-
-    :param api_params: api param object from yaml config
-    :return: list of field groups to exclude
-    """
-    if 'FG_CONFIG' not in api_params or not api_params['FG_CONFIG']:
-        has_fatal_error('FG_CONFIG not in api_params, or is empty', KeyError)
-    if 'excluded_fgs' not in api_params['FG_CONFIG']:
-        has_fatal_error('excluded_fgs not found in not in FG_CONFIG', KeyError)
-
-    return api_params['FG_CONFIG']['excluded_fgs']
-
-
-def get_excluded_fields_all_fgs(api_params, fgs, is_webapp=False):
-    """Get a list of fields for each field group to exclude from the tables
-    from yaml config (api_params['FIELD_CONFIG']['excluded_fields'] or
-    api_params['FIELD_CONFIG']['app_excluded_fields'] for the web app).
-
-    :param api_params: api param object from yaml config
-    :param fgs: list of expand field groups included from API call
-    :param is_webapp: is script currently running for 'create_webapp_tables' step?
-    :return: set of fields to exclude
-    """
-    if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
-        has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
-
-    excluded_list_key = 'app_excluded_fields' if is_webapp else 'excluded_fields'
-
-    exclude_fields = set()
-
-    for fg in fgs:
-        if fg not in api_params['FIELD_CONFIG']:
-            has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
-        elif not api_params['FIELD_CONFIG'][fg]:
-            continue
-        elif excluded_list_key not in api_params['FIELD_CONFIG'][fg]:
-            has_fatal_error("One of the excluded params missing from YAML.", KeyError)
-        elif not api_params['FIELD_CONFIG'][fg][excluded_list_key]:
-            continue
-
-        for field in api_params['FIELD_CONFIG'][fg][excluded_list_key]:
-            exclude_fields.add(get_field_key(fg, field))
-
-    return exclude_fields
-
-
-def get_excluded_fields_one_fg(api_params, fg, is_webapp=False):
-    """Get excluded fields for given field group (pulled from yaml config file).
-
-    :param api_params: api param object from yaml config
-    :param fg: field group for which to retrieve excluded fields
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: list of excluded fields associated with field group 'fg' in yaml config
-    """
-    if 'FIELD_CONFIG' not in api_params:
-        has_fatal_error("FIELD_CONFIG not set in YAML.", KeyError)
-    elif fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error("{} not set in YAML.".format(fg), KeyError)
-    elif not api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error("api_params['FIELD_CONFIG']['{}'] not found".format(fg), KeyError)
-
-    excluded_key = 'app_excluded_fields' if is_webapp else 'excluded_fields'
-
-    if excluded_key not in api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error("{}'s {} not found.".format(fg, excluded_key))
-
-    excluded_list = api_params['FIELD_CONFIG'][fg][excluded_key]
-    return [get_bq_name(api_params, f, is_webapp, fg) for f in excluded_list]
-
-
-def get_rel_prefix(bq_params):
-    """Get current release number/date (set in yaml config).
-
-    :param bq_params: bq param object from yaml config
-    :return: release abbreviation
-    """
-    rel_prefix = ''
-
-    if 'REL_PREFIX' in bq_params and bq_params['REL_PREFIX']:
-        rel_prefix += bq_params['REL_PREFIX']
-    if 'RELEASE' in bq_params and bq_params['RELEASE']:
-        rel_prefix += bq_params['RELEASE']
-
-    return rel_prefix
-
-
-def get_fg_prefix(api_params, fg):
-    """Get field group abbreviations from yaml config, used to create field prefixes
-    in order to prevent BQ column name duplication.
-
-    :param api_params: api param object from yaml config
-    :param fg: specific field group for which to retrieve prefix
-    :return: str containing the prefix designated in yaml config for given fg
-    """
-    if 'FIELD_CONFIG' not in api_params or not api_params['FIELD_CONFIG']:
-        has_fatal_error('FIELD_CONFIG not in api_params, or is empty', KeyError)
-
-    elif fg not in api_params['FIELD_CONFIG']:
-        has_fatal_error('{} not found in not in FIELD_CONFIG'.format(fg), KeyError)
-
-    elif 'prefix' not in api_params['FIELD_CONFIG'][fg]:
-        has_fatal_error("prefix not found in FIELD_CONFIG for {}".format(fg), KeyError)
-
-    return api_params['FIELD_CONFIG'][fg]['prefix']
-
-
-def get_table_suffixes(api_params):
-    """Get abbreviations for field groups as designated in yaml config.
-
-    :param api_params: api param object from yaml config
-    :return: dict of {field_group: abbreviation_suffix}
-    """
-    suffixes = dict()
-
-    for table, metadata in api_params['FIELD_CONFIG'].items():
-        suffixes[table] = metadata['table_suffix'] if metadata['table_suffix'] else ''
-
-    return suffixes
-
-
-def build_master_table_name_from_params(bq_params):
-    """Get master table name from yaml config.
-
-    :param bq_params: bq param object from yaml config
-    :return: master table name
-    """
-    return "_".join([get_rel_prefix(bq_params), bq_params['MASTER_TABLE']])
-
-
-#       GETTERS - MISC
-#
-
-
-#   Project and Program Getters
-
-
-def get_program_list(bq_params):
-    """Get list of the programs which have contributed data to GDC's research program.
-
-    :param bq_params: bq param object from yaml config
-    :return: list of research programs participating in GDC data sharing
-    """
-    programs_query = ("""
-        SELECT DISTINCT(proj) 
-        FROM (
-            SELECT SPLIT(
-                (SELECT project_id
-                 FROM UNNEST(project)), '-')[OFFSET(0)] AS proj
-            FROM `{}`)
-        ORDER BY proj
-    """).format(get_working_table_id(bq_params))
-
-    return {prog.proj for prog in get_query_results(programs_query)}
-
-
-def get_project_name(table_id):
-    """Get the BQ project name for a given table id.
-
-    :param table_id: id in standard SQL format: '{project_id}.{dataset_id}.{table_name}'
-    :return: GDC project to which the BQ table belongs
-    """
-    split_table = table_id.split('.')
-
-    if len(split_table) != 3:
-        has_fatal_error("Incorrect naming for table_id: {}".format(table_id))
-
-    return split_table[0]
-
-
-#   Table Getters
-
-
-def get_one_to_many_tables(api_params, record_counts):
-    """Get one-to-many tables for program.
-
-    :param api_params: api param object from yaml config
-    :param record_counts: dict max field group record counts for program
-    :return: set of table names (representing field groups which cannot be flattened)
-    """
-    table_keys = {get_base_fg(api_params)}
-
-    for table in record_counts:
-        if record_counts[table] > 1:
-            table_keys.add(table)
-
-    return table_keys
-
-
-def build_table_name(str_list):
-    """Constructs a table name (str) from list<str>.
-
-    :param str_list: a list<str> of table name segments
-    :return: composed table name string
-    """
-    table_name = "_".join(str_list)
-
-    # replace '.' with '_' so that the name is valid
-    # ('.' chars not allowed -- issue with BEATAML1.0, for instance)
-    return table_name.replace('.', '_')
-
-
-def convert_json_to_table_name(bq_params, json_file):
-    """Convert json filename (from BQEcosystem repo) into BQ table name.
-    json schema files match table ID of BQ table.
-
-    :param bq_params: bq param object from yaml config
-    :param json_file: json file from BQEcosystem repo containing table schema
-    data and metadata; json file naming matches table ID of corresponding BQ table
-    :return: BQ table name for which the json acts as a configuration file
-    """
-    # handles naming for *webapp* tables
-    split_name = json_file.split('.')
-    program_name = split_name[1]
-    split_table = split_name[2].split('_')
-    table_name = '_'.join(split_table[:-2])
-    rel = get_rel_prefix(bq_params)
-
-    return '_'.join([rel, program_name, table_name])
-
-
-def build_table_id(project, dataset, table):
-    """ Build table_id in {project_id}.{dataset_id}.{table_name} format.
-
-    :param project: project id
-    :param dataset: dataset id
-    :param table: table name
-    :return: table_id
-    """
-    return '{}.{}.{}'.format(project, dataset, table)
-
-
-def convert_json_to_table_id(bq_params, json_file):
-    """Convert json file from BQEcosystem repo into component dataset and table names.
-    Naming matches table ID of corresponding production BQ clinical tables.
-
-    :param bq_params: bq param object from yaml config
-    :param json_file: json file from BQEcosystem repo, storing table metadata
-    :return: names of datasets and tables for production current and versioned
-    repositories
-    """
-    split_json = json_file.split('.')
-    dest_table = "_".join(split_json[2].split('_')[:-1])
-
-    dev_project = bq_params['DEV_PROJECT']
-    prod_project = bq_params['PROD_PROJECT']
-
-    dev_dataset = bq_params['DEV_DATASET']
-    curr_dataset = split_json[1]
-    versioned_dataset = "_".join([curr_dataset, bq_params['VERSIONED_SUFFIX']])
-
-    src_table = "_".join(split_json[2].split('_')[:-2])
-    src_table = "_".join([get_rel_prefix(bq_params), split_json[1], src_table])
-    curr_table = "_".join([dest_table, bq_params['CURRENT_SUFFIX']])
-    vers_table = "_".join([dest_table, get_rel_prefix(bq_params)])
-
-    src_table_id = build_table_id(dev_project, dev_dataset, src_table)
-    curr_table_id = build_table_id(prod_project, curr_dataset, curr_table)
-    vers_table_id = build_table_id(prod_project, versioned_dataset, vers_table)
-
-    return src_table_id, curr_table_id, vers_table_id
-
-
-def get_biospecimen_table_id(bq_params, program):
-    """Builds and retrieves a table ID for the biospecimen stub tables.
-
-    :param bq_params: bq param object from yaml config
-    :param program: the program from which the cases originate
-    :return: biospecimen table_id
-    """
-    table_name = build_table_name([get_rel_prefix(bq_params),
-                                   str(program),
-                                   bq_params['BIOSPECIMEN_SUFFIX']])
-
-    return build_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
-
-
-def get_working_table_id(bq_params, table_name=None):
-    """Get table id for development version of the db table.
-
-    :param bq_params: bq param object from yaml config
-    :param table_name: name of the bq table
-    :return: table id
-    """
-    if not table_name:
-        table_name = build_master_table_name_from_params(bq_params)
-
-    return build_table_id(bq_params["DEV_PROJECT"], bq_params["DEV_DATASET"], table_name)
-
-
-def get_webapp_table_id(bq_params, table_name):
-    """Get table id for webapp db table.
-
-    :param bq_params: bq param object from yaml config
-    :param table_name: name of the bq table
-    :return: table id
-    """
-    return build_table_id(bq_params['DEV_PROJECT'], bq_params['APP_DATASET'], table_name)
-
-
-#   Field and Field Group Getters
-
-
-def get_base_fg(api_params):
-    """Get the first-level field group, of which all other field groups are descendents.
-
-    :param api_params: api param object from yaml config
-    :return: base field group name
-    """
-    if 'FG_CONFIG' not in api_params:
-        has_fatal_error("FG_CONFIG not set (in api_params) in YAML.", KeyError)
-    if 'base_fg' not in api_params['FG_CONFIG'] or not api_params['FG_CONFIG']['base_fg']:
-        has_fatal_error("base_fg not set (in api_params['FG_CONFIG']) in YAML.", KeyError)
-
-    return api_params['FG_CONFIG']['base_fg']
-
-
-def get_parent_fg(tables, field_name):
-    """
-    Get field's parent table name.
-    :param tables: list of table names for program
-    :param field_name: full field name for which to retrieve parent table
-    :return: parent table name
-    """
-    parent_table = get_field_group(field_name)
-
-    while parent_table and parent_table not in tables:
-        parent_table = get_field_group(parent_table)
-
-    if parent_table:
-        return parent_table
-    return has_fatal_error("No parent fg found for {}".format(field_name))
-
-
-def get_field_group(field_name):
-    """Gets parent field group (might not be the parent *table*, as the ancestor fg
-    could be flattened).
-
-    :param field_name: field name for which to retrieve ancestor field group
-    :return: ancestor field group
-    """
-    return ".".join(field_name.split('.')[:-1])
-
-
-def get_field_group_id_key(api_params, field_group, is_webapp=False, return_field_only=False):
-    """Retrieves the id key used to uniquely identify a table record.
-
-    :param api_params: api param object from yaml config
-    :param field_group: table for which to determine the id key
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: str representing table key
-    """
-
-    split_fg = field_group.split('.')
-    if split_fg[0] != api_params['FG_CONFIG']['base_fg']:
-        split_fg.insert(0, api_params['FG_CONFIG']['base_fg'])
-        field_group = ".".join(split_fg)
-
-    if field_group not in api_params['FIELD_CONFIG']:
-        console_out("field group {} not in API_PARAMS['FIELD_CONFIG']".format(field_group))
-        return None
-    if 'id_key' not in api_params['FIELD_CONFIG'][field_group]:
-        has_fatal_error("id_key not found in API_PARAMS for {}".format(field_group))
-
-    fg_id_name = api_params['FIELD_CONFIG'][field_group]['id_key']
-
-    if return_field_only:
-        return fg_id_name
-
-    fg_id_key = get_field_key(field_group, fg_id_name)
-
-    if is_webapp:
-        new_fg_id_key = get_renamed_field_key(api_params, fg_id_key)
-
-        if new_fg_id_key:
-            return new_fg_id_key
-
-    return fg_id_key
-
-
-def get_fg_id_name(api_params, field_group, is_webapp=False):
-    """Retrieves the id key used to uniquely identify a table record.
-
-    :param api_params: api param object from yaml config
-    :param field_group: table for which to determine the id key
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: str representing table key
-    """
-    fg_id_key = get_field_group_id_key(api_params, field_group, is_webapp)
-
-    return get_field_name(fg_id_key)
-    # todo this should be replaced
-
-
-def get_field_name(field_col_key):
-    """Get short field name from full field or bq column name.
-
-    :param field_col_key: full field or bq column name
-    :return: short field name
-    """
-    if '.' not in field_col_key and '__' not in field_col_key:
-        return field_col_key
-
-    split_char = '.' if '.' in field_col_key else '__'
-
-    return field_col_key.split(split_char)[-1]
-
-
-def get_field_key(field_group, field):
-    """Get full field key ("{field_group}.{field_name}"}.
-
-    :param field_group: field group to which the field belongs
-    :param field: field name
-    :return: full field key string
-    """
-    return '{}.{}'.format(field_group, field)
-
-
-def get_bq_name(api_params, field, is_webapp=False, arg_fg=None):
-    """Get column name (in bq format) from full field name.
-
-    :param api_params: api params from yaml config file
-    :param field: if not table_path, full field name; else short field name
-    :param arg_fg: field group containing field
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: bq column name for given field name
-    """
-    base_fg = get_base_fg(api_params)
-
-    if arg_fg:
-        # field group is specified as a function argument
-        fg = arg_fg
-        field_key = get_field_key(fg, field)
-    elif len(field.split('.')) == 1:
-        # no fg delimiter found in field string: cannot be a complete field key
-        fg = base_fg
-        field_key = get_field_key(fg, field)
-    else:
-        # no fg argument, but field contains separator chars; extract the fg and name
-        fg = get_field_group(field)
-        field_key = field
-
-    # derive the key's short field name
-    field_name = get_field_name(field_key)
-
-    # get id_key and prefix associated with this fg
-    this_fg_id = get_fg_id_name(api_params, fg)
-    prefix = get_fg_prefix(api_params, fg)
-
-    # create map of {fg_names : id_keys}
-    fg_to_id_key_map = get_fgs_and_id_keys(api_params)
-
-    # if fg has no prefix, or
-    #    field is child of base_fg, or
-    #    function called for webapp table building: do not add prefix
-    if fg == base_fg or is_webapp or not prefix:
-        return field_name
-
-    # if field is an id_key, but is not mapped to this fg: do not add prefix
-    if field_name in fg_to_id_key_map.values() and field_name != this_fg_id:
-        return field_name
-
-    # if the function reaches this line, return a prefixed field:
-    #  - the table is user-facing, and
-    #  - this field isn't a foreign id key
-    return "__".join([prefix, field_name])
-
-
-def get_renamed_field_key(api_params, field_key):
-    """Gets the new field name for an existing field.
-    Used to rename fields for web app integration.
-
-    :param api_params: api param object from yaml config
-    :param field_key: field key ({fg}.{field}) for which to find a alternative field key
-    :return: None if no replacement field key, otherwise string containing new field key
-    """
-    if 'RENAMED_FIELDS' not in api_params:
-        has_fatal_error("RENAMED_FIELDS not found in API_PARAMS")
-
-    renamed_fields = api_params['RENAMED_FIELDS']
-
-    if not renamed_fields or (renamed_fields and field_key not in renamed_fields):
-        return None
-
-    return renamed_fields[field_key]
-
-
-def get_renamed_field_keys(api_params):
-    """Get renamed fields dict from yaml config.
-
-    :param api_params: api param object from yaml config
-    :return: renamed fields dict
-    """
-    if 'RENAMED_FIELDS' not in api_params:
-        has_fatal_error("RENAMED_FIELDS not found in API_PARAMS")
-
-    return api_params['RENAMED_FIELDS']
-
-
-#   I/O Getters
-
-
-def build_working_gs_uri(bq_params, filename):
-    """Builds an uri reference for file uploaded to Google storage bucket.
-
-    :param bq_params: bq param object from yaml config
-    :param filename: file uploaded to google storage bucket
-    :return: uri reference for google storage bucket file
-    """
-    return "gs://{}/{}/{}".format(bq_params['WORKING_BUCKET'],
-                                  bq_params['WORKING_BUCKET_DIR'],
-                                  filename)
-
-
-def construct_table_name(bq_params, program='', suffix='', is_webapp=False):
-    """
-    todo
-    :param bq_params:
-    :param program:
-    :param suffix:
-    :param is_webapp:
-    :return:
-    """
-    app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
-
-    name_list = [app_prefix,
-                 bq_params['REL_PREFIX'] + bq_params['RELEASE'],
-                 program,
-                 bq_params['MASTER_TABLE'],
-                 suffix]
-
-    file_name = [x for x in name_list if x]
-    return '_'.join(file_name)
-
-
-def build_jsonl_output_filename(bq_params, program='', suffix='', is_webapp=False):
-    """
-    todo
-    :param bq_params:
-    :param program:
-    :param suffix:
-    :param is_webapp:
-    :return:
-    """
-    file_name = construct_table_name(bq_params, program, suffix, is_webapp)
-
-    return file_name + '.jsonl'
-
-
-def get_suffixed_jsonl_filename(api_params, bq_params, program, table, is_webapp=False):
-    """
-    todo
-    :param api_params:
-    :param bq_params:
-    :param program:
-    :param table:
-    :param is_webapp:
-    :return:
-    """
-    suffixes = get_table_suffixes(api_params)
-    suffix = suffixes[table]
-    program = program.replace('.', '_')
-
-    return build_jsonl_output_filename(bq_params, program, suffix, is_webapp=is_webapp)
-
-
-def build_jsonl_name(api_params, bq_params, program, table, is_webapp=False):
-    """
-    todo
-    :param api_params:
-    :param bq_params:
-    :param program:
-    :param table:
-    :param is_webapp:
-    :return:
-    """
-    app_prefix = bq_params['APP_JSONL_PREFIX'] if is_webapp else ''
-    gdc_rel = bq_params['REL_PREFIX'] + bq_params['RELEASE']
-    program = program.replace('.', '_')
-    base_name = bq_params['MASTER_TABLE']
-    suffix = get_table_suffixes(api_params)[table]
-
-    name_list = [app_prefix, gdc_rel, program, base_name, suffix]
-    filtered_name_list = [x for x in name_list if x]
-    file_name = '_'.join(filtered_name_list)
-
-    return file_name + '.jsonl'
-
-
-def get_filepath(dir_path, filename=None):
-    """Get file path for location on VM.
-
-    :param dir_path: directory portion of the filepath (starting at user home dir)
-    :param filename: name of the file
-    :return: full path to file
-    """
-    join_list = [os.path.expanduser('~'), dir_path]
-
-    if filename:
-        join_list.append(filename)
-
-    return '/'.join(join_list)
-
-
-def get_scratch_fp(bq_params, filename):
-    """Construct filepath for VM output file.
-
-    :param filename: name of the file
-    :param bq_params: bq param object from yaml config
-    :return: output filepath for VM
-    """
-    return get_filepath(bq_params['SCRATCH_DIR'], filename)
-
-
-#       FILESYSTEM HELPERS
-
-
-def get_dir(fp):
-    """ Get directory component of filepath.
-
-    :param fp: full filepath (dir and file name)
-    :return: directory component of fp
-    """
-    return '/'.join(fp.split('/')[:-1])
-
-
-def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
-    """ Create a jsonl file for uploading data into BQ from a list<dict> obj.
-
-    :param jsonl_fp: filepath of jsonl file to write
-    :param json_obj_list: list<dict> object
-    :param mode: 'a' if appending to a file that's being built iteratively
-                 'w' if file data is written in a single call to the function
-                     (in which case any existing data is overwritten)"""
-
-    with open(jsonl_fp, mode) as file_obj:
-        cnt = 0
-
-        for line in json_obj_list:
-            json.dump(obj=line, fp=file_obj)
-            file_obj.write('\n')
-            cnt += 1
-
-
-def append_list_to_jsonl(file_obj, json_list):
-    try:
-        for line in json_list:
-            json_str = convert_dict_to_string(line)
-            json.dump(obj=json_str, fp=file_obj)
-            file_obj.write('\n')
-    except IOError as err:
-        print(str(err), IOError)
-
-
-def delete_file(fp):
-    if os.path.exists(fp):
-        os.remove(fp)
-        print("{} deleted successfully!".format(fp))
-    else:
-        print("{} not found!".format(fp))
-
-
-#       REST API HELPERS (GDC, PDC, ETC)
-
-
-def create_mapping_dict(endpoint):
-    """Creates a dict containing field mappings for given endpoint.
-    Note: only differentiates the GDC API's 'long' type (called 'integer' in GDC data
-    dictionary) and 'float' type (called 'number' in GDC data dictionary). All others
-    typed as string.
-
-    :param endpoint: API endpoint for which to retrieve mapping
-    :return: dict of field maps. Each entry contains field name, type, and description
-    """
-    field_mapping_dict = {}
-
-    # retrieve mappings json object
-    res = requests.get(endpoint + '/_mapping')
-    field_mappings = res.json()['_mapping']
-
-    for field in field_mappings:
-        # convert data types from GDC format to formats used in BQ
-        if field_mappings[field]['type'] == 'long':
-            field_type = 'INTEGER'
-        elif field_mappings[field]['type'] == 'float':
-            field_type = 'FLOAT'
-        else:
-            field_type = 'STRING'
-
-        # create json object of field mapping data
-        field_mapping_dict[field] = {
-            'name': field.split('.')[-1],
-            'type': field_type,
-            'description': field_mappings[field]['description']
-        }
-
-    return field_mapping_dict
-
-
-def create_schema_dict(api_params, bq_params, is_webapp=False):
-    """Creates schema dict using master table's bigquery.table.Table.schema attribute.
-
-    :param api_params: api param object from yaml config
-    :param bq_params: bq params from yaml config file
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
-    :return: flattened schema dict in format:
-        {full field name: {name: 'name', type: 'field_type', description: 'description'}}
-    """
-    client = bigquery.Client()
-    bq_table = client.get_table(get_working_table_id(bq_params))
-
-    schema_list = []
-
-    for schema_field in bq_table.schema:
-        schema_list.append(schema_field.to_api_repr())
-
-    schema = dict()
-
-    parse_bq_schema_obj(api_params=api_params,
-                        schema=schema,
-                        fg=get_base_fg(api_params),
-                        schema_list=schema_list,
-                        is_webapp=is_webapp)
-
-    return schema
-
-
-def get_cases_by_program(bq_params, program):
-    """Get a dict obj containing all the cases associated with a given program.
-
-    :param bq_params: bq param object from yaml config
-    :param program: the program from which the cases originate
-    :return: cases dict
-    """
-    cases = []
-
-    sample_table_id = get_biospecimen_table_id(bq_params, program)
-
-    query = """
-        SELECT * 
-        FROM `{}` 
-        WHERE case_id IN (
-            SELECT DISTINCT(case_gdc_id) 
-            FROM `{}`
-            WHERE program_name = '{}')
-    """.format(get_working_table_id(bq_params), sample_table_id, program)
-
-    for case_row in get_query_results(query):
-        case_items = dict(case_row.items())
-        # case_items.pop('project')
-        cases.append(case_items)
-
-    return cases
+#   API HELPERS
 
 
 def get_graphql_api_response(api_params, query, fail_on_error=True):
+    """
+    Create and submit graphQL API request, returning API response serialized as json object.
+    :param api_params: api_params supplied in yaml config
+    :param query: GraphQL-formatted query string
+    :param fail_on_error: if True, will fail fast--otherwise, tries up to 3 times before failing. False is good for
+    longer paginated queries, which often throw random server errors
+    :return: json response object
+    """
     max_retries = 4
 
     headers = {'Content-Type': 'application/json'}
@@ -849,107 +58,247 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
 
     req_body = {'query': query}
     api_res = requests.post(endpoint, headers=headers, json=req_body)
+
     tries = 0
 
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
-            has_fatal_error("Response status code {}:\n{}.\nRequest body:\n{}".
-                            format(api_res.status_code, api_res.reason, req_body))
+            has_fatal_error(
+                f"Response status code {api_res.status_code}:\n{api_res.reason}.\nRequest body:\n{req_body}")
 
-        console_out("Response status code {}: {};\nRetry {} of {}...",
-                    (api_res.status_code, api_res.reason, tries, max_retries))
+        print(f"Response code {api_res.status_code}: {api_res.reason}")
+        print(f"Retry {tries} of {max_retries}...")
         time.sleep(3)
 
         api_res = requests.post(endpoint, headers=headers, json=req_body)
 
         tries += 1
 
-    if tries > max_retries:
-        # give up!
-        api_res.raise_for_status()
+        if tries > max_retries:
+            # give up!
+            api_res.raise_for_status()
 
     json_res = api_res.json()
 
     if 'errors' in json_res and json_res['errors']:
         if fail_on_error:
-            has_fatal_error("Errors returned by {}.\nError json:\n{}".format(endpoint, json_res['errors']))
+            has_fatal_error(f"Errors returned by {endpoint}.\nError json:\n{json_res['errors']}")
 
     return json_res
 
 
-#       BIGQUERY API HELPERS
-
-
-def get_last_fields_in_table(api_params):
-    """ Get list of fields to always include at the end of merged tables,
-    via the yaml config.
-
-    :param api_params: api param object from yaml config
-    :return: fields to include at the end of the table
+def get_rel_prefix(api_params):
     """
-    if 'FG_CONFIG' not in api_params:
-        has_fatal_error("Missing FG_CONFIG in YAML", KeyError)
-    elif 'last_keys_in_table' not in api_params['FG_CONFIG']:
-        has_fatal_error("Missing last_keys_in_table in FG_CONFIG in YAML", KeyError)
-
-    return api_params['FG_CONFIG']['last_keys_in_table']
-
-
-def parse_bq_schema_obj(api_params, schema, fg, schema_list=None, is_webapp=False):
-    """Recursively construct schema using existing metadata in main clinical table.
-
-    :param api_params: api param object from yaml config
-    :param schema: dict of flattened schema entries
-    :param fg: current field group name
-    :param schema_list: schema field entries for field_group
-    :param is_webapp: is script currently running the 'create_webapp_tables' step?
+    Get API release version (set in yaml config).
+    :param api_params: API params, supplied via yaml config
+    :return: release version number (with prefix, if included)
     """
+    rel_prefix = ''
 
-    if fg not in api_params['FIELD_CONFIG']:
-        return
+    if 'REL_PREFIX' in api_params and api_params['REL_PREFIX']:
+        rel_prefix += api_params['REL_PREFIX']
 
-    for i, schema_field in enumerate(schema_list):
+    if 'RELEASE' in api_params and api_params['RELEASE']:
+        rel_number = api_params['RELEASE']
+        rel_prefix += rel_number
 
-        field_key = get_field_key(fg, schema_field['name'])
+    return rel_prefix
 
-        # if has 'fields', then the current obj contains nested objs
-        if schema_field['type'] == 'RECORD':
-            # if nested, recurse down to the next level
-            parse_bq_schema_obj(api_params, schema, field_key, schema_field['fields'], is_webapp)
 
-            required_field_list = get_required_fields(api_params, fg)
+#   BIGQUERY TABLE/DATASET OBJECT MODIFIERS
 
-            for field_name in required_field_list:
-                schema[field_name]['mode'] = 'REQUIRED'
+
+def delete_bq_table(table_id):
+    """
+    Permanently delete BigQuery table located by table_id.
+    :param table_id: table id in standard SQL format
+    """
+    client = bigquery.Client()
+    client.delete_table(table_id, not_found_ok=True)
+
+
+def delete_bq_dataset(dataset_id):
+    """
+    Permanently delete BigQuery dataset.
+    :param dataset_id: dataset_id for deletion
+    """
+    client = bigquery.Client()
+    client.delete_dataset(dataset_id, delete_contents=True, not_found_ok=True)
+
+
+def update_table_metadata(table_id, metadata):
+    """
+    Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
+    :param table_id: table id in standard SQL format
+    :param metadata: metadata containing new field and table attributes
+    """
+    client = bigquery.Client()
+    table = get_bq_table_obj(table_id)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+
+def update_table_labels(table_id, labels_to_remove_list=None, labels_to_add_dict=None):
+    """
+    Alter table labels for existing BigQuery table (e.g. when changes are necessary for a published table's labels).
+    :param table_id: target BigQuery table id
+    :param labels_to_remove_list: optional list of label keys to remove
+    :param labels_to_add_dict: optional dictionary of label key-value pairs to add to table metadata
+    """
+    client = bigquery.Client()
+    table = get_bq_table_obj(table_id)
+
+    print(f"Processing labels for {table_id}")
+
+    labels = table.labels
+
+    if labels_to_remove_list and isinstance(labels_to_remove_list, list):
+        for label in labels_to_remove_list:
+            if label in labels:
+                del labels[label]
+                table.labels[label] = None
+        print(f"Deleting label(s)--now: {labels}")
+    elif labels_to_remove_list and not isinstance(labels_to_remove_list, list):
+        has_fatal_error("labels_to_remove_list not provided in correct format, should be a list.")
+
+    if labels_to_add_dict and isinstance(labels_to_add_dict, dict):
+        labels.update(labels_to_add_dict)
+        print(f"Adding/Updating label(s)--now: {labels}")
+    elif labels_to_add_dict and not isinstance(labels_to_add_dict, dict):
+        has_fatal_error("labels_to_add_dict not provided in correct format, should be a dict.")
+
+    table.labels = labels
+    client.update_table(table, ["labels"])
+
+    assert table.labels == labels
+    print("Labels updated successfully!\n")
+
+
+def update_friendly_name(api_params, table_id, is_gdc=None, custom_name=None):
+    """
+    Modify BigQuery table's friendly name.
+    :param api_params: API params, supplied via yaml config
+    :param table_id: table id in standard SQL format
+    :param custom_name: By default, appends "'REL' + api_params['RELEASE'] + ' VERSIONED'"
+    :param is_gdc: If this is GDC, we add REL before the version onto the existing friendly name;
+        if custom_name is specified, this behavior is overridden, and the table's friendly name is replaced entirely.
+    """
+    client = bigquery.Client()
+    table = get_bq_table_obj(table_id)
+
+    if custom_name:
+        new_name = custom_name
+    else:
+        if is_gdc:
+            release_str = ' REL' + api_params['RELEASE']
         else:
-            # not a nested field entry--do we need to prefix the schema field name?
-            schema_field['name'] = get_bq_name(api_params, field_key, is_webapp)
-            schema[field_key] = schema_field
+            release_str = ' ' + api_params['RELEASE']
+
+        new_name = table.friendly_name + release_str + ' VERSIONED'
+
+    table.friendly_name = new_name
+    client.update_table(table, ["friendly_name"])
+
+    assert table.friendly_name == new_name
 
 
-def get_fgs_and_id_keys(api_params):
-    """ Create a dictionary of type { 'field_group' : 'id_key_field'}.
-
-    :param api_params: api param object from yaml config
-    :return: mapping dict, field group -> id_key_field
+def update_schema(table_id, new_descriptions):
     """
-    id_key_dict = dict()
+    Modify an existing table's field descriptions.
+    :param table_id: table id in standard SQL format
+    :param new_descriptions: dict of field names and new description strings
+    """
+    client = bigquery.Client()
+    table = get_bq_table_obj(table_id)
 
-    fg_config_entries = api_params['FIELD_CONFIG']
+    new_schema = []
 
-    for fg in fg_config_entries:
-        id_key_dict[fg] = fg_config_entries[fg]['id_key']
+    for schema_field in table.schema:
+        field = schema_field.to_api_repr()
 
-    return id_key_dict
+        if field['name'] in new_descriptions.keys():
+            name = field['name']
+            field['description'] = new_descriptions[name]
+        elif field['description'] == '':
+            print(f"Still no description for field: {field['name']}")
+
+        mod_field = bigquery.SchemaField.from_api_repr(field)
+        new_schema.append(mod_field)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
+
+
+def add_generic_table_metadata(bq_params, table_id, schema_tags, metadata_file=None):
+    """
+    todo
+    :param bq_params: bq_params supplied in yaml config
+    :param table_id: table id for which to add the metadata
+    :param schema_tags: dictionary of generic schema tag keys and values
+    :param metadata_file:
+    """
+    generic_schema_path = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_SCHEMA_DIR']}"
+
+    if not metadata_file:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}")
+    else:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{metadata_file}")
+
+    with open(metadata_fp) as file_handler:
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            table_schema = table_schema.replace(tag, tag_value)
+
+        table_metadata = json.loads(table_schema)
+        update_table_metadata(table_id, table_metadata)
+
+
+def add_column_descriptions(bq_params, table_id):
+    """
+    Alter an existing table's schema (currently, only field descriptions are mutable without a table rebuild,
+    Google's restriction).
+    :param bq_params:
+    :param table_id:
+    :return:
+    """
+    print("\t - Adding column descriptions!")
+
+    field_desc_fp = f"{bq_params['BQ_REPO']}/{bq_params['FIELD_DESCRIPTION_FILEPATH']}"
+    field_desc_fp = get_filepath(field_desc_fp)
+
+    if not os.path.exists(field_desc_fp):
+        has_fatal_error("BQEcosystem field description path not found", FileNotFoundError)
+    with open(field_desc_fp) as field_output:
+        descriptions = json.load(field_output)
+
+    update_schema(table_id, descriptions)
+
+
+#   BIGQUERY UTILS
 
 
 def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
-    """Copy an existing BQ table into a new location.
-
+    """
+    Copy an existing BigQuery src_table into location specified by dest_table.
     :param bq_params: bq param object from yaml config
-    :param src_table: Table to copy
-    :param dest_table: Table to be created
+    :param src_table: ID of table to copy
+    :param dest_table: ID of table create
+    :param replace_table: Replace existing table, if one exists; defaults to False
     """
     client = bigquery.Client()
 
@@ -961,80 +310,13 @@ def copy_bq_table(bq_params, src_table, dest_table, replace_table=False):
     bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
 
     if await_job(bq_params, client, bq_job):
-        console_out("Successfully copied table:")
-        console_out("src: {0}\n dest: {1}\n", (src_table, dest_table))
-
-
-def create_and_load_table(bq_params, jsonl_file, table_id, schema=None, infer_schema=False):
-    """Creates BQ table and inserts case data from jsonl file.
-
-    :param bq_params: bq param obj from yaml config
-    :param jsonl_file: file containing case records in jsonl format
-    :param schema: list of SchemaFields representing desired BQ table schema
-    :param table_id: id of table to create
-    """
-    client = bigquery.Client()
-    job_config = bigquery.LoadJobConfig()
-
-    if schema:
-        job_config.schema = schema
-    else:
-        print(" - No schema supplied for {}, using schema autodetect.".format(table_id))
-        job_config.autodetect = True
-
-    job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
-    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-
-    gs_uri = build_working_gs_uri(bq_params, jsonl_file)
-
-    try:
-        load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-        console_out(' - Inserting into {0}... ', (table_id,), end="")
-        await_insert_job(bq_params, client, table_id, load_job)
-    except TypeError as err:
-        has_fatal_error(err)
-
-
-def create_and_load_tsv_table(bq_params, tsv_file, schema, table_id, null_marker='', num_header_rows=1):
-    """Creates BQ table and inserts case data from jsonl file.
-
-    :param bq_params: bq param obj from yaml config
-    :param tsv_file: file containing case records in tsv format
-    :param schema: list of SchemaFields representing desired BQ table schema
-    :param table_id: id of table to create
-    """
-    client = bigquery.Client()
-    job_config = bigquery.LoadJobConfig()
-    job_config.schema = schema
-    job_config.source_format = bigquery.SourceFormat.CSV
-    job_config.field_delimiter = '\t'
-    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-    job_config.skip_leading_rows = num_header_rows
-    job_config.null_marker = null_marker
-
-    gs_uri = build_working_gs_uri(bq_params, tsv_file)
-
-    try:
-        load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-
-        console_out(' - Inserting into {0}... ', (table_id,), end="")
-        await_insert_job(bq_params, client, table_id, load_job)
-    except TypeError as err:
-        has_fatal_error(err)
-
-
-def delete_bq_table(table_id):
-    """Permanently delete BQ table located by table_id.
-
-    :param table_id: table id in standard SQL format
-    """
-    client = bigquery.Client()
-    client.delete_table(table_id, not_found_ok=True)
+        print("Successfully copied table:")
+        print(f"src: {src_table}\n dest: {dest_table}\n")
 
 
 def exists_bq_table(table_id):
-    """Determine whether bq_table exists.
-
+    """
+    Determine whether bq table exists for given table_id.
     :param table_id: table id in standard SQL format
     :return: True if exists, False otherwise
     """
@@ -1047,30 +329,12 @@ def exists_bq_table(table_id):
     return True
 
 
-def load_table_from_query(bq_params, table_id, query):
-    """Create a new BQ table from the returned results of querying an existing BQ table.
-
-    :param bq_params: bq params from yaml config file
-    :param table_id: table id in standard SQL format
-    :param query: query which returns data to populate a new BQ table.
-    """
-    client = bigquery.Client()
-    job_config = bigquery.QueryJobConfig(destination=table_id)
-    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
-
-    try:
-        query_job = client.query(query, job_config=job_config)
-        console_out(' - Inserting into {0}... ', (table_id,), end="")
-        await_insert_job(bq_params, client, table_id, query_job)
-    except TypeError as err:
-        has_fatal_error(err)
-
-
 def get_bq_table_obj(table_id):
-    """Get the bq table referenced by table_id.
+    """
 
+    Get the bq table object referenced by table_id.
     :param table_id: table id in standard SQL format
-    :return: bq Table object
+    :return: BigQuery Table object
     """
     if not exists_bq_table(table_id):
         return None
@@ -1079,23 +343,181 @@ def get_bq_table_obj(table_id):
     return client.get_table(table_id)
 
 
-def get_query_results(query):
-    """Returns BigQuery query result object.
-
-    :param query: query string
-    :return: result object
+def list_bq_tables(dataset_id, release=None):
     """
+    Generate list of all tables which exist for given dataset id.
+    :param dataset_id: BigQuery dataset_id
+    :param release: API release version
+    :return: list of bq tables for dataset
+    """
+    table_list = list()
     client = bigquery.Client()
-    query_job = client.query(query)
-    return query_job.result()
+    tables = client.list_tables(dataset_id)
+
+    for table in tables:
+        if not release or release in table.table_id:
+            table_list.append(table.table_id)
+
+    return table_list
+
+
+def change_status_to_archived(archived_table_id):
+    """
+    Change the status label of archived_table_id to 'archived.'
+    :param archived_table_id: id for table that is being archived
+    """
+    try:
+        client = bigquery.Client()
+        prev_table = client.get_table(archived_table_id)
+        prev_table.labels['status'] = 'archived'
+        client.update_table(prev_table, ["labels"])
+        assert prev_table.labels['status'] == 'archived'
+    except NotFound:
+        print("Couldn't find a table to archive. Might be that this is the first table release?")
+
+
+def publish_new_version_tables(bq_params, previous_table_id, current_table_id):
+    """
+    todo
+    :param bq_params:
+    :param previous_table_id:
+    :param current_table_id:
+    :return:
+    """
+    if not previous_table_id:
+        return True
+
+    compare_result = bq_harness_with_result(sql=compare_two_tables_sql(previous_table_id, current_table_id),
+                                            do_batch=bq_params['DO_BATCH'],
+                                            verbose=False)
+    if not compare_result:
+        return True
+
+    for row in compare_result:
+        if row:
+            return True
+        else:
+            return False
+
+    return False
+
+
+def input_with_timeout(seconds):
+    input_poll = select.poll()
+    input_poll.register(sys.stdin.fileno(), select.POLLIN)
+
+    while True:
+        events = input_poll.poll(seconds * 1000)  # milliseconds
+
+        if not events:
+            return None
+
+        for fileno, event in events:
+            if fileno == sys.stdin.fileno():
+                return input()
+
+
+def test_table_for_version_changes(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
+                                   find_most_recent_published_table_id, id_keys="case_id"):
+
+    current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
+                                                                 source_table_id=source_table_id,
+                                                                 public_dataset=public_dataset)
+
+    previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
+
+    publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
+
+    if exists_bq_table(source_table_id):
+        print(f"""
+            Current source table: {source_table_id}
+            Last published table: {previous_versioned_table_id}
+            Publish new version? {publish_new_version}
+            """)
+
+        if publish_new_version:
+            print(f"""
+                Tables to publish:
+                - {versioned_table_id}
+                - {current_table_id}
+                """)
+
+            output_compare_tables_report(api_params, bq_params,
+                                         get_publish_table_ids=get_publish_table_ids,
+                                         find_most_recent_published_table_id=find_most_recent_published_table_id,
+                                         source_table_id=source_table_id,
+                                         public_dataset=public_dataset,
+                                         id_keys=id_keys)
+
+
+def publish_table(api_params, bq_params, public_dataset, source_table_id, get_publish_table_ids,
+                  find_most_recent_published_table_id, overwrite=False, test_mode=True, id_keys="case_id"):
+    """
+    Publish production BigQuery tables using source_table_id:
+        - create current/versioned table ids
+        - publish tables
+        - update friendly name for versioned table
+        - change last version tables' status labels to archived
+    :param id_keys:
+    :param api_params: api params from yaml config
+    :param bq_params: bq params from yaml config
+    :param public_dataset: publish dataset location
+    :param source_table_id: source (dev) table id
+    :param overwrite: If True, replace existing BigQuery table; defaults to False
+    :param get_publish_table_ids: function that returns public table ids based on the source table id
+    :param find_most_recent_published_table_id: function that returns previous versioned table id, if any
+    :param test_mode: outputs the source table id, versioned and current published table ids,
+           last published table id (if any) and whether the dataset would be published if test_mode=False
+    """
+
+    current_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params,
+                                                                 source_table_id=source_table_id,
+                                                                 public_dataset=public_dataset)
+
+    previous_versioned_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
+
+    publish_new_version = publish_new_version_tables(bq_params, previous_versioned_table_id, source_table_id)
+
+    if exists_bq_table(source_table_id):
+        if publish_new_version:
+            delay = 5
+
+            print(f"""\n\nPublishing the following tables:""")
+            print(f"\t - {versioned_table_id}\n\t - {current_table_id}")
+            print(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+            response = input_with_timeout(seconds=delay)
+
+            response = str(response).lower()
+            print()
+
+            if response == 'n':
+                exit("Publish aborted; exiting.")
+
+            print(f"Publishing {versioned_table_id}")
+            copy_bq_table(bq_params, source_table_id, versioned_table_id, overwrite)
+    
+            print(f"Publishing {current_table_id}")
+            copy_bq_table(bq_params, source_table_id, current_table_id, overwrite)
+    
+            print(f"Updating friendly name for {versioned_table_id}")
+            is_gdc = True if api_params['DATA_SOURCE'] == 'gdc' else False
+            update_friendly_name(api_params, table_id=versioned_table_id, is_gdc=is_gdc)
+
+            if previous_versioned_table_id:
+                print(f"Archiving {previous_versioned_table_id}")
+                change_status_to_archived(previous_versioned_table_id)
+                print()
+
+        else:
+            print(f"{source_table_id} not published, no changes detected")
 
 
 def await_insert_job(bq_params, client, table_id, bq_job):
-    """Monitor the completion of BQ Job which does produce some result
-    (usually data insertion).
-
+    """
+    Monitor for completion of BigQuery Load or Query Job that produces some result (generally data insertion).
     :param bq_params: bq params from yaml config file
-    :param client: BQ api object, allowing for execution of bq lib functions
+    :param client: BigQuery api object, allowing for execution of bq lib functions
     :param table_id: table id in standard SQL format
     :param bq_job: A Job object, responsible for executing bq function calls
     """
@@ -1107,7 +529,7 @@ def await_insert_job(bq_params, client, table_id, bq_job):
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            console_out('\tcurrent job state: {0}...\t', (bq_job.state,), end='')
+            print(f'\tcurrent job state: {bq_job.state}...\t', end='')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -1119,18 +541,22 @@ def await_insert_job(bq_params, client, table_id, bq_job):
 
     if bq_job.error_result is not None:
         has_fatal_error(
-            'While running BQ job: {}\n{}'.format(bq_job.error_result, bq_job.errors),
+            f'While running BigQuery job: {bq_job.error_result}\n{bq_job.errors}',
             ValueError)
 
     table = client.get_table(table_id)
-    console_out(" done. {0} rows inserted.\n", (table.num_rows,))
+
+    if table.num_rows == 0:
+        has_fatal_error(f"[ERROR] Insert job for {table_id} inserted 0 rows. Exiting.")
+
+    print(f" done. {table.num_rows} rows inserted.")
 
 
 def await_job(bq_params, client, bq_job):
-    """Monitor the completion of BQ Job which doesn't return a result.
-
+    """
+    Monitor the completion of BigQuery Job which doesn't return a result.
     :param bq_params: bq params from yaml config file
-    :param client: BQ api object, allowing for execution of bq lib functions
+    :param client: BigQuery api object, allowing for execution of bq lib functions
     :param bq_job: A Job object, responsible for executing bq function calls
     """
     location = bq_params['LOCATION']
@@ -1149,398 +575,1194 @@ def await_job(bq_params, client, bq_job):
     if bq_job.error_result is not None:
         err_res = bq_job.error_result
         errs = bq_job.errors
-        has_fatal_error("While running BQ job: {}\n{}".format(err_res, errs))
+        has_fatal_error(f"While running BigQuery job: {err_res}\n{errs}")
 
 
-# todo not using one of the return vars
-def from_schema_file_to_obj(bq_params, filename):
+def construct_table_name(api_params, prefix, suffix=None, include_release=True, release=None):
     """
-    Open table schema file and convert to python dict, in order to pass the data to
-    BigQuery for table insertion.
+    Generate BigQuery-safe table name using supplied parameters.
+    :param api_params: API params supplied in yaml config
+    :param prefix: table prefix or the base table's root name
+    :param suffix: table suffix, optionally supplying another word to append to the prefix
+    :param include_release: If False, excludes RELEASE value set in yaml config; defaults to True
+    :param release: Optionally supply a custom release (useful for external mapping tables, etc)
+    :return: Table name, formatted to be compatible with BigQuery's naming limitations (only: A-Z, a-z, 0-9, _)
+    """
+    table_name = prefix
 
+    if suffix:
+        table_name += '_' + suffix
+
+    if release:
+        table_name += '_' + release
+    elif include_release:
+        table_name += '_' + api_params['RELEASE']
+
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
+
+
+def construct_table_name_from_list(str_list):
+    """
+    Construct a table name (str) from list<str>.
+    :param str_list: a list<str> of table name segments
+    :return: composed table name string
+    """
+    table_name = "_".join(str_list)
+
+    # replace '.' with '_' so that the name is valid ('.' chars not allowed -- issue with BEATAML1.0, for instance)
+    return re.sub('[^0-9a-zA-Z_]+', '_', table_name)
+
+
+def construct_table_id(project, dataset, table_name):
+    """
+    Build table_id in {project}.{dataset}.{table} format.
+    :param project: BigQuery project id
+    :param dataset: BigQuery dataset id
+    :param table_name: BigQuery table name
+    :return: joined table_id in BigQuery format
+    """
+    return f'{project}.{dataset}.{table_name}'
+
+
+def create_and_load_table_from_jsonl(bq_params, jsonl_file, table_id, schema=None):
+    """
+    Create new BigQuery table, populating rows using contents of jsonl file.
+    :param bq_params: bq param obj from yaml config
+    :param jsonl_file: file containing case records in jsonl format
+    :param schema: list of SchemaFields representing desired BigQuery table schema
+    :param table_id: table_id to be created
+    """
+    client = bigquery.Client()
+    job_config = bigquery.LoadJobConfig()
+
+    if schema:
+        job_config.schema = schema
+    else:
+        print(f" - No schema supplied for {table_id}, using schema autodetect.")
+        job_config.autodetect = True
+
+    job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    load_create_table_job(bq_params, jsonl_file, client, table_id, job_config)
+
+
+def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_rows, schema=None, null_marker=None):
+    """
+    Create new BigQuery table, populating rows using contents of tsv file.
+    :param bq_params: bq param obj from yaml config
+    :param tsv_file: file containing records in tsv format
+    :param schema: list of SchemaFields representing desired BigQuery table schema
+    :param table_id: table_id to be created
+    :param num_header_rows: int value representing number of header rows in file (skipped during processing)
+    :param null_marker: null_marker character, optional (defaults to empty string for tsv/csv in bigquery)
+    """
+    client = bigquery.Client()
+    job_config = bigquery.LoadJobConfig()
+    job_config.schema = schema
+    job_config.skip_leading_rows = num_header_rows
+    job_config.source_format = bigquery.SourceFormat.CSV
+    job_config.field_delimiter = '\t'
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    if null_marker:
+        job_config.null_marker = null_marker
+
+    load_create_table_job(bq_params, tsv_file, client, table_id, job_config)
+
+
+def get_query_results(query):
+    """
+    Return BigQuery query result (RowIterator) object.
+    :param query: query string
+    :return: query result object (RowIterator)
+    """
+    try:
+        client = bigquery.Client()
+        query_job = client.query(query)
+        return query_job.result()
+    except BadRequest:
+        return None
+
+
+def load_table_from_query(bq_params, table_id, query):
+    """
+    Create new BigQuery table using result output of BigQuery SQL query.
+    :param bq_params: bq params from yaml config file
+    :param table_id: table id in standard SQL format
+    :param query: data selection query, used to populate a new BigQuery table
+    """
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig(destination=table_id)
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+
+    try:
+        query_job = client.query(query, job_config=job_config)
+        print(f' - Inserting into {table_id}... ', end="")
+        await_insert_job(bq_params, client, table_id, query_job)
+    except TypeError as err:
+        has_fatal_error(err)
+
+
+def create_view_from_query(view_id, view_query):
+    """
+    Create BigQuery view using a SQL query.
+    :param view_id: view_id (same structure as a BigQuery table id)
+    :param view_query: query from which to construct the view
+    """
+    client = bigquery.Client()
+    view = bigquery.Table(view_id)
+
+    if exists_bq_table(view_id):
+        existing_table = client.get_table(view_id)
+
+        if existing_table.table_type == 'VIEW':
+            client.delete_table(view_id)
+        else:
+            has_fatal_error(f"{view_id} already exists and is type ({view.table_type}). Cannot create view, exiting.")
+
+    view.view_query = view_query
+    view = client.create_table(view)
+
+    if not exists_bq_table(view_id):
+        has_fatal_error(f"View {view_id} not created, exiting.")
+    else:
+        print(f"Created {view.table_type}: {str(view.reference)}")
+
+
+def load_bq_schema_from_json(bq_params, filename):
+    """
+    Open table schema file from BQEcosystem Repo and convert to python dict, in preparation for use in table creation.
     :param bq_params: bq param object from yaml config
     :param filename: name of the schema file
-    :return: schema list, table metadata dict
+    :return: tuple(<list of schema fields>, <dict containing table metadata>)
     """
 
-    if "BQ_REPO" in bq_params:
-        repo = bq_params['BQ_REPO']
-    else:
-        # may not need this, but want to make sure we're not breaking something
-        repo = 'BQEcosystem'
-
-    fp = get_filepath(repo + "/" + bq_params['SCHEMA_DIR'], filename)
+    fp = get_filepath(bq_params['BQ_REPO'] + "/" + bq_params['SCHEMA_DIR'], filename)
 
     if not os.path.exists(fp):
-        return None, None
+        has_fatal_error("BQEcosystem schema path not found", FileNotFoundError)
 
     with open(fp, 'r') as schema_file:
         schema_file = json.load(schema_file)
 
-        schema = schema_file['schema']['fields']
-
-        table_metadata = {
-            'description': schema_file['description'],
-            'friendlyName': schema_file['friendlyName'],
-            'labels': schema_file['labels']
-        }
-
-        return schema, table_metadata
+        if 'schema' not in schema_file:
+            has_fatal_error("['schema'] not found in schema json file")
+        elif 'fields' not in schema_file['schema']:
+            has_fatal_error("['schema']['fields'] not found in schema json file")
+        elif not schema_file['schema']['fields']:
+            has_fatal_error("['schema']['fields'] contains no key:value pairs")
+        return schema_file['schema']['fields']
 
 
-def to_bq_schema_obj(schema_field_dict):
-    """Convert schema entry dict to SchemaField object.
-
-    :param schema_field_dict: dict containing schema field keys
-    (name, field_type, mode, fields, description)
-    :return: bigquery.SchemaField object
+def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     """
-    return bigquery.SchemaField.from_api_repr(schema_field_dict)
-
-
-def generate_bq_schema(schema_dict, record_type, expand_fields_list):
-    """Generates BigQuery SchemaField list for insertion of case records.
-
-    :param schema_dict: dict of schema fields
-    :param record_type: type of field/field group
-    :param expand_fields_list: list of field groups included in API request
-    :return: list of SchemaFields for case record insertion
+    Generate BigQuery LoadJob, for creating and populating table.
+    :param bq_params: bq param obj from yaml config
+    :param data_file: file containing case records
+    :param client: BigQuery Client obj
+    :param table_id: table_id to be created
+    :param job_config: LoadJobConfig object
     """
-    # add fields to a list in order to generate a dict representing nested fields
-    field_group_names = [record_type]
-    nested_depth = 0
+    gs_uri = f"gs://{bq_params['WORKING_BUCKET']}/{bq_params['WORKING_BUCKET_DIR']}/{data_file}"
 
-    for field_group in expand_fields_list.split(','):
-        nested_field_name = record_type + '.' + field_group
-        nested_depth = max(nested_depth, len(nested_field_name.split('.')))
-        field_group_names.append(nested_field_name)
-
-    record_lists_dict = {field_grp_name: [] for field_grp_name in field_group_names}
-    # add field to correct field grouping list based on full field name
-    for field in schema_dict:
-        # record_lists_dict key is equal to the parent field components of
-        # full field name
-        record_lists_dict[get_field_group(field)].append(schema_dict[field])
-
-    temp_schema_field_dict = {}
-
-    while nested_depth >= 1:
-        for field_group_name in record_lists_dict:
-            split_group_name = field_group_name.split('.')
-
-            # builds from max depth inward to avoid iterating through entire schema obj
-            # in order to append child field groups. Skip any shallower field groups.
-            if len(split_group_name) != nested_depth:
-                continue
-
-            schema_field_sublist = []
-
-            for record in record_lists_dict[field_group_name]:
-                schema_field_sublist.append(
-                    bigquery.SchemaField(name=record['name'],
-                                         field_type=record['type'],
-                                         mode='NULLABLE',
-                                         description=record['description'],
-                                         fields=()))
-
-            parent_name = get_field_group(field_group_name)
-
-            if field_group_name in temp_schema_field_dict:
-                schema_field_sublist += temp_schema_field_dict[field_group_name]
-
-            if parent_name:
-                if parent_name not in temp_schema_field_dict:
-                    temp_schema_field_dict[parent_name] = list()
-
-                temp_schema_field_dict[parent_name].append(
-                    bigquery.SchemaField(name=get_field_name(field_group_name),
-                                         field_type='RECORD',
-                                         mode='REPEATED',
-                                         description='',
-                                         fields=tuple(schema_field_sublist)))
-            else:
-                if nested_depth > 1:
-                    has_fatal_error("Empty parent_name at level {}"
-                                    .format(nested_depth), ValueError)
-                return schema_field_sublist
-
-        nested_depth -= 1
-    return None
-
-
-def update_table_metadata(table_id, metadata):
-    """Modify an existing BQ table with additional metadata.
-
-    :param table_id: table id in standard SQL format
-    :param metadata: metadata containing new field and table attributes
-    """
-    client = bigquery.Client()
-    table = get_bq_table_obj(table_id)
-
-    table.labels = metadata['labels']
-    table.friendly_name = metadata['friendlyName']
-    table.description = metadata['description']
-    client.update_table(table, ["labels", "friendly_name", "description"])
-
-    assert table.labels == metadata['labels']
-    assert table.friendly_name == metadata['friendlyName']
-    assert table.description == metadata['description']
-
-
-def update_friendly_name(bq_params, table_id, custom_name=None, is_gdc=True):
-    """Modify a table's friendly name metadata.
-
-    :param bq_params: bq param object from yaml config
-    :param table_id: table id in standard SQL format
-    :param custom_name: By default, appends "'REL' + bq_params['RELEASE'] + ' VERSIONED'"
-    :param is_gdc: If this is GDC, we add REL before the version
-    onto the existing friendly name. If custom_name is specified, this behavior is
-    overridden, and the table's friendly name is replaced entirely.
-    """
-    client = bigquery.Client()
-    table = get_bq_table_obj(table_id)
-
-    if custom_name:
-        new_name = custom_name
-    else:
-        if is_gdc:
-            release_str = ' REL' + bq_params['RELEASE']
-        else:
-            release_str = ' ' + bq_params['RELEASE']
-
-        new_name = table.friendly_name + release_str + ' VERSIONED'
-
-    table.friendly_name = new_name
-    client.update_table(table, ["friendly_name"])
-
-    assert table.friendly_name == new_name
-
-
-def update_schema(table_id, new_descriptions):
-    """Modify an existing table's field descriptions.
-
-    :param table_id: table id in standard SQL format
-    :param new_descriptions: dict of field names and new description strings
-    """
-    client = bigquery.Client()
-    table = get_bq_table_obj(table_id)
-
-    new_schema = []
-
-    for schema_field in table.schema:
-        field = schema_field.to_api_repr()
-
-        if field['name'] in new_descriptions.keys():
-            name = field['name']
-            field['description'] = new_descriptions[name]
-        elif field['description'] == '':
-            console_out("Still no description for field: {0}", (field['name']))
-
-        mod_field = bigquery.SchemaField.from_api_repr(field)
-        new_schema.append(mod_field)
-
-    table.schema = new_schema
-
-    client.update_table(table, ['schema'])
-
-
-#       (NON-BQ) GOOGLE CLOUD API HELPERS
-
-
-def upload_file_to_bucket(project, bucket, blob_dir, fp):
-    """
-    todo
-    :param project:
-    :param bucket:
-    :param blob_dir:
-    :param fp:
-    :return:
-    """
     try:
-        client = storage.Client(project=project)
-        bucket = client.get_bucket(bucket)
-        blob = bucket.blob(blob_dir)
+        load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        blob.upload_from_file(fp)
-    except exceptions.GoogleCloudError as err:
-        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
+        print(f' - Inserting into {table_id}... ', end="")
+        await_insert_job(bq_params, client, table_id, load_job)
+    except TypeError as err:
+        has_fatal_error(err)
+
+#   GOOGLE CLOUD STORAGE UTILS
 
 
 def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
-    """Uploads file to a google storage bucket (location specified in yaml config).
-
+    """
+    Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
-    :param delete_local: todo
+    :param delete_local: delete scratch file created on VM
     """
     if not os.path.exists(scratch_fp):
-        has_fatal_error("Invalid filepath: {}".format(scratch_fp), FileNotFoundError)
+        has_fatal_error(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
 
     try:
         storage_client = storage.Client(project="")
 
         jsonl_output_file = scratch_fp.split('/')[-1]
-        blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], jsonl_output_file)
-        bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
+        bucket_name = bq_params['WORKING_BUCKET']
+        bucket = storage_client.bucket(bucket_name)
+
+        blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{jsonl_output_file}"
         blob = bucket.blob(blob_name)
-
         blob.upload_from_filename(scratch_fp)
+
+        print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
+
+        if delete_local:
+            os.remove(scratch_fp)
+            print("Local file deleted.")
+        else:
+            print(f"Local file not deleted.")
+
     except exceptions.GoogleCloudError as err:
-        has_fatal_error("Failed to upload to bucket.\n{}".format(err))
-
-    if delete_local and os.path.exists(scratch_fp):
-        os.remove(scratch_fp)
-        print("Successfully uploaded file to {}/{}. Local file deleted.\n".
-              format(bq_params['WORKING_BUCKET'], blob_name))
-    else:
-        print("Successfully uploaded file to {}/{}. Local file not deleted (path: {}).\n".
-              format(bq_params['WORKING_BUCKET'], blob_name, scratch_fp))
+        has_fatal_error(f"Failed to upload to bucket.\n{err}")
+    except FileNotFoundError as err:
+        has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename):
+def download_from_bucket(bq_params, filename, dir_path=None):
+    """
+    Download file from Google storage bucket onto VM.
+    :param bq_params: BigQuery params
+    :param filename: Name of file to download
+    """
     storage_client = storage.Client(project="")
-    blob_name = "{}/{}".format(bq_params['WORKING_BUCKET_DIR'], filename)
+    blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    scratch_fp = get_scratch_fp(bq_params, filename)
-    with open(scratch_fp, 'wb') as file_obj:
+    if not dir_path:
+        fp = get_scratch_fp(bq_params, filename)
+    else:
+        fp = (f"{dir_path}/{filename}")
+    with open(fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 
 
-#       ANALYZE DATA
+#   I/O - FILESYSTEM HELPERS
+
+
+def get_filepath(dir_path, filename=None):
+    """
+    Get file path for location on VM; expands compatibly for local or VM scripts.
+    :param dir_path: directory portion of the filepath (starting at user home dir)
+    :param filename: name of the file
+    :return: full path to file
+    """
+    join_list = [os.path.expanduser('~'), dir_path]
+
+    if filename:
+        join_list.append(filename)
+
+    return '/'.join(join_list)
+
+
+def get_scratch_fp(params, filename):
+    """
+    Construct filepath for VM output file.
+    :param filename: name of the file
+    :param params: bq param object from yaml config
+    :return: output filepath for VM
+    """
+    return get_filepath(params['SCRATCH_DIR'], filename)
+
+
+def json_datetime_to_str_converter(obj):
+    """
+    Convert python datetime object to string (necessary for json serialization).
+    :param obj: python datetime obj
+    :return: datetime obj cast as str type
+    """
+    if isinstance(obj, datetime.datetime):
+        return str(obj)
+    if isinstance(obj, datetime.date):
+        return str(obj)
+    if isinstance(obj, datetime.time):
+        return str(obj)
+
+
+def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
+    """
+    Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
+    :param jsonl_fp: local VM jsonl filepath
+    :param json_obj_list: list of dicts representing json objects
+    :param mode: 'a' if appending to a file that's being built iteratively;
+                 'w' if file data is written in a single call to the function
+                 (in which case any existing data is overwritten)
+    """
+    with open(jsonl_fp, mode) as file_obj:
+        for line in json_obj_list:
+            json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
+            file_obj.write('\n')
+
+
+def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, local_filepath=None):
+    """
+    Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param prefix: string representing base file name (release string is appended to generate filename)
+    :param record_list: list of record objects to insert into jsonl file
+    """
+    if not local_filepath:
+        jsonl_filename = get_filename(api_params,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+        local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+
+    write_list_to_jsonl(local_filepath, record_list)
+    upload_to_bucket(bq_params, local_filepath, delete_local=True)
+
+
+def write_list_to_tsv(fp, tsv_list):
+    """
+    todo
+    :param fp:
+    :param tsv_list:
+    :return:
+    """
+    with open(fp, "w") as tsv_file:
+        for row in tsv_list:
+            tsv_row = create_tsv_row(row)
+            tsv_file.write(tsv_row)
+
+    print(f"{len(tsv_list)} rows written to {fp}!")
+
+
+def create_tsv_row(row_list, null_marker="None"):
+    """
+    Convert list of row values into a tab-delimited string.
+    :param row_list: list of row values for conversion
+    :param null_marker: Value to write to string for nulls
+    :return: tab-delimited string representation of row_list
+    """
+    print_str = ''
+    last_idx = len(row_list) - 1
+
+    for i, column in enumerate(row_list):
+        if not column:
+            column = null_marker
+
+        delimiter = "\t" if i < last_idx else "\n"
+        print_str += column + delimiter
+
+    return print_str
+
+
+def get_filename(api_params, file_extension, prefix, suffix=None, include_release=True, release=None):
+    """
+    Get filename based on common table-naming (see construct_table_name).
+    :param api_params: API params from YAML config
+    :param file_extension: File extension, e.g. jsonl or tsv
+    :param prefix: file name prefix
+    :param suffix: file name suffix
+    :param include_release: if True, includes release in file name; defaults to True
+    :param release: data release version
+    :return: file name
+    """
+    filename = construct_table_name(api_params, prefix, suffix, include_release, release=release)
+    return f"{filename}.{file_extension}"
+
+
+#   SCHEMA UTILS
+
+
+def normalize_value(value):
+    """
+    If value is variation of null or boolean value, converts to single form (None, True, False);
+    otherwise returns original value.
+    :param value: value to convert
+    :return: normalized (or original) value
+    """
+    if isinstance(value, str):
+        value = value.strip()
+
+    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported'):
+        return None
+    elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
+        return "False"
+    elif value in ('True', 'true', 'TRUE', 'YES', 'yes', 'Yes'):
+        return "True"
+
+    return value
 
 
 def check_value_type(value):
-    """Checks value for type (possibilities are string, float and integers).
-
-    :param value: value to type check
-    :return: type in BQ column format
     """
-    # if has leading zero, then should be considered a string, even if only
-    # composed of digits
-    val_is_none = value in ('NA', 'null', 'None') or not value
-    val_is_bool = value in ('True', 'False', True, False)
-    val_is_decimal = value.startswith('0.')
-    val_is_id = value.startswith('0') and not val_is_decimal and len(value) > 1
+    Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
+        - datetime formats: DATE, TIME, TIMESTAMP
+        - number formats: INT64, FLOAT64, NUMERIC
+        - misc formats: STRING, BOOL, ARRAY, RECORD
+    :param value: value on which to perform data type analysis
+    :return: data type in BigQuery Standard SQL format
+    """
+    if isinstance(value, bool):
+        return "BOOL"
+    if isinstance(value, int):
+        return "INT64"
+    if isinstance(value, float):
+        return "FLOAT64"
+    if value != value:  # NaN case
+        return "FLOAT64"
+    if isinstance(value, list):
+        return "ARRAY"
+    if isinstance(value, dict):
+        return "RECORD"
+    if not value:
+        return None
+
+    # A sequence of numbers starting with a 0 represents a string id,
+    # but int() check will pass and data loss would occur.
+    if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
+        return "STRING"
+
+    # check to see if value is numeric, float or int;
+    # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
+    if '.' in value and ':' not in value and "E+" not in value and "E-" not in value:
+        try:
+            int(value)
+            return "INT64"
+        except ValueError:
+            try:
+                float(value)
+                decimal_val = int(value.split('.')[1])
+
+                # if digits right of decimal place are all zero, float can safely be cast as an int
+                if not decimal_val:
+                    return "INT64"
+                return "FLOAT64"
+            except ValueError:
+                return "STRING"
+
+    # numeric values are numbers with special encoding, like an exponent or sqrt symbol
+    elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
+        return "NUMERIC"
+
+    """
+    BIGQUERY'S CANONICAL DATE/TIME FORMATS:
+    (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
+    """
+
+    # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
+    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-(0[1-9]|[1-2][0-9]|[3][0-1]|[1-9])"
+    date_pattern = re.compile(date_re_str)
+    if re.fullmatch(date_pattern, value):
+        return "DATE"
+
+    # Check for BigQuery TIME format: [H]H:[M]M:[S]S[.DDDDDD]
+    time_re_str = r"([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
+    time_pattern = re.compile(time_re_str)
+    if re.fullmatch(time_pattern, value):
+        return "TIME"
+
+    # Check for BigQuery TIMESTAMP format: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+    timestamp_re_str = date_re_str + r'( |T)' + time_re_str + r"([ \-:A-Za-z0-9]*)"
+    timestamp_pattern = re.compile(timestamp_re_str)
+    if re.fullmatch(timestamp_pattern, value):
+        return "TIMESTAMP"
 
     try:
-        float(value)
-        val_is_num = True
-        # Changing this because google won't accept loss of precision in the
-        # data insert job
-        # (won't cast 1.0 as 1)
-        val_is_float = not value.isdigit()
-        # If this is used, a field with only trivial floats will be cast as
-        # Integer. However, BQ errors due to loss
-        # of precision.
-        # val_is_float = True if int(float(value)) != float(value) else False
+        util.strtobool(value)
+        return "BOOL"
     except ValueError:
-        val_is_num = False
-        val_is_float = False
+        pass
 
-    if val_is_none:
-        return None
-    if val_is_id:
-        return 'STRING'
-    if val_is_decimal or val_is_float:
-        return 'FLOAT'
-    if val_is_num:
-        return 'INTEGER'
-    if val_is_bool:
-        return 'BOOLEAN'
-
-    return 'STRING'
+    # Final check for int and float values. This will catch a simple integers
+    # or edge case float values, like infinity, scientific notation, etc.
+    try:
+        int(value)
+        return "INT64"
+    except ValueError:
+        try:
+            float(value)
+            return "FLOAT64"
+        except ValueError:
+            return "STRING"
 
 
-def collect_values(fields, field, parent, field_grp_prefix):
-    """Recursively inserts sets of values for a given field into return dict (
-    used to infer field data type).
-
-    :param fields: A dict of key:value pairs -- {field_name: set(field_values)}
+def resolve_type_conflict(field, types_set):
+    """
+    Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
+    BigQuery's implicit conversion behavior.
+    See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
+    :param types_set: Set of BigQuery data types in string format
     :param field: field name
-    :param parent: dict containing field and it's values
-    :param field_grp_prefix: string representation of current location in field hierarchy
-    :return: field_dict containing field names and a set of its values
+    :return: BigQuery data type with highest precedence
     """
-    # If the value of parent_dict[key] is a list at this level, and a dict at the next
-    # (or a dict at this level, as seen in second conditional statement),
-    # iterate over each list element's dictionary entries. (Sometimes lists are composed
-    # of strings rather than dicts, and those are later converted to strings.)
-    field_name = field_grp_prefix + field
-    new_prefix = field_name + '.'
 
-    if isinstance(parent[field], list) \
-            and len(parent[field]) > 0 and isinstance(parent[field][0], dict):
-        for dict_item in parent[field]:
-            for dict_key in dict_item:
-                fields = collect_values(fields, dict_key, dict_item, new_prefix)
-    elif isinstance(parent[field], dict):
-        for dict_key in parent[field]:
-            fields = collect_values(fields, dict_key, parent[field], new_prefix)
-    else:
-        if field_name not in fields:
-            fields[field_name] = set()
+    datetime_types = {"TIMESTAMP", "DATE", "TIME"}
+    number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
-        # This type of list can be converted to a comma-separated value string
-        if isinstance(parent[field], list):
-            value = ", ".join(parent[field])
+    # fix to make even proper INT64 ids into STRING ids
+    if "_id" in field:
+        return "STRING"
+
+    if len(types_set) == 0:
+        # fields with no type values default to string--this would still be safe for skip-row analysis of a data file
+        return "STRING"
+    if len(types_set) == 1:
+        # only one data type for field, return it
+        return list(types_set)[0]
+
+    # From here, the field's types_set contains at least two values; select based on BigQuery's implicit conversion
+    # rules; when in doubt, declare a string to avoid risk of data loss
+
+    if "ARRAY" in types_set or "RECORD" in types_set:
+        # these types cannot be implicitly converted to any other, exit
+        print(f"Invalid datatype combination for {field}: {types_set}")
+        has_fatal_error("", TypeError)
+
+    if "STRING" in types_set:
+        # if it's partly classified as a string, it has to be a string--other data type values are converted
+        return "STRING"
+
+    if len(types_set) == 2 and "INT64" in types_set and "BOOL" in types_set:
+        # 1 or 0 are labelled bool by type checker; any other ints are labelled as ints.
+        # If both 1 and 0 occur, AND there are traditional Boolean values in the column, then it'll be declared a BOOL;
+        # otherwise, it should be INT64
+        return "INT64"
+
+    has_datetime_type = False
+
+    # are any of the data types datetime types -- {"TIMESTAMP", "DATE", "TIME"}?
+    for datetime_type in datetime_types:
+        if datetime_type in types_set:
+            has_datetime_type = True
+            break
+
+    has_number_type = False
+
+    # are any of the data types number types -- {"INT64", "FLOAT64", "NUMERIC"}?
+    for number_type in number_types:
+        if number_type in types_set:
+            has_number_type = True
+            break
+
+    # What, data source?! Okay, fine, be a string
+    if has_datetime_type and has_number_type:
+        # another weird edge case that really shouldn't happen
+        return "STRING"
+
+    # Implicitly convert to inclusive datetime format
+    if has_datetime_type:
+        if "TIME" in types_set:
+            # TIME cannot be implicitly converted to DATETIME
+            return "STRING"
+        # DATE and TIMESTAMP *can* be implicitly converted to DATETIME
+        return "DATETIME"
+
+    # Implicitly convert to inclusive number format
+    if has_number_type:
+        # only number types remain
+        # INT64 and NUMERIC can be implicitly converted to FLOAT64
+        # INT64 can be implicitly converted to NUMERIC
+        if "FLOAT64" in types_set:
+            return "FLOAT64"
+        elif "NUMERIC" in types_set:
+            return "NUMERIC"
+
+    # No BOOL, DATETIME combinations allowed, or whatever other randomness occurs--return STRING
+    return "STRING"
+
+
+def resolve_type_conflicts(types_dict):
+    """
+    Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
+    select the superseding type.)
+    :param types_dict: dict containing columns and all detected data types
+    :type types_dict: dict {str: set}
+    :return dict containing the column name and its BigQuery data type.
+    :rtype dict of {str: str}
+    """
+    type_dict = dict()
+
+    for field, types_set in types_dict.items():
+        type_dict[field] = resolve_type_conflict(field, types_set)
+
+    return type_dict
+
+
+def recursively_detect_object_structures(nested_obj):
+    """
+    Traverse a dict or list of objects, analyzing the structure. Order not guaranteed (if anything, it'll be
+    backwards)--Not for use with TSV data. Works for arbitrary nesting, even if object structure varies from record to
+    record; use for lists, dicts, or any combination therein.
+    If nested_obj is a list, function will traverse every record in order to find all possible fields.
+    :param nested_obj: object to traverse
+    :return data types dict--key is the field name, value is the set of BigQuery column data types returned
+    when analyzing data using check_value_type ({<field_name>: {<data_type_set>}})
+    """
+    # stores the dict of {fields: value types}
+    data_types_dict = dict()
+
+    def recursively_detect_object_structure(_obj, _data_types_dict):
+        """
+        Recursively explore a part of the supplied object. Traverses parent nodes, adding to data_types_dict
+        as repeated (RECORD) field objects. Adds child nodes parent's "fields" list.
+        :param _obj: object in current location of recursion
+        :param _data_types_dict: dict of fields and type sets
+        """
+        for k, v in _obj.items():
+            if isinstance(_obj[k], dict):
+                if k not in _data_types_dict:
+                    # this is a dict, so use dict to nest values
+                    _data_types_dict[k] = dict()
+
+                recursively_detect_object_structure(_obj[k], _data_types_dict[k])
+            elif isinstance(_obj[k], list) and len(_obj[k]) > 0 and isinstance(_obj[k][0], dict):
+                if k not in _data_types_dict:
+                    # this is a dict, so use dict to nest values
+                    _data_types_dict[k] = dict()
+
+                for _record in _obj[k]:
+                    recursively_detect_object_structure(_record, _data_types_dict[k])
+            elif not isinstance(_obj[k], list):
+                # create set of Data type values
+                if k not in _data_types_dict:
+                    _data_types_dict[k] = set()
+
+                _obj[k] = normalize_value(_obj[k])
+                val_type = check_value_type(_obj[k])
+
+                if val_type:
+                    _data_types_dict[k].add(val_type)
+
+    if isinstance(nested_obj, dict):
+        recursively_detect_object_structure(nested_obj, data_types_dict)
+    elif isinstance(nested_obj, list):
+        for record in nested_obj:
+            recursively_detect_object_structure(record, data_types_dict)
+
+    return data_types_dict
+
+
+def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format_obj, descriptions=None):
+    """
+    Parse dict of {<field>: {<data_types>}} representing data object's structure;
+    convert into dict representing a TableSchema object.
+    :param data_types_dict: dictionary represent dataset's structure, fields and data types
+    :param dataset_format_obj: dataset format obj
+    :param descriptions: (optional) dictionary of field: description string pairs for inclusion in schema definition
+    """
+    for k, v in data_types_dict.items():
+        if descriptions and k in descriptions:
+            description = descriptions[k]
         else:
-            value = parent[field]
+            description = ""
 
-        fields[field_name].add(value)
+        if isinstance(v, dict):
+            # parent node
+            schema_field = {
+                "name": k,
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": description,
+                "fields": list()
+            }
+            dataset_format_obj.append(schema_field)
 
-    return fields
+            convert_object_structure_dict_to_schema_dict(data_types_dict[k], schema_field['fields'])
+        else:
+            # v is a set
+            final_type = resolve_type_conflict(k, v)
+
+            # child (leaf) node
+            schema_field = {
+                "name": k,
+                "type": final_type,
+                "mode": "NULLABLE",
+                "description": description
+            }
+
+            dataset_format_obj.append(schema_field)
+
+    return dataset_format_obj
 
 
-def infer_data_types(flattened_json):
-    """Infer data type of fields based on values contained in dataset.
-
-    :param flattened_json: file containing dict of {field name: set of field values}
-    :return: dict of field names and inferred type (None if no data in value set)
+def create_schema_field_obj(schema_obj, fields=None):
     """
-    data_types = dict()
+    Output BigQuery SchemaField object.
+    :param schema_obj: dict with schema field values
+    :param fields: Optional, child SchemaFields for RECORD type column
+    :return: SchemaField object
+    """
+    if fields:
+        return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                           description=schema_obj['description'],
+                                           field_type=schema_obj['type'],
+                                           mode=schema_obj['mode'],
+                                           fields=fields)
+    else:
+        return bigquery.schema.SchemaField(name=schema_obj['name'],
+                                           description=schema_obj['description'],
+                                           field_type=schema_obj['type'],
+                                           mode=schema_obj['mode'])
 
-    for column in flattened_json:
-        data_types[column] = None
 
-        for value in flattened_json[column]:
-            if data_types[column] == 'STRING':
+def generate_bq_schema_field(schema_obj, schema_fields):
+    """
+    Convert schema field json dict object into SchemaField object.
+    :param schema_obj: direct ancestor of schema_fields
+    :param schema_fields: list of SchemaField objects
+    """
+    if not schema_obj:
+        return
+    elif schema_obj['type'] == 'RECORD':
+        child_schema_fields = list()
+
+        if not schema_obj['fields']:
+            has_fatal_error("Schema object has 'type': 'RECORD' but no 'fields' key.")
+
+        for child_obj in schema_obj['fields']:
+            generate_bq_schema_field(child_obj, child_schema_fields)
+
+        schema_field = create_schema_field_obj(schema_obj, child_schema_fields)
+    else:
+        schema_field = create_schema_field_obj(schema_obj)
+
+    schema_fields.append(schema_field)
+
+
+def generate_bq_schema_fields(schema_obj_list):
+    """
+    Convert list of schema fields into TableSchema object.
+    :param schema_obj_list: list of dicts representing BigQuery SchemaField objects
+    :returns list of BigQuery SchemaField objects (represents TableSchema object)
+    """
+    schema_fields_obj = list()
+
+    for schema_obj in schema_obj_list:
+        generate_bq_schema_field(schema_obj, schema_fields_obj)
+
+    return schema_fields_obj
+
+
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
+                              schema_filename=None, schema_dir=None):
+    """
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name:
+    :param release:
+    :param include_release:
+    :return:
+    """
+    if not schema_filename:
+        schema_filename = get_filename(api_params=api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
+
+    download_from_bucket(bq_params, filename=schema_filename, dir_path=schema_dir)
+
+    if not schema_dir:
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
+    else:
+        schema_fp = f"{schema_dir}/{schema_filename}"
+
+    with open(schema_fp, "r") as schema_json:
+        schema_obj = json.load(schema_json)
+        json_schema_obj_list = [field for field in schema_obj["fields"]]
+        schema = generate_bq_schema_fields(json_schema_obj_list)
+
+    return schema
+
+
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None,
+                               schema_fp=None, delete_local=True):
+    """
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name:
+    :param data_types_dict:
+    :param include_release:
+    :param release:
+    :return:
+    """
+    schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
+
+    schema_obj = {
+        "fields": schema_list
+    }
+
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
+
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, 'w') as schema_json_file:
+        json.dump(schema_obj, schema_json_file, indent=4)
+
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
+
+
+def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release=False,
+                                      schema_fp=None, delete_local=True):
+    """
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param record_list:
+    :param table_name:
+    :param include_release:
+    :return:
+    """
+    data_types_dict = recursively_detect_object_structures(record_list)
+
+    generate_and_upload_schema(api_params, bq_params,
+                               table_name=table_name,
+                               data_types_dict=data_types_dict,
+                               include_release=include_release,
+                               schema_fp=schema_fp,
+                               delete_local=delete_local)
+
+
+def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
+    """
+    Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
+        NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
+    :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
+    :type header_list: list
+    :param tsv_fp: Optional string filepath; provided if column names are being obtained directly from tsv header
+    :type tsv_fp: str
+    :param header_row_index: Optional header row index, if deriving column names from tsv file
+    :type header_row_index: int
+    :return list of columns with BQ-compatible names
+    :rtype list
+    """
+
+    if not header_list and not header_row_index and not isinstance(header_row_index, int):
+        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
+    if header_row_index and header_list:
+        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
+
+    column_list = list()
+
+    if header_list:
+        for column in header_list:
+            column = make_string_bq_friendly(column)
+            column_list.append(column)
+    else:
+        with open(tsv_fp, 'r') as tsv_file:
+            if header_row_index:
+                for index in range(header_row_index):
+                    tsv_file.readline()
+
+            column_row = tsv_file.readline()
+            columns = column_row.split('\t')
+
+            if len(columns) == 0:
+                has_fatal_error("No column name values supplied by header row index")
+
+            for column in columns:
+                column = make_string_bq_friendly(column)
+                column_list.append(column)
+
+    return column_list
+
+
+def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
+    """
+    Open tsv file and aggregate data types for each column.
+    :param tsv_fp: tsv dataset filepath used to analyze the data types
+    :type tsv_fp: str
+    :param column_headers: list of ordered column headers
+    :type column_headers: list
+    :param skip_rows: number of (header) rows to skip before starting analysis
+    :type skip_rows: int
+    :param sample_interval: sampling interval, used to skip rows in large datasets; defaults to checking every row
+        ex.: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return dict of column keys, with value sets representing all data types found for that column
+    :rtype dict {str: set}
+    """
+    data_types_dict = dict()
+
+    for column in column_headers:
+        data_types_dict[column] = set()
+
+    with open(tsv_fp, 'r') as tsv_file:
+        for i in range(skip_rows):
+            tsv_file.readline()
+
+        count = 0
+
+        while True:
+            row = tsv_file.readline()
+
+            if not row:
                 break
 
-            # adding this change because organoid submitter_ids look like
-            # ints, but they should be str for uniformity
-            if column[-2:] == 'id':
-                data_types[column] = 'STRING'
-                break
+            if count % sample_interval == 0:
+                row_list = row.split('\t')
 
-            val_type = check_value_type(str(value))
+                for idx, value in enumerate(row_list):
+                    value = value.strip()
+                    value_type = check_value_type(value)
+                    data_types_dict[column_headers[idx]].add(value_type)
 
-            if not val_type:
-                continue
-            if val_type in ('FLOAT', 'STRING') or (
-                    val_type in ('INTEGER', 'BOOLEAN') and not data_types[column]):
-                data_types[column] = val_type
+            count += 1
 
-    return data_types
+    return data_types_dict
 
 
-def get_sorted_fg_depths(record_counts, reverse=False):
-    """Returns a sorted dict of field groups: depths.
-
-    :param record_counts: dict containing field groups and associated record counts
-    :param reverse: if True, sort in DESC order, otherwise sort in ASC order
-    :return: tuples composed of field group names and record counts
+def create_schema_object(column_headers, data_types_dict):
     """
-    table_depths = {table: len(table.split('.')) for table in record_counts}
+    Create BigQuery SchemaField object representation.
+    :param column_headers: list of column names
+    :type column_headers: list
+    :param data_types_dict: dictionary of column names and their types
+        (should have been run through resolve_type_conflicts() prior to use here)
+    :type data_types_dict: dict of {str: str}
+    :return BQ schema field object list
+    """
+    schema_field_object_list = list()
 
-    return sorted(table_depths.items(), key=lambda item: item[1], reverse=reverse)
+    for column_name in column_headers:
+        # override typing for ids, even those which are actually in
+
+        schema_field = {
+            "name": column_name,
+            "type": data_types_dict[column_name],
+            "mode": "NULLABLE",
+            "description": ''
+        }
+
+        schema_field_object_list.append(schema_field)
+
+    return {
+        "fields": schema_field_object_list
+    }
 
 
-#       MISC UTILITIES
+def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
+                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
+    """
+    Create and upload schema for a file in tsv format.
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param table_name: name of table belonging to schema
+    :param tsv_fp: path to tsv data file, parsed to create schema
+    :param header_list: optional, list of header strings
+    :param header_row: optional, integer index of header row within the file
+    :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
+    :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
+    :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
+    """
+    print(f"Creating schema for {table_name}")
+
+    # third condition required to account for header row at 0 index
+
+    # if no header list supplied here, headers are generated from header_row.
+    column_headers = get_column_list_tsv(header_list, tsv_fp, header_row)
+
+    if isinstance(header_row, int) and header_row >= skip_rows:
+        has_fatal_error("Header row not excluded by skip_rows.")
+
+    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
+
+    data_type_dict = resolve_type_conflicts(data_types_dict)
+
+    schema_obj = create_schema_object(column_headers, data_type_dict)
+
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release)
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
+
+    with open(schema_fp, 'w') as schema_json_file:
+        json.dump(schema_obj, schema_json_file, indent=4)
+
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
+
+
+def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
+                                 find_most_recent_published_table_id, source_table_id, public_dataset, id_keys):
+    """
+    Compare new table with previous version.
+    todo
+    :param api_params: api_params supplied in yaml config
+    :param bq_params: bq_params supplied in yaml config
+    :param get_publish_table_ids:
+    :param find_most_recent_published_table_id:
+    :param source_table_id:
+    :param public_dataset:
+    :return:
+    """
+    def make_field_diff_query(is_removed_query):
+        """
+        Make query for comparing two tables' field sets.
+        :param is_removed_query: True if query retrieves removed fields; False if retrieves added fields
+        """
+        if is_removed_query:
+            split_outer_table_id = previous_table_id.split('.')
+            dataset_outer = ".".join(split_outer_table_id[:1])
+            table_name_outer = split_outer_table_id[2]
+
+            split_inner_table_id = source_table_id.split('.')
+            dataset_inner = ".".join(split_inner_table_id[:1])
+            table_name_inner = split_inner_table_id[2]
+        else:
+            split_outer_table_id = source_table_id.split('.')
+            dataset_outer = ".".join(split_outer_table_id[:1])
+            table_name_outer = split_outer_table_id[2]
+
+            split_inner_table_id = previous_table_id.split('.')
+            dataset_inner = ".".join(split_inner_table_id[:1])
+            table_name_inner = split_inner_table_id[2]
+
+        return f"""
+            SELECT field_path AS field
+            FROM `{dataset_outer}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+            WHERE field_path NOT IN (
+                SELECT field_path 
+                FROM `{dataset_inner}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={table_name_inner}
+            )
+            AND table_name={table_name_outer}
+        """
+
+    def make_datatype_diff_query():
+        """Make query for comparing two tables' field data types."""
+        return f"""
+            WITH old_data_types as (
+                SELECT field_path, data_type
+                FROM `{previous_dataset}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={previous_table_name}
+            ), new_data_types as (
+                SELECT field_path, data_type
+                FROM `{source_dataset}`.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS
+                WHERE table_name={source_table_name}                
+            ),
+            distinct_data_types as (
+                old_data_types
+                UNION ALL 
+                new_data_types
+                GROUP BY field_path, data_type
+            )
+            SELECT field_path
+            FROM distinct_data_types
+            GROUP BY field_path
+            HAVING COUNT(field_path) > 1
+        """
+
+    def make_removed_ids_query():
+        """Make query for finding removed ids in newly released dataset."""
+        return f"""
+            SELECT {id_keys}
+            FROM `{previous_table_id}`
+            WHERE CONCAT({id_keys}) NOT IN (
+                SELECT CONCAT({id_keys}) 
+                FROM `{source_table_id}`
+            )    
+        """
+
+    def make_added_ids_query():
+        """
+        Make query for finding added id count for newly released dataset.
+        :return: query string for table comparison
+        """
+        return f"""
+            SELECT count({id_keys}) as added_id_count
+            FROM `{source_table_id}`
+            WHERE CONCAT({id_keys}) NOT IN (
+                SELECT CONCAT({id_keys})
+                FROM `{previous_table_id}`
+            )
+        """
+
+    curr_table_id, versioned_table_id = get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset)
+    previous_table_id = find_most_recent_published_table_id(api_params, versioned_table_id)
+
+    split_source_table_id = source_table_id.split('.')
+    source_dataset = ".".join(split_source_table_id[:1])
+    source_table_name = split_source_table_id[2]
+
+    split_previous_table_id = previous_table_id.split('.')
+    previous_dataset = ".".join(split_previous_table_id[:1])
+    previous_table_name = split_previous_table_id[2]
+
+    print(f"\nTable Comparison Report ***")
+    print(f"New table (dev): {source_table_id} \nLast published table: {previous_table_id}")
+
+    # which fields have been removed?
+    removed_fields_res = bq_harness_with_result(sql=make_field_diff_query(is_removed_query=True),
+                                                do_batch=False, verbose=False)
+
+    print("\nRemoved fields:")
+    if removed_fields_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in removed_fields_res:
+            print(row[0])
+
+    # which fields were added?
+    added_fields_res = bq_harness_with_result(sql=make_field_diff_query(is_removed_query=False), 
+                                              do_batch=False, verbose=False)
+
+    print("\nNew fields:")
+    if added_fields_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in added_fields_res:
+            print(row[0])
+
+    # any changes in field data type?
+    datatype_diff_res = bq_harness_with_result(sql=make_datatype_diff_query(), do_batch=False, verbose=False)
+
+    print("\nColumns with data type change:")
+    if datatype_diff_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in datatype_diff_res:
+            print(row[0])
+
+    print("\nRemoved case ids:")
+    removed_case_ids_res = bq_harness_with_result(make_removed_ids_query(id_key), do_batch=False, verbose=False)
+
+    if removed_case_ids_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in removed_case_ids_res:
+            print(row[0])
+
+    print("\nAdded case id count:")
+    added_case_ids_res = bq_harness_with_result(make_added_ids_query(id_key), do_batch=False, verbose=False)
+
+    if added_case_ids_res.total_rows == 0:
+        print("<none>")
+    else:
+        for row in added_case_ids_res:
+            print(f"{row[0]}: {row[1]} new case ids")
+
+    print("\n*** End Report ***\n\n")
+
+
+#   MISC UTILS
+def make_string_bq_friendly(string):
+    """
+    todo
+    :param string:
+    :return:
+    """
+    string = string.replace('%', 'percent')
+    string = re.sub(r'[^A-Za-z0-9_ ]+', ' ', string)
+    string = string.strip()
+    string = re.sub(r'\s+', '_', string)
+
+    return string
 
 
 def format_seconds(seconds):
+    """
+    Round seconds to formatted hour, minute, and/or second output.
+    :param seconds: int representing time in seconds
+    :return: formatted time string
+    """
     if seconds > 3600:
         return time.strftime("%-H hours, %-M minutes, %-S seconds", time.gmtime(seconds))
     if seconds > 60:
@@ -1549,61 +1771,74 @@ def format_seconds(seconds):
     return time.strftime("%-S seconds", time.gmtime(seconds))
 
 
-def convert_dict_to_string(obj):
-    """Converts dict/list of primitives or strings to a comma-separated string. Used
-    to write data to file.
-
-    :param obj: object to converts
-    :return: modified object
+def load_config(args, yaml_dict_keys, validate_config=None):
     """
-    if isinstance(obj, list):
-        if not isinstance(obj[0], dict):
-            str_list = ', '.join(obj)
-            obj = str_list
-        else:
-            for idx, value in enumerate(obj.copy()):
-                obj[idx] = convert_dict_to_string(value)
-    elif isinstance(obj, dict):
-        for key in obj:
-            obj[key] = convert_dict_to_string(obj[key])
-    return obj
-
-
-def load_config(args, yaml_dict_keys):
-    """Opens yaml file and retrieves configuration parameters.
-
+    Open yaml file and retrieves configuration parameters.
+    :param validate_config:
     :param args: args param from python bash cli
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-    if len(args) != 2:
-        has_fatal_error('Usage: {} <configuration_yaml>".format(args[0])', ValueError)
 
-    yaml_file_arg = args[1]
+    def open_yaml_and_return_dict(yaml_name):
+        """
+        todo
+        :param yaml_name:
+        :return:
+        """
+        with open(yaml_name, mode='r') as yaml_file:
+            yaml_dict = None
+            config_stream = io.StringIO(yaml_file.read())
 
-    with open(yaml_file_arg, mode='r') as yaml_file_arg:
-        yaml_dict = None
-        config_stream = io.StringIO(yaml_file_arg.read())
+            try:
+                yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
+            except yaml.YAMLError as ex:
+                has_fatal_error(ex, str(yaml.YAMLError))
+            if yaml_dict is None:
+                has_fatal_error("Bad YAML load, exiting.", ValueError)
 
-        try:
-            yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
-        except yaml.YAMLError as ex:
-            has_fatal_error(ex, str(yaml.YAMLError))
-        if yaml_dict is None:
-            has_fatal_error("Bad YAML load, exiting.", ValueError)
+            # Dynamically generate a list of dictionaries for the return statement,
+            # since tuples are immutable
+            return {key: yaml_dict[key] for key in yaml_dict_keys}
 
-        # Dynamically generate a list of dictionaries for the return statement,
-        # since tuples are immutable
-        return_dicts = [yaml_dict[key] for key in yaml_dict_keys]
+    if len(args) < 2 or len(args) > 3:
+        has_fatal_error("")
+    if len(args) == 2:
+        singleton_yaml_dict = open_yaml_and_return_dict(args[1])
+        return tuple([singleton_yaml_dict[key] for key in yaml_dict_keys])
 
-        return tuple(return_dicts)
+    shared_yaml_dict = open_yaml_and_return_dict(args[1])
+
+    data_type_yaml_dict = open_yaml_and_return_dict(args[2])
+
+    merged_yaml_dict = {key: {} for key in yaml_dict_keys}
+
+    for key in yaml_dict_keys:
+        if key not in shared_yaml_dict and key not in data_type_yaml_dict:
+            has_fatal_error(f"{key} not found in shared or data type-specific yaml config")
+        elif not shared_yaml_dict[key] and not data_type_yaml_dict[key]:
+            has_fatal_error(f"No values found for {key} in shared or data type-specific yaml config")
+
+        if key in shared_yaml_dict and shared_yaml_dict[key]:
+            merged_yaml_dict[key] = shared_yaml_dict[key]
+
+            if key in data_type_yaml_dict and data_type_yaml_dict[key]:
+                merged_yaml_dict[key].update(data_type_yaml_dict[key])
+        else:
+            merged_yaml_dict[key] = data_type_yaml_dict[key]
+
+    if validate_config:
+        pass
+        # todo create config validation
+        # validate_config(tuple(return_dicts))
+
+    return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
 def has_fatal_error(err, exception=None):
-    """Error handling function--outputs error str or list<str>;
-    optionally throws Exception as well.
-
+    """
+    Output error str or list<str>, then exits; optionally throws Exception.
     :param err: error message str or list<str>
     :param exception: Exception type for error (defaults to None)
     """
@@ -1616,93 +1851,9 @@ def has_fatal_error(err, exception=None):
     else:
         err_str = err_str_prefix + err
 
-    console_out(err_str)
+    print(err_str)
 
     if exception:
         raise exception
 
     sys.exit(1)
-
-
-def console_out(output_str, print_vars=None, end='\n'):
-    """
-    todo
-    :param output_str:
-    :param print_vars:
-    :param end:
-    :return:
-    """
-    if print_vars:
-        print(str(output_str).format(*print_vars), end=end)
-    else:
-        print(output_str, end=end)
-
-
-def modify_fields_for_app(api_params, schema, column_order_dict, columns):
-    """Alter field naming conventions so that they're compatible with those in the
-    web app.
-
-    :param api_params: api param object from yaml config
-    :param schema: dict containing schema records
-    :param column_order_dict: dict of {field_groups: column_order set()}
-    :param columns: dict containing table column keys
-    """
-    renamed_fields = dict(api_params['RENAMED_FIELDS'])
-    fgs = column_order_dict.keys()
-
-    excluded_fgs = get_excluded_field_groups(api_params)
-    excluded_fields = get_excluded_fields_all_fgs(api_params, fgs, is_webapp=True)
-
-    for fg in fgs:
-        # rename case_id no matter which fg it's in
-        for renamed_field in renamed_fields.keys():
-            if renamed_field in column_order_dict[fg]:
-                new_field = renamed_fields[renamed_field]
-                column_order_dict[fg][new_field] = column_order_dict[fg][renamed_field]
-                column_order_dict[fg].pop(renamed_field)
-            if fg in columns and renamed_field in columns[fg]:
-                columns[fg].add(renamed_fields[renamed_field])
-                columns[fg].remove(renamed_field)
-
-    # field is fully associated name
-    for field in {k for k in schema.keys()}:
-        base_fg = ".".join(field.split('.')[:-1])
-        field_name = field.split('.')[-1]
-
-        # substitute base field name for prefixed
-        schema[field]['name'] = field_name
-
-        # exclude any field groups or fields explicitly excluded in yaml
-        if field in excluded_fields or base_fg in excluded_fgs:
-            schema.pop(field)
-        # field exists in renamed_fields, change its name
-        elif field in renamed_fields:
-            new_field = renamed_fields[field]
-
-            schema[field]['name'] = new_field.split('.')[-1]
-            schema[new_field] = schema[field]
-            schema.pop(field)
-
-            # change the field name in the column order dict
-            if base_fg in column_order_dict and field in column_order_dict[base_fg]:
-                column_order_dict[base_fg][new_field] = column_order_dict[base_fg][field]
-                column_order_dict[base_fg].pop(field)
-
-        if field in excluded_fields and base_fg in column_order_dict:
-            # remove excluded field from column order lists
-            if field in column_order_dict[base_fg]:
-                column_order_dict[base_fg].pop(field)
-
-
-def create_tsv_row(row_list, null_marker="None"):
-    print_str = ''
-    last_idx = len(row_list) - 1
-
-    for i, column in enumerate(row_list):
-        if not column:
-            column = null_marker
-
-        delimiter = "\t" if i < last_idx else "\n"
-        print_str += column + delimiter
-
-    return print_str

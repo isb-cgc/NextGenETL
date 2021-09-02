@@ -1,0 +1,134 @@
+[
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cross_Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Data_source",
+        "type": "string"
+    },
+    {
+        "name": "Title",
+        "type": "string"
+    },
+    {
+        "name": "Authors",
+        "type": "string"
+    },
+    {
+        "name": "Abstract_old",
+        "type": "string"
+    },
+    {
+        "name": "Abstract",
+        "type": "string"
+    },
+    {
+        "name": "S_Ref_Year",
+        "type": "integer"
+    },
+    {
+        "name": "Journal",
+        "type": "string"
+    },
+    {
+        "name": "Volume",
+        "type": "integer"
+    },
+    {
+        "name": "Start_page",
+        "type": "integer"
+    },
+    {
+        "name": "End_page",
+        "type": "integer"
+    },
+    {
+        "name": "Address",
+        "type": "string"
+    },
+    {
+        "name": "PubMed_entry",
+        "type": "string"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Exclude_analysis",
+        "type": "boolean"
+    },
+    {
+        "name": "WGS_WXS",
+        "type": "string"
+    },
+    {
+        "name": "Comment",
+        "type": "string"
+    },
+    {
+        "name": "Tissue_processing",
+        "type": "string"
+    },
+    {
+        "name": "Start_material",
+        "type": "string"
+    },
+    {
+        "name": "Prescreening",
+        "type": "string"
+    },
+    {
+        "name": "Material_sequenced",
+        "type": "string"
+    },
+    {
+        "name": "Confirmation",
+        "type": "boolean"
+    },
+    {
+        "name": "exon2",
+        "type": "boolean"
+    },
+    {
+        "name": "exon3",
+        "type": "boolean"
+    },
+    {
+        "name": "exon4",
+        "type": "boolean"
+    },
+    {
+        "name": "exon5",
+        "type": "boolean"
+    },
+    {
+        "name": "exon6",
+        "type": "boolean"
+    },
+    {
+        "name": "exon7",
+        "type": "boolean"
+    },
+    {
+        "name": "exon8",
+        "type": "boolean"
+    },
+    {
+        "name": "exon9",
+        "type": "boolean"
+    },
+    {
+        "name": "exon10",
+        "type": "boolean"
+    },
+    {
+        "name": "exon11",
+        "type": "boolean"
+    }
+]

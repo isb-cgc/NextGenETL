@@ -1,0 +1,26 @@
+[
+    {
+        "name": "IRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cross_IRef_ID",
+        "type": "integer"
+    },
+    {
+        "name": "PubMed",
+        "type": "string"
+    },
+    {
+        "name": "Source",
+        "type": "string"
+    },
+    {
+        "name": "Ref_Year",
+        "type": "integer"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    }
+]

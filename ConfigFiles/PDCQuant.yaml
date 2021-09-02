@@ -1,0 +1,56 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_quant_data_matrix.py
+# Builds BQ tables for PDC quant data matrix protein abundance log2_ratio data.
+#
+
+version: 2
+
+api_params:
+  # change column names provided by PDC API for non-proteome records to more accurate label
+  # (they're all refeq_ids mixed with sites--these are split into separate columns by the script).
+  QUANT_REPLACEMENT_MAP:
+    Phosphoproteome:
+      site_column_name: "phosphorylation_sites"
+      id_column_name: "refseq_id"
+    Acetylome:
+      site_column_name: "acetylation_sites"
+      id_column_name: "refseq_id"
+    Glycoproteome:
+      site_column_name: "glycosylation_sites"
+      id_column_name: "refseq_id"
+    Ubiquitylome:
+      site_column_name: "ubiquitylation_sites"
+      id_column_name: "refseq_id"
+
+bq_params:
+  # generic table metadata schema paths. Some PDC programs require two program label tags
+  # (e.g. cptac3 and tcga) and those programs use the GENERIC_TABLE_METADATA_FILE_2_PROGRAM file format.
+  GENERIC_TABLE_METADATA_FILE: pdc_quant.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: pdc_quant_multi_program.json
+  GENERIC_GENE_TABLE_METADATA_FILE: pdc_gene_info.json
+  GENERIC_REFSEQ_TABLE_METADATA_FILE: pdc_refseq_mapping.json
+
+steps:
+  # UniProt/new refseq mapping table steps--executed only if there's a new UniProt release
+  # - build_uniprot_tsv
+  # - build_uniprot_table
+  # - create_refseq_table
+  # - publish_refseq_mapping_table
+
+  # create gene jsonl and schema files using getPaginatedGenes endpoint
+  # - build_gene_jsonl
+  # create gene table
+  # - build_gene_table
+
+  # create quant tsv and schema files using quantDataMatrix endpoint
+  # - build_quant_tsvs
+  # create quant tables
+  # - build_quant_tables
+  # modify and create quant tables in final format
+  # - build_final_quant_tables
+
+  # Test the diff between existing published and new gene and quant tables
+  # - test_new_version_gene_and_quant_tables
+
+  # publish gene and quant tables
+  # - publish_gene_and_quant_tables

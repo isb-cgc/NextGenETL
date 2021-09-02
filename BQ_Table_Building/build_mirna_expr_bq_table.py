@@ -105,13 +105,21 @@ def attach_barcodes_sql(temp_table, aliquot_table, case_table):
                a.fileUUID,
                c.case_gdc_id, 
                c.sample_gdc_id,
-               a.aliquot_gdc_id
+               a.aliquot_gdc_id,
+               c.sample_type_name
             FROM `{0}`as a JOIN `{1}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id
             AND c.case_gdc_id = a.case_gdc_id)
         SELECT 
-            a1.project_short_name, a1.case_barcode, a1.sample_barcode, a1.aliquot_barcode,
+            a1.project_short_name, 
+            a1.case_barcode, 
+            a1.sample_barcode, 
+            a1.aliquot_barcode,
             c.primary_site,
-            a1.fileUUID, a1.case_gdc_id, a1.sample_gdc_id, a1.aliquot_gdc_id
+            a1.sample_type_name,
+            a1.fileUUID, 
+            a1.case_gdc_id, 
+            a1.sample_gdc_id, 
+            a1.aliquot_gdc_id
         FROM a1 JOIN `{2}` as c 
             ON a1.case_barcode = c.case_barcode 
             AND a1.project_short_name = c.project_id
@@ -138,6 +146,7 @@ def final_join_sql(isoform_table, barcodes_table):
                b.read_count,
                b.reads_per_million_miRNA_mapped,
                b.cross_mapped,
+               a.sample_type_name,
                a.case_gdc_id,
                a.sample_gdc_id,
                a.aliquot_gdc_id,
@@ -145,8 +154,43 @@ def final_join_sql(isoform_table, barcodes_table):
         FROM `{0}` as a JOIN `{1}` as b ON a.fileUUID = b.fileUUID
         '''.format(barcodes_table, isoform_table)
 
+def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
+    sql = merge_samples_by_aliquot_sql(input_table)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
-
+def merge_samples_by_aliquot_sql(input_table):
+    return '''
+    SELECT
+        project_short_name,
+        case_barcode,
+        string_agg(sample_barcode, ';') as sample_barcode,
+        aliquot_barcode,
+        primary_site,
+        miRNA_id,
+        read_count,
+        reads_per_million_miRNA_mapped,
+        cross_mapped,
+        sample_type_name,
+        case_gdc_id,
+        string_agg(sample_gdc_id, ';') as sample_gdc_id,
+        aliquot_gdc_id,
+        file_gdc_id
+    FROM 
+        `{0}`
+    group by
+        project_short_name,
+        case_barcode,
+        aliquot_barcode,
+        primary_site,
+        miRNA_id,
+        read_count,
+        reads_per_million_miRNA_mapped,
+        cross_mapped,
+        sample_type_name,
+        case_gdc_id,
+        aliquot_gdc_id,
+        file_gdc_id'''.format(input_table)
+    
 
 def file_info(aFile, program_prefix):
     norm_path = os.path.normpath(aFile)
@@ -315,11 +359,17 @@ def main(args):
         success = final_merge(  skel_table, 
                                 step2_intermediate_full, 
                                 params['SCRATCH_DATASET'], 
-                                draft_table, 
+                                draft_table+"_merge", 
                                 params['BQ_AS_BATCH'] )
         if not success:
             print("Join job failed")
             return
+
+    # For CPTAC there are instances where multiple samples are merged into the same aliquot
+    # for these cases we join the rows by concatenating the samples with semicolons
+    if 'merge_same_aliq_samples' in steps:
+        source_table = '{}.{}.{}_merge'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table)
+        merge_samples_by_aliquot( source_table, draft_table, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
 
 
     if 'pull_table_info_from_git' in steps:

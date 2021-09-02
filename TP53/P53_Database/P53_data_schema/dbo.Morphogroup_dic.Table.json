@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Morphogroup_ID",
+        "type": "integer"
+    },
+    {
+        "name": "ICDO_codes",
+        "type": "string"
+    },
+    {
+        "name": "Morphogroup",
+        "type": "string"
+    }
+]

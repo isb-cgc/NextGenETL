@@ -1,0 +1,94 @@
+[
+    {
+        "name": "Prognosis_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Ref_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Country_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Institution",
+        "type": "string"
+    },
+    {
+        "name": "Period",
+        "type": "string"
+    },
+    {
+        "name": "Topo_code",
+        "type": "string"
+    },
+    {
+        "name": "Morpho_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Cohort",
+        "type": "integer"
+    },
+    {
+        "name": "P53_mutation",
+        "type": "integer"
+    },
+    {
+        "name": "MedianFU",
+        "type": "float"
+    },
+    {
+        "name": "RangeFU",
+        "type": "string"
+    },
+    {
+        "name": "InclusionCriteria",
+        "type": "string"
+    },
+    {
+        "name": "Treatment",
+        "type": "string"
+    },
+    {
+        "name": "Parameter_analysed",
+        "type": "string"
+    },
+    {
+        "name": "Result",
+        "type": "string"
+    },
+    {
+        "name": "LOH",
+        "type": "boolean"
+    },
+    {
+        "name": "Polymorphism",
+        "type": "boolean"
+    },
+    {
+        "name": "Individual_data",
+        "type": "boolean"
+    },
+    {
+        "name": "Association",
+        "type": "string"
+    },
+    {
+        "name": "Bad_mutations",
+        "type": "string"
+    },
+    {
+        "name": "WT_Mut",
+        "type": "boolean"
+    },
+    {
+        "name": "Mut_Mut",
+        "type": "boolean"
+    },
+    {
+        "name": "Structure",
+        "type": "boolean"
+    }
+]

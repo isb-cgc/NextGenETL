@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Prediction_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Splice_Site_Type",
+        "type": "string"
+    },
+    {
+        "name": "WT_Motif",
+        "type": "string"
+    },
+    {
+        "name": "Mutant_Motif",
+        "type": "string"
+    },
+    {
+        "name": "WT_score",
+        "type": "float"
+    },
+    {
+        "name": "Mutant_score",
+        "type": "float"
+    },
+    {
+        "name": "p53SpliceSite",
+        "type": "string"
+    },
+    {
+        "name": "Variation",
+        "type": "string"
+    },
+    {
+        "name": "Source",
+        "type": "string"
+    }
+]

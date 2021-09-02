@@ -1,0 +1,82 @@
+[
+    {
+        "name": "Topo_code",
+        "type": "string"
+    },
+    {
+        "name": "Topography",
+        "type": "string"
+    },
+    {
+        "name": "Short_topo",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_group",
+        "type": "string"
+    },
+    {
+        "name": "GroupOfOrgan",
+        "type": "string"
+    },
+    {
+        "name": "StatisticGraph",
+        "type": "string"
+    },
+    {
+        "name": "StatisticGraphGermline",
+        "type": "string"
+    },
+    {
+        "name": "DatasetR5",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR6",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR7",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR8",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR9",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR10",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR11",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR12",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR13",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR14",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR15",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR16",
+        "type": "integer"
+    },
+    {
+        "name": "DatasetR17",
+        "type": "integer"
+    }
+]

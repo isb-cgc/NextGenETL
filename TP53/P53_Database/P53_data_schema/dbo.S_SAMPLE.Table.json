@@ -1,0 +1,82 @@
+[
+    {
+        "name": "Sample_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Individual_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Subtopo_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Morpho_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_Name",
+        "type": "string"
+    },
+    {
+        "name": "Grade",
+        "type": "string"
+    },
+    {
+        "name": "Stage",
+        "type": "string"
+    },
+    {
+        "name": "TNM",
+        "type": "string"
+    },
+    {
+        "name": "Tumor_origin_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Sample_source_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Age",
+        "type": "integer"
+    },
+    {
+        "name": "LOH",
+        "type": "string"
+    },
+    {
+        "name": "p53_IHC",
+        "type": "string"
+    },
+    {
+        "name": "mdm2_IHC",
+        "type": "string"
+    },
+    {
+        "name": "KRAS_status",
+        "type": "string"
+    },
+    {
+        "name": "ER_status",
+        "type": "string"
+    },
+    {
+        "name": "Other_mutations",
+        "type": "string"
+    },
+    {
+        "name": "Other_associations",
+        "type": "string"
+    },
+    {
+        "name": "Sample_exposure",
+        "type": "string"
+    },
+    {
+        "name": "Add_Info",
+        "type": "string"
+    }
+]

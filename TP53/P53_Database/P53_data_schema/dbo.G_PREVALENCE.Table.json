@@ -1,0 +1,34 @@
+[
+    {
+        "name": "G_Prevalence_ID",
+        "type": "integer"
+    },
+    {
+        "name": "Diagnosis",
+        "type": "string"
+    },
+    {
+        "name": "Cohort",
+        "type": "string"
+    },
+    {
+        "name": "Cases_Analyzed",
+        "type": "float"
+    },
+    {
+        "name": "Cases_mutated",
+        "type": "float"
+    },
+    {
+        "name": "Mutation_prevalence",
+        "type": "float"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    },
+    {
+        "name": "REF_ID",
+        "type": "integer"
+    }
+]

@@ -1,0 +1,54 @@
+[
+    {
+        "name": "IsoformsStatus_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "TAp53",
+        "type": "string"
+    },
+    {
+        "name": "TAp53beta",
+        "type": "string"
+    },
+    {
+        "name": "TAp53gamma",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53beta",
+        "type": "string"
+    },
+    {
+        "name": "delta40p53gamma",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53beta",
+        "type": "string"
+    },
+    {
+        "name": "delta133p53gamma",
+        "type": "string"
+    },
+    {
+        "name": "deltap53",
+        "type": "string"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    }
+]
