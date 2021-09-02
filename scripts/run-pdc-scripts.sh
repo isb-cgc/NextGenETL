@@ -68,7 +68,7 @@ mkdir -p ~/scratch
 
 if [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
   cd ..
-  python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+  nohup python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE} >& pdc_out.log &
   deactivate
 else
   cd ..
