@@ -958,11 +958,11 @@ def main(args):
                                            barcode_table)
 	#For CPTAC, create an intermediate combined table, which will be used in the merge_same_aliq_samples step
 	if params['PROGRAM'] == 'CPTAC':
-             success = final_merge(skel_table, barcodes_table,
+            success = final_merge(skel_table, barcodes_table,
                               params['SCRATCH_DATASET'], draft_table.format('combined_table'), params['BQ_AS_BATCH'],
                               params['PROGRAM'])	
 	else:
-	     success = final_merge(skel_table, barcodes_table,
+	    success = final_merge(skel_table, barcodes_table,
                               params['SCRATCH_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
                               params['PROGRAM'])
         if not success:
