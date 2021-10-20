@@ -1166,12 +1166,12 @@ def resolve_type_conflicts(types_dict):
     :return dict containing the column name and its BigQuery data type.
     :rtype dict of {str: str}
     """
-    type_dict = dict()
+    #type_dict = dict()
 
     for field, types_set in types_dict.items():
         type_dict[field] = resolve_type_conflict(field, types_set)
 
-    return type_dict
+    #return type_dict
 
 
 def recursively_detect_object_structures(nested_obj):
