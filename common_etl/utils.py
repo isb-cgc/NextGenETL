@@ -988,6 +988,9 @@ def check_value_type(value):
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
+
+    print(value)
+
     if isinstance(value, bool):
         return "BOOL"
     if isinstance(value, int):
@@ -1053,26 +1056,28 @@ def check_value_type(value):
     if re.fullmatch(timestamp_pattern, value):
         return "TIMESTAMP"
 
-    # This shouldn't really be returned--in case of some missed edge case, however, it's safe to default to string.
-    return "STRING"
+    # # This shouldn't really be returned--in case of some missed edge case, however, it's safe to default to string.
+    # return "STRING"
 
-    # try:
-    #     util.strtobool(value)
-    #     return "BOOL"
-    # except ValueError:
-    #     pass
-    #
-    # # Final check for int and float values. This will catch a simple integers
-    # # or edge case float values, like infinity, scientific notation, etc.
-    # try:
-    #     int(value)
-    #     return "INT64"
-    # except ValueError:
-    #     try:
-    #         float(value)
-    #         return "FLOAT64"
-    #     except ValueError:
-    #         return "STRING"
+    try:
+        util.strtobool(value)
+        print("\tBOOL "+value)
+        return "BOOL"
+    except ValueError:
+        print("\tpass "+value)
+        pass
+
+    # Final check for int and float values. This will catch a simple integers
+    # or edge case float values, like infinity, scientific notation, etc.
+    try:
+        int(value)
+        return "INT64"
+    except ValueError:
+        try:
+            float(value)
+            return "FLOAT64"
+        except ValueError:
+            return "STRING"
 
 
 def resolve_type_conflict(field, types_set):
