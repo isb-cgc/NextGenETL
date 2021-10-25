@@ -1061,10 +1061,8 @@ def check_value_type(value):
 
     try:
         util.strtobool(value)
-        print("\tBOOL "+value)
         return "BOOL"
     except ValueError:
-        print("\tpass "+value)
         pass
 
     # Final check for int and float values. This will catch a simple integers
@@ -1417,6 +1415,17 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     :return:
     """
     data_types_dict = recursively_detect_object_structures(record_list)
+
+    data_types_dict_filename = get_filename(api_params,
+                                   file_extension='json',
+                                   prefix="data_type_dict",
+                                   suffix=table_name,
+                                   include_release=include_release)
+
+    data_types_dict_fp = get_scratch_fp(bq_params, data_types_dict_filename)
+
+    with open(data_types_dict_fp, 'w') as data_types_dict_json_file:
+        json.dump(data_types_dict_json_file, data_types_dict_json_file)
 
     generate_and_upload_schema(api_params, bq_params,
                                table_name=table_name,
