@@ -989,8 +989,6 @@ def check_value_type(value):
     :return: data type in BigQuery Standard SQL format
     """
 
-    print(value)
-
     if isinstance(value, bool):
         return "BOOL"
     if isinstance(value, int):
