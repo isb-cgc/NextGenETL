@@ -453,9 +453,9 @@ def get_cases_by_project_submitter(studies_list):
 
         project_submitter_id = case['project_submitter_id']
         print(project_submitter_id)
-        if cases_by_project_submitter[project_submitter_id]['cases']:
+        try:
             cases_by_project_submitter[project_submitter_id]['cases'].append(case)
-        else:
+        except KeyError:
             print('There are no cases in ' + project_submitter_id + 'project')
             continue
 
