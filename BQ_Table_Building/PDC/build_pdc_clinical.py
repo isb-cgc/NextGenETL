@@ -452,6 +452,7 @@ def get_cases_by_project_submitter(studies_list):
             continue
 
         project_submitter_id = case['project_submitter_id']
+        print(len(cases_by_project_submitter[project_submitter_id]['cases']))
         cases_by_project_submitter[project_submitter_id]['cases'].append(case)
 
     return cases_by_project_submitter
