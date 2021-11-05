@@ -31,7 +31,7 @@ def get_mapping_table_ids():
     file_assoc_table_name = f"{BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE']}_{API_PARAMS['RELEASE']}"
     file_assoc_table_id = f"{prod_meta_dataset}.{file_assoc_table_name}"
 
-    aliquot_table_name = f"{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_"
+    aliquot_table_name = f"{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_{API_PARAMS['RELEASE']}"
     aliquot_table_id = f"{prod_meta_dataset}.{aliquot_table_name}"
 
     # todo switch to published table
