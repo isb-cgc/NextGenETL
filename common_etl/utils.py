@@ -79,11 +79,11 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
         if tries > max_retries:
             # give up!
             api_res.raise_for_status()
-            traceback.print_tb()
 
     json_res = api_res.json()
 
     if 'errors' in json_res and json_res['errors']:
+        traceback.print_stack()
         if fail_on_error:
             has_fatal_error(f"Errors returned by {endpoint}.\nError json:\n{json_res['errors']}")
 
