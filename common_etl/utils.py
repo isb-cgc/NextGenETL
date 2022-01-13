@@ -62,6 +62,9 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
 
     tries = 0
 
+    if api_res.status_code == 403:
+        print(query)
+
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
@@ -83,7 +86,6 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     json_res = api_res.json()
 
     if 'errors' in json_res and json_res['errors']:
-        traceback.print_stack()
         if fail_on_error:
             has_fatal_error(f"Errors returned by {endpoint}.\nError json:\n{json_res['errors']}")
 
