@@ -294,6 +294,7 @@ def main(args):
 
         for count, file_id in enumerate(per_study_file_id_set):
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
+            print(make_file_metadata_query(file_id))
 
             if 'data' not in file_metadata_res:
                 print(f"No data returned by file metadata query for {file_id}")
