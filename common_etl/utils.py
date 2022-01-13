@@ -30,6 +30,7 @@ import requests
 import yaml
 import select
 from distutils import util
+import traceback
 
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
@@ -78,6 +79,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
         if tries > max_retries:
             # give up!
             api_res.raise_for_status()
+            traceback.print_tb()
 
     json_res = api_res.json()
 
