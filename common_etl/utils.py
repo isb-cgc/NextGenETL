@@ -71,7 +71,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
         print(f"Response code {api_res.status_code}: {api_res.reason}")
         print(query)
         sleep_time = 3 * tries
-        print(f"Retry {tries} of {max_retries}... sleeping for "{sleep_time})
+        print(f"Retry {tries} of {max_retries}... sleeping for {sleep_time}")
         time.sleep(sleep_time)
 
         api_res = requests.post(endpoint, headers=headers, json=req_body)
