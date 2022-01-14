@@ -49,7 +49,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     longer paginated queries, which often throw random server errors
     :return: json response object
     """
-    max_retries = 4
+    max_retries = 10
 
     headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
@@ -62,9 +62,6 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
 
     tries = 0
 
-    if api_res.status_code == 403:
-        print(query)
-
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
@@ -72,8 +69,10 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
                 f"Response status code {api_res.status_code}:\n{api_res.reason}.\nRequest body:\n{req_body}")
 
         print(f"Response code {api_res.status_code}: {api_res.reason}")
-        print(f"Retry {tries} of {max_retries}...")
-        time.sleep(3)
+        print(query)
+        sleep_time = 3 * tries
+        print(f"Retry {tries} of {max_retries}... sleeping for "{sleep_time})
+        time.sleep(sleep_time)
 
         api_res = requests.post(endpoint, headers=headers, json=req_body)
 
