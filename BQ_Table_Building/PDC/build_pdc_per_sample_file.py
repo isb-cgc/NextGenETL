@@ -22,16 +22,16 @@ def get_mapping_table_ids():
     dev_meta_dataset = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}"
     prod_meta_dataset = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PUBLIC_META_DATASET']}"
 
-    file_metadata_table_name = f"{BQ_PARAMS['FILE_METADATA_TABLE']}_current"
+    file_metadata_table_name = f"{BQ_PARAMS['FILE_METADATA_TABLE']}_{API_PARAMS['RELEASE']}"
     file_metadata_table_id = f"{prod_meta_dataset}.{file_metadata_table_name}"
 
-    case_metadata_table_name = f"{BQ_PARAMS['CASE_METADATA_TABLE']}_current"
+    case_metadata_table_name = f"{BQ_PARAMS['CASE_METADATA_TABLE']}_{API_PARAMS['RELEASE']}"
     case_metadata_table_id = f"{prod_meta_dataset}.{case_metadata_table_name}"
 
-    file_assoc_table_name = f"{BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE']}_current"
+    file_assoc_table_name = f"{BQ_PARAMS['FILE_ASSOC_MAPPING_TABLE']}_{API_PARAMS['RELEASE']}"
     file_assoc_table_id = f"{prod_meta_dataset}.{file_assoc_table_name}"
 
-    aliquot_table_name = f"{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_current"
+    aliquot_table_name = f"{BQ_PARAMS['ALIQUOT_TO_CASE_TABLE']}_{API_PARAMS['RELEASE']}"
     aliquot_table_id = f"{prod_meta_dataset}.{aliquot_table_name}"
 
     # todo switch to published table
