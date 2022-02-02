@@ -131,12 +131,27 @@ def main(args):
 
     if 'process_git_schemas' in steps:
         print('process_git_schemas')
+
+        # versioned tables
         for t in params['TABLE_LIST']:
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}.json".format(
                 params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TABLE_LIST'][t]
             )
             full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
+
+        # current tables
+        for t in params['TABLE_LIST']:
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], '_'.join([t, 'current'])
+            )
+            full_file_prefix = "{}/{}".format(local_files_dir, '_'.join([t, 'current']))
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -207,23 +222,42 @@ def main(args):
         print('create_pathway_table')
 
         pathway_sql = '''
+          WITH tmp_pathway AS (
+            SELECT
+              DISTINCT
+                COALESCE(ens.pathway_stable_id, uni.pathway_stable_id) AS stable_id,
+                COALESCE(ens.url, uni.url) AS url,
+                COALESCE(ens.pathway_name, uni.pathway_name) AS name,
+                COALESCE(ens.species, uni.species) AS species
+              FROM
+                `{0}.{1}.{2}` AS ens
+              FULL OUTER JOIN `{0}.{1}.{3}` AS uni
+                ON ens.pathway_stable_id = uni.pathway_stable_id
+              WHERE COALESCE(ens.species, uni.species) = 'Homo sapiens'
+              ORDER BY stable_id
+          )
           SELECT
-            DISTINCT
-              COALESCE(ens.pathway_stable_id, uni.pathway_stable_id) AS stable_id,
-              COALESCE(ens.url, uni.url) AS url,
-              COALESCE(ens.pathway_name, uni.pathway_name) AS name,
-              COALESCE(ens.species, uni.species) AS species
-            FROM
-              `{0}.{1}.{2}` AS ens
-            FULL OUTER JOIN `{0}.{1}.{3}` AS uni
-              ON ens.pathway_stable_id = uni.pathway_stable_id
-            WHERE COALESCE(ens.species, uni.species) = 'Homo sapiens'
-            ORDER BY stable_id
+            stable_id,
+            url,
+            name,
+            species,
+            IF(
+              stable_id NOT IN (
+                SELECT
+                  DISTINCT parent_id
+                FROM
+                  `{0}.{1}.{4}`
+              ),
+              TRUE,
+              FALSE
+            ) AS lowest_level
+          FROM tmp_pathway
         '''.format(
             params['WORKING_PROJECT'],
             params['WORKING_DATASET'],
             params['TMP_TABLE_LIST']['ensembl2reactome'],
-            params['TMP_TABLE_LIST']['uniprot2reactome']
+            params['TMP_TABLE_LIST']['uniprot2reactome'],
+            params['TMP_TABLE_LIST']['pathways_relation']
         )
 
         generic_bq_harness(
@@ -330,6 +364,7 @@ def main(args):
     #
 
     if 'delete_temp_tables' in steps:
+        print('delete_tmp_tables')
         for t in params['TMP_TABLE_LIST']:
             print('Deleting temp table: {}.{}.{}'.format(
                 params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TMP_TABLE_LIST'][t]
@@ -347,19 +382,85 @@ def main(args):
 
     if 'publish' in steps:
         print('publish')
-        for t in params['TABLE_LIST']:
-            source_table = '{}.{}.{}'.format(
-                params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TABLE_LIST'][t]
-            )
-            publication_dest = '{}.{}.{}'.format(
-                params['PUBLICATION_PROJECT'],
-                params['PUBLICATION_DATASET'],
-                params['TABLE_LIST'][t]
-            )
-            success = publish_table(source_table, publication_dest)
+        tables = ['versioned', 'current']
 
+        for table in tables:
+            for t in params['TABLE_LIST']:
+                source_table = '{}.{}.{}'.format(
+                    params['WORKING_PROJECT'],
+                    params['WORKING_DATASET'],
+                    params['TABLE_LIST'][t]
+                )
+                if table == 'versioned':
+                    publication_dest = '{}.{}.{}'.format(
+                        params['PUBLICATION_PROJECT'],
+                        '_'.join([params['PUBLICATION_DATASET'], 'versioned']),
+                        params['TABLE_LIST'][t]
+                    )
+                else:
+                    publication_dest = '{}.{}.{}'.format(
+                        params['PUBLICATION_PROJECT'],
+                        params['PUBLICATION_DATASET'],
+                        '_'.join([t, 'current'])
+                    )
+ 
+                print('publish table {} -> {}'.format(source_table, publication_dest))
+                success = publish_table(source_table, publication_dest)
+                if not success:
+                    print('publish table {} -> {} failed'.format(source_table, publication_dest))
+
+    #
+    # Update description and labels of the current tables
+    #
+
+    if 'update_current_table_description' in steps:
+        print('update_current_table_description')
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, '_'.join([t, 'current']))
+            success = install_labels_and_desc(
+                params['PUBLICATION_DATASET'],
+                '_'.join([t, 'current']),
+                full_file_prefix,
+                params['PUBLICATION_PROJECT']
+            )
             if not success:
-                print("publish table {} failed".format(file_base_names[f]))
+                print("update current table description failed")
+                return
+
+    #
+    # Update previous tables with archived status
+    #
+
+    if 'update_status_tag' in steps:
+        print('update_status_tag')
+
+        for t in params['TABLE_LIST']:
+            success = update_status_tag(
+                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                params['TABLE_LIST'][t],
+                'archived',
+                params['PUBLICATION_PROJECT']
+            )
+            if not success:
+                print("update status tag of table {} failed".format(t))
+                return
+
+    #
+    # Delete scratch tables
+    #
+
+    if 'delete_scratch_tables' in steps:
+        print('delete_scratch_tables')
+
+        for t in params['TABLE_LIST']:
+            print('Deleting scratch table: {}.{}.{}'.format(
+                params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TABLE_LIST'][t]
+            ))
+            success = delete_table_bq_job(
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], params['WORKING_PROJECT']
+            )
+            if not success:
+                print('delete_scratch_tables failed')
                 return
 
     print('job completed')

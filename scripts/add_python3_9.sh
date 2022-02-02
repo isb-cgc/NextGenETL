@@ -52,6 +52,7 @@ python3.9 -m pip install PyYaml
 python3.9 -m pip install gitpython
 python3.9 -m pip install pandas
 python3.9 -m pip install xlrd
+python3.9 -m pip install openpyxl
 python3.9 -m pip install wget
 python3.9 -m pip install alive_progress
 # used by build_schema:

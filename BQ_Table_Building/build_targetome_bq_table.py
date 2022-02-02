@@ -29,6 +29,7 @@ import yaml
 import io
 from git import Repo
 from json import loads as json_loads
+import pprint
 from createSchemaP3 import build_schema
 
 from common_etl.support import confirm_google_vm, create_clean_target, \
@@ -106,51 +107,65 @@ def main(args):
 
     home = expanduser("~")
     local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    fixed_tsv = "{}/{}".format(home, params['FIXED_TSV'])
-    local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
     hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
     hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
 
     print('local_files_dir: ', local_files_dir)
-    print('fixed_tsv: ', fixed_tsv)
-    print('local_pull_list: ', local_pull_list)
     print('hold_schema_dict: ', hold_schema_dict)
     print('hold_schema_list: ', hold_schema_list)
+
+    # 
+    # Parse table list and add release number
+    #
+
+    for t in params['TABLE_LIST']:
+        params['TABLE_LIST'][t] = params['TABLE_LIST'][t].format(params['RELEASE'])
+
+    pprint.pprint(params['TABLE_LIST'])
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
         create_clean_target(local_files_dir)
 
     #
-    # Download original TSV files in the local_pull_list from bucket:
+    # Download original TSV files from bucket:
     #
 
     if 'download_raw_data' in steps:
         print('download_raw_data')
-        pull_from_buckets(
-            ['gs://{}/{}/targetome_pull_list.tsv'.format(
-                params['WORKING_BUCKET'], params['WORKING_BUCKET_DIR']
-            )],
-            os.path.dirname(local_files_dir)
-        )
-        with open(local_pull_list, mode='r') as pull_list_file:
-            pull_list = pull_list_file.read().splitlines()
+
+        pull_list = [
+            'gs://{}/{}/{}.tsv'.format(
+                params['WORKING_BUCKET'],
+                params['WORKING_BUCKET_DIR'],
+                params['TABLE_LIST'][t]
+            ) for t in params['TABLE_LIST']
+        ]
+
         print("Preparing to download %s files from buckets\n" % len(pull_list))
+
         bp = BucketPuller(10)
         bp.pull_from_buckets(pull_list, local_files_dir)
 
-    file_base_names = {}
-    if 'build_file_list' in steps:
-        print('build_file_list')
-        all_files = build_file_list(local_files_dir)
-        # pre-calculate file base names
-        for f in all_files:
-            file_base_names[f] = os.path.splitext(os.path.basename(f))[0]
+    #
+    # Fix null values in TSV for consistency
+    #
 
     if 'fix_null_values' in steps:
         print('fix_null_values')
-        for f in all_files:
-            fix_null_values(f, fixed_tsv.format(file_base_names[f]), set(na_values))
+        for t in params['TABLE_LIST']:
+            fix_null_values(
+                '{}/{}/{}.tsv'.format(
+                    local_files_dir,
+                    params['WORKING_BUCKET_DIR'],
+                    params['TABLE_LIST'][t]
+                ),
+                '{}/{}'.format(
+                    local_files_dir,
+                    params['FIXED_TSV'].format(params['TABLE_LIST'][t])
+                ),
+                set(na_values)
+            )
 
     #
     # Schemas and table descriptions are maintained in the github repo:
@@ -168,60 +183,71 @@ def main(args):
 
     if 'process_git_schemas' in steps:
         print('process_git_schemas')
-        for f in all_files:
+
+        # versioned tables
+        for t in params['TABLE_LIST']:
             # Where do we dump the schema git repository?
             schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
+                params['SCHEMA_REPO_LOCAL'],
+                params['RAW_SCHEMA_DIR'],
+                params['TABLE_LIST'][t]
             )
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
                 print("process_git_schemas failed")
                 return
 
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        for f in all_files:
-            typing_tups = build_schema(
-                fixed_tsv.format(file_base_names[f]), params['SCHEMA_SAMPLE_SKIPS']
+        # current tables
+        for t in params['TABLE_LIST']:
+            # Where do we dump the schema git repository?
+            schema_file = "{}/{}/{}.json".format(
+                params['SCHEMA_REPO_LOCAL'],
+                params['RAW_SCHEMA_DIR'],
+                '_'.join([t, 'current'])
             )
-            hold_schema_dict_for_file = hold_schema_dict.format(file_base_names[f])
-            hold_schema_list_for_file = hold_schema_list.format(file_base_names[f])
-            build_combined_schema(
-                None, None, typing_tups, hold_schema_list_for_file, hold_schema_dict_for_file
-            )
+            full_file_prefix = "{}/{}".format(local_files_dir, '_'.join([t, 'current']))
+            # Write out the details
+            success = generate_table_detail_files(schema_file, full_file_prefix)
+            if not success:
+                print("process_git_schemas failed")
+                return
 
-    bucket_target_blob = '{}/{}'.format(params['WORKING_BUCKET_DIR'], params['BUCKET_TSV'])
+
+    bucket_target_blob = '{}/{}'.format(
+        params['WORKING_BUCKET_DIR'], params['FIXED_TSV']
+    )
+    bucket_source = '{}/{}'.format(
+        local_files_dir, params['FIXED_TSV']
+    )
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        for f in all_files:
+        for t in params['TABLE_LIST']:
             upload_to_bucket(
                 params['WORKING_BUCKET'],
-                bucket_target_blob.format(file_base_names[f]),
-                fixed_tsv.format(file_base_names[f])
+                bucket_target_blob.format(params['TABLE_LIST'][t]),
+                bucket_source.format(params['TABLE_LIST'][t])
             )
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        for f in all_files:
+        for t in params['TABLE_LIST']:
+            print('table: ', params['TABLE_LIST'][t])
             bucket_src_url = 'gs://{}/{}'.format(
-                params['WORKING_BUCKET'], bucket_target_blob.format(file_base_names[f])
+                params['WORKING_BUCKET'], bucket_target_blob.format(params['TABLE_LIST'][t])
             )
             schema_file = "{}/{}/{}.json".format(
-                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], file_base_names[f]
+                params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], params['TABLE_LIST'][t]
             )
-            hold_schema_list_for_file = hold_schema_list.format(file_base_names[f])
-            with open(hold_schema_list_for_file, mode='r') as schema_fh:
+            with open(schema_file, mode='r') as schema_fh:
                 schema = json_loads(schema_fh.read())
-            print('schema: ', hold_schema_list_for_file)
-            print('table: ', file_base_names[f])
             csv_to_bq(
-                schema,
+                schema['schema']['fields'],
                 bucket_src_url,
-                params['TARGET_DATASET'],
-                file_base_names[f],
+                params['WORKING_DATASET'],
+                params['TABLE_LIST'][t],
                 params['BQ_AS_BATCH']
             )
 
@@ -231,8 +257,8 @@ def main(args):
 
     if 'update_field_descriptions' in steps:
         print('update_field_descriptions')
-        for f in all_files:
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
             schema_dict_loc = "{}_schema.json".format(full_file_prefix)
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -241,7 +267,7 @@ def main(args):
                 schema_dict[entry['name']] = {'description': entry['description']}
 
             success = update_schema_with_dict(
-                params['TARGET_DATASET'], file_base_names[f], schema_dict
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], schema_dict
             )
             if not success:
                 print("update_field_descriptions failed")
@@ -251,35 +277,105 @@ def main(args):
     # Add description and labels to the target table:
     #
 
-    if 'update_table_description' in steps:
-        print('update_table_description')
-        for f in all_files:
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], file_base_names[f])
+    if 'update_table_descriptions' in steps:
+        print('update_table_descriptions')
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, params['TABLE_LIST'][t])
             success = install_labels_and_desc(
-                params['TARGET_DATASET'], file_base_names[f], full_file_prefix
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], full_file_prefix
             )
             if not success:
                 print("update_table_description failed")
                 return
 
     #
-    # publish table:
+    # Publish tables
     #
 
     if 'publish' in steps:
         print('publish')
-        for f in all_files:
-            source_table = '{}.{}.{}'.format(
-                params['WORKING_PROJECT'], params['TARGET_DATASET'], file_base_names[f]
-            )
-            publication_dest = '{}.{}.{}'.format(
-                params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'], file_base_names[f]
-            )
-            success = publish_table(source_table, publication_dest)
+        tables = ['versioned', 'current']
 
+        for table in tables:
+            for t in params['TABLE_LIST']:
+                source_table = '{}.{}.{}'.format(
+                    params['WORKING_PROJECT'],
+                    params['WORKING_DATASET'],
+                    params['TABLE_LIST'][t]
+                )
+                if table == 'versioned':
+                    publication_dest = '{}.{}.{}'.format(
+                        params['PUBLICATION_PROJECT'],
+                        '_'.join([params['PUBLICATION_DATASET'], 'versioned']),
+                        params['TABLE_LIST'][t]
+                    )
+                else:
+                    publication_dest = '{}.{}.{}'.format(
+                        params['PUBLICATION_PROJECT'],
+                        params['PUBLICATION_DATASET'],
+                        '_'.join([t, 'current'])
+                    )
+ 
+                print('publish table {} -> {}'.format(source_table, publication_dest))
+                success = publish_table(source_table, publication_dest)
+                if not success:
+                    print('publish table {} -> {} failed'.format(source_table, publication_dest))
+
+    #
+    # Update description and labels of the current tables
+    #
+
+    if 'update_current_table_description' in steps:
+        print('update_current_table_description')
+        for t in params['TABLE_LIST']:
+            full_file_prefix = "{}/{}".format(local_files_dir, '_'.join([t, 'current']))
+            success = install_labels_and_desc(
+                params['PUBLICATION_DATASET'],
+                '_'.join([t, 'current']),
+                full_file_prefix,
+                params['PUBLICATION_PROJECT']
+            )
             if not success:
-                print("publish table {} failed".format(file_base_names[f]))
+                print("update current table description failed")
                 return
+
+    #
+    # Update previous tables with archived status
+    #
+
+    if 'update_status_tag' in steps:
+        print('update_status_tag')
+
+        for t in params['TABLE_LIST']:
+            success = update_status_tag(
+                "_".join([params['PUBLICATION_DATASET'], 'versioned']),
+                params['TABLE_LIST'][t],
+                'archived',
+                params['PUBLICATION_PROJECT']
+            )
+            if not success:
+                print("update status tag of table {} failed".format(t))
+                return
+
+    #
+    # Delete scratch tables
+    #
+
+    if 'delete_scratch_tables' in steps:
+        print('delete_scratch_tables')
+
+        for t in params['TABLE_LIST']:
+            print('Deleting scratch table: {}.{}.{}'.format(
+                params['WORKING_PROJECT'], params['WORKING_DATASET'], params['TABLE_LIST'][t]
+            ))
+            success = delete_table_bq_job(
+                params['WORKING_DATASET'], params['TABLE_LIST'][t], params['WORKING_PROJECT']
+            )
+            if not success:
+                print('delete_scratch_tables failed')
+                return
+
+
 
     print('job completed')
 

@@ -804,7 +804,7 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
             os.remove(scratch_fp)
             print("Local file deleted.")
         else:
-            print(f"Local file not deleted (location: {scratch_fp}).")
+            print(f"Local file not deleted.")
 
     except exceptions.GoogleCloudError as err:
         has_fatal_error(f"Failed to upload to bucket.\n{err}")
@@ -812,7 +812,7 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename):
+def download_from_bucket(bq_params, filename, dir_path=None):
     """
     Download file from Google storage bucket onto VM.
     :param bq_params: BigQuery params
@@ -823,8 +823,11 @@ def download_from_bucket(bq_params, filename):
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    scratch_fp = get_scratch_fp(bq_params, filename)
-    with open(scratch_fp, 'wb') as file_obj:
+    if not dir_path:
+        fp = get_scratch_fp(bq_params, filename)
+    else:
+        fp = (f"{dir_path}/{filename}")
+    with open(fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 
 
@@ -885,7 +888,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
             file_obj.write('\n')
 
 
-def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
+def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, local_filepath=None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
     :param api_params: api_params supplied in yaml config
@@ -893,10 +896,12 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list):
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
     """
-    jsonl_filename = get_filename(api_params,
-                                  file_extension='jsonl',
-                                  prefix=prefix)
-    local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+    if not local_filepath:
+        jsonl_filename = get_filename(api_params,
+                                      file_extension='jsonl',
+                                      prefix=prefix)
+        local_filepath = get_scratch_fp(bq_params, jsonl_filename)
+
     write_list_to_jsonl(local_filepath, record_list)
     upload_to_bucket(bq_params, local_filepath, delete_local=True)
 
@@ -1031,7 +1036,7 @@ def check_value_type(value):
     """
 
     # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
-    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-([0-2][0-9]|[3][0-1]|[0-9])"
+    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-(0[1-9]|[1-2][0-9]|[3][0-1]|[1-9])"
     date_pattern = re.compile(date_re_str)
     if re.fullmatch(date_pattern, value):
         return "DATE"
@@ -1324,7 +1329,8 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True):
+def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
+                              schema_filename=None, schema_dir=None):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1334,25 +1340,31 @@ def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, i
     :param include_release:
     :return:
     """
-    schema_filename = get_filename(api_params=api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release,
-                                   include_release=include_release)
+    if not schema_filename:
+        schema_filename = get_filename(api_params=api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
 
-    download_from_bucket(bq_params, schema_filename)
+    download_from_bucket(bq_params, filename=schema_filename, dir_path=schema_dir)
 
-    with open(get_scratch_fp(bq_params, schema_filename), "r") as schema_json:
+    if not schema_dir:
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
+    else:
+        schema_fp = f"{schema_dir}/{schema_filename}"
+
+    with open(schema_fp, "r") as schema_json:
         schema_obj = json.load(schema_json)
         json_schema_obj_list = [field for field in schema_obj["fields"]]
-
-    schema = generate_bq_schema_fields(json_schema_obj_list)
+        schema = generate_bq_schema_fields(json_schema_obj_list)
 
     return schema
 
 
-def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None):
+def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dict, include_release, release=None,
+                               schema_fp=None, delete_local=True):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1369,22 +1381,24 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
         "fields": schema_list
     }
 
-    schema_filename = get_filename(api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release,
-                                   include_release=include_release)
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release,
+                                       include_release=include_release)
 
-    schema_fp = get_scratch_fp(bq_params, schema_filename)
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
-    upload_to_bucket(bq_params, schema_fp, delete_local=True)
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
 
 
-def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release):
+def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_name, include_release=False,
+                                      schema_fp=None, delete_local=True):
     """
     todo
     :param api_params: api_params supplied in yaml config
@@ -1399,7 +1413,9 @@ def create_and_upload_schema_for_json(api_params, bq_params, record_list, table_
     generate_and_upload_schema(api_params, bq_params,
                                table_name=table_name,
                                data_types_dict=data_types_dict,
-                               include_release=include_release)
+                               include_release=include_release,
+                               schema_fp=schema_fp,
+                               delete_local=delete_local)
 
 
 def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
@@ -1484,11 +1500,6 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     value_type = check_value_type(value)
-
-                    if idx == 4 and value_type != 'FLOAT64':
-
-                        print(f"value: {value}, value_type: {value_type}")
-
                     data_types_dict[column_headers[idx]].add(value_type)
 
             count += 1
@@ -1526,7 +1537,7 @@ def create_schema_object(column_headers, data_types_dict):
 
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     skip_rows=0, row_check_interval=1, release=None):
+                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
     """
     Create and upload schema for a file in tsv format.
     :param api_params: api_params supplied in yaml config
@@ -1551,23 +1562,22 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
 
     data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
-    print(data_types_dict)
-
     data_type_dict = resolve_type_conflicts(data_types_dict)
 
     schema_obj = create_schema_object(column_headers, data_type_dict)
 
-    schema_filename = get_filename(api_params,
-                                   file_extension='json',
-                                   prefix="schema",
-                                   suffix=table_name,
-                                   release=release)
-    schema_fp = get_scratch_fp(bq_params, schema_filename)
+    if not schema_fp:
+        schema_filename = get_filename(api_params,
+                                       file_extension='json',
+                                       prefix="schema",
+                                       suffix=table_name,
+                                       release=release)
+        schema_fp = get_scratch_fp(bq_params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
-    upload_to_bucket(bq_params, schema_fp, delete_local=True)
+    upload_to_bucket(bq_params, schema_fp, delete_local=delete_local)
 
 
 def output_compare_tables_report(api_params, bq_params, get_publish_table_ids,
@@ -1739,6 +1749,7 @@ def make_string_bq_friendly(string):
     :param string:
     :return:
     """
+    string = string.replace('%', 'percent')
     string = re.sub(r'[^A-Za-z0-9_ ]+', ' ', string)
     string = string.strip()
     string = re.sub(r'\s+', '_', string)

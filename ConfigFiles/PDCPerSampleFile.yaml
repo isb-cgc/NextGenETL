@@ -1,0 +1,27 @@
+#
+# Supplemental YAML Configuration file used for script NextGenETL/BQ_Table_Building/PDC/build_pdc_per_sample_file.py
+# Builds BQ tables for PDC per-sample file metadata.
+#
+
+version: 1
+
+api_params: null
+
+bq_params:
+  # generic table metadata schema paths. Some PDC programs require two program label tags
+  # (e.g. cptac3 and tcga) and those programs use the GENERIC_TABLE_METADATA_FILE_2_PROGRAM file format.
+  GENERIC_TABLE_METADATA_FILE: pdc_per_sample_file.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: pdc_per_sample_file_multi_program.json
+
+steps:
+  # build per-sample project webapp views
+  # - build_per_sample_webapp_view
+
+  # build project-level per sample tables
+  # - build_project_level_per_sample_tables
+
+  # Test tables before publishing
+  # - test_new_version_per_sample_tables
+
+  # publish project-level per sample tables
+  # - publish_project_level_per_sample_tables
