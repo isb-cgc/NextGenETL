@@ -39,6 +39,5 @@
     {
         "name": "HideInPolymorphismList",
         "type": "string"
-    },
-
+    }
 ]
