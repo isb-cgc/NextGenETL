@@ -146,7 +146,7 @@ ON
 ON
   Gt.Individual_ID = I.Individual_ID
 WHERE
-  (F.Germline_mutation LIKE 'TP53%')
+  (LOWER(F.Germline_mutation) LIKE 'tp53%')
   AND (Tp.Short_topo IS NOT NULL)
   AND (LOWER(I.Germline_carrier) = 'confirmed'
     OR LOWER(I.Germline_carrier) = 'obligatory')

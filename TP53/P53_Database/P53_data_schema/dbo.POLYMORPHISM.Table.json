@@ -1,0 +1,44 @@
+[
+
+    {
+        "name": "Polymorphism_ID",
+        "type": "integer"
+    },
+    {
+        "name": "MUT_ID",
+        "type": "integer"
+    },
+    {
+        "name": "SNPlink",
+        "type": "string"
+    },
+    {
+        "name": "PubMedlink",
+        "type": "string"
+    },
+    {
+        "name": "p53KBlink",
+        "type": "string"
+    },
+    {
+        "name": "gnomADlink",
+        "type": "string"
+    },
+    {
+        "name": "SourceDatabases",
+        "type": "string"
+    },
+    {
+        "name": "AddInfo",
+        "type": "string"
+    },
+    {
+        "name": "Remark",
+        "type": "string"
+    },
+    {
+        "name": "HideInPolymorphismList",
+        "type": "string"
+    },
+
+]
