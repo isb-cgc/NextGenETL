@@ -21,18 +21,18 @@
     },
     {
         "name": "DP_AG",
-        "type": "float"
+        "type": "integer"
     },
     {
         "name": "DP_AL",
-        "type": "float"
+        "type": "integer"
     },
     {
         "name": "DP_DG",
-        "type": "float"
+        "type": "integer"
     },
     {
         "name": "DP_DL",
-        "type": "float"
+        "type": "integer"
     }
 ]
