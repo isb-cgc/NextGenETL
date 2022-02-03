@@ -5,34 +5,34 @@
     },
     {
         "name": "DS_AG",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DS_AL",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DS_DG",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DS_DL",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DP_AG",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DP_AL",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DP_DG",
-        "type": "integer"
+        "type": "float"
     },
     {
         "name": "DP_DL",
-        "type": "integer"
+        "type": "float"
     }
 ]
