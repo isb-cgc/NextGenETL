@@ -106,7 +106,7 @@ LEFT OUTER JOIN
 ON
   A.AAchange_ID = F.AAchangeID
 WHERE
-  (M.CompleteDescription = FALSE)
+  (M.CompleteDescription = TRUE)
 ORDER BY
   L.hg38_Chr17_coordinates DESC,
   M.Description

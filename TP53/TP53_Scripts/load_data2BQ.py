@@ -108,7 +108,6 @@ def main():
         # '../P53_Database/P53_data_csv/G_PREVALENCE.csv',
         # '../P53_Database/P53_data_csv/G_P53_MUTATION.csv',
         # '../P53_Database/P53_data_csv/G_REFERENCE.csv',
-        '../P53_Database/P53_data_csv/POLYMORPHISM.csv',
         # '../P53_Database/P53_data_csv/G_TUMOR.csv',
         # '../P53_Database/P53_data_csv/Genetic_code.csv',
         # '../P53_Database/P53_data_csv/GermlineRefView.csv',
@@ -139,6 +138,7 @@ def main():
         # '../P53_Database/P53_data_csv/Tumor_origin_dic.csv',
         # '../P53_Database/P53_data_csv/Type_dic.csv',
         # '../P53_Database/P53_data_csv/p53_sequence.csv'
+        '../P53_Database/P53_data_csv/SpliceAI_Prediction.csv'
     ]
 
     abs_path = [os.path.abspath(a_file) for a_file in file_name]
