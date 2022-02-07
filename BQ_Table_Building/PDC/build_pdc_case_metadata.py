@@ -78,7 +78,7 @@ def make_cases_aliquots_query(offset, limit):
                     sample_id
                     sample_submitter_id
                     sample_type
-                    is_ffpe
+                    #is_ffpe # field removed from API
                     preservation_method
                     biospecimen_anatomic_site
                     current_weight
