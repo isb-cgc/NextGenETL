@@ -166,7 +166,7 @@ def make_aliquot_to_case_id_query():
     return f"""
         WITH cases_samples AS (
             SELECT c.case_id, c.case_submitter_id, 
-                s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, 
+                s.sample_id, s.sample_submitter_id, s.sample_type, s.preservation_method, 
                 s.freezing_method, s.time_between_clamping_and_freezing, s.time_between_excision_and_freezing,
                 s.days_to_collection, s.initial_weight, s.current_weight, s.shortest_dimension, 
                 s.intermediate_dimension, s.longest_dimension,
