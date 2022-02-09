@@ -1893,7 +1893,10 @@ def main(args):
 
     # programs = ['BEATAML1.0']
     # programs = ['HCMI']
-    prev_release = BQ_PARAMS['PREV_RELEASE'] if BQ_PARAMS['PREV_RELEASE'] else None
+    if BQ_PARAMS['PREV_RELEASE']:
+        prev_release = BQ_PARAMS['PREV_RELEASE']
+    else:
+        prev_release = None
     programs = get_program_list()
 
     for orig_program in programs:
