@@ -1103,14 +1103,17 @@ def build_biospecimen_stub_view(program):
     create_view_from_query(biospec_table_id, biospec_stub_table_query)
 
 
-def find_last_release_table_id(base_table_name):
+def find_last_release_table_id(base_table_name, prev_release=None):
     """
     Find last released table id for a given dataset, if any.
     :param base_table_name: base table name, excluding release
     :return: previous release's table id, if any; otherwise None
     """
     oldest_etl_release = 27  # the oldest table release we published
-    last_gdc_release = int(API_PARAMS['RELEASE']) - 1
+    if prev_release is not None:
+        last_gdc_release = int(API_PARAMS['RELEASE']) - 1
+    else:
+        last_gdc_release = prev_release
 
     for release in range(last_gdc_release, oldest_etl_release - 1, -1):
         prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
@@ -1124,7 +1127,7 @@ def find_last_release_table_id(base_table_name):
     return None
 
 
-def build_publish_table_list(programs, to_remove_list=False):
+def build_publish_table_list(programs, prev_release=None, to_remove_list=False):
     """
     Build list of tables for publishing (which are either new or differ from previous version).
     :return: List of tables to publish for current data release
@@ -1152,7 +1155,8 @@ def build_publish_table_list(programs, to_remove_list=False):
                                                       dataset=BQ_PARAMS['DEV_DATASET'],
                                                       table_name=new_release_table_name)
             if exists_bq_table(new_release_table_id):
-                prev_release_table_id = find_last_release_table_id(base_table_name)
+                prev_release_table_id = find_last_release_table_id(base_table_name, prev_release)
+
                 if not prev_release_table_id:
                     publish_table_list.append(new_release_table_id)
                 else:
@@ -1889,6 +1893,7 @@ def main(args):
 
     # programs = ['BEATAML1.0']
     # programs = ['HCMI']
+    prev_release = BQ_PARAMS['PREV_RELEASE'] if BQ_PARAMS['PREV_RELEASE'] else None
     programs = get_program_list()
 
     for orig_program in programs:
@@ -1926,7 +1931,7 @@ def main(args):
             create_view_from_query(view_id, view_query)
 
     if 'list_tables_for_publication' in steps:
-        publish_table_list = build_publish_table_list(programs)
+        publish_table_list = build_publish_table_list(programs, prev_release)
 
         if len(publish_table_list) > 0:
             print("\nTable changes detected--create schemas for: ")
@@ -1940,11 +1945,11 @@ def main(args):
         # compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
-        publish_table_list = build_publish_table_list(programs)
+        publish_table_list = build_publish_table_list(programs, prev_release)
         copy_tables_into_public_project(publish_table_list)
 
     if 'remove_redundant_tables' in steps:
-        tables_to_remove_from_dev = build_publish_table_list(programs, to_remove_list=True)
+        tables_to_remove_from_dev = build_publish_table_list(programs, prev_release, to_remove_list=True)
 
         for table_id in tables_to_remove_from_dev:
             delete_bq_table(table_id)
