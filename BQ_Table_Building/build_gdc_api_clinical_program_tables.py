@@ -1071,7 +1071,7 @@ def copy_tables_into_public_project(publish_table_list):
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      #test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
                       id_keys="case_id")
 
 

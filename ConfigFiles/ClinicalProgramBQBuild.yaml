@@ -485,8 +485,6 @@ api_params:
 #
 ######################################################################################
 bq_params:
-  PUBLISH_TEST_MODE: true
-
   ##
   #  File Locations, GDC Release, Naming Conventions
   ##
