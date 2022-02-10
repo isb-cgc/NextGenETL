@@ -1891,8 +1891,10 @@ def main(args):
 
         if 'PREV_RELEASE' not in API_PARAMS:
             prev_release = None
+            print("No Previous Release set")
         else:
             prev_release = API_PARAMS['PREV_RELEASE']
+            print(f"previous release set to {prev_release}")
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
