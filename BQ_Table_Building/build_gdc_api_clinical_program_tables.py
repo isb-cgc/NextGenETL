@@ -1888,16 +1888,16 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
         if 'FIELD_CONFIG' not in API_PARAMS:
             has_fatal_error("params['FIELD_CONFIG'] not found")
+
+        if 'PREV_RELEASE' not in API_PARAMS:
+            prev_release = None
+        else:
+            prev_release = API_PARAMS['PREV_RELEASE']
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
     # programs = ['BEATAML1.0']
     # programs = ['HCMI']
-    # if not BQ_PARAMS['PREV_RELEASE']:
-    #     prev_release = None
-    # else:
-    #     prev_release = BQ_PARAMS['PREV_RELEASE']
-    print(BQ_PARAMS['PREV_RELEASE'])
     programs = get_program_list()
 
     for orig_program in programs:
