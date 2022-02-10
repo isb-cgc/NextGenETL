@@ -1103,14 +1103,14 @@ def build_biospecimen_stub_view(program):
     create_view_from_query(biospec_table_id, biospec_stub_table_query)
 
 
-def find_last_release_table_id(base_table_name, prev_release=None):
+def find_last_release_table_id(base_table_name, prev_release):
     """
     Find last released table id for a given dataset, if any.
     :param base_table_name: base table name, excluding release
     :return: previous release's table id, if any; otherwise None
     """
     oldest_etl_release = 27  # the oldest table release we published
-    if prev_release is not None:
+    if prev_release is None:
         last_gdc_release = int(API_PARAMS['RELEASE']) - 1
     else:
         last_gdc_release = prev_release
@@ -1127,7 +1127,7 @@ def find_last_release_table_id(base_table_name, prev_release=None):
     return None
 
 
-def build_publish_table_list(programs, prev_release=None, to_remove_list=False):
+def build_publish_table_list(programs, prev_release, to_remove_list=False):
     """
     Build list of tables for publishing (which are either new or differ from previous version).
     :return: List of tables to publish for current data release
