@@ -1115,6 +1115,8 @@ def find_last_release_table_id(base_table_name, prev_release):
     else:
         last_gdc_release = prev_release
 
+    print(f"Using GDC release {str(last_gdc_release)} as last gdc release")
+
     for release in range(last_gdc_release, oldest_etl_release - 1, -1):
         prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
         prev_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
@@ -1891,10 +1893,8 @@ def main(args):
 
         if 'PREV_RELEASE' not in API_PARAMS:
             prev_release = None
-            print("No Previous Release set")
         else:
-            prev_release = API_PARAMS['PREV_RELEASE']
-            print(f"previous release set to {prev_release}")
+            prev_release = int(API_PARAMS['PREV_RELEASE'])
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
