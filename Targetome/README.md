@@ -6,23 +6,27 @@ Steps to export the required TSV files from the Targetome MySQL dump. These comm
 
 1. From the Targetome directory of the NextGenETL repository, run the make install command to install and MySQL on a Debian VM:
 
-    make install
+        make install
 
 When prompted, select the following options:
 
     - select N to setting root password
+
     - select Y to remove anonymous user
+
     - select Y to disallow root login remotely
+
     - select Y to remove test database and access to it
+
     - select Y to reload privilege tables
 
 2. Initialize the database with the raw Targetome data, this downloads the raw data from the Targetome GitHub repository:
 
-    make init
+        make init
 
 3. Export the flattened Targetome data to TSV files. 
 
-    make export
+        make export
 
 The exported TSV files, located in the "export" directory, can now be used in the Targetome ETL pipeline.
 
