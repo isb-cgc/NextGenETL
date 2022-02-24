@@ -36,7 +36,8 @@ from common_etl.support import confirm_google_vm, create_clean_target, \
                                build_file_list, upload_to_bucket, csv_to_bq, \
                                BucketPuller, build_combined_schema, \
                                install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, publish_table, pull_from_buckets
+                               generate_table_detail_files, publish_table, pull_from_buckets, \
+                               delete_table_bq_job
 
 
 '''
@@ -375,7 +376,44 @@ def main(args):
                 print('delete_scratch_tables failed')
                 return
 
+    #
+    # Delete current and versioned tables
+    #
 
+    if 'delete_tables' in steps:
+        print('delete_tables')
+
+        # current tables
+        for t in params['TABLE_LIST']:
+            print('Deleting current table: {}.{}.{}'.format(
+                params['PUBLICATION_PROJECT'],
+                params['PUBLICATION_DATASET'],
+                '_'.join([t, 'current'])
+            ))
+            success = delete_table_bq_job(
+                params['PUBLICATION_DATASET'],
+                '_'.join([t, 'current']),
+                params['PUBLICATION_PROJECT']
+            )
+            if not success:
+                print('delete_tables failed')
+                return
+
+        # versioned tables
+        for t in params['TABLE_LIST']:
+            print('Deleting current table: {}.{}.{}'.format(
+                params['PUBLICATION_PROJECT'],
+                '_'.join([params['PUBLICATION_DATASET'], 'versioned']),
+                params['TABLE_LIST'][t]
+            ))
+            success = delete_table_bq_job(
+                '_'.join([params['PUBLICATION_DATASET'], 'versioned']),
+                params['TABLE_LIST'][t],
+                params['PUBLICATION_PROJECT']
+            )
+            if not success:
+                print('delete_tables failed')
+                return
 
     print('job completed')
 
