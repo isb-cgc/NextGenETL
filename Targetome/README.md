@@ -8,7 +8,7 @@ Steps to export the required TSV files from the Targetome MySQL dump. These comm
 
         make install
 
-  When prompted, select the following options:
+2. When prompted, select the following options:
 
   - select N to setting root password
 
@@ -20,11 +20,11 @@ Steps to export the required TSV files from the Targetome MySQL dump. These comm
 
   - select Y to reload privilege tables
 
-2. Initialize the database with the raw Targetome data, this downloads the raw data from the Targetome GitHub repository:
+3. Initialize the database with the raw Targetome data, this downloads the raw data from the Targetome GitHub repository:
 
         make init
 
-3. Export the flattened Targetome data to TSV files. 
+4. Export the flattened Targetome data to TSV files. 
 
         make export
 
