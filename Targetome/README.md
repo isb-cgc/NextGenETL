@@ -8,17 +8,17 @@ Steps to export the required TSV files from the Targetome MySQL dump. These comm
 
         make install
 
-When prompted, select the following options:
+  When prompted, select the following options:
 
-    - select N to setting root password
+  - select N to setting root password
 
-    - select Y to remove anonymous user
+  - select Y to remove anonymous user
 
-    - select Y to disallow root login remotely
+  - select Y to disallow root login remotely
 
-    - select Y to remove test database and access to it
+  - select Y to remove test database and access to it
 
-    - select Y to reload privilege tables
+  - select Y to reload privilege tables
 
 2. Initialize the database with the raw Targetome data, this downloads the raw data from the Targetome GitHub repository:
 
