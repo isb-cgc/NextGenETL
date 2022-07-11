@@ -160,7 +160,7 @@ SQL for above
 
 
 def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
-    # if program == 'TCGA': # todo remove as the files have been standardized
+    # if program == 'TCGA': # todo remove
     #     return '''
     #         WITH
     #         a1 AS (SELECT a.project_short_name,
@@ -240,30 +240,30 @@ SQL for above
 
 
 def final_join_sql(maf_table, barcodes_table, program):
-    if program == 'TCGA':
-        return '''
-             SELECT a.project_short_name,
-                    a.case_barcode,
-                    b.*,
-                    a.sample_barcode_tumor,
-                    a.sample_barcode_normal,
-                    a.aliquot_barcode_tumor, 
-                    a.aliquot_barcode_normal,
-             FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
-        '''.format(barcodes_table, maf_table)
-    else:
-        return '''
-             SELECT a.project_short_name,
-                    a.case_barcode,
-                    a.primary_site,
-                    b.*,
-                    a.sample_barcode_tumor,
-                    a.sample_barcode_normal,
-                    a.aliquot_barcode_tumor, 
-                    a.aliquot_barcode_normal,
-             FROM `{0}` as a JOIN `{1}` as b 
-             ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
-        '''.format(barcodes_table, maf_table)
+    # if program == 'TCGA':
+    #     return '''
+    #          SELECT a.project_short_name,
+    #                 a.case_barcode,
+    #                 b.*,
+    #                 a.sample_barcode_tumor,
+    #                 a.sample_barcode_normal,
+    #                 a.aliquot_barcode_tumor,
+    #                 a.aliquot_barcode_normal,
+    #          FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
+    #     '''.format(barcodes_table, maf_table)
+    # else:
+    return f"""
+         SELECT a.project_short_name,
+                a.case_barcode,
+                a.primary_site,
+                b.*,
+                a.sample_barcode_tumor,
+                a.sample_barcode_normal,
+                a.aliquot_barcode_tumor, 
+                a.aliquot_barcode_normal,
+         FROM `{barcodes_table}` as a JOIN `{maf_table}` as b 
+         ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
+    """
 
 
 '''
