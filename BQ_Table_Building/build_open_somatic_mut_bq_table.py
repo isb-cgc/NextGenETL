@@ -121,13 +121,13 @@ SQL for above
 
 
 def attach_aliquot_ids_sql(maf_table, file_table):
-    return '''
+    return f"""
         WITH
-        a1 AS (SELECT DISTINCT tumor_bam_uuid, normal_bam_uuid FROM `{0}`),        
+        a1 AS (SELECT DISTINCT tumor_bam_uuid, normal_bam_uuid FROM `{maf_table}`),        
         a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id_tumor,
                       a1.tumor_bam_uuid,
                       a1.normal_bam_uuid
-               FROM a1 JOIN `{1}` AS b ON a1.tumor_bam_uuid = b.file_gdc_id
+               FROM a1 JOIN `{file_table}` AS b ON a1.tumor_bam_uuid = b.file_gdc_id
                WHERE b.associated_entities__entity_type = 'aliquot')
         SELECT 
                c.project_short_name,
@@ -136,9 +136,9 @@ def attach_aliquot_ids_sql(maf_table, file_table):
                a2.aliquot_gdc_id_tumor,
                a2.tumor_bam_uuid,
                a2.normal_bam_uuid
-        FROM a2 JOIN `{1}` AS c ON a2.normal_bam_uuid = c.file_gdc_id
+        FROM a2 JOIN `{file_table}` AS c ON a2.normal_bam_uuid = c.file_gdc_id
         WHERE c.associated_entities__entity_type = 'aliquot'
-        '''.format(maf_table, file_table)
+        """
 
 
 '''
@@ -160,7 +160,7 @@ SQL for above
 
 
 def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
-    if program == 'TCGA':
+    if program == 'TCGA': # todo remove as the files have been standardized
         return '''
             WITH
             a1 AS (SELECT a.project_short_name,
@@ -274,11 +274,11 @@ out along with name and ID.
 '''
 
 
-def file_info(aFile, program):
+def file_info(aFile, program): # todo Does this need to be updated?
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
 
-    if program == 'TCGA':
+    if program == 'TCGA': # todo remove TCGA
         file_name = path_pieces[-1]
         file_name_parts = file_name.split('.')
         callerName = file_name_parts[2]
@@ -297,7 +297,7 @@ Some field names are not accurately named and as of 2020-08-05, the GDC has said
 update the field names to accurately reflect the data within th column.
 '''
 
-
+# todo check if this is still needed since the files have been updated
 def clean_header_names(header_line, fields_to_fix, program):
     header_id = header_line.split('\t')
     if program != 'TCGA':
@@ -335,7 +335,7 @@ def process_callers(callers_str, callers):
 ------------------------------------------------------------------------------
 Concatenate all Files
 '''
-
+# todo remove TCGA option
 
 def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     """
@@ -411,10 +411,10 @@ def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch
     sql = merge_samples_by_aliquot_sql(input_table)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
-def merge_samples_by_aliquot_sql(input_table):
+def merge_samples_by_aliquot_sql(input_table): # todo update to new fields
     return '''
     SELECT 
-        project_short_name, 
+       project_short_name, 
        case_barcode, 
        primary_site, 
        Hugo_Symbol, 
@@ -741,14 +741,14 @@ def main(args):
         release = 'current'
         use_schema = params['SCHEMA_FILE_NAME']
 
-    # Create table names
+    # Create table names # todo change to f-strings
     concat_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'concat'])
     barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
     draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
     manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest'])
 
-    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+    if params['RELEASE'] < 21 and 'METADATA_REL' not in params: # todo remove
         print("The input release is before new metadata process, "
               "please specify which release of the metadata to use.")
 
