@@ -727,13 +727,13 @@ def main(args):
     #
 
     home = expanduser("~")
-    local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    one_big_tsv = "{}/{}".format(home, params['ONE_BIG_TSV'])
-    manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
-    local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
-    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
+    local_files_dir = f"{home}/{params['LOCAL_FILES_DIR']}"
+    one_big_tsv = f"{home}/{params['ONE_BIG_TSV']}"
+    manifest_file = f"{home}/{params['MANIFEST_FILE']}"
+    local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
+    file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
+    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
+    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
 
     # Which table are we building?
     release = "".join(["r", str(params['RELEASE'])])
