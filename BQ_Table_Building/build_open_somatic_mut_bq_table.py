@@ -160,65 +160,65 @@ SQL for above
 
 
 def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
-    if program == 'TCGA': # todo remove as the files have been standardized
-        return '''
-            WITH
-            a1 AS (SELECT a.project_short_name,
-                          a.case_gdc_id,
-                          b.aliquot_barcode AS aliquot_barcode_tumor,
-                          b.sample_barcode AS sample_barcode_tumor,
-                          a.aliquot_gdc_id_tumor,
-                          a.aliquot_gdc_id_normal,
-                          a.tumor_bam_uuid,
-                          a.normal_bam_uuid
-                   FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id_tumor = b.aliquot_gdc_id)
-            SELECT a1.project_short_name,
-                   c.case_barcode,
-                   a1.sample_barcode_tumor,
-                   c.sample_barcode AS sample_barcode_normal,
-                   a1.aliquot_barcode_tumor, 
-                   c.aliquot_barcode AS aliquot_barcode_normal,
-                   a1.tumor_bam_uuid,
-                   a1.normal_bam_uuid
-            FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-            WHERE c.case_gdc_id = a1.case_gdc_id
-            '''.format(maf_table, aliquot_table)
-    else:
-        return '''
-            WITH
-            a1 AS (SELECT b.project_id AS project_short_name,
-                          a.case_id AS case_gdc_id,
-                          b.aliquot_barcode AS aliquot_barcode_tumor,
-                          b.sample_barcode AS sample_barcode_tumor,
-                          a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
-                          a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
-                          a.Start_Position,
-			  a.Chromosome
-                FROM
-                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
-            a2 AS (SELECT a1.project_short_name,
-                          c.case_barcode,
-                          a1.sample_barcode_tumor,
-                          c.sample_barcode AS sample_barcode_normal,
-                          a1.aliquot_barcode_tumor,
-                          c.aliquot_barcode AS aliquot_barcode_normal,
-                          a1.aliquot_gdc_id_tumor,
-                          a1.Start_Position, 
-			  a1.Chromosome
-                FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-                WHERE c.case_gdc_id = a1.case_gdc_id)
-            SELECT a2.project_short_name,
-                   a2.case_barcode,
-                   d.primary_site,
-                   a2.sample_barcode_tumor,
-                   a2.sample_barcode_normal,
-                   a2.aliquot_barcode_tumor,
-                   a2.aliquot_barcode_normal,
-                   a2.aliquot_gdc_id_tumor,
-                   a2.Start_Position, 
-		   a2.Chromosome
-            FROM a2 JOIN `{2}` AS d ON a2.case_barcode = d.case_barcode
-        '''.format(maf_table, aliquot_table, case_table)
+    # if program == 'TCGA': # todo remove as the files have been standardized
+    #     return '''
+    #         WITH
+    #         a1 AS (SELECT a.project_short_name,
+    #                       a.case_gdc_id,
+    #                       b.aliquot_barcode AS aliquot_barcode_tumor,
+    #                       b.sample_barcode AS sample_barcode_tumor,
+    #                       a.aliquot_gdc_id_tumor,
+    #                       a.aliquot_gdc_id_normal,
+    #                       a.tumor_bam_uuid,
+    #                       a.normal_bam_uuid
+    #                FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id_tumor = b.aliquot_gdc_id)
+    #         SELECT a1.project_short_name,
+    #                c.case_barcode,
+    #                a1.sample_barcode_tumor,
+    #                c.sample_barcode AS sample_barcode_normal,
+    #                a1.aliquot_barcode_tumor,
+    #                c.aliquot_barcode AS aliquot_barcode_normal,
+    #                a1.tumor_bam_uuid,
+    #                a1.normal_bam_uuid
+    #         FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
+    #         WHERE c.case_gdc_id = a1.case_gdc_id
+    #         '''.format(maf_table, aliquot_table)
+    # else:
+    return f"""
+        WITH
+        a1 AS (SELECT b.project_id AS project_short_name,
+                      a.case_id AS case_gdc_id,
+                      b.aliquot_barcode AS aliquot_barcode_tumor,
+                      b.sample_barcode AS sample_barcode_tumor,
+                      a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
+                      a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
+                      a.Start_Position,
+          a.Chromosome
+            FROM
+              `{maf_table}` AS a JOIN `{aliquot_table}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
+        a2 AS (SELECT a1.project_short_name,
+                      c.case_barcode,
+                      a1.sample_barcode_tumor,
+                      c.sample_barcode AS sample_barcode_normal,
+                      a1.aliquot_barcode_tumor,
+                      c.aliquot_barcode AS aliquot_barcode_normal,
+                      a1.aliquot_gdc_id_tumor,
+                      a1.Start_Position, 
+          a1.Chromosome
+            FROM a1 JOIN `{aliquot_table}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
+            WHERE c.case_gdc_id = a1.case_gdc_id)
+        SELECT a2.project_short_name,
+               a2.case_barcode,
+               d.primary_site,
+               a2.sample_barcode_tumor,
+               a2.sample_barcode_normal,
+               a2.aliquot_barcode_tumor,
+               a2.aliquot_barcode_normal,
+               a2.aliquot_gdc_id_tumor,
+               a2.Start_Position, 
+       a2.Chromosome
+        FROM a2 JOIN `{case_table}` AS d ON a2.case_barcode = d.case_barcode
+    """
 
 
 '''
