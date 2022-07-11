@@ -278,14 +278,14 @@ def file_info(aFile, program): # todo Does this need to be updated?
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
 
-    if program == 'TCGA': # todo remove TCGA
-        file_name = path_pieces[-1]
-        file_name_parts = file_name.split('.')
-        callerName = file_name_parts[2]
-        fileUUID = file_name_parts[3]
-    else:
-        fileUUID = path_pieces[-2]
-        callerName = None
+    # if program == 'TCGA': # todo remove TCGA
+    #     file_name = path_pieces[-1]
+    #     file_name_parts = file_name.split('.')
+    #     callerName = file_name_parts[2]
+    #     fileUUID = file_name_parts[3]
+    # else:
+    fileUUID = path_pieces[-2]
+    callerName = None
 
     return ([callerName, fileUUID])
 
@@ -294,19 +294,20 @@ def file_info(aFile, program): # todo Does this need to be updated?
 ------------------------------------------------------------------------------
 Clean header field names
 Some field names are not accurately named and as of 2020-08-05, the GDC has said they will not be updated. We decided to 
-update the field names to accurately reflect the data within th column.
+update the field names to accurately reflect the data within th column. As of GDC r32, the columns are still named
+incorrectly.
 '''
 
 # todo check if this is still needed since the files have been updated
 def clean_header_names(header_line, fields_to_fix, program):
     header_id = header_line.split('\t')
-    if program != 'TCGA':
-        for header_name in range(len(header_id)):
-            for dict in fields_to_fix:
-                original, new = next(iter(dict.items()))
+    # if program != 'TCGA':
+    for header_name in range(len(header_id)):
+        for dict in fields_to_fix:
+            original, new = next(iter(dict.items()))
 
-                if header_id[header_name] == original:
-                    header_id[header_name] = new
+            if header_id[header_name] == original:
+                header_id[header_name] = new
 
     return header_id
 
@@ -314,7 +315,7 @@ def clean_header_names(header_line, fields_to_fix, program):
 '''
 ------------------------------------------------------------------------------
 Separate the Callers into their own columns
-The non-TCGA maf files has one column with a semicolon deliminated 
+The maf files has one column with a semicolon delimited with the callers in it.
 '''
 
 
@@ -335,7 +336,6 @@ def process_callers(callers_str, callers):
 ------------------------------------------------------------------------------
 Concatenate all Files
 '''
-# todo remove TCGA option
 
 def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     """
@@ -346,7 +346,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     we unzip it, concat it, then toss the unzipped version.
     THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
     """
-    print("building {}".format(one_big_tsv))
+    print(f"building {one_big_tsv}")
     first = True
     header_id = None
     with open(one_big_tsv, 'w') as outfile:
@@ -360,7 +360,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                 use_file_name = filename[:-4]
                 toss_zip = True
             elif filename.endswith('.gz'):
-                dir_name = os.path.dirname(filename)
+                # dir_name = os.path.dirname(filename)
                 use_file_name = filename[:-3]
                 print("Uncompressing {}".format(filename))
                 with gzip.open(filename, "rb") as gzip_in:
@@ -381,28 +381,30 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             outfile.write(header_line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
-                            if program == "TCGA":
+                            # todo remove
+                            # if program == "TCGA":
+                            #     outfile.write('\t')
+                            #     outfile.write('caller')
+                            # else:
+                            for field in callers:
                                 outfile.write('\t')
-                                outfile.write('caller')
-                            else:
-                                for field in callers:
-                                    outfile.write('\t')
-                                    outfile.write(field)
+                                outfile.write(field)
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
-                            if program == "TCGA":
+                            # todo remove
+                            # if program == "TCGA":
+                            #     outfile.write('\t')
+                            #     outfile.write(callerName)
+                            # else:
+                            caller_field = line.split('\t')[124]
+                            caller_data = process_callers(caller_field, callers)
+                            for caller in callers:
                                 outfile.write('\t')
-                                outfile.write(callerName)
-                            else:
-                                caller_field = line.split('\t')[124]
-                                caller_data = process_callers(caller_field, callers)
-                                for caller in callers:
-                                    outfile.write('\t')
-                                    outfile.write(caller_data[caller])
+                                outfile.write(caller_data[caller])
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
