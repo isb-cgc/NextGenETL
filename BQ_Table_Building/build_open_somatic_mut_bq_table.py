@@ -414,7 +414,7 @@ def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 def merge_samples_by_aliquot_sql(input_table): # todo update to new fields
-    return '''
+    return f"""
     SELECT 
        project_short_name, 
        case_barcode, 
@@ -554,7 +554,7 @@ def merge_samples_by_aliquot_sql(input_table): # todo update to new fields
        aliquot_barcode_tumor, 
        aliquot_barcode_normal
     FROM 
-        `{0}`
+        `{input_table}`
     group by 
         project_short_name, 
          case_barcode, 
@@ -690,7 +690,7 @@ def merge_samples_by_aliquot_sql(input_table): # todo update to new fields
          somaticsniper, 
          varscan2,  
          aliquot_barcode_tumor, 
-         aliquot_barcode_normal'''.format(input_table)			
+         aliquot_barcode_normal"""
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -706,7 +706,7 @@ def main(args):
 
     if len(args) != 2:
         print(" ")
-        print(" Usage : {} <configuration_yaml>".format(args[0]))
+        print(f" Usage : {args[0]} <configuration_yaml>")
         return
 
     print('job started')
