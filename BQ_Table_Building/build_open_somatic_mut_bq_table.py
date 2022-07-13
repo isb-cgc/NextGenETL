@@ -751,7 +751,7 @@ def main(args):
         release = 'current'
         use_schema = params['SCHEMA_FILE_NAME']
 
-    # Create table names # todo change to f-strings
+    # Create table names
     concat_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_concat"
     barcode_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_barcode"
     draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
