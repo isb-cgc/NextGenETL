@@ -322,6 +322,15 @@ The maf files has one column with a semicolon delimited with the callers in it.
 
 
 def process_callers(callers_str, callers):
+    """
+    # todo
+    :param callers_str:
+    :type callers_str:
+    :param callers:
+    :type callers:
+    :return:
+    :rtype:
+    """
     line_callers = callers_str.rstrip('\n').split(';')
     caller_list = dict.fromkeys(callers, 'No')
     for caller in line_callers:
@@ -403,8 +412,8 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
-                            caller_field = line.split('\t')[124]
-                            caller_data = process_callers(caller_field, callers)
+                            caller_field = line.split('\t').index("callers")
+                            caller_data = process_callers(line.split('\t')[caller_field], callers)
                             for caller in callers:
                                 outfile.write('\t')
                                 outfile.write(caller_data[caller])
