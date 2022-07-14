@@ -385,11 +385,13 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                 callerName, fileUUID = file_info(use_file_name, program)
                 for line in readfile:
                     # Seeing comments in MAF files.
+                    caller_field_index = None
                     if not line.startswith('#'):
                         if first:
                             header_id = line.split('\t')[0]
                             header_names = clean_header_names(line, fields_to_fix, program)
                             header_line = '\t'.join(header_names)
+                            caller_field_index = header_names.index('callers')
                             outfile.write(header_line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
@@ -412,9 +414,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
-                            print(line)
-                            caller_field = line.split('\t').index('callers')
-                            caller_data = process_callers(line.split('\t')[caller_field], callers)
+                            caller_data = process_callers(line.split('\t')[caller_field_index], callers)
                             for caller in callers:
                                 outfile.write('\t')
                                 outfile.write(caller_data[caller])
