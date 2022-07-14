@@ -412,8 +412,8 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
-                            caller_field = line.split('\t').index("callers")
-                            caller_data = process_callers(line.split('\t')[caller_field], callers)
+                            #caller_field = line.split('\t').index('callers')
+                            caller_data = process_callers(line.split('\t')[139], callers)
                             for caller in callers:
                                 outfile.write('\t')
                                 outfile.write(caller_data[caller])
