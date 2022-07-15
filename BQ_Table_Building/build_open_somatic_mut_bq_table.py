@@ -299,19 +299,18 @@ update the field names to accurately reflect the data within th column. As of GD
 incorrectly.
 '''
 
-
-# todo check if this is still needed since the files have been updated
-def clean_header_names(header_line, fields_to_fix, program):
-    header_id = header_line.split('\t')
+def clean_header_names(header_list, fields_to_fix):
+    # todo remove commented out lines
+    #header_id = header_line.split('\t')
     # if program != 'TCGA':
-    for header_name in range(len(header_id)):
+    for header_name in range(len(header_list)):
         for dict in fields_to_fix:
             original, new = next(iter(dict.items()))
 
-            if header_id[header_name] == original:
-                header_id[header_name] = new
+            if header_list[header_name] == original:
+                header_list[header_name] = new
 
-    return header_id
+    return header_list
 
 
 '''
@@ -388,12 +387,11 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                     caller_field_index = None
                     if not line.startswith('#'):
                         if first:
-                            header_id = line.split('\t')[0]
-                            header_names = clean_header_names(line, fields_to_fix, program)
+                            header_list = line.rstrip('\n').split('\t')
+                            header_id = header_list[0]
+                            header_names = clean_header_names(header_list, fields_to_fix)
                             header_line = '\t'.join(header_names)
-                            print(header_names)
-                            caller_field_index = header_names.strip().index('callers')
-                            outfile.write(header_line.rstrip('\n'))
+                            outfile.write(header_line) #.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
                             # todo remove
@@ -415,7 +413,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
-                            caller_data = process_callers(line.split('\t')[caller_field_index], callers)
+                            caller_data = process_callers(header_names[header_names.index('callers')], callers)
                             for caller in callers:
                                 outfile.write('\t')
                                 outfile.write(caller_data[caller])
