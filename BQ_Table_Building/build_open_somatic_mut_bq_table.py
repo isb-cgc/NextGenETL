@@ -382,9 +382,9 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
                 callerName, fileUUID = file_info(use_file_name, program)
+                caller_field_index = None
                 for line in readfile:
-                    # Seeing comments in MAF files.
-                    caller_field_index = None
+                    # Seeing comments in MAF files
                     if not line.startswith('#'):
                         if first:
                             header_list = line.rstrip('\n').split('\t')
