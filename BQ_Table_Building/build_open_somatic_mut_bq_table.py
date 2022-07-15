@@ -382,7 +382,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
                 callerName, fileUUID = file_info(use_file_name, program)
-                caller_field_index = None
+                caller_field_index = 0
                 for line in readfile:
                     # Seeing comments in MAF files
                     if not line.startswith('#'):
