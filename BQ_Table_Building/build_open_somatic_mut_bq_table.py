@@ -390,6 +390,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             header_list = line.rstrip('\n').split('\t')
                             header_id = header_list[0]
                             header_names = clean_header_names(header_list, fields_to_fix)
+                            print(header_names.index('callers'))
                             caller_field_index = header_names.index('callers')
                             header_line = '\t'.join(header_names)
                             outfile.write(header_line) #.rstrip('\n'))
@@ -414,7 +415,6 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
-                            print(caller_field_index)
                             caller_data = process_callers(line.rstrip('\n').split('\t')[caller_field_index], callers)
                             for caller in callers:
                                 outfile.write('\t')
