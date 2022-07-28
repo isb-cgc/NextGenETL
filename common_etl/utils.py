@@ -779,7 +779,6 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
 
 #   GOOGLE CLOUD STORAGE UTILS
 
-
 def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     """
     Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
@@ -1538,6 +1537,28 @@ def create_schema_object(column_headers, data_types_dict):
         "fields": schema_field_object_list
     }
 
+def find_types(file, sample_interval):
+    """
+    Finds the field type for each column in the file
+    :param file: file name
+    :type file: basestring
+    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
+        example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return: a tuple with a list of [field, field type]
+    :rtype: tuple ([field, field_type])
+    """
+    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
+    field_types = aggregate_column_data_types_tsv(file, column_list,
+                                                  sample_interval=sample_interval,
+                                                  skip_rows=1)
+    final_field_types = resolve_type_conflicts(field_types)
+    typing_tups = []
+    for column in column_list:
+        tup = (column, final_field_types[column])
+        typing_tups.append(tup)
+
+    return typing_tups
 
 def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
                                      skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
