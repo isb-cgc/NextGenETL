@@ -920,6 +920,7 @@ def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, writ
 
     schema_list = []
     for mydict in schema:
+        print(mydict['name'])
         schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
                                                 mode='NULLABLE', description=mydict['description']))
 
