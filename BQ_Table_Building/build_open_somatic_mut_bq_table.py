@@ -916,11 +916,11 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-    typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-    full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
-    #schema_dict_loc = f"{full_file_prefix}_schema.json"
-    build_combined_schema(None, None,
-                          typing_tups, hold_schema_list, hold_schema_dict)
+        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
+        #schema_dict_loc = f"{full_file_prefix}_schema.json"
+        build_combined_schema(None, None,
+                              typing_tups, hold_schema_list, hold_schema_dict)
 
     bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["PROGRAM"]}-{params["DATA_TYPE"]}.tsv' # todo do we need this here or can it move?
 
