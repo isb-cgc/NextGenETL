@@ -46,6 +46,8 @@ from common_etl.support import create_clean_target, pull_from_buckets, build_fil
     generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
     publish_table, update_status_tag, compare_two_tables
 
+from common_etl.utils import find_types
+
 '''
 ----------------------------------------------------------------------------------------------
 The configuration reader. Parses the YAML configuration into dictionaries
@@ -839,6 +841,7 @@ def main(args):
 
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
+        # todo create a function to reload from github
         try:
             create_clean_target(params['SCHEMA_REPO_LOCAL'])
             repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
@@ -847,71 +850,79 @@ def main(args):
             print(f"pull_table_info_from_git failed: {str(ex)}")
             return
 
-    for table in update_schema_tables:
-        if table == 'current':
-            use_schema = params['SCHEMA_FILE_NAME']
-            schema_release = 'current'
-        else:
-            use_schema = params['VER_SCHEMA_FILE_NAME']
-            schema_release = release
+    # for table in update_schema_tables:
+    #     if table == 'current':
+    #         use_schema = params['SCHEMA_FILE_NAME']
+    #         schema_release = 'current'
+    #     else:
+    #         use_schema = params['VER_SCHEMA_FILE_NAME']
+    #         schema_release = release
+    #
+    #     if 'process_git_schemas' in steps:
+    #         print('process_git_schema')
+    #         # Where do we dump the schema git repository?
+    #         schema_file = f"{params['SCHEMA_REPO_LOCAL']}/{params['RAW_SCHEMA_DIR']}/{use_schema}"
+    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+    #         # Write out the details
+    #         success = generate_table_detail_files(schema_file, full_file_prefix)
+    #         if not success:
+    #             print("process_git_schemas failed")
+    #             return
+    #
+    #     # Customize generic schema to this data program:
+    #
+    #     if 'replace_schema_tags' in steps:
+    #         print('replace_schema_tags')
+    #         pn = params['PROGRAM']
+    #         dataset_tuple = (pn, pn.replace(".", "_"))
+    #         tag_map_list = []
+    #         for tag_pair in schema_tags:
+    #             for tag in tag_pair:
+    #                 val = tag_pair[tag]
+    #                 use_pair = {}
+    #                 tag_map_list.append(use_pair)
+    #                 if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
+    #                     chunks = val.split('-', 1)
+    #                     if chunks[1] == 'programs':
+    #                         if val.find('~lcbqs-') == 0:
+    #                             rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
+    #                         else:
+    #                             rep_val = dataset_tuple[0]
+    #                     elif chunks[1] == 'builds':
+    #                         rep_val = params['BUILD']
+    #                     else:
+    #                         raise Exception()
+    #                     if val.find('~lc-') == 0:
+    #                         rep_val = rep_val.lower()
+    #                     use_pair[tag] = rep_val
+    #                 else:
+    #                     use_pair[tag] = val
+    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+    #
+    #         # Write out the details
+    #         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
+    #
+    #         if not success:
+    #             print("replace_schema_tags failed")
+    #             return False
+    #
+    #     if 'analyze_the_schema' in steps:
+    #         print('analyze_the_schema')
+    #         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+    #         schema_dict_loc = f"{full_file_prefix}_schema.json"
+    #         build_combined_schema(None, schema_dict_loc,
+    #                               typing_tups, hold_schema_list, hold_schema_dict)
 
-        if 'process_git_schemas' in steps:
-            print('process_git_schema')
-            # Where do we dump the schema git repository?
-            schema_file = f"{params['SCHEMA_REPO_LOCAL']}/{params['RAW_SCHEMA_DIR']}/{use_schema}"
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            # Write out the details
-            success = generate_table_detail_files(schema_file, full_file_prefix)
-            if not success:
-                print("process_git_schemas failed")
-                return
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+    typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+    full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
+    #schema_dict_loc = f"{full_file_prefix}_schema.json"
+    build_combined_schema(None, None,
+                          typing_tups, hold_schema_list, hold_schema_dict)
 
-        # Customize generic schema to this data program:
-
-        if 'replace_schema_tags' in steps:
-            print('replace_schema_tags')
-            pn = params['PROGRAM']
-            dataset_tuple = (pn, pn.replace(".", "_"))
-            tag_map_list = []
-            for tag_pair in schema_tags:
-                for tag in tag_pair:
-                    val = tag_pair[tag]
-                    use_pair = {}
-                    tag_map_list.append(use_pair)
-                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                        chunks = val.split('-', 1)
-                        if chunks[1] == 'programs':
-                            if val.find('~lcbqs-') == 0:
-                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-                            else:
-                                rep_val = dataset_tuple[0]
-                        elif chunks[1] == 'builds':
-                            rep_val = params['BUILD']
-                        else:
-                            raise Exception()
-                        if val.find('~lc-') == 0:
-                            rep_val = rep_val.lower()
-                        use_pair[tag] = rep_val
-                    else:
-                        use_pair[tag] = val
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-
-            # Write out the details
-            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-
-            if not success:
-                print("replace_schema_tags failed")
-                return False
-
-        if 'analyze_the_schema' in steps:
-            print('analyze_the_schema')
-            typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            schema_dict_loc = f"{full_file_prefix}_schema.json"
-            build_combined_schema(None, schema_dict_loc,
-                                  typing_tups, hold_schema_list, hold_schema_dict)
-
-    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["PROGRAM"]}-{params["DATA_TYPE"]}.tsv'
+    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["PROGRAM"]}-{params["DATA_TYPE"]}.tsv' # todo do we need this here or can it move?
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
