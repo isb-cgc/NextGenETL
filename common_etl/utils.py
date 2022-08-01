@@ -1556,7 +1556,7 @@ def find_types(file, sample_interval):
     typing_tups = []
     for column in column_list:
         # Assign columns with no data with type STRING
-        if type(final_field_types[column]) == 'NoneType':
+        if final_field_types[column] is None:
             tup = (column, "STRING")
             print(type(final_field_types[column]))
         else:
