@@ -1555,7 +1555,11 @@ def find_types(file, sample_interval):
     final_field_types = resolve_type_conflicts(field_types)
     typing_tups = []
     for column in column_list:
-        tup = (column, final_field_types[column])
+        # Assign columns with no data with type STRING
+        if final_field_types[column] != "null":
+            tup = (column, final_field_types[column])
+        else:
+            tup = (column, "STRING")
         typing_tups.append(tup)
 
     return typing_tups
