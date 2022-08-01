@@ -1558,10 +1558,8 @@ def find_types(file, sample_interval):
         # Assign columns with no data with type STRING
         if final_field_types[column] is None:
             tup = (column, "STRING")
-            print(type(final_field_types[column]))
         else:
             tup = (column, final_field_types[column])
-        print(tup)
         typing_tups.append(tup)
 
     return typing_tups
