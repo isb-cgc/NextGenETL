@@ -945,23 +945,24 @@ def main(args):
 
     if 'collect_barcodes' in steps:
         skel_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
+        case_table = params['CASE_TABLE'].format(release)
+        step_1_table = skel_table # todo replace skel_table in each place step_1_table is
+        # if params['RELEASE'] < 25: # todo do we need this?
+        #     case_table = params['CASE_TABLE'].format('25')
+        # else:
+        #     case_table = params['CASE_TABLE'].format(release)
 
-        if params['RELEASE'] < 25: # todo do we need this?
-            case_table = params['CASE_TABLE'].format('25')
-        else:
-            case_table = params['CASE_TABLE'].format(release)
-
-        if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
-                                         params['SCRATCH_DATASET'],
-                                         f"{barcode_table}_pre", params['BQ_AS_BATCH'])
-            if not success:
-                print("attach_aliquot_ids job failed")
-                return
-
-            step_1_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}_pre'
-        else:
-            step_1_table = skel_table
+        # if params['PROGRAM'] == 'TCGA': # todo remove
+        #     success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
+        #                                  params['SCRATCH_DATASET'],
+        #                                  f"{barcode_table}_pre", params['BQ_AS_BATCH'])
+        #     if not success:
+        #         print("attach_aliquot_ids job failed")
+        #         return
+        #
+        #     step_1_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}_pre'
+        # else:
+        #     step_1_table = skel_table
 
         success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(release),
                                   params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
