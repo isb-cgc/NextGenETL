@@ -839,16 +839,16 @@ def main(args):
     # Schemas and table descriptions are maintained in the github repo:
     #
 
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        # todo create a function to reload from github
-        try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        except Exception as ex:
-            print(f"pull_table_info_from_git failed: {str(ex)}")
-            return
+    # if 'pull_table_info_from_git' in steps:
+    #     print('pull_table_info_from_git')
+    #     # todo create a function to reload from github
+    #     try:
+    #         create_clean_target(params['SCHEMA_REPO_LOCAL'])
+    #         repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+    #         repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+    #     except Exception as ex:
+    #         print(f"pull_table_info_from_git failed: {str(ex)}")
+    #         return
 
     # for table in update_schema_tables:
     #     if table == 'current':
@@ -999,6 +999,21 @@ def main(args):
         merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
                                  params['BQ_AS_BATCH'])
 
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        # todo create a function to reload from github
+        try:
+            create_clean_target(params['SCHEMA_REPO_LOCAL'])
+            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        except Exception as ex:
+            print(f"pull_table_info_from_git failed: {str(ex)}")
+            return
+
+# todo move field description updates here, so it's just copied over
+
+# todo move table description here
+
     #
     # Create second table
     #
@@ -1008,7 +1023,7 @@ def main(args):
         current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
 
         success = publish_table(source_table, current_dest)
-
+        # todo add a step to update the table description & other table information
         if not success:
             print("create current table failed")
             return
@@ -1016,26 +1031,26 @@ def main(args):
     #
     # The derived table we generate has no field descriptions. Add them from the github json files:
     #
-    for table in update_schema_tables:
-        schema_release = 'current' if table == 'current' else release
-        if 'update_final_schema' in steps:
-            success = update_schema(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}", hold_schema_dict)
-            if not success:
-                print("Schema update failed")
-                return
-
-        #
-        # Add the table description:
-        #
-
-        if 'add_table_description' in steps:
-            print('update_table_description')
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            success = install_labels_and_desc(params['SCRATCH_DATASET'],
-                                              f"{draft_table}_{schema_release}", full_file_prefix)
-            if not success:
-                print("update_table_description failed")
-                return
+    # for table in update_schema_tables:
+    #     schema_release = 'current' if table == 'current' else release
+    #     if 'update_final_schema' in steps:
+    #         success = update_schema(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}", hold_schema_dict)
+    #         if not success:
+    #             print("Schema update failed")
+    #             return
+    #
+    #     #
+    #     # Add the table description:
+    #     #
+    #
+    #     if 'add_table_description' in steps:
+    #         print('update_table_description')
+    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+    #         success = install_labels_and_desc(params['SCRATCH_DATASET'],
+    #                                           f"{draft_table}_{schema_release}", full_file_prefix)
+    #         if not success:
+    #             print("update_table_description failed")
+    #             return
 
     #
     # compare and remove old current table
