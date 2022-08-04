@@ -385,6 +385,8 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
             with open(use_file_name, 'r') as readfile:
                 callerName, fileUUID = file_info(use_file_name, program)
                 caller_field_index = 0
+                print(str(caller_field_index))
+                print("\n")
                 for line in readfile:
                     # Seeing comments in MAF files
                     if not line.startswith('#'):
@@ -394,6 +396,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             header_names = clean_header_names(header_list, fields_to_fix)
                             caller_field_index = header_names.index('callers')
                             print(str(caller_field_index))
+                            print("\n")
                             header_line = '\t'.join(header_names)
                             outfile.write(header_line) #.rstrip('\n'))
                             outfile.write('\t')
@@ -417,6 +420,8 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
                             #     outfile.write('\t')
                             #     outfile.write(callerName)
                             # else:
+                            print(str(caller_field_index))
+                            print("\n")
                             caller_data = process_callers(line.rstrip('\n').split('\t')[caller_field_index], callers)
                             for caller in callers:
                                 outfile.write('\t')
