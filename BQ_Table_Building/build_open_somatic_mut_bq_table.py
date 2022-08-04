@@ -41,7 +41,7 @@ import gzip
 
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-    build_pull_list_with_bq, update_schema, \
+    build_pull_list_with_bq, update_schema, update_schema_dir_from_git,\
     build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
     generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
     publish_table, update_status_tag, compare_two_tables
@@ -1001,14 +1001,17 @@ def main(args):
 
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
+        update_schema_dir_from_git(params['SCHEMA_REPO_LOCAL'],
+                                   params['SCHEMA_REPO_URL'],
+                                   params['SCHEMA_REPO_BRANCH'])
         # todo create a function to reload from github
-        try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        except Exception as ex:
-            print(f"pull_table_info_from_git failed: {str(ex)}")
-            return
+        # try:
+        #     create_clean_target(params['SCHEMA_REPO_LOCAL'])
+        #     repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
+        #     repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+        # except Exception as ex:
+        #     print(f"pull_table_info_from_git failed: {str(ex)}")
+        #     return
 
 # todo move field description updates here, so it's just copied over
 

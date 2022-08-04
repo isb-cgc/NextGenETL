@@ -30,6 +30,7 @@ import zipfile
 import gzip
 import threading
 from json import loads as json_loads, dumps as json_dumps
+from git import Repo
 
 
 def checkToken(aToken):
@@ -1021,6 +1022,28 @@ def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_in
                 os.remove(use_file_name)
 
     return
+
+
+def update_schema_dir_from_git(local_repo, schema_repo_url, schema_repo_branch):
+    """
+    This function deletes the old schema directory and replaces it with the most current from GitHub
+    :param local_repo: Where the local directory for the repository is
+    :type local_repo: str
+    :param schema_repo_url: The URL for the directory to clone
+    :type schema_repo_url: str
+    :param schema_repo_branch: The branch to use for the schema repository
+    :type schema_repo_branch: str
+    :return: Whether the function worked or not
+    :rtype: bool
+    """
+    try:
+        create_clean_target(local_repo)
+        repo = Repo.clone_from(schema_repo_url, local_repo)
+        repo.git.checkout(schema_repo_branch)
+        return True
+    except Exception as ex:
+        print(f"pull_table_info_from_git failed: {str(ex)}")
+        return False
 
 
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
