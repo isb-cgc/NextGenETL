@@ -31,17 +31,18 @@ import gzip
 import shutil
 import zipfile
 import io
-from git import Repo
+#from git import Repo # todo remove when confirmed not needed
 import re
 from json import loads as json_loads
 from os.path import expanduser
-from createSchemaP3 import build_schema
+#from createSchemaP3 import build_schema # todo remove when confirmed not needed
 from datetime import date
 import gzip
 
+# todo remove unused functions from list
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-    build_pull_list_with_bq, update_schema, update_schema_dir_from_git,\
+    build_pull_list_with_bq, update_schema, update_dir_from_git,\
     build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
     generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
     publish_table, update_status_tag, compare_two_tables
@@ -231,7 +232,7 @@ All the new info we have pulled together goes in the first columns of the final 
 '''
 
 
-def final_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
+def barcode_raw_table_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
     sql = final_join_sql(maf_table, barcode_table, program)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
@@ -432,7 +433,7 @@ def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
-def merge_samples_by_aliquot_sql(input_table):  # todo update to new fields
+def merge_samples_by_aliquot_sql(input_table):
     return f"""
     SELECT 
         project_short_name,
@@ -1014,32 +1015,39 @@ def main(args):
         barcodes_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
         # For CPTAC, create an intermediate combined table, which will be used in the merge_same_aliq_samples step
         if params['PROGRAM'] == 'CPTAC':
-            success = final_merge(skel_table, barcodes_table,
-                                  params['SCRATCH_DATASET'], f"{draft_table}_combined_table",
-                                  params['BQ_AS_BATCH'],
-                                  params['PROGRAM'])
+            success_barcode = barcode_raw_table_merge(skel_table, barcodes_table,
+                                              params['SCRATCH_DATASET'], f"{draft_table}_combined_table",
+                                              params['BQ_AS_BATCH'],
+                                              params['PROGRAM'])
+            if success_barcode:
+                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_combined_table"
+                success = merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
+                                         params['BQ_AS_BATCH'])
+            else:
+                print("Barcode & Raw table merge failed")
         else:
-            success = final_merge(skel_table, barcodes_table,
-                                  params['SCRATCH_DATASET'], f"{draft_table}_{release}", params['BQ_AS_BATCH'],
-                                  params['PROGRAM'])
+            success = barcode_raw_table_merge(skel_table, barcodes_table,
+                                              params['SCRATCH_DATASET'], f"{draft_table}_{release}", params['BQ_AS_BATCH'],
+                                              params['PROGRAM'])
         if not success:
             print("Join job failed")
             return
 
+# todo remove once confirmed the new location of the step works
     # For CPTAC there are instances where multiple samples are merged into the same aliquot
     # for these cases we join the rows by concatenating the samples with semicolons
-    if 'merge_same_aliq_samples' in steps:
-        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_combined_table"
-        merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
-                                 params['BQ_AS_BATCH'])
+    # if 'merge_same_aliq_samples' in steps:
+    #     source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_combined_table"
+    #     merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
+    #                              params['BQ_AS_BATCH'])
 
 
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
-        update_schema_dir_from_git(params['SCHEMA_REPO_LOCAL'],
+        update_dir_from_git(params['SCHEMA_REPO_LOCAL'],
                                    params['SCHEMA_REPO_URL'],
                                    params['SCHEMA_REPO_BRANCH'])
-        # todo create a function to reload from github
+        # todo remove when confirmed the function works
         # try:
         #     create_clean_target(params['SCHEMA_REPO_LOCAL'])
         #     repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
