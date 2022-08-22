@@ -49,11 +49,11 @@ def retrieve_uniprot_kb_genes():
     Retrieve Swiss-Prot ids and gene names from UniProtKB REST API.
     :return: REST API response text (tsv)
     """
-    query = 'organism:9606'
-    data_format = 'tab'
-    columns = 'id,genes(PREFERRED),database(RefSeq),reviewed'
+    query = 'organism_id:9606'
+    data_format = 'tsv'
+    columns = 'id,gene_primary,xref_refseq,reviewed'
 
-    request_url = f'https://www.uniprot.org/uniprot/?query={query}&format={data_format}&columns={columns}'
+    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}'
 
     response = requests.get(request_url)
     return response.text
