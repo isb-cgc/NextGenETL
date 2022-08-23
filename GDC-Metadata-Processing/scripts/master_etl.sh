@@ -110,14 +110,14 @@ fi
 #
 
 if [ "${API_PULL_LEGACY}" == "run" ]; then
-    source ~/pyVenvForTwo/bin/activate
+    source ~/pyVenvForThree/bin/activate
     cd ${REL_ROOT}/${RELNAME}-legacy
     run_try_legacy.sh
     deactivate
 fi
 
 if [ "${API_PULL_CURRENT}" == "run" ]; then
-    source ~/pyVenvForTwo/bin/activate
+    source ~/pyVenvForThree/bin/activate
     cd ${REL_ROOT}/${RELNAME}-current
     run_try_active.sh
     deactivate
