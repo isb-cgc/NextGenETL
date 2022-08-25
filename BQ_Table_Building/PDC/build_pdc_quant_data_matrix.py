@@ -70,7 +70,7 @@ def make_uniprot_query():
     uniprot_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{uniprot_table_name}"
 
     return f"""
-        SELECT Entry AS uniprot_id
+        SELECT Entry_Name AS uniprot_id
         FROM `{uniprot_table_id}`
     """
 
@@ -628,12 +628,12 @@ def main(args):
         res = get_query_results(f"SELECT * FROM {uniprot_table_id}")
 
         for row in res:
-            uniprot_id = row['Entry']
-            status = row['Status']
-            gene_symbol = row['Gene_names_primary']
+            uniprot_id = row['Entry_Name']
+            status = row['Reviewed']
+            gene_symbol = row['Gene_Names_primary']
             # remove additional uniprot accession from mapping string
 
-            ref_seq_str = row['Cross_reference_RefSeq']
+            ref_seq_str = row['RefSeq']
 
             if not ref_seq_str:
                 continue
