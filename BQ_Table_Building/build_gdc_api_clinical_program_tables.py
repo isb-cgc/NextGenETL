@@ -1057,14 +1057,12 @@ def copy_tables_into_public_project(publish_table_list):
     :param publish_table_list: List of table ids which are new or differ from previous versions (to publish)
     """
     for src_table_id in publish_table_list: #bookmark
-        print('troubleshoot prints:\n\n')
+        #print('troubleshoot prints:\n\n')
+        # Exceptional Responders has an underscore, need to replace it to split
         src_table_id = src_table_id.replace('_EXCEPTIONAL_RESPONDERS_', '_EXCRESPONDERS_')
-        print(src_table_id)
         table_name = src_table_id.split('.')[2]
-        print(table_name)
         split_table_name = table_name.split('_')
         split_table_name.pop(0)
-        print(split_table_name)
         public_dataset = split_table_name.pop(0)
 
         if public_dataset == "BEATAML1":
