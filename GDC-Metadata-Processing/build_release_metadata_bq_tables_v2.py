@@ -1087,13 +1087,17 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if 'publish' in steps:
         print('Attempting to publish tables')
         full_scratch_versioned = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], versioned_scratch_table)
+        previous_release = False
         if params['PUBLISH_ONLY_UPDATED'] == True:
                 print("Performing comparison to last release")
-                previous_release = find_most_recent_release( dataset_tuple[1]+'_versioned', versioned_table[:-3], params['PUBLICATION_PROJECT'] )
-                previous_ver_table = '{}_{}_gdc_{}'.format(params['FINAL_TABLE'], build_lwr, previous_release)
-                previous_ver_full = '{}.{}_versioned.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1] , previous_ver_table)
-                result = compare_two_tables( previous_ver_full, full_scratch_versioned, params['BQ_AS_BATCH'] )
-                evaluate_result = evaluate_table_union( result )
+                previous_release = find_most_recent_release( dataset_tuple[1]+'_versioned', versioned_table[:-5], params['PUBLICATION_PROJECT'] )
+                if previous_release == False: 
+                    evaluate_result = 'different'
+                else:
+                    previous_ver_table = '{}_{}_gdc_{}'.format(params['FINAL_TABLE'], build_lwr, previous_release)
+                    previous_ver_full = '{}.{}_versioned.{}'.format(params['PUBLICATION_PROJECT'], dataset_tuple[1] , previous_ver_table)
+                    result = compare_two_tables( previous_ver_full, full_scratch_versioned, params['BQ_AS_BATCH'] )
+                    evaluate_result = evaluate_table_union( result )
         
         if params['PUBLISH_ONLY_UPDATED'] == False or (params['PUBLISH_ONLY_UPDATED'] == True and evaluate_result == 'different'):
             for table in ['versioned', 'current']:
@@ -1110,7 +1114,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
                 success = publish_table(source_table, publication_dest)
 
                 # Update previous versioned table with archived tag,if the versioned table was published
-                if success and table == 'versioned':
+                if success and table == 'versioned' and previous_release:
                     print('Updating previous table status label to archive')
                     tag_updated = update_status_tag(dataset_tuple[1]+'_versioned', previous_ver_table, 'archived', params['PUBLICATION_PROJECT'])
                     if not tag_updated:
