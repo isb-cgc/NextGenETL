@@ -1087,7 +1087,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
     if 'publish' in steps:
         print('Attempting to publish tables')
         full_scratch_versioned = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], versioned_scratch_table)
-        previous_release = False
+        
         if params['PUBLISH_ONLY_UPDATED'] == True:
                 print("Performing comparison to last release")
                 previous_release = find_most_recent_release( dataset_tuple[1]+'_versioned', versioned_table[:-5], params['PUBLICATION_PROJECT'] )
