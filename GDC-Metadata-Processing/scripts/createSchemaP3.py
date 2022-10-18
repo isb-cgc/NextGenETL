@@ -324,7 +324,7 @@ def build_schema(inFilename, nSkip):
     print(" ")
 
     # print opening bracket)
-    fhOut.write('[\n')
+    #fhOut.write('[\n')
 
     #  the available data types are described in detail at: https://cloud.google.com/bigquery/data-types
     #  and include: STRING, BYTES, INTEGER, FLOAT, BOOLEAN ('true' or 'false'),
@@ -347,7 +347,7 @@ def build_schema(inFilename, nSkip):
         fhOut.write('%s\n' % outStr)
 
     # print closing bracket
-    fhOut.write(']\n')
+    #fhOut.write(']\n')
 
     fhOut.close()
 
