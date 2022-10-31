@@ -78,7 +78,7 @@ def make_cases_aliquots_query(offset, limit):
                     sample_id
                     sample_submitter_id
                     sample_type
-                    is_ffpe
+                    #is_ffpe # field removed from API
                     preservation_method
                     biospecimen_anatomic_site
                     current_weight
@@ -166,7 +166,7 @@ def make_aliquot_to_case_id_query():
     return f"""
         WITH cases_samples AS (
             SELECT c.case_id, c.case_submitter_id, 
-                s.sample_id, s.sample_submitter_id, s.sample_type, s.is_ffpe, s.preservation_method, 
+                s.sample_id, s.sample_submitter_id, s.sample_type, s.preservation_method, 
                 s.freezing_method, s.time_between_clamping_and_freezing, s.time_between_excision_and_freezing,
                 s.days_to_collection, s.initial_weight, s.current_weight, s.shortest_dimension, 
                 s.intermediate_dimension, s.longest_dimension,
@@ -176,7 +176,7 @@ def make_aliquot_to_case_id_query():
         ),
         samples_aliquots AS (
             SELECT case_id, case_submitter_id, sample_id, sample_submitter_id, sample_type, preservation_method, 
-                is_ffpe, freezing_method, time_between_clamping_and_freezing, time_between_excision_and_freezing,
+                freezing_method, time_between_clamping_and_freezing, time_between_excision_and_freezing,
                 days_to_collection, initial_weight, current_weight, shortest_dimension, 
                 intermediate_dimension, longest_dimension,
                 a.aliquot_id, a.aliquot_submitter_id 
@@ -192,7 +192,7 @@ def make_aliquot_to_case_id_query():
         
         SELECT p.program_name, p.project_name, 
             sa.case_id, sa.case_submitter_id, sa.sample_id, sa.sample_submitter_id, 
-            sa.sample_type, sa.is_ffpe, sa.preservation_method, sa.freezing_method, 
+            sa.sample_type, sa.preservation_method, sa.freezing_method, 
             sa.time_between_clamping_and_freezing, sa.time_between_excision_and_freezing,
             sa.days_to_collection, sa.initial_weight, sa.current_weight, 
             sa.shortest_dimension, sa.intermediate_dimension, sa.longest_dimension,

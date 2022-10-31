@@ -19,6 +19,10 @@ api_params:
   # in case we switch back to relXX from rXX
   REL_PREFIX: 'r'
 
+  # previous to production GDC release number
+  # (OPTIONAL, script will automatically detect the release number based on the most recent release - 1, if commented out)
+  #PREV_RELEASE: 'XX'
+
   # most recent GDC release number
   RELEASE: '29'
 
@@ -481,8 +485,6 @@ api_params:
 #
 ######################################################################################
 bq_params:
-  PUBLISH_TEST_MODE: true
-
   ##
   #  File Locations, GDC Release, Naming Conventions
   ##
