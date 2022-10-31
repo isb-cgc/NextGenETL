@@ -1,0 +1,87 @@
+
+[
+    {
+        "name": "Variant_ID_Cohort",
+        "type": "string"
+    },
+    {
+        "name": "TP53_Variant",
+        "type": "string"
+    },
+    {
+        "name": "AA_Code_TP53_Mutant",
+        "type": "string"
+    },
+    {
+        "name": "Mosaicism",
+        "type": "string"
+    },
+    {
+        "name": "Type_Of_Mutation",
+        "type": "string"
+    },
+    {
+        "name": "Giacomelli",
+        "type": "string"
+    },
+    {
+        "name": "Kato",
+        "type": "string"
+    },
+    {
+        "name": "Kotler",
+        "type": "string"
+    },
+    {
+        "name": "DNE_IARC",
+        "type": "string"
+    },
+    {
+        "name": "Family_ID_Cohort",
+        "type": "string"
+    },
+    {
+        "name": "Individual_ID_Cohort",
+        "type": "string"
+    },
+    {
+        "name": "Gender",
+        "type": "string"
+    },
+    {
+        "name": "Age_At_Last_Follow_Up",
+        "type": "integer"
+    },
+    {
+        "name": "Age_Deceased",
+        "type": "integer"
+    },
+    {
+        "name": "Inheritance",
+        "type": "string"
+    },
+    {
+        "name": "Malignancies",
+        "type": "string"
+    },
+    {
+        "name": "Age_At_Onset",
+        "type": "integer"
+    },
+    {
+        "name": "Age_At_No_Disease_Evidence",
+        "type": "string"
+    },
+    {
+        "name": "Familial_Tumor_Spectrum",
+        "type": "string"
+    },
+    {
+        "name": "Clinical criteria",
+        "type": "string"
+    },
+    {
+        "name": "Spectrum_Definition",
+        "type": "string"
+    }
+]
