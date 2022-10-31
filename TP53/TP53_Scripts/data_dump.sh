@@ -6,7 +6,8 @@
 #                           /data      : static data file copies
 #                           /list-files: static list file copies
 #                           /tables    : BQ table data compressed copies (.csv.gz)
-#                           /views     : BQ view SQL statment copies (.sql.txt)
+#                           /views     : BQ view SQL statement copies (.sql.txt)
+#                           /schema    : BQ table schema files (.schema.json)
 
 ## set GCP of the copy source
 SOURCE_GCP_NAME=isb-cgc-tp53
@@ -29,6 +30,13 @@ do
     gs://tp53-data-backup/$(date +%Y%m)/tables/$table.csv.gz
 done
 
+## get list of tables, extract each table's schema in a json file and store in gcs bucket
+tables=$(bq ls $SOURCE_GCP_NAME:P53_data | awk '{ if($2 == "TABLE"){ print $1; } }')
+for table in $tables
+do
+    bq show --format=prettyjson --schema $SOURCE_GCP_NAME:P53_data.$table \
+    gs://tp53-data-backup/$(date +%Y%m)/schemas/$table.schema.json
+done
 
 ## get list of views and extract each defined SQL statement. Store each SQL statement in a gcs bucket as a text file
 views=$(bq ls $SOURCE_GCP_NAME:P53_data | awk '{ if($2 == "VIEW"){ print $1; } }')
