@@ -42,12 +42,11 @@ import gzip
 # todo remove unused functions from list
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-    build_pull_list_with_bq, update_schema, update_dir_from_git,\
+    build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git,\
     build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-    generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
-    publish_table, update_status_tag, compare_two_tables
+    update_schema_tags
 
-from common_etl.utils import find_types
+from common_etl.utils import find_types, add_generic_table_metadata
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -64,11 +63,11 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None
 
-    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
-            yaml_dict['steps'], yaml_dict['callers'], yaml_dict['update_schema_tables'],
-            yaml_dict['schema_tags'])
+    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'], #yaml_dict['filters'], yaml_dict['bq_filters'],
+            yaml_dict['steps'], yaml_dict['callers'], yaml_dict['update_schema_tables'])
+            #yaml_dict['schema_tags'])
 
 
 '''
@@ -77,7 +76,7 @@ Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
 
-
+# todo remove?
 def build_program_list(all_files):
     programs = set()
     for filename in all_files:
@@ -92,7 +91,6 @@ def build_program_list(all_files):
 Extract the Callers We Are Working With From File List
 Extract from downloaded file names, compare to expected list. Answer if they match.
 '''
-
 
 def check_caller_list(all_files, expected_callers):
     expected_set = set(expected_callers)
@@ -152,8 +150,8 @@ With the aliquot UUIDs known, we can now use the aliquot table to glue in sample
 '''
 
 
-def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program, case_table):
-    sql = attach_barcodes_sql(temp_table, aliquot_table, program, case_table)
+def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, case_table):
+    sql = attach_barcodes_sql(temp_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 
@@ -163,31 +161,7 @@ SQL for above
 '''
 
 
-def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
-    # if program == 'TCGA': # todo remove
-    #     return '''
-    #         WITH
-    #         a1 AS (SELECT a.project_short_name,
-    #                       a.case_gdc_id,
-    #                       b.aliquot_barcode AS aliquot_barcode_tumor,
-    #                       b.sample_barcode AS sample_barcode_tumor,
-    #                       a.aliquot_gdc_id_tumor,
-    #                       a.aliquot_gdc_id_normal,
-    #                       a.tumor_bam_uuid,
-    #                       a.normal_bam_uuid
-    #                FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id_tumor = b.aliquot_gdc_id)
-    #         SELECT a1.project_short_name,
-    #                c.case_barcode,
-    #                a1.sample_barcode_tumor,
-    #                c.sample_barcode AS sample_barcode_normal,
-    #                a1.aliquot_barcode_tumor,
-    #                c.aliquot_barcode AS aliquot_barcode_normal,
-    #                a1.tumor_bam_uuid,
-    #                a1.normal_bam_uuid
-    #         FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-    #         WHERE c.case_gdc_id = a1.case_gdc_id
-    #         '''.format(maf_table, aliquot_table)
-    # else:
+def attach_barcodes_sql(maf_table, aliquot_table, case_table):
     return f"""
         WITH
         a1 AS (SELECT b.project_id AS project_short_name,
@@ -232,8 +206,8 @@ All the new info we have pulled together goes in the first columns of the final 
 '''
 
 
-def barcode_raw_table_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
-    sql = final_join_sql(maf_table, barcode_table, program)
+def barcode_raw_table_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch):
+    sql = final_join_sql(maf_table, barcode_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 
@@ -243,7 +217,7 @@ SQL for above
 '''
 
 
-def final_join_sql(maf_table, barcodes_table, program):
+def final_join_sql(maf_table, barcodes_table):
     # if program == 'TCGA':
     #     return '''
     #          SELECT a.project_short_name,
@@ -278,7 +252,7 @@ out along with name and ID.
 '''
 
 
-def file_info(aFile, program):  # todo Does this need to be updated?
+def file_info(aFile):
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
 
@@ -351,7 +325,7 @@ Concatenate all Files
 '''
 
 
-def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
+def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
@@ -385,7 +359,7 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
             else:
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
-                callerName, fileUUID = file_info(use_file_name, program)
+                callerName, fileUUID = file_info(use_file_name)
                 # caller_field_index = 0
                 # print(str(caller_field_index))
                 for line in readfile:
@@ -433,7 +407,7 @@ def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
-def merge_samples_by_aliquot_sql(input_table):
+def merge_samples_by_aliquot_sql(input_table): # todo fix to grab callers from yaml
     return f"""
     SELECT 
         project_short_name,
@@ -745,6 +719,19 @@ def merge_samples_by_aliquot_sql(input_table):
         aliquot_barcode_normal"""
 
 
+def create_per_program_table(input_table, output_table, program, target_dataset, do_batch):
+    sql = sql_create_per_program_table(input_table, program)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
+
+
+def sql_create_per_program_table(input_table, program):
+    return f"""
+        SELECT *
+        FROM `{input_table}`
+        WHERE project_short_name LIKE '{program}%'
+    """
+
+
 '''
 ----------------------------------------------------------------------------------------------
 Main Control Flow
@@ -763,57 +750,64 @@ def main(args):
         return
 
     print('job started')
-
     #
     # Get the YAML config loaded:
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, callers, update_schema_tables, schema_tags = load_config(yaml_file.read())
+        params, programs, steps, callers, update_schema_tables = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
         return
 
-    #
-    # BQ does not like to be given paths that have "~". So make all local paths absolute:
-    #
+    # Which table are we building?
+    release = f"r{str(params['RELEASE'])}"
 
+    # BQ does not like to be given paths that have "~". So make all local paths absolute:
     home = expanduser("~")
+
+    # Local Files
     local_files_dir = f"{home}/{params['LOCAL_FILES_DIR']}"
     one_big_tsv = f"{home}/{params['ONE_BIG_TSV']}"
     manifest_file = f"{home}/{params['MANIFEST_FILE']}"
     local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
     file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
-    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
-    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
+    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
+    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
+    table_metadata = f"{home}/{params['SCHEMA_FILE_NAME']}"
+    # metadata_mapping = f"{home}/{params['METADATA_MAPPINGS']}" # todo add to yaml
+    field_desc_fp = f"{home}/params['FIELD_DESC_FILE']"
 
-    # Which table are we building?
-    release = f"r{str(params['RELEASE'])}"
+    # BigQuery Tables
+    manifest_table = f"{params['DATA_TYPE']}_manifest_r{params['RELEASE']}"
+    concat_table = f"{params['DATA_TYPE']}_concat_r{params['RELEASE']}"
+    barcode_table = f"{params['DATA_TYPE']}_barcode_r{params['RELEASE']}"
+    standard_table = f"{params['DATA_TYPE']}_hg38_gdc_r{params['RELEASE']}" # todo should this have the release?
+    skel_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
+    barcodes_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
+    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}" # todo rename to accurately reflect the table
 
-    # todo is this needed?
-    use_schema = params['VER_SCHEMA_FILE_NAME']
-    if 'current' in steps:
-        print('This workflow will update the schema for the "current" table')
-        release = 'current'
-        use_schema = params['SCHEMA_FILE_NAME']
+    # Google Bucket Locations
+    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["DATA_TYPE"]}.tsv'
 
-    # Create table names
-    concat_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_concat"
-    barcode_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_barcode"
-    draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
-    publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"
-    manifest_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_manifest"
-
-    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:  # todo remove
-        print("The input release is before new metadata process, "
-              "please specify which release of the metadata to use.")
-
+    # Which metadata release should we use? # todo do we need this?
     metadata_rel = f"r{str(params['METADATA_REL'])}" if 'METADATA_REL' in params else release
 
-    if 'build_manifest_from_filters' in steps:
+    # Workflow Steps
 
+    if 'clear_target_directory' in steps:
+        # Best practice is to clear out the directory where the files are going. Don't want anything left over:
+        create_clean_target(local_files_dir)
+
+    if 'build_manifest' in steps:
+
+        # todo add a count for
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
+        bq_filters = [{"access": "open"},
+                      {"data_format": "MAF"},
+                      {"data_type": "Masked Somatic Mutation"},
+                      {"program_name": programs}]
         manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel),
                                                bq_filters, max_files,
                                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
@@ -824,43 +818,24 @@ def main(args):
             print("Failure generating manifest")
             return
 
-    #
-    # Best practice is to clear out the directory where the files are going. Don't want anything left over:
-    #
-
-    if 'clear_target_directory' in steps:
-        create_clean_target(local_files_dir)
-
-    #
-    # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
-    # created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step. If creating a pull
-    # list, you can do it using IndexD calls on a manifest file, OR using BQ as long as you have
-    # built the manifest using BQ (that route uses the BQ Manifest table that was created).
-    #
-
     if 'build_pull_list' in steps:
+        # Create a "pull list" with BigQuery of gs:// URLs to pull from DCF
         build_pull_list_with_bq(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}",
                                 params['INDEXD_BQ_TABLE'].format(metadata_rel),
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                f"{params['PROGRAM']}_{params['DATA_TYPE']}_pull_list",
+                                f"{params['DATA_TYPE']}_pull_list",
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
                                 local_pull_list, params['BQ_AS_BATCH'])
 
-    #
-    # Now hitting GDC cloud buckets, not "downloading". Get the files in the pull list:
-    #
-
-    if 'download_from_gdc' in steps:
+    if 'transfer_from_gdc' in steps:
+        # Bring the files to the local dir from DCF GDC Cloud Buckets
         with open(local_pull_list, mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         pull_from_buckets(pull_list, local_files_dir)
 
-    #
-    # Traverse the tree of downloaded files and create a flat list of all files:
-    #
-
     if 'build_traversal_list' in steps:
+        # Traverse the tree of downloaded files and create a flat list of all files:
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
@@ -869,335 +844,91 @@ def main(args):
     if 'concat_all_files' in steps:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers, params['FIELDS_TO_FIX'])
-    #
-    # Schemas and table descriptions are maintained in the github repo:
-    #
-
-    # if 'pull_table_info_from_git' in steps:
-    #     print('pull_table_info_from_git')
-    #     # todo create a function to reload from github
-    #     try:
-    #         create_clean_target(params['SCHEMA_REPO_LOCAL'])
-    #         repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-    #         repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-    #     except Exception as ex:
-    #         print(f"pull_table_info_from_git failed: {str(ex)}")
-    #         return
-
-    # for table in update_schema_tables:
-    #     if table == 'current':
-    #         use_schema = params['SCHEMA_FILE_NAME']
-    #         schema_release = 'current'
-    #     else:
-    #         use_schema = params['VER_SCHEMA_FILE_NAME']
-    #         schema_release = release
-    #
-    #     if 'process_git_schemas' in steps:
-    #         print('process_git_schema')
-    #         # Where do we dump the schema git repository?
-    #         schema_file = f"{params['SCHEMA_REPO_LOCAL']}/{params['RAW_SCHEMA_DIR']}/{use_schema}"
-    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-    #         # Write out the details
-    #         success = generate_table_detail_files(schema_file, full_file_prefix)
-    #         if not success:
-    #             print("process_git_schemas failed")
-    #             return
-    #
-    #     # Customize generic schema to this data program:
-    #
-    #     if 'replace_schema_tags' in steps:
-    #         print('replace_schema_tags')
-    #         pn = params['PROGRAM']
-    #         dataset_tuple = (pn, pn.replace(".", "_"))
-    #         tag_map_list = []
-    #         for tag_pair in schema_tags:
-    #             for tag in tag_pair:
-    #                 val = tag_pair[tag]
-    #                 use_pair = {}
-    #                 tag_map_list.append(use_pair)
-    #                 if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-    #                     chunks = val.split('-', 1)
-    #                     if chunks[1] == 'programs':
-    #                         if val.find('~lcbqs-') == 0:
-    #                             rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-    #                         else:
-    #                             rep_val = dataset_tuple[0]
-    #                     elif chunks[1] == 'builds':
-    #                         rep_val = params['BUILD']
-    #                     else:
-    #                         raise Exception()
-    #                     if val.find('~lc-') == 0:
-    #                         rep_val = rep_val.lower()
-    #                     use_pair[tag] = rep_val
-    #                 else:
-    #                     use_pair[tag] = val
-    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-    #
-    #         # Write out the details
-    #         success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-    #
-    #         if not success:
-    #             print("replace_schema_tags failed")
-    #             return False
-    #
-    #     if 'analyze_the_schema' in steps:
-    #         print('analyze_the_schema')
-    #         typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-    #         schema_dict_loc = f"{full_file_prefix}_schema.json"
-    #         build_combined_schema(None, schema_dict_loc,
-    #                               typing_tups, hold_schema_list, hold_schema_dict)
-
-    if 'analyze_the_schema' in steps:
-        print('analyze_the_schema')
-        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-        full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
-        #schema_dict_loc = f"{full_file_prefix}_schema.json"
-        build_combined_schema(None, None,
-                              typing_tups, hold_schema_list, hold_schema_dict)
-
-    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["PROGRAM"]}-{params["DATA_TYPE"]}.tsv' # todo do we need this here or can it move?
+            concat_all_files(all_files, one_big_tsv, callers, params['FIELDS_TO_FIX'])
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
         upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
 
-    #
-    # Create the BQ table from the TSV:
-    #
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        update_dir_from_git(params['SCHEMA_REPO_LOCAL'], params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_BRANCH'])
 
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
+        build_combined_schema(None, None,
+                              typing_tups, hold_schema_list, hold_schema_dict)
+
+    # Create the BQ table from the TSV
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
         bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
-        with open(hold_schema_list, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
+        with open(hold_schema_list, mode='r') as schema_list:
+            typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], concat_table, params['BQ_AS_BATCH'])
 
-    #
-    # Need to merge in aliquot and sample barcodes from other tables:
-    #
-
+    # Merge in aliquot and sample barcodes from other tables
     if 'collect_barcodes' in steps:
-        skel_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
+
         case_table = params['CASE_TABLE'].format(release)
-        step_1_table = skel_table # todo replace skel_table in each place step_1_table is
-        # if params['RELEASE'] < 25: # todo do we need this?
-        #     case_table = params['CASE_TABLE'].format('25')
-        # else:
-        #     case_table = params['CASE_TABLE'].format(release)
-
-        # if params['PROGRAM'] == 'TCGA': # todo remove
-        #     success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
-        #                                  params['SCRATCH_DATASET'],
-        #                                  f"{barcode_table}_pre", params['BQ_AS_BATCH'])
-        #     if not success:
-        #         print("attach_aliquot_ids job failed")
-        #         return
-        #
-        #     step_1_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}_pre'
-        # else:
-        #     step_1_table = skel_table
-
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(release),
-                                  params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
-                                  params['PROGRAM'], case_table)
+        success = attach_barcodes(skel_table_id, params['ALIQUOT_TABLE'].format(release),
+                                  params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'], case_table)
         if not success:
             print("attach_barcodes job failed")
             return
 
-    #
-    # Merge the barcode info into the final table we are building:
-    #
-
-    if 'create_final_table' in steps:
-        skel_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
-        barcodes_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
-        # For CPTAC, create an intermediate combined table, which will be used in the merge_same_aliq_samples step
-        if params['PROGRAM'] == 'CPTAC':
-            success_barcode = barcode_raw_table_merge(skel_table, barcodes_table,
-                                              params['SCRATCH_DATASET'], f"{draft_table}_combined_table",
-                                              params['BQ_AS_BATCH'],
-                                              params['PROGRAM'])
-            if success_barcode:
-                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_combined_table"
-                success = merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
-                                         params['BQ_AS_BATCH'])
-            else:
-                print("Barcode & Raw table merge failed")
+    # Merge the barcode info into the final combo table we are building:
+    if 'create_final_combo_table' in steps: # todo rename
+        success_barcode = barcode_raw_table_merge(skel_table_id, barcodes_table_id,
+                                                  params['SCRATCH_DATASET'], f"{standard_table}_combined_table",
+                                                  params['BQ_AS_BATCH'])
+        # Eliminate the duplicates by merging samples by aliquots
+        if success_barcode:
+            release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}_combined_table" # todo rename
+            success = merge_samples_by_aliquot(release_table, f"{standard_table}_{release}", params['SCRATCH_DATASET'], # todo rename
+                                               params['BQ_AS_BATCH'])
         else:
-            success = barcode_raw_table_merge(skel_table, barcodes_table,
-                                              params['SCRATCH_DATASET'], f"{draft_table}_{release}", params['BQ_AS_BATCH'],
-                                              params['PROGRAM'])
+            print("Barcode & Raw table merge failed")
+
         if not success:
             print("Join job failed")
             return
 
-# todo remove once confirmed the new location of the step works
-    # For CPTAC there are instances where multiple samples are merged into the same aliquot
-    # for these cases we join the rows by concatenating the samples with semicolons
-    # if 'merge_same_aliq_samples' in steps:
-    #     source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_combined_table"
-    #     merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
-    #                              params['BQ_AS_BATCH'])
+    # Split the merged table into distinct programs and create final draft tables
+    for program in programs:
 
+        release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_{release}" # todo change name
+        current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_current"
 
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        update_dir_from_git(params['SCHEMA_REPO_LOCAL'],
-                                   params['SCHEMA_REPO_URL'],
-                                   params['SCHEMA_REPO_BRANCH'])
-        # todo remove when confirmed the function works
-        # try:
-        #     create_clean_target(params['SCHEMA_REPO_LOCAL'])
-        #     repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-        #     repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        # except Exception as ex:
-        #     print(f"pull_table_info_from_git failed: {str(ex)}")
-        #     return
+        if 'split_table_into_programs' in steps:
 
-# todo move field description updates here, so it's just copied over
+            success = create_per_program_table(final_table, f"{program}_{standard_table}", program, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
 
-# todo move table description here
+            if not success:
+                print(f"split table into programs failed on {program}")
 
-    #
-    # Create second table
-    #
+        if 'update_table_schema' in steps:
+            updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
+            write_table_schema_with_generic(program, standard_table, updated_schema_tags, metadata_mapping, table_metadata, field_desc_fp) # todo make sure it has the correct mapping
 
-    if 'create_current_table' in steps:
-        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
-        current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
+        # if 'publish' in steps: # todo wrap in a common function?
+        #     print('Attempting to publish tables')
+        #     full_scratch_versioned = f'{params["WORKING_PROJECT"]}.{params["TARGET_DATASET"]}.{versioned_scratch_table}'  # todo already defined?
+        #
+        #     placeholder(full_scratch_versioned, params['PUBLISH_ONLY_UPDATED']) # todo update
 
-        success = publish_table(source_table, current_dest)
-        # todo add a step to update the table description & other table information
-        if not success:
-            print("create current table failed")
-            return
+        # Clear out working temp tables:
+        if 'dump_working_tables' in steps:
+            dump_tables = [concat_table,
+                           barcode_table,
+                           f"{standard_table}_current",
+                           f"{standard_table}_{release}",
+                           manifest_table]
+            for table in dump_tables:
+                delete_table_bq_job(params['SCRATCH_DATASET'], table)
 
-    #
-    # The derived table we generate has no field descriptions. Add them from the github json files:
-    #
-    # for table in update_schema_tables:
-    #     schema_release = 'current' if table == 'current' else release
-    #     if 'update_final_schema' in steps:
-    #         success = update_schema(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}", hold_schema_dict)
-    #         if not success:
-    #             print("Schema update failed")
-    #             return
-    #
-    #     #
-    #     # Add the table description:
-    #     #
-    #
-    #     if 'add_table_description' in steps:
-    #         print('update_table_description')
-    #         full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-    #         success = install_labels_and_desc(params['SCRATCH_DATASET'],
-    #                                           f"{draft_table}_{schema_release}", full_file_prefix)
-    #         if not success:
-    #             print("update_table_description failed")
-    #             return
-
-    #
-    # compare and remove old current table
-    #
-
-    # compare the two tables
-    if 'compare_remove_old_current' in steps:
-        old_current_table = f"""{params["PUBLICATION_PROJECT"]}.
-                                {params["PUBLICATION_DATASET"]}.
-                                {publication_table}_current"""
-        previous_ver_table = f"""{params['PUBLICATION_PROJECT']}.
-                                 {params['PUBLICATION_DATASET']}_versioned.
-                                 {publication_table}_r{str(params['PREVIOUS_RELEASE'])}"""
-        table_temp = f"""{params['WORKING_PROJECT']}.
-                         {params['SCRATCH_DATASET']}.
-                         {params['PROGRAM']}_{publication_table}_r{str(params['PREVIOUS_RELEASE'])}_backup"""
-
-        print(f'Compare {old_current_table} to {previous_ver_table}')
-
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-
-        num_rows = compare.total_rows
-
-        if num_rows == 0:
-            print('the tables are the same')
-        else:
-            print(f'the tables are NOT the same and differ by {num_rows} rows')
-
-        if not compare:
-            print('compare_tables failed')
-            return
-        # move old table to a temporary location
-        elif compare and num_rows == 0:
-            print('Move old table to temp location')
-            table_moved = publish_table(old_current_table, table_temp)
-
-            if not table_moved:
-                print('Old Table was not moved and will not be deleted')
-            # remove old table
-            elif table_moved:
-                print(f'Deleting old table: {old_current_table}')
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], f"{publication_table}_current",
-                                                   params['PUBLICATION_PROJECT'])
-                if not delete_table:
-                    print('delete table failed')
-                    return
-
-    #
-    # publish table:
-    #
-
-    if 'publish' in steps:
-
-        tables = ['versioned', 'current']
-
-        for table in tables:
-            if table == 'versioned':
-                print(table)
-                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_release"
-                publication_dest = f"""{params['PUBLICATION_PROJECT']}.
-                                       {params['PUBLICATION_DATASET']}_versioned.
-                                       {publication_table}_release"""
-            elif table == 'current':
-                print(table)
-                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
-                publication_dest = f"""{params['PUBLICATION_PROJECT']}.
-                                       {params['PUBLICATION_DATASET']}.
-                                       {publication_table}_current"""
-            success = publish_table(source_table, publication_dest)
-
-        if not success:
-            print("publish table failed")
-            return
-
-    #
-    # Update previous versioned table with archived tag
-    #
-
-    if 'update_status_tag' in steps:
-        print('Update previous table')
-
-        success = update_status_tag(f"{params['PUBLICATION_DATASET']}_versioned",
-                                    f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}",
-                                    'archived', params['PUBLICATION_PROJECT'])
-
-        if not success:
-            print("update status tag table failed")
-            return
-
-    #
-    # Clear out working temp tables:
-    #
-
-    if 'dump_working_tables' in steps:
-        dump_tables = [concat_table,
-                       barcode_table,
-                       f"{draft_table}_current",
-                       f"{draft_table}_{release}",
-                       manifest_table]
-        for table in dump_tables:
-            delete_table_bq_job(params['SCRATCH_DATASET'], table)
     #
     # Done!
     #

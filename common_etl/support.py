@@ -1046,6 +1046,106 @@ def update_dir_from_git(local_repo, repo_url, repo_branch):
         return False
 
 
+def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstring
+    with open(metadata_mapping_fp) as metadata_mapping:
+        mappings = json_loads(metadata_mapping)
+
+    schema = dict()
+
+    if params['RELEASE']:
+        schema['tag-release'] = params['RELEASE']
+
+    if params['DATE']:
+        schema['tag-extracted-month-year'] = params['DATE']
+
+    if program is not None:
+        schema['tag-program'] = program
+        if mappings[program]['program_label']:
+            schema['tag-program-name-lower'] = mappings[program]['program_label']
+        else:
+            schema['tag-program-name-lower'] = None
+
+        if mappings[program]['program_label_0']:
+            schema['tag-program-name-lower-0'] = mappings[program]['program_label_0']
+        else:
+            schema['tag-program-name-lower-0'] = None
+
+        if mappings[program]['program_label_1']:
+            schema['tag-program-name-lower-1'] = mappings[program]['program_label_1']
+        else:
+            schema['tag-program-name-lower-1'] = None
+
+    return schema
+
+def write_table_schema_with_generic(program, table_id, schema_tags, metadata_fp, field_desc_fp): # todo fill in docstring
+    """
+    Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
+    :param program: Dataset program name
+    :type program:
+    :param table_id: Table id for which metadata will be added
+    :type table_id:
+    :param schema_tags: dict of tags to substitute into generic schema file (used for customization)
+    :type schema_tags:
+    :param metadata_fp:
+    :type metadata_fp:
+    :param field_desc_fp:
+    :type field_desc_fp:
+    :return:
+    :rtype:
+    """
+    if schema_tags is None:
+        schema_tags = dict()
+
+    write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
+    write_field_desc_with_generic(field_desc_fp, table_id)
+
+    return True
+
+def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # todo fill in docstring
+    """
+    Updates the tags in the generic schema file then writes the schema to the table metadata in BigQuery.
+    This function is an adaption of the add_generic_table_metadata function in utils.py
+    :param metadata_fp:
+    :type metadata_fp:
+    :param table_id:
+    :type table_id:
+    :param schema_tags:
+    :type schema_tags:
+    """
+    with open(metadata_fp) as file_handler:
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            if tag_value is None:
+                print(f"{tag_key} is set to none")
+
+            else:
+                table_schema = table_schema.replace(tag, tag_value)
+
+
+        table_metadata = json_loads(table_schema)
+        install_table_metadata(table_id, table_metadata)
+
+def write_field_desc_with_generic(field_desc_fp, table_id): # todo fill in docstring
+    """
+    Alter an existing table's schema (currently, only field descriptions are mutable without a table rebuild,
+    Google's restriction).
+    :param bq_params:
+    :param table_id:
+    :return:
+    """
+    print("\t - Adding column descriptions!")
+
+    with open(field_desc_fp) as field_output:
+        descriptions = json_loads(field_output)
+
+    update_schema(table_id, descriptions)
+
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
     Merge schema descriptions (if any) and ISB-added descriptions with inferred type data
@@ -1159,6 +1259,7 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
     except Exception as ex:
         print(ex)
         return False
+
 
 def retrieve_table_schema(target_dataset, dest_table, project=None):
     """
@@ -1603,6 +1704,53 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
     return True
 
 
+def install_table_metadata(table_id, metadata):
+    """
+    Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
+    Function was adapted from update_table_metadata function in utils.py
+    :param table_id: table id in standard SQL format
+    :param metadata: metadata containing new field and table attributes
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+def install_table_desc(table_id, new_descriptions):
+    """
+    Modify an existing table's field descriptions.
+    Function adapted from update_schema in utils.py
+    :param table_id: table id in standard SQL format
+    :param new_descriptions: dict of field names and new description strings
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        field = schema_field.to_api_repr()
+
+        if field['name'] in new_descriptions.keys():
+            name = field['name']
+            field['description'] = new_descriptions[name]
+        elif field['description'] == '':
+            print(f"Still no description for field: {field['name']}")
+
+        mod_field = bigquery.SchemaField.from_api_repr(field)
+        new_schema.append(mod_field)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
+
 def find_most_recent_release(dataset, base_table, project=None):
     """
 
@@ -1880,3 +2028,42 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
         return False
 
     return True
+
+def placeholder(sourcetable, do_batch, work_project, pub_project, bill_project=None, publish_only_update=False):
+    '''
+    Not every data release has updated tables. This functions checks to make sure that there is new data before the
+    table has been published then publishes the table. It can be overridden in the yaml configuration file
+    '''
+    # todo do we need biil_project?
+    if publish_only_update == True:
+        print("Performing comparison to last release")
+        previous_release = find_most_recent_release(dataset_tuple[1] + '_versioned', versioned_table[:-3], bill_project)
+
+        previous_ver_table = f'{params["FINAL_TABLE"]}_{build_lwr}_gdc_{previous_release}'
+
+        previous_ver_full = f'{pub_project}.{dataset_tuple[1]}_versioned.{previous_ver_table}'
+
+        result = compare_two_tables(previous_ver_full, full_scratch_versioned, do_batch)
+        evaluate_result = evaluate_table_union(result)
+
+    if publish_only_update == False or (publish_only_update == True and evaluate_result == 'different'):
+        for table in ['versioned', 'current']:  # todo this could be a problem for a  common function
+            if table == 'versioned':
+                publication_dest = f'{pub_project}.{dataset_tuple[1]}_versioned.{versioned_table}'
+            elif table == 'current':
+                source_table = f'{work_project}.{params["TARGET_DATASET"]}.{current_scratch_table}'
+                publication_dest = f'{pub_project}.{dataset_tuple[1]}.{current_table}'
+                try:
+                    delete_table_bq_job(dataset_tuple[1], current_table, project=bill_project)
+                except:
+                    print('Table deletion failed')
+
+            print(f'Publishing: {table}')
+            success = publish_table(source_table, publication_dest)
+
+            # Update previous versioned table with archived tag,if the versioned table was published
+            if success and table == 'versioned':
+                print('Updating previous table status label to archive')
+                tag_updated = update_status_tag(dataset_tuple[1] + '_versioned', previous_ver_table, 'archived', pub_project)
+                if not tag_updated:
+                    print("Update status tag table failed")
