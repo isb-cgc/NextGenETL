@@ -786,7 +786,7 @@ def main(args):
     standard_table = f"{params['DATA_TYPE']}_hg38_gdc_r{params['RELEASE']}" # todo should this have the release?
     skel_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
     barcodes_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
-    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}" # todo rename to accurately reflect the table
+    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}_{release}" # todo rename to accurately reflect the table
 
     # Google Bucket Locations
     bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["DATA_TYPE"]}.tsv'
