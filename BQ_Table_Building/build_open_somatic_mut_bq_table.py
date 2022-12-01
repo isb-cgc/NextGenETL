@@ -776,7 +776,7 @@ def main(args):
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
     table_metadata = f"{home}/{params['SCHEMA_FILE_NAME']}"
-    # metadata_mapping = f"{home}/{params['METADATA_MAPPINGS']}" # todo add to yaml
+    metadata_mapping = f"{home}/{params['METADATA_MAPPINGS']}" # todo add to yaml
     field_desc_fp = f"{home}/params['FIELD_DESC_FILE']"
 
     # BigQuery Tables
@@ -902,9 +902,13 @@ def main(args):
         release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_{release}" # todo change name
         current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_current"
 
-        if 'split_table_into_programs' in steps:
+        program_map = dict()
+        with open(metadata_mapping) as program_mapping:
+            mappings = json_loads(program_mapping)
+            program_map[program] = mappings[program]['bq_dataset']
 
-            success = create_per_program_table(final_table, f"{program}_{standard_table}", program, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
+        if 'split_table_into_programs' in steps:
+            success = create_per_program_table(final_table, f"{program_map[program]}_{standard_table}", program, params['SCRATCH_DATASET'], metadata_mapping, params['BQ_AS_BATCH'])
 
             if not success:
                 print(f"split table into programs failed on {program}")
