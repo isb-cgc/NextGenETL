@@ -719,7 +719,7 @@ def merge_samples_by_aliquot_sql(input_table): # todo fix to grab callers from y
         aliquot_barcode_normal"""
 
 
-def create_per_program_table(input_table, output_table, program, target_dataset, do_batch):
+def create_per_program_table(input_table, output_table, program, target_dataset,  do_batch):
     sql = sql_create_per_program_table(input_table, program)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
@@ -908,7 +908,7 @@ def main(args):
             program_map[program] = mappings[program]['bq_dataset']
 
         if 'split_table_into_programs' in steps:
-            success = create_per_program_table(final_table, f"{program_map[program]}_{standard_table}", program, params['SCRATCH_DATASET'], metadata_mapping, params['BQ_AS_BATCH'])
+            success = create_per_program_table(final_table, f"{program_map[program]}_{standard_table}", program, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
 
             if not success:
                 print(f"split table into programs failed on {program}")
