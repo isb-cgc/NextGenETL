@@ -904,7 +904,7 @@ def main(args):
 
         program_map = dict()
         with open(metadata_mapping) as program_mapping:
-            mappings = json_loads(program_mapping)
+            mappings = json_loads(program_mapping.read().rstrip())
             program_map[program] = mappings[program]['bq_dataset']
 
         if 'split_table_into_programs' in steps:
