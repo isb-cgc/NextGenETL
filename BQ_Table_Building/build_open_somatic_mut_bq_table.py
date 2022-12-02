@@ -773,11 +773,11 @@ def main(args):
     manifest_file = f"{home}/{params['MANIFEST_FILE']}"
     local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
     file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
-    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
-    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
-    table_metadata = f"{home}/{params['SCHEMA_FILE_NAME']}"
-    metadata_mapping = f"{home}/{params['METADATA_MAPPINGS']}" # todo add to yaml
-    field_desc_fp = f"{home}/params['FIELD_DESC_FILE']"
+    hold_schema_list = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
+    hold_schema_dict = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
+    table_metadata = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
+    metadata_mapping = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['METADATA_MAPPINGS']}"
+    field_desc_fp = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['FIELD_DESC_FILE']}"
 
     # BigQuery Tables
     manifest_table = f"{params['DATA_TYPE']}_manifest_r{params['RELEASE']}"
