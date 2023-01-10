@@ -1231,10 +1231,14 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
     return True
 
 def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True): #todo docstrings
+
+    with open(field_schema, mode='r') as field_schema_file:
+        all_field_schema = json_loads(field_schema_file.read())
+
     typed_schema = []
     for tup in typing_tups:
         print(tup)
-        field_dict = field_schema[tup[0]]
+        field_dict = all_field_schema[tup[0]]
         if tup[1] != field_dict["data_type"]:
             print(f"{tup[0]} types do not match.")
             print(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
