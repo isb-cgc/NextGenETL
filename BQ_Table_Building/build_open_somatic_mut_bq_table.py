@@ -43,7 +43,7 @@ import gzip
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
     build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git,\
-    build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
+    create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
     update_schema_tags
 
 from common_etl.utils import find_types, add_generic_table_metadata
@@ -802,7 +802,6 @@ def main(args):
 
     if 'build_manifest' in steps:
 
-        # todo add a count for
         max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
         bq_filters = [{"access": "open"},
                       {"data_format": "MAF"},
@@ -856,10 +855,10 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
+        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS']) # todo bring over from utils to support
         # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
-        build_combined_schema(None, None,
-                              typing_tups, hold_schema_list, hold_schema_dict)
+
+        create_schema_hold_list(typing_tups, field_desc_fp, hold_schema_list, "static")
 
     # Create the BQ table from the TSV
     if 'create_bq_from_tsv' in steps:
@@ -915,7 +914,8 @@ def main(args):
 
         if 'update_table_schema' in steps:
             updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
-            write_table_schema_with_generic(program, standard_table, updated_schema_tags, metadata_mapping, table_metadata, field_desc_fp) # todo make sure it has the correct mapping
+            write_table_schema_with_generic(f"{program_map[program]}_{standard_table}", updated_schema_tags,
+                                            table_metadata, field_desc_fp) # todo make sure it has the correct mapping
 
         # if 'publish' in steps: # todo wrap in a common function?
         #     print('Attempting to publish tables')

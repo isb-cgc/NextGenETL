@@ -1077,11 +1077,9 @@ def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstr
 
     return schema
 
-def write_table_schema_with_generic(program, table_id, schema_tags, metadata_fp, field_desc_fp): # todo fill in docstring
+def write_table_schema_with_generic(table_id, schema_tags, metadata_fp, field_desc_fp): # todo fill in docstring
     """
     Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
-    :param program: Dataset program name
-    :type program:
     :param table_id: Table id for which metadata will be added
     :type table_id:
     :param schema_tags: dict of tags to substitute into generic schema file (used for customization)
@@ -1208,7 +1206,6 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
     return True
 
-
 def typing_tups_to_schema_list(typing_tups, holding_list):
     """
     Need to create a typed list for the initial TSV import
@@ -1232,6 +1229,44 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
         schema_hold_list.write(json_dumps(typed_schema))
 
     return True
+
+def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True): #todo docstrings
+    typed_schema = []
+    for tup in typing_tups:
+        print(tup)
+        field_dict = field_schema[tup[0]]
+        if tup[1] != field_dict["data_type"]:
+            print(f"{tup[0]} types do not match.")
+            print(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
+
+        if field_dict["exception"] is None:
+            if static:
+                print(f"\tsetting type to static type {field_dict['type']}")
+                tup[1] = field_dict["type"]
+            else:
+                print(f"\tsetting type to dynamic type ({tup[1]})")
+
+        if field_dict["description"]:
+            full_field_dict = {
+                "name": tup[0],
+                "type": tup[1],
+                "description": field_dict["description"]
+            }
+            typed_schema.append(full_field_dict)
+        else:
+            print(f"{tup[0]} field description needs to be updated separately.")
+            no_desc = {
+                "name": tup[0],
+                "type": tup[1],
+                "description": "No description"
+            }
+            typed_schema.append(no_desc)
+
+    with open(holding_list, mode='w') as schema_hold_list:
+        schema_hold_list.write(json_dumps(typed_schema))
+
+    return True
+
 
 
 def update_schema(target_dataset, dest_table, schema_dict_loc):
