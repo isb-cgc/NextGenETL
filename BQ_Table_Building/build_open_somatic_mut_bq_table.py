@@ -886,7 +886,7 @@ def main(args):
         # Eliminate the duplicates by merging samples by aliquots
         if success_barcode:
             release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}_combined_table" # todo rename
-            success = merge_samples_by_aliquot(release_table, f"{standard_table}_{release}", params['SCRATCH_DATASET'], # todo rename
+            success = merge_samples_by_aliquot(release_table, f"{standard_table}", params['SCRATCH_DATASET'], # todo rename
                                                params['BQ_AS_BATCH'])
         else:
             print("Barcode & Raw table merge failed")
