@@ -1077,7 +1077,7 @@ def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstr
 
     return schema
 
-def write_table_schema_with_generic(table_id, schema_tags, metadata_fp, field_desc_fp): # todo fill in docstring
+def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None, field_desc_fp=None): # todo fill in docstring
     """
     Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
     :param table_id: Table id for which metadata will be added
@@ -1091,11 +1091,12 @@ def write_table_schema_with_generic(table_id, schema_tags, metadata_fp, field_de
     :return:
     :rtype:
     """
-    if schema_tags is None:
-        schema_tags = dict()
 
-    write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
-    write_field_desc_with_generic(field_desc_fp, table_id)
+    if metadata_fp is not None:
+        write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
+
+    if field_desc_fp is not None:
+        write_field_desc_with_generic(field_desc_fp, table_id)
 
     return True
 
@@ -1116,15 +1117,15 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # tod
         for line in file_handler.readlines():
             table_schema += line
 
-        for tag_key, tag_value in schema_tags.items():
-            tag = f"{{---tag-{tag_key}---}}"
+        if schema_tags is not None:
+            for tag_key, tag_value in schema_tags.items():
+                tag = f"{{---tag-{tag_key}---}}"
 
-            if tag_value is None:
-                print(f"{tag_key} is set to none")
+                if tag_value is None:
+                    print(f"{tag_key} is set to none")
 
-            else:
-                table_schema = table_schema.replace(tag, tag_value)
-
+                else:
+                    table_schema = table_schema.replace(tag, tag_value)
 
         table_metadata = json_loads(table_schema)
         install_table_metadata(table_id, table_metadata)
@@ -1243,7 +1244,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
             print(f"{tup[0]} types do not match.")
             print(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
 
-        if field_dict["exception"] is None:
+        if field_dict["exception"] == "":
             if static:
                 print(f"\tsetting type to static type {field_dict['type']}")
                 tup[1] = field_dict["type"]
