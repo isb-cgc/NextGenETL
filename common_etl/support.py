@@ -1047,8 +1047,8 @@ def update_dir_from_git(local_repo, repo_url, repo_branch):
 
 
 def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstring
-    with open(metadata_mapping_fp) as metadata_mapping:
-        mappings = json_loads(metadata_mapping)
+    with open(metadata_mapping_fp, mode='r') as metadata_mapping:
+        mappings = json_loads(metadata_mapping.read())
 
     schema = dict()
 
