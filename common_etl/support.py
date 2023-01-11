@@ -1240,7 +1240,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     for tup in typing_tups:
         print(tup)
         field_dict = all_field_schema[tup[0]]
-        if tup[1] != field_dict["type"][0:4]:
+        if tup[1][0:4] != field_dict["type"][0:4]:
             print(f"{tup[0]} types do not match.")
             print(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
 
