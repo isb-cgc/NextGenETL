@@ -774,7 +774,7 @@ def main(args):
     local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
     file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
-    hold_schema_dict = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
+    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
     table_metadata = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
     metadata_mapping = f"{params['SCHEMA_REPO_LOCAL']}/{params['METADATA_MAPPINGS']}"
     field_desc_fp = f"{params['SCHEMA_REPO_LOCAL']}/{params['FIELD_DESC_FILE']}"
@@ -786,7 +786,7 @@ def main(args):
     standard_table = f"{params['DATA_TYPE']}_hg38_gdc_r{params['RELEASE']}" # todo should this have the release?
     skel_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
     barcodes_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
-    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}_{release}" # todo rename to accurately reflect the table
+    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}" # todo rename to accurately reflect the table
 
     # Google Bucket Locations
     bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["DATA_TYPE"]}.tsv'
@@ -858,7 +858,7 @@ def main(args):
         typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS']) # todo bring over from utils to support
         # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
 
-        create_schema_hold_list(typing_tups, field_desc_fp, hold_schema_list, "static")
+        create_schema_hold_list(typing_tups, field_desc_fp, hold_schema_list, True)
 
     # Create the BQ table from the TSV
     if 'create_bq_from_tsv' in steps:
