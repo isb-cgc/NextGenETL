@@ -1060,17 +1060,17 @@ def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstr
 
     if program is not None:
         schema['tag-program'] = program
-        if mappings[program]['program_label']:
+        if 'program_label' in mappings[program]:
             schema['tag-program-name-lower'] = mappings[program]['program_label']
         else:
             schema['tag-program-name-lower'] = None
 
-        if mappings[program]['program_label_0']:
+        if 'program_label_0' in mappings[program]:
             schema['tag-program-name-lower-0'] = mappings[program]['program_label_0']
         else:
             schema['tag-program-name-lower-0'] = None
 
-        if mappings[program]['program_label_1']:
+        if 'program_label_1' in mappings[program]:
             schema['tag-program-name-lower-1'] = mappings[program]['program_label_1']
         else:
             schema['tag-program-name-lower-1'] = None
