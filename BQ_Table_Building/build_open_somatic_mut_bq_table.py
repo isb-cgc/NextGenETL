@@ -775,7 +775,7 @@ def main(args):
     file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
     hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
-    table_metadata = f"{home}/{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
+    table_metadata = f"{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
     metadata_mapping = f"{params['SCHEMA_REPO_LOCAL']}/{params['METADATA_MAPPINGS']}"
     field_desc_fp = f"{params['SCHEMA_REPO_LOCAL']}/{params['FIELD_DESC_FILE']}"
 
