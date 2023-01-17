@@ -1053,7 +1053,7 @@ def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstr
     schema = dict()
 
     if params['RELEASE']:
-        schema['tag-release'] = params['RELEASE']
+        schema['tag-release'] = f"r{params['RELEASE']}"
 
     if params['DATE']:
         schema['tag-extracted-month-year'] = params['DATE']
