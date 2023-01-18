@@ -1120,7 +1120,7 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # tod
 
         if schema_tags is not None:
             for tag_key, tag_value in schema_tags.items():
-                tag = f"{{---tag-{tag_key}---}}"
+                tag = f"{{---{tag_key}---}}"
 
                 if tag_value is None:
                     print(f"{tag_key} is set to none")
