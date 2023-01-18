@@ -898,9 +898,6 @@ def main(args):
     # Split the merged table into distinct programs and create final draft tables
     for program in programs:
 
-        release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_{release}" # todo change name
-        current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program}_{standard_table}_current"
-
         program_map = dict()
         with open(metadata_mapping) as program_mapping:
             mappings = json_loads(program_mapping.read().rstrip())
