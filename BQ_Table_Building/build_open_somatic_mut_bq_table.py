@@ -912,7 +912,6 @@ def main(args):
         if 'update_table_schema' in steps:
             print("update schema tags")
             updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
-            print(updated_schema_tags)
             print("update table schema")
             write_table_schema_with_generic(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program_map[program]}_{standard_table}", updated_schema_tags,
                                             table_metadata, field_desc_fp) # todo make sure it has the correct mapping

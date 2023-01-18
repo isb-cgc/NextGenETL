@@ -1123,8 +1123,8 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # tod
                 tag = f"{{---{tag_key}---}}"
 
                 if tag_value is None:
-                    print(f"{tag_key} is set to none")
-                    table_schema.pop(tag_key)
+                    print(f"{tag_key} is set to none, line being removed")
+                    table_schema = '\n'.join([line for line in table_schema.splitlines() if tag_key in line])
                 else:
                     table_schema = table_schema.replace(tag, tag_value)
 
