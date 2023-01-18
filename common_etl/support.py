@@ -1111,6 +1111,13 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # tod
     :param schema_tags:
     :type schema_tags:
     """
+    generic_schema_path = f"{bq_params['BQ_REPO']}/{bq_params['GENERIC_SCHEMA_DIR']}"
+
+    if not metadata_file:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{bq_params['GENERIC_TABLE_METADATA_FILE']}")
+    else:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{metadata_file}")
+
     with open(metadata_fp) as file_handler:
         table_schema = ''
 

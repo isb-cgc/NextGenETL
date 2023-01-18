@@ -913,7 +913,9 @@ def main(args):
                 print(f"split table into programs failed on {program}")
 
         if 'update_table_schema' in steps:
+            print("update schema tags")
             updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
+            print("update table schema")
             write_table_schema_with_generic(f"{program_map[program]}_{standard_table}", updated_schema_tags,
                                             table_metadata, field_desc_fp) # todo make sure it has the correct mapping
 
