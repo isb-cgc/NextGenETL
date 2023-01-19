@@ -37,27 +37,27 @@ def checkToken(aToken):
     """
     Used by pickColumns, below:
     """
-    if ( aToken.find(';') >= 0 ):
+    if (aToken.find(';') >= 0):
         aList = aToken.split(';')
         aList.sort()
         newT = ''
         for bToken in aList:
             newT += bToken
-            if ( len(newT) > 0 ): newT += ';'
-        if ( newT[-1] == ';' ): newT = newT[:-1]
-        return ( newT )
+            if (len(newT) > 0): newT += ';'
+        if (newT[-1] == ';'): newT = newT[:-1]
+        return (newT)
 
-    elif ( aToken.find(',') >= 0 ):
+    elif (aToken.find(',') >= 0):
         aList = aToken.split(',')
         aList.sort()
         newT = ''
         for bToken in aList:
             newT += bToken
-            if ( len(newT) > 0 ): newT += ','
-        if ( newT[-1] == ',' ): newT = newT[:-1]
-        return ( newT )
+            if (len(newT) > 0): newT += ','
+        if (newT[-1] == ','): newT = newT[:-1]
+        return (newT)
 
-    return ( aToken )
+    return (aToken)
 
 
 def pickColumns(tokenList):
@@ -68,30 +68,30 @@ def pickColumns(tokenList):
     """
 
     ## original lists from Nov 2016 ...
-    skipCols = [ 14, 17, 18, 21, 22, 23, 24, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 107 ]
-    sortCols = [ 2, 28, 31 ]
+    skipCols = [14, 17, 18, 21, 22, 23, 24, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 107]
+    sortCols = [2, 28, 31]
 
     ## new lists from May 2017 ...
-    skipCols = [ 17, 18, 21, 22, 23, 24, 25, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 96, 108 ]
+    skipCols = [17, 18, 21, 22, 23, 24, 25, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 96, 108]
     ## maybe we don't skip anything?
-    skipCols = [ ]
+    skipCols = []
 
     ## information that should be sorted for consistency, eg column #2 = Center,
     ## #14 = dbSNP_Val_Status, #28 = Validation_Method, #31 = Sequencer, #50 = Consequence, etc...
-    sortCols = [ 2, 14, 28, 31, 50, 75, 85, 87, 109, 115, 116 ]
+    sortCols = [2, 14, 28, 31, 50, 75, 85, 87, 109, 115, 116]
     ## new for June MAFs
-    sortCols = [ 2, 14, 28, 31, 50, 51, 76, 86, 88, 110, 116, 117 ]
+    sortCols = [2, 14, 28, 31, 50, 51, 76, 86, 88, 110, 116, 117]
     ## new in Jan 2018 ... in some of the fields, the ORDER MATTERS!
-    sortCols = [ ]
+    sortCols = []
 
     newList = []
 
     for ii in range(len(tokenList)):
         if ii not in skipCols:
             if ii in sortCols:
-                newList += [ checkToken(tokenList[ii]) ]
+                newList += [checkToken(tokenList[ii])]
             else:
-                newList += [ tokenList[ii] ]
+                newList += [tokenList[ii]]
 
     return newList
 
@@ -236,7 +236,8 @@ def read_MAFs(tumor_type, maf_list, program_prefix, extra_cols, col_count,
                             tokenList = aLine.split('\t')
                             if len(tokenList) != len(hdrTokens):
                                 print(
-                                "ERROR: incorrect number of tokens! {} vs {}".format(len(tokenList), len(hdrTokens)))
+                                    "ERROR: incorrect number of tokens! {} vs {}".format(len(tokenList),
+                                                                                         len(hdrTokens)))
                                 raise Exception()
 
                             # This creates a key for a dictionary for each mutation belonging to a tumor sample:
@@ -356,6 +357,7 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     SELECT b.gs_url
     FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
     '''.format(manifest_table, indexd_table)
+
 
 #
 # Like the above function, but uses the final public mapping table instead:
@@ -494,7 +496,6 @@ def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target
     return
 
 
-
 def build_manifest_filter(filter_dict_list):
     """
     Build a manifest filter using the list of filter items you can get from a GDC search
@@ -625,7 +626,7 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
             request_url = '{}{}'.format(indexd_url, ','.join(uuid_list))
             resp = requests.request("GET", request_url)
             call_count += 1
-            print ("completed {} of {} calls to IndexD".format(call_count, all_calls))
+            print("completed {} of {} calls to IndexD".format(call_count, all_calls))
             file_dict = json_loads(resp.text)
             for i in range(0, list_len):
                 call_id = uuid_list[i]
@@ -634,8 +635,8 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
                 manifest_record = manifest_vals[curr_id]
                 indexd_results[curr_id] = curr_record
                 if curr_record['did'] != curr_id or \
-                                curr_record['hashes']['md5'] != manifest_record['md5'] or \
-                                curr_record['size'] != manifest_record['size']:
+                        curr_record['hashes']['md5'] != manifest_record['md5'] or \
+                        curr_record['size'] != manifest_record['size']:
                     raise Exception(
                         "Expected data mismatch! {} vs. {}".format(str(curr_record), str(manifest_record)))
             uuid_list.clear()
@@ -655,6 +656,7 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
 
 class BucketPuller(object):
     """Multithreaded  bucket puller"""
+
     def __init__(self, thread_count):
         self._lock = threading.Lock()
         self._threads = []
@@ -1046,7 +1048,7 @@ def update_dir_from_git(local_repo, repo_url, repo_branch):
         return False
 
 
-def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstring
+def update_schema_tags(metadata_mapping_fp, params, program=None):  # todo docstring
     with open(metadata_mapping_fp, mode='r') as metadata_mapping:
         mappings = json_loads(metadata_mapping.read())
 
@@ -1077,7 +1079,9 @@ def update_schema_tags(metadata_mapping_fp, params, program=None): # todo docstr
 
     return schema
 
-def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None, field_desc_fp=None): # todo fill in docstring
+
+def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None,
+                                    field_desc_fp=None):  # todo fill in docstring
     """
     Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
     :param table_id: Table id for which metadata will be added
@@ -1100,7 +1104,8 @@ def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None
 
     return True
 
-def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # todo fill in docstring
+
+def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # todo fill in docstring
     """
     Updates the tags in the generic schema file then writes the schema to the table metadata in BigQuery.
     This function is an adaption of the add_generic_table_metadata function in utils.py
@@ -1124,27 +1129,13 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags): # tod
 
                 if tag_value is None:
                     print(f"{tag_key} is set to none, line being removed")
-                    table_schema = '\n'.join([line for line in table_schema.splitlines() if tag_key in line])
+                    table_schema = '\n'.join([line for line in table_schema.splitlines() if tag_key not in line])
                 else:
                     table_schema = table_schema.replace(tag, tag_value)
 
         table_metadata = json_loads(table_schema)
         install_table_metadata(table_id, table_metadata)
 
-def write_field_desc_with_generic(field_desc_fp, table_id): # todo fill in docstring
-    """
-    Alter an existing table's schema (currently, only field descriptions are mutable without a table rebuild,
-    Google's restriction).
-    :param bq_params:
-    :param table_id:
-    :return:
-    """
-    print("\t - Adding column descriptions!")
-
-    with open(field_desc_fp) as field_output:
-        descriptions = json_loads(field_output)
-
-    update_schema(table_id, descriptions)
 
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
@@ -1208,6 +1199,7 @@ def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding
 
     return True
 
+
 def typing_tups_to_schema_list(typing_tups, holding_list):
     """
     Need to create a typed list for the initial TSV import
@@ -1232,7 +1224,8 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
 
     return True
 
-def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True): #todo docstrings
+
+def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True):  # todo docstrings
 
     with open(field_schema, mode='r') as field_schema_file:
         all_field_schema = json_loads(field_schema_file.read())
@@ -1249,7 +1242,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
             if static:
                 print(f"\tsetting type to static type {field_dict['type']}")
                 tup = (tup[0], field_dict["type"])
-                #tup[1] = str(field_dict["type"])
+                # tup[1] = str(field_dict["type"])
             else:
                 print(f"\tsetting type to dynamic type ({tup[1]})")
 
@@ -1273,7 +1266,6 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
         schema_hold_list.write(json_dumps(typed_schema))
 
     return True
-
 
 
 def update_schema(target_dataset, dest_table, schema_dict_loc):
@@ -1472,8 +1464,7 @@ def bq_table_is_empty(target_dataset, dest_table):
     return table.num_rows == 0
 
 
-def delete_table_bq_job(target_dataset, delete_table, project = None):
-
+def delete_table_bq_job(target_dataset, delete_table, project=None):
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(delete_table)
     try:
@@ -1505,7 +1496,7 @@ def confirm_google_vm():
         return False
 
 
-def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """
     Ripped from Stack Overflow.
     https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -1607,7 +1598,6 @@ be arguments to the bq command used to create the table.
 
 
 def generate_table_detail_files(dict_file, file_tag):
-
     #
     # Read in the chunks and write them out into pieces the bq command can use
     #
@@ -1621,7 +1611,8 @@ def generate_table_detail_files(dict_file, file_tag):
             label_file.write(json_dumps(bqt_dict['labels'], sort_keys=True, indent=4, separators=(',', ': ')))
             label_file.write('\n')
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
-            schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
+            schema_file.write(
+                json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
             schema_file.write('\n')
         with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
             friendly_file.write(bqt_dict['friendlyName'])
@@ -1631,6 +1622,7 @@ def generate_table_detail_files(dict_file, file_tag):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1682,6 +1674,7 @@ def customize_labels_and_desc(file_tag, tag_map_list):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1765,6 +1758,7 @@ def install_table_metadata(table_id, metadata):
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
 
+
 def install_table_desc(table_id, new_descriptions):
     """
     Modify an existing table's field descriptions.
@@ -1792,6 +1786,7 @@ def install_table_desc(table_id, new_descriptions):
     table.schema = new_schema
 
     client.update_table(table, ['schema'])
+
 
 def find_most_recent_release(dataset, base_table, project=None):
     """
@@ -1829,6 +1824,7 @@ def find_most_recent_release(dataset, base_table, project=None):
 
     return release
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
@@ -1837,7 +1833,6 @@ be arguments to the bq command used to update the dataset.
 
 
 def generate_dataset_desc_file(dict_file, file_tag):
-
     """
     Read in the chunks and write them out into pieces the bq command can use
     :param dict_file: Schema Json file
@@ -1859,6 +1854,7 @@ def generate_dataset_desc_file(dict_file, file_tag):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1902,7 +1898,6 @@ Create a new BQ dataset
 
 
 def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
-
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
@@ -1915,7 +1910,6 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
         dataset.location = "US"
         dataset.description = desc
 
-
         if make_public:
             entry = bigquery.AccessEntry(
                 role="READER",
@@ -1927,8 +1921,6 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
             entries.append(entry)
             dataset.access_entries = entries
 
-
-
         client.create_dataset(dataset)
 
     except Exception as ex:
@@ -1936,6 +1928,7 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1945,7 +1938,6 @@ Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 
 
 def publish_table(source_table, target_table):
-
     try:
         #
         # 3/11/20: Friendly names not copied across, so do it here!
@@ -1983,14 +1975,16 @@ def publish_table(source_table, target_table):
 
     return True
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Are two tables exactly the same?
 '''
 
+
 def compare_two_tables(old_table, new_table, do_batch):
     old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
-    
+
     old_schema = retrieve_table_schema(old_table_spl[1], old_table_spl[2], old_table_spl[0])
     new_schema = retrieve_table_schema(new_table_spl[1], new_table_spl[2], new_table_spl[0])
 
@@ -1999,10 +1993,12 @@ def compare_two_tables(old_table, new_table, do_batch):
     sql = compare_two_tables_sql(old_table, new_table)
     return bq_harness_with_result(sql, do_batch)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 SQL for the compare_two_tables function
 '''
+
 
 def compare_two_tables_sql(old_table, new_table):
     return '''
@@ -2071,6 +2067,7 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
 
     return True
 
+
 def placeholder(sourcetable, do_batch, work_project, pub_project, bill_project=None, publish_only_update=False):
     '''
     Not every data release has updated tables. This functions checks to make sure that there is new data before the
@@ -2106,6 +2103,7 @@ def placeholder(sourcetable, do_batch, work_project, pub_project, bill_project=N
             # Update previous versioned table with archived tag,if the versioned table was published
             if success and table == 'versioned':
                 print('Updating previous table status label to archive')
-                tag_updated = update_status_tag(dataset_tuple[1] + '_versioned', previous_ver_table, 'archived', pub_project)
+                tag_updated = update_status_tag(dataset_tuple[1] + '_versioned', previous_ver_table, 'archived',
+                                                pub_project)
                 if not tag_updated:
                     print("Update status tag table failed")
