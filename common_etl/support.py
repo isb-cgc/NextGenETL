@@ -1055,7 +1055,10 @@ def update_schema_tags(metadata_mapping_fp, params, program=None):  # todo docst
     schema = dict()
 
     if params['RELEASE']:
-        schema['tag-release'] = f"r{params['RELEASE']}"
+        schema['tag-release'] = str({params['RELEASE']})
+
+    if params['RELEASE_ANCHOR']:
+        schema['tag-release-url-anchor'] = str(params['RELEASE_ANCHOR'])
 
     if params['DATE']:
         schema['tag-extracted-month-year'] = params['DATE']
