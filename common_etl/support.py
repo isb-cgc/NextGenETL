@@ -1763,12 +1763,11 @@ def install_table_metadata(table_id, metadata):
 
 def install_table_field_desc(table_id, new_descriptions):
     """
-    Modify an existing table's field descriptions.
+    Modify an existing table's field descriptions. Based on a function from utils.py called update_schema
     Function adapted from update_schema in utils.py
     :param table_id: table id in standard SQL format
     :param new_descriptions: dict of field names and new description strings
     """
-    # todo: update to check for exceptions
     client = bigquery.Client()
     table = client.get_table(table_id)
 
@@ -1776,12 +1775,14 @@ def install_table_field_desc(table_id, new_descriptions):
 
     for schema_field in table.schema:
         field = schema_field.to_api_repr()
+        name = field['name']
 
-        if field['name'] in new_descriptions.keys():
-            name = field['name']
-            field['description'] = new_descriptions[name]
-        elif field['description'] == '':
-            print(f"Still no description for field: {field['name']}")
+        if name in new_descriptions.keys() and new_descriptions[name]['exception'] != '':
+            field['description'] = new_descriptions[name]['description']
+        elif name in new_descriptions.keys() and new_descriptions[name]['exception'] == '':
+            print(f"Field has an exception listed: {new_descriptions[name]['exception']}")
+        else:
+            print(f"{name} field is not listed in json")
 
         mod_field = bigquery.SchemaField.from_api_repr(field)
         new_schema.append(mod_field)
