@@ -1777,9 +1777,9 @@ def install_table_field_desc(table_id, new_descriptions):
         field = schema_field.to_api_repr()
         name = field['name']
 
-        if name in new_descriptions.keys() and new_descriptions[name]['exception'] != '':
+        if name in new_descriptions.keys() and new_descriptions[name]['exception'] == '':
             field['description'] = new_descriptions[name]['description']
-        elif name in new_descriptions.keys() and new_descriptions[name]['exception'] == '':
+        elif name in new_descriptions.keys() and new_descriptions[name]['exception'] is not None:
             print(f"Field has an exception listed: {new_descriptions[name]['exception']}")
         else:
             print(f"{name} field is not listed in json")
