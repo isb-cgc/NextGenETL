@@ -1100,7 +1100,9 @@ def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None
         write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
 
     if field_desc_fp is not None:
-        write_field_desc_with_generic(field_desc_fp, table_id)
+        with open(field_desc_fp, mode='r') as field_desc:
+            field_desc_dict = json_loads(field_desc.read())
+        install_table_field_desc(table_id, field_desc_dict)
 
     return True
 
@@ -1759,13 +1761,14 @@ def install_table_metadata(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def install_table_desc(table_id, new_descriptions):
+def install_table_field_desc(table_id, new_descriptions):
     """
     Modify an existing table's field descriptions.
     Function adapted from update_schema in utils.py
     :param table_id: table id in standard SQL format
     :param new_descriptions: dict of field names and new description strings
     """
+    # todo: update to check for exceptions
     client = bigquery.Client()
     table = client.get_table(table_id)
 
