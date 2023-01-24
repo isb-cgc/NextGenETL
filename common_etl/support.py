@@ -1125,18 +1125,20 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
     with open(metadata_fp) as file_handler:
         table_schema = ''
 
-        for line in file_handler.readlines():
-            table_schema += line
-
         if schema_tags is not None:
-            for tag_key, tag_value in schema_tags.items():
-                tag = f"{{---{tag_key}---}}"
+            for line in file_handler.readlines():
+                for tag_key, tag_value in schema_tags.items():
+                    tag = f"{{---{tag_key}---}}"
 
-                if tag_value is None:
-                    print(f"{tag_key} is set to none, line being removed")
-                    table_schema = '\n'.join([line for line in table_schema.splitlines() if tag_key not in line])
-                else:
-                    table_schema = table_schema.replace(tag, tag_value)
+                    if tag_value is None:
+                        print(f"{tag_key} is set to none, line being removed")
+                    else:
+                        updated_line = line.replace(tag, tag_value)
+                table_schema += updated_line
+
+        else:
+            for line in file_handler.readlines():
+                table_schema += line
 
         table_metadata = json_loads(table_schema)
         install_table_metadata(table_id, table_metadata)
