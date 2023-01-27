@@ -1055,7 +1055,7 @@ def update_schema_tags(metadata_mapping_fp, params, program=None):  # todo docst
     schema = dict()
 
     if params['RELEASE']:
-        schema['---tag-release---'] = str({params['RELEASE']})
+        schema['---tag-release---'] = str(params['RELEASE'])
 
     if params['RELEASE_ANCHOR']:
         schema['---tag-release-url-anchor---'] = str(params['RELEASE_ANCHOR'])
@@ -1127,8 +1127,8 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
         metadata_dict = json_loads(metadata_dict_file.read())
 
         for main_key, main_value in metadata_dict.items():
-            final_table_metadata[main_key] = main_value
             if type(main_value) is dict:
+                final_table_metadata[main_key] = main_value
                 for sub_key, sub_value in metadata_dict[main_key].items():
                     if sub_value[1:4] == "---":
                         if schema_tags[sub_value.strip("{}")]:
@@ -1141,8 +1141,7 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
             else:
                 final_table_metadata[main_key] = main_value.format(**schema_tags)
 
-    table_metadata = json_loads(final_table_metadata)
-    install_table_metadata(table_id, table_metadata)
+    install_table_metadata(table_id, final_table_metadata)
 
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
