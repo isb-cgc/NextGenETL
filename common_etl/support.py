@@ -1121,28 +1121,28 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
     :param schema_tags:
     :type schema_tags:
     """
+    final_table_metadata = {}
 
-    with open(metadata_fp) as file_handler:
-        table_schema = ''
+    with open(metadata_fp, mode='r') as metadata_dict_file:
+        metadata_dict = json_loads(metadata_dict_file.read())
 
-        if schema_tags is not None:
-            for line in file_handler.readlines():
-                for tag_key, tag_value in schema_tags.items():
-                    tag = f"{{---{tag_key}---}}"
-
-                    if tag_value is None:
-                        print(f"{tag_key} is set to none, line being removed")
+        for main_key, main_value in metadata_dict.items():
+            final_table_metadata[main_key] = main_value
+            if type(main_value) is dict:
+                for sub_key, sub_value in metadata_dict[main_key].items():
+                    if sub_value[1:4] == "---":
+                        if schema_tags[sub_value.strip("{}")]:
+                            final_table_metadata[main_key][sub_key] = sub_value.format(**schema_tags)
+                        else:
+                            print(f"{sub_key} skipped")
                     else:
-                        updated_line = line.replace(tag, tag_value)
-                table_schema += updated_line
+                        print("no tags")
+                        final_table_metadata[main_key][sub_key] = sub_value
+            else:
+                final_table_metadata[main_key] = main_value.format(**schema_tags)
 
-        else:
-            for line in file_handler.readlines():
-                table_schema += line
-
-        table_metadata = json_loads(table_schema)
-        install_table_metadata(table_id, table_metadata)
-
+    table_metadata = json_loads(final_table_metadata)
+    install_table_metadata(table_id, table_metadata)
 
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
