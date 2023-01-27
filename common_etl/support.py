@@ -1055,30 +1055,30 @@ def update_schema_tags(metadata_mapping_fp, params, program=None):  # todo docst
     schema = dict()
 
     if params['RELEASE']:
-        schema['tag-release'] = str({params['RELEASE']})
+        schema['---tag-release---'] = str({params['RELEASE']})
 
     if params['RELEASE_ANCHOR']:
-        schema['tag-release-url-anchor'] = str(params['RELEASE_ANCHOR'])
+        schema['---tag-release-url-anchor---'] = str(params['RELEASE_ANCHOR'])
 
     if params['DATE']:
-        schema['tag-extracted-month-year'] = params['DATE']
+        schema['---tag-extracted-month-year---'] = params['DATE']
 
     if program is not None:
-        schema['tag-program'] = program
+        schema['---tag-program---'] = program
         if 'program_label' in mappings[program]:
-            schema['tag-program-name-lower'] = mappings[program]['program_label']
+            schema['---tag-program-name-lower---'] = mappings[program]['program_label']
         else:
-            schema['tag-program-name-lower'] = None
+            schema['---tag-program-name-lower---'] = None
 
         if 'program_label_0' in mappings[program]:
-            schema['tag-program-name-lower-0'] = mappings[program]['program_label_0']
+            schema['---tag-program-name-lower-0---'] = mappings[program]['program_label_0']
         else:
-            schema['tag-program-name-lower-0'] = None
+            schema['---tag-program-name-lower-0---'] = None
 
         if 'program_label_1' in mappings[program]:
-            schema['tag-program-name-lower-1'] = mappings[program]['program_label_1']
+            schema['---tag-program-name-lower-1---'] = mappings[program]['program_label_1']
         else:
-            schema['tag-program-name-lower-1'] = None
+            schema['---tag-program-name-lower-1---'] = None
 
     return schema
 
