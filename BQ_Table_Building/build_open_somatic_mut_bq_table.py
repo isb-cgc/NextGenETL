@@ -24,7 +24,6 @@ reading, 187 million lines for writing.
 '''
 
 import sys
-
 import os
 import yaml
 import shutil
@@ -62,9 +61,8 @@ def load_config(yaml_config):
         return None, None, None, None, None
 
     return (
-        yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'],  # yaml_dict['filters'], yaml_dict['bq_filters'],
+        yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'],
         yaml_dict['steps'], yaml_dict['callers'], yaml_dict['update_schema_tables'])
-    # yaml_dict['schema_tags'])
 
 
 '''
@@ -360,8 +358,6 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
                 callerName, fileUUID = file_info(use_file_name)
-                # caller_field_index = 0
-                # print(str(caller_field_index))
                 for line in readfile:
                     # Seeing comments in MAF files
                     if not line.startswith('#'):
@@ -371,14 +367,9 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                             header_names = clean_header_names(header_list, fields_to_fix)
                             caller_field_index = header_names.index('callers')
                             header_line = '\t'.join(header_names)
-                            outfile.write(header_line)  # .rstrip('\n'))
+                            outfile.write(header_line)
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
-                            # todo remove
-                            # if program == "TCGA":
-                            #     outfile.write('\t')
-                            #     outfile.write('caller')
-                            # else:
                             for field in callers:
                                 outfile.write('\t')
                                 outfile.write(field)
@@ -388,11 +379,6 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write(fileUUID)
-                            # todo remove
-                            # if program == "TCGA":
-                            #     outfile.write('\t')
-                            #     outfile.write(callerName)
-                            # else:
                             caller_data = process_callers(line.rstrip('\n').split('\t')[caller_field_index], callers)
                             for caller in callers:
                                 outfile.write('\t')
@@ -402,12 +388,14 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                     os.remove(use_file_name)
 
 
-def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
-    sql = merge_samples_by_aliquot_sql(input_table)
+def merge_samples_by_aliquot(input_table, output_table, target_dataset, callers, do_batch):
+    sql = merge_samples_by_aliquot_sql(input_table, callers)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
-def merge_samples_by_aliquot_sql(input_table):  # todo fix to grab callers from yaml
+def merge_samples_by_aliquot_sql(input_table, callers):
+    joined_callers = ", ".join(callers)
+
     return f"""
     SELECT 
         project_short_name,
@@ -554,11 +542,7 @@ def merge_samples_by_aliquot_sql(input_table):  # todo fix to grab callers from 
         RNA_alt_count,
         callers,
         file_gdc_id,
-        muse,
-        mutect2,
-        pindel,
-        somaticsniper,
-        varscan2,
+        {joined_callers},
         string_agg(distinct sample_barcode_tumor, ';') as sample_barcode_tumor, 
         string_agg(distinct sample_barcode_normal, ';') as sample_barcode_normal, 
         aliquot_barcode_tumor, 
@@ -710,11 +694,7 @@ def merge_samples_by_aliquot_sql(input_table):  # todo fix to grab callers from 
         RNA_alt_count,
         callers,
         file_gdc_id,
-        muse,
-        mutect2,
-        pindel,
-        somaticsniper,
-        varscan2,
+        {joined_callers},
         aliquot_barcode_tumor, 
         aliquot_barcode_normal"""
 
@@ -888,8 +868,7 @@ def main(args):
         if success_barcode:
             release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{combined_table}"  # todo rename
             success = merge_samples_by_aliquot(release_table, f"{standard_table}_{release}", params['SCRATCH_DATASET'],
-                                               # todo rename
-                                               params['BQ_AS_BATCH'])
+                                               callers, params['BQ_AS_BATCH'])
         else:
             print("Barcode & Raw table merge failed")
 
@@ -949,7 +928,7 @@ def main(args):
     print('job completed')
 
     if 'archive' in steps:
-    # todo update
+        # todo update
         print('archive files from VM')
         archive_file_prefix = f"{date.today()}_{params['PUBLICATION_DATASET']}"
         if params['ARCHIVE_YAML']:
