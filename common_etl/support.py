@@ -22,6 +22,7 @@ from google.cloud import exceptions
 from google.cloud.exceptions import NotFound
 import shutil
 import os
+import sys
 import requests
 import copy
 import urllib.parse as up
@@ -1945,7 +1946,8 @@ Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 '''
 
 
-def publish_table(source_table, target_table):
+def publish_table(source_table, target_table, overwrite=False):
+
     try:
         #
         # 3/11/20: Friendly names not copied across, so do it here!
@@ -1962,7 +1964,9 @@ def publish_table(source_table, target_table):
         trg_tab = trg_toks[2]
 
         src_client = bigquery.Client(src_proj)
-        job = src_client.copy_table(source_table, target_table)
+        job_config = bigquery.CopyJobConfig()
+        if overwrite == True: job_config.write_disposition = "WRITE_TRUNCATE"
+        job = src_client.copy_table(source_table, target_table, job_config=job_config)
         job.result()
 
         src_table_ref = src_client.dataset(src_dset).table(src_tab)
@@ -2076,42 +2080,28 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
     return True
 
 
-def placeholder(sourcetable, do_batch, work_project, pub_project, bill_project=None, publish_only_update=False):
-    '''
-    Not every data release has updated tables. This functions checks to make sure that there is new data before the
-    table has been published then publishes the table. It can be overridden in the yaml configuration file
-    '''
-    # todo do we need biil_project?
-    if publish_only_update == True:
-        print("Performing comparison to last release")
-        previous_release = find_most_recent_release(dataset_tuple[1] + '_versioned', versioned_table[:-3], bill_project)
+def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
+                                     base_table_id=None):
+    # publish versioned
+    if not publish_table(scratch_table_id, versioned_table_id):
+        sys.exit(f'versioned publication failed for {versioned_table_id}')
 
-        previous_ver_table = f'{params["FINAL_TABLE"]}_{build_lwr}_gdc_{previous_release}'
+    # publish current # todo add the overwrite parameter
+    if not publish_table(scratch_table_id, current_table_id, True):
+        sys.exit(f'current publication failed for {current_table_id}')
 
-        previous_ver_full = f'{pub_project}.{dataset_tuple[1]}_versioned.{previous_ver_table}'
+    # update friendly name
+    client = bigquery.Client()
+    table = client.get_table(versioned_table_id)
+    friendly_name = table.friendly_name
+    table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
+    client.update_table(table, ["friendly_name"])
 
-        result = compare_two_tables(previous_ver_full, full_scratch_versioned, do_batch)
-        evaluate_result = evaluate_table_union(result)
+    # update status old versioned table to archived
+    if base_table_id:
+        project, dataset, base_table = base_table_id.split('.')
+        most_recent_release = find_most_recent_release(dataset, base_table, project)
+        update_status_tag(dataset, f"{base_table}_{most_recent_release}", "archived", project)
 
-    if publish_only_update == False or (publish_only_update == True and evaluate_result == 'different'):
-        for table in ['versioned', 'current']:  # todo this could be a problem for a  common function
-            if table == 'versioned':
-                publication_dest = f'{pub_project}.{dataset_tuple[1]}_versioned.{versioned_table}'
-            elif table == 'current':
-                source_table = f'{work_project}.{params["TARGET_DATASET"]}.{current_scratch_table}'
-                publication_dest = f'{pub_project}.{dataset_tuple[1]}.{current_table}'
-                try:
-                    delete_table_bq_job(dataset_tuple[1], current_table, project=bill_project)
-                except:
-                    print('Table deletion failed')
+    return True
 
-            print(f'Publishing: {table}')
-            success = publish_table(source_table, publication_dest)
-
-            # Update previous versioned table with archived tag,if the versioned table was published
-            if success and table == 'versioned':
-                print('Updating previous table status label to archive')
-                tag_updated = update_status_tag(dataset_tuple[1] + '_versioned', previous_ver_table, 'archived',
-                                                pub_project)
-                if not tag_updated:
-                    print("Update status tag table failed")
