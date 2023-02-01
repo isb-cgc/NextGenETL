@@ -27,26 +27,22 @@ import sys
 
 import os
 import yaml
-import gzip
 import shutil
 import zipfile
 import io
-# from git import Repo # todo remove when confirmed not needed
 import re
 from json import loads as json_loads
 from os.path import expanduser
-# from createSchemaP3 import build_schema # todo remove when confirmed not needed
 from datetime import date
 import gzip
 
-# todo remove unused functions from list
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
     build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git, \
     create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
     update_schema_tags, publish_tables_and_update_schema
 
-from common_etl.utils import find_types, add_generic_table_metadata
+from common_etl.utils import find_types
 
 '''
 ----------------------------------------------------------------------------------------------
