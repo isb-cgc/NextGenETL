@@ -31,20 +31,20 @@ import gzip
 import shutil
 import zipfile
 import io
-#from git import Repo # todo remove when confirmed not needed
+# from git import Repo # todo remove when confirmed not needed
 import re
 from json import loads as json_loads
 from os.path import expanduser
-#from createSchemaP3 import build_schema # todo remove when confirmed not needed
+# from createSchemaP3 import build_schema # todo remove when confirmed not needed
 from datetime import date
 import gzip
 
 # todo remove unused functions from list
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-    build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git,\
+    build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git, \
     create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
-    update_schema_tags
+    update_schema_tags, publish_tables_and_update_schema
 
 from common_etl.utils import find_types, add_generic_table_metadata
 
@@ -65,9 +65,10 @@ def load_config(yaml_config):
     if yaml_dict is None:
         return None, None, None, None, None
 
-    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'], #yaml_dict['filters'], yaml_dict['bq_filters'],
-            yaml_dict['steps'], yaml_dict['callers'], yaml_dict['update_schema_tables'])
-            #yaml_dict['schema_tags'])
+    return (
+        yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'],  # yaml_dict['filters'], yaml_dict['bq_filters'],
+        yaml_dict['steps'], yaml_dict['callers'], yaml_dict['update_schema_tables'])
+    # yaml_dict['schema_tags'])
 
 
 '''
@@ -75,6 +76,7 @@ def load_config(yaml_config):
 Extract the TCGA Programs We Are Working With From File List
 Extract from downloaded file names instead of using a specified list.
 '''
+
 
 # todo remove?
 def build_program_list(all_files):
@@ -91,6 +93,7 @@ def build_program_list(all_files):
 Extract the Callers We Are Working With From File List
 Extract from downloaded file names, compare to expected list. Answer if they match.
 '''
+
 
 def check_caller_list(all_files, expected_callers):
     expected_set = set(expected_callers)
@@ -276,9 +279,10 @@ update the field names to accurately reflect the data within th column. As of GD
 incorrectly.
 '''
 
+
 def clean_header_names(header_list, fields_to_fix):
     # todo remove commented out lines
-    #header_id = header_line.split('\t')
+    # header_id = header_line.split('\t')
     # if program != 'TCGA':
     for header_name in range(len(header_list)):
         for dict in fields_to_fix:
@@ -371,7 +375,7 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                             header_names = clean_header_names(header_list, fields_to_fix)
                             caller_field_index = header_names.index('callers')
                             header_line = '\t'.join(header_names)
-                            outfile.write(header_line) #.rstrip('\n'))
+                            outfile.write(header_line)  # .rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
                             # todo remove
@@ -407,7 +411,7 @@ def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
-def merge_samples_by_aliquot_sql(input_table): # todo fix to grab callers from yaml
+def merge_samples_by_aliquot_sql(input_table):  # todo fix to grab callers from yaml
     return f"""
     SELECT 
         project_short_name,
@@ -719,7 +723,7 @@ def merge_samples_by_aliquot_sql(input_table): # todo fix to grab callers from y
         aliquot_barcode_normal"""
 
 
-def create_per_program_table(input_table, output_table, program, target_dataset,  do_batch):
+def create_per_program_table(input_table, output_table, program, target_dataset, do_batch):
     sql = sql_create_per_program_table(input_table, program)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
@@ -774,20 +778,21 @@ def main(args):
     local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
     file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
     hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
-    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
+    # hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
     table_metadata = f"{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
     metadata_mapping = f"{params['SCHEMA_REPO_LOCAL']}/{params['METADATA_MAPPINGS']}"
     field_desc_fp = f"{params['SCHEMA_REPO_LOCAL']}/{params['FIELD_DESC_FILE']}"
 
     # BigQuery Tables
-    manifest_table = f"{params['DATA_TYPE']}_manifest_r{params['RELEASE']}"
-    concat_table = f"{params['DATA_TYPE']}_concat_r{params['RELEASE']}"
-    barcode_table = f"{params['DATA_TYPE']}_barcode_r{params['RELEASE']}"
-    standard_table = f"{params['DATA_TYPE']}_hg38_gdc_r{params['RELEASE']}" # todo should this have the release?
+    manifest_table = f"{params['DATA_TYPE']}_manifest_{release}"
+    concat_table = f"{params['DATA_TYPE']}_concat_{release}"
+    barcode_table = f"{params['DATA_TYPE']}_barcode_{release}"
+    combined_table = f"{params['DATA_TYPE']}_combined_table_{release}"
+    standard_table = f"{params['DATA_TYPE']}_hg38_gdc"
     skel_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
     barcodes_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
-    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}" # todo rename to accurately reflect the table
 
+    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}"  # todo rename to accurately reflect the table
     # Google Bucket Locations
     bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["DATA_TYPE"]}.tsv'
 
@@ -855,7 +860,7 @@ def main(args):
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS']) # todo bring over from utils to support
+        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])  # todo bring over from utils to support
         # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
 
         create_schema_hold_list(typing_tups, field_desc_fp, hold_schema_list, True)
@@ -879,14 +884,15 @@ def main(args):
             return
 
     # Merge the barcode info into the final combo table we are building:
-    if 'create_final_combo_table' in steps: # todo rename
+    if 'create_final_combo_table' in steps:  # todo rename
         success_barcode = barcode_raw_table_merge(skel_table_id, barcodes_table_id,
-                                                  params['SCRATCH_DATASET'], f"{standard_table}_combined_table",
+                                                  params['SCRATCH_DATASET'], combined_table,
                                                   params['BQ_AS_BATCH'])
         # Eliminate the duplicates by merging samples by aliquots
         if success_barcode:
-            release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}_combined_table" # todo rename
-            success = merge_samples_by_aliquot(release_table, f"{standard_table}", params['SCRATCH_DATASET'], # todo rename
+            release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{combined_table}"  # todo rename
+            success = merge_samples_by_aliquot(release_table, f"{standard_table}_{release}", params['SCRATCH_DATASET'],
+                                               # todo rename
                                                params['BQ_AS_BATCH'])
         else:
             print("Barcode & Raw table merge failed")
@@ -901,10 +907,11 @@ def main(args):
         program_map = dict()
         with open(metadata_mapping) as program_mapping:
             mappings = json_loads(program_mapping.read().rstrip())
-            program_map[program] = mappings[program]['bq_dataset']
+            bq_dataset = mappings[program]['bq_dataset']
 
         if 'split_table_into_programs' in steps:
-            success = create_per_program_table(final_table, f"{program_map[program]}_{standard_table}", program, params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
+            success = create_per_program_table(final_table, f"{bq_dataset}_{standard_table}_{release}", program,
+                                               params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
 
             if not success:
                 print(f"split table into programs failed on {program}")
@@ -913,16 +920,23 @@ def main(args):
             print("update schema tags")
             updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
             print("update table schema")
-            write_table_schema_with_generic(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{program_map[program]}_{standard_table}", updated_schema_tags,
-                                            table_metadata, field_desc_fp) # todo make sure it has the correct mapping
+            write_table_schema_with_generic(
+                f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{bq_dataset}_{standard_table}_{release}",
+                updated_schema_tags, table_metadata, field_desc_fp)
 
-        # if 'publish' in steps: # todo wrap in a common function?
-        #     print('Attempting to publish tables')
-        #     full_scratch_versioned = f'{params["WORKING_PROJECT"]}.{params["TARGET_DATASET"]}.{versioned_scratch_table}'  # todo already defined?
-        #
-        #     placeholder(full_scratch_versioned, params['PUBLISH_ONLY_UPDATED']) # todo update
+        if 'publish' in steps:
+            print('Attempting to publish tables')
+            success = publish_tables_and_update_schema(f"{final_table}_{release}",
+                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
+                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
+                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}",
+                                                       f"REL {str(params['RELEASE'])}")
+
+            if not success:
+                print("Publication step did not work")
 
         # Clear out working temp tables:
+        # todo update
         if 'dump_working_tables' in steps:
             dump_tables = [concat_table,
                            barcode_table,
@@ -939,7 +953,7 @@ def main(args):
     print('job completed')
 
     if 'archive' in steps:
-
+    # todo update
         print('archive files from VM')
         archive_file_prefix = f"{date.today()}_{params['PUBLICATION_DATASET']}"
         if params['ARCHIVE_YAML']:
