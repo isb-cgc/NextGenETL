@@ -761,6 +761,7 @@ def main(args):
 
     # BigQuery Tables
     manifest_table = f"{params['DATA_TYPE']}_manifest_{release}"
+    pull_list_table = f"{params['DATA_TYPE']}_pull_list_{release}"
     concat_table = f"{params['DATA_TYPE']}_concat_{release}"
     barcode_table = f"{params['DATA_TYPE']}_barcode_{release}"
     combined_table = f"{params['DATA_TYPE']}_combined_table_{release}"
@@ -803,7 +804,7 @@ def main(args):
         build_pull_list_with_bq(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}",
                                 params['INDEXD_BQ_TABLE'].format(metadata_rel),
                                 params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                f"{params['DATA_TYPE']}_pull_list",
+                                pull_list_table,
                                 params['WORKING_BUCKET'],
                                 params['BUCKET_PULL_LIST'],
                                 local_pull_list, params['BQ_AS_BATCH'])
