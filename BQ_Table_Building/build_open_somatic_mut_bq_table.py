@@ -771,7 +771,7 @@ def main(args):
 
     final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}"  # todo rename to accurately reflect the table
     # Google Bucket Locations
-    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{params["DATE"]}-{params["DATA_TYPE"]}.tsv'
+    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{release}-{params["DATA_TYPE"]}.tsv'
 
     # Which metadata release should we use? # todo do we need this?
     metadata_rel = f"r{str(params['METADATA_REL'])}" if 'METADATA_REL' in params else release
