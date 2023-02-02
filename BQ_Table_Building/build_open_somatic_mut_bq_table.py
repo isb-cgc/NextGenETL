@@ -906,7 +906,7 @@ def main(args):
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}",
-                                                       f"REL {str(params['RELEASE'])}")
+                                                       f"REL {str(params['RELEASE'])}", )
 
             if not success:
                 print("Publication step did not work")
