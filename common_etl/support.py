@@ -1968,16 +1968,6 @@ def publish_table(source_table, target_table, overwrite=False):
         job = src_client.copy_table(source_table, target_table)
         job.result()
 
-        # src_client = bigquery.Client(src_proj)
-        # if overwrite:
-        #     job_config = bigquery.CopyJobConfig()
-        #     job_config.write_disposition = "WRITE_TRUNCATE"
-        #     job = src_client.copy_table(source_table, target_table, job_config=job_config)
-        #     job.result()
-        # else:
-        #     job = src_client.copy_table(source_table, target_table)
-        #     job.result()
-
         src_table_ref = src_client.dataset(src_dset).table(src_tab)
         s_table = src_client.get_table(src_table_ref)
         src_friendly = s_table.friendly_name
@@ -1995,7 +1985,6 @@ def publish_table(source_table, target_table, overwrite=False):
         return False
 
     return True
-
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -2097,7 +2086,7 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
         client = bigquery.Client()
         table = client.get_table(versioned_table_id)
         friendly_name = table.friendly_name
-        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
+        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"# todo fix
         client.update_table(table, ["friendly_name"])
     else:
         sys.exit(f'versioned publication failed for {versioned_table_id}')
