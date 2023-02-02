@@ -1129,7 +1129,7 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
 
         for main_key, main_value in metadata_dict.items():
             if type(main_value) is dict:
-                final_table_metadata[main_key] = main_value
+                final_table_metadata[main_key] = {}
                 for sub_key, sub_value in metadata_dict[main_key].items():
                     if sub_value[1:4] == "---":
                         if schema_tags[sub_value.strip("{}")]:
@@ -1143,6 +1143,7 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
                 final_table_metadata[main_key] = main_value.format(**schema_tags)
 
     install_table_metadata(table_id, final_table_metadata)
+
 
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
