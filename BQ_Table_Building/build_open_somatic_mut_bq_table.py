@@ -902,7 +902,7 @@ def main(args):
 
         if 'publish' in steps:
             print('Attempting to publish tables')
-            success = publish_tables_and_update_schema(f"{bq_dataset}_{final_table}_{release}",
+            success = publish_tables_and_update_schema(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{bq_dataset}_{standard_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
                                                        f"REL {str(params['RELEASE'])}",
