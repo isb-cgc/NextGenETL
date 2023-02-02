@@ -2083,30 +2083,26 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
 
 def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
                                      do_batch, base_table_id=None):
-    # find most recent release
-    project, dataset, base_table = base_table_id.split('.')
-    most_recent_release = find_most_recent_release(dataset, base_table, project)
 
     # publish versioned
     if not publish_table(scratch_table_id, versioned_table_id):
         sys.exit(f'versioned publication failed for {versioned_table_id}')
+        # update friendly name
+        client = bigquery.Client()
+        table = client.get_table(versioned_table_id)
+        friendly_name = table.friendly_name
+        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
+        client.update_table(table, ["friendly_name"])
 
-    # publish current
-    if not remove_old_current_tables(current_table_id, versioned_table_id, f"{base_table_id}_{most_recent_release}", do_batch):
-        sys.exit(f'old current deletion failed for {current_table_id}')
-    if not publish_table(scratch_table_id, current_table_id):
-        sys.exit(f'current publication failed for {current_table_id}')
-
-    # update friendly name
-    client = bigquery.Client()
-    table = client.get_table(versioned_table_id)
-    friendly_name = table.friendly_name
-    table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
-    client.update_table(table, ["friendly_name"])
-
-    # update status old versioned table to archived
+    # publish current and update old versioned
     if base_table_id:
+        project, dataset, base_table = base_table_id.split('.')
         most_recent_release = find_most_recent_release(dataset, base_table, project)
+        if not remove_old_current_tables(current_table_id, versioned_table_id, f"{base_table_id}_{most_recent_release}", do_batch):
+            sys.exit(f'old current deletion failed for {current_table_id}')
+        if not publish_table(scratch_table_id, current_table_id):
+            sys.exit(f'current publication failed for {current_table_id}')
+        # update status old versioned table to archived
         update_status_tag(dataset, f"{base_table}_{most_recent_release}", "archived", project)
 
     return True
