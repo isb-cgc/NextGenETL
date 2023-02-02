@@ -886,7 +886,7 @@ def main(args):
             bq_dataset = mappings[program]['bq_dataset']
 
         if 'split_table_into_programs' in steps:
-            success = create_per_program_table(final_table, f"{bq_dataset}_{standard_table}_{release}", program,
+            success = create_per_program_table(f"{final_table}_{release}", f"{bq_dataset}_{standard_table}_{release}", program,
                                                params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
 
             if not success:
