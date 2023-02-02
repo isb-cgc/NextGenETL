@@ -1965,10 +1965,14 @@ def publish_table(source_table, target_table, overwrite=False):
         trg_tab = trg_toks[2]
 
         src_client = bigquery.Client(src_proj)
-        job_config = bigquery.CopyJobConfig()
-        if overwrite == True: job_config.write_disposition = "WRITE_TRUNCATE"
-        job = src_client.copy_table(source_table, target_table, job_config=job_config)
-        job.result()
+        if overwrite:
+            job_config = bigquery.CopyJobConfig()
+            job_config.write_disposition = "WRITE_TRUNCATE"
+            job = src_client.copy_table(source_table, target_table, job_config=job_config)
+            job.result()
+        else:
+            job = src_client.copy_table(source_table, target_table)
+            job.result()
 
         src_table_ref = src_client.dataset(src_dset).table(src_tab)
         s_table = src_client.get_table(src_table_ref)
