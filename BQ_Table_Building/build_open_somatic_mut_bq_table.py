@@ -902,11 +902,12 @@ def main(args):
 
         if 'publish' in steps:
             print('Attempting to publish tables')
-            success = publish_tables_and_update_schema(f"{final_table}_{release}",
+            success = publish_tables_and_update_schema(f"{bq_dataset}_{final_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
-                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}",
-                                                       f"REL {str(params['RELEASE'])}", )
+                                                       f"REL {str(params['RELEASE'])}",
+                                                       params['BQ_AS_BATCH'],
+                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}")
 
             if not success:
                 print("Publication step did not work")
