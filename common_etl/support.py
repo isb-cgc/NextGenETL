@@ -2089,22 +2089,20 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
         most_recent_release = find_most_recent_release(dataset, base_table, project)
         if most_recent_release:
             update_status_tag(dataset, f"{base_table}_{most_recent_release}", "archived", project)
+            # create or update current table and update older versioned tables
+            if bq_table_exists(dataset, f"{base_table}_current"):
+                if remove_old_current_tables(current_table_id, versioned_table_id,
+                                             f"{base_table_id}_{most_recent_release}_bkup", do_batch):
+                    if not publish_table(scratch_table_id, current_table_id):
+                        sys.exit(f'current publication failed for {current_table_id}')
+                else:
+                    sys.exit(f'old current deletion failed for {current_table_id}')
+            else:
+                print("Current table does not exist, making a new table")
+                if not publish_table(scratch_table_id, current_table_id):
+                    sys.exit(f'creating a new current table called {current_table_id} failed')
         else:
             print("No previous release")
-
-        # create or update current table and update older versioned tables
-        if most_recent_release and bq_table_exists(dataset, base_table):
-            update_status_tag(dataset, f"{base_table}_{most_recent_release}", "archived", project)
-            if remove_old_current_tables(current_table_id, versioned_table_id,
-                                         f"{base_table_id}_{most_recent_release}_bkup", do_batch):
-                if not publish_table(scratch_table_id, current_table_id):
-                    sys.exit(f'current publication failed for {current_table_id}')
-            else:
-                sys.exit(f'old current deletion failed for {current_table_id}')
-        else:
-            print("Current table does not exist, making a new table")
-            if not publish_table(scratch_table_id, current_table_id):
-                sys.exit(f'creating a new current table called {current_table_id} failed')
 
     # publish versioned
     if publish_table(scratch_table_id, versioned_table_id):
