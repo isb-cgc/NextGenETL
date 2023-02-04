@@ -1449,11 +1449,11 @@ def update_status_tag(target_dataset, dest_table, status, project=None):
     return True
 
 
-def bq_table_exists(target_dataset, dest_table):
+def bq_table_exists(target_dataset, dest_table, project=None):
     """
     Does table exist?
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     try:
         client.get_table(table_ref)
@@ -2079,22 +2079,22 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
 
 
 def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
-                                     do_batch, base_table_id=None):
+                                     base_table=None):
 
     # publish current and update old versioned
-    if base_table_id:
-        project, dataset, base_table = base_table_id.split('.')
+    if base_table:
+        project, dataset, curr_table = current_table_id.split('.')
 
         # find the most recent table
         most_recent_release = find_most_recent_release(dataset, base_table, project)
         if most_recent_release:
             update_status_tag(dataset, f"{base_table}{most_recent_release}", "archived", project)
             # create or update current table and update older versioned tables
-            if bq_table_exists(dataset, f"{base_table}_current"):
-                print(f"Deleting old table: {base_table}_current")
-                if not delete_table_bq_job(dataset, f"{base_table}_current", project):
+            if bq_table_exists(dataset, f"{curr_table}", project):
+                print(f"Deleting old table: {curr_table}")
+                if not delete_table_bq_job(dataset, f"{curr_table}", project):
                     sys.exit(f'deleting old current table called {current_table_id} failed')
-            print("Current table does not exist, making a new table")
+            print("Creating new current table")
             if not publish_table(scratch_table_id, current_table_id):
                 sys.exit(f'creating a new current table called {current_table_id} failed')
 
