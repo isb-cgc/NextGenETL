@@ -906,8 +906,7 @@ def main(args):
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
                                                        f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
                                                        f"REL {str(params['RELEASE'])}",
-                                                       params['BQ_AS_BATCH'],
-                                                       {standard_table}")
+                                                       f"{standard_table}")
 
             if not success:
                 print("Publication step did not work")
