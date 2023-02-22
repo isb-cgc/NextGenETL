@@ -81,64 +81,7 @@ def build_program_list(all_files):
 
     return sorted(programs)
 
-
-'''
-----------------------------------------------------------------------------------------------
-Extract the Callers We Are Working With From File List
-Extract from downloaded file names, compare to expected list. Answer if they match.
-'''
-
-
-def check_caller_list(all_files, expected_callers):
-    expected_set = set(expected_callers)
-    callers = set()
-    for filename in all_files:
-        info_list = file_info(filename, None)
-        callers.add(info_list[1])
-
-    return callers == expected_set
-
-
-'''
-----------------------------------------------------------------------------------------------
-First BQ Processing: Add Aliquot IDs
-The GDC files only provide tumor and normal BAM file IDS. We need aliquots, samples, and
-associated barcodes. We get this by first attaching the aliquot IDs using the file table
-that provides aliquot UUIDs for BAM files.
-'''
-
-
-def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
-    sql = attach_aliquot_ids_sql(maf_table, file_table)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
-def attach_aliquot_ids_sql(maf_table, file_table):
-    return f"""
-        WITH
-        a1 AS (SELECT DISTINCT tumor_bam_uuid, normal_bam_uuid FROM `{maf_table}`),        
-        a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id_tumor,
-                      a1.tumor_bam_uuid,
-                      a1.normal_bam_uuid
-               FROM a1 JOIN `{file_table}` AS b ON a1.tumor_bam_uuid = b.file_gdc_id
-               WHERE b.associated_entities__entity_type = 'aliquot')
-        SELECT 
-               c.project_short_name,
-               c.case_gdc_id,
-               c.associated_entities__entity_gdc_id AS aliquot_gdc_id_normal,
-               a2.aliquot_gdc_id_tumor,
-               a2.tumor_bam_uuid,
-               a2.normal_bam_uuid
-        FROM a2 JOIN `{file_table}` AS c ON a2.normal_bam_uuid = c.file_gdc_id
-        WHERE c.associated_entities__entity_type = 'aliquot'
-        """
-
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -215,18 +158,6 @@ SQL for above
 
 
 def final_join_sql(maf_table, barcodes_table):
-    # if program == 'TCGA':
-    #     return '''
-    #          SELECT a.project_short_name,
-    #                 a.case_barcode,
-    #                 b.*,
-    #                 a.sample_barcode_tumor,
-    #                 a.sample_barcode_normal,
-    #                 a.aliquot_barcode_tumor,
-    #                 a.aliquot_barcode_normal,
-    #          FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
-    #     '''.format(barcodes_table, maf_table)
-    # else:
     return f"""
          SELECT a.project_short_name,
                 a.case_barcode,
@@ -252,13 +183,6 @@ out along with name and ID.
 def file_info(aFile):
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
-
-    # if program == 'TCGA': # todo remove TCGA
-    #     file_name = path_pieces[-1]
-    #     file_name_parts = file_name.split('.')
-    #     callerName = file_name_parts[2]
-    #     fileUUID = file_name_parts[3]
-    # else:
     fileUUID = path_pieces[-2]
     callerName = None
 
@@ -275,9 +199,6 @@ incorrectly.
 
 
 def clean_header_names(header_list, fields_to_fix):
-    # todo remove commented out lines
-    # header_id = header_line.split('\t')
-    # if program != 'TCGA':
     for header_name in range(len(header_list)):
         for dict in fields_to_fix:
             original, new = next(iter(dict.items()))
