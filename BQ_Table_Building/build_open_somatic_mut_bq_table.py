@@ -181,12 +181,20 @@ out along with name and ID.
 
 
 def file_info(aFile):
+    """
+    file_info() function Author: Sheila Reynolds
+    File name includes important information, e.g. the program name and the caller. Extract that
+    out along with name and ID.
+    :param aFile:
+    :type aFile:
+    :return:
+    :rtype:
+    """
     norm_path = os.path.normpath(aFile)
     path_pieces = norm_path.split(os.sep)
     fileUUID = path_pieces[-2]
-    callerName = None
 
-    return ([callerName, fileUUID])
+    return (fileUUID)
 
 
 '''
@@ -278,7 +286,7 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
             else:
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
-                callerName, fileUUID = file_info(use_file_name)
+                fileUUID = file_info(use_file_name)
                 for line in readfile:
                     # Seeing comments in MAF files
                     if not line.startswith('#'):
