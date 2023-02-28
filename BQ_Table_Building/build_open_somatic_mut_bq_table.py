@@ -33,23 +33,25 @@ import re
 from json import loads as json_loads
 from os.path import expanduser
 from datetime import date
+from types import SimpleNamespace
 import gzip
 
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
     build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git, \
     create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
-    update_schema_tags, publish_tables_and_update_schema
+    update_schema_tags, publish_tables_and_update_schema, bq_table_exists
 
 from common_etl.utils import find_types
 
-'''
-----------------------------------------------------------------------------------------------
-The configuration reader. Parses the YAML configuration into dictionaries
-'''
-
-
 def load_config(yaml_config):
+    """
+    The configuration reader. Parses the YAML configuration into dictionaries
+    :param yaml_config: file location of the YAML configuration
+    :type yaml_config: basestring
+    :return: dictionary of configurations
+    :rtype: dict
+    """
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
     try:
@@ -58,50 +60,43 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None
-
-    return (
-        yaml_dict['files_and_buckets_and_tables'], yaml_dict['programs'],
-        yaml_dict['steps'], yaml_dict['callers'])
-
-
-'''
-----------------------------------------------------------------------------------------------
-Extract the TCGA Programs We Are Working With From File List
-Extract from downloaded file names instead of using a specified list.
-'''
-
-
-# todo remove?
-def build_program_list(all_files):
-    programs = set()
-    for filename in all_files:
-        info_list = file_info(filename, None)
-        programs.add(info_list[0])
-
-    return sorted(programs)
+        return None, None
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
-'''
-----------------------------------------------------------------------------------------------
-Second BQ Processing: Add Barcodes
-With the aliquot UUIDs known, we can now use the aliquot table to glue in sample info
-'''
-
-
 def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, case_table):
+    """
+    Gather and add sample information to the draft table from the aliquot table
+    :param temp_table: draft table to add the aliquot information to
+    :type temp_table: basestring
+    :param aliquot_table: metadata table id for the aliquot information
+    :type aliquot_table: basestring
+    :param target_dataset: dataset id for the new table
+    :type target_dataset: basestring
+    :param dest_table: table id for the new table
+    :type dest_table: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :param case_table: metadata table id for the case information
+    :type case_table: basestring
+    :return: if the SQL query worked
+    :rtype: bool
+    """
     sql = attach_barcodes_sql(temp_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
 def attach_barcodes_sql(maf_table, aliquot_table, case_table):
+    """
+    SQL for the attach_barcodes function
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param aliquot_table: table id for the aliquot table
+    :type aliquot_table: basestring
+    :param case_table: table id for the case table
+    :type case_table: basestring
+    :return: Formatted string SQL query
+    :rtype: basestring
+    """
     return f"""
         WITH
         a1 AS (SELECT b.project_id AS project_short_name,
@@ -138,26 +133,35 @@ def attach_barcodes_sql(maf_table, aliquot_table, case_table):
         FROM a2 JOIN `{case_table}` AS d ON a2.case_barcode = d.case_barcode
     """
 
-
-'''
-----------------------------------------------------------------------------------------------
-Final BQ Step: Glue the New Info to the Original Table
-All the new info we have pulled together goes in the first columns of the final table
-'''
-
-
 def barcode_raw_table_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch):
+    """
+    Glue the New Info to the Raw Data Table
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param barcode_table: table id for the barcode table
+    :type barcode_table: basestring
+    :param target_dataset: dataset id for the new table
+    :type target_dataset: basestring
+    :param dest_table: table id for the new table
+    :type dest_table: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
     sql = final_join_sql(maf_table, barcode_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
-def final_join_sql(maf_table, barcodes_table):
+def final_join_sql(maf_table, barcode_table):
+    """
+    SQL string for the barcode_raw_table_merge
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param barcode_table: table id for the barcode table
+    :type barcode_table: basestring
+    :return: Formatted string SQL query
+    :rtype: basestring
+    """
     return f"""
          SELECT a.project_short_name,
                 a.case_barcode,
@@ -167,46 +171,36 @@ def final_join_sql(maf_table, barcodes_table):
                 a.sample_barcode_normal,
                 a.aliquot_barcode_tumor, 
                 a.aliquot_barcode_normal,
-         FROM `{barcodes_table}` as a JOIN `{maf_table}` as b 
+         FROM `{barcode_table}` as a JOIN `{maf_table}` as b 
          ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
     """
 
-
-'''
-----------------------------------------------------------------------------------------------
-file_info() function Author: Sheila Reynolds
-File name includes important information, e.g. the program name and the caller. Extract that
-out along with name and ID.
-'''
-
-
-def file_info(aFile):
+def file_info(filepath):
     """
     file_info() function Author: Sheila Reynolds
     File name includes important information, e.g. the program name and the caller. Extract that
     out along with name and ID.
-    :param aFile:
-    :type aFile:
-    :return:
-    :rtype:
+    :param filepath:
+    :type filepath:
+    :return: the file UUID
+    :rtype: basestring
     """
-    norm_path = os.path.normpath(aFile)
+    norm_path = os.path.normpath(filepath)
     path_pieces = norm_path.split(os.sep)
-    fileUUID = path_pieces[-2]
+    file_uuid = path_pieces[-2]
 
-    return (fileUUID)
-
-
-'''
-------------------------------------------------------------------------------
-Clean header field names
-Some field names are not accurately named and as of 2020-08-05, the GDC has said they will not be updated. We decided to 
-update the field names to accurately reflect the data within th column. As of GDC r32, the columns are still named
-incorrectly.
-'''
-
+    return file_uuid
 
 def clean_header_names(header_list, fields_to_fix):
+    """
+    Change header names based on the list in yaml configuration file
+    :param header_list: List of headers
+    :type header_list: list
+    :param fields_to_fix: List of dictionaries of fields to fix
+    :type fields_to_fix: list
+    :return: Updated header list
+    :rtype: list
+    """
     for header_name in range(len(header_list)):
         for dict in fields_to_fix:
             original, new = next(iter(dict.items()))
@@ -216,23 +210,16 @@ def clean_header_names(header_list, fields_to_fix):
 
     return header_list
 
-
-'''
-------------------------------------------------------------------------------
-Separate the Callers into their own columns
-The maf files has one column with a semicolon delimited with the callers in it.
-'''
-
-
 def process_callers(callers_str, callers):
     """
-    # todo
-    :param callers_str:
-    :type callers_str:
-    :param callers:
-    :type callers:
-    :return:
-    :rtype:
+    Separate the Callers into their own columns
+    The maf files has one column with a semicolon delimited with the callers in it.
+    :param callers_str: string of callers from raw file
+    :type callers_str: basestring
+    :param callers: list of callers from yaml file
+    :type callers: list
+    :return: list of callers in the raw file
+    :rtype: list
     """
     line_callers = callers_str.rstrip('\n').split(';')
     caller_list = dict.fromkeys(callers, 'No')
@@ -245,13 +232,6 @@ def process_callers(callers_str, callers):
                 caller_list[caller] = 'Yes'
     return caller_list
 
-
-'''
-------------------------------------------------------------------------------
-Concatenate all Files
-'''
-
-
 def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
     """
     Concatenate all Files
@@ -260,6 +240,14 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
     the file path. Note if file is zipped,
     we unzip it, concat it, then toss the unzipped version.
     THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
+    :param all_files: list of file paths
+    :type all_files: list
+    :param one_big_tsv: name of file to create
+    :type one_big_tsv: basestring
+    :param callers: list of callers
+    :type callers: list
+    :param fields_to_fix: list of fixed fields
+    :type fields_to_fix: list
     """
     print(f"building {one_big_tsv}")
     first = True
@@ -276,7 +264,6 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                 use_file_name = filename[:-4]
                 toss_zip = True
             elif filename.endswith('.gz'):
-                # dir_name = os.path.dirname(filename)
                 use_file_name = filename[:-3]
                 print(f"Uncompressing {filename}")
                 with gzip.open(filename, "rb") as gzip_in:
@@ -286,9 +273,9 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
             else:
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
-                fileUUID = file_info(use_file_name)
+                file_uuid = file_info(use_file_name)
                 for line in readfile:
-                    # Seeing comments in MAF files
+                    # Bypass comments in MAF file
                     if not line.startswith('#'):
                         if first:
                             header_list = line.rstrip('\n').split('\t')
@@ -307,7 +294,7 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
                         if not line.startswith(header_id):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
-                            outfile.write(fileUUID)
+                            outfile.write(file_uuid)
                             caller_data = process_callers(line.rstrip('\n').split('\t')[caller_field_index], callers)
                             for caller in callers:
                                 outfile.write('\t')
@@ -318,11 +305,35 @@ def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
 
 
 def merge_samples_by_aliquot(input_table, output_table, target_dataset, callers, do_batch):
+    """
+    Some samples are pooled and their lines need to be merged by aliquot
+    :param input_table: table to merge samples
+    :type input_table: basestring
+    :param output_table: name of new table
+    :type output_table: basestring
+    :param target_dataset: dataset for the new table
+    :type target_dataset: basestring
+    :param callers: list of callers
+    :type callers: list
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
     sql = merge_samples_by_aliquot_sql(input_table, callers)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
 def merge_samples_by_aliquot_sql(input_table, callers):
+    """
+    SQL for merge_samples_by_aliquot
+    :param input_table: table to merge samples
+    :type input_table: basestring
+    :param callers: list of callers
+    :type callers: list
+    :return: formatted SQL string
+    :rtype: basestring
+    """
     joined_callers = ", ".join(callers)
 
     return f"""
@@ -629,11 +640,35 @@ def merge_samples_by_aliquot_sql(input_table, callers):
 
 
 def create_per_program_table(input_table, output_table, program, target_dataset, do_batch):
+    """
+    Split the combined table into tables per program
+    :param input_table: Combined draft table
+    :type input_table: basestring
+    :param output_table: name for the new table
+    :type output_table: basestring
+    :param program: Program to filter the table on
+    :type program: basestring
+    :param target_dataset: dataset to store the new table
+    :type target_dataset: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
     sql = sql_create_per_program_table(input_table, program)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
 def sql_create_per_program_table(input_table, program):
+    """
+    SQL for create_per_program_table
+    :param input_table: Combined draft table
+    :type input_table: basestring
+    :param program: Program to filter the table on
+    :type program: basestring
+    :return: formatted SQL query
+    :rtype: basestring
+    """
     return f"""
         SELECT *
         FROM `{input_table}`
@@ -659,51 +694,46 @@ def main(args):
         return
 
     print('job started')
-    #
+
     # Get the YAML config loaded:
-    #
-
     with open(args[1], mode='r') as yaml_file:
-        params, programs, steps, callers, = load_config(yaml_file.read())
+        params_dict, steps = load_config(yaml_file.read())
+        params = SimpleNamespace(**params_dict)
 
-    if params is None:
+    if params_dict is None:
         print("Bad YAML load")
         return
 
     # Which table are we building?
-    release = f"r{str(params['RELEASE'])}"
+    release = f"r{str(params.RELEASE)}"
 
     # BQ does not like to be given paths that have "~". So make all local paths absolute:
     home = expanduser("~")
 
     # Local Files
-    local_files_dir = f"{home}/{params['LOCAL_FILES_DIR']}"
-    one_big_tsv = f"{home}/{params['ONE_BIG_TSV']}"
-    manifest_file = f"{home}/{params['MANIFEST_FILE']}"
-    local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
-    file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
-    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"  # todo rename to appropriate file
-    # hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"  # todo rename to appropriate file
-    table_metadata = f"{params['SCHEMA_REPO_LOCAL']}/{params['SCHEMA_FILE_NAME']}"
-    metadata_mapping = f"{params['SCHEMA_REPO_LOCAL']}/{params['METADATA_MAPPINGS']}"
-    field_desc_fp = f"{params['SCHEMA_REPO_LOCAL']}/{params['FIELD_DESC_FILE']}"
+    local_files_dir = f"{home}/mafs/mafFilesHold"
+    one_big_tsv = f"{home}/mafs/MAF-joinedData.tsv"
+    manifest_file = f"{home}/mafs/MAF-manifest.tsv"
+    local_pull_list = f"{home}/mafs/MAF-pull_list.tsv"
+    file_traversal_list = f"{home}/mafs/MAF-traversal_list.txt"
+    field_list = f"{home}/MAF-field_list.json"
+    table_metadata = f"{params.SCHEMA_REPO_LOCAL}/{params.SCHEMA_FILE_NAME}"
+    metadata_mapping = f"{params.SCHEMA_REPO_LOCAL}/{params.METADATA_MAPPINGS}"
+    field_desc_fp = f"{params.SCHEMA_REPO_LOCAL}/{params.FIELD_DESC_FILE}"
 
     # BigQuery Tables
-    manifest_table = f"{params['DATA_TYPE']}_manifest_{release}"
-    pull_list_table = f"{params['DATA_TYPE']}_pull_list_{release}"
-    concat_table = f"{params['DATA_TYPE']}_concat_{release}"
-    barcode_table = f"{params['DATA_TYPE']}_barcode_{release}"
-    combined_table = f"{params['DATA_TYPE']}_combined_table_{release}"
-    standard_table = f"{params['DATA_TYPE']}_hg38_gdc"
-    skel_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{concat_table}'
-    barcodes_table_id = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{barcode_table}'
+    manifest_table = f"{params.DATA_TYPE}_manifest_{release}"
+    pull_list_table = f"{params.DATA_TYPE}_pull_list_{release}"
+    concat_table = f"{params.DATA_TYPE}_concat_{release}"
+    barcode_table = f"{params.DATA_TYPE}_barcode_{release}"
+    combined_table = f"{params.DATA_TYPE}_combined_table_{release}"
+    standard_table = f"{params.DATA_TYPE}_hg38_gdc"
+    skel_table_id = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{concat_table}'
+    barcodes_table_id = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{barcode_table}'
 
-    final_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{standard_table}"  # todo rename to accurately reflect the table
+    draft_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{standard_table}"
     # Google Bucket Locations
-    bucket_target_blob = f'{params["WORKING_BUCKET_DIR"]}/{release}-{params["DATA_TYPE"]}.tsv'
-
-    # Which metadata release should we use? # todo do we need this?
-    metadata_rel = f"r{str(params['METADATA_REL'])}" if 'METADATA_REL' in params else release
+    bucket_target_blob = f'{params.WORKING_BUCKET_DIR}/{release}-{params.DATA_TYPE}.tsv'
 
     # Workflow Steps
 
@@ -713,30 +743,29 @@ def main(args):
 
     if 'build_manifest' in steps:
 
-        max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
+        max_files = params.MAX_FILES if 'MAX_FILES' in params else None
         bq_filters = [{"access": "open"},
                       {"data_format": "MAF"},
                       {"data_type": "Masked Somatic Mutation"},
-                      {"program_name": programs}]
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel),
+                      {"program_name": params.PROGRAMS}]
+        manifest_success = get_the_bq_manifest(params.FILE_TABLE.format(release),
                                                bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                               manifest_table, params['WORKING_BUCKET'],
-                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
-                                               params['BQ_AS_BATCH'])
+                                               params.WORKING_PROJECT, params.SCRATCH_DATASET,
+                                               manifest_table, params.WORKING_BUCKET,
+                                               params.BUCKET_MANIFEST_TSV, manifest_file,
+                                               params.BQ_AS_BATCH)
         if not manifest_success:
-            print("Failure generating manifest")
-            return
+            sys.exit("Failure generating manifest")
 
     if 'build_pull_list' in steps:
         # Create a "pull list" with BigQuery of gs:// URLs to pull from DCF
-        build_pull_list_with_bq(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}",
-                                params['INDEXD_BQ_TABLE'].format(metadata_rel),
-                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+        build_pull_list_with_bq(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{manifest_table}",
+                                params.INDEXD_BQ_TABLE.format(release),
+                                params.WORKING_PROJECT, params.SCRATCH_DATASET,
                                 pull_list_table,
-                                params['WORKING_BUCKET'],
-                                params['BUCKET_PULL_LIST'],
-                                local_pull_list, params['BQ_AS_BATCH'])
+                                params.WORKING_BUCKET,
+                                params.BUCKET_PULL_LIST,
+                                local_pull_list, params.BQ_AS_BATCH)
 
     if 'transfer_from_gdc' in steps:
         # Bring the files to the local dir from DCF GDC Cloud Buckets
@@ -744,8 +773,6 @@ def main(args):
             pull_list = pull_list_file.read().splitlines()
         pull_from_buckets(pull_list, local_files_dir)
 
-    if 'build_traversal_list' in steps:
-        # Traverse the tree of downloaded files and create a flat list of all files:
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
@@ -754,51 +781,50 @@ def main(args):
     if 'concat_all_files' in steps:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, callers, params['FIELDS_TO_FIX'])
+            concat_all_files(all_files, one_big_tsv, params.CALLERS, params.FIELDS_TO_FIX)
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
+        upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
 
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
-        update_dir_from_git(params['SCHEMA_REPO_LOCAL'], params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_BRANCH'])
+        update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
-        typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])  # todo bring over from utils to support
-        # full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{release}"
+        typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
 
-        create_schema_hold_list(typing_tups, field_desc_fp, hold_schema_list, True)
+        create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
 
     # Create the BQ table from the TSV
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
-        with open(hold_schema_list, mode='r') as schema_list:
+        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
+        with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], concat_table, params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, concat_table, params.BQ_AS_BATCH)
 
     # Merge in aliquot and sample barcodes from other tables
     if 'collect_barcodes' in steps:
 
-        case_table = params['CASE_TABLE'].format(release)
-        success = attach_barcodes(skel_table_id, params['ALIQUOT_TABLE'].format(release),
-                                  params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'], case_table)
+        case_table = params.CASE_TABLE.format(release)
+        success = attach_barcodes(skel_table_id, params.ALIQUOT_TABLE.format(release),
+                                  params.SCRATCH_DATASET, barcode_table, params.BQ_AS_BATCH, case_table)
         if not success:
             print("attach_barcodes job failed")
             return
 
     # Merge the barcode info into the final combo table we are building:
-    if 'create_final_combo_table' in steps:  # todo rename
+    if 'create_combo_draft_table' in steps:
         success_barcode = barcode_raw_table_merge(skel_table_id, barcodes_table_id,
-                                                  params['SCRATCH_DATASET'], combined_table,
-                                                  params['BQ_AS_BATCH'])
+                                                  params.SCRATCH_DATASET, combined_table,
+                                                  params.BQ_AS_BATCH)
         # Eliminate the duplicates by merging samples by aliquots
         if success_barcode:
-            release_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{combined_table}"  # todo rename
-            success = merge_samples_by_aliquot(release_table, f"{standard_table}_{release}", params['SCRATCH_DATASET'],
-                                               callers, params['BQ_AS_BATCH'])
+            program_draft_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{combined_table}"
+            success = merge_samples_by_aliquot(program_draft_table, f"{standard_table}_{release}", params.SCRATCH_DATASET,
+                                               params.CALLERS, params.BQ_AS_BATCH)
         else:
             print("Barcode & Raw table merge failed")
 
@@ -807,7 +833,7 @@ def main(args):
             return
 
     # Split the merged table into distinct programs and create final draft tables
-    for program in programs:
+    for program in params.PROGRAMS:
 
         program_map = dict()
         with open(metadata_mapping) as program_mapping:
@@ -815,8 +841,8 @@ def main(args):
             bq_dataset = mappings[program]['bq_dataset']
 
         if 'split_table_into_programs' in steps:
-            success = create_per_program_table(f"{final_table}_{release}", f"{bq_dataset}_{standard_table}_{release}", program,
-                                               params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])
+            success = create_per_program_table(f"{draft_table}_{release}", f"{bq_dataset}_{standard_table}_{release}", program,
+                                               params.SCRATCH_DATASET, params.BQ_AS_BATCH)
 
             if not success:
                 print(f"split table into programs failed on {program}")
@@ -826,58 +852,46 @@ def main(args):
             updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
             print("update table schema")
             write_table_schema_with_generic(
-                f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{bq_dataset}_{standard_table}_{release}",
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
                 updated_schema_tags, table_metadata, field_desc_fp)
 
         if 'publish' in steps:
             print('Attempting to publish tables')
-            success = publish_tables_and_update_schema(f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{bq_dataset}_{standard_table}_{release}",
-                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}_versioned.{standard_table}_{release}",
-                                                       f"{params['PUBLICATION_PROJECT']}.{bq_dataset}.{standard_table}_current",
-                                                       f"REL {str(params['RELEASE'])}",
+            success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{standard_table}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{standard_table}_current",
+                                                       f"REL {str(params.RELEASE)}",
                                                        f"{standard_table}")
 
             if not success:
                 print("Publication step did not work")
 
-        # Clear out working temp tables:
-        # todo update
-        if 'dump_working_tables' in steps:
-            dump_tables = [concat_table,
-                           barcode_table,
-                           f"{standard_table}_current",
-                           f"{standard_table}_{release}",
-                           manifest_table]
-            for table in dump_tables:
-                delete_table_bq_job(params['SCRATCH_DATASET'], table)
-
-    #
-    # Done!
-    #
-
-    print('job completed')
+    # Clear out working temp tables:
+    if 'dump_working_tables' in steps:
+        dump_tables = [concat_table,
+                       barcode_table,
+                       f"{bq_dataset}_{standard_table}_current",
+                       f"{bq_dataset}_{standard_table}_{release}",
+                       manifest_table]
+        for table in dump_tables:
+            if bq_table_exists(params.SCRATCH_DATASET, table, params.WORKING_PROJECT):
+                delete_table_bq_job(params.SCRATCH_DATASET, table)
 
     if 'archive' in steps:
-        # todo update
         print('archive files from VM')
-        archive_file_prefix = f"{date.today()}_{params['PUBLICATION_DATASET']}"
-        if params['ARCHIVE_YAML']:
+        archive_file_prefix = f"{date.today()}_{params.PUBLICATION_DATASET}"
+        if params.ARCHIVE_YAML:
             yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
-            archive_yaml = f""""{params['ARCHIVE_BUCKET_DIR']}/
-                                {params['ARCHIVE_CONFIG']}/
-                                {archive_file_prefix}_{yaml_file.group(1)}"""
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                             archive_yaml,
-                             args[1])
-        archive_pull_file = f"{params['ARCHIVE_BUCKET_DIR']}/{archive_file_prefix}_{params['LOCAL_PULL_LIST']}"
-        upload_to_bucket(params['ARCHIVE_BUCKET'],
-                         archive_pull_file,
-                         params['LOCAL_PULL_LIST'])
-        archive_manifest_file = f"{params['ARCHIVE_BUCKET_DIR']}/{archive_file_prefix}_{params['MANIFEST_FILE']}"
-        upload_to_bucket(params['ARCHIVE_BUCKET'],
+            archive_yaml = f"{params.ARCHIVE_BUCKET_DIR}/{params.ARCHIVE_CONFIG}/{archive_file_prefix}_{yaml_file.group(1)}"
+            upload_to_bucket(params.ARCHIVE_BUCKET, archive_yaml, args[1])
+        archive_pull_file = f"{params.ARCHIVE_BUCKET_DIR}/{archive_file_prefix}_{params.LOCAL_PULL_LIST}"
+        upload_to_bucket(params.ARCHIVE_BUCKET, archive_pull_file, params.LOCAL_PULL_LIST)
+        archive_manifest_file = f"{params.ARCHIVE_BUCKET_DIR}/{archive_file_prefix}_{params.MANIFEST_FILE}"
+        upload_to_bucket(params.ARCHIVE_BUCKET,
                          archive_manifest_file,
-                         params['MANIFEST_FILE'])
+                         params.MANIFEST_FILE)
 
+    print('job completed')
 
 if __name__ == "__main__":
     main(sys.argv)
