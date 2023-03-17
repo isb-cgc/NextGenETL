@@ -2092,21 +2092,25 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
         project, dataset, curr_table = current_table_id.split('.')
 
         # find the most recent table
-        most_recent_release = find_most_recent_release(dataset, base_table, project)
+        most_recent_release = find_most_recent_release(f"{dataset}_versioned", base_table, project)
         if most_recent_release:
-            update_status_tag(dataset, f"{base_table}{most_recent_release}", "archived", project)
+            update_status_tag(f"{dataset}_versioned", f"{base_table}{most_recent_release}", "archived", project)
             # create or update current table and update older versioned tables
             if bq_table_exists(dataset, f"{curr_table}", project):
-                print(f"Deleting old table: {curr_table}")
+                print(f"Deleting old table: {current_table_id}")
                 if not delete_table_bq_job(dataset, f"{curr_table}", project):
                     sys.exit(f'deleting old current table called {current_table_id} failed')
-            print("Creating new current table")
-            if not publish_table(scratch_table_id, current_table_id):
-                sys.exit(f'creating a new current table called {current_table_id} failed')
+
+        print("Creating new current table")
+        if not publish_table(scratch_table_id, current_table_id):
+            sys.exit(f'creating a new current table called {current_table_id} failed')
+
+
 
     # publish versioned
+    print(f"publishing {versioned_table_id}")
     if publish_table(scratch_table_id, versioned_table_id):
-        # update friendly name
+        print("Updating friendly name")
         client = bigquery.Client()
         table = client.get_table(versioned_table_id)
         friendly_name = table.friendly_name
