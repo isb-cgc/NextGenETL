@@ -1302,6 +1302,26 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         print(ex)
         return False
 
+def retrieve_table_properties(target_dataset, dest_table, project=None):
+    """
+    retrieves BQ table metadata
+    :param target_dataset:
+    :type target_dataset:
+    :param dest_table:
+    :type dest_table:
+    :param project:
+    :type project:
+    :return:
+    :rtype:
+    """
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table_metadata = client.get_table(table_ref)
+        return table_metadata
+    except Exception as ex:
+        print(ex)
+        return False
 
 def retrieve_table_schema(target_dataset, dest_table, project=None):
     """
@@ -1575,7 +1595,6 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     trg_table.schema = trg_schema
     client.update_table(trg_table, ["schema"])
     return True
-
 
 def list_schema(source_dataset, source_table):
     """
@@ -2121,3 +2140,37 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
 
     return True
 
+'''
+QC of BQ tables
+'''
+
+def qc_bq_table_metadata(table_id):
+    project, dataset, table = table_id.split(".")
+
+    table_properties = retrieve_table_properties(dataset, table, project)
+
+    qc_string = f"""------------------
+    QC for BigQuery Table: {table_id}
+    \tCreated on {table_properties.created}
+    \tNumber of Rows: {table_properties.num_rows}
+    \tTable Friendly Name: {table_properties.friendly_name}
+    \tTable Description: \n\t\t{table_properties.description}
+    \tTable Tags:\n"""
+    for label_name, label in table.labels.items():
+        qc_string = qc_string + f"\t\t{label_name}: {label}\n"
+
+    return qc_string
+
+def qc_bq_table_counts(fields, table_id):
+    print(fields, table_id)
+
+def sql_count_distinct_field(fields, table_id):
+
+    formatted_fields = [f"COUNT(DISTINCT({field}))" for field in fields]
+
+    sql_query= f"""
+    SELECT {", ".join(formatted_fields)} 
+    FROM `{table_id}` 
+    """
+
+    return sql_query
