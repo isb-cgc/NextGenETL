@@ -741,6 +741,10 @@ def main(args):
         # Best practice is to clear out the directory where the files are going. Don't want anything left over:
         create_clean_target(local_files_dir)
 
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
+
     if 'build_manifest' in steps:
 
         max_files = params.MAX_FILES if 'MAX_FILES' in params_dict else None
@@ -787,10 +791,6 @@ def main(args):
         print('upload_to_bucket')
         upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
 
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
-
     if 'analyze_the_schema' in steps:
         print('analyze_the_schema')
         typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
@@ -835,7 +835,6 @@ def main(args):
     # Split the merged table into distinct programs and create final draft tables
     for program in params.PROGRAMS:
 
-        program_map = dict()
         with open(metadata_mapping) as program_mapping:
             mappings = json_loads(program_mapping.read().rstrip())
             bq_dataset = mappings[program]['bq_dataset']
