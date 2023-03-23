@@ -848,7 +848,7 @@ def main(args):
 
         if 'update_table_schema' in steps:
             print("update schema tags")
-            updated_schema_tags = update_schema_tags(metadata_mapping, params, program)
+            updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
             print("update table schema")
             write_table_schema_with_generic(
                 f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
