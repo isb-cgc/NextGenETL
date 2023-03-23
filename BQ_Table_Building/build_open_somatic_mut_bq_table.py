@@ -855,6 +855,9 @@ def main(args):
                 f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
                 updated_schema_tags, table_metadata, field_desc_fp)
 
+        if 'qc_bigquery_tables' in steps:
+            print("QC BQ")
+
         if 'publish' in steps:
             print('Attempting to publish tables')
             success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
