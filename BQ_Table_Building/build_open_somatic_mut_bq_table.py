@@ -743,7 +743,7 @@ def main(args):
 
     if 'build_manifest' in steps:
 
-        max_files = params.MAX_FILES if 'MAX_FILES' in params else None
+        max_files = params.MAX_FILES if 'MAX_FILES' in params_dict else None
         bq_filters = [{"access": "open"},
                       {"data_format": "MAF"},
                       {"data_type": "Masked Somatic Mutation"},
