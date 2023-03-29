@@ -972,7 +972,7 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported', '--', '-'):
+    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported', '--', '-', 'not reported', 'unknown', 'Unknown'):
         return None
     elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
         return "False"
@@ -991,6 +991,11 @@ def check_value_type(value):
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
+    # some columns might only return 0
+    if value == '1' or value == 1:
+        return "BOOL OR INT 1"
+    if value == '0' or value == 0:
+        return "BOOL OR INT 0"
     if isinstance(value, bool):
         return "BOOL"
     if isinstance(value, int):
@@ -1089,12 +1094,27 @@ def resolve_type_conflict(field, types_set):
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
     # remove null type value from set
-    # none_set = {None}
-    types_set = types_set - {None}
+    none_set = {None}
+    types_set = types_set - none_set
 
     # fix to make even proper INT64 ids into STRING ids
     if "_id" in field:
         return "STRING"
+
+    # If 1 and 0 occur in the column, interpret as BOOL; if other INT values exist, INT will take precedence
+    if "BOOL OR INT 1" in types_set and "BOOL OR INT 0" in types_set:
+        types_set.discard("BOOL OR INT 1")
+        types_set.discard("BOOL OR INT 0")
+        types_set.add("BOOL")
+
+    if "BOOL OR INT 1" in types_set or "BOOL OR INT 0" in types_set:
+        # If this is true, then the field contains only 1 OR 0 values, which can't be differentiated as BOOL
+        # Therefore, resolving as INT.
+        if "BOOL" not in types_set and "INT64" not in types_set:
+            types_set.add('INT64')
+
+        types_set.discard("BOOL OR INT 1")
+        types_set.discard("BOOL OR INT 0")
 
     if len(types_set) == 0:
         # fields with no type values default to string--this would still be safe for skip-row analysis of a data file
