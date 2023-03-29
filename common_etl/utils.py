@@ -972,7 +972,7 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported'):
+    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported', '--', '-'):
         return None
     elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
         return "False"
@@ -1509,6 +1509,8 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
 
                 for idx, value in enumerate(row_list):
                     value = value.strip()
+                    # convert non-standard null or boolean value to None, "True" or "False", otherwise return original
+                    value = normalize_value(value)
                     value_type = check_value_type(value)
                     data_types_dict[column_headers[idx]].add(value_type)
 
