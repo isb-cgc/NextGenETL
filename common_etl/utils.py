@@ -1088,6 +1088,10 @@ def resolve_type_conflict(field, types_set):
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
+    # remove null type value from set
+    # none_set = {None}
+    types_set = types_set - {None}
+
     # fix to make even proper INT64 ids into STRING ids
     if "_id" in field:
         return "STRING"
@@ -1155,6 +1159,9 @@ def resolve_type_conflict(field, types_set):
             return "FLOAT64"
         elif "NUMERIC" in types_set:
             return "NUMERIC"
+        # todo is there any reason we can't have an else statement here return INT64?
+        #  I can't think of one, and this would also solve the INT64 return issue where some fields are None.
+
 
     # No BOOL, DATETIME combinations allowed, or whatever other randomness occurs--return STRING
     return "STRING"
