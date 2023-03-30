@@ -67,6 +67,7 @@ Figure out the number of aliquots present
 def extract_aliquot_count(release_table, do_batch):
 
     sql = extract_aliquot_count_sql(release_table)
+    print(sql)
     results = bq_harness_with_result(sql, do_batch)
     retval = [row.max_delim for row in results]
     return retval[0] + 1
@@ -158,6 +159,12 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
                                      r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_four,
+            CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 4
+                 THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+              ELSE CAST(null AS STRING)
+            END as aliquot_id_five,
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
@@ -293,6 +300,29 @@ def expand_active_aliquot_file_data_sql(aliquot_table):
             acl
         FROM `{0}`
         WHERE (aliquot_id_four IS NOT NULL)
+        UNION ALL
+        SELECT
+            file_gdc_id,
+            case_gdc_id,
+            aliquot_id_five as aliquot_id,
+            project_short_name,
+            project_short_name_suffix,
+            program_name,
+            data_type,
+            data_category,
+            experimental_strategy,
+            file_type,
+            file_size,
+            data_format,
+            platform,
+            file_name_key,
+            index_file_id,
+            index_file_name_key,
+            index_file_size,
+            access,
+            acl
+        FROM `{0}`
+        WHERE (aliquot_id_five IS NOT NULL)
         '''.format(aliquot_table)
 
 '''
@@ -910,23 +940,20 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
 
     if 'aliquot_barcodes' in steps:
         table_name = "{}_{}_{}".format(dataset_tuple[1], build_lwr, params['ALIQUOT_STEP_1_TABLE'])
-        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], 
-                                     params['TARGET_DATASET'], table_name)
+        in_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
 
         if bq_table_exists(params['TARGET_DATASET'], table_name):
             step_two_table = "{}_{}_{}".format(dataset_tuple[1], build_lwr, params['ALIQUOT_STEP_2_TABLE'])
 
             if dataset_tuple[0] in aliquot_map_programs:
                 success = extract_aliquot_barcodes(in_table, params['ALIQUOT_TABLE'], dataset_tuple[0],
-                                                   params['TARGET_DATASET'],
-                                                   step_two_table, params['BQ_AS_BATCH'])
+                                        params['TARGET_DATASET'], step_two_table, params['BQ_AS_BATCH'])
                 if not success:
                     print("{} {} align_barcodes job failed".format(dataset_tuple[0], build))
                     return False
             else:
                 success = prepare_aliquot_without_map(in_table, params['CASE_TABLE'], dataset_tuple[0],
-                                                      params['TARGET_DATASET'],
-                                                      step_two_table, params['BQ_AS_BATCH'])
+                                        params['TARGET_DATASET'], step_two_table, params['BQ_AS_BATCH'])
                 if not success:
                     print("{} {} align_barcodes job failed".format(dataset_tuple[0], build))
                     return False
@@ -966,7 +993,6 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         if not success:
             print("{} {} union_tables job failed".format(dataset_tuple[0], build))
             return False
-
 
     # Merge the URL info into the final table (versioned_scratch_table) we are building:
     if 'create_versioned_table' in steps:
@@ -1090,7 +1116,7 @@ def do_dataset_and_build(steps, build, build_tag, path_tag, dataset_tuple,
         
         if params['PUBLISH_ONLY_UPDATED'] == True:
                 print("Performing comparison to last release")
-                previous_release = find_most_recent_release( dataset_tuple[1]+'_versioned', versioned_table[:-5], params['PUBLICATION_PROJECT'] )
+                previous_release = find_most_recent_release( dataset_tuple[1]+'_versioned', params['RELEASE'], params['PUBLICATION_PROJECT'] )
                 if previous_release == False: 
                     evaluate_result = 'different'
                 else:
@@ -1185,7 +1211,6 @@ def main(args):
     # step checks that that assumption is not being violated:
     if 'count_aliquots' in steps:
         print('count_aliquots')
-
         try:
             for build_tag in build_tags:
                 file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
@@ -1193,16 +1218,18 @@ def main(args):
                 print ("{}:{}".format(build_tag, aliquot_count))
                 if aliquot_count > params['MAX_ALIQUOT_PARSE']:
                     print("count_aliquots detected high aliquot count: {} > {}. Exiting.".format(aliquot_count, params['MAX_ALIQUOT_PARSE']))
-                    return
         except Exception as ex:
             print("count_aliquots failed: {}".format(str(ex)))
             return
+
+    with open(f'{params["SCHEMA_REPO_LOCAL"]}/MetadataMappings/gdc_program_metadata.json', 'r') as inf:
+        program_mapping = json_loads(inf.read())
 
     for build, build_tag, path_tag in zip(builds, build_tags, path_tags):
         file_table = "{}_{}".format(params['FILE_TABLE'], build_tag)
         do_programs = extract_program_names(file_table, params['BQ_AS_BATCH']) if programs is None else programs
         print(programs)
-        dataset_tuples = [(pn, pn.replace(".", "_")) for pn in do_programs] # handles BEATAML1.0 FIXME! Make it general
+        dataset_tuples = [(pn, program_mapping[pn]['bq_dataset']) for pn in do_programs]
         # Not all programs show up in the aliquot map table. So figure out who does:
         aliquot_map_programs = extract_program_names(params['ALIQUOT_TABLE'], params['BQ_AS_BATCH'])
         print(dataset_tuples)
