@@ -355,7 +355,6 @@ def main(args):
         print('This job needs to run on a Google Cloud Compute Engine to avoid storage egress charges [EXITING]')
         return
 
-
     if len(args) != 2:
         print(" ")
         print(" Usage : {args[0]} <configuration_yaml>")
@@ -363,12 +362,10 @@ def main(args):
 
     print('job started')
 
-    #
     # Get the YAML config loaded:
-    #
-
     with open(args[1], mode='r') as yaml_file:
-        params, bq_filters, update_schema_tables, schema_tags, steps = load_config(yaml_file.read())
+        params_dict, steps = load_config(yaml_file.read())
+        params = SimpleNamespace(**params_dict)
 
 
     #
@@ -376,28 +373,28 @@ def main(args):
     #
 
     home = expanduser("~")
-    local_files_dir = f"{home}/{params['LOCAL_FILES_DIR']}"
-    one_big_tsv = f"{home}/{params['ONE_BIG_TSV']}"
-    manifest_file = f"{home}/{params['MANIFEST_FILE']}"
-    local_pull_list = f"{home}/{params['LOCAL_PULL_LIST']}"
-    file_traversal_list = f"{home}/{params['FILE_TRAVERSAL_LIST']}"
-    hold_schema_dict = f"{home}/{params['HOLD_SCHEMA_DICT']}"
-    hold_schema_list = f"{home}/{params['HOLD_SCHEMA_LIST']}"
+    local_files_dir = f"{home}/{params.LOCAL_FILES_DIR}"
+    one_big_tsv = f"{home}/{params.ONE_BIG_TSV}"
+    manifest_file = f"{home}/{params.MANIFEST_FILE}"
+    local_pull_list = f"{home}/{params.LOCAL_PULL_LIST}"
+    file_traversal_list = f"{home}/{params.FILE_TRAVERSAL_LIST}"
+    hold_schema_dict = f"{home}/{params.HOLD_SCHEMA_DICT}"
+    hold_schema_list = f"{home}/{params.HOLD_SCHEMA_LIST}"
 
     # Which release is the workflow running on?
-    release = f"r{str(params['RELEASE'])}"
+    release = f"r{str(params.RELEASE)}"
 
-    upload_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}"
+    upload_table = f"{params.PROGRAM}_{params.DATA_TYPE}"
     manifest_table = f"{upload_table}_manifest"
     pull_list_table = f"{upload_table}_pull_list"
-    draft_table = f"{params['PROGRAM']}_{params['DATA_TYPE']}_{params['BUILD']}_gdc"
-    publication_table = f"{params['DATA_TYPE']}_{params['BUILD']}_gdc"
+    draft_table = f"{params.PROGRAM}_{params.DATA_TYPE}_{params.BUILD}_gdc"
+    publication_table = f"{params.DATA_TYPE}_{params.BUILD}_gdc"
 
-    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
+    if params.RELEASE < 21 and 'METADATA_REL' not in params:
         print("The input release is before new metadata process, "
               "please specify which release of the metadata to use.")
 
-    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else release
+    metadata_rel = "".join(["r", str(params.METADATA_REL)]) if 'METADATA_REL' in params else release
 
     if 'clear_target_directory' in steps:
         print('clear_target_directory')
@@ -410,13 +407,13 @@ def main(args):
 
     if 'build_manifest_from_filters' in steps:
         print('build_manifest_from_filters')
-        max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
+        max_files = params.MAX_FILES if 'MAX_FILES' in params else None
 
-        manifest_success = get_the_bq_manifest(f"{params['FILEDATA_TABLE']}_{metadata_rel}", bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                               manifest_table, params['WORKING_BUCKET'],
-                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
-                                               params['BQ_AS_BATCH'])
+        manifest_success = get_the_bq_manifest(f"{params.FILEDATA_TABLE}_{metadata_rel}", bq_filters, max_files,
+                                               params.WORKING_PROJECT, params.SCRATCH_DATASET,
+                                               manifest_table, params.WORKING_BUCKET,
+                                               params.BUCKET_MANIFEST_TSV, manifest_file,
+                                               params.BQ_AS_BATCH)
         if not manifest_success:
             print("Failure generating manifest")
             return
@@ -430,13 +427,13 @@ def main(args):
 
     if 'build_pull_list' in steps:
         print('build_pull_list')
-        full_manifest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{manifest_table}"
-        success = build_pull_list_with_bq(full_manifest, params['INDEXD_BQ_TABLE'].format(metadata_rel),
-                                          params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
+        full_manifest = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{manifest_table}"
+        success = build_pull_list_with_bq(full_manifest, params.INDEXD_BQ_TABLE.format(metadata_rel),
+                                          params.WORKING_PROJECT, params.SCRATCH_DATASET,
                                           pull_list_table,
-                                          params['WORKING_BUCKET'],
-                                          params['BUCKET_PULL_LIST'],
-                                          local_pull_list, params['BQ_AS_BATCH'])
+                                          params.WORKING_BUCKET,
+                                          params.BUCKET_PULL_LIST,
+                                          local_pull_list, params.BQ_AS_BATCH)
 
         if not success:
             print("Build pull list failed")
@@ -487,26 +484,26 @@ def main(args):
     if 'pull_table_info_from_git' in steps:
         print('pull_table_info_from_git')
         try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
+            create_clean_target(params.SCHEMA_REPO_LOCAL)
+            repo = Repo.clone_from(params.SCHEMA_REPO_URL, params.SCHEMA_REPO_LOCAL)
+            repo.git.checkout(params.SCHEMA_REPO_BRANCH)
         except Exception as ex:
             print(f"pull_table_info_from_git failed: {str(ex)}")
             return
 
     for table in update_schema_tables:
         if table == 'current':
-            use_schema = params['SCHEMA_FILE_NAME']
+            use_schema = params.SCHEMA_FILE_NAME
             schema_release = 'current'
         else:
-            use_schema = params['VER_SCHEMA_FILE_NAME']
+            use_schema = params.VER_SCHEMA_FILE_NAME
             schema_release = release
 
         if 'process_git_schemas' in steps:
             print('process_git_schema')
             # Where do we dump the schema git repository?
-            schema_file = f"{params['SCHEMA_REPO_LOCAL']}/{params['RAW_SCHEMA_DIR']}/{use_schema}"
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            schema_file = f"{params.SCHEMA_REPO_LOCAL}/{params.RAW_SCHEMA_DIR}/{use_schema}"
+            full_file_prefix = f"{params.PROX_DESC_PREFIX}/{draft_table}_{schema_release}"
             # Write out the details
             success = generate_table_detail_files(schema_file, full_file_prefix)
             if not success:
@@ -516,7 +513,7 @@ def main(args):
         # Customize generic schema to this data program:
         if 'replace_schema_tags' in steps:
             print('replace_schema_tags')
-            pn = params['PROGRAM']
+            pn = params.PROGRAM
             dataset_tuple = (pn, pn.replace(".", "_"))
             tag_map_list = []
             for tag_pair in schema_tags:
@@ -532,7 +529,7 @@ def main(args):
                             else:
                                 rep_val = dataset_tuple[0]
                         elif chunks[1] == 'builds':
-                            rep_val = params['BUILD']
+                            rep_val = params.BUILD
                         else:
                             raise Exception()
                         if val.find('~lc-') == 0:
@@ -540,7 +537,7 @@ def main(args):
                         use_pair[tag] = rep_val
                     else:
                         use_pair[tag] = val
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            full_file_prefix = f"{params.PROX_DESC_PREFIX}/{draft_table}_{schema_release}"
 
             # Write out the details
             success = customize_labels_and_desc(full_file_prefix, tag_map_list)
@@ -551,48 +548,48 @@ def main(args):
 
         if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
-            typing_tups = find_types(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
+            full_file_prefix = f"{params.PROX_DESC_PREFIX}/{draft_table}_{schema_release}"
             schema_dict_loc = f"{full_file_prefix}_schema.json"
             build_combined_schema(None, schema_dict_loc,
                                   typing_tups, hold_schema_list, hold_schema_dict)
 
-    bucket_target_blob = f"{params['WORKING_BUCKET_DIR']}/" \
-                         f"{params['DATE']}-{params['PROGRAM']}-{params['DATA_TYPE']}.tsv"
+    bucket_target_blob = f"{params.WORKING_BUCKET_DIR}/" \
+                         f"{params.DATE}-{params.PROGRAM}-{params.DATA_TYPE}.tsv"
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
+        upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
 
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        bucket_src_url = f'gs://{params["WORKING_BUCKET"]}/{bucket_target_blob}'
+        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
         with open(hold_schema_list, mode='r') as schema_hold_dict:
             typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], f"{draft_table}_initial",
-                  params['BQ_AS_BATCH'])
+        csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, f"{draft_table}_initial",
+                  params.BQ_AS_BATCH)
 
     if 'add_aliquot_fields' in steps:
         print('add_aliquot_fields')
-        full_target_table = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.{draft_table}_initial'
-        success = join_with_aliquot_table(full_target_table, f"{params['ALIQUOT_TABLE']}_{metadata_rel}",
-                                          f"{params['CASE_TABLE']}_{metadata_rel}",
-                                          params['SCRATCH_DATASET'], f"{draft_table}_w_metadata",
-                                          params['BQ_AS_BATCH'], hold_schema_dict)
+        full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_initial'
+        success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_{metadata_rel}",
+                                          f"{params.CASE_TABLE}_{metadata_rel}",
+                                          params.SCRATCH_DATASET, f"{draft_table}_w_metadata",
+                                          params.BQ_AS_BATCH, hold_schema_dict)
         if not success:
             print("Join job failed")
 
     # For CPTAC there are instances where multiple samples are merged into the same aliquot
     # for these cases we join the rows by concatenating the samples with semicolons
     if 'merge_same_aliq_samples' in steps:
-        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_w_metadata"
-        merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params['SCRATCH_DATASET'],
-                                 params['BQ_AS_BATCH'], hold_schema_dict)
+        source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_w_metadata"
+        merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params.SCRATCH_DATASET,
+                                 params.BQ_AS_BATCH, hold_schema_dict)
 
     # Create second table
     if 'create_current_table' in steps:
-        source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
-        current_dest = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
+        source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_{release}"
+        current_dest = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_current"
 
         success = publish_table(source_table, current_dest)
 
@@ -608,7 +605,7 @@ def main(args):
         schema_release = 'current' if table == 'current' else release
         if 'update_field_descriptions' in steps:
             print('update_field_descriptions')
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
+            full_file_prefix = f"{params.PROX_DESC_PREFIX}/{draft_table}_{schema_release}"
             schema_dict_loc = f"{full_file_prefix}_schema.json"
             schema_dict = {}
             with open(schema_dict_loc, mode='r') as schema_hold_dict:
@@ -616,7 +613,7 @@ def main(args):
             for entry in full_schema_list:
                 schema_dict[entry['name']] = {'description': entry['description']}
 
-            success = update_schema_with_dict(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}", schema_dict)
+            success = update_schema_with_dict(params.SCRATCH_DATASET, f"{draft_table}_{schema_release}", schema_dict)
             if not success:
                 print("update_field_descriptions failed")
                 return
@@ -627,8 +624,8 @@ def main(args):
 
         if 'update_table_description' in steps:
             print('update_table_description')
-            full_file_prefix = f"{params['PROX_DESC_PREFIX']}/{draft_table}_{schema_release}"
-            success = install_labels_and_desc(params['SCRATCH_DATASET'], f"{draft_table}_{schema_release}",
+            full_file_prefix = f"{params.PROX_DESC_PREFIX}/{draft_table}_{schema_release}"
+            success = install_labels_and_desc(params.SCRATCH_DATASET, f"{draft_table}_{schema_release}",
                                               full_file_prefix)
             if not success:
                 print("update_table_description failed")
@@ -645,18 +642,18 @@ def main(args):
         if the two tables are the same
         """
         # Table that is currently in production under the current table dataset that is to be replaced
-        old_current_table = f'{params["PUBLICATION_PROJECT"]}.{params["PUBLICATION_DATASET"]}.' \
+        old_current_table = f'{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}.' \
                             f'{publication_table}_current'
         # Previous versioned table that should match the table in the current dataset
-        previous_ver_table = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
-                             f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}"
+        previous_ver_table = f"{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}_versioned." \
+                             f"{publication_table}_r{str(params.PREVIOUS_RELEASE)}"
         # Temporary location to save a copy of the previous table
-        table_temp = f'{params["WORKING_PROJECT"]}.{params["SCRATCH_DATASET"]}.' \
-                     f'{params["PROGRAM"]}_{publication_table}_{str(params["PREVIOUS_RELEASE"])}_backup'
+        table_temp = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.' \
+                     f'{params.PROGRAM}_{publication_table}_{str(params.PREVIOUS_RELEASE)}_backup'
 
         print(f'Compare {old_current_table} to {previous_ver_table}')
         # Compare the two previous tables to make sure they are exactly the same
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
+        compare = compare_two_tables(old_current_table, previous_ver_table, params.BQ_AS_BATCH)
         """
         If the tables are exactly the same, the row count from compare_two_tables should be 0, the query will give the 
         number of rows that are different between the two tables
@@ -682,8 +679,8 @@ def main(args):
             # remove old table
             elif table_moved:
                 print(f'Deleting old table: {old_current_table}')
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], f"{publication_table}_current",
-                                                   params['PUBLICATION_PROJECT'])
+                delete_table = delete_table_bq_job(params.PUBLICATION_DATASET, f"{publication_table}_current",
+                                                   params.PUBLICATION_PROJECT)
                 if not delete_table:
                     print('delete table failed')
                     return
@@ -700,13 +697,13 @@ def main(args):
         for table in tables:
             if table == 'versioned':
                 print(table)
-                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_{release}"
-                publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}_versioned." \
+                source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_{release}"
+                publication_dest = f"{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}_versioned." \
                                    f"{publication_table}_{release}"
             elif table == 'current':
                 print(table)
-                source_table = f"{params['WORKING_PROJECT']}.{params['SCRATCH_DATASET']}.{draft_table}_current"
-                publication_dest = f"{params['PUBLICATION_PROJECT']}.{params['PUBLICATION_DATASET']}." \
+                source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_current"
+                publication_dest = f"{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}." \
                                    f"{publication_table}_current"
             success = publish_table(source_table, publication_dest)
 
@@ -718,9 +715,9 @@ def main(args):
     if 'update_status_tag' in steps:
         print('Update previous table')
 
-        success = update_status_tag(f"{params['PUBLICATION_DATASET']}_versioned",\
-                                    f"{publication_table}_r{str(params['PREVIOUS_RELEASE'])}",
-                                    params['PUBLICATION_PROJECT'])
+        success = update_status_tag(f"{params.PUBLICATION_DATASET}_versioned",\
+                                    f"{publication_table}_r{str(params.PREVIOUS_RELEASE)}",
+                                    params.PUBLICATION_PROJECT)
 
         if not success:
             print("update status tag table failed")
@@ -734,7 +731,7 @@ def main(args):
         dump_table_tags = [f"{draft_table}_current", f"{draft_table}_{release}"]
         dump_tables = [params[x] for x in dump_table_tags]
         for table in dump_tables:
-            delete_table_bq_job(params['SCRATCH_DATASET'], table)
+            delete_table_bq_job(params.SCRATCH_DATASET, table)
 
     print('job completed')
 
