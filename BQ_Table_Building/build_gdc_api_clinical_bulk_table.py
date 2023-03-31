@@ -118,12 +118,14 @@ def extract_api_response_json(local_path):
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']
 
+        print(response_json['pagination']['page'])
+
         if response_json['pagination']['page'] == 2:
             break
 
         # todo return to normal
-        if response_json['pagination']['page'] == total_pages:
-            break
+        # if response_json['pagination']['page'] == total_pages:
+        #    break
 
     print("Wrote GDC API response to jsonl file.")
 
