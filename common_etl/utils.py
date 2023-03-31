@@ -972,7 +972,8 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported', '--', '-', 'not reported', 'unknown', 'Unknown'):
+    if value in ('NA', 'N/A', 'None', '', 'NULL', 'Null', 'null', 'Not Reported', 'not reported', '--', '-',
+                 'unknown', 'Unknown'):
         return None
     elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
         return "False"
@@ -991,15 +992,22 @@ def check_value_type(value):
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
-    # some columns might only return 0
-    if value == '1' or value == 1:
-        return "BOOL OR INT 1"
-    if value == '0' or value == 0:
-        return "BOOL OR INT 0"
+    def is_valid_decimal(val):
+        try:
+            float(val)
+        except ValueError:
+            return False
+        except TypeError:
+            return False
+        else:
+            return True
+
     if isinstance(value, bool):
         return "BOOL"
-    if isinstance(value, int):
-        return "INT64"
+    if is_valid_decimal(value):
+        # If you don't cast a string to float before casting to int, it will throw a TypeError
+        if float(value) == int(float(value)):
+            return "INT64"
     if isinstance(value, float):
         return "FLOAT64"
     if value != value:  # NaN case
@@ -1018,6 +1026,7 @@ def check_value_type(value):
 
     # check to see if value is numeric, float or int;
     # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
+    # todo some of this might be redundant now that I've added the float = int check above, but not hurting anything.
     if '.' in value and ':' not in value and "E+" not in value and "E-" not in value:
         try:
             int(value)
@@ -1067,8 +1076,8 @@ def check_value_type(value):
     except ValueError:
         pass
 
-    # Final check for int and float values. This will catch a simple integers
-    # or edge case float values, like infinity, scientific notation, etc.
+    # Final check for int and float values.
+    # This will catch simple integers or edge case float values (infinity, scientific notation, etc.)
     try:
         int(value)
         return "INT64"
@@ -1087,7 +1096,7 @@ def resolve_type_conflict(field, types_set):
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
     :param types_set: Set of BigQuery data types in string format
     :param field: field name
-    :return: BigQuery data type with highest precedence
+    :return: BigQuery data type with the highest precedence
     """
 
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
