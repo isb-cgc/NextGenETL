@@ -887,6 +887,7 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
     """
 
     print(json_obj_list)
+    exit()
 
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
