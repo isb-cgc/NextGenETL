@@ -885,6 +885,9 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
                  'w' if file data is written in a single call to the function
                  (in which case any existing data is overwritten)
     """
+
+    print(json_obj_list)
+
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
             json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
