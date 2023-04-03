@@ -855,7 +855,7 @@ def main(args):
                 updated_schema_tags, table_metadata, field_desc_fp)
 
         if 'qc_bigquery_tables' in steps:
-            print("QC BQ")
+            print("QC BQ table")
 
         if 'publish' in steps:
             print('Attempting to publish tables')
