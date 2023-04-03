@@ -1140,7 +1140,7 @@ def writeCaseTable4BigQuery(fh, dbName, caseID_dict):
 
         outLine = '%s' % dbName
         outLine += '\t%s' % case_id
-        for aField in cases_fields:
+        for aField in sorted(cases_fields):
             if (aField != "case_id"):
                 if (hdrFlag): hdrLine += '\t%s' % aField
                 try:
