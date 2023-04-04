@@ -120,6 +120,10 @@ def extract_api_response_json(local_path):
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']
 
+        # todo remove before fully done
+        if response_json['pagination']['page'] == 2:
+            break
+
         if response_json['pagination']['page'] == total_pages:
             break
 
@@ -195,7 +199,7 @@ def main(args):
 
         # Upload bulk jsonl file to Google Cloud bucket
         upload_to_bucket(BQ_PARAMS, norm_scratch_fp)
-        upload_to_bucket(BQ_PARAMS, diff_output_file)
+        upload_to_bucket(BQ_PARAMS, diff_scratch_fp)
 
     if 'create_schema' in steps:
         print("Inferring column data types and generating schema!")
