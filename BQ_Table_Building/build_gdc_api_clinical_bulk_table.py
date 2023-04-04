@@ -120,10 +120,6 @@ def extract_api_response_json(local_path):
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']
 
-        # todo remove before fully done
-        if response_json['pagination']['page'] == 2:
-            break
-
         if response_json['pagination']['page'] == total_pages:
             break
 
@@ -194,7 +190,7 @@ def main(args):
         # Find and print the diff:
         for line in difflib.unified_diff(raw_jsonl_text, norm_jsonl_text,
                                          fromfile=raw_scratch_fp, tofile=norm_scratch_fp, lineterm=''):
-            with open(diff_scratch_fp, "a") as diff_file:
+            with open(diff_scratch_fp, "w") as diff_file:
                 diff_file.write(line)
 
         # Upload bulk jsonl file to Google Cloud bucket
