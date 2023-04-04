@@ -194,8 +194,8 @@ def main(args):
                 diff_file.write(line)
 
         # Upload bulk jsonl file to Google Cloud bucket
-        upload_to_bucket(BQ_PARAMS, norm_scratch_fp)
-        upload_to_bucket(BQ_PARAMS, diff_scratch_fp)
+        upload_to_bucket(BQ_PARAMS, norm_scratch_fp, delete_local=True)
+        upload_to_bucket(BQ_PARAMS, diff_scratch_fp, delete_local=True)
 
     if 'create_schema' in steps:
         print("Inferring column data types and generating schema!")
@@ -218,7 +218,8 @@ def main(args):
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=record_list,
                                           table_name=bulk_table_name,
-                                          include_release=False)
+                                          include_release=False,
+                                          delete_local=True)
 
         os.remove(norm_scratch_fp)
 
