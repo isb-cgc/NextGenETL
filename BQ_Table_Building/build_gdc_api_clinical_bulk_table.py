@@ -234,7 +234,7 @@ def main(args):
 
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS,
-                                         jsonl_file=jsonl_output_file,
+                                         jsonl_file=normalized_jsonl_output_file,
                                          table_id=bulk_table_id,
                                          schema=bulk_table_schema)
 
