@@ -120,14 +120,8 @@ def extract_api_response_json(local_path):
         write_list_to_jsonl(jsonl_fp=local_path, json_obj_list=response_cases, mode='a')
         current_index += API_PARAMS['BATCH_SIZE']
 
-        print(response_json['pagination']['page'])
-
-        if response_json['pagination']['page'] == 2:
+        if response_json['pagination']['page'] == total_pages:
             break
-
-        # todo return to normal
-        # if response_json['pagination']['page'] == total_pages:
-        #    break
 
     print("Wrote GDC API response to jsonl file.")
 
@@ -196,15 +190,12 @@ def main(args):
         # Find and print the diff:
         for line in difflib.unified_diff(raw_jsonl_text, norm_jsonl_text,
                                          fromfile=raw_scratch_fp, tofile=norm_scratch_fp, lineterm=''):
-            print(line)
-
-        # do a diff comparison between raw and normalized files
-        # output result to a txt file
-        # upload both of these to bucket
+            with open(diff_scratch_fp, "a") as diff_file:
+                diff_file.write(line)
 
         # Upload bulk jsonl file to Google Cloud bucket
-        # upload_to_bucket(BQ_PARAMS, norm_scratch_fp)
-        # upload_to_bucket(BQ_PARAMS, diff_output_file)
+        upload_to_bucket(BQ_PARAMS, norm_scratch_fp)
+        upload_to_bucket(BQ_PARAMS, diff_output_file)
 
     if 'create_schema' in steps:
         print("Inferring column data types and generating schema!")
