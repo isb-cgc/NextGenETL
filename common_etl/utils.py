@@ -993,6 +993,9 @@ def normalize_value(value):
     elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
         return "True"
 
+    if check_value_type(value) == "INT64":
+        value = int(float(value))
+
     return value
 
 
