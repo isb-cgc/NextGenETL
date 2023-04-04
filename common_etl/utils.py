@@ -885,14 +885,20 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
                  'w' if file data is written in a single call to the function
                  (in which case any existing data is overwritten)
     """
-
-    print(json_obj_list)
-    exit()
-
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
             json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
             file_obj.write('\n')
+
+
+def write_line_to_jsonl(jsonl_fp, json_line):
+    """
+    Append dict to jsonl file.
+    :param jsonl_fp: local VM jsonl filepath
+    """
+    with open(jsonl_fp, 'a') as file_obj:
+        json.dump(obj=json_line, fp=file_obj, default=json_datetime_to_str_converter)
+        file_obj.write('\n')
 
 
 def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, local_filepath=None):
@@ -976,12 +982,15 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'None', '', 'NULL', 'Null', 'null', 'Not Reported', 'not reported', '--', '-',
+    if value in ('NA', 'N/A', 'n/a',
+                 'None', '', '--', '-',
+                 'NULL', 'Null', 'null',
+                 'Not Reported', 'not reported', 'Not reported',
                  'unknown', 'Unknown'):
         return None
     elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
         return "False"
-    elif value in ('True', 'true', 'TRUE', 'YES', 'yes', 'Yes'):
+    elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
         return "True"
 
     return value
@@ -1215,6 +1224,63 @@ def resolve_type_conflicts(types_dict):
         type_dict[field] = resolve_type_conflict(field, types_set)
 
     return type_dict
+
+
+def recursively_normalize_field_values(json_records, is_single_record=False):
+    """
+    Recursively explores and normalizes a list of json objects. Useful when there's arbitrary nesting of dicts and
+    lists with varying depths.
+    :param json_records: list of json objects
+    :param is_single_record: If true, json_records contains a single json object,
+    otherwise contains a list of json objects
+    :return: if is_single_record, returns normalized copy of the json object.
+    if multiple records, returns a list of json objects.
+    """
+    def recursively_normalize_field_value(_obj, _data_set_dict):
+        """
+        Recursively explore a part of the supplied object. Traverses parent nodes, replicating existing data structures
+        and normalizing values when reaching a "leaf" node.
+        :param _obj: object in current location of recursion
+        :param _data_set_dict: dict of fields and type sets
+        """
+        for key, value in _obj.items():
+            if isinstance(_obj[key], dict):
+                if key not in _data_set_dict:
+                    # this is a dict, so use dict to nest values
+                    _data_set_dict[key] = dict()
+
+                recursively_normalize_field_value(_obj[key], _data_set_dict[key])
+            elif isinstance(_obj[key], list) and len(_obj[key]) > 0 and isinstance(_obj[key][0], dict):
+                if key not in _data_set_dict:
+                    _data_set_dict[key] = list()
+
+                idx = 0
+                for _record in _obj[key]:
+                    _data_set_dict[key].append(dict())
+                    recursively_normalize_field_value(_record, _data_set_dict[key][idx])
+                    idx += 1
+            elif not isinstance(_obj[key], list):
+                # create set of Data type values
+                if key not in _data_set_dict:
+                    _data_set_dict[key] = dict()
+
+                value = normalize_value(value)
+                _data_set_dict[key] = value
+
+    if is_single_record:
+        record_dict = dict()
+        recursively_normalize_field_value(json_records, record_dict)
+        return record_dict
+    else:
+        new_record_jsonl_list = list()
+
+        for record in json_records:
+            record_dict = dict()
+            recursively_normalize_field_value(record, record_dict)
+
+            new_record_jsonl_list.append(record_dict)
+
+        return new_record_jsonl_list
 
 
 def recursively_detect_object_structures(nested_obj):
