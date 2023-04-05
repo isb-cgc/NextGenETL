@@ -25,7 +25,8 @@ import sys
 
 from common_etl.utils import (format_seconds, has_fatal_error, load_config, construct_table_name, load_table_from_query,
                               retrieve_bq_schema_object, publish_table, create_and_upload_schema_for_json,
-                              write_list_to_jsonl_and_upload, test_table_for_version_changes)
+                              write_list_to_jsonl_and_upload, test_table_for_version_changes,
+                              recursively_normalize_field_values, upload_to_bucket)
 
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, get_prefix,
                                              update_table_schema_from_generic_pdc, get_publish_table_ids,
@@ -244,14 +245,18 @@ def main(args):
     aliquot_prefix = get_prefix(API_PARAMS, API_PARAMS['ALIQUOT_ENDPOINT'])
 
     if 'build_case_aliquot_jsonl' in steps:
-        per_study_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS,
-                                                             endpoint=API_PARAMS['ALIQUOT_ENDPOINT'],
-                                                             request_function=make_cases_aliquots_query,
-                                                             alter_json_function=alter_cases_aliquots_objects,
-                                                             insert_id=True)
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_case_aliquot_list,
+        raw_case_aliquot_list = build_obj_from_pdc_api(API_PARAMS,
+                                                       endpoint=API_PARAMS['ALIQUOT_ENDPOINT'],
+                                                       request_function=make_cases_aliquots_query,
+                                                       alter_json_function=alter_cases_aliquots_objects,
+                                                       insert_id=True)
+
+        norm_case_aliquot_list = recursively_normalize_field_values(raw_case_aliquot_list)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=norm_case_aliquot_list,
                                           table_name=aliquot_prefix, include_release=True)
-        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, per_study_case_aliquot_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix + "_raw", raw_case_aliquot_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, aliquot_prefix, norm_case_aliquot_list)
 
     if 'build_case_aliquot_table' in steps:
         aliquot_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,

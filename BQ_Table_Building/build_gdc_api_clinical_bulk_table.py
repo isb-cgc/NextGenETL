@@ -180,7 +180,7 @@ def main(args):
             for record in raw_data_jsonl_file.iter():
                 normalized_record = recursively_normalize_field_values(json_records=record, is_single_record=True)
                 write_line_to_jsonl(norm_scratch_fp, normalized_record)
-
+        """
         with open(raw_scratch_fp) as raw_jsonl:
             raw_jsonl_text = raw_jsonl.readlines()
 
@@ -192,10 +192,11 @@ def main(args):
                                          fromfile=raw_scratch_fp, tofile=norm_scratch_fp, lineterm=''):
             with open(diff_scratch_fp, "w") as diff_file:
                 diff_file.write(line)
+        """
 
         # Upload bulk jsonl file to Google Cloud bucket
         upload_to_bucket(BQ_PARAMS, norm_scratch_fp, delete_local=True)
-        upload_to_bucket(BQ_PARAMS, diff_scratch_fp, delete_local=True)
+        upload_to_bucket(BQ_PARAMS, raw_scratch_fp, delete_local=True)
 
     if 'create_schema' in steps:
         print("Inferring column data types and generating schema!")
