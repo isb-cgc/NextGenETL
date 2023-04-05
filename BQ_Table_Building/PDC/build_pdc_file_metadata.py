@@ -25,7 +25,8 @@ import sys
 from common_etl.utils import (get_query_results, format_seconds, write_list_to_jsonl, get_scratch_fp, upload_to_bucket,
                               has_fatal_error, load_table_from_query, load_config, retrieve_bq_schema_object,
                               publish_table, construct_table_name, create_and_upload_schema_for_json,
-                              get_graphql_api_response, write_list_to_jsonl_and_upload, test_table_for_version_changes)
+                              get_graphql_api_response, write_list_to_jsonl_and_upload, test_table_for_version_changes,
+                              recursively_normalize_field_values)
 
 from BQ_Table_Building.PDC.pdc_utils import (get_pdc_study_ids, build_obj_from_pdc_api, build_table_from_jsonl,
                                              get_filename, create_modified_temp_table, get_prefix,
@@ -242,16 +243,19 @@ def main(args):
     file_metadata_prefix = get_prefix(API_PARAMS, API_PARAMS['FILE_METADATA_ENDPOINT'])
 
     if 'build_per_study_file_jsonl' in steps:
-        per_study_record_list = build_obj_from_pdc_api(API_PARAMS,
+        raw_per_study_record_list = build_obj_from_pdc_api(API_PARAMS,
                                                        endpoint=API_PARAMS['PER_STUDY_FILE_ENDPOINT'],
                                                        request_function=make_files_per_study_query,
                                                        alter_json_function=alter_files_per_study_json,
                                                        ids=all_pdc_study_ids)
 
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=per_study_record_list,
+        norm_per_study_record_list = recursively_normalize_field_values(raw_per_study_record_list)
+
+        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=norm_per_study_record_list,
                                           table_name=per_study_file_prefix, include_release=True)
 
-        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, per_study_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, norm_per_study_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix + "_raw", raw_per_study_record_list)
 
     if 'build_per_study_file_table' in steps:
         schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, per_study_file_prefix)
@@ -272,8 +276,6 @@ def main(args):
                                    query=modify_per_study_file_table_query(fps_table_id))
 
     if 'build_api_file_metadata_jsonl' in steps:
-        file_metadata_list = []
-
         fps_prefix = get_prefix(API_PARAMS, API_PARAMS['PER_STUDY_FILE_ENDPOINT'])
         files_per_study_tablename = construct_table_name(API_PARAMS, prefix=fps_prefix)
         files_per_study_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{files_per_study_tablename}"
@@ -292,6 +294,8 @@ def main(args):
         # retrieve new file metadata and add to existing file metadata list
         print(f"Getting {len(per_study_file_id_set)} file metadata records")
 
+        raw_file_metadata_list = []
+
         for count, file_id in enumerate(per_study_file_id_set):
             file_metadata_res = get_graphql_api_response(API_PARAMS, make_file_metadata_query(file_id))
 
@@ -306,24 +310,21 @@ def main(args):
                     if metadata_row['fraction_number'] == 'Pool' or metadata_row['fraction_number'] == 'pool':
                         metadata_row['fraction_number'] = 'POOL'
 
-                file_metadata_list.append(metadata_row)
+                raw_file_metadata_list.append(metadata_row)
 
             if count % 100 == 0:
                 print(f"{count} of {len(per_study_file_id_set)} records retrieved")
 
-        jsonl_filename = get_filename(API_PARAMS,
-                                      file_extension='jsonl',
-                                      prefix=file_metadata_prefix)
-        local_filepath = get_scratch_fp(BQ_PARAMS, jsonl_filename)
+        norm_file_metadata_list = recursively_normalize_field_values(raw_file_metadata_list)
 
         # must occur prior to jsonl write, because this also normalizes the data
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
-                                          record_list=file_metadata_list,
+                                          record_list=norm_file_metadata_list,
                                           table_name=file_metadata_prefix,
                                           include_release=True)
 
-        write_list_to_jsonl(local_filepath, file_metadata_list)
-        upload_to_bucket(BQ_PARAMS, local_filepath, delete_local=True)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, file_metadata_prefix, norm_file_metadata_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, file_metadata_prefix + "_raw", raw_file_metadata_list)
 
     if 'build_api_file_metadata_table' in steps:
         schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, file_metadata_prefix)
