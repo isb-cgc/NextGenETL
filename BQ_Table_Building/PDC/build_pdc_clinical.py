@@ -29,7 +29,8 @@ from common_etl.utils import (format_seconds, write_list_to_jsonl, get_scratch_f
                               has_fatal_error, load_bq_schema_from_json, create_and_load_table_from_jsonl,
                               load_table_from_query, delete_bq_table, load_config, list_bq_tables, publish_table,
                               construct_table_name, construct_table_id, create_and_upload_schema_for_json,
-                              retrieve_bq_schema_object, create_view_from_query, test_table_for_version_changes)
+                              retrieve_bq_schema_object, create_view_from_query, test_table_for_version_changes,
+                              recursively_normalize_field_values)
 
 from BQ_Table_Building.PDC.pdc_utils import (infer_schema_file_location_by_table_id, get_pdc_study_ids,
                                              get_pdc_studies_list, build_obj_from_pdc_api, build_table_from_jsonl,
@@ -458,7 +459,6 @@ def get_cases_by_project_submitter(studies_list):
             print('There are no cases in ' + project_submitter_id + 'project')
             continue
 
-
     return cases_by_project_submitter
 
 
@@ -660,19 +660,25 @@ def main(args):
         endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
-                                                   endpoint=endpoint,
-                                                   request_function=make_cases_query,
-                                                   alter_json_function=alter_case_objects)
+        raw_joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                       endpoint=endpoint,
+                                                       request_function=make_cases_query,
+                                                       alter_json_function=alter_case_objects)
+
+        norm_joined_cases_list = recursively_normalize_field_values(raw_joined_cases_list)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
-                                          record_list=joined_cases_list,
+                                          record_list=norm_joined_cases_list,
                                           table_name=table_name,
                                           include_release=True)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
                                prefix=get_prefix(API_PARAMS, 'allCases'),
-                               joined_record_list=joined_cases_list)
+                               joined_record_list=norm_joined_cases_list)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allCases') + '_raw',
+                               joined_record_list=raw_joined_cases_list)
 
     if 'build_cases_table' in steps:
         endpoint = API_PARAMS['CASE_EXTERNAL_MAP_ENDPOINT']
@@ -686,21 +692,26 @@ def main(args):
         endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
-                                                   endpoint=endpoint,
-                                                   request_function=make_cases_diagnoses_query,
-                                                   alter_json_function=alter_case_diagnoses_json,
-                                                   ids=pdc_study_ids,
-                                                   insert_id=True)
+        raw_joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                       endpoint=endpoint,
+                                                       request_function=make_cases_diagnoses_query,
+                                                       alter_json_function=alter_case_diagnoses_json,
+                                                       ids=pdc_study_ids,
+                                                       insert_id=True)
+
+        norm_joined_cases_list = recursively_normalize_field_values(raw_joined_cases_list)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
-                                          record_list=joined_cases_list,
+                                          record_list=norm_joined_cases_list,
                                           table_name=table_name,
                                           include_release=True)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
                                prefix=get_prefix(API_PARAMS, endpoint),
-                               joined_record_list=joined_cases_list)
+                               joined_record_list=norm_joined_cases_list)
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint) + '_raw',
+                               joined_record_list=raw_joined_cases_list)
 
     if 'build_case_diagnoses_table' in steps:
         endpoint = API_PARAMS['PER_STUDY_DIAGNOSES_ENDPOINT']
@@ -717,21 +728,27 @@ def main(args):
         endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
         table_name = API_PARAMS['ENDPOINT_SETTINGS'][endpoint]['output_name']
 
-        joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
-                                                   endpoint=endpoint,
-                                                   request_function=make_cases_demographics_query,
-                                                   alter_json_function=alter_case_demographics_json,
-                                                   ids=pdc_study_ids,
-                                                   insert_id=True)
+        raw_joined_cases_list = build_obj_from_pdc_api(API_PARAMS,
+                                                       endpoint=endpoint,
+                                                       request_function=make_cases_demographics_query,
+                                                       alter_json_function=alter_case_demographics_json,
+                                                       ids=pdc_study_ids,
+                                                       insert_id=True)
+
+        norm_joined_cases_list = recursively_normalize_field_values(raw_joined_cases_list)
 
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
-                                          record_list=joined_cases_list,
+                                          record_list=norm_joined_cases_list,
                                           table_name=table_name,
                                           include_release=True)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
                                prefix=get_prefix(API_PARAMS, endpoint),
-                               joined_record_list=joined_cases_list)
+                               joined_record_list=norm_joined_cases_list)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, endpoint) + "_raw",
+                               joined_record_list=raw_joined_cases_list)
 
     if 'build_case_demographics_table' in steps:
         endpoint = API_PARAMS['PER_STUDY_DEMOGRAPHIC_ENDPOINT']
