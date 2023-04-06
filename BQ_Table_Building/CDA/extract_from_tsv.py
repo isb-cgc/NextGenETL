@@ -112,6 +112,9 @@ def main(args):
         for tsv_file in file_list:
             file_path = f"{dest_path}/{directory}/{tsv_file}"
 
+            print(file_path)
+            exit()
+
             upload_to_bucket(bq_params, file_path)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
@@ -129,8 +132,7 @@ def main(args):
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=file_path,
                                            table_id=table_id,
-                                           num_header_rows=1,
-                                           schema=schema_object)
+                                           num_header_rows=1)
 
 
 if __name__ == "__main__":
