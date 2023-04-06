@@ -772,7 +772,7 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
-        print(load_job.errors())
+        print(load_job.errors)
 
         print(f' - Inserting into {table_id}... ', end="")
         await_insert_job(bq_params, client, table_id, load_job)
