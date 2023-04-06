@@ -3,7 +3,8 @@ import sys
 import os
 import csv
 
-from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, retrieve_bq_schema_object
+from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
+    retrieve_bq_schema_object, upload_to_bucket
 
 
 def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
@@ -110,6 +111,7 @@ def main(args):
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
             file_path = f"{dest_path}/{directory}/{tsv_file}"
+            upload_to_bucket(bq_params, file_path, delete_local=True)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc.{table_name}"
