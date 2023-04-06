@@ -117,6 +117,7 @@ def main(args):
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc.{table_name}"
 
+            """
             create_and_upload_schema_for_tsv(api_params,
                                              bq_params,
                                              table_name=table_name,
@@ -125,6 +126,11 @@ def main(args):
                                              skip_rows=1)
 
             schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
+            """
+
+            print(local_file_path)
+            print(table_id)
+            exit()
 
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=local_file_path,
