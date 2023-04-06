@@ -1661,6 +1661,8 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
     :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
     :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
+    :param schema_fp: todo
+    :param delete_local: todo
     """
     print(f"Creating schema for {table_name}")
 
