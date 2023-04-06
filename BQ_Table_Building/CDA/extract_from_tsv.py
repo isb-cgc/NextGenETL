@@ -111,6 +111,7 @@ def main(args):
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
             file_path = f"{dest_path}/{directory}/{tsv_file}"
+
             upload_to_bucket(bq_params, file_path)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
@@ -121,8 +122,7 @@ def main(args):
                                              table_name=table_name,
                                              tsv_fp=file_path,
                                              header_row=0,
-                                             skip_rows=1,
-                                             release=api_params["RELEASE"])
+                                             skip_rows=1)
 
             schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
 
