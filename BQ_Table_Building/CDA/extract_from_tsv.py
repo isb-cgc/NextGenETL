@@ -63,7 +63,7 @@ def scan_directories_and_create_file_dict(dest_path):
         file_list = os.listdir(f"{dest_path}/{directory}")
         dir_file_dict[directory] = file_list
 
-    return dir_file_dict
+    return dir_file_dict, dest_path
 
 
 def scan_directories_and_return_headers(dest_path, dir_file_dict):
@@ -103,7 +103,7 @@ def main(args):
 
     extract_tarfile(src_path, dest_path, overwrite=True)
 
-    dir_file_dict = scan_directories_and_create_file_dict(dest_path)
+    dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
     # scan_directories_and_return_headers(dest_path, dir_file_dict)
 
     for directory, file_list in dir_file_dict.items():
@@ -128,7 +128,6 @@ def main(args):
                                            table_id=table_id,
                                            num_header_rows=1,
                                            schema=schema_object)
-
 
 
 if __name__ == "__main__":
