@@ -129,7 +129,7 @@ def main(args):
             # schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
-            table_id = f"isb-project-zero.cda_pdc.{table_name}"
+            table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
 
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=tsv_file,
