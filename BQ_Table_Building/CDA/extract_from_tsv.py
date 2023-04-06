@@ -3,8 +3,6 @@ import sys
 import os
 import csv
 
-sys.path.insert(1, "/home/lauren/NextGenETL/common_etl")
-
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, retrieve_bq_schema_object
 
 
