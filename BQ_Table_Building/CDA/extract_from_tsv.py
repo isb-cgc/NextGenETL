@@ -92,7 +92,8 @@ def main(args):
     bq_params = {
         "WORKING_BUCKET": "next-gen-etl-scratch",
         "WORKING_BUCKET_DIR": "law/etl/cda_pdc_test",
-        "SCRATCH_DIR": "scratch"
+        "SCRATCH_DIR": "scratch",
+        "LOCATION": "US"
     }
 
     # src_path = f"/Users/lauren/PycharmProjects/NextGenETL/temp/CDA_tsvs/PDC/pdc_{api_params['RELEASE']}.tgz"
