@@ -126,6 +126,8 @@ def main(args):
 
             schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
 
+    for directory, file_list in dir_file_dict.items():
+        for tsv_file in file_list:
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=tsv_file,
                                            table_id=table_id,
