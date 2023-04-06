@@ -111,7 +111,7 @@ def main(args):
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
             file_path = f"{dest_path}/{directory}/{tsv_file}"
-            upload_to_bucket(bq_params, file_path, delete_local=True)
+            upload_to_bucket(bq_params, file_path)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc.{table_name}"
