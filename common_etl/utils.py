@@ -769,6 +769,8 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     """
     gs_uri = f"gs://{bq_params['WORKING_BUCKET']}/{bq_params['WORKING_BUCKET_DIR']}/{data_file}"
 
+    print(f"Loading from {gs_uri}")
+
     try:
         load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
 
