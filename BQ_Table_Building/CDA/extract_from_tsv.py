@@ -110,12 +110,9 @@ def main(args):
 
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
-            file_path = f"{dest_path}/{directory}/{tsv_file}"
+            local_file_path = f"{dest_path}/{directory}/{tsv_file}"
 
-            print(file_path)
-            exit()
-
-            upload_to_bucket(bq_params, file_path)
+            upload_to_bucket(bq_params, local_file_path)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc.{table_name}"
@@ -123,14 +120,14 @@ def main(args):
             create_and_upload_schema_for_tsv(api_params,
                                              bq_params,
                                              table_name=table_name,
-                                             tsv_fp=file_path,
+                                             tsv_fp=local_file_path,
                                              header_row=0,
                                              skip_rows=1)
 
             schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
 
             create_and_load_table_from_tsv(bq_params,
-                                           tsv_file=file_path,
+                                           tsv_file=local_file_path,
                                            table_id=table_id,
                                            num_header_rows=1)
 
