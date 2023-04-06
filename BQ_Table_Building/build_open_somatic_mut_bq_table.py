@@ -739,6 +739,7 @@ def main(args):
 
     if 'clear_target_directory' in steps:
         # Best practice is to clear out the directory where the files are going. Don't want anything left over:
+        print('clear_target_directory')
         create_clean_target(local_files_dir)
 
     if 'pull_table_info_from_git' in steps:
@@ -746,7 +747,8 @@ def main(args):
         update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     if 'build_manifest' in steps:
-
+        # Use the filter set to build a manifest.
+        print('build_manifest_from_filters')
         max_files = params.MAX_FILES if 'MAX_FILES' in params_dict else None
         bq_filters = [{"access": "open"},
                       {"data_format": "MAF"},
