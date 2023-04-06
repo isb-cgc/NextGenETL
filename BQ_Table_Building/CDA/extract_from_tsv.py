@@ -107,28 +107,29 @@ def main(args):
 
     dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
     # scan_directories_and_return_headers(dest_path, dir_file_dict)
-
+    """
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
             local_file_path = f"{dest_path}/{directory}/{tsv_file}"
 
             upload_to_bucket(bq_params, local_file_path)
 
-            table_name = create_table_name(api_params['RELEASE'], tsv_file)
-            table_id = f"isb-project-zero.cda_pdc.{table_name}"
-
-            """
+            '''
             create_and_upload_schema_for_tsv(api_params,
                                              bq_params,
                                              table_name=table_name,
                                              tsv_fp=local_file_path,
                                              header_row=0,
                                              skip_rows=1)
-            """
+            '''
+    """
 
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
             # schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
+
+            table_name = create_table_name(api_params['RELEASE'], tsv_file)
+            table_id = f"isb-project-zero.cda_pdc.{table_name}"
 
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=tsv_file,
