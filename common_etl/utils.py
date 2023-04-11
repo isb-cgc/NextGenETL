@@ -1443,7 +1443,7 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
+def retrieve_bq_schema_object(api_params, bq_params, table_name=None, release=None, include_release=True,
                               schema_filename=None, schema_dir=None):
     """
     todo
@@ -1652,8 +1652,9 @@ def create_schema_object(column_headers, data_types_dict):
     }
 
 
-def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
+def create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp, table_name=None, header_list=None, header_row=None,
+                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None,
+                                     delete_local=True):
     """
     Create and upload schema for a file in tsv format.
     :param api_params: api_params supplied in yaml config
@@ -1668,7 +1669,7 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param schema_fp: todo
     :param delete_local: todo
     """
-    print(f"Creating schema for {table_name}")
+    print(f"Creating schema for {tsv_fp}")
 
     # third condition required to account for header row at 0 index
 

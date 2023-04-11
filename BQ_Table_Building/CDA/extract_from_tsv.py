@@ -4,7 +4,8 @@ import os
 import csv
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
-    retrieve_bq_schema_object, upload_to_bucket
+    retrieve_bq_schema_object, upload_to_bucket, get_column_list_tsv, aggregate_column_data_types_tsv, \
+    resolve_type_conflicts, create_schema_object
 
 
 def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
@@ -107,34 +108,44 @@ def main(args):
 
     dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
     # scan_directories_and_return_headers(dest_path, dir_file_dict)
-    """
+
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
+            schema_file_name = "_".join(tsv_file.split(".")[:-1])
+            schema_file_name = f"schema_{schema_file_name}.json"
+
             local_file_path = f"{dest_path}/{directory}/{tsv_file}"
+            schema_file_path = f"{dest_path}/{directory}/{schema_file_name}"
 
             upload_to_bucket(bq_params, local_file_path)
 
-            '''
-            create_and_upload_schema_for_tsv(api_params,
-                                             bq_params,
-                                             table_name=table_name,
-                                             tsv_fp=local_file_path,
-                                             header_row=0,
-                                             skip_rows=1)
-            '''
-    """
+            """
+            column_headers = get_column_list_tsv(tsv_fp=local_file_path, header_row_index=0)
+
+            data_types_dict = aggregate_column_data_types_tsv(tsv_fp=local_file_path, column_headers=column_headers, skip_rows=1)
+            data_type_dict = resolve_type_conflicts(data_types_dict)
+            schema_obj = create_schema_object(column_headers, data_type_dict)
+            """
+
+            create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
+                                             header_row=0, skip_rows=1, schema_fp=schema_file_path)
 
     for directory, file_list in dir_file_dict.items():
         for tsv_file in file_list:
-            # schema_object = retrieve_bq_schema_object(api_params, bq_params, table_name=table_name)
+            schema_file_name = "_".join(tsv_file.split(".")[:-1])
+            schema_file_name = f"schema_{schema_file_name}.json"
+
+            schema_object = retrieve_bq_schema_object(api_params,
+                                                      bq_params,
+                                                      schema_filename=schema_file_name)
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
-
             create_and_load_table_from_tsv(bq_params,
                                            tsv_file=tsv_file,
                                            table_id=table_id,
-                                           num_header_rows=1)
+                                           num_header_rows=1,
+                                           schema=schema_object)
 
 
 if __name__ == "__main__":

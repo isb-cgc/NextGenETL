@@ -281,14 +281,9 @@ def main(args):
                 table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
                 schema_file_name = f"schema_{table_name}.json"
                 schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
-                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS,
-                                                 table_name=table_name,
-                                                 tsv_fp=tsv_file_path,
-                                                 header_row=0,
-                                                 skip_rows=1,
-                                                 row_check_interval=1,
-                                                 schema_fp=schema_file_path,
-                                                 delete_local=True)
+                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS, tsv_fp=tsv_file_path, table_name=table_name,
+                                                 header_row=0, skip_rows=1, row_check_interval=1,
+                                                 schema_fp=schema_file_path, delete_local=True)
                 upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
 
         if 'build_raw_tables' in steps:
