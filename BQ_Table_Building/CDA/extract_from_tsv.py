@@ -40,6 +40,18 @@ def get_tsv_headers(filepath):
     return headers
 
 
+def get_data_row_count(filepath):
+    with open(filepath) as file:
+        tsv_reader = csv.reader(file, delimiter="\t")
+
+        row_count = -1
+
+        for row in tsv_reader:
+            row_count += 1
+
+    return row_count
+
+
 def scan_directories_and_create_file_dict(dest_path):
     top_level_dir = os.listdir(dest_path)
 
@@ -116,7 +128,7 @@ def main(args):
             # schema_file_path = f"{dest_path}/{directory}/{schema_file_name}"
 
             local_file_path = f"{dest_path}/{directory}/{tsv_file}"
-            upload_to_bucket(bq_params, local_file_path)
+            upload_to_bucket(bq_params, local_file_path, delete_local=False)
 
             """
             create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
@@ -136,10 +148,12 @@ def main(args):
 
             table_name = create_table_name(api_params['RELEASE'], tsv_file)
             table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
-            create_and_load_table_from_tsv(bq_params,
-                                           tsv_file=tsv_file,
-                                           table_id=table_id,
-                                           num_header_rows=1)
+
+            if get_data_row_count(f"{dest_path}/{directory}/{tsv_file}") >= 1:
+                create_and_load_table_from_tsv(bq_params,
+                                               tsv_file=tsv_file,
+                                               table_id=table_id,
+                                               num_header_rows=1)
 
 
 if __name__ == "__main__":
