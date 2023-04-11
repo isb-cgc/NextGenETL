@@ -1614,7 +1614,8 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     # convert non-standard null or boolean value to None, "True" or "False", otherwise return original
-                    value = normalize_value(value)
+                    # todo we aren't currently normalizing data for tsvs, until we do don't normalize here
+                    # value = normalize_value(value)
                     value_type = check_value_type(value)
                     data_types_dict[column_headers[idx]].add(value_type)
 
