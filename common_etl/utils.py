@@ -1001,12 +1001,13 @@ def normalize_value(value):
     return value
 
 
-def check_value_type(value):
+def check_value_type(value, is_tsv=False):
     """
     Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
         - datetime formats: DATE, TIME, TIMESTAMP
         - number formats: INT64, FLOAT64, NUMERIC
         - misc formats: STRING, BOOL, ARRAY, RECORD
+    :param is_tsv: todo
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
@@ -1022,7 +1023,8 @@ def check_value_type(value):
 
     if isinstance(value, bool):
         return "BOOL"
-    if is_valid_decimal(value):
+    # currently not working for tsv because we don't normalize those files prior to upload yet
+    if not is_tsv and is_valid_decimal(value):
         # If you don't cast a string to float before casting to int, it will throw a TypeError
         if float(value) == int(float(value)):
             return "INT64"
