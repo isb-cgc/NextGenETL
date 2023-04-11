@@ -662,7 +662,12 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_row
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
-    job_config.schema = schema
+
+    if schema:
+        job_config.schema = schema
+    else:
+        job_config.autodetect = True
+
     job_config.skip_leading_rows = num_header_rows
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
@@ -1001,7 +1006,7 @@ def normalize_value(value):
     return value
 
 
-def check_value_type(value, is_tsv=False):
+def check_value_type(value):
     """
     Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
         - datetime formats: DATE, TIME, TIMESTAMP
@@ -1024,7 +1029,7 @@ def check_value_type(value, is_tsv=False):
     if isinstance(value, bool):
         return "BOOL"
     # currently not working for tsv because we don't normalize those files prior to upload yet
-    if not is_tsv and is_valid_decimal(value):
+    if is_valid_decimal(value):
         # If you don't cast a string to float before casting to int, it will throw a TypeError
         if float(value) == int(float(value)):
             return "INT64"
@@ -1616,9 +1621,8 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     # convert non-standard null or boolean value to None, "True" or "False", otherwise return original
-                    # todo we aren't currently normalizing data for tsvs, until we do don't normalize here
-                    # value = normalize_value(value)
-                    value_type = check_value_type(value, is_tsv=True)
+                    value = normalize_value(value)
+                    value_type = check_value_type(value)
                     data_types_dict[column_headers[idx]].add(value_type)
 
             count += 1
