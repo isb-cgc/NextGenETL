@@ -665,10 +665,10 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_row
 
     if schema:
         job_config.schema = schema
+        job_config.skip_leading_rows = num_header_rows
     else:
         job_config.autodetect = True
 
-    job_config.skip_leading_rows = num_header_rows
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
