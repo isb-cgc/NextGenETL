@@ -40,7 +40,7 @@ from common_etl.support import create_clean_target, pull_from_buckets, build_fil
     upload_to_bucket, csv_to_bq, delete_table_bq_job, \
     build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git, \
     create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
-    update_schema_tags, publish_tables_and_update_schema, bq_table_exists
+    update_schema_tags, qc_bq_table_metadata, publish_tables_and_update_schema, bq_table_exists
 
 from common_etl.utils import find_types
 
@@ -732,6 +732,7 @@ def main(args):
     barcodes_table_id = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{barcode_table}'
 
     draft_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{standard_table}"
+
     # Google Bucket Locations
     bucket_target_blob = f'{params.WORKING_BUCKET_DIR}/{release}-{params.DATA_TYPE}.tsv'
 
@@ -765,6 +766,7 @@ def main(args):
 
     if 'build_pull_list' in steps:
         # Create a "pull list" with BigQuery of gs:// URLs to pull from DCF
+        print('build_pull_list')
         build_pull_list_with_bq(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{manifest_table}",
                                 params.INDEXD_BQ_TABLE.format(release),
                                 params.WORKING_PROJECT, params.SCRATCH_DATASET,
@@ -858,6 +860,8 @@ def main(args):
 
         if 'qc_bigquery_tables' in steps:
             print("QC BQ table")
+            print(qc_bq_table_metadata(
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}"))
 
         if 'publish' in steps:
             print('Attempting to publish tables')
