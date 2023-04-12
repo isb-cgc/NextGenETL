@@ -2156,7 +2156,7 @@ def qc_bq_table_metadata(table_id):
     \tTable Friendly Name: {table_properties.friendly_name}
     \tTable Description: \n\t\t{table_properties.description}
     \tTable Tags:\n"""
-    for label_name, label in table.labels.items():
+    for label_name, label in table_properties.labels.items():
         qc_string = qc_string + f"\t\t{label_name}: {label}\n"
 
     return qc_string
