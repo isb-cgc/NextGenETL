@@ -1340,9 +1340,6 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
     :param descriptions: (optional) dictionary of field: description string pairs for inclusion in schema definition
     """
 
-    print(data_types_dict)
-    exit()
-
     for k, v in data_types_dict.items():
         if descriptions and k in descriptions:
             description = descriptions[k]
@@ -1365,13 +1362,21 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
             # v is a set
             final_type = resolve_type_conflict(k, v)
 
-            # child (leaf) node
-            schema_field = {
-                "name": k,
-                "type": final_type,
-                "mode": "NULLABLE",
-                "description": description
-            }
+            if final_type == "ARRAY":
+                schema_field = {
+                    "name": k,
+                    "type": "STRING",
+                    "mode": "REPEATED",
+                    "description": description
+                }
+            else:
+                # child (leaf) node
+                schema_field = {
+                    "name": k,
+                    "type": final_type,
+                    "mode": "NULLABLE",
+                    "description": description
+                }
 
             dataset_format_obj.append(schema_field)
 
