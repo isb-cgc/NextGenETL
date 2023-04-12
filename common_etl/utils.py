@@ -1211,7 +1211,7 @@ def recursively_detect_object_structures(nested_obj):
 
                 for _record in _obj[k]:
                     recursively_detect_object_structure(_record, _data_types_dict[k])
-            elif not isinstance(_obj[k], list):
+            elif not isinstance(_obj[k], list) or (isinstance(_obj[k], list) and len(_obj[k]) > 0):
                 # create set of Data type values
                 if k not in _data_types_dict:
                     _data_types_dict[k] = set()
@@ -1261,13 +1261,21 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
             # v is a set
             final_type = resolve_type_conflict(k, v)
 
-            # child (leaf) node
-            schema_field = {
-                "name": k,
-                "type": final_type,
-                "mode": "NULLABLE",
-                "description": description
-            }
+            if final_type == "ARRAY":
+                schema_field = {
+                    "name": k,
+                    "type": "STRING",
+                    "mode": "REPEATED",
+                    "description": description
+                }
+            else:
+                # child (leaf) node
+                schema_field = {
+                    "name": k,
+                    "type": final_type,
+                    "mode": "NULLABLE",
+                    "description": description
+                }
 
             dataset_format_obj.append(schema_field)
 
