@@ -1489,6 +1489,8 @@ def generate_and_upload_schema(api_params, bq_params, table_name, data_types_dic
     """
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
+    print(schema_list)
+
     schema_obj = {
         "fields": schema_list
     }
