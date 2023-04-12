@@ -989,16 +989,16 @@ def normalize_value(value):
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'n/a',
-                 'None', '', '--', '-',
-                 'NULL', 'Null', 'null',
-                 'Not Reported', 'not reported', 'Not reported',
-                 'unknown', 'Unknown'):
-        return None
-    elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
-        return "False"
-    elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
-        return "True"
+        if value in ('NA', 'N/A', 'n/a',
+                     'None', '', '--', '-',
+                     'NULL', 'Null', 'null',
+                     'Not Reported', 'not reported', 'Not reported',
+                     'unknown', 'Unknown'):
+            return None
+        elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
+            return "False"
+        elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
+            return "True"
 
     if check_value_type(value) == "INT64":
         value = int(float(value))
@@ -1135,21 +1135,6 @@ def resolve_type_conflict(field, types_set):
     if "_id" in field:
         return "STRING"
 
-    # If 1 and 0 occur in the column, interpret as BOOL; if other INT values exist, INT will take precedence
-    if "BOOL OR INT 1" in types_set and "BOOL OR INT 0" in types_set:
-        types_set.discard("BOOL OR INT 1")
-        types_set.discard("BOOL OR INT 0")
-        types_set.add("BOOL")
-
-    if "BOOL OR INT 1" in types_set or "BOOL OR INT 0" in types_set:
-        # If this is true, then the field contains only 1 OR 0 values, which can't be differentiated as BOOL
-        # Therefore, resolving as INT.
-        if "BOOL" not in types_set and "INT64" not in types_set:
-            types_set.add('INT64')
-
-        types_set.discard("BOOL OR INT 1")
-        types_set.discard("BOOL OR INT 0")
-
     if len(types_set) == 0:
         # fields with no type values default to string--this would still be safe for skip-row analysis of a data file
         return "STRING"
@@ -1213,9 +1198,6 @@ def resolve_type_conflict(field, types_set):
             return "FLOAT64"
         elif "NUMERIC" in types_set:
             return "NUMERIC"
-        # todo is there any reason we can't have an else statement here return INT64?
-        #  I can't think of one, and this would also solve the INT64 return issue where some fields are None.
-
 
     # No BOOL, DATETIME combinations allowed, or whatever other randomness occurs--return STRING
     return "STRING"
@@ -1271,7 +1253,7 @@ def recursively_normalize_field_values(json_records, is_single_record=False):
                     _data_set_dict[key].append(dict())
                     recursively_normalize_field_value(_record, _data_set_dict[key][idx])
                     idx += 1
-            elif not isinstance(_obj[key], list):
+            elif not isinstance(_obj[key], list) or (isinstance(_obj[key], list) and len(_obj[key]) > 0):
                 # create set of Data type values
                 if key not in _data_set_dict:
                     _data_set_dict[key] = dict()
@@ -1329,7 +1311,7 @@ def recursively_detect_object_structures(nested_obj):
 
                 for _record in _obj[k]:
                     recursively_detect_object_structure(_record, _data_types_dict[k])
-            elif not isinstance(_obj[k], list):
+            elif not isinstance(_obj[k], list) or (isinstance(_obj[k], list) and len(_obj[k]) > 0):
                 # create set of Data type values
                 if k not in _data_types_dict:
                     _data_types_dict[k] = set()
