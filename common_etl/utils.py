@@ -1339,6 +1339,10 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
     :param dataset_format_obj: dataset format obj
     :param descriptions: (optional) dictionary of field: description string pairs for inclusion in schema definition
     """
+
+    print(data_types_dict)
+    exit()
+
     for k, v in data_types_dict.items():
         if descriptions and k in descriptions:
             description = descriptions[k]
