@@ -117,6 +117,33 @@ def create_table_name(file_name):
     return table_name
 
 
+def normalize_files(api_params, bq_params, file_list, dest_path):
+    normalized_file_names = list()
+
+    for tsv_file in file_list:
+        original_tsv_path = f"{dest_path}/{tsv_file}"
+        # rename raw file
+        raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
+        raw_tsv_path = f"{dest_path}/{raw_tsv_file}"
+
+        os.rename(src=original_tsv_path, dst=raw_tsv_path)
+
+        normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
+        normalized_tsv_path = f"{dest_path}/{normalized_tsv_file}"
+
+        # add file to list, used to generate txt list of files for later table creation
+        normalized_file_names.append(f"{normalized_tsv_file}\n")
+
+        # create normalized file list
+        create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
+
+        # upload raw and normalized tsv files to google cloud storage
+        upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
+        upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
+
+    return normalized_file_names
+
+
 def main(args):
     source_dc = "gdc"
 
@@ -152,6 +179,24 @@ def main(args):
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
+            # "normalize_and_upload_tsvs",
+            "create_schemas",
+            "create_tables"
+        }
+    else:
+        api_params = {
+            "RELEASE": "",
+            "TAR_FILE": ""
+        }
+        bq_params = {
+            "WORKING_BUCKET": "next-gen-etl-scratch",
+            "WORKING_BUCKET_DIR": "",
+            "SCRATCH_DIR": "scratch",
+            "LOCATION": "US",
+            "WORKING_PROJECT": "isb-project-zero",
+            "WORKING_DATASET": ""
+        }
+        steps = {
             "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
@@ -167,64 +212,28 @@ def main(args):
 
         extract_tarfile(src_path, dest_path, overwrite=True)
 
+        normalized_file_names = list()
+
         if source_dc == "pdc":
             dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
-
-            normalized_file_names = list()
 
             for directory, file_list in dir_file_dict.items():
                 local_directory = f"{dest_path}/{directory}"
 
-                for tsv_file in file_list:
-                    original_tsv_path = f"{local_directory}/{tsv_file}"
-                    # rename raw file
-                    raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
-                    raw_tsv_path = f"{local_directory}/{raw_tsv_file}"
+                directory_normalized_file_names = normalize_files(api_params,
+                                                                  bq_params,
+                                                                  file_list=file_list,
+                                                                  dest_path=local_directory)
 
-                    os.rename(src=original_tsv_path, dst=raw_tsv_path)
-
-                    normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
-                    normalized_tsv_path = f"{local_directory}/{normalized_tsv_file}"
-
-                    # add file to list, used to generate txt list of files for later table creation
-                    normalized_file_names.append(f"{normalized_tsv_file}\n")
-
-                    # create normalized file list
-                    create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
-
-                    # upload raw and normalized tsv files to google cloud storage
-                    upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
-                    upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
-
+                normalized_file_names.extend(directory_normalized_file_names)
         elif source_dc == "gdc":
             directory = os.listdir(dest_path)
             dest_path += f"/{directory[0]}"
             file_list = os.listdir(dest_path)
 
-            normalized_file_names = list()
+            normalized_file_names = normalize_files(api_params, bq_params, file_list=file_list, dest_path=dest_path)
 
-            for tsv_file in file_list:
-                original_tsv_path = f"{dest_path}/{tsv_file}"
-                # rename raw file
-                raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
-                raw_tsv_path = f"{dest_path}/{raw_tsv_file}"
-
-                os.rename(src=original_tsv_path, dst=raw_tsv_path)
-
-                normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
-                normalized_tsv_path = f"{dest_path}/{normalized_tsv_file}"
-
-                # add file to list, used to generate txt list of files for later table creation
-                normalized_file_names.append(f"{normalized_tsv_file}\n")
-
-                # create normalized file list
-                create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
-
-                # upload raw and normalized tsv files to google cloud storage
-                upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
-                upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
-
-        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
 
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
@@ -233,7 +242,7 @@ def main(args):
 
     if "create_schemas" in steps:
         # download index file
-        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
         download_from_bucket(bq_params, index_txt_file_name)
 
         with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
@@ -243,7 +252,7 @@ def main(args):
                 tsv_file = tsv_file.strip()
                 download_from_bucket(bq_params, tsv_file)
 
-                schema_file_name = tsv_file.split("_")[-1:]
+                schema_file_name = tsv_file.split("_")[-1]
                 schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
                 schema_file_path = get_scratch_fp(bq_params, schema_file_name)
                 local_file_path = get_scratch_fp(bq_params, tsv_file)
@@ -254,7 +263,7 @@ def main(args):
                 os.remove(local_file_path)
 
     if "create_tables" in steps:
-        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
         download_from_bucket(bq_params, index_txt_file_name)
 
         with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
@@ -263,7 +272,7 @@ def main(args):
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
 
-                schema_file_name = tsv_file_name.split("_")[-1:]
+                schema_file_name = tsv_file_name.split("_")[-1]
                 schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
 
                 download_from_bucket(bq_params, tsv_file_name)
