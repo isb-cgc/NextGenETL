@@ -203,6 +203,7 @@ def main(args):
             file_names = index_file.readlines()
 
             for tsv_file in file_names:
+                tsv_file = tsv_file.strip()
                 download_from_bucket(bq_params, tsv_file)
 
                 schema_file_name = tsv_file.split("_")[-1:]
