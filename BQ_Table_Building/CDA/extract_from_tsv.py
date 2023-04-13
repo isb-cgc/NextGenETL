@@ -118,7 +118,7 @@ def create_table_name(file_name):
 
 
 def main(args):
-    source_dc = "pdc"
+    source_dc = "gdc"
 
     if source_dc == "pdc":
         api_params = {
