@@ -119,18 +119,15 @@ def scan_directories_and_return_headers(dest_path, dir_file_dict):
             print(f" - {tsv_file}: {headers}")
 
 
-def create_table_name(release, file_name):
+def create_table_name(file_name):
     """
     todo
-    :param release:
     :param file_name:
     :return:
     """
     file_name = file_name.lower()
     split_file_name = file_name.split(".")
-
-    table_name = f"{release}_"
-    table_name += "_".join(split_file_name[:-1])
+    table_name = "_".join(split_file_name[:-1])
 
     return table_name
 
@@ -147,7 +144,8 @@ def main(args):
     }
     steps = {
         # "normalize_and_upload_tsvs",
-        "create_schemas"
+        "create_schemas",
+        "create_tables"
     }
 
     src_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}.tgz"
@@ -205,38 +203,47 @@ def main(args):
             file_names = index_file.readlines()
 
             for tsv_file in file_names:
-                print(tsv_file)
+                download_from_bucket(bq_params, tsv_file)
 
-    """
-    # schema_file_name = "_".join(tsv_file.split(".")[:-1])
-    # schema_file_name = f"schema_{schema_file_name}.json"
-    # schema_file_path = f"{dest_path}/{directory}/{schema_file_name}"
+                schema_file_name = tsv_file.split("_")[-1:]
+                schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
+                schema_file_path = get_scratch_fp(bq_params, schema_file_name)
+                local_file_path = get_scratch_fp(bq_params, tsv_file)
 
-    create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
-                                     header_row=0, skip_rows=1, schema_fp=schema_file_path)
-    """
-    '''
-    for directory, file_list in dir_file_dict.items():
-        for tsv_file in file_list:
-            """
-            schema_file_name = "_".join(tsv_file.split(".")[:-1])
-            schema_file_name = f"schema_{schema_file_name}.json"
+                create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
+                                                 header_row=0, skip_rows=1, schema_fp=schema_file_path,
+                                                 delete_local=True)
+                os.remove(local_file_path)
 
-            schema_object = retrieve_bq_schema_object(api_params,
-                                                      bq_params,
-                                                      schema_filename=schema_file_name)
-            """
+    if "create_tables" in steps:
+        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+        download_from_bucket(bq_params, index_txt_file_name)
 
-            table_name = create_table_name(api_params['RELEASE'], tsv_file)
-            table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
+        with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
+            file_names = index_file.readlines()
 
-            if get_data_row_count(f"{dest_path}/{directory}/{tsv_file}") >= 1:
-                create_and_load_table_from_tsv(bq_params,
-                                               tsv_file=tsv_file,
-                                               table_id=table_id,
-                                               num_header_rows=1)
+            for tsv_file_name in file_names:
+                schema_file_name = tsv_file_name.split("_")[-1:]
+                schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
 
-    '''
+                download_from_bucket(bq_params, tsv_file_name)
+                tsv_file_path = get_scratch_fp(bq_params, tsv_file_name)
+
+                schema_object = retrieve_bq_schema_object(api_params, bq_params, schema_filename=schema_file_name)
+
+                table_name = create_table_name(tsv_file)
+                table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
+
+                if get_data_row_count(f"{tsv_file_path}") >= 1:
+                    create_and_load_table_from_tsv(bq_params,
+                                                   tsv_file=tsv_file,
+                                                   table_id=table_id,
+                                                   num_header_rows=1,
+                                                   schema=schema_object)
+
+                os.remove(tsv_file_path)
+
+        os.remove(get_scratch_fp(bq_params, index_txt_file_name))
 
 
 if __name__ == "__main__":
