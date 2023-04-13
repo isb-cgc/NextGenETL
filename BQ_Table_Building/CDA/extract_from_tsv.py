@@ -104,21 +104,6 @@ def scan_directories_and_create_file_dict(dest_path):
     return dir_file_dict, dest_path
 
 
-def scan_directories_and_return_headers(dest_path, dir_file_dict):
-    """
-    todo
-    :param dest_path:
-    :param dir_file_dict:
-    :return:
-    """
-    for directory, file_list in dir_file_dict.items():
-        print(f"\nFor {directory}:")
-        for tsv_file in file_list:
-            file_path = f"{dest_path}/{directory}/{tsv_file}"
-            headers = get_tsv_headers(file_path)
-            print(f" - {tsv_file}: {headers}")
-
-
 def create_table_name(file_name):
     """
     todo
@@ -133,25 +118,49 @@ def create_table_name(file_name):
 
 
 def main(args):
-    api_params = {
-        "RELEASE": "2023_03",
-    }
-    bq_params = {
-        "WORKING_BUCKET": "next-gen-etl-scratch",
-        "WORKING_BUCKET_DIR": "law/etl/cda_pdc_test",
-        "SCRATCH_DIR": "scratch",
-        "LOCATION": "US"
-    }
-    steps = {
-        # "normalize_and_upload_tsvs",
-        # "create_schemas",
-        "create_tables"
-    }
+    source_dc = "pdc"
 
-    src_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}.tgz"
-    dest_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}"
+    if source_dc == "pdc":
+        api_params = {
+            "RELEASE": "2023_03",
+            "TAR_FILE": "pdc_2023_03.tgz"
+        }
+        bq_params = {
+            "WORKING_BUCKET": "next-gen-etl-scratch",
+            "WORKING_BUCKET_DIR": "law/etl/cda_pdc_test",
+            "SCRATCH_DIR": "scratch",
+            "LOCATION": "US",
+            "WORKING_PROJECT": "isb-project-zero",
+            "WORKING_DATASET": "cda_pdc_test"
+        }
+        steps = {
+            # "normalize_and_upload_tsvs",
+            # "create_schemas",
+            "create_tables"
+        }
+    elif source_dc == "gdc":
+        api_params = {
+            "RELEASE": "2023_03",
+            "TAR_FILE": "2023_03_gdc_cda.tgz"
+        }
+        bq_params = {
+            "WORKING_BUCKET": "next-gen-etl-scratch",
+            "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
+            "SCRATCH_DIR": "scratch",
+            "LOCATION": "US",
+            "WORKING_PROJECT": "isb-project-zero",
+            "WORKING_DATASET": "cda_gdc_test"
+        }
+        steps = {
+            "normalize_and_upload_tsvs",
+            "create_schemas",
+            "create_tables"
+        }
 
     if "normalize_and_upload_tsvs" in steps:
+        src_path = f"/home/lauren/scratch/cda/{api_params['TAR_FILE']}"
+        dest_dir = api_params['TAR_FILE'].split(".")[0]
+        dest_path = f"/home/lauren/scratch/cda/{dest_dir}"
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
@@ -159,7 +168,6 @@ def main(args):
         extract_tarfile(src_path, dest_path, overwrite=True)
 
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
-        # scan_directories_and_return_headers(dest_path, dir_file_dict)
 
         normalized_file_names = list()
 
@@ -235,7 +243,7 @@ def main(args):
                 schema_object = retrieve_bq_schema_object(api_params, bq_params, schema_filename=schema_file_name)
 
                 table_name = create_table_name(tsv_file_name)
-                table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
+                table_id = f"{bq_params['WORKING_PROJECT']}.{bq_params['WORKING_DATASET']}.{table_name}"
 
                 if get_data_row_count(f"{tsv_file_path}") >= 1:
                     create_and_load_table_from_tsv(bq_params,
