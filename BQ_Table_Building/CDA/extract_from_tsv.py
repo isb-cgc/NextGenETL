@@ -160,7 +160,7 @@ def main(args):
     if "normalize_and_upload_tsvs" in steps:
         src_path = f"/home/lauren/scratch/cda/{api_params['TAR_FILE']}"
         dest_dir = api_params['TAR_FILE'].split(".")[0]
-        dest_path = f"/home/lauren/scratch/cda/{dest_dir}"
+        dest_path = f"/home/lauren/scratch/{dest_dir}"
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
