@@ -198,7 +198,7 @@ def main(args):
 
         elif source_dc == "gdc":
             directory = os.listdir(dest_path)
-            dest_path += f"/{directory}"
+            dest_path += f"/{directory[0]}"
             file_list = os.listdir(directory)
 
             print(file_list)
