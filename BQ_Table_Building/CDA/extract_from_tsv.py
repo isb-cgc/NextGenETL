@@ -167,23 +167,50 @@ def main(args):
 
         extract_tarfile(src_path, dest_path, overwrite=True)
 
-        dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
+        if source_dc == "pdc":
+            dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
-        normalized_file_names = list()
+            normalized_file_names = list()
 
-        for directory, file_list in dir_file_dict.items():
-            local_directory = f"{dest_path}/{directory}"
+            for directory, file_list in dir_file_dict.items():
+                local_directory = f"{dest_path}/{directory}"
+
+                for tsv_file in file_list:
+                    original_tsv_path = f"{local_directory}/{tsv_file}"
+                    # rename raw file
+                    raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
+                    raw_tsv_path = f"{local_directory}/{raw_tsv_file}"
+
+                    os.rename(src=original_tsv_path, dst=raw_tsv_path)
+
+                    normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
+                    normalized_tsv_path = f"{local_directory}/{normalized_tsv_file}"
+
+                    # add file to list, used to generate txt list of files for later table creation
+                    normalized_file_names.append(f"{normalized_tsv_file}\n")
+
+                    # create normalized file list
+                    create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
+
+                    # upload raw and normalized tsv files to google cloud storage
+                    upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
+                    upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
+
+        elif source_dc == "gdc":
+            file_list = os.listdir(dest_path)
+
+            normalized_file_names = list()
 
             for tsv_file in file_list:
-                original_tsv_path = f"{local_directory}/{tsv_file}"
+                original_tsv_path = f"{dest_path}/{tsv_file}"
                 # rename raw file
                 raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
-                raw_tsv_path = f"{local_directory}/{raw_tsv_file}"
+                raw_tsv_path = f"{dest_path}/{raw_tsv_file}"
 
                 os.rename(src=original_tsv_path, dst=raw_tsv_path)
 
                 normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
-                normalized_tsv_path = f"{local_directory}/{normalized_tsv_file}"
+                normalized_tsv_path = f"{dest_path}/{normalized_tsv_file}"
 
                 # add file to list, used to generate txt list of files for later table creation
                 normalized_file_names.append(f"{normalized_tsv_file}\n")
