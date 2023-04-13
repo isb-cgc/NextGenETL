@@ -199,6 +199,9 @@ def main(args):
         elif source_dc == "gdc":
             file_list = os.listdir(dest_path)
 
+            print(file_list)
+            exit(0)
+
             normalized_file_names = list()
 
             for tsv_file in file_list:
