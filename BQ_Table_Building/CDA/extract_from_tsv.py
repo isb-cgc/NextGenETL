@@ -179,7 +179,7 @@ def main(args):
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
-            # "normalize_and_upload_tsvs",
+            "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
