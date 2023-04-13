@@ -29,6 +29,7 @@ import datetime
 import requests
 import yaml
 import select
+import csv
 from distutils import util
 import traceback
 
@@ -1572,6 +1573,48 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
                 column_list.append(column)
 
     return column_list
+
+
+def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
+    """
+    Opens a raw tsv file, normalizes its data, then writes to new tsv file.
+    :param raw_tsv_fp: path to non-normalized data file
+    :param normalized_tsv_fp: destination file for normalized data
+    """
+    normalized_data_list = list()
+
+    with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
+        tsv_reader = csv.reader(tsv_file, delimiter="\t")
+
+        idx = 0
+
+        raw_row_count = len(tsv_reader)
+
+        for row in tsv_reader:
+            normalized_record = list()
+
+            if idx == 0:
+                normalized_data_list.append(row)
+                idx += 1
+                continue
+            for value in row:
+                new_value = normalize_value(value)
+                normalized_record.append(new_value)
+
+            normalized_data_list.append(normalized_record)
+
+    with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
+        tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
+        tsv_writer.writerows(normalized_data_list)
+
+    with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
+        tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
+        normalized_row_count = len(tsv_reader)
+
+    if normalized_row_count == raw_row_count:
+        print("Row count unchanged! good")
+    else:
+        print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
 
 
 def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):

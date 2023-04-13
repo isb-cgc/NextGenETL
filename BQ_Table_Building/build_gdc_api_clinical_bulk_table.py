@@ -164,14 +164,6 @@ def main(args):
 
     norm_scratch_fp = get_scratch_fp(BQ_PARAMS, normalized_jsonl_output_file)
 
-    diff_output_file = get_filename(API_PARAMS,
-                                    file_extension='txt',
-                                    prefix=get_rel_prefix(API_PARAMS) + '_diff',
-                                    suffix=BQ_PARAMS['MASTER_TABLE'],
-                                    include_release=False)
-
-    diff_scratch_fp = get_scratch_fp(BQ_PARAMS, diff_output_file)
-
     if 'build_and_upload_case_jsonl' in steps:
         # Hit paginated GDC api endpoint, then write data to local jsonl file
         extract_api_response_json(raw_scratch_fp)
