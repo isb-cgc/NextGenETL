@@ -234,12 +234,12 @@ def main(args):
 
                 schema_object = retrieve_bq_schema_object(api_params, bq_params, schema_filename=schema_file_name)
 
-                table_name = create_table_name(tsv_file)
+                table_name = create_table_name(tsv_file_name)
                 table_id = f"isb-project-zero.cda_pdc_test.{table_name}"
 
                 if get_data_row_count(f"{tsv_file_path}") >= 1:
                     create_and_load_table_from_tsv(bq_params,
-                                                   tsv_file=tsv_file,
+                                                   tsv_file=tsv_file_name,
                                                    table_id=table_id,
                                                    num_header_rows=1,
                                                    schema=schema_object)
