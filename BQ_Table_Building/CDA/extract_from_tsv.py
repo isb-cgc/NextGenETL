@@ -144,7 +144,7 @@ def main(args):
     }
     steps = {
         # "normalize_and_upload_tsvs",
-        "create_schemas",
+        # "create_schemas",
         "create_tables"
     }
 
@@ -224,6 +224,8 @@ def main(args):
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
+                tsv_file_name = tsv_file_name.strip()
+
                 schema_file_name = tsv_file_name.split("_")[-1:]
                 schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
 
