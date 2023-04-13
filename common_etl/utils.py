@@ -830,6 +830,7 @@ def download_from_bucket(bq_params, filename, dir_path=None):
     Download file from Google storage bucket onto VM.
     :param bq_params: BigQuery params
     :param filename: Name of file to download
+    :param dir_path: todo
     """
     storage_client = storage.Client(project="")
     blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
@@ -839,7 +840,8 @@ def download_from_bucket(bq_params, filename, dir_path=None):
     if not dir_path:
         fp = get_scratch_fp(bq_params, filename)
     else:
-        fp = (f"{dir_path}/{filename}")
+        fp = f"{dir_path}/{filename}"
+
     with open(fp, 'wb') as file_obj:
         blob.download_to_file(file_obj)
 

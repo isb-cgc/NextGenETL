@@ -6,7 +6,7 @@ import shutil
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
     retrieve_bq_schema_object, upload_to_bucket, get_column_list_tsv, aggregate_column_data_types_tsv, \
-    resolve_type_conflicts, create_schema_object, create_normalized_tsv
+    resolve_type_conflicts, create_schema_object, create_normalized_tsv, download_from_bucket, get_scratch_fp
 
 
 def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
@@ -145,50 +145,67 @@ def main(args):
         "SCRATCH_DIR": "scratch",
         "LOCATION": "US"
     }
+    steps = {
+        # "normalize_and_upload_tsvs",
+        "create_schemas"
+    }
 
     src_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}.tgz"
     dest_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}"
 
-    if os.path.exists(dest_path):
-        shutil.rmtree(dest_path)
+    if "normalize_and_upload_tsvs" in steps:
 
-    extract_tarfile(src_path, dest_path, overwrite=True)
+        if os.path.exists(dest_path):
+            shutil.rmtree(dest_path)
 
-    dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
-    # scan_directories_and_return_headers(dest_path, dir_file_dict)
+        extract_tarfile(src_path, dest_path, overwrite=True)
 
-    normalized_file_names = list()
+        dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
+        # scan_directories_and_return_headers(dest_path, dir_file_dict)
 
-    for directory, file_list in dir_file_dict.items():
-        local_directory = f"{dest_path}/{directory}"
+        normalized_file_names = list()
 
-        for tsv_file in file_list:
-            original_tsv_path = f"{local_directory}/{tsv_file}"
-            # rename raw file
-            raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
-            raw_tsv_path = f"{local_directory}/{raw_tsv_file}"
+        for directory, file_list in dir_file_dict.items():
+            local_directory = f"{dest_path}/{directory}"
 
-            os.rename(src=original_tsv_path, dst=raw_tsv_path)
+            for tsv_file in file_list:
+                original_tsv_path = f"{local_directory}/{tsv_file}"
+                # rename raw file
+                raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
+                raw_tsv_path = f"{local_directory}/{raw_tsv_file}"
 
-            normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
-            normalized_tsv_path = f"{local_directory}/{normalized_tsv_file}"
+                os.rename(src=original_tsv_path, dst=raw_tsv_path)
 
-            # add file to list, used to generate txt list of files for later table creation
-            normalized_file_names.append(f"{normalized_tsv_file}\n")
+                normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
+                normalized_tsv_path = f"{local_directory}/{normalized_tsv_file}"
 
-            # create normalized file list
-            create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
+                # add file to list, used to generate txt list of files for later table creation
+                normalized_file_names.append(f"{normalized_tsv_file}\n")
 
-            # upload raw and normalized tsv files to google cloud storage
-            upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
-            upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
+                # create normalized file list
+                create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
-    index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+                # upload raw and normalized tsv files to google cloud storage
+                upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
+                upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
 
-    with open(index_txt_file_name, mode="w", newline="") as txt_file:
-        txt_file.writelines(normalized_file_names)
+        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
 
-    upload_to_bucket(bq_params, index_txt_file_name, delete_local=True)
+        with open(index_txt_file_name, mode="w", newline="") as txt_file:
+            txt_file.writelines(normalized_file_names)
+
+        upload_to_bucket(bq_params, index_txt_file_name, delete_local=True)
+
+    if "create_schemas" in steps:
+        # download index file
+        index_txt_file_name = f"{api_params['RELEASE']}_file_index.txt"
+        download_from_bucket(bq_params, index_txt_file_name)
+
+        with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
+            file_names = index_file.readlines()
+
+            for tsv_file in file_names:
+                print(tsv_file)
 
     """
     # schema_file_name = "_".join(tsv_file.split(".")[:-1])
