@@ -197,7 +197,9 @@ def main(args):
                     upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
 
         elif source_dc == "gdc":
-            file_list = os.listdir(dest_path)
+            directory = os.listdir(dest_path)
+            dest_path += f"/{directory}"
+            file_list = os.listdir(directory)
 
             print(file_list)
             exit(0)
