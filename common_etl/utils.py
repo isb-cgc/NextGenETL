@@ -1586,22 +1586,22 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
     with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
         tsv_reader = csv.reader(tsv_file, delimiter="\t")
 
-        idx = 0
-
-        raw_row_count = len(tsv_reader)
+        raw_row_count = 0
 
         for row in tsv_reader:
             normalized_record = list()
 
-            if idx == 0:
+            if raw_row_count == 0:
                 normalized_data_list.append(row)
-                idx += 1
+                raw_row_count += 1
                 continue
+
             for value in row:
                 new_value = normalize_value(value)
                 normalized_record.append(new_value)
 
             normalized_data_list.append(normalized_record)
+            raw_row_count += 1
 
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
@@ -1609,7 +1609,10 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
 
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
         tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
-        normalized_row_count = len(tsv_reader)
+        normalized_row_count = 0
+
+        for row in tsv_reader:
+            normalized_row_count += 1
 
     if normalized_row_count == raw_row_count:
         print("Row count unchanged! good")
