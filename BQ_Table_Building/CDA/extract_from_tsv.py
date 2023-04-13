@@ -2,6 +2,7 @@ import tarfile
 import sys
 import os
 import csv
+import shutil
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
     retrieve_bq_schema_object, upload_to_bucket, get_column_list_tsv, aggregate_column_data_types_tsv, \
@@ -147,6 +148,9 @@ def main(args):
 
     src_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}.tgz"
     dest_path = f"/home/lauren/scratch/cda_pdc/pdc_{api_params['RELEASE']}"
+
+    if os.path.exists(dest_path):
+        shutil.rmtree(dest_path)
 
     extract_tarfile(src_path, dest_path, overwrite=True)
 
