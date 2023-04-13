@@ -123,7 +123,7 @@ def main(args):
     if source_dc == "pdc":
         api_params = {
             "RELEASE": "2023_03",
-            "TAR_FILE": "pdc_2023_03.tgz"
+            "TAR_FILE": "cda_pdc/pdc_2023_03.tgz"
         }
         bq_params = {
             "WORKING_BUCKET": "next-gen-etl-scratch",
@@ -141,7 +141,7 @@ def main(args):
     elif source_dc == "gdc":
         api_params = {
             "RELEASE": "2023_03",
-            "TAR_FILE": "2023_03_gdc_cda.tgz"
+            "TAR_FILE": "cda_gdc/2023_03_gdc_cda.tgz"
         }
         bq_params = {
             "WORKING_BUCKET": "next-gen-etl-scratch",
