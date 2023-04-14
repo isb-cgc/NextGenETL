@@ -1114,6 +1114,10 @@ def check_value_type(value):
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
 
+    # no point in performing regex for this, it's just a string
+    if value.count("-") > 2:
+        return "STRING"
+
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
     (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
