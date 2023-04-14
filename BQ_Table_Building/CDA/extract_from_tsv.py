@@ -179,7 +179,7 @@ def main(args):
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
-            "normalize_and_upload_tsvs",
+            # "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
@@ -248,14 +248,14 @@ def main(args):
         with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
             file_names = index_file.readlines()
 
-            for tsv_file in file_names:
-                tsv_file = tsv_file.strip()
-                download_from_bucket(bq_params, tsv_file)
+            for tsv_file_name in file_names:
+                tsv_file_name = tsv_file_name.strip()
+                download_from_bucket(bq_params, tsv_file_name)
 
-                schema_file_name = tsv_file.split("_")[-1]
+                schema_file_name = "_".join(tsv_file_name.split("_")[2:])
                 schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
                 schema_file_path = get_scratch_fp(bq_params, schema_file_name)
-                local_file_path = get_scratch_fp(bq_params, tsv_file)
+                local_file_path = get_scratch_fp(bq_params, tsv_file_name)
 
                 create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
                                                  header_row=0, skip_rows=1, schema_fp=schema_file_path,
@@ -272,7 +272,7 @@ def main(args):
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
 
-                schema_file_name = tsv_file_name.split("_")[-1]
+                schema_file_name = "_".join(tsv_file_name.split("_")[2:])
                 schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
 
                 download_from_bucket(bq_params, tsv_file_name)
