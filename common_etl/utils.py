@@ -839,8 +839,8 @@ def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, t
     else:
         file_path = f"{dir_path}/{filename}"
 
-    if os.path.isfile(file_path):
-        os.remove(file_path)
+    #    if os.path.isfile(file_path):
+    #        os.remove(file_path)
 
     storage_client = storage.Client(project="")
     if bucket_path:
