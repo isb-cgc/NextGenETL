@@ -228,8 +228,8 @@ def main(args):
                              timeout=30)
 
     if "normalize_and_upload_tsvs" in steps:
-        src_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}/{api_params['TAR_FILE']}"
-        dest_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}"
+        src_path = f"{get_filepath(api_params['LOCAL_TAR_DIR'])}/{api_params['TAR_FILE']}"
+        dest_path = get_filepath(api_params['LOCAL_TAR_DIR'])
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
