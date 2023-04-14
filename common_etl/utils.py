@@ -1117,6 +1117,8 @@ def check_value_type(value):
     # no point in performing regex for this, it's just a string
     if value.count("-") > 2:
         return "STRING"
+    else:
+        print(value.count("-"))
 
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
