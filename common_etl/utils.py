@@ -1067,8 +1067,13 @@ def check_value_type(value):
     # currently not working for tsv because we don't normalize those files prior to upload yet
     if is_valid_decimal(value):
         # If you don't cast a string to float before casting to int, it will throw a TypeError
-        if float(value) == int(float(value)):
-            return "INT64"
+
+        try:
+            if float(value) == int(float(value)):
+                return "INT64"
+        except OverflowError:
+            print(f"ERROR: OverflowError for value: {value}")
+            exit()
     if isinstance(value, float):
         return "FLOAT64"
     if value != value:  # NaN case
