@@ -1117,8 +1117,6 @@ def check_value_type(value):
     # no point in performing regex for this, it's just a string
     if value.count("-") > 2:
         return "STRING"
-    else:
-        print(f"{value} -> {value.count('-')}")
 
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
@@ -1143,6 +1141,8 @@ def check_value_type(value):
         timestamp_pattern = re.compile(timestamp_re_str)
         if re.fullmatch(timestamp_pattern, value):
             return "TIMESTAMP"
+
+        return "STRING"
 
     try:
         util.strtobool(value)
@@ -1631,29 +1631,28 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
     """
     normalized_data_list = list()
 
-    with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
-        tsv_reader = csv.reader(tsv_file, delimiter="\t")
-
-        raw_row_count = 0
-
-        for row in tsv_reader:
-            normalized_record = list()
-
-            if raw_row_count == 0:
-                normalized_data_list.append(row)
-                raw_row_count += 1
-                continue
-
-            for value in row:
-                new_value = normalize_value(value, is_tsv=True)
-                normalized_record.append(new_value)
-
-            normalized_data_list.append(normalized_record)
-            raw_row_count += 1
-
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
-        tsv_writer.writerows(normalized_data_list)
+
+        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
+            tsv_reader = csv.reader(tsv_file, delimiter="\t")
+
+            raw_row_count = 0
+
+            for row in tsv_reader:
+                normalized_record = list()
+
+                if raw_row_count == 0:
+                    normalized_data_list.append(row)
+                    raw_row_count += 1
+                    continue
+
+                for value in row:
+                    new_value = normalize_value(value, is_tsv=True)
+                    normalized_record.append(new_value)
+
+                tsv_writer.writerow(normalized_record)
+                raw_row_count += 1
 
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
         tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
