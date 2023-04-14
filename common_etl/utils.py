@@ -1033,14 +1033,44 @@ def normalize_value(value, is_tsv=False):
         elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
             return "True"
 
-    if check_value_type(value) == "INT64":
+    if is_int_value(value):
         try:
             cast_value = int(float(value))
+            return cast_value
         except OverflowError:
             pass
-        return cast_value
     else:
         return value
+
+
+def is_int_value(value):
+    """
+    todo
+    :param value:
+    :return:
+    """
+    def is_valid_decimal(val):
+        try:
+            float(val)
+        except ValueError:
+            return False
+        except TypeError:
+            return False
+        else:
+            return True
+
+    if is_valid_decimal(value):
+        try:
+            if float(value) == int(float(value)):
+                return True
+        except OverflowError:
+            return False
+
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
 
 
 def check_value_type(value):
@@ -1093,7 +1123,6 @@ def check_value_type(value):
 
     # check to see if value is numeric, float or int;
     # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
-    # todo some of this might be redundant now that I've added the float = int check above, but not hurting anything.
     if '.' in value and ':' not in value and "E+" not in value and "E-" not in value:
         try:
             int(value)
