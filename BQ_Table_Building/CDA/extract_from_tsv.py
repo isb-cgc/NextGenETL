@@ -121,6 +121,11 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
     normalized_file_names = list()
 
     for tsv_file in file_list:
+        file_type = tsv_file.split(".")[-1]
+
+        if file_type != "tsv":
+            continue
+
         original_tsv_path = f"{dest_path}/{tsv_file}"
         # rename raw file
         raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
