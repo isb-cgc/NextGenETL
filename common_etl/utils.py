@@ -817,9 +817,11 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False, verbose=True):
 
         if delete_local:
             os.remove(scratch_fp)
-            print("Local file deleted.")
+            if verbose:
+                print("Local file deleted.")
         else:
-            print(f"Local file not deleted.")
+            if verbose:
+                print(f"Local file not deleted.")
 
     except exceptions.GoogleCloudError as err:
         has_fatal_error(f"Failed to upload to bucket.\n{err}")
