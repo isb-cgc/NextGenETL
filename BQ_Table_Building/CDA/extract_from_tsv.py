@@ -247,6 +247,8 @@ def main(args):
                              timeout=30)
 
     if "extract_cda_archive_file" in steps:
+        local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
+
         src_path = f"{local_tar_dir}/{api_params['TAR_FILE']}"
         dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
