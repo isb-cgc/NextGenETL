@@ -5,8 +5,7 @@ import csv
 import shutil
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
-    retrieve_bq_schema_object, upload_to_bucket, get_column_list_tsv, aggregate_column_data_types_tsv, \
-    resolve_type_conflicts, create_schema_object, create_normalized_tsv, download_from_bucket, get_scratch_fp
+    retrieve_bq_schema_object, upload_to_bucket, create_normalized_tsv, download_from_bucket, get_scratch_fp
 
 
 def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
@@ -158,17 +157,20 @@ def main(args):
     if source_dc == "pdc":
         api_params = {
             "RELEASE": "2023_03",
-            "TAR_FILE": "cda_pdc/pdc_2023_03.tgz"
+            "LOCAL_TAR_DIR": "cda_pdc",
+            "TAR_FILE": "pdc_2023_03.tgz"
         }
         bq_params = {
             "WORKING_BUCKET": "next-gen-etl-scratch",
             "WORKING_BUCKET_DIR": "law/etl/cda_pdc_test",
+            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
             "SCRATCH_DIR": "scratch",
             "LOCATION": "US",
             "WORKING_PROJECT": "isb-project-zero",
             "WORKING_DATASET": "cda_pdc_test"
         }
         steps = {
+            # "download_cda_archive_file",
             # "normalize_and_upload_tsvs",
             # "create_schemas",
             "create_tables"
@@ -176,44 +178,54 @@ def main(args):
     elif source_dc == "gdc":
         api_params = {
             "RELEASE": "2023_03",
-            "TAR_FILE": "cda_gdc/2023_03_gdc_cda.tgz"
+            "LOCAL_TAR_DIR": "cda_gdc",
+            "TAR_FILE": "2023_03_gdc_as_extracted.tgz"
         }
         bq_params = {
             "WORKING_BUCKET": "next-gen-etl-scratch",
             "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
+            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
             "SCRATCH_DIR": "scratch",
             "LOCATION": "US",
             "WORKING_PROJECT": "isb-project-zero",
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
-            # "normalize_and_upload_tsvs",
+            "download_cda_archive_file",
+            "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
     else:
         api_params = {
             "RELEASE": "",
+            "LOCAL_TAR_DIR": "",
             "TAR_FILE": ""
         }
         bq_params = {
             "WORKING_BUCKET": "next-gen-etl-scratch",
             "WORKING_BUCKET_DIR": "",
+            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
             "SCRATCH_DIR": "scratch",
             "LOCATION": "US",
             "WORKING_PROJECT": "isb-project-zero",
             "WORKING_DATASET": ""
         }
         steps = {
+            "download_cda_archive_file",
             "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
+    if "download_cda_archive_file" in steps:
+        download_from_bucket(bq_params,
+                             bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
+                             filename=api_params['TAR_FILE_NAME'],
+                             dir_path=api_params['LOCAL_TAR_DIR'])
 
     if "normalize_and_upload_tsvs" in steps:
-        src_path = f"/home/lauren/scratch/{api_params['TAR_FILE']}"
-        dest_dir = api_params['TAR_FILE'].split(".")[0]
-        dest_path = f"/home/lauren/scratch/{dest_dir}"
+        src_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}/{api_params['TAR_FILE']}"
+        dest_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}"
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
