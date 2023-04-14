@@ -223,6 +223,8 @@ def main(args):
                              filename=api_params['TAR_FILE'],
                              dir_path=api_params['LOCAL_TAR_DIR'])
 
+
+
     if "normalize_and_upload_tsvs" in steps:
         src_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}/{api_params['TAR_FILE']}"
         dest_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}"

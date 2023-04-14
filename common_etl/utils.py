@@ -825,14 +825,23 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None):
+def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, timeout=None):
     """
     Download file from Google storage bucket onto VM.
     :param bq_params: BigQuery params, used to retrieve default bucket directory path
     :param filename: Name of file to download
     :param bucket_path: Optional, override default bucket directory path
-    :param dir_path: Location in which to download file
+    :param dir_path: Optional, location in which to download file; if not specified, defaults to scratch folder defined in bq_params
+    :param timeout: Optional, integer value in seconds--how long to wait before file download is considered a failure
     """
+    if not dir_path:
+        file_path = get_scratch_fp(bq_params, filename)
+    else:
+        file_path = f"{dir_path}/{filename}"
+
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+
     storage_client = storage.Client(project="")
     if bucket_path:
         blob_name = f"{bucket_path}/{filename}"
@@ -841,13 +850,20 @@ def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None):
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    if not dir_path:
-        fp = get_scratch_fp(bq_params, filename)
-    else:
-        fp = f"{dir_path}/{filename}"
-
-    with open(fp, 'wb') as file_obj:
+    with open(file_path, 'wb') as file_obj:
         blob.download_to_file(file_obj)
+
+    start_time = time.time()
+
+    while not os.path.isfile(file_path):
+        if time.time() - start_time > timeout:
+            print(f"ERROR: File download from bucket failed. Source: {blob_name}, Destination: {file_path}")
+            exit()
+        else:
+            print(f"File {filename} not yet downloaded, waiting.")
+            time.sleep(2)
+
+
 
 
 #   I/O - FILESYSTEM HELPERS
