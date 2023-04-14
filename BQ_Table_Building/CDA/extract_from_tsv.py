@@ -5,7 +5,8 @@ import csv
 import shutil
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
-    retrieve_bq_schema_object, upload_to_bucket, create_normalized_tsv, download_from_bucket, get_scratch_fp
+    retrieve_bq_schema_object, upload_to_bucket, create_normalized_tsv, download_from_bucket, get_scratch_fp, \
+    get_filepath
 
 
 def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
@@ -218,13 +219,13 @@ def main(args):
             "create_tables"
         }
     if "download_cda_archive_file" in steps:
+        local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
+
         download_from_bucket(bq_params,
                              bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
                              filename=api_params['TAR_FILE'],
-                             dir_path=api_params['LOCAL_TAR_DIR'],
+                             dir_path=local_tar_dir,
                              timeout=30)
-
-
 
     if "normalize_and_upload_tsvs" in steps:
         src_path = f"/home/lauren/scratch/{api_params['LOCAL_TAR_DIR']}/{api_params['TAR_FILE']}"
