@@ -1072,8 +1072,8 @@ def check_value_type(value):
             if float(value) == int(float(value)):
                 return "INT64"
         except OverflowError:
-            print(f"ERROR: OverflowError for value: {value}")
-            exit()
+            # can't cast float infinity to int
+            pass
     if isinstance(value, float):
         return "FLOAT64"
     if value != value:  # NaN case
