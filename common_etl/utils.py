@@ -790,12 +790,13 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
 #   GOOGLE CLOUD STORAGE UTILS
 
 
-def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
+def upload_to_bucket(bq_params, scratch_fp, delete_local=False, verbose=True):
     """
     Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     :param delete_local: delete scratch file created on VM
+    :param verbose: if True, print a confirmation for each file uploaded
     """
     if not os.path.exists(scratch_fp):
         has_fatal_error(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
@@ -811,7 +812,8 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(scratch_fp)
 
-        print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
+        if verbose:
+            print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
 
         if delete_local:
             os.remove(scratch_fp)

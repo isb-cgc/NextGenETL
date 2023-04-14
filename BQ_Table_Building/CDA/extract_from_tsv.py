@@ -138,8 +138,10 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
         create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
         # upload raw and normalized tsv files to google cloud storage
-        upload_to_bucket(bq_params, raw_tsv_path, delete_local=True)
-        upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True)
+        upload_to_bucket(bq_params, raw_tsv_path, delete_local=True, verbose=False)
+        upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True, verbose=False)
+
+        print(f"Successfully uploaded raw and normalized {normalized_tsv_file} files to bucket.")
 
     return normalized_file_names
 
@@ -220,6 +222,7 @@ def main(args):
             "create_tables"
         }
     if "download_cda_archive_file" in steps:
+        print("Downloading archive file from bucket!")
         local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
 
         if not os.path.exists(local_tar_dir):
@@ -232,6 +235,7 @@ def main(args):
                              timeout=30)
 
     if "normalize_and_upload_tsvs" in steps:
+        print("Normalizing and uploading tsvs!")
         src_path = f"{get_filepath(api_params['LOCAL_TAR_DIR'])}/{api_params['TAR_FILE']}"
         dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
@@ -269,6 +273,7 @@ def main(args):
         upload_to_bucket(bq_params, index_txt_file_name, delete_local=True)
 
     if "create_schemas" in steps:
+        print("Creating schemas!")
         # download index file
         index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
         download_from_bucket(bq_params, index_txt_file_name)
@@ -290,6 +295,7 @@ def main(args):
                 os.remove(local_file_path)
 
     if "create_tables" in steps:
+        print("Creating tables!")
         index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
         download_from_bucket(bq_params, index_txt_file_name)
 
