@@ -982,7 +982,7 @@ def get_filename(api_params, file_extension, prefix, suffix=None, include_releas
 #   SCHEMA UTILS
 
 
-def normalize_value(value):
+def normalize_value(value, is_tsv=False):
     """
     If value is variation of null or boolean value, converts to single form (None, True, False);
     otherwise returns original value.
@@ -997,7 +997,10 @@ def normalize_value(value):
                      'NULL', 'Null', 'null',
                      'Not Reported', 'not reported', 'Not reported',
                      'unknown', 'Unknown'):
-            return None
+            if is_tsv:
+                return ''
+            else:
+                return None
         elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
             return "False"
         elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
@@ -1599,7 +1602,7 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
                 continue
 
             for value in row:
-                new_value = normalize_value(value)
+                new_value = normalize_value(value, is_tsv=True)
                 normalized_record.append(new_value)
 
             normalized_data_list.append(normalized_record)
