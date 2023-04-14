@@ -180,6 +180,7 @@ def main(args):
         api_params = {
             "RELEASE": "2023_03",
             "LOCAL_TAR_DIR": "scratch/cda_archive_files",
+            "LOCAL_EXTRACT_DIR": "cda_gdc",
             "TAR_FILE": "2023_03_gdc_as_extracted.tgz"
         }
         bq_params = {
@@ -229,7 +230,7 @@ def main(args):
 
     if "normalize_and_upload_tsvs" in steps:
         src_path = f"{get_filepath(api_params['LOCAL_TAR_DIR'])}/{api_params['TAR_FILE']}"
-        dest_path = get_filepath(api_params['LOCAL_TAR_DIR'])
+        dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
