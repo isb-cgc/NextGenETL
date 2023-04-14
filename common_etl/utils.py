@@ -1032,9 +1032,12 @@ def normalize_value(value, is_tsv=False):
             return "True"
 
     if check_value_type(value) == "INT64":
-        value = int(float(value))
-
-    return value
+        try:
+            return int(float(value))
+        except OverflowError:
+            print(f"ERROR: OverflowError for value: {value}")
+    else:
+        return value
 
 
 def check_value_type(value):
