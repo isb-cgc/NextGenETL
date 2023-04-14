@@ -221,7 +221,8 @@ def main(args):
         download_from_bucket(bq_params,
                              bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
                              filename=api_params['TAR_FILE'],
-                             dir_path=api_params['LOCAL_TAR_DIR'])
+                             dir_path=api_params['LOCAL_TAR_DIR'],
+                             timeout=30)
 
 
 

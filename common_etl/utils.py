@@ -855,19 +855,17 @@ def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, t
 
     start_time = time.time()
 
-    while not os.path.isfile(file_path):
-        if time.time() - start_time > timeout:
-            print(f"ERROR: File download from bucket failed. Source: {blob_name}, Destination: {file_path}")
-            exit()
-        else:
-            print(f"File {filename} not yet downloaded, waiting.")
-            time.sleep(2)
-
-
+    if timeout:
+        while not os.path.isfile(file_path):
+            if time.time() - start_time > timeout:
+                print(f"ERROR: File download from bucket failed. Source: {blob_name}, Destination: {file_path}")
+                exit()
+            else:
+                print(f"File {filename} not yet downloaded, waiting.")
+                time.sleep(2)
 
 
 #   I/O - FILESYSTEM HELPERS
-
 
 def get_filepath(dir_path, filename=None):
     """
