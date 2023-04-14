@@ -1035,8 +1035,7 @@ def normalize_value(value, is_tsv=False):
         try:
             cast_value = int(float(value))
         except OverflowError:
-            print(f"ERROR: OverflowError for value: {value}")
-
+            pass
         return cast_value
     else:
         return value
