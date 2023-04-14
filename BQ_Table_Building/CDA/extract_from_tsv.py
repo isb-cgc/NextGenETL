@@ -220,7 +220,7 @@ def main(args):
     if "download_cda_archive_file" in steps:
         download_from_bucket(bq_params,
                              bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
-                             filename=api_params['TAR_FILE_NAME'],
+                             filename=api_params['TAR_FILE'],
                              dir_path=api_params['LOCAL_TAR_DIR'])
 
     if "normalize_and_upload_tsvs" in steps:
