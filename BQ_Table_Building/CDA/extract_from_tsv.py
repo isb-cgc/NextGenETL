@@ -182,7 +182,8 @@ def main(args):
             "WORKING_DATASET": "cda_pdc_test"
         }
         steps = {
-            # "download_and_extract_cda_archive_file",
+            # "download_cda_archive_file",
+            # "extract_cda_archive_file",
             # "normalize_and_upload_tsvs",
             # "create_schemas",
             "create_tables"
@@ -204,7 +205,8 @@ def main(args):
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
-            # "download_and_extract_cda_archive_file",
+            # "download_cda_archive_file",
+            "extract_cda_archive_file",
             "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
@@ -231,7 +233,7 @@ def main(args):
             "create_tables"
         }
 
-    if "download_and_extract_cda_archive_file" in steps:
+    if "download_cda_archive_file" in steps:
         print("\n*** Downloading archive file from bucket!\n")
         local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
 
@@ -244,6 +246,7 @@ def main(args):
                              dir_path=local_tar_dir,
                              timeout=30)
 
+    if "extract_cda_archive_file" in steps:
         src_path = f"{local_tar_dir}/{api_params['TAR_FILE']}"
         dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
