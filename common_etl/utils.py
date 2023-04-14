@@ -1641,10 +1641,9 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
         for row in tsv_reader:
             normalized_row_count += 1
 
-    if normalized_row_count == raw_row_count:
-        print("Row count unchanged! good")
-    else:
+    if normalized_row_count != raw_row_count:
         print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
+        exit()
 
 
 def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
