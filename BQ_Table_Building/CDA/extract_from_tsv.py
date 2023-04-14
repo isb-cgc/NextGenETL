@@ -182,7 +182,7 @@ def main(args):
             "WORKING_DATASET": "cda_pdc_test"
         }
         steps = {
-            # "download_cda_archive_file",
+            # "download_and_extract_cda_archive_file",
             # "normalize_and_upload_tsvs",
             # "create_schemas",
             "create_tables"
@@ -204,7 +204,7 @@ def main(args):
             "WORKING_DATASET": "cda_gdc_test"
         }
         steps = {
-            # "download_cda_archive_file",
+            # "download_and_extract_cda_archive_file",
             "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
@@ -225,12 +225,13 @@ def main(args):
             "WORKING_DATASET": ""
         }
         steps = {
-            "download_cda_archive_file",
+            "download_and_extract_cda_archive_file",
             "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
-    if "download_cda_archive_file" in steps:
+
+    if "download_and_extract_cda_archive_file" in steps:
         print("\n*** Downloading archive file from bucket!\n")
         local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
 
@@ -243,15 +244,17 @@ def main(args):
                              dir_path=local_tar_dir,
                              timeout=30)
 
-    if "normalize_and_upload_tsvs" in steps:
-        print("\n*** Normalizing and uploading tsvs!\n")
-        src_path = f"{get_filepath(api_params['LOCAL_TAR_DIR'])}/{api_params['TAR_FILE']}"
+        src_path = f"{local_tar_dir}/{api_params['TAR_FILE']}"
         dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
 
         extract_tarfile(src_path, dest_path, overwrite=True)
+
+    if "normalize_and_upload_tsvs" in steps:
+        print("\n*** Normalizing and uploading tsvs!\n")
+        dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
 
         normalized_file_names = list()
 

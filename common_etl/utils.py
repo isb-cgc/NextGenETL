@@ -1118,7 +1118,7 @@ def check_value_type(value):
     if value.count("-") > 2:
         return "STRING"
     else:
-        print(value.count("-"))
+        print(f"{value} -> {value.count('-')}")
 
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
