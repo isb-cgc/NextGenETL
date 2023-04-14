@@ -144,6 +144,14 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
     return normalized_file_names
 
 
+def get_schema_filename(api_params, tsv_file_name):
+    schema_file_name = "_".join(tsv_file_name.split("_")[2:])
+    schema_file_name = schema_file_name.split(".")[0]
+    schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}.json"
+
+    return schema_file_name
+
+
 def main(args):
     source_dc = "gdc"
 
@@ -252,8 +260,7 @@ def main(args):
                 tsv_file_name = tsv_file_name.strip()
                 download_from_bucket(bq_params, tsv_file_name)
 
-                schema_file_name = "_".join(tsv_file_name.split("_")[2:])
-                schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
+                schema_file_name = get_schema_filename(api_params, tsv_file_name)
                 schema_file_path = get_scratch_fp(bq_params, schema_file_name)
                 local_file_path = get_scratch_fp(bq_params, tsv_file_name)
 
@@ -271,13 +278,10 @@ def main(args):
 
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
-
-                schema_file_name = "_".join(tsv_file_name.split("_")[2:])
-                schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}"
-
-                download_from_bucket(bq_params, tsv_file_name)
                 tsv_file_path = get_scratch_fp(bq_params, tsv_file_name)
+                download_from_bucket(bq_params, tsv_file_name)
 
+                schema_file_name = get_schema_filename(api_params, tsv_file_name)
                 schema_object = retrieve_bq_schema_object(api_params, bq_params, schema_filename=schema_file_name)
 
                 table_name = create_table_name(tsv_file_name)
