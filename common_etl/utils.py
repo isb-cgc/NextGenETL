@@ -857,6 +857,7 @@ def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, t
 
     start_time = time.time()
 
+    """
     if timeout:
         while not os.path.isfile(file_path):
             if time.time() - start_time > timeout:
@@ -865,8 +866,10 @@ def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, t
             else:
                 print(f"File {filename} not yet downloaded, waiting.")
                 time.sleep(2)
-        if os.path.isfile(file_path):
-            print(f"File successfully downloaded from bucket. Bucket location: {blob_name}, VM location: {file_path}")
+    """
+
+    if os.path.isfile(file_path):
+        print(f"File successfully downloaded from bucket to {file_path}")
 
 
 #   I/O - FILESYSTEM HELPERS
