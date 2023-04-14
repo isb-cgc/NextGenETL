@@ -222,6 +222,9 @@ def main(args):
     if "download_cda_archive_file" in steps:
         local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
 
+        if not os.path.exists(local_tar_dir):
+            os.mkdir(local_tar_dir)
+
         download_from_bucket(bq_params,
                              bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
                              filename=api_params['TAR_FILE'],
