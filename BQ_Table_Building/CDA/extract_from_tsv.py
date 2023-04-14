@@ -179,7 +179,7 @@ def main(args):
     elif source_dc == "gdc":
         api_params = {
             "RELEASE": "2023_03",
-            "LOCAL_TAR_DIR": "scratch/cda_gdc",
+            "LOCAL_TAR_DIR": "scratch/cda_archive_files",
             "TAR_FILE": "2023_03_gdc_as_extracted.tgz"
         }
         bq_params = {
