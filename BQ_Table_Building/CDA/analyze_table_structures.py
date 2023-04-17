@@ -32,7 +32,8 @@ def main(args):
         column_dict[column_name].append(table_name)
 
     for column in sorted(column_dict.keys()):
-        print(f"{column}\t{column_dict[column]}")
+        if len(column_dict[column]) > 1:
+            print(f"{column}\t{column_dict[column]}")
 
 
 if __name__ == "__main__":
