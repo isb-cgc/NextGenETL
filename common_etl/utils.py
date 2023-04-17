@@ -1680,6 +1680,8 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
                 if raw_row_count % 500000 == 0:
                     print(f"Normalized {raw_row_count} rows.")
 
+            print(f"Normalized {raw_row_count} rows.")
+
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
         tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
         normalized_row_count = 0
