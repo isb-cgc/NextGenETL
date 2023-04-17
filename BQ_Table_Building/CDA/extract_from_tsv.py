@@ -120,6 +120,8 @@ def create_table_name(file_name):
 def normalize_files(api_params, bq_params, file_list, dest_path):
     normalized_file_names = list()
 
+    file_list = ["read_group.tsv"]
+
     for tsv_file in file_list:
         file_type = tsv_file.split(".")[-1]
 
@@ -140,7 +142,7 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
         normalized_file_names.append(f"{normalized_tsv_file}\n")
 
         # create normalized file list
-        print(f"Normalizing {tsv_file}")
+        print(f"\nNormalizing {tsv_file}")
         create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
         # upload raw and normalized tsv files to google cloud storage

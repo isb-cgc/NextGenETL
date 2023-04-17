@@ -1662,7 +1662,7 @@ def normalize_header_row(header_row):
             suffix_value += 1
 
         if value != test_value:
-            print(f"Changing header value {value} to {test_value}")
+            print(f"Changing header value {value} to {test_value} (due to encountering duplicate header).")
 
         new_header_row.append(test_value)
 
