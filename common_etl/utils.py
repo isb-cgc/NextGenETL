@@ -1658,8 +1658,6 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
     :param raw_tsv_fp: path to non-normalized data file
     :param normalized_tsv_fp: destination file for normalized data
     """
-    normalized_data_list = list()
-
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
@@ -1672,7 +1670,7 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
                 normalized_record = list()
 
                 if raw_row_count == 0:
-                    normalized_data_list.append(row)
+                    tsv_writer.writerow(row)
                     raw_row_count += 1
                     continue
 
