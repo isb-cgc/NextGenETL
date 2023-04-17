@@ -1677,7 +1677,7 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
 
                 tsv_writer.writerow(normalized_record)
                 raw_row_count += 1
-                if raw_row_count % 100000 == 0:
+                if raw_row_count % 500000 == 0:
                     print(f"Normalized {raw_row_count} rows.")
 
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
