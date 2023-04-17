@@ -20,8 +20,18 @@ def main(args):
 
     table_columns = bq_harness_with_result(sql=table_column_query, do_batch=False, verbose=False)
 
+    column_dict = dict()
+
     for column_data in table_columns:
-        print(f"{column_data[0]}\t{column_data[1]}\t{column_data[2]}")
+        table_name = column_data[0][7:]
+        column_name = column_data[1]
+
+        if column_name not in column_dict:
+            column_dict[column_name] = [table_name]
+
+        column_dict[column_name].append(table_name)
+
+    print(column_dict)
 
 
 if __name__ == "__main__":
