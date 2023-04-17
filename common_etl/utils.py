@@ -1649,6 +1649,26 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     return column_list
 
 
+def normalize_header_row(header_row):
+    new_header_row = list()
+
+    for value in header_row:
+        suffix_value = 1
+        test_value = value
+
+        # if column header is a duplicate, append numeric suffix
+        while test_value in new_header_row:
+            test_value = f"{value}_{str(suffix_value)}"
+            suffix_value += 1
+
+        if value != test_value:
+            print(f"Changing header value {value} to {test_value}")
+
+        new_header_row.append(test_value)
+
+    return new_header_row
+
+
 def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
     """
     Opens a raw tsv file, normalizes its data, then writes to new tsv file.
@@ -1667,7 +1687,8 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
                 normalized_record = list()
 
                 if raw_row_count == 0:
-                    tsv_writer.writerow(row)
+                    header_row = normalize_header_row(row)
+                    tsv_writer.writerow(header_row)
                     raw_row_count += 1
                     continue
 
