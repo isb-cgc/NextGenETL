@@ -334,6 +334,8 @@ def main(args):
                                                    table_id=table_id,
                                                    num_header_rows=1,
                                                    schema=schema_object)
+                else:
+                    print(f"No rows found, table not created: {table_id}")
 
                 os.remove(tsv_file_path)
 
