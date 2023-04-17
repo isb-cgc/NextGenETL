@@ -1653,8 +1653,9 @@ def normalize_header_row(header_row):
     new_header_row = list()
 
     for value in header_row:
-        suffix_value = 1
+        value = value.lower()
         test_value = value
+        suffix_value = 1
 
         # if column header is a duplicate, append numeric suffix
         while test_value in new_header_row:
