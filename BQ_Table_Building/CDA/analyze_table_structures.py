@@ -31,8 +31,8 @@ def main(args):
 
         column_dict[column_name].append(table_name)
 
-    for column, tables in column_dict.items():
-        print(f"{column}: {tables}")
+    for column in sorted(column_dict.keys()):
+        print(f"{column}\t{column_dict[column]}")
 
 
 if __name__ == "__main__":
