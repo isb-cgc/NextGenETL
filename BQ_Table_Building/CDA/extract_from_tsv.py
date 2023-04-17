@@ -120,8 +120,6 @@ def create_table_name(file_name):
 def normalize_files(api_params, bq_params, file_list, dest_path):
     normalized_file_names = list()
 
-    file_list = ["read_group.tsv"]
-
     for tsv_file in file_list:
         file_type = tsv_file.split(".")[-1]
 
