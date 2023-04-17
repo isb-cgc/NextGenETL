@@ -779,9 +779,6 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
         load_job = client.load_table_from_uri(source_uris=gs_uri,
                                               destination=table_id,
                                               job_config=job_config)
-
-        print(load_job.errors)
-
         print(f' - Inserting into {table_id}... ', end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
@@ -1680,7 +1677,7 @@ def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
 
                 tsv_writer.writerow(normalized_record)
                 raw_row_count += 1
-                if raw_row_count % 10000 == 0:
+                if raw_row_count % 100000 == 0:
                     print(f"Normalized {raw_row_count} rows.")
 
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
