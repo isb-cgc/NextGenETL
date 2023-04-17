@@ -20,7 +20,8 @@ def main(args):
 
     table_columns = bq_harness_with_result(sql=table_column_query, do_batch=False, verbose=False)
 
-    print(table_columns)
+    for column_data in table_columns:
+        print(f"{column_data[0]}, {column_data[1]}, {column_data[2]}")
 
 
 if __name__ == "__main__":
