@@ -23,11 +23,11 @@ def main(args):
     column_dict = dict()
 
     for column_data in table_columns:
-        table_name = column_data[0][7:]
+        table_name = column_data[0][8:]
         column_name = column_data[1]
 
         if column_name not in column_dict:
-            column_dict[column_name] = [table_name]
+            column_dict[column_name] = list()
 
         column_dict[column_name].append(table_name)
 
