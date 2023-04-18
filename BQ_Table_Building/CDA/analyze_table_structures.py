@@ -24,7 +24,7 @@ def print_tables_columns_data_types(table_columns):
         print(f"{table_name}\t{column_name}\t{data_type}")
 
 
-def print_columns_in_multiple_tables(table_columns):
+def print_columns_in_tables(table_columns, multiple_only=False):
     column_dict = dict()
 
     for column_data in table_columns:
@@ -37,7 +37,10 @@ def print_columns_in_multiple_tables(table_columns):
         column_dict[column_name].append(table_name)
 
     for column in sorted(column_dict.keys()):
-        if len(column_dict[column]) > 1:
+        if multiple_only:
+            if len(column_dict[column]) > 1:
+                print(f"{column}\t{column_dict[column]}")
+        else:
             print(f"{column}\t{column_dict[column]}")
 
 
@@ -47,7 +50,7 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(project_name, dataset_name)
 
-    print_columns_in_multiple_tables(table_columns)
+    print_columns_in_tables(table_columns)
 
 
 if __name__ == "__main__":
