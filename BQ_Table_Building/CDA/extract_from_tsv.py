@@ -161,7 +161,7 @@ def get_schema_filename(api_params, tsv_file_name):
 
 
 def main(args):
-    source_dc = "gdc"
+    source_dc = "pdc"
 
     if source_dc == "pdc":
         api_params = {
@@ -179,10 +179,10 @@ def main(args):
             "WORKING_DATASET": "cda_pdc_test"
         }
         steps = {
-            # "download_cda_archive_file",
-            # "extract_cda_archive_file",
-            # "normalize_and_upload_tsvs",
-            # "create_schemas",
+            "download_cda_archive_file",
+            "extract_cda_archive_file",
+            "normalize_and_upload_tsvs",
+            "create_schemas",
             "create_tables"
         }
     elif source_dc == "gdc":
