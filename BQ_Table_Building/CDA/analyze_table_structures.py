@@ -116,12 +116,12 @@ def main(args):
 
     print(f"\ncolumns not found:")
 
-    for column in columns_not_found:
+    for column in sorted(columns_not_found):
         print(column)
 
     print(f"\nfields not found:")
 
-    for field in fields_not_found:
+    for field in sorted(fields_not_found):
         print(field)
 
 
