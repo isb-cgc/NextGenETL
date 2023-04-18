@@ -166,7 +166,8 @@ def main(args):
     if source_dc == "pdc":
         api_params = {
             "RELEASE": "2023_03",
-            "LOCAL_TAR_DIR": "cda_pdc",
+            "LOCAL_TAR_DIR": "scratch/cda_archive_files",
+            "LOCAL_EXTRACT_DIR": "cda_pdc",
             "TAR_FILE": "pdc_2023_03.tgz"
         }
         bq_params = {
