@@ -114,8 +114,16 @@ def main(args):
     columns_not_found = columns - fields
     fields_not_found = fields - columns
 
-    print(f"columns not found: {columns_not_found}\n")
-    print(f"fields not found: {fields_not_found}")
+    print(f"\ncolumns not found:")
+
+    for column in columns_not_found:
+        print(column)
+
+    print(f"\nfields not found:")
+
+    for field in fields_not_found:
+        print(field)
+
 
 
 if __name__ == "__main__":
