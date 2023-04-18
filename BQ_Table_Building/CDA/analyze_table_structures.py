@@ -66,9 +66,7 @@ def get_columns_in_tables(table_columns, multiple_only=False):
         return column_dict
 
 
-def import_current_gdc_fields(bq_params):
-    filename = 'gdc_current_fields.tsv'
-    bucket_path = 'law/etl/analysis_files'
+def import_current_fields(bq_params, filename, bucket_path):
     download_from_bucket(bq_params, filename, bucket_path)
 
     with open(get_scratch_fp(bq_params, filename), mode="r") as fields_file:
@@ -87,7 +85,7 @@ def import_current_gdc_fields(bq_params):
                     "workflows": list()
                 }
 
-            field_dict[field_name]["field_groups"].append(field_group)
+            field_dict[field_name]["endpoint"].append(field_group)
             field_dict[field_name]["workflows"].append(workflow)
 
         return field_dict
@@ -99,14 +97,15 @@ def main(args):
         "WORKING_BUCKET": "next-gen-etl-scratch"
     }
     project_name = 'isb-project-zero'
-    dataset_name = 'cda_gdc_test'
+    dataset_name = 'cda_pdc_test'
     version = '2023_03'
+    bucket_path = 'law/etl/analysis_files'
 
     table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
 
     columns_dict = get_columns_in_tables(table_columns)
 
-    field_dict = import_current_gdc_fields(bq_params)
+    field_dict = import_current_fields(bq_params, filename='pdc_current_fields.tsv', bucket_path=bucket_path)
 
     columns = set(columns_dict.keys())
     fields = set(field_dict.keys())
@@ -123,7 +122,6 @@ def main(args):
 
     for field in sorted(fields_not_found):
         print(f"{field}\t{field_dict[field]}")
-
 
 
 if __name__ == "__main__":
