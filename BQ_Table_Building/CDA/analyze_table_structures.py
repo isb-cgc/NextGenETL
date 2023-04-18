@@ -39,7 +39,7 @@ def print_tables_columns_data_types(table_columns):
         print(f"{table_name}\t{column_name}\t{data_type}")
 
 
-def print_columns_in_tables(table_columns, multiple_only=False):
+def get_columns_in_tables(table_columns, multiple_only=False):
     column_dict = dict()
 
     for column_data in table_columns:
@@ -53,10 +53,17 @@ def print_columns_in_tables(table_columns, multiple_only=False):
 
     for column in sorted(column_dict.keys()):
         if multiple_only:
+            multiple_column_dict = dict()
             if len(column_dict[column]) > 1:
                 print(f"{column}\t{column_dict[column]}")
+                multiple_column_dict[column] = column_dict[column]
         else:
             print(f"{column}\t{column_dict[column]}")
+
+    if multiple_only:
+        return multiple_column_dict
+    else:
+        return column_dict
 
 
 def import_current_gdc_fields(bq_params):
@@ -95,13 +102,20 @@ def main(args):
     dataset_name = 'cda_gdc_test'
     version = '2023_03'
 
-    # table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
+    table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
 
-    # print_columns_in_tables(table_columns)
+    columns_dict = get_columns_in_tables(table_columns)
 
     field_dict = import_current_gdc_fields(bq_params)
 
-    print(field_dict)
+    columns = set(columns_dict.keys())
+    fields = set(field_dict.keys())
+
+    columns_not_found = columns - fields
+    fields_not_found = fields - columns
+
+    print(f"columns not found: {columns_not_found}\n")
+    print(f"fields not found: {fields_not_found}")
 
 
 if __name__ == "__main__":
