@@ -117,12 +117,12 @@ def main(args):
     print(f"\ncolumns not found:")
 
     for column in sorted(columns_not_found):
-        print(f"{column}: {columns_dict[column]}")
+        print(f"{column}\t{columns_dict[column]}")
 
     print(f"\nfields not found:")
 
     for field in sorted(fields_not_found):
-        print(f"{field}: {field_dict[field]}")
+        print(f"{field}\t{field_dict[field]}")
 
 
 
