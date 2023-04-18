@@ -91,6 +91,26 @@ def import_current_fields(bq_params, filename, bucket_path):
         return field_dict
 
 
+def print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name):
+    columns_dict = get_columns_in_tables(table_columns)
+
+    field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
+
+    columns = set(columns_dict.keys())
+    fields = set(field_dict.keys())
+
+    columns_not_found = columns - fields
+    fields_not_found = fields - columns
+
+    print(f"\nColumns not found:")
+    for column in sorted(columns_not_found):
+        print(f"{column}\t{columns_dict[column]}")
+
+    print(f"\nFields not found:")
+    for field in sorted(fields_not_found):
+        print(f"{field}\t{field_dict[field]}")
+
+
 def main(args):
     bq_params = {
         "SCRATCH_DIR": "scratch",
@@ -103,25 +123,9 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
 
-    columns_dict = get_columns_in_tables(table_columns)
+    print_tables_columns_data_types(table_columns)
 
-    field_dict = import_current_fields(bq_params, filename='pdc_current_fields.tsv', bucket_path=bucket_path)
-
-    columns = set(columns_dict.keys())
-    fields = set(field_dict.keys())
-
-    columns_not_found = columns - fields
-    fields_not_found = fields - columns
-
-    print(f"\ncolumns not found:")
-
-    for column in sorted(columns_not_found):
-        print(f"{column}\t{columns_dict[column]}")
-
-    print(f"\nfields not found:")
-
-    for field in sorted(fields_not_found):
-        print(f"{field}\t{field_dict[field]}")
+    # print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name='pdc_current_fields.tsv')
 
 
 if __name__ == "__main__":
