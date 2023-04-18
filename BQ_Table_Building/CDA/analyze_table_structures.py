@@ -47,7 +47,7 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(project_name, dataset_name)
 
-    print_tables_columns_data_types(table_columns)
+    retrieve_dataset_columns(table_columns)
 
 
 if __name__ == "__main__":
