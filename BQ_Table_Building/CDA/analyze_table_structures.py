@@ -67,8 +67,23 @@ def import_current_gdc_fields(bq_params):
     with open(get_scratch_fp(bq_params, filename), mode="r") as fields_file:
         tsv_reader = csv.reader(fields_file, delimiter="\t")
 
+        field_dict = dict()
+
         for row in tsv_reader:
-            print(f"{row[0]}\t{row[1]}\t{row[2]}")
+            field_name = row[0]
+            field_group = row[1]
+            workflow = row[2]
+
+            if field_name not in field_dict:
+                field_dict[field_name] = {
+                    "field_groups": list(),
+                    "workflows": list()
+                }
+
+            field_dict[field_name]["field_groups"].append(field_group)
+            field_dict[field_name]["workflows"].append(workflow)
+
+        return field_dict
 
 
 def main(args):
@@ -84,7 +99,9 @@ def main(args):
 
     # print_columns_in_tables(table_columns)
 
-    import_current_gdc_fields(bq_params)
+    field_dict = import_current_gdc_fields(bq_params)
+
+    print(field_dict)
 
 
 if __name__ == "__main__":
