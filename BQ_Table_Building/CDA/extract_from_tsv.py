@@ -182,9 +182,9 @@ def main(args):
             "WORKING_DATASET": "cda_pdc_test"
         }
         steps = {
-            "download_cda_archive_file",
-            "extract_cda_archive_file",
-            "normalize_and_upload_tsvs",
+            # "download_cda_archive_file",
+            # "extract_cda_archive_file",
+            # "normalize_and_upload_tsvs",
             "create_schemas",
             "create_tables"
         }
