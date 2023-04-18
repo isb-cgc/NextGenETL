@@ -73,7 +73,8 @@ def import_current_gdc_fields(bq_params):
 
 def main(args):
     bq_params = {
-        "SCRATCH_DIR": "scratch"
+        "SCRATCH_DIR": "scratch",
+        "WORKING_BUCKET": "next-gen-etl-scratch"
     }
     project_name = 'isb-project-zero'
     dataset_name = 'cda_gdc_test'
