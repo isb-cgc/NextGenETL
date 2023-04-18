@@ -81,7 +81,7 @@ def import_current_fields(bq_params, filename, bucket_path):
 
             if field_name not in field_dict:
                 field_dict[field_name] = {
-                    "field_groups": list(),
+                    "endpoint": list(),
                     "workflows": list()
                 }
 
