@@ -153,18 +153,15 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
 
 
 def get_schema_filename(api_params, tsv_file_name):
-    print(tsv_file_name)
-
     # remove "." from file name, as in PDC
     extension = tsv_file_name.split(".")[-1]
     file_name = "_".join(tsv_file_name.split(".")[:-1])
     tsv_file_name = f"{file_name}.{extension}"
-    print(tsv_file_name)
+
     schema_file_name = "_".join(tsv_file_name.split("_")[2:])
     schema_file_name = schema_file_name.split(".")[0]
     schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}.json"
-    print(schema_file_name)
-    print()
+
     return schema_file_name
 
 
