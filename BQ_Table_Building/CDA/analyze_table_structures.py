@@ -123,7 +123,7 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
 
-    print_tables_columns_data_types(table_columns)
+    column_dict = get_columns_in_tables(table_columns, multiple_only=True)
 
     # print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name='pdc_current_fields.tsv')
 
