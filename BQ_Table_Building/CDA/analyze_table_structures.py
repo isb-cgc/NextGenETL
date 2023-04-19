@@ -172,21 +172,14 @@ def main(args):
     }
     version = '2023_03'
     bucket_path = 'law/etl/analysis_files'
+    field_file_name = 'gdc_current_fields.tsv'
 
     table_columns = retrieve_dataset_columns(bq_params, version)
-
-    count = 0
-
-    for table_column in table_columns:
-        count += 1
-
-    print(count)
-    exit()
 
     columns_not_found_in_workflow = find_columns_not_in_current_workflows(bq_params,
                                                                           table_columns,
                                                                           bucket_path,
-                                                                          field_file_name='pdc_current_fields.tsv')
+                                                                          field_file_name=field_file_name)
 
     columns_list = count_non_null_column_values(bq_params, table_columns)
 
