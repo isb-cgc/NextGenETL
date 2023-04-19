@@ -8,10 +8,10 @@ from common_etl.utils import download_from_bucket, get_scratch_fp
 # tables, column names, data type
 # columns appearing in multiple tables
 
-def retrieve_dataset_columns(project_name, dataset_name, version=None):
+def retrieve_dataset_columns(bq_params, version=None):
     table_column_query = f"""
-        SELECT table_name, column_name, data_type
-        FROM `{project_name}`.{dataset_name}.INFORMATION_SCHEMA.COLUMNS
+        SELECT table_name, column_name
+        FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.INFORMATION_SCHEMA.COLUMNS
     """
 
     table_columns = bq_harness_with_result(sql=table_column_query, do_batch=False, verbose=False)
@@ -34,9 +34,8 @@ def print_tables_columns_data_types(table_columns):
     for column_data in table_columns:
         table_name = column_data[0][8:]
         column_name = column_data[1]
-        data_type = column_data[2]
 
-        print(f"{table_name}\t{column_name}\t{data_type}")
+        print(f"{table_name}\t{column_name}")
 
 
 def get_columns_in_tables(table_columns, multiple_only=False):
@@ -111,19 +110,38 @@ def print_field_column_diff(bq_params, table_columns, bucket_path, field_file_na
         print(f"{field}\t{field_dict[field]}")
 
 
+def count_non_null_column_values(bq_params, table_columns):
+
+    for table_name, column_name in table_columns:
+        sql_query = f"""
+            SELECT COUNTIF({column_name} IS NULL) * 1.0 / COUNT(*) AS occurence_ratio
+            FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.{table_name}
+        """
+
+        ratio_result = bq_harness_with_result(sql_query, do_batch=False, verbose=False)
+
+        for ratio_row in ratio_result:
+            ratio = ratio_row[0]
+            break
+
+        print(f"{table_name}\t{column_name}\t{ratio}")
+
+
 def main(args):
     bq_params = {
         "SCRATCH_DIR": "scratch",
-        "WORKING_BUCKET": "next-gen-etl-scratch"
+        "WORKING_BUCKET": "next-gen-etl-scratch",
+        "WORKING_PROJECT": "isb-project-zero",
+        "WORKING_DATASET": "cda_gdc_test"
     }
-    project_name = 'isb-project-zero'
-    dataset_name = 'cda_pdc_test'
     version = '2023_03'
     bucket_path = 'law/etl/analysis_files'
 
-    table_columns = retrieve_dataset_columns(project_name, dataset_name, version)
+    table_columns = retrieve_dataset_columns(bq_params, version)
 
-    column_dict = get_columns_in_tables(table_columns, multiple_only=True)
+    count_non_null_column_values(bq_params, table_columns)
+
+    # column_dict = get_columns_in_tables(table_columns, multiple_only=True)
 
     # print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name='pdc_current_fields.tsv')
 
