@@ -114,7 +114,7 @@ def count_non_null_column_values(bq_params, table_columns):
 
     for table_name, column_name in table_columns:
         sql_query = f"""
-            SELECT COUNTIF({column_name} IS NULL) * 1.0 / COUNT(*) AS occurence_ratio
+            SELECT COUNTIF({column_name} IS NOT NULL) * 1.0 / COUNT(*) AS occurence_ratio
             FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.{table_name}
         """
 
