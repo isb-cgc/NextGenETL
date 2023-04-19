@@ -124,7 +124,9 @@ def count_non_null_column_values(bq_params, table_columns):
             ratio = ratio_row[0]
             break
 
-        print(f"{table_name}\t{column_name}\t{ratio}")
+        percentage = round((ratio * 100), 2)
+
+        print(f"{table_name}\t{column_name}\t{percentage}%")
 
 
 def main(args):
