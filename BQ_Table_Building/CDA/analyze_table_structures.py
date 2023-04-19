@@ -38,7 +38,7 @@ def print_tables_columns_data_types(table_columns):
         print(f"{table_name}\t{column_name}")
 
 
-def get_columns_in_tables(table_columns, multiple_only=False):
+def get_columns_in_tables(table_columns, multiple_only=False, print_output=False):
     column_dict = dict()
 
     for column_data in table_columns:
@@ -54,10 +54,12 @@ def get_columns_in_tables(table_columns, multiple_only=False):
         if multiple_only:
             multiple_column_dict = dict()
             if len(column_dict[column]) > 1:
-                print(f"{column}\t{column_dict[column]}")
+                if print_output:
+                    print(f"{column}\t{column_dict[column]}")
                 multiple_column_dict[column] = column_dict[column]
         else:
-            print(f"{column}\t{column_dict[column]}")
+            if print_output:
+                print(f"{column}\t{column_dict[column]}")
 
     if multiple_only:
         return multiple_column_dict
@@ -172,6 +174,14 @@ def main(args):
     bucket_path = 'law/etl/analysis_files'
 
     table_columns = retrieve_dataset_columns(bq_params, version)
+
+    count = 0
+
+    for table_column in table_columns:
+        count += 1
+
+    print(count)
+    exit()
 
     columns_not_found_in_workflow = find_columns_not_in_current_workflows(bq_params,
                                                                           table_columns,
