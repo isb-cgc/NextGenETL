@@ -109,8 +109,23 @@ def print_field_column_diff(bq_params, table_columns, bucket_path, field_file_na
     for field in sorted(fields_not_found):
         print(f"{field}\t{field_dict[field]}")
 
+    return columns_not_found
+
+
+def find_columns_not_in_current_workflows(bq_params, table_columns, bucket_path, field_file_name):
+    columns_dict = get_columns_in_tables(table_columns)
+    field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
+
+    columns = set(columns_dict.keys())
+    fields = set(field_dict.keys())
+
+    return columns - fields
+
 
 def count_non_null_column_values(bq_params, table_columns):
+    columns_list = list()
+
+    count = 0
 
     for table_name, column_name in table_columns:
         sql_query = f"""
@@ -124,9 +139,26 @@ def count_non_null_column_values(bq_params, table_columns):
             ratio = ratio_row[0]
             break
 
-        percentage = round((ratio * 100), 4)
+        percentage = ratio * 100
 
-        print(f"{table_name}\t{column_name}\t{percentage}%")
+        columns_list.append([table_name, column_name, percentage])
+
+        count += 1
+
+        if count % 100 == 0:
+            print(f"Calculated {count} ratios.")
+
+    return columns_list
+
+
+def append_column_inclusion_status(columns_list, columns_not_found_in_workflow):
+    column_included_list = list()
+
+    for table_name, column_name, percentage in columns_list:
+        included = False if column_name in columns_not_found_in_workflow else True
+        column_included_list.append([table_name, column_name, percentage, included])
+
+    return column_included_list
 
 
 def main(args):
@@ -141,11 +173,17 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(bq_params, version)
 
-    count_non_null_column_values(bq_params, table_columns)
+    columns_not_found_in_workflow = find_columns_not_in_current_workflows(bq_params,
+                                                                          table_columns,
+                                                                          bucket_path,
+                                                                          field_file_name='pdc_current_fields.tsv')
 
-    # column_dict = get_columns_in_tables(table_columns, multiple_only=True)
+    columns_list = count_non_null_column_values(bq_params, table_columns)
 
-    # print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name='pdc_current_fields.tsv')
+    column_included_list = append_column_inclusion_status(columns_list, columns_not_found_in_workflow)
+
+    for table_name, column_name, percentage, included in column_included_list:
+        print(f"{table_name}\t{column_name}\t{percentage}%\t{included}")
 
 
 if __name__ == "__main__":
