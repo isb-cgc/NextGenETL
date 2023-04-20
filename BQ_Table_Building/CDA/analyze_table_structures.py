@@ -130,11 +130,8 @@ def count_non_null_column_values(bq_params, table_columns):
     count = 0
 
     for table_name, column_name in table_columns:
-        # "SELECT COUNTIF({column_name} IS NOT NULL) * 1.0 / COUNT(*) AS occurrence_ratio"
-
         sql_query = f"""
-            SELECT COUNTIF({column_name} IS NOT NULL) as non_null_count, COUNT(*) as total_count, 
-                non_null_count * 1.0 / total_count AS occurrence_ratio
+            SELECT COUNTIF({column_name} IS NOT NULL) as non_null_count, COUNT(*) as total_count
             FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.{table_name}
         """
 
@@ -143,7 +140,8 @@ def count_non_null_column_values(bq_params, table_columns):
         for count_row in count_result:
             non_null_count = count_row[0]
             total_count = count_row[1]
-            columns_list.append([table_name, column_name, non_null_count, total_count])
+            percentage = (non_null_count * 1.0 / total_count) * 100
+            columns_list.append([table_name, column_name, non_null_count, total_count, percentage])
             break
 
         count += 1
@@ -157,9 +155,9 @@ def count_non_null_column_values(bq_params, table_columns):
 def append_column_inclusion_status(columns_list, columns_not_found_in_workflow):
     column_included_list = list()
 
-    for table_name, column_name, non_null_count, total_count in columns_list:
+    for table_name, column_name, non_null_count, total_count, percentage in columns_list:
         included = False if column_name in columns_not_found_in_workflow else True
-        column_included_list.append([table_name, column_name, non_null_count, total_count, included])
+        column_included_list.append([table_name, column_name, non_null_count, total_count, percentage, included])
 
     return column_included_list
 
@@ -186,8 +184,8 @@ def main(args):
 
     column_included_list = append_column_inclusion_status(columns_list, columns_not_found_in_workflow)
 
-    for table_name, column_name, non_null_count, total_count, included in column_included_list:
-        print(f"{table_name}\t{column_name}\t{non_null_count}\t{total_count}\t{included}")
+    for table_name, column_name, non_null_count, total_count, percentage, included in column_included_list:
+        print(f"{table_name}\t{column_name}\t{non_null_count}\t{total_count}\t{percentage}\t{included}")
 
 
 if __name__ == "__main__":
