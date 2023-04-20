@@ -133,7 +133,8 @@ def count_non_null_column_values(bq_params, table_columns):
         # "SELECT COUNTIF({column_name} IS NOT NULL) * 1.0 / COUNT(*) AS occurrence_ratio"
 
         sql_query = f"""
-            SELECT COUNTIF({column_name} IS NOT NULL) as non_null_count, COUNT(*) as total_count
+            SELECT COUNTIF({column_name} IS NOT NULL) as non_null_count, COUNT(*) as total_count, 
+                non_null_count * 1.0 / total_count AS occurrence_ratio
             FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.{table_name}
         """
 
