@@ -3,20 +3,22 @@ import sys
 import os
 import csv
 import shutil
+from typing import Union
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
     retrieve_bq_schema_object, upload_to_bucket, create_normalized_tsv, download_from_bucket, get_scratch_fp, \
     get_filepath
 
+ParamsDict = dict[str, Union[str, int, dict, list]]
 
-def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
+
+def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False, overwrite: bool = False):
     """
-    todo
-    :param src_path:
-    :param dest_path:
-    :param print_contents:
-    :param overwrite:
-    :return:
+    Extract CDA .tgz into tsvs.
+    :param str src_path: Location of the .tgz file on vm
+    :param str dest_path: Location to extract .tgz into
+    :param bool print_contents: if True, print contents of archive
+    :param bool overwrite: if True, overwrite any existing files in destination path
     """
     tar = tarfile.open(name=src_path, mode="r:gz")
 
@@ -38,27 +40,12 @@ def extract_tarfile(src_path, dest_path, print_contents=False, overwrite=False):
     tar.close()
 
 
-def get_tsv_headers(filepath):
+def get_data_row_count(filepath: str) -> int:
     """
-    todo
-    :param filepath:
-    :return:
-    """
-    with open(filepath) as file:
-        tsv_reader = csv.reader(file, delimiter="\t")
-
-        for row in tsv_reader:
-            headers = row
-            break
-
-    return headers
-
-
-def get_data_row_count(filepath):
-    """
-    todo
-    :param filepath:
-    :return:
+    Get row count from tsv file.
+    :param str filepath: Path to tsv file
+    :return: Row count for tsv file
+    :rtype: int
     """
     with open(filepath) as file:
         tsv_reader = csv.reader(file, delimiter="\t")
@@ -71,11 +58,12 @@ def get_data_row_count(filepath):
     return row_count
 
 
-def scan_directories_and_create_file_dict(dest_path):
+def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, list], str]:
     """
-    todo
-    :param dest_path:
+
+    :param str dest_path:
     :return:
+    :rtype: tuple[dict, str, list]
     """
     top_level_dir = os.listdir(dest_path)
 
@@ -104,9 +92,9 @@ def scan_directories_and_create_file_dict(dest_path):
     return dir_file_dict, dest_path
 
 
-def create_table_name(file_name):
+def create_table_name(file_name: str) -> str:
     """
-    todo
+
     :param file_name:
     :return:
     """
@@ -117,7 +105,7 @@ def create_table_name(file_name):
     return table_name
 
 
-def normalize_files(api_params, bq_params, file_list, dest_path):
+def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: list[str], dest_path: str) -> list[str]:
     normalized_file_names = list()
 
     for tsv_file in file_list:
@@ -152,7 +140,7 @@ def normalize_files(api_params, bq_params, file_list, dest_path):
     return normalized_file_names
 
 
-def get_schema_filename(api_params, tsv_file_name):
+def get_schema_filename(api_params: ParamsDict, tsv_file_name: str) -> str:
     # remove "." from file name, as in PDC
     extension = tsv_file_name.split(".")[-1]
     file_name = "_".join(tsv_file_name.split(".")[:-1])
@@ -310,8 +298,12 @@ def main(args):
                 schema_file_path = get_scratch_fp(bq_params, schema_file_name)
                 local_file_path = get_scratch_fp(bq_params, tsv_file_name)
 
-                create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp=local_file_path,
-                                                 header_row=0, skip_rows=1, schema_fp=schema_file_path,
+                create_and_upload_schema_for_tsv(api_params,
+                                                 bq_params,
+                                                 tsv_fp=local_file_path,
+                                                 header_row=0,
+                                                 skip_rows=1,
+                                                 schema_fp=schema_file_path,
                                                  delete_local=True)
                 os.remove(local_file_path)
 

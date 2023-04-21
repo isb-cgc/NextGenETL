@@ -1,14 +1,15 @@
 import csv
 import sys
 
+from typing import Union, Optional
+
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import download_from_bucket, get_scratch_fp
 
+ParamsDict = dict[str, Union[str, int, dict, list]]
 
-# tables, column names, data type
-# columns appearing in multiple tables
 
-def retrieve_dataset_columns(bq_params, version=None):
+def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = None) -> list[list[str]]:
     table_column_query = f"""
         SELECT table_name, column_name
         FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.INFORMATION_SCHEMA.COLUMNS
@@ -30,7 +31,7 @@ def retrieve_dataset_columns(bq_params, version=None):
     return filtered_table_columns
 
 
-def print_tables_columns_data_types(table_columns):
+def print_tables_columns_data_types(table_columns: list[list[str]]):
     for column_data in table_columns:
         table_name = column_data[0][8:]
         column_name = column_data[1]
@@ -38,7 +39,8 @@ def print_tables_columns_data_types(table_columns):
         print(f"{table_name}\t{column_name}")
 
 
-def get_columns_in_tables(table_columns, multiple_only=False, print_output=False):
+def get_columns_in_tables(table_columns: list[list[str]], multiple_only: bool = False,
+                          print_output: bool = False) -> dict[str, list]:
     column_dict = dict()
 
     for column_data in table_columns:
@@ -50,16 +52,15 @@ def get_columns_in_tables(table_columns, multiple_only=False, print_output=False
 
         column_dict[column_name].append(table_name)
 
+    multiple_column_dict = dict()
+
     for column in sorted(column_dict.keys()):
         if multiple_only:
-            multiple_column_dict = dict()
             if len(column_dict[column]) > 1:
-                if print_output:
-                    print(f"{column}\t{column_dict[column]}")
                 multiple_column_dict[column] = column_dict[column]
-        else:
-            if print_output:
-                print(f"{column}\t{column_dict[column]}")
+
+        if print_output:
+            print(f"{column}\t{column_dict[column]}")
 
     if multiple_only:
         return multiple_column_dict
@@ -67,7 +68,7 @@ def get_columns_in_tables(table_columns, multiple_only=False, print_output=False
         return column_dict
 
 
-def import_current_fields(bq_params, filename, bucket_path):
+def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str) -> dict[str, dict[str, list]]:
     download_from_bucket(bq_params, filename, bucket_path)
 
     with open(get_scratch_fp(bq_params, filename), mode="r") as fields_file:
@@ -92,7 +93,8 @@ def import_current_fields(bq_params, filename, bucket_path):
         return field_dict
 
 
-def print_field_column_diff(bq_params, table_columns, bucket_path, field_file_name):
+def print_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
+                            field_file_name: str) -> set[str]:
     columns_dict = get_columns_in_tables(table_columns)
 
     field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
@@ -114,7 +116,8 @@ def print_field_column_diff(bq_params, table_columns, bucket_path, field_file_na
     return columns_not_found
 
 
-def find_columns_not_in_current_workflows(bq_params, table_columns, bucket_path, field_file_name):
+def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
+                                          field_file_name: str) -> set[str]:
     columns_dict = get_columns_in_tables(table_columns)
     field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
 
@@ -124,7 +127,8 @@ def find_columns_not_in_current_workflows(bq_params, table_columns, bucket_path,
     return columns - fields
 
 
-def count_non_null_column_values(bq_params, table_columns):
+def count_non_null_column_values(bq_params: ParamsDict,
+                                 table_columns: list[list, str]) -> list[tuple[str, str, int, int, float]]:
     columns_list = list()
 
     count = 0
@@ -141,7 +145,7 @@ def count_non_null_column_values(bq_params, table_columns):
             non_null_count = count_row[0]
             total_count = count_row[1]
             percentage = (non_null_count * 1.0 / total_count) * 100
-            columns_list.append([table_name, column_name, non_null_count, total_count, percentage])
+            columns_list.append((table_name, column_name, non_null_count, total_count, percentage))
             break
 
         count += 1
@@ -152,12 +156,14 @@ def count_non_null_column_values(bq_params, table_columns):
     return columns_list
 
 
-def append_column_inclusion_status(columns_list, columns_not_found_in_workflow):
+def append_column_inclusion_status(columns_list: list[tuple[str, str, int, int, float]],
+                                   columns_not_found_in_workflow: set[str]
+                                   ) -> list[tuple[str, str, int, int, float, bool]]:
     column_included_list = list()
 
     for table_name, column_name, non_null_count, total_count, percentage in columns_list:
         included = False if column_name in columns_not_found_in_workflow else True
-        column_included_list.append([table_name, column_name, non_null_count, total_count, percentage, included])
+        column_included_list.append((table_name, column_name, non_null_count, total_count, percentage, included))
 
     return column_included_list
 
