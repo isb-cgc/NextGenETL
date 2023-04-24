@@ -60,10 +60,10 @@ def get_data_row_count(filepath: str) -> int:
 
 def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, list], str]:
     """
-
-    :param str dest_path:
-    :return:
-    :rtype: tuple[dict, str, list]
+    Traverse directories and return a list of file names.
+    :param str dest_path: parent directory path
+    :return: dictionary of subdirectories and file names; path to subdirectory to traverse
+    :rtype: tuple[dict[str, list], str]
     """
     top_level_dir = os.listdir(dest_path)
 
@@ -76,6 +76,7 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
     dir_list = os.listdir(dest_path)
     indices_to_remove = list()
 
+    # exclude hidden files
     for idx, directory in enumerate(dir_list):
         if directory[:2] == "__":
             indices_to_remove.append(idx)
@@ -94,9 +95,10 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
 
 def create_table_name(file_name: str) -> str:
     """
-
-    :param file_name:
-    :return:
+    Create table name by making file name lowercase, removing file extension, and converting any additional "." to "_".
+    :param str file_name: File name to convert to table name
+    :return: Valid BigQuery table name
+    :rtype: str
     """
     file_name = file_name.lower()
     split_file_name = file_name.split(".")
@@ -106,6 +108,16 @@ def create_table_name(file_name: str) -> str:
 
 
 def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: list[str], dest_path: str) -> list[str]:
+    """
+    Create new file containing normalized data from raw data file. Cast ints, convert to null and boolean
+    where possible.
+    :param dict[str, Union[str, int, dict, list]] api_params: API params from YAML config
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
+    :param list[str] file_list: List of files to normalize
+    :param str dest_path: Destination path for normalized file creation
+    :return: Normalized file name list
+    :rtype: list[str]
+    """
     normalized_file_names = list()
 
     for tsv_file in file_list:
@@ -141,6 +153,13 @@ def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: li
 
 
 def get_schema_filename(api_params: ParamsDict, tsv_file_name: str) -> str:
+    """
+    Create schema file name based on tsv file name.
+    :param dict[str, Union[str, int, dict, list]] api_params: API params from YAML config
+    :param str tsv_file_name: Source file used in schema creation
+    :return: Schema file name
+    :rtype: str
+    """
     # remove "." from file name, as in PDC
     extension = tsv_file_name.split(".")[-1]
     file_name = "_".join(tsv_file_name.split(".")[:-1])

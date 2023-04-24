@@ -10,6 +10,13 @@ ParamsDict = dict[str, Union[str, int, dict, list]]
 
 
 def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = None) -> list[list[str]]:
+    """
+    Retrieve list of columns and tables in a given set, optionally filtering by data version.
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
+    :param str version: Optional, version prefix by which to filter
+    :return: List of table and column names
+    :rtype: list[list[str]]
+    """
     table_column_query = f"""
         SELECT table_name, column_name
         FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.INFORMATION_SCHEMA.COLUMNS
@@ -31,16 +38,16 @@ def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = Non
     return filtered_table_columns
 
 
-def print_tables_columns_data_types(table_columns: list[list[str]]):
-    for column_data in table_columns:
-        table_name = column_data[0][8:]
-        column_name = column_data[1]
-
-        print(f"{table_name}\t{column_name}")
-
-
-def get_columns_in_tables(table_columns: list[list[str]], multiple_only: bool = False,
+def get_tables_per_column(table_columns: list[list[str]], multiple_only: bool = False,
                           print_output: bool = False) -> dict[str, list]:
+    """
+    Get list of tables for each column name (useful for identifying keys).
+    :param list[list[str]] table_columns: Table and column names
+    :param bool multiple_only: Filter by columns that occur in multiple tables; defaults to False
+    :param bool print_output: Print tab-delimited list of columns and table occurrences
+    :return: Column names: list of table names
+    :rtype: dict[str, list]
+    """
     column_dict = dict()
 
     for column_data in table_columns:
@@ -69,6 +76,14 @@ def get_columns_in_tables(table_columns: list[list[str]], multiple_only: bool = 
 
 
 def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str) -> dict[str, dict[str, list]]:
+    """
+    Import list of fields in current ISB-CGC workflows from tsv file.
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
+    :param str filename: Name of tsv file containing current fields
+    :param str bucket_path: Bucket path to current fields file
+    :return: Dictionary of fields with endpoint and workflow data.
+    :rtype: dict[str, dict[str, list]]
+    """
     download_from_bucket(bq_params, filename, bucket_path)
 
     with open(get_scratch_fp(bq_params, filename), mode="r") as fields_file:
@@ -93,9 +108,17 @@ def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str
         return field_dict
 
 
-def print_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
-                            field_file_name: str) -> set[str]:
-    columns_dict = get_columns_in_tables(table_columns)
+def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
+                           field_file_name: str) -> set[str]:
+    """
+    Find list of column names not currently found in ISB-CGC workflows. Note: may 
+    :param bq_params:
+    :param table_columns:
+    :param bucket_path:
+    :param field_file_name:
+    :return:
+    """
+    columns_dict = get_tables_per_column(table_columns)
 
     field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
 
@@ -118,7 +141,7 @@ def print_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str
 
 def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
                                           field_file_name: str) -> set[str]:
-    columns_dict = get_columns_in_tables(table_columns)
+    columns_dict = get_tables_per_column(table_columns)
     field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
 
     columns = set(columns_dict.keys())
