@@ -108,15 +108,16 @@ def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str
         return field_dict
 
 
-def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
+def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
                            field_file_name: str) -> set[str]:
     """
-    Find list of column names not currently found in ISB-CGC workflows. Note: may
-    :param bq_params:
-    :param table_columns:
-    :param bucket_path:
-    :param field_file_name:
-    :return:
+    Find column names not currently found in ISB-CGC workflows.
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
+    :param list[list[str]] table_columns: Table and column names
+    :param str bucket_path: Bucket path to current fields file
+    :param str field_file_name: Name of tsv file containing current fields
+    :return: Set of columns not found in current ISB-CGC workflows
+    :rtype: set[str]
     """
     columns_dict = get_tables_per_column(table_columns)
 
@@ -139,8 +140,17 @@ def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str]
     return columns_not_found
 
 
-def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
+def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
                                           field_file_name: str) -> set[str]:
+    """
+    Find column names not currently found in ISB-CGC workflows.
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
+    :param list[list[str]] table_columns: Table and column names
+    :param str bucket_path: Bucket path to current fields file
+    :param str field_file_name: Name of tsv file containing current fields
+    :return: Set of columns not found in current ISB-CGC workflows
+    :rtype: set[str]
+    """
     columns_dict = get_tables_per_column(table_columns)
     field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
 
@@ -152,6 +162,13 @@ def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: 
 
 def count_non_null_column_values(bq_params: ParamsDict,
                                  table_columns: list[list, str]) -> list[tuple[str, str, int, int, float]]:
+    """
+    Calculate count of non-null values, total rows, and percentage of non-null values for each column.
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
+    :param list[list[str]] table_columns: Table and column names
+    :return: List of tuples containing (table name, column name, non-null count, total count, percentage non-null)
+    :rtyoe: list[tuple[str, str, int, int, float]]
+    """
     columns_list = list()
 
     count = 0
@@ -182,6 +199,15 @@ def count_non_null_column_values(bq_params: ParamsDict,
 def append_column_inclusion_status(columns_list: list[tuple[str, str, int, int, float]],
                                    columns_not_found_in_workflow: set[str]
                                    ) -> list[tuple[str, str, int, int, float, bool]]:
+    """
+    Add column inclusion status (whether column name is currently found in the ISB-CGC workflows) to column list tuples.
+    :param list[tuple[str, str, int, int, float]] columns_list: List of tuples containing (table name, column name,
+        non-null count, total count, percentage non-null)
+    :param set[str] columns_not_found_in_workflow: set of column names not found in ISB-CGC workflows
+    :return: List of tuples containing:
+        (table name, column name, non-null count, total count, percentage non-null, column inclusion status)
+    :rtyoe: list[tuple[str, str, int, int, float, bool]]
+    """
     column_included_list = list()
 
     for table_name, column_name, non_null_count, total_count, percentage in columns_list:
