@@ -111,7 +111,7 @@ def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str
 def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list, str], bucket_path: str,
                            field_file_name: str) -> set[str]:
     """
-    Find list of column names not currently found in ISB-CGC workflows. Note: may 
+    Find list of column names not currently found in ISB-CGC workflows. Note: may
     :param bq_params:
     :param table_columns:
     :param bucket_path:
