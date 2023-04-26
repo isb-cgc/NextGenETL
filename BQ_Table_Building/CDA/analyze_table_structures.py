@@ -133,7 +133,9 @@ def output_field_column_differences(bq_params: ParamsDict, table_columns: list[l
 
     print(f"\nFields not found in CDA table columns:")
     for field in sorted(fields_not_found):
-        print(f"{field}\t{field_dict[field]}")
+        endpoint = field_dict[field]["endpoint"]
+        workflows = field_dict[field]["workflows"]
+        print(f"{field}\t{endpoint}\t{workflows}")
 
 
 def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
