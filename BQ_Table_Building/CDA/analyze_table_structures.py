@@ -184,7 +184,7 @@ def count_non_null_column_values(bq_params: ParamsDict,
         for count_row in count_result:
             non_null_count = count_row[0]
             total_count = count_row[1]
-            percentage = (non_null_count * 1.0 / total_count) * 100
+            percentage = (non_null_count*1.0 / total_count) * 100
             columns_list.append((table_name, column_name, non_null_count, total_count, percentage))
             break
 
@@ -222,11 +222,11 @@ def main(args):
         "SCRATCH_DIR": "scratch",
         "WORKING_BUCKET": "next-gen-etl-scratch",
         "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": "cda_gdc_test"
+        "WORKING_DATASET": "cda_pdc_test"
     }
     version = '2023_03'
     bucket_path = 'law/etl/analysis_files'
-    field_file_name = 'gdc_current_fields.tsv'
+    field_file_name = 'pdc_current_fields.tsv'
 
     table_columns = retrieve_dataset_columns(bq_params, version)
 

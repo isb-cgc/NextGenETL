@@ -78,7 +78,7 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
 
     # exclude hidden files
     for idx, directory in enumerate(dir_list):
-        if directory[:2] == "__":
+        if directory.startswith('__'):
             indices_to_remove.append(idx)
 
     for idx in reversed(indices_to_remove):
