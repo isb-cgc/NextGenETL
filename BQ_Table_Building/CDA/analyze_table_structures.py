@@ -246,7 +246,7 @@ def output_main_column_analysis(bq_params: ParamsDict, table_columns: list[list[
 
 
 def main(args):
-    data_source = "pdc"
+    data_source = "gdc"
 
     bq_params = {
         "SCRATCH_DIR": "scratch",
