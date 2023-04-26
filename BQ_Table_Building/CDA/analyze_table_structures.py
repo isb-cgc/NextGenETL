@@ -108,16 +108,14 @@ def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str
         return field_dict
 
 
-def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
-                           field_file_name: str) -> set[str]:
+def output_field_column_differences(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
+                                    field_file_name: str):
     """
     Find column names not currently found in ISB-CGC workflows.
     :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
     :param list[list[str]] table_columns: Table and column names
     :param str bucket_path: Bucket path to current fields file
     :param str field_file_name: Name of tsv file containing current fields
-    :return: Set of columns not found in current ISB-CGC workflows
-    :rtype: set[str]
     """
     columns_dict = get_tables_per_column(table_columns)
 
@@ -129,15 +127,13 @@ def find_field_column_diff(bq_params: ParamsDict, table_columns: list[list[str]]
     columns_not_found = columns - fields
     fields_not_found = fields - columns
 
-    print(f"\nColumns not found:")
+    print(f"\nCDA columns not found in current workflows:")
     for column in sorted(columns_not_found):
         print(f"{column}\t{columns_dict[column]}")
 
-    print(f"\nFields not found:")
+    print(f"\nFields not found in CDA table columns:")
     for field in sorted(fields_not_found):
         print(f"{field}\t{field_dict[field]}")
-
-    return columns_not_found
 
 
 def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
@@ -167,7 +163,7 @@ def count_non_null_column_values(bq_params: ParamsDict,
     :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
     :param list[list[str]] table_columns: Table and column names
     :return: List of tuples containing (table name, column name, non-null count, total count, percentage non-null)
-    :rtyoe: list[tuple[str, str, int, int, float]]
+    :rtype: list[tuple[str, str, int, int, float]]
     """
     columns_list = list()
 
@@ -206,7 +202,7 @@ def append_column_inclusion_status(columns_list: list[tuple[str, str, int, int, 
     :param set[str] columns_not_found_in_workflow: set of column names not found in ISB-CGC workflows
     :return: List of tuples containing:
         (table name, column name, non-null count, total count, percentage non-null, column inclusion status)
-    :rtyoe: list[tuple[str, str, int, int, float, bool]]
+    :rtype: list[tuple[str, str, int, int, float, bool]]
     """
     column_included_list = list()
 
@@ -217,19 +213,21 @@ def append_column_inclusion_status(columns_list: list[tuple[str, str, int, int, 
     return column_included_list
 
 
-def main(args):
-    bq_params = {
-        "SCRATCH_DIR": "scratch",
-        "WORKING_BUCKET": "next-gen-etl-scratch",
-        "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": "cda_pdc_test"
-    }
-    version = '2023_03'
-    bucket_path = 'law/etl/analysis_files'
-    field_file_name = 'pdc_current_fields.tsv'
-
-    table_columns = retrieve_dataset_columns(bq_params, version)
-
+def output_main_column_analysis(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
+                                field_file_name: str):
+    """
+    Build tsv print output for analysis spreadsheet, composed of the following columns:
+        - table name
+        - column name
+        - non-null row count
+        - total row count
+        - percent non-null rows
+        - column name included in current workflow?
+    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
+    :param list[list[str]] table_columns: Table and column names
+    :param str bucket_path: Bucket path to current fields file
+    :param str field_file_name: Name of tsv file containing current fields
+    """
     columns_not_found_in_workflow = find_columns_not_in_current_workflows(bq_params,
                                                                           table_columns,
                                                                           bucket_path,
@@ -239,8 +237,30 @@ def main(args):
 
     column_included_list = append_column_inclusion_status(columns_list, columns_not_found_in_workflow)
 
+    print(f"Table\tColumn\tNon-Null Row Count\tTotal Row Count\t% Non-Null Rows\tColumn Found In Current Workflow?")
+
     for table_name, column_name, non_null_count, total_count, percentage, included in column_included_list:
         print(f"{table_name}\t{column_name}\t{non_null_count}\t{total_count}\t{percentage}\t{included}")
+
+
+def main(args):
+    data_source = "pdc"
+
+    bq_params = {
+        "SCRATCH_DIR": "scratch",
+        "WORKING_BUCKET": "next-gen-etl-scratch",
+        "WORKING_PROJECT": "isb-project-zero",
+        "WORKING_DATASET": f"cda_{data_source}_test"
+    }
+    version = '2023_03'
+    bucket_path = 'law/etl/analysis_files'
+    field_file_name = f'{data_source}_current_fields.tsv'
+
+    table_columns = retrieve_dataset_columns(bq_params, version)
+
+    output_field_column_differences(bq_params, table_columns, bucket_path, field_file_name)
+
+    # output_main_column_analysis(bq_params, table_columns, bucket_path, field_file_name)
 
 
 if __name__ == "__main__":
