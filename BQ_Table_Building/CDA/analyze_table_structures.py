@@ -30,9 +30,7 @@ def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = Non
     filtered_table_columns = list()
 
     for column_data in table_columns:
-        table_version = column_data[0][:7]
-
-        if table_version == version:
+        if column_data[0].starts_with(version):
             filtered_table_columns.append(column_data)
 
     return filtered_table_columns
@@ -252,15 +250,23 @@ def main(args):
         "SCRATCH_DIR": "scratch",
         "WORKING_BUCKET": "next-gen-etl-scratch",
         "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": f"cda_{data_source}_test"
+        # "WORKING_DATASET": f"cda_{data_source}_test"
+        "WORKING_DATASET": "GDC_Clinical_Data"
     }
-    version = '2023_03'
+    # version = '2023_03'
+    version = 'r37'
     bucket_path = 'law/etl/analysis_files'
-    field_file_name = f'{data_source}_current_fields.tsv'
+    # field_file_name = f'{data_source}_current_fields.tsv'
 
     table_columns = retrieve_dataset_columns(bq_params, version)
 
-    output_field_column_differences(bq_params, table_columns, bucket_path, field_file_name)
+    for table_column in table_columns:
+        table_name = table_column[0]
+        column_name = table_column[1]
+
+        print(f"{table_name}\t{column_name}")
+
+    # output_field_column_differences(bq_params, table_columns, bucket_path, field_file_name)
 
     # output_main_column_analysis(bq_params, table_columns, bucket_path, field_file_name)
 
