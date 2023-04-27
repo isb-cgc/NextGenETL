@@ -260,11 +260,19 @@ def main(args):
 
     table_columns = retrieve_dataset_columns(bq_params, version)
 
+    column_name_set = set()
+
     for table_column in table_columns:
         table_name = table_column[0]
         column_name = table_column[1]
 
-        print(f"{table_name}\t{column_name}")
+        if table_name.endswith('ref') or table_name == "r37_clinical":
+            continue
+
+        column_name_set.add(column_name)
+
+    for column_name in sorted(column_name_set):
+        print(column_name)
 
     # output_field_column_differences(bq_params, table_columns, bucket_path, field_file_name)
 
