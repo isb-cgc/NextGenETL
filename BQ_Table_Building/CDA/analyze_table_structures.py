@@ -30,7 +30,7 @@ def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = Non
     filtered_table_columns = list()
 
     for column_data in table_columns:
-        if column_data[0].starts_with(version):
+        if column_data[0].startswith(version):
             filtered_table_columns.append(column_data)
 
     return filtered_table_columns
