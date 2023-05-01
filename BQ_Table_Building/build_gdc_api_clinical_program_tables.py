@@ -22,6 +22,7 @@ SOFTWARE.
 import os
 import time
 import sys
+import json
 
 from google.cloud import bigquery
 # from google.api_core.exceptions import NotFound
@@ -1056,20 +1057,10 @@ def copy_tables_into_public_project(publish_table_list):
     Move production-ready bq tables onto the public-facing production server.
     :param publish_table_list: List of table ids which are new or differ from previous versions (to publish)
     """
-    for src_table_id in publish_table_list: #bookmark
-        #print('troubleshoot prints:\n\n')
-        # Exceptional Responders has an underscore, need to replace it to split
-        src_table_id = src_table_id.replace('_EXCEPTIONAL_RESPONDERS_', '_EXCRESPONDERS_')
-        table_name = src_table_id.split('.')[2]
-        split_table_name = table_name.split('_')
-        split_table_name.pop(0)
-        public_dataset = split_table_name.pop(0)
-
-        if public_dataset == "BEATAML1":
-            public_dataset = "BEATAML1_0"
-        if public_dataset == 'EXCRESPONDERS':
-            public_dataset = 'EXC_RESPONDERS'
-
+    for src_table_id,public_dataset in publish_table_list:
+        print(src_table_id)
+        print(public_dataset)
+        
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=public_dataset,
                       source_table_id=src_table_id,
@@ -1078,6 +1069,7 @@ def copy_tables_into_public_project(publish_table_list):
                       overwrite=True,
                       #test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
                       id_keys="case_id")
+        
 
 
 def make_biospecimen_stub_view_query(program):
@@ -1135,7 +1127,7 @@ def find_last_release_table_id(base_table_name, prev_release):
     return None
 
 
-def build_publish_table_list(programs, prev_release, to_remove_list=False):
+def build_publish_table_list(programs, prev_release, program_mapping, to_remove_list=False):
     """
     Build list of tables for publishing (which are either new or differ from previous version).
     :return: List of tables to publish for current data release
@@ -1153,11 +1145,10 @@ def build_publish_table_list(programs, prev_release, to_remove_list=False):
 
     # compile lists of tables to compare (the current version and the last release)
     for program in programs:
-        # BEATAML1.0 fix
-        program = program.replace('.', '_')
+        bq_program = program_mapping[program]['bq_dataset'] # map GDC program name to BQ friendly version
 
         for suffix in mapping_suffixes_list:
-            base_table_name = f"{program}_{suffix}"
+            base_table_name = f"{bq_program}_{suffix}"
             new_release_table_name = f"{get_rel_prefix(API_PARAMS)}_{base_table_name}"
             new_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                                       dataset=BQ_PARAMS['DEV_DATASET'],
@@ -1165,24 +1156,23 @@ def build_publish_table_list(programs, prev_release, to_remove_list=False):
             if exists_bq_table(new_release_table_id):
                 prev_release_table_id = find_last_release_table_id(base_table_name, prev_release)
                 if not prev_release_table_id:
-                    publish_table_list.append(new_release_table_id)
+                    publish_table_list.append( (new_release_table_id, bq_program) )
                 else:
-                    table_comparison_list.append([prev_release_table_id, new_release_table_id])
+                    table_comparison_list.append([prev_release_table_id, new_release_table_id, bq_program])
 
     tables_to_remove_from_dev = list()
 
     for tables_to_compare in table_comparison_list:
-        previous_table_id = tables_to_compare[0]
-        current_table_id = tables_to_compare[1]
+        previous_table_id, current_table_id, bq_program = tables_to_compare
         res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), 
                                       BQ_PARAMS['DO_BATCH'], verbose=False)
 
         if not res:
-            publish_table_list.append(current_table_id)
+            publish_table_list.append( (current_table_id, bq_program) )
         else:
             for row in res:
                 if row:
-                    publish_table_list.append(current_table_id)
+                    publish_table_list.append( (current_table_id, bq_program) )
                 else:
                     tables_to_remove_from_dev.append(current_table_id)
                 break
@@ -1889,9 +1879,13 @@ def main(args):
     # programs = ['BEATAML1.0']
     # programs = ['HCMI']
     programs = get_program_list()
+    with open(f'{os.path.expanduser("~")}/{BQ_PARAMS["BQ_REPO"]}/{BQ_PARAMS["METADATA_MAPPING"]}', 'r') as inf: 
+        program_mapping = json.loads( inf.read() )
 
-    for orig_program in programs:
+    for orig_program in programs:        
         prog_start = time.time()
+        program = program_mapping[orig_program]['bq_dataset']
+        
         if 'create_biospecimen_stub_tables' in steps or 'create_and_load_tables' in steps:
             print(f"\nRunning script for program: {orig_program}...")
 
@@ -1909,8 +1903,6 @@ def main(args):
 
             schema = create_schema_dict()
             # replace so that 'BEATAML1.0' doesn't break bq table name
-            program = orig_program.replace('.', '_')
-
 
             create_tables(program, cases, schema)
 
@@ -1927,7 +1919,7 @@ def main(args):
             create_view_from_query(view_id, view_query)
 
     if 'list_tables_for_publication' in steps:
-        publish_table_list = build_publish_table_list(programs, prev_release)
+        publish_table_list = build_publish_table_list(programs, prev_release, program_mapping)
 
         if len(publish_table_list) > 0:
             print("\nTable changes detected--create schemas for: ")
@@ -1941,7 +1933,7 @@ def main(args):
         # compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
-        publish_table_list = build_publish_table_list(programs, prev_release)
+        publish_table_list = build_publish_table_list(programs, prev_release, program_mapping)
         copy_tables_into_public_project(publish_table_list)
 
     if 'remove_redundant_tables' in steps:
