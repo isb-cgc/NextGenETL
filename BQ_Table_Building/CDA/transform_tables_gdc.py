@@ -58,38 +58,35 @@ def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str
     table_join_word = table_vocabulary_dict['table_join_word']
 
     if child_field_group:
-        from_str = f"""
-            FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` 
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
-                USING ({parent_field_group}_id)
-        """
-
-        group_by_str = f"""
-            GROUP BY {parent_field_group}_id, project_id
-            HAVING COUNT({parent_field_group}_id) > 1
+        return f"""
+            WITH projects AS (
+                SELECT DISTINCT project_id
+                FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` 
+                JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+                    USING ({parent_field_group}_id)
+                JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                    ON child_case.case_id = case_proj.case_id
+                GROUP BY {parent_field_group}_id, project_id
+                HAVING COUNT({parent_field_group}_id) > 1
+            )
+    
+            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+            FROM projects
         """
     else:
-        from_str = f"""
-            FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+        return f"""
+            WITH projects AS (
+                SELECT DISTINCT project_id
+                FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+                JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                    ON child_case.case_id = case_proj.case_id
+                GROUP BY child_case.case_id, project_id
+                HAVING COUNT(child_case.case_id) > 1
+            )
+
+            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+            FROM projects
         """
-
-        group_by_str = f"""
-            GROUP BY case_id, project_id
-            HAVING COUNT(case_id) > 1
-        """
-
-    return f"""
-        WITH projects AS (
-            SELECT DISTINCT project_id
-            {from_str}
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
-                ON child_case.case_id = case_proj.case_id
-            {group_by_str}
-        )
-
-        SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-        FROM projects
-    """
 
     '''
     return f"""
