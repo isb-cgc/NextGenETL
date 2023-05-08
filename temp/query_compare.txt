@@ -1,0 +1,18 @@
+
+        WITH projects AS (
+            SELECT DISTINCT project_id
+
+            FROM `isb-project-zero.cda_gdc_test.2023_03_molecular_test_from_follow_up`
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_follow_up_of_case` child_case
+                USING (follow_up_id)
+
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                ON child_case.case_id = case_proj.case_id
+
+            GROUP BY follow_up_id, project_id
+            HAVING COUNT(follow_up_id) > 1)
+
+        )
+
+        SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+        FROM projects

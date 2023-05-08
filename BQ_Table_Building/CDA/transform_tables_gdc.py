@@ -66,7 +66,7 @@ def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str
 
         group_by_str = f"""
             GROUP BY {parent_field_group}_id, project_id
-            HAVING COUNT({parent_field_group}_id) > 1)
+            HAVING COUNT({parent_field_group}_id) > 1
         """
     else:
         from_str = f"""
