@@ -90,6 +90,9 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
         project_query = make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict)
+        print()
+        print(project_query)
+        print()
         projects = bq_harness_with_result(sql=project_query, do_batch=False, verbose=False)
 
         project_set = set()
