@@ -94,12 +94,13 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
 
         project_set = set()
 
-        for project in projects:
-            project_set.add(project)
+        if projects is not None:
+            for project in projects:
+                project_set.add(project)
 
-        # if result is non-null, add to projects_with_supplemental_tables
-        if len(project_set) > 0:
-            field_groups_and_projects_with_supplemental_tables[field_group_name] = project_set
+            # if result is non-null, add to projects_with_supplemental_tables
+            if len(project_set) > 0:
+                field_groups_and_projects_with_supplemental_tables[field_group_name] = project_set
 
     for field_group, projects in field_groups_and_projects_with_supplemental_tables.items():
         print(f"{field_group}: {projects}")
