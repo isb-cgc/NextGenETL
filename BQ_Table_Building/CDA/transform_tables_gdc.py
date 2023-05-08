@@ -96,7 +96,6 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
 
         if projects is not None:
             for project in projects:
-                print(project[0])
                 project_set.add(project[0])
 
             # if result is non-null, add to projects_with_supplemental_tables
