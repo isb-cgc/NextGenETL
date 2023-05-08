@@ -73,7 +73,7 @@ def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str
           (SELECT DISTINCT project_id
           {from_str}
           JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
-            ON cases.case_id = case_proj.case_id
+            ON child_case.case_id = case_proj.case_id
           GROUP BY {parent_field_group}_id, project_id
           HAVING COUNT({parent_field_group}_id) > 1)
 
