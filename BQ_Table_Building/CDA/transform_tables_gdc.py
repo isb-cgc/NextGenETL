@@ -50,7 +50,7 @@ follow_ups.molecular_tests
 """
 
 
-def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str, dict[str, str]]) -> str:
+def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str, str]) -> str:
     parent_field_group = table_vocabulary_dict['first_level_field_group']
     # only has a value if this field group is a child of another (e.g. diagnoses.treatments)
     child_field_group = table_vocabulary_dict['second_level_field_group']
@@ -87,7 +87,7 @@ def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str
 def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]]):
     field_groups_and_projects_with_supplemental_tables = dict()
 
-    for field_group_name, table_vocabulary_dict in field_groups_dict:
+    for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
         project_query = make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict)
         projects = bq_harness_with_result(sql=project_query, do_batch=False, verbose=False)
