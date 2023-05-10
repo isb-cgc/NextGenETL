@@ -271,17 +271,21 @@ def main(args):
         update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     for program in params.PROGRAMS:
-        bq_program = params.MAPPING[program]['bq_dataset']
+
+        # program mapping
+        metadata_mapping = f"{params.SCHEMA_REPO_LOCAL}/{params.METADATA_MAPPINGS}"
+        with open(metadata_mapping) as program_mapping:
+            mappings = json_loads(program_mapping.read().rstrip())
+            bq_dataset = mappings[program]['bq_dataset']
 
         # Local Files
-        local_dir = f"{home}/{params.LOCAL_DIR}/{bq_program}"
+        local_dir = f"{home}/{params.LOCAL_DIR}/{bq_dataset}"
         local_files_dir = f"{local_dir}/{params.LOCAL_FILES_DIR}"
         one_big_tsv = f"{local_dir}/{params.ONE_BIG_TSV}"
         manifest_file = f"{local_dir}/{params.MANIFEST_FILE}"
         local_pull_list = f"{local_dir}/{params.LOCAL_PULL_LIST}"
         file_traversal_list = f"{local_dir}/{params.FILE_TRAVERSAL_LIST}"
         field_list = f"{home}/Gene-Level-CNVR-field_list.json"
-        metadata_mapping = f"{params.SCHEMA_REPO_LOCAL}/{params.METADATA_MAPPINGS}"
         field_desc_fp = f"{params.SCHEMA_REPO_LOCAL}/{params.FIELD_DESC_FILE}"
 
         # BigQuery Tables
