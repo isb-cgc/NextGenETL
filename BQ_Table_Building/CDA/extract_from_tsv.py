@@ -194,6 +194,27 @@ def get_schema_filename(api_params: ParamsDict, tsv_file_name: str) -> str:
     return schema_file_name
 
 
+def make_file_project_mapping_view(bq_params):
+    working_project = bq_params['WORKING_PROJECT']
+    working_dataset = bq_params['WORKING_DATASET']
+    release = bq_params['RELEASE']
+
+    return f"""
+    SELECT DISTINCT file_id, project_id 
+    FROM `{working_project}.{working_dataset}.{release}_file_in_case` file_case
+    JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_project
+    USING (case_id)
+    """
+
+def make_project_view(bq_params):
+    working_project = bq_params['WORKING_PROJECT']
+    working_dataset = bq_params['WORKING_DATASET']
+    release = bq_params['RELEASE']
+
+    return """
+    
+    """
+
 def main(args):
     source_dc = "pdc"
 

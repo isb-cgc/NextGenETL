@@ -23,82 +23,55 @@ import sys
 
 from common_etl.support import bq_harness_with_result
 
-""" 
-FIELD GROUP NOTES:
-
-demographic
-  - currently returns none
-diagnoses
-  - currently returns HCMI, EXCEPTIONAL_RESPONDERS, CGCI, CTSP
-diagnoses.annotations
-  - currently returns none
-  - mapping table: diagnosis_has_annotation
-diagnoses.treatments
-  - currently returns TCGA, CGCI, MMRF, CDDP_EAGLE, EXCEPTIONAL_RESPONDERS, HCMI, REBC, VAREPOP, APOLLO, CTSP
-  - mapping table: treatment_of_diagnosis
-diagnoses.pathology_details currently returns none
-  - mapping table: pathology_detail_of_diagnosis
-exposures
-  - currently returns none
-family_histories
-  - currently returns none
-follow_ups
-  - currently returns none
-follow_ups.molecular_tests
-  - currently returns MMRF, CGCI, HCMI, CTSP
-  - mapping table: molecular_test_from_follow_up
-"""
-
-
-def make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict: dict[str, str]) -> str:
-    parent_field_group = table_vocabulary_dict['first_level_field_group']
-    # only has a value if this field group is a child of another (e.g. diagnoses.treatments)
-    child_field_group = table_vocabulary_dict['second_level_field_group']
-    # mapping tables variously use "of", "from", or "has" for joining names
-    table_join_word = table_vocabulary_dict['table_join_word']
-
-    if child_field_group:
-        return f"""
-            WITH projects AS (
-                SELECT DISTINCT project_id
-                FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` 
-                JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
-                    USING ({parent_field_group}_id)
-                JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
-                    ON child_case.case_id = case_proj.case_id
-                GROUP BY {parent_field_group}_id, project_id
-                HAVING COUNT({parent_field_group}_id) > 1
-            )
-    
-            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-            FROM projects
-        """
-    else:
-        return f"""
-            WITH projects AS (
-                SELECT DISTINCT project_id
-                FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
-                JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
-                    ON child_case.case_id = case_proj.case_id
-                GROUP BY child_case.case_id, project_id
-                HAVING COUNT(child_case.case_id) > 1
-            )
-
-            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-            FROM projects
-        """
-
 
 def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]]):
+    def make_projects_with_multiple_ids_per_case_sql() -> str:
+        parent_field_group = table_vocabulary_dict['first_level_field_group']
+
+        # only has a value if this field group is a child of another (e.g. diagnoses.treatments)
+        child_field_group = table_vocabulary_dict['second_level_field_group']
+
+        # mapping tables variously use "of", "from", or "has" for joining names
+        table_join_word = table_vocabulary_dict['table_join_word']
+
+        if child_field_group:
+            return f"""
+                WITH projects AS (
+                    SELECT DISTINCT project_id
+                    FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` 
+                    JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+                        USING ({parent_field_group}_id)
+                    JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                        ON child_case.case_id = case_proj.case_id
+                    GROUP BY {parent_field_group}_id, project_id
+                    HAVING COUNT({parent_field_group}_id) > 1
+                )
+
+                SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+                FROM projects
+            """
+        else:
+            return f"""
+                WITH projects AS (
+                    SELECT DISTINCT project_id
+                    FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+                    JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                        ON child_case.case_id = case_proj.case_id
+                    GROUP BY child_case.case_id, project_id
+                    HAVING COUNT(child_case.case_id) > 1
+                )
+
+                SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+                FROM projects
+            """
+
     field_groups_and_projects_with_supplemental_tables = dict()
 
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
-        project_query = make_projects_with_multiple_ids_per_case_sql(table_vocabulary_dict)
-        print()
-        print(project_query)
-        print()
-        projects = bq_harness_with_result(sql=project_query, do_batch=False, verbose=False)
+        projects = bq_harness_with_result(sql=make_projects_with_multiple_ids_per_case_sql(),
+                                          do_batch=False,
+                                          verbose=False)
 
         project_set = set()
 
