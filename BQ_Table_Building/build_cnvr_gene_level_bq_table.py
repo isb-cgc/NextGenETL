@@ -289,7 +289,7 @@ def main(args):
         field_desc_fp = f"{params.SCHEMA_REPO_LOCAL}/{params.FIELD_DESC_FILE}"
 
         # BigQuery Tables
-        base_table_name = f"{params.DATA_TYPE}_{params.BUILD}_gdc"
+        base_table_name = f"{params.DATA_TYPE}_hg38_gdc"
         pub_curr_name = f"{base_table_name}_current"
         pub_ver_name = f"{base_table_name}_{release}"
         upload_table = f"{program}_{base_table_name}_raw_{release}"
