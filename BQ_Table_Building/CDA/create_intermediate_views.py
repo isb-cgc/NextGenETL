@@ -23,7 +23,7 @@ import sys
 from common_etl.utils import create_view_from_query
 
 
-def create_project_program_view(bq_params):
+def create_project_program_view(bq_params, release):
     def make_project_program_view_query():
         return f"""
             SELECT 
@@ -44,7 +44,6 @@ def create_project_program_view(bq_params):
 
     working_project = bq_params['WORKING_PROJECT']
     working_dataset = bq_params['WORKING_DATASET']
-    release = bq_params['RELEASE']
 
     view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
 
@@ -52,7 +51,14 @@ def create_project_program_view(bq_params):
 
 
 def main(args):
-    pass
+    bq_params = {
+        "WORKING_PROJECT": "isb-project-zero",
+        "WORKING_DATASET": f"cda_gdc_test"
+    }
+
+    release = '2023_03'
+
+    create_project_program_view(bq_params, release)
 
 
 if __name__ == "__main__":
