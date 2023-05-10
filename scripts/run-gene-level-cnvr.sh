@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_gene_level_cnvr_bq_table.py ~/config/GeneLevelCnvrBQBuild.yaml
+python3 ./BQ_Table_Building/build_cnvr_gene_level_bq_table.py ~/config/GeneLevelCnvrBQBuild.yaml
 deactivate
