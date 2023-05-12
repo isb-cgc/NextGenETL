@@ -333,12 +333,11 @@ def main(args):
                                     params.BUCKET_PULL_LIST,
                                     local_pull_list, params.BQ_AS_BATCH)
 
-        #
-        # if 'transfer_from_gdc' in steps: #todo
-        #     # Bring the files to the local dir from DCF GDC Cloud Buckets
-        #     with open(local_pull_list, mode='r') as pull_list_file:
-        #         pull_list = pull_list_file.read().splitlines()
-        #     pull_from_buckets(pull_list, local_files_dir)
+        if 'transfer_from_gdc' in steps: #todo
+            # Bring the files to the local dir from DCF GDC Cloud Buckets
+            with open(local_pull_list, mode='r') as pull_list_file:
+                pull_list = pull_list_file.read().splitlines()
+            pull_from_buckets(pull_list, local_files_dir)
         #
         #     all_files = build_file_list(local_files_dir)
         #     with open(file_traversal_list, mode='w') as traversal_list:
