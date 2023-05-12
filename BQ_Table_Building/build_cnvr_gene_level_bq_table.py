@@ -294,7 +294,7 @@ def main(args):
         pub_ver_name = f"{base_table_name}_{release}"
         upload_table = f"{program}_{base_table_name}_raw_{release}"
         manifest_table = f"{program}_{base_table_name}_manifest_{release}"
-        pull_list_table = f"{program}_{base_table_name}_{upload_table}_pull_list_{release}"
+        pull_list_table = f"{program}_{base_table_name}_pull_list_{release}"
         draft_table = f"{program}_{base_table_name}_{release}"
 
         # Google Bucket Locations
