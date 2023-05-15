@@ -268,6 +268,8 @@ def create_file_metadata_table(bq_params, release):
             'updated_datetime': row.get('updated_datetime')
         }
 
+    del file_record_result
+
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add acl ids to file records
@@ -280,6 +282,8 @@ def create_file_metadata_table(bq_params, release):
         acl = convert_concat_to_multi(row.get('acl'))
 
         file_records[file_gdc_id]['acl'] = acl
+
+    del acl_result
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
@@ -295,6 +299,8 @@ def create_file_metadata_table(bq_params, release):
         analysis_input_file_gdc_ids = convert_concat_to_multi(row.get('analysis_input_file_gdc_ids'))
 
         file_records[file_gdc_id]['analysis_input_file_gdc_ids'] = analysis_input_file_gdc_ids
+
+    del analysis_input_ids_result
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
@@ -325,6 +331,8 @@ def create_file_metadata_table(bq_params, release):
         file_records[file_gdc_id]['downstream_analyses__workflow_link'] = downstream_analyses__workflow_link
         file_records[file_gdc_id]['downstream_analyses__workflow_type'] = downstream_analyses__workflow_type
 
+    del downstream_output_ids_result, downstream_analyses_result
+
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add associated entity fields to file records
@@ -345,6 +353,8 @@ def create_file_metadata_table(bq_params, release):
         file_records[file_gdc_id]['associated_entities__case_gdc_id'] = associated_entities__case_gdc_id
         file_records[file_gdc_id]['associated_entities__entity_submitter_id'] = associated_entities__entity_submitter_id
         file_records[file_gdc_id]['associated_entities__entity_type'] = associated_entities__entity_type
+
+    del associated_entities_result
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
@@ -377,6 +387,8 @@ def create_file_metadata_table(bq_params, release):
         file_records[file_gdc_id]['program_name'] = program_name
         file_records[file_gdc_id]['program_dbgap_accession_number'] = program_dbgap_accession_number
 
+    del case_project_program_result
+
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add index files to file records
@@ -393,6 +405,8 @@ def create_file_metadata_table(bq_params, release):
         file_records[file_gdc_id]["index_file_gdc_id"] = index_file_gdc_id
         file_records[file_gdc_id]["index_file_name"] = index_file_name
         file_records[file_gdc_id]["index_file_size"] = index_file_size
+
+    del index_file_result
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB")
@@ -447,6 +461,7 @@ def create_file_metadata_table(bq_params, release):
         'updated_datetime': None
     }
     """
+
 
 def main(args):
     bq_params = {
