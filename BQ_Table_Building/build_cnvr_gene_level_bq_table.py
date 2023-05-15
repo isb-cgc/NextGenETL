@@ -357,7 +357,7 @@ def main(args):
         # #     print('checking the data type of the chromosome position columns')
         # #     check_position_data_type(one_big_tsv)
         #
-        # # todo Is this needed?
+        # # todo Is this needed? Possibly Not based on
         # # if 'fix_position_data' in steps:
         # #     # This function fixes any scientific notation that was found by the check_position_data_type step. This step
         # #     # can be skipped if no scientific notation was found.
@@ -368,29 +368,29 @@ def main(args):
             print('upload_to_bucket')
             upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
 
-        if 'analyze_the_schema' in steps: #todo
+        if 'analyze_the_schema' in steps:
             print('analyze_the_schema')
             typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
 
             create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
 
         # Create the BQ table from the TSV
-        if 'create_bq_from_tsv' in steps: #todo
+        if 'create_bq_from_tsv' in steps:
             print('create_bq_from_tsv')
             bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
             with open(field_list, mode='r') as schema_list:
                 typed_schema = json_loads(schema_list.read())
             csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH)
-        #
-        # if 'add_aliquot_fields' in steps: #todo
-        #     print('add_aliquot_fields')
-        #     full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_initial'
-        #     success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_{params.RELEASE}",
-        #                                       f"{params.CASE_TABLE}_{params.RELEASE}",
-        #                                       params.SCRATCH_DATASET, f"{draft_table}_w_metadata",
-        #                                       params.BQ_AS_BATCH)
-        #     if not success:
-        #         print("Join job failed")
+
+        if 'add_aliquot_fields' in steps: #todo
+            print('add_aliquot_fields')
+            full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_initial'
+            success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_{params.RELEASE}",
+                                              f"{params.CASE_TABLE}_{params.RELEASE}",
+                                              params.SCRATCH_DATASET, f"{draft_table}_w_metadata",
+                                              params.BQ_AS_BATCH)
+            if not success:
+                print("Join job failed")
         #
         # # For CPTAC there are instances where multiple samples are merged into the same aliquot
         # # for these cases we join the rows by concatenating the samples with semicolons
