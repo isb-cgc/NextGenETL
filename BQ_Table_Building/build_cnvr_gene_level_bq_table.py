@@ -322,7 +322,7 @@ def main(args):
             if not manifest_success:
                 sys.exit("Failure generating manifest")
 
-        if 'build_pull_list' in steps: #todo
+        if 'build_pull_list' in steps:
             # Create a "pull list" with BigQuery of gs:// URLs to pull from DCF
             print('build_pull_list')
             build_pull_list_with_bq(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{manifest_table}",
@@ -333,16 +333,16 @@ def main(args):
                                     params.BUCKET_PULL_LIST,
                                     local_pull_list, params.BQ_AS_BATCH)
 
-        if 'transfer_from_gdc' in steps: #todo
+        if 'transfer_from_gdc' in steps:
             # Bring the files to the local dir from DCF GDC Cloud Buckets
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
             pull_from_buckets(pull_list, local_files_dir)
-        #
-        #     all_files = build_file_list(local_files_dir)
-        #     with open(file_traversal_list, mode='w') as traversal_list:
-        #         for line in all_files:
-        #             traversal_list.write(f"{line}\n")
+
+            all_files = build_file_list(local_files_dir)
+            with open(file_traversal_list, mode='w') as traversal_list:
+                for line in all_files:
+                    traversal_list.write(f"{line}\n")
         #
         # if 'concat_all_files' in steps: #todo
         #     print('concat_all_files')
