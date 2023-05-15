@@ -343,12 +343,12 @@ def main(args):
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
                     traversal_list.write(f"{line}\n")
-        #
-        # if 'concat_all_files' in steps: #todo
-        #     print('concat_all_files')
-        #     with open(file_traversal_list, mode='r') as traversal_list_file:
-        #         all_files = traversal_list_file.read().splitlines()
-        #     concat_all_files(all_files, one_big_tsv)
+
+        if 'concat_all_files' in steps: #todo
+            print('concat_all_files')
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+            concat_all_files(all_files, one_big_tsv)
         #
         # # todo Is this needed?
         # # if 'check_position_data_type' in steps:
