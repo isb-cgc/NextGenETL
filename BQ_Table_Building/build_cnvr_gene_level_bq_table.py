@@ -349,7 +349,7 @@ def main(args):
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
             concat_all_files(all_files, one_big_tsv)
-        #
+
         # # todo Is this needed?
         # # if 'check_position_data_type' in steps:
         # #     # Due to the GDC workflow pipeline, some of the chromosome position numbers are converted to
@@ -374,13 +374,13 @@ def main(args):
 
             create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
 
-        # # Create the BQ table from the TSV
-        # if 'create_bq_from_tsv' in steps: #todo
-        #     print('create_bq_from_tsv')
-        #     bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
-        #     with open(field_list, mode='r') as schema_list:
-        #         typed_schema = json_loads(schema_list.read())
-        #     csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH)
+        # Create the BQ table from the TSV
+        if 'create_bq_from_tsv' in steps: #todo
+            print('create_bq_from_tsv')
+            bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
+            with open(field_list, mode='r') as schema_list:
+                typed_schema = json_loads(schema_list.read())
+            csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH)
         #
         # if 'add_aliquot_fields' in steps: #todo
         #     print('add_aliquot_fields')
