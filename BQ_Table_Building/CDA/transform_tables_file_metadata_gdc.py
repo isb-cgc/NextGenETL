@@ -198,7 +198,10 @@ def create_file_metadata_table(bq_params, release):
     file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
 
     for row in file_record_result:
-        print(row.items())
+
+        file_gdc_id = row.get('file_gdc_id')
+
+        print(file_gdc_id)
         break
 
     """
