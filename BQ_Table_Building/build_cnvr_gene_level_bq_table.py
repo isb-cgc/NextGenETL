@@ -344,7 +344,7 @@ def main(args):
                 for line in all_files:
                     traversal_list.write(f"{line}\n")
 
-        if 'concat_all_files' in steps: #todo
+        if 'concat_all_files' in steps:
             print('concat_all_files')
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
@@ -364,9 +364,9 @@ def main(args):
         # #     print('Fixing rows with scientific notation in them')
         # #     fix_position_data_type(one_big_tsv)
         #
-        # if 'upload_to_bucket' in steps: #todo
-        #     print('upload_to_bucket')
-        #     upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
+        if 'upload_to_bucket' in steps: #todo
+            print('upload_to_bucket')
+            upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
         #
         # if 'analyze_the_schema' in steps: #todo
         #     #todo should this be higher?
