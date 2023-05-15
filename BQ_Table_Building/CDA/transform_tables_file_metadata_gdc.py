@@ -34,6 +34,15 @@ def create_concatenated_string(string_list, max_length=8):
         return ";".join(sorted(string_set))
 
 
+def convert_concat_to_multi(value_string, max_length=8):
+    string_length = len(value_string.split(';'))
+
+    if string_length > max_length:
+        return 'multi'
+    else:
+        return value_string
+
+
 def create_dev_table_id(bq_params, release, table_name) -> str:
     working_project = bq_params['WORKING_PROJECT']
     working_dataset = bq_params['WORKING_DATASET']
@@ -42,6 +51,20 @@ def create_dev_table_id(bq_params, release, table_name) -> str:
 
 
 def create_file_metadata_table(bq_params, release):
+    analysis_table_id = create_dev_table_id(bq_params, release, 'analysis')
+    analysis_consumed_input_file_table_id = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
+    analysis_downstream_from_file_table_id = create_dev_table_id(bq_params, release, 'analysis_downstream_from_file')
+    analysis_produced_file_table_id = create_dev_table_id(bq_params, release, 'analysis_produced_file')
+    archive_table_id = create_dev_table_id(bq_params, release, 'archive')
+    case_project_program_table_id = create_dev_table_id(bq_params, release, "case_project_program")
+    downstream_analysis_table_id = create_dev_table_id(bq_params, release, "downstream_analysis_produced_output_file")
+    file_table_id = create_dev_table_id(bq_params, release, 'file')
+    file_associated_with_entity_table_id = create_dev_table_id(bq_params, release, 'file_associated_with_entity')
+    file_has_acl_table_id = create_dev_table_id(bq_params, release, 'file_has_acl')
+    file_has_index_file_table_id = create_dev_table_id(bq_params, release, 'file_has_index_file')
+    file_in_archive_table_id = create_dev_table_id(bq_params, release, 'file_in_archive')
+    file_in_case_table_id = create_dev_table_id(bq_params, release, 'file_in_case')
+
     def make_base_file_metadata_sql() -> str:
         return f"""
         SELECT 'active' AS dbName,
@@ -129,35 +152,37 @@ def create_file_metadata_table(bq_params, release):
             ON a.analysis_id = apf.analysis_id
         JOIN {downstream_analysis_table_id} da
             ON da.analysis_id = a.analysis_id
+        GROUP BY file_gdc_id
         """
 
     def make_downstream_analyses_sql() -> str:
         return f"""
         SELECT apf.file_id AS file_gdc_id, 
-            a.workflow_link AS downstream_analyses__workflow_link, 
-            a.workflow_type AS downstream_analyses__workflow_type
+            STRING_AGG(a.workflow_link) AS downstream_analyses__workflow_link, 
+            STRING_AGG(a.workflow_type) AS downstream_analyses__workflow_type
         FROM {analysis_produced_file_table_id} apf
         JOIN {analysis_downstream_from_file_table_id} adff
             ON adff.analysis_id = apf.analysis_id
         JOIN {analysis_table_id} a
             ON a.analysis_id = adff.analysis_id
+        GROUP BY file_gdc_id
         """
 
     def make_associated_entities_sql() -> str:
-        # this will need to be manually aggregated so that order can be maintained in each column
         return f"""
         SELECT file_id AS file_gdc_id,
-        entity_id AS associated_entities__entity_gdc_id,
-        entity_case_id AS associated_entities__case_gdc_id,
-        associated_entities__entity_submitter_id,
-        associated_entities__entity_type
+            STRING_AGG(entity_id, ';') AS associated_entities__entity_gdc_id,
+            STRING_AGG(entity_case_id, ';') AS associated_entities__case_gdc_id,
+            STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
+            STRING_AGG(entity_type, ';') AS associated_entities__entity_type
         FROM {file_associated_with_entity_table_id}
-        ORDER BY file_id
+        ORDER BY file_gdc_id
         """
 
     def make_case_project_program_sql() -> str:
         return f"""
         SELECT f.file_id AS file_gdc_id, 
+        cpp.case_gdc_id,
         cpp.project_dbgap_accession_number, 
         cpp.project_id, 
         cpp.project_name, 
@@ -173,7 +198,7 @@ def create_file_metadata_table(bq_params, release):
     def make_index_file_sql() -> str:
         return f"""
         SELECT fhif.file_id AS file_gdc_id, 
-        fhif.index_file_id, 
+        fhif.index_file_id AS index_file_gdc_id, 
         f.file_name AS index_file_name, 
         f.file_size AS index_file_size
         FROM {file_has_index_file_table_id} fhif
@@ -181,19 +206,7 @@ def create_file_metadata_table(bq_params, release):
             ON fhif.index_file_id = f.file_id
         """
 
-    analysis_table_id = create_dev_table_id(bq_params, release, 'analysis')
-    analysis_consumed_input_file_table_id = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
-    analysis_downstream_from_file_table_id = create_dev_table_id(bq_params, release, 'analysis_downstream_from_file')
-    analysis_produced_file_table_id = create_dev_table_id(bq_params, release, 'analysis_produced_file')
-    archive_table_id = create_dev_table_id(bq_params, release, 'archive')
-    case_project_program_table_id = create_dev_table_id(bq_params, release, "case_project_program")
-    downstream_analysis_table_id = create_dev_table_id(bq_params, release, "downstream_analysis_produced_output_file")
-    file_table_id = create_dev_table_id(bq_params, release, 'file')
-    file_associated_with_entity_table_id = create_dev_table_id(bq_params, release, 'file_associated_with_entity')
-    file_has_acl_table_id = create_dev_table_id(bq_params, release, 'file_has_acl')
-    file_has_index_file_table_id = create_dev_table_id(bq_params, release, 'file_has_index_file')
-    file_in_archive_table_id = create_dev_table_id(bq_params, release, 'file_in_archive')
-    file_in_case_table_id = create_dev_table_id(bq_params, release, 'file_in_case')
+    print("Creating base file metadata record objects")
 
     file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
 
@@ -250,6 +263,114 @@ def create_file_metadata_table(bq_params, release):
             'file_type': row.get('file_type'),
             'updated_datetime': row.get('updated_datetime')
         }
+
+    # Add acl ids to file records
+    print("Adding acl ids to file records")
+
+    acl_result = bq_harness_with_result(sql=make_acl_sql(), do_batch=False, verbose=False)
+
+    for row in acl_result:
+        file_gdc_id = row.get('file_gdc_id')
+        acl = convert_concat_to_multi(row.get('acl'))
+
+        file_records[file_gdc_id]['acl'] = acl
+
+    # Add analysis input file ids to file records
+    print("Adding analysis input file ids to file records")
+
+    analysis_input_ids_result = bq_harness_with_result(sql=make_analysis_input_file_gdc_ids_sql(),
+                                                       do_batch=False,
+                                                       verbose=False)
+
+    for row in analysis_input_ids_result:
+        file_gdc_id = row.get('file_gdc_id')
+        analysis_input_file_gdc_ids = convert_concat_to_multi(row.get('analysis_input_file_gdc_ids'))
+
+        file_records[file_gdc_id]['analysis_input_file_gdc_ids'] = analysis_input_file_gdc_ids
+
+    # Add downstream analyses fields to file records
+    print("Adding downstream analyses fields to file records")
+
+    downstream_output_ids_result = bq_harness_with_result(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
+                                                          do_batch=False,
+                                                          verbose=False)
+
+    for row in downstream_output_ids_result:
+        file_gdc_id = row.get('file_gdc_id')
+        downstream_analyses__output_file_gdc_ids = convert_concat_to_multi(
+            row.get('downstream_analyses__output_file_gdc_ids')
+        )
+
+        file_records[file_gdc_id]['downstream_analyses__output_file_gdc_ids'] = downstream_analyses__output_file_gdc_ids
+
+    downstream_analyses_result = bq_harness_with_result(sql=make_downstream_analyses_sql(),
+                                                        do_batch=False,
+                                                        verbose=False)
+
+    for row in downstream_analyses_result:
+        file_gdc_id = row.get('file_gdc_id')
+        downstream_analyses__workflow_link = convert_concat_to_multi(row.get('downstream_analyses__workflow_link'))
+        downstream_analyses__workflow_type = convert_concat_to_multi(row.get('downstream_analyses__workflow_type'))
+
+        file_records[file_gdc_id]['downstream_analyses__workflow_link'] = downstream_analyses__workflow_link
+        file_records[file_gdc_id]['downstream_analyses__workflow_type'] = downstream_analyses__workflow_type
+
+    # Add associated entity fields to file records
+    print("Adding associated entity fields to file records")
+
+    associated_entities_result = bq_harness_with_result(sql=make_associated_entities_sql(),
+                                                        do_batch=False,
+                                                        verbose=False)
+
+    for row in associated_entities_result:
+        file_gdc_id = row.get('file_gdc_id')
+        associated_entities__entity_gdc_id = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
+        associated_entities__case_gdc_id = convert_concat_to_multi(row.get('associated_entities__case_gdc_id'))
+        associated_entities__entity_submitter_id = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
+        associated_entities__entity_type = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
+
+        file_records[file_gdc_id]['associated_entities__entity_gdc_id'] = associated_entities__entity_gdc_id
+        file_records[file_gdc_id]['associated_entities__case_gdc_id'] = associated_entities__case_gdc_id
+        file_records[file_gdc_id]['associated_entities__entity_submitter_id'] = associated_entities__entity_submitter_id
+        file_records[file_gdc_id]['associated_entities__entity_type'] = associated_entities__entity_type
+
+    # Add case, project, program fields to file records
+    print("Adding case, project, program fields to file records")
+
+    case_project_program_result = bq_harness_with_result(sql=make_case_project_program_sql(),
+                                                         do_batch=False,
+                                                         verbose=False)
+
+    for row in case_project_program_result:
+        file_gdc_id = row.get('file_gdc_id')
+        case_gdc_id = row.get('case_gdc_id')
+        project_dbgap_accession_number = row.get('project_dbgap_accession_number')
+        project_id = row.get('project_id')
+        project_name = row.get('project_name')
+        program_name = row.get('program_name')
+        program_dbgap_accession_number = row.get('program_dbgap_accession_number')
+
+        file_records[file_gdc_id]['case_gdc_id'] = case_gdc_id
+        file_records[file_gdc_id]['project_dbgap_accession_number'] = project_dbgap_accession_number
+        file_records[file_gdc_id]['project_id'] = project_id
+        file_records[file_gdc_id]['project_name'] = project_name
+        file_records[file_gdc_id]['program_name'] = program_name
+        file_records[file_gdc_id]['program_dbgap_accession_number'] = program_dbgap_accession_number
+
+    # Add index files to file records
+    print("Adding index files to file records")
+
+    index_file_result = bq_harness_with_result(sql=make_index_file_sql(), do_batch=False, verbose=False)
+
+    for row in index_file_result:
+        file_gdc_id = row.get('file_gdc_id')
+        index_file_gdc_id = row.get('index_file_gdc_id')
+        index_file_name = row.get('index_file_name')
+        index_file_size = row.get('index_file_size')
+
+        file_records[file_gdc_id]["index_file_gdc_id"] = index_file_gdc_id
+        file_records[file_gdc_id]["index_file_name"] = index_file_name
+        file_records[file_gdc_id]["index_file_size"] = index_file_size
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB")
