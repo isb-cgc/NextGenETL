@@ -20,8 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
 from common_etl.support import bq_harness_with_result
+from common_etl.utils import format_seconds
 
 
 def create_concatenated_string(string_list, max_length=8):
@@ -176,7 +178,7 @@ def create_file_metadata_table(bq_params, release):
             STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
             STRING_AGG(entity_type, ';') AS associated_entities__entity_type
         FROM {file_associated_with_entity_table_id}
-        ORDER BY file_gdc_id
+        GROUP BY file_gdc_id
         """
 
     def make_case_project_program_sql() -> str:
@@ -206,7 +208,9 @@ def create_file_metadata_table(bq_params, release):
             ON fhif.index_file_id = f.file_id
         """
 
-    print("Creating base file metadata record objects")
+    start_time = time.time()
+
+    print("\nCreating base file metadata record objects")
 
     file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
 
@@ -374,6 +378,10 @@ def create_file_metadata_table(bq_params, release):
 
     file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
     print(f"length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB")
+
+    time_elapsed = time.time() - start_time
+
+    print(f"Runtime: {format_seconds(time_elapsed)}")
 
     """
     file_metadata_dict = {
