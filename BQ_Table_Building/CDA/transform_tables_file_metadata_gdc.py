@@ -197,12 +197,61 @@ def create_file_metadata_table(bq_params, release):
 
     file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
 
+    file_records = dict()
+
     for row in file_record_result:
 
         file_gdc_id = row.get('file_gdc_id')
 
-        print(file_gdc_id)
-        break
+        if file_gdc_id in file_records:
+            print(f"Duplicate record for file_gdc_id: {file_gdc_id}")
+
+        file_records[file_gdc_id] = {
+            'dbName': row.get('dbName'),
+            'file_gdc_id': row.get('file_gdc_id'),
+            'access': row.get('access'),
+            'acl': None,
+            'analysis_input_file_gdc_ids': None,
+            'analysis_workflow_link': row.get('analysis_workflow_link'),
+            'analysis_workflow_type': row.get('analysis_workflow_type'),
+            'archive_gdc_id': row.get('archive_gdc_id'),
+            'archive_revision': row.get('archive_revision'),
+            'archive_state': row.get('archive_state'),
+            'archive_submitter_id': row.get('archive_submitter_id'),
+            'associated_entities__case_gdc_id': None,
+            'associated_entities__entity_gdc_id': None,
+            'associated_entities__entity_submitter_id': None,
+            'associated_entities__entity_type': None,
+            'case_gdc_id': None,
+            'project_dbgap_accession_number': None,
+            'project_disease_type': None,
+            'project_name': None,
+            'program_dbgap_accession_number': None,
+            'program_name': None,
+            'project_short_name': None,
+            'created_datetime': row.get('created_datetime'),
+            'data_category': row.get('data_category'),
+            'data_format': row.get('data_format'),
+            'data_type': row.get('data_type'),
+            'downstream_analyses__output_file_gdc_ids': None,
+            'downstream_analyses__workflow_link': None,
+            'downstream_analyses__workflow_type': None,
+            'experimental_strategy': row.get('experimental_strategy'),
+            'file_name': row.get('file_name'),
+            'file_size': row.get('file_size'),
+            'file_id': row.get('file_id'),
+            'index_file_gdc_id': row.get('index_file_gdc_id'),
+            'index_file_name': None,
+            'index_file_size': None,
+            'md5sum': row.get('md5sum'),
+            'platform': row.get('platform'),
+            'file_state': row.get('file_state'),
+            'file_submitter_id': row.get('file_submitter_id'),
+            'file_type': row.get('file_type'),
+            'updated_datetime': row.get('updated_datetime')
+        }
+
+    print(len(file_records))
 
     """
     file_metadata_dict = {
