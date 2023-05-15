@@ -21,6 +21,8 @@ SOFTWARE.
 """
 import sys
 
+from common_etl.support import bq_harness_with_result
+
 
 def create_concatenated_string(string_list, max_length=8):
     string_set = set(string_list)
@@ -100,14 +102,16 @@ def create_file_metadata_table(bq_params, release):
 
     def make_acl_sql() -> str:
         return f"""
-        SELECT file_id AS file_gdc_id, STRING_AGG(acl_id, ';') AS acl
+        SELECT file_id AS file_gdc_id, 
+            STRING_AGG(acl_id, ';') AS acl
         FROM {file_has_acl_table_id}
         GROUP BY file_gdc_id
         """
 
     def make_analysis_input_file_gdc_ids_sql() -> str:
         return f"""
-        SELECT apf.file_id AS file_gdc_id, STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
+        SELECT apf.file_id AS file_gdc_id, 
+            STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
         FROM {analysis_produced_file_table_id} apf
         JOIN {analysis_table_id} a
             ON apf.analysis_id = a.analysis_id
@@ -118,7 +122,8 @@ def create_file_metadata_table(bq_params, release):
 
     def make_downstream_analyses_output_file_gdc_ids_sql() -> str:
         return f"""
-        SELECT apf.file_id, STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
+        SELECT apf.file_id AS file_gdc_id, 
+            STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
         FROM {analysis_produced_file_table_id} apf
         JOIN {analysis_table_id} a
             ON a.analysis_id = apf.analysis_id
@@ -128,7 +133,7 @@ def create_file_metadata_table(bq_params, release):
 
     def make_downstream_analyses_sql() -> str:
         return f"""
-        SELECT apf.file_id, 
+        SELECT apf.file_id AS file_gdc_id, 
             a.workflow_link AS downstream_analyses__workflow_link, 
             a.workflow_type AS downstream_analyses__workflow_type
         FROM {analysis_produced_file_table_id} apf
@@ -141,14 +146,18 @@ def create_file_metadata_table(bq_params, release):
     def make_associated_entities_sql() -> str:
         # this will need to be manually aggregated so that order can be maintained in each column
         return f"""
-        SELECT *
+        SELECT file_id AS file_gdc_id,
+        entity_id AS associated_entities__entity_gdc_id,
+        entity_case_id AS associated_entities__case_gdc_id,
+        associated_entities__entity_submitter_id,
+        associated_entities__entity_type
         FROM {file_associated_with_entity_table_id}
         ORDER BY file_id
         """
 
     def make_case_project_program_sql() -> str:
         return f"""
-        SELECT f.file_id, 
+        SELECT f.file_id AS file_gdc_id, 
         cpp.project_dbgap_accession_number, 
         cpp.project_id, 
         cpp.project_name, 
@@ -163,7 +172,10 @@ def create_file_metadata_table(bq_params, release):
 
     def make_index_file_sql() -> str:
         return f"""
-        SELECT fhif.file_id, fhif.index_file_id, f.file_name AS index_file_name, f.file_size AS index_file_size
+        SELECT fhif.file_id AS file_gdc_id, 
+        fhif.index_file_id, 
+        f.file_name AS index_file_name, 
+        f.file_size AS index_file_size
         FROM {file_has_index_file_table_id} fhif
         JOIN {file_table_id} f
             ON fhif.index_file_id = f.file_id
@@ -183,6 +195,57 @@ def create_file_metadata_table(bq_params, release):
     file_in_archive_table_id = create_dev_table_id(bq_params, release, 'file_in_archive')
     file_in_case_table_id = create_dev_table_id(bq_params, release, 'file_in_case')
 
+    file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
+
+    for row in file_record_result:
+        print(row)
+
+    """
+    file_metadata_dict = {
+        'dbName': None,
+        'file_gdc_id': None,
+        'access': None,
+        'acl': None,
+        'analysis_input_file_gdc_ids': None,
+        'analysis_workflow_link': None,
+        'analysis_workflow_type': None,
+        'archive_gdc_id': None,
+        'archive_revision': None,
+        'archive_state': None,
+        'archive_submitter_id': None,
+        'associated_entities__case_gdc_id': None,
+        'associated_entities__entity_gdc_id': None,
+        'associated_entities__entity_submitter_id': None,
+        'associated_entities__entity_type': None,
+        'case_gdc_id': None,
+        'project_dbgap_accession_number': None,
+        'project_disease_type': None,
+        'project_name': None,
+        'program_dbgap_accession_number': None,
+        'program_name': None, 
+        'project_short_name': None,
+        'created_datetime': None,
+        'data_category': None,
+        'data_format': None,
+        'data_type': None,
+        'downstream_analyses__output_file_gdc_ids': None,
+        'downstream_analyses__workflow_link': None,
+        'downstream_analyses__workflow_type': None,
+        'experimental_strategy': None,
+        'file_name': None,
+        'file_size': None,
+        'file_id': None,
+        'index_file_gdc_id': None,
+        'index_file_name': None, 
+        'index_file_size': None,
+        'md5sum': None,
+        'platform': None,
+        'file_state': None,
+        'file_submitter_id': None,
+        'file_type': None,
+        'updated_datetime': None
+    }
+    """
 
 def main(args):
     bq_params = {
