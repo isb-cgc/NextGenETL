@@ -364,17 +364,16 @@ def main(args):
         # #     print('Fixing rows with scientific notation in them')
         # #     fix_position_data_type(one_big_tsv)
         #
-        if 'upload_to_bucket' in steps: #todo
+        if 'upload_to_bucket' in steps:
             print('upload_to_bucket')
             upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
-        #
-        # if 'analyze_the_schema' in steps: #todo
-        #     #todo should this be higher?
-        #     print('analyze_the_schema')
-        #     typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
-        #
-        #     create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
-        #
+
+        if 'analyze_the_schema' in steps: #todo
+            print('analyze_the_schema')
+            typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
+
+            create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
+
         # # Create the BQ table from the TSV
         # if 'create_bq_from_tsv' in steps: #todo
         #     print('create_bq_from_tsv')
