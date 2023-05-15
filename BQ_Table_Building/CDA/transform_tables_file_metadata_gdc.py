@@ -194,7 +194,7 @@ def create_file_metadata_table(bq_params, release):
         JOIN {file_in_case_table_id} fc
             ON f.file_id = fc.file_id
         JOIN {case_project_program_table_id} cpp
-            ON cpp.case_id = fc.case_id
+            ON cpp.case_gdc_id = fc.case_id
         """
 
     def make_index_file_sql() -> str:
@@ -353,6 +353,12 @@ def create_file_metadata_table(bq_params, release):
         project_name = row.get('project_name')
         program_name = row.get('program_name')
         program_dbgap_accession_number = row.get('program_dbgap_accession_number')
+
+        if program_dbgap_accession_number is None:
+            program_dbgap_accession_number = 'open'
+
+        if project_dbgap_accession_number is None:
+            project_dbgap_accession_number = 'open'
 
         file_records[file_gdc_id]['case_gdc_id'] = case_gdc_id
         file_records[file_gdc_id]['project_dbgap_accession_number'] = project_dbgap_accession_number
