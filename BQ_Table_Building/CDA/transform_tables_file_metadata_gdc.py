@@ -251,7 +251,8 @@ def create_file_metadata_table(bq_params, release):
             'updated_datetime': row.get('updated_datetime')
         }
 
-    print(len(file_records))
+    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
+    print(f"length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB")
 
     """
     file_metadata_dict = {
