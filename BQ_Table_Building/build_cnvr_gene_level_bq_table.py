@@ -163,15 +163,15 @@ def merge_bq_sql(cnv_table, aliquot_table, case_table):
             start AS start_pos,
             `end` AS end_pos,
             copy_number,
-            major_copy_number,
-            minor_copy_number,
+            min_copy_number,	
+            max_copy_number,
             case_gdc_id,
             sample_gdc_id,
             aliquot_gdc_id,
             source_file_id AS file_gdc_id
         FROM a3
         JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
-    '''
+    ''' # todo update major to max etc
 
 def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
     sql = merge_samples_by_aliquot_sql(input_table)
@@ -191,8 +191,8 @@ def merge_samples_by_aliquot_sql(input_table):
             start_pos,
             end_pos,
             copy_number,
-            major_copy_number,
-            minor_copy_number,
+            min_copy_number,	
+            max_copy_number,
             case_gdc_id,
             string_agg(distinct sample_gdc_id, ';') as sample_gdc_id,
             aliquot_gdc_id,
@@ -210,8 +210,8 @@ def merge_samples_by_aliquot_sql(input_table):
             start_pos,
             end_pos,
             copy_number,
-            major_copy_number,
-            minor_copy_number,
+            min_copy_number,	
+            max_copy_number,
             case_gdc_id,
             aliquot_gdc_id,
             file_gdc_id
