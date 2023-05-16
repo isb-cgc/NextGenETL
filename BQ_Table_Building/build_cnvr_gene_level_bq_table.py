@@ -384,7 +384,8 @@ def main(args):
 
         if 'add_aliquot_fields' in steps: #todo
             print('add_aliquot_fields')
-            success = join_with_aliquot_table(upload_table, f"{params.ALIQUOT_TABLE}_r{params.RELEASE}",
+            full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{upload_table}'
+            success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_r{params.RELEASE}",
                                               f"{params.CASE_TABLE}_r{params.RELEASE}",
                                               params.SCRATCH_DATASET, f"{draft_table}_w_metadata",
                                               params.BQ_AS_BATCH)
