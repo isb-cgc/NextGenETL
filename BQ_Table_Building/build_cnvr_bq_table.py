@@ -80,18 +80,14 @@ def concat_all_files(all_files, one_big_tsv):
                 norm_path = os.path.normpath(filename)
                 path_pieces = norm_path.split(os.sep)
                 file_name = path_pieces[-1]
-                file_gdc_id = path_pieces[-2]
-                file_name_pieces = file_name.split('.')
-                aliquot_gdc_id = file_name_pieces[1]
+                gdc_id = path_pieces[-2]
                 for line in readfile:
                     if not line.startswith('gene_id') or first:
-                        outfile.write('GDC_Aliquot' if first else aliquot_gdc_id)
-                        outfile.write('\t')
                         outfile.write(line.rstrip('\n'))
                         outfile.write('\t')
                         outfile.write('source_file_name' if first else file_name)
                         outfile.write('\t')
-                        outfile.write('source_file_id' if first else file_gdc_id)
+                        outfile.write('source_file_id' if first else gdc_id)
                         outfile.write('\n')
                     first = False
 
