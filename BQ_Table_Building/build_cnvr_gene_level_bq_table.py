@@ -398,10 +398,23 @@ def main(args):
 
         # For CPTAC there are instances where multiple samples are merged into the same aliquot
         # for these cases we join the rows by concatenating the samples with semicolons
-        if 'merge_same_aliq_samples' in steps: #todo
+        if 'merge_same_aliq_samples' in steps:
             source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_w_metadata"
-            merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params.SCRATCH_DATASET,
+            merge_samples_by_aliquot(source_table, draft_table, params.SCRATCH_DATASET,
                                      params.BQ_AS_BATCH)
+
+        # if 'update_table_schema' in steps: # todo
+        #     print("update schema tags")
+        #     updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
+        #     print("update table schema")
+        #     write_table_schema_with_generic(
+        #         f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
+        #         updated_schema_tags, table_metadata, field_desc_fp)
+        #
+        # if 'qc_bigquery_tables' in steps: # todo
+        #     print("QC BQ table")
+        #     print(qc_bq_table_metadata(
+        #         f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}"))
 
         # if 'publish' in steps: # todo update
         #     print('publish tables')
