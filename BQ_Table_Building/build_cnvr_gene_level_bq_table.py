@@ -386,7 +386,7 @@ def main(args):
                 typed_schema = json_loads(schema_list.read())
             csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH)
 
-        if 'add_aliquot_fields' in steps: #todo
+        if 'add_aliquot_fields' in steps:
             print('add_aliquot_fields')
             full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{upload_table}'
             success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_r{params.RELEASE}",
@@ -395,14 +395,14 @@ def main(args):
                                               params.BQ_AS_BATCH)
             if not success:
                 print("Join job failed")
-        #
-        # # For CPTAC there are instances where multiple samples are merged into the same aliquot
-        # # for these cases we join the rows by concatenating the samples with semicolons
-        # if 'merge_same_aliq_samples' in steps: #todo
-        #     source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_w_metadata"
-        #     merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params.SCRATCH_DATASET,
-        #                              params.BQ_AS_BATCH)
-        #
+
+        # For CPTAC there are instances where multiple samples are merged into the same aliquot
+        # for these cases we join the rows by concatenating the samples with semicolons
+        if 'merge_same_aliq_samples' in steps: #todo
+            source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_w_metadata"
+            merge_samples_by_aliquot(source_table, f"{draft_table}_{release}", params.SCRATCH_DATASET,
+                                     params.BQ_AS_BATCH)
+
         # if 'publish' in steps: # todo update
         #     print('publish tables')
         #     success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
