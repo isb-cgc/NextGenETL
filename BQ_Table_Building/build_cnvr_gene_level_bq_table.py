@@ -33,7 +33,8 @@ from common_etl.utils import check_value_type, get_column_list_tsv, \
 
 from common_etl.support import update_dir_from_git, get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, pull_from_buckets, upload_to_bucket, csv_to_bq,\
-                               build_pull_list_with_bq, create_schema_hold_list, publish_tables_and_update_schema
+                               build_pull_list_with_bq, create_schema_hold_list, update_schema_tags,\
+                               write_table_schema_with_generic, publish_tables_and_update_schema
 
 def load_config(yaml_config):
     """
@@ -289,6 +290,7 @@ def main(args):
         manifest_file = f"{local_dir}/{params.MANIFEST_FILE}"
         local_pull_list = f"{local_dir}/{params.LOCAL_PULL_LIST}"
         file_traversal_list = f"{local_dir}/{params.FILE_TRAVERSAL_LIST}"
+        table_metadata = f"{params.SCHEMA_REPO_LOCAL}/{params.SCHEMA_FILE_NAME}"
         field_list = f"{home}/Gene-Level-CNVR-field_list.json"
         field_desc_fp = f"{params.SCHEMA_REPO_LOCAL}/{params.FIELD_DESC_FILE}"
 
@@ -403,14 +405,14 @@ def main(args):
             merge_samples_by_aliquot(source_table, draft_table, params.SCRATCH_DATASET,
                                      params.BQ_AS_BATCH)
 
-        # if 'update_table_schema' in steps: # todo
-        #     print("update schema tags")
-        #     updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
-        #     print("update table schema")
-        #     write_table_schema_with_generic(
-        #         f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
-        #         updated_schema_tags, table_metadata, field_desc_fp)
-        #
+        if 'update_table_schema' in steps: # todo
+            print("update schema tags")
+            updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
+            print("update table schema")
+            write_table_schema_with_generic(
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}",
+                updated_schema_tags, table_metadata, field_desc_fp)
+
         # if 'qc_bigquery_tables' in steps: # todo
         #     print("QC BQ table")
         #     print(qc_bq_table_metadata(
