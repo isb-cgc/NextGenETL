@@ -396,8 +396,8 @@ def main(args):
         'RELEASE': '2023_03',
     }
     steps = {
-        'create_and_upload_file_metadata_json',
-        # 'create_table'
+        # 'create_and_upload_file_metadata_json',
+        'create_table'
     }
 
     start_time: float = time.time()
@@ -429,8 +429,7 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
-        pass
-        # build_table_from_jsonl(api_params, bq_params, endpoint='file')
+        build_table_from_jsonl(api_params, bq_params, endpoint='file')
 
     end_time: float = time.time()
 
