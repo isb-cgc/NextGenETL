@@ -1013,8 +1013,13 @@ def normalize_value(value, is_tsv=False):
     :param value: value to convert
     :return: normalized (or original) value
     """
+
+    if value is None:
+        return value
+
     if isinstance(value, str):
         value = value.strip()
+
 
         if value in ('NA', 'N/A', 'n/a',
                      'None', '', '--', '-',
