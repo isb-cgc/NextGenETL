@@ -25,9 +25,12 @@ from typing import Any, Union, Optional
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
+from BQ_Table_Building.PDC.pdc_utils import build_table_from_jsonl
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import format_seconds, recursively_normalize_field_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json
+
+BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
 def convert_concat_to_multi(value_string: str, max_length: int = 8) -> str:
@@ -53,8 +56,6 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     :param release:
     :return:
     """
-
-    BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
     analysis_table_id: str = create_dev_table_id(bq_params, release, 'analysis')
     analysis_consumed_input_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
@@ -228,8 +229,6 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
                 for field in concat_field_list:
                     file_records[file_id][field] = convert_concat_to_multi((record.get(field)))
 
-    start_time: float = time.time()
-
     print("\nCreating base file metadata record objects")
 
     file_record_result: BQHarnessResult = bq_harness_with_result(sql=make_base_file_metadata_sql(),
@@ -390,13 +389,23 @@ def main(args):
         'RELEASE': '2023_03'
     }
     steps = {
-        'create_file_metadata_json',
+        # 'create_and_upload_file_metadata_json',
+        'create_table'
     }
 
-    release = '2023_03'
+    start_time: float = time.time()
 
-    if 'create_file_metadata_json' in steps:
-        file_record_list = create_file_metadata_dict(bq_params, release)
+    if 'create_and_upload_file_metadata_json' in steps:
+        file_record_list = create_file_metadata_dict(bq_params, api_params['RELEASE'])
+
+        idx: int = 0
+
+        for record in file_record_list:
+            print(record)
+            idx += 1
+
+            if idx > 100:
+                break
 
         normalized_file_record_list = recursively_normalize_field_values(file_record_list)
         write_list_to_jsonl_and_upload(api_params, bq_params, 'file', normalized_file_record_list)
@@ -407,6 +416,13 @@ def main(args):
                                           record_list=normalized_file_record_list,
                                           table_name='file',
                                           include_release=True)
+
+    if 'create_table' in steps:
+        build_table_from_jsonl(api_params, bq_params, endpoint='file')
+
+    end_time: float = time.time()
+
+    print(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
