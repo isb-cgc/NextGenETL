@@ -383,14 +383,14 @@ def main(args):
         "WORKING_PROJECT": "isb-project-zero",
         "WORKING_DATASET": "cda_gdc_test",
         "WORKING_BUCKET": "next-gen-etl-scratch",
-        "WORKING_BUCKET_DIR": "law/etl/test",
+        "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
     }
     api_params = {
         'RELEASE': '2023_03'
     }
     steps = {
-        # 'create_and_upload_file_metadata_json',
-        'create_table'
+        'create_and_upload_file_metadata_json',
+        # 'create_table'
     }
 
     start_time: float = time.time()
@@ -418,7 +418,7 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
-        build_table_from_jsonl(api_params, bq_params, endpoint='file')
+        # build_table_from_jsonl(api_params, bq_params, endpoint='file')
 
     end_time: float = time.time()
 
