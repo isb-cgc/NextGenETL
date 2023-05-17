@@ -21,23 +21,17 @@ SOFTWARE.
 """
 import sys
 import time
+from typing import Any, Union, Optional
+
+from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from common_etl.support import bq_harness_with_result
-from common_etl.utils import format_seconds
+from common_etl.utils import format_seconds, recursively_normalize_field_values, write_list_to_jsonl_and_upload, \
+    create_and_upload_schema_for_json
 
 
-def create_concatenated_string(string_list, max_length=8):
-    string_set = set(string_list)
-
-    if len(string_set) > max_length:
-        return "multi"
-    else:
-        # create concatenated string list
-        return ";".join(sorted(string_set))
-
-
-def convert_concat_to_multi(value_string, max_length=8):
-    string_length = len(value_string.split(';'))
+def convert_concat_to_multi(value_string: str, max_length: int = 8) -> str:
+    string_length: int = len(value_string.split(';'))
 
     if string_length > max_length:
         return 'multi'
@@ -46,26 +40,39 @@ def convert_concat_to_multi(value_string, max_length=8):
 
 
 def create_dev_table_id(bq_params, release, table_name) -> str:
-    working_project = bq_params['WORKING_PROJECT']
-    working_dataset = bq_params['WORKING_DATASET']
+    working_project: str = bq_params['WORKING_PROJECT']
+    working_dataset: str = bq_params['WORKING_DATASET']
 
     return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
-def create_file_metadata_table(bq_params, release):
-    analysis_table_id = create_dev_table_id(bq_params, release, 'analysis')
-    analysis_consumed_input_file_table_id = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
-    analysis_downstream_from_file_table_id = create_dev_table_id(bq_params, release, 'analysis_downstream_from_file')
-    analysis_produced_file_table_id = create_dev_table_id(bq_params, release, 'analysis_produced_file')
-    archive_table_id = create_dev_table_id(bq_params, release, 'archive')
-    case_project_program_table_id = create_dev_table_id(bq_params, release, "case_project_program")
-    downstream_analysis_table_id = create_dev_table_id(bq_params, release, "downstream_analysis_produced_output_file")
-    file_table_id = create_dev_table_id(bq_params, release, 'file')
-    file_associated_with_entity_table_id = create_dev_table_id(bq_params, release, 'file_associated_with_entity')
-    file_has_acl_table_id = create_dev_table_id(bq_params, release, 'file_has_acl')
-    file_has_index_file_table_id = create_dev_table_id(bq_params, release, 'file_has_index_file')
-    file_in_archive_table_id = create_dev_table_id(bq_params, release, 'file_in_archive')
-    file_in_case_table_id = create_dev_table_id(bq_params, release, 'file_in_case')
+def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any]]]:
+    """
+
+    :param bq_params:
+    :param release:
+    :return:
+    """
+
+    BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
+
+    analysis_table_id: str = create_dev_table_id(bq_params, release, 'analysis')
+    analysis_consumed_input_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
+    analysis_downstream_from_file_table_id: str = create_dev_table_id(bq_params,
+                                                                      release,
+                                                                      'analysis_downstream_from_file')
+    analysis_produced_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_produced_file')
+    archive_table_id: str = create_dev_table_id(bq_params, release, 'archive')
+    case_project_program_table_id: str = create_dev_table_id(bq_params, release, "case_project_program")
+    downstream_analysis_table_id: str = create_dev_table_id(bq_params,
+                                                            release,
+                                                            "downstream_analysis_produced_output_file")
+    file_table_id: str = create_dev_table_id(bq_params, release, 'file')
+    file_associated_with_entity_table_id: str = create_dev_table_id(bq_params, release, 'file_associated_with_entity')
+    file_has_acl_table_id: str = create_dev_table_id(bq_params, release, 'file_has_acl')
+    file_has_index_file_table_id: str = create_dev_table_id(bq_params, release, 'file_has_index_file')
+    file_in_archive_table_id: str = create_dev_table_id(bq_params, release, 'file_in_archive')
+    file_in_case_table_id: str = create_dev_table_id(bq_params, release, 'file_in_case')
 
     def make_base_file_metadata_sql() -> str:
         return f"""
@@ -208,22 +215,37 @@ def create_file_metadata_table(bq_params, release):
             ON fhif.index_file_id = f.file_id
         """
 
-    start_time = time.time()
+    def add_fields_to_file_records(sql: str, concat_field_list: Union[None, list[str]]):
+        # bq harness with result
+        # manipulate and insert all fields in concat list
+        # insert all fields in insert list
+        query_result: BQHarnessResult = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+
+        for record in query_result:
+            file_id: str = record.get('file_gdc_id')
+
+            if concat_field_list:
+                for field in concat_field_list:
+                    file_records[file_id][field] = convert_concat_to_multi((record.get(field)))
+
+    start_time: float = time.time()
 
     print("\nCreating base file metadata record objects")
 
-    file_record_result = bq_harness_with_result(sql=make_base_file_metadata_sql(), do_batch=False, verbose=False)
+    file_record_result: BQHarnessResult = bq_harness_with_result(sql=make_base_file_metadata_sql(),
+                                                                 do_batch=False,
+                                                                 verbose=False)
 
-    file_records = dict()
+    file_records: dict[str, dict[str, Optional[Any]]] = dict()
 
     for row in file_record_result:
 
-        file_gdc_id = row.get('file_gdc_id')
+        file_gdc_id: str = row.get('file_gdc_id')
 
         if file_gdc_id in file_records:
             print(f"Duplicate record for file_gdc_id: {file_gdc_id}")
 
-        file_records[file_gdc_id] = {
+        file_records[file_gdc_id]: dict[str, Optional[Any]] = {
             'dbName': row.get('dbName'),
             'file_gdc_id': row.get('file_gdc_id'),
             'access': row.get('access'),
@@ -268,210 +290,123 @@ def create_file_metadata_table(bq_params, release):
             'updated_datetime': row.get('updated_datetime')
         }
 
-    del file_record_result
-
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add acl ids to file records
     print("Adding acl ids to file records")
 
-    acl_result = bq_harness_with_result(sql=make_acl_sql(), do_batch=False, verbose=False)
+    acl_concat_field_list: list[str] = ['acl']
 
-    for row in acl_result:
-        file_gdc_id = row.get('file_gdc_id')
-        acl = convert_concat_to_multi(row.get('acl'))
+    add_fields_to_file_records(sql=make_acl_sql(), concat_field_list=acl_concat_field_list)
 
-        file_records[file_gdc_id]['acl'] = acl
-
-    del acl_result
-
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add analysis input file ids to file records
     print("Adding analysis input file ids to file records")
 
-    analysis_input_ids_result = bq_harness_with_result(sql=make_analysis_input_file_gdc_ids_sql(),
-                                                       do_batch=False,
-                                                       verbose=False)
+    analysis_input_concat_field_list: list[str] = ['analysis_input_file_gdc_ids']
 
-    for row in analysis_input_ids_result:
-        file_gdc_id = row.get('file_gdc_id')
-        analysis_input_file_gdc_ids = convert_concat_to_multi(row.get('analysis_input_file_gdc_ids'))
+    add_fields_to_file_records(sql=make_analysis_input_file_gdc_ids_sql(),
+                               concat_field_list=analysis_input_concat_field_list)
 
-        file_records[file_gdc_id]['analysis_input_file_gdc_ids'] = analysis_input_file_gdc_ids
+    # Add downstream analyses output file ids to file records
+    print("Adding downstream analyses output file ids to file records")
 
-    del analysis_input_ids_result
+    downstream_output_concat_field_list: list[str] = ['downstream_analyses__output_file_gdc_ids']
 
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
+    add_fields_to_file_records(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
+                               concat_field_list=downstream_output_concat_field_list)
+
     # Add downstream analyses fields to file records
     print("Adding downstream analyses fields to file records")
 
-    downstream_output_ids_result = bq_harness_with_result(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
-                                                          do_batch=False,
-                                                          verbose=False)
+    downstream_analyses_concat_field_list: list[str] = ['downstream_analyses__workflow_link',
+                                                        'downstream_analyses__workflow_type']
 
-    for row in downstream_output_ids_result:
-        file_gdc_id = row.get('file_gdc_id')
-        downstream_analyses__output_file_gdc_ids = convert_concat_to_multi(
-            row.get('downstream_analyses__output_file_gdc_ids')
-        )
+    add_fields_to_file_records(sql=make_downstream_analyses_sql(),
+                               concat_field_list=downstream_analyses_concat_field_list)
 
-        file_records[file_gdc_id]['downstream_analyses__output_file_gdc_ids'] = downstream_analyses__output_file_gdc_ids
-
-    downstream_analyses_result = bq_harness_with_result(sql=make_downstream_analyses_sql(),
-                                                        do_batch=False,
-                                                        verbose=False)
-
-    for row in downstream_analyses_result:
-        file_gdc_id = row.get('file_gdc_id')
-        downstream_analyses__workflow_link = convert_concat_to_multi(row.get('downstream_analyses__workflow_link'))
-        downstream_analyses__workflow_type = convert_concat_to_multi(row.get('downstream_analyses__workflow_type'))
-
-        file_records[file_gdc_id]['downstream_analyses__workflow_link'] = downstream_analyses__workflow_link
-        file_records[file_gdc_id]['downstream_analyses__workflow_type'] = downstream_analyses__workflow_type
-
-    del downstream_output_ids_result, downstream_analyses_result
-
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add associated entity fields to file records
     print("Adding associated entity fields to file records")
 
-    associated_entities_result = bq_harness_with_result(sql=make_associated_entities_sql(),
-                                                        do_batch=False,
-                                                        verbose=False)
+    associated_entities_concat_field_list: list[str] = ['associated_entities__entity_gdc_id',
+                                                        'associated_entities__case_gdc_id',
+                                                        'associated_entities__entity_gdc_id',
+                                                        'associated_entities__entity_gdc_id']
 
-    for row in associated_entities_result:
-        file_gdc_id = row.get('file_gdc_id')
-        associated_entities__entity_gdc_id = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
-        associated_entities__case_gdc_id = convert_concat_to_multi(row.get('associated_entities__case_gdc_id'))
-        associated_entities__entity_submitter_id = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
-        associated_entities__entity_type = convert_concat_to_multi(row.get('associated_entities__entity_gdc_id'))
+    add_fields_to_file_records(sql=make_associated_entities_sql(),
+                               concat_field_list=associated_entities_concat_field_list)
 
-        file_records[file_gdc_id]['associated_entities__entity_gdc_id'] = associated_entities__entity_gdc_id
-        file_records[file_gdc_id]['associated_entities__case_gdc_id'] = associated_entities__case_gdc_id
-        file_records[file_gdc_id]['associated_entities__entity_submitter_id'] = associated_entities__entity_submitter_id
-        file_records[file_gdc_id]['associated_entities__entity_type'] = associated_entities__entity_type
-
-    del associated_entities_result
-
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add case, project, program fields to file records
     print("Adding case, project, program fields to file records")
 
-    case_project_program_result = bq_harness_with_result(sql=make_case_project_program_sql(),
-                                                         do_batch=False,
-                                                         verbose=False)
+    case_project_program_result: BQHarnessResult = bq_harness_with_result(sql=make_case_project_program_sql(),
+                                                                          do_batch=False,
+                                                                          verbose=False)
 
     for row in case_project_program_result:
         file_gdc_id = row.get('file_gdc_id')
-        case_gdc_id = row.get('case_gdc_id')
+
         project_dbgap_accession_number = row.get('project_dbgap_accession_number')
-        project_id = row.get('project_id')
-        project_name = row.get('project_name')
-        program_name = row.get('program_name')
-        program_dbgap_accession_number = row.get('program_dbgap_accession_number')
-
-        if program_dbgap_accession_number is None:
-            program_dbgap_accession_number = 'open'
-
         if project_dbgap_accession_number is None:
             project_dbgap_accession_number = 'open'
 
-        file_records[file_gdc_id]['case_gdc_id'] = case_gdc_id
+        program_dbgap_accession_number = row.get('program_dbgap_accession_number')
+        if program_dbgap_accession_number is None:
+            program_dbgap_accession_number = 'open'
+
+        file_records[file_gdc_id]['case_gdc_id'] = row.get('case_gdc_id')
+        file_records[file_gdc_id]['project_id'] = row.get('project_id')
+        file_records[file_gdc_id]['project_name'] = row.get('project_name')
+        file_records[file_gdc_id]['program_name'] = row.get('program_name')
         file_records[file_gdc_id]['project_dbgap_accession_number'] = project_dbgap_accession_number
-        file_records[file_gdc_id]['project_id'] = project_id
-        file_records[file_gdc_id]['project_name'] = project_name
-        file_records[file_gdc_id]['program_name'] = program_name
         file_records[file_gdc_id]['program_dbgap_accession_number'] = program_dbgap_accession_number
 
     del case_project_program_result
 
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB\n")
     # Add index files to file records
     print("Adding index files to file records")
 
-    index_file_result = bq_harness_with_result(sql=make_index_file_sql(), do_batch=False, verbose=False)
+    index_file_result: BQHarnessResult = bq_harness_with_result(sql=make_index_file_sql(),
+                                                                do_batch=False,
+                                                                verbose=False)
 
     for row in index_file_result:
         file_gdc_id = row.get('file_gdc_id')
-        index_file_gdc_id = row.get('index_file_gdc_id')
-        index_file_name = row.get('index_file_name')
-        index_file_size = row.get('index_file_size')
-
-        file_records[file_gdc_id]["index_file_gdc_id"] = index_file_gdc_id
-        file_records[file_gdc_id]["index_file_name"] = index_file_name
-        file_records[file_gdc_id]["index_file_size"] = index_file_size
+        file_records[file_gdc_id]["index_file_gdc_id"] = row.get('index_file_gdc_id')
+        file_records[file_gdc_id]["index_file_name"] = row.get('index_file_name')
+        file_records[file_gdc_id]["index_file_size"] = row.get('index_file_size')
 
     del index_file_result
 
-    file_records_size_mb = int(sys.getsizeof(file_records) / (1 << 20))
-    print(f"Done. length of dictionary: {len(file_records)}\nsize of dict object: {file_records_size_mb}MB")
-
-    time_elapsed = time.time() - start_time
-
-    print(f"Runtime: {format_seconds(time_elapsed)}")
-
-    """
-    file_metadata_dict = {
-        'dbName': None,
-        'file_gdc_id': None,
-        'access': None,
-        'acl': None,
-        'analysis_input_file_gdc_ids': None,
-        'analysis_workflow_link': None,
-        'analysis_workflow_type': None,
-        'archive_gdc_id': None,
-        'archive_revision': None,
-        'archive_state': None,
-        'archive_submitter_id': None,
-        'associated_entities__case_gdc_id': None,
-        'associated_entities__entity_gdc_id': None,
-        'associated_entities__entity_submitter_id': None,
-        'associated_entities__entity_type': None,
-        'case_gdc_id': None,
-        'project_dbgap_accession_number': None,
-        'project_disease_type': None,
-        'project_name': None,
-        'program_dbgap_accession_number': None,
-        'program_name': None, 
-        'project_short_name': None,
-        'created_datetime': None,
-        'data_category': None,
-        'data_format': None,
-        'data_type': None,
-        'downstream_analyses__output_file_gdc_ids': None,
-        'downstream_analyses__workflow_link': None,
-        'downstream_analyses__workflow_type': None,
-        'experimental_strategy': None,
-        'file_name': None,
-        'file_size': None,
-        'file_id': None,
-        'index_file_gdc_id': None,
-        'index_file_name': None, 
-        'index_file_size': None,
-        'md5sum': None,
-        'platform': None,
-        'file_state': None,
-        'file_submitter_id': None,
-        'file_type': None,
-        'updated_datetime': None
-    }
-    """
+    # convert into a list of dict objects--this is the form needed to create the jsonl file
+    return list(file_records.values())
 
 
 def main(args):
     bq_params = {
         "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": f"cda_gdc_test"
+        "WORKING_DATASET": "cda_gdc_test",
+        "WORKING_BUCKET": "next-gen-etl-scratch",
+        "WORKING_BUCKET_DIR": "law/etl/test",
+    }
+    api_params = {
+        'RELEASE': '2023_03'
+    }
+    steps = {
+        'create_file_metadata_json',
     }
 
     release = '2023_03'
 
-    create_file_metadata_table(bq_params, release)
+    if 'create_file_metadata_json' in steps:
+        file_record_list = create_file_metadata_dict(bq_params, release)
+
+        normalized_file_record_list = recursively_normalize_field_values(file_record_list)
+        write_list_to_jsonl_and_upload(api_params, bq_params, 'file', normalized_file_record_list)
+        write_list_to_jsonl_and_upload(api_params, bq_params, 'file_raw', file_record_list)
+
+        create_and_upload_schema_for_json(api_params,
+                                          bq_params,
+                                          record_list=normalized_file_record_list,
+                                          table_name='file',
+                                          include_release=True)
 
 
 if __name__ == "__main__":

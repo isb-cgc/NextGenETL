@@ -251,8 +251,11 @@ def main(args):
 
         norm_per_study_record_list = recursively_normalize_field_values(raw_per_study_record_list)
 
-        create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS, record_list=norm_per_study_record_list,
-                                          table_name=per_study_file_prefix, include_release=True)
+        create_and_upload_schema_for_json(API_PARAMS,
+                                          BQ_PARAMS,
+                                          record_list=norm_per_study_record_list,
+                                          table_name=per_study_file_prefix,
+                                          include_release=True)
 
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix, norm_per_study_record_list)
         write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, per_study_file_prefix + "_raw", raw_per_study_record_list)
