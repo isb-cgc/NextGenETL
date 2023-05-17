@@ -1020,7 +1020,6 @@ def normalize_value(value, is_tsv=False):
     if isinstance(value, str):
         value = value.strip()
 
-
         if value in ('NA', 'N/A', 'n/a',
                      'None', '', '--', '-',
                      'NULL', 'Null', 'null',
