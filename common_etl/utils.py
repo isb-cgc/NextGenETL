@@ -1299,6 +1299,19 @@ def resolve_type_conflicts(types_dict):
     return type_dict
 
 
+def normalize_flat_json_values(records):
+    normalized_json_list = list()
+
+    for record in records:
+        normalized_record = dict()
+        for key in record.keys():
+            value = normalize_value(record[key])
+            normalized_record[key] = value
+        normalized_json_list.append(normalized_record)
+
+    return normalized_json_list
+
+
 def recursively_normalize_field_values(json_records, is_single_record=False):
     """
     Recursively explores and normalizes a list of json objects. Useful when there's arbitrary nesting of dicts and

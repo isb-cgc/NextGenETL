@@ -27,7 +27,7 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from BQ_Table_Building.PDC.pdc_utils import build_table_from_jsonl
 from common_etl.support import bq_harness_with_result
-from common_etl.utils import format_seconds, recursively_normalize_field_values, write_list_to_jsonl_and_upload, \
+from common_etl.utils import format_seconds, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json
 
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
@@ -407,7 +407,7 @@ def main(args):
             if idx > 100:
                 break
 
-        normalized_file_record_list = recursively_normalize_field_values(file_record_list)
+        normalized_file_record_list = normalize_flat_json_values(file_record_list)
         write_list_to_jsonl_and_upload(api_params, bq_params, 'file', normalized_file_record_list)
         write_list_to_jsonl_and_upload(api_params, bq_params, 'file_raw', file_record_list)
 
