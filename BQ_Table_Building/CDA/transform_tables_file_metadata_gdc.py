@@ -390,7 +390,8 @@ def main(args):
         "WORKING_DATASET": "cda_gdc_test",
         "WORKING_BUCKET": "next-gen-etl-scratch",
         "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
-        'SCRATCH_DIR': 'scratch'
+        'SCRATCH_DIR': 'scratch',
+        'LOCATION': 'us'
     }
     api_params = {
         'RELEASE': '2023_03',
