@@ -418,6 +418,7 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
+        pass
         # build_table_from_jsonl(api_params, bq_params, endpoint='file')
 
     end_time: float = time.time()
