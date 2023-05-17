@@ -65,6 +65,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     analysis_produced_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_produced_file')
     archive_table_id: str = create_dev_table_id(bq_params, release, 'archive')
     case_project_program_table_id: str = create_dev_table_id(bq_params, release, "case_project_program")
+    case_table_id: str = create_dev_table_id(bq_params, release, "case")
     downstream_analysis_table_id: str = create_dev_table_id(bq_params,
                                                             release,
                                                             "downstream_analysis_produced_output_file")
@@ -130,7 +131,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         LEFT OUTER JOIN {archive_table_id} ar
             ON ar.archive_id = fia.archive_id
         LEFT OUTER JOIN {file_has_index_file_table_id} fhif
-            ON fhif.index_file_id = f.file_id
+            ON fhif.file_id = f.file_id
         """
 
     def make_acl_sql() -> str:
@@ -192,17 +193,20 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     def make_case_project_program_sql() -> str:
         return f"""
         SELECT f.file_id AS file_gdc_id, 
-        cpp.case_gdc_id,
-        cpp.project_dbgap_accession_number, 
-        cpp.project_id, 
-        cpp.project_name, 
-        cpp.program_name, 
-        cpp.program_dbgap_accession_number
+            cpp.case_gdc_id,
+            cpp.project_dbgap_accession_number, 
+            cpp.project_id AS project_short_name, 
+            cpp.project_name, 
+            cpp.program_name, 
+            cpp.program_dbgap_accession_number,
+            c.disease_type AS project_disease_type
         FROM {file_table_id} f
         JOIN {file_in_case_table_id} fc
             ON f.file_id = fc.file_id
         JOIN {case_project_program_table_id} cpp
             ON cpp.case_gdc_id = fc.case_id
+        JOIN {case_table_id} c
+            ON cpp.case_gdc_id = c.case_id
         """
 
     def make_index_file_sql() -> str:
@@ -345,17 +349,18 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         project_dbgap_accession_number = row.get('project_dbgap_accession_number')
         if project_dbgap_accession_number is None:
             project_dbgap_accession_number = 'open'
+        file_records[file_gdc_id]['project_dbgap_accession_number'] = project_dbgap_accession_number
 
         program_dbgap_accession_number = row.get('program_dbgap_accession_number')
         if program_dbgap_accession_number is None:
             program_dbgap_accession_number = 'open'
+        file_records[file_gdc_id]['program_dbgap_accession_number'] = program_dbgap_accession_number
 
         file_records[file_gdc_id]['case_gdc_id'] = row.get('case_gdc_id')
-        file_records[file_gdc_id]['project_id'] = row.get('project_id')
+        file_records[file_gdc_id]['project_short_name'] = row.get('project_short_name')
         file_records[file_gdc_id]['project_name'] = row.get('project_name')
         file_records[file_gdc_id]['program_name'] = row.get('program_name')
-        file_records[file_gdc_id]['project_dbgap_accession_number'] = project_dbgap_accession_number
-        file_records[file_gdc_id]['program_dbgap_accession_number'] = program_dbgap_accession_number
+        file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
 
     del case_project_program_result
 
