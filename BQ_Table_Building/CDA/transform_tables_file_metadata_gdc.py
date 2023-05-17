@@ -28,7 +28,7 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 from BQ_Table_Building.PDC.pdc_utils import build_table_from_jsonl
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import format_seconds, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
-    create_and_upload_schema_for_json
+    create_and_upload_schema_for_json, create_and_load_table_from_jsonl, retrieve_bq_schema_object
 
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
@@ -429,7 +429,16 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
-        build_table_from_jsonl(api_params, bq_params, endpoint='file')
+        # Download schema file from Google Cloud bucket
+        table_schema = retrieve_bq_schema_object(api_params, bq_params,
+                                                 table_name='file',
+                                                 include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(bq_params,
+                                         jsonl_file='file_2023_03.jsonl',
+                                         table_id='isb-project-zero.cda_gdc_test.file_2023_03',
+                                         schema=table_schema)
 
     end_time: float = time.time()
 
