@@ -380,6 +380,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     del index_file_result
 
     # convert into a list of dict objects--this is the form needed to create the jsonl file
+    print("Done! File records merged.\n")
     return list(file_records.values())
 
 
@@ -389,7 +390,7 @@ def main(args):
         "WORKING_DATASET": "cda_gdc_test",
         "WORKING_BUCKET": "next-gen-etl-scratch",
         "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
-        'SCRATCH_DIR': 'SCRATCH'
+        'SCRATCH_DIR': 'scratch'
     }
     api_params = {
         'RELEASE': '2023_03',
