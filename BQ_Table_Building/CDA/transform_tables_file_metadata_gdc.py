@@ -220,7 +220,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
             ON fhif.index_file_id = f.file_id
         """
 
-    def add_fields_to_file_records(sql: str, concat_field_list: Union[None, list[str]]):
+    def add_concat_fields_to_file_records(sql: str, concat_field_list: Union[None, list[str]]):
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
@@ -253,38 +253,38 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
             'file_gdc_id': row.get('file_gdc_id'),
             'access': row.get('access'),
             'acl': None,
-            'analysis_input_file_gdc_ids':  None,
+            'analysis_input_file_gdc_ids': None,
             'analysis_workflow_link': row.get('analysis_workflow_link'),
             'analysis_workflow_type': row.get('analysis_workflow_type'),
             'archive_gdc_id': row.get('archive_gdc_id'),
             'archive_revision': row.get('archive_revision'),
             'archive_state': row.get('archive_state'),
             'archive_submitter_id': row.get('archive_submitter_id'),
-            'associated_entities__case_gdc_id':  None,
-            'associated_entities__entity_gdc_id':  None,
-            'associated_entities__entity_submitter_id':  None,
-            'associated_entities__entity_type':  None,
-            'case_gdc_id':  None,
-            'project_dbgap_accession_number':  None,
-            'project_disease_type':  None,
-            'project_name':  None,
-            'program_dbgap_accession_number':  None,
-            'program_name':  None,
-            'project_short_name':  None,
+            'associated_entities__case_gdc_id': None,
+            'associated_entities__entity_gdc_id': None,
+            'associated_entities__entity_submitter_id': None,
+            'associated_entities__entity_type': None,
+            'case_gdc_id': None,
+            'project_dbgap_accession_number': None,
+            'project_disease_type': None,
+            'project_name': None,
+            'program_dbgap_accession_number': None,
+            'program_name': None,
+            'project_short_name': None,
             'created_datetime': row.get('created_datetime'),
             'data_category': row.get('data_category'),
             'data_format': row.get('data_format'),
             'data_type': row.get('data_type'),
-            'downstream_analyses__output_file_gdc_ids':  None,
-            'downstream_analyses__workflow_link':  None,
-            'downstream_analyses__workflow_type':  None,
+            'downstream_analyses__output_file_gdc_ids': None,
+            'downstream_analyses__workflow_link': None,
+            'downstream_analyses__workflow_type': None,
             'experimental_strategy': row.get('experimental_strategy'),
             'file_name': row.get('file_name'),
             'file_size': row.get('file_size'),
             'file_id': row.get('file_id'),
             'index_file_gdc_id': row.get('index_file_gdc_id'),
-            'index_file_name':  None,
-            'index_file_size':  None,
+            'index_file_name': None,
+            'index_file_size': None,
             'md5sum': row.get('md5sum'),
             'platform': row.get('platform'),
             'file_state': row.get('file_state'),
@@ -298,23 +298,23 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
     acl_concat_field_list: list[str] = ['acl']
 
-    add_fields_to_file_records(sql=make_acl_sql(), concat_field_list=acl_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_acl_sql(), concat_field_list=acl_concat_field_list)
 
     # Add analysis input file ids to file records
     print("Adding analysis input file ids to file records")
 
     analysis_input_concat_field_list: list[str] = ['analysis_input_file_gdc_ids']
 
-    add_fields_to_file_records(sql=make_analysis_input_file_gdc_ids_sql(),
-                               concat_field_list=analysis_input_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_analysis_input_file_gdc_ids_sql(),
+                                      concat_field_list=analysis_input_concat_field_list)
 
     # Add downstream analyses output file ids to file records
     print("Adding downstream analyses output file ids to file records")
 
     downstream_output_concat_field_list: list[str] = ['downstream_analyses__output_file_gdc_ids']
 
-    add_fields_to_file_records(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
-                               concat_field_list=downstream_output_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
+                                      concat_field_list=downstream_output_concat_field_list)
 
     # Add downstream analyses fields to file records
     print("Adding downstream analyses fields to file records")
@@ -322,8 +322,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     downstream_analyses_concat_field_list: list[str] = ['downstream_analyses__workflow_link',
                                                         'downstream_analyses__workflow_type']
 
-    add_fields_to_file_records(sql=make_downstream_analyses_sql(),
-                               concat_field_list=downstream_analyses_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_downstream_analyses_sql(),
+                                      concat_field_list=downstream_analyses_concat_field_list)
 
     # Add associated entity fields to file records
     print("Adding associated entity fields to file records")
@@ -333,8 +333,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
                                                         'associated_entities__entity_submitter_id',
                                                         'associated_entities__entity_type']
 
-    add_fields_to_file_records(sql=make_associated_entities_sql(),
-                               concat_field_list=associated_entities_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_associated_entities_sql(),
+                                      concat_field_list=associated_entities_concat_field_list)
 
     # Add case, project, program fields to file records
     print("Adding case, project, program fields to file records")
@@ -438,7 +438,7 @@ def main(args):
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(bq_params,
                                          jsonl_file='file_2023_03.jsonl',
-                                         table_id='isb-project-zero.cda_gdc_test.file_2023_03',
+                                         table_id='isb-project-zero.cda_gdc_test.file_metadata_2023_03',
                                          schema=table_schema)
 
     end_time: float = time.time()
