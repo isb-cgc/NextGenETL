@@ -72,15 +72,15 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
             acl_set: set[str] = set(acl.split(';'))
         record_dict['acl'] = acl_set
 
-        analysis_input_file_gdc_ids:str = row.get('analysis_input_file_gdc_ids')
+        analysis_input_file_gdc_ids: str = row.get('analysis_input_file_gdc_ids')
         if analysis_input_file_gdc_ids:
             analysis_input_file_gdc_ids_set = set(analysis_input_file_gdc_ids.split(';'))
-        record_dict['analysis_input_file_gdc_ids'] = analysis_input_file_gdc_ids_set
+            record_dict['analysis_input_file_gdc_ids'] = analysis_input_file_gdc_ids_set
 
-        downstream_analyses__output_file_gdc_ids = row.get('downstream_analyses__output_file_gdc_ids')
+        downstream_analyses__output_file_gdc_ids: set = row.get('downstream_analyses__output_file_gdc_ids')
         if downstream_analyses__output_file_gdc_ids:
             downstream_analyses__output_file_gdc_ids_set = set(downstream_analyses__output_file_gdc_ids.split(';'))
-        record_dict['downstream_analyses__output_file_gdc_ids'] = downstream_analyses__output_file_gdc_ids_set
+            record_dict['downstream_analyses__output_file_gdc_ids'] = downstream_analyses__output_file_gdc_ids_set
 
         associated_entities__entity_gdc_id = row.get('associated_entities__entity_gdc_id')
         associated_entities__case_gdc_id = row.get('associated_entities__case_gdc_id')
