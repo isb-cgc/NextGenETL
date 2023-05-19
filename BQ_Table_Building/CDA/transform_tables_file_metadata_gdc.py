@@ -329,12 +329,27 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     print("Adding associated entity fields to file records")
 
     associated_entities_concat_field_list: list[str] = ['associated_entities__entity_gdc_id',
-                                                        'associated_entities__case_gdc_id',
-                                                        'associated_entities__entity_submitter_id',
-                                                        'associated_entities__entity_type']
+                                                        'associated_entities__entity_submitter_id']
 
-    add_concat_fields_to_file_records(sql=make_associated_entities_sql(),
-                                      concat_field_list=associated_entities_concat_field_list)
+    query_result: BQHarnessResult = bq_harness_with_result(sql=make_associated_entities_sql(),
+                                                           do_batch=False,
+                                                           verbose=False)
+
+    for record in query_result:
+        file_id: str = record.get('file_gdc_id')
+
+        for field in associated_entities_concat_field_list:
+            file_records[file_id][field] = convert_concat_to_multi((record.get(field)))
+
+        associated_entities__case_gdc_ids = record.get("associated_entities__case_gdc_id")
+        # old table doesn't concatenate duplicate ids, so this eliminates any
+        file_records[file_id]['associated_entities__case_gdc_id'] \
+            = ";".join(set(associated_entities__case_gdc_ids.split(';')))
+
+        associated_entities__entity_type = record.get("associated_entities__entity_type")
+        # old table doesn't concatenate duplicate ids, so this eliminates any
+        file_records[file_id]['associated_entities__entity_type'] \
+            = ";".join(set(associated_entities__entity_type.split(';')))
 
     # Add case, project, program fields to file records
     print("Adding case, project, program fields to file records")
