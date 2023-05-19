@@ -110,8 +110,11 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
         else:
             print(f"ERROR: associated_entities lengths are not the same for {file_id}.")
             print(f"""Len entity id: {len(associated_entities__entity_gdc_id_list)}
+            {associated_entities__entity_gdc_id_list}
             Len case id: {len(associated_entities__case_gdc_id_list)}
+            {associated_entities__case_gdc_id_list}
             Len submitter id: {len(associated_entities__entity_submitter_id_list)}
+            {associated_entities__entity_submitter_id_list}
             """)
 
         file_metadata_dict[file_id] = record_dict
