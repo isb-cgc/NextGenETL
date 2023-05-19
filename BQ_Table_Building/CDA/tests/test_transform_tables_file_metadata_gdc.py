@@ -39,7 +39,7 @@ def make_old_gdc_file_metadata_query() -> str:
 def make_new_gdc_file_metadata_query() -> str:
     return f"""
     SELECT * 
-    FROM `isb-project-zero.cda_gdc_test.file_2023_03`
+    FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
     """
 
 
