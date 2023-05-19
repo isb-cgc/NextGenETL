@@ -187,7 +187,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
             STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
             entity_type AS associated_entities__entity_type
         FROM {file_associated_with_entity_table_id}
-        GROUP BY file_gdc_id
+        GROUP BY file_gdc_id, entity_type
         """
 
     def make_case_project_program_sql() -> str:
