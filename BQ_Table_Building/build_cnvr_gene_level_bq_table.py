@@ -34,7 +34,7 @@ from common_etl.utils import check_value_type, get_column_list_tsv, \
 from common_etl.support import update_dir_from_git, get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, pull_from_buckets, upload_to_bucket, csv_to_bq,\
                                build_pull_list_with_bq, create_schema_hold_list, update_schema_tags,\
-                               write_table_schema_with_generic, publish_tables_and_update_schema
+                               write_table_schema_with_generic, qc_bq_table_metadata, publish_tables_and_update_schema
 
 def load_config(yaml_config):
     """
@@ -405,7 +405,7 @@ def main(args):
             merge_samples_by_aliquot(source_table, draft_table, params.SCRATCH_DATASET,
                                      params.BQ_AS_BATCH)
 
-        if 'update_table_schema' in steps: # todo
+        if 'update_table_schema' in steps:
             print("update schema tags")
             updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
             print("update table schema")
@@ -413,19 +413,22 @@ def main(args):
                 f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}",
                 updated_schema_tags, table_metadata, field_desc_fp)
 
-        # if 'qc_bigquery_tables' in steps: # todo
-        #     print("QC BQ table")
-        #     print(qc_bq_table_metadata(
-        #         f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}"))
+        if 'qc_bigquery_tables' in steps: # todo test
+            print("QC BQ table")
+            print(qc_bq_table_metadata(
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}"))
 
-        # if 'publish' in steps: # todo update
-        #     print('publish tables')
-        #     success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
-        #                                                f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{standard_table}_{release}",
-        #                                                f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{standard_table}_current",
-        #                                                f"REL {str(params.RELEASE)}",
-        #                                                f"{standard_table}")
-        #
+        if 'publish' in steps: # todo test
+            print('publish tables')
+            success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{base_table_name}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{base_table_name}_current",
+                                                       f"REL {str(params.RELEASE)}",
+                                                       f"{base_table_name}")
+
+            if not success:
+                print("Publication step did not work")
+
         # if 'dump_working_tables' in steps:
         #     # todo update
         #     print("dump working tables")
