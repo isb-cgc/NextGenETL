@@ -397,7 +397,7 @@ def main(args):
         'RELEASE': '2023_03',
     }
     steps = {
-        # 'create_and_upload_file_metadata_json',
+        'create_and_upload_file_metadata_json',
         'create_table'
     }
 
