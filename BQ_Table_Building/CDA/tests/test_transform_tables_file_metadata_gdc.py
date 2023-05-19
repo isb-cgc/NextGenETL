@@ -82,13 +82,22 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
             record_dict['downstream_analyses__output_file_gdc_ids'] = downstream_analyses__output_file_gdc_ids_set
 
         associated_entities__entity_gdc_id = row.get('associated_entities__entity_gdc_id')
-        associated_entities__entity_gdc_id_list = associated_entities__entity_gdc_id.split(';')
+        if associated_entities__entity_gdc_id:
+            associated_entities__entity_gdc_id_list = associated_entities__entity_gdc_id.split(';')
+        else:
+            associated_entities__entity_gdc_id_list = list()
 
         associated_entities__case_gdc_id = row.get('associated_entities__case_gdc_id')
-        associated_entities__case_gdc_id_list = associated_entities__case_gdc_id.split(';')
+        if associated_entities__case_gdc_id:
+            associated_entities__case_gdc_id_list = associated_entities__case_gdc_id.split(';')
+        else:
+            associated_entities__case_gdc_id_list = list()
 
         associated_entities__entity_submitter_id = row.get('associated_entities__entity_submitter_id')
-        associated_entities__entity_submitter_id_list = associated_entities__entity_submitter_id.split(';')
+        if associated_entities__entity_submitter_id:
+            associated_entities__entity_submitter_id_list = associated_entities__entity_submitter_id.split(';')
+        else:
+            associated_entities__entity_submitter_id_list = list()
 
         if len(associated_entities__entity_gdc_id_list) == len(associated_entities__case_gdc_id_list) \
                 == len(associated_entities__entity_submitter_id_list):
