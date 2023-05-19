@@ -107,7 +107,6 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
             for i in range(entity_count):
                 associated_entity_dict = {
                     "associated_entities__entity_gdc_id": associated_entities__entity_gdc_id_list[i],
-                    "associated_entities__case_gdc_id": associated_entities__case_gdc_id_list[i],
                     "associated_entities__entity_submitter_id": associated_entities__entity_submitter_id_list[i],
                 }
 
