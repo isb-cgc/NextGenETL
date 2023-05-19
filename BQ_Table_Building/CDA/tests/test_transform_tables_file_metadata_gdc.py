@@ -123,6 +123,27 @@ def main(args):
     old_file_metadata_dict = create_file_metadata_dict(sql=make_old_gdc_file_metadata_query())
     new_file_metadata_dict = create_file_metadata_dict(sql=make_new_gdc_file_metadata_query())
 
+    old_file_key_set = set(old_file_metadata_dict.keys())
+    new_file_key_set = set(new_file_metadata_dict.keys())
+
+    old_new_keys_symmetric_difference = old_file_key_set ^ new_file_key_set
+
+    print("\nComparing old and new table file ids...")
+
+    if len(old_new_keys_symmetric_difference) > 0:
+        old_missing_keys = new_file_key_set - old_file_key_set
+        new_missing_keys = old_file_key_set - new_file_key_set
+        print(f"File id differences in old and new table.")
+        print(f"File ids missing from new table: {new_missing_keys}")
+        print(f"File ids missing from old table: {old_missing_keys}")
+        print(f"Ending tests.")
+        exit(-1)
+    else:
+        print("File ids are identical in both tables!\n")
+
+    # to test:
+    # same length, same file ids, same contents within each file id field.
+
 
 if __name__ == "__main__":
     main(sys.argv)
