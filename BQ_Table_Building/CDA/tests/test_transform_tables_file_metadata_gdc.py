@@ -53,8 +53,7 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
                           'downstream_analyses__output_file_gdc_ids',
                           'associated_entities__entity_gdc_id',
                           'associated_entities__case_gdc_id',
-                          'associated_entities__entity_submitter_id',
-                          'associated_entities__entity_type'}
+                          'associated_entities__entity_submitter_id'}
 
     for row in file_result:
         file_id: str = row.get('file_gdc_id')
@@ -85,26 +84,23 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
         associated_entities__entity_gdc_id = row.get('associated_entities__entity_gdc_id')
         associated_entities__case_gdc_id = row.get('associated_entities__case_gdc_id')
         associated_entities__entity_submitter_id = row.get('associated_entities__entity_submitter_id')
-        associated_entities__entity_type = row.get('associated_entities__entity_type')
 
         associated_entities__entity_gdc_id_list = associated_entities__entity_gdc_id.split(';')
         associated_entities__case_gdc_id_list = associated_entities__case_gdc_id.split(';')
         associated_entities__entity_submitter_id_list = associated_entities__entity_submitter_id.split(';')
-        associated_entities__entity_type_list = associated_entities__entity_type.split(';')
 
-        if len(associated_entities__entity_gdc_id_list) == len(associated_entities__case_gdc_id_list) == \
-                len(associated_entities__entity_submitter_id_list) == len(associated_entities__entity_type_list):
+        if len(associated_entities__entity_gdc_id_list) == len(associated_entities__case_gdc_id_list) \
+                == len(associated_entities__entity_submitter_id_list):
 
             associated_entities_list = list()
 
-            entity_count = len(associated_entities__entity_type_list)
+            entity_count = len(associated_entities__entity_gdc_id_list)
 
             for i in range(entity_count):
                 associated_entity_dict = {
                     "associated_entities__entity_gdc_id": associated_entities__entity_gdc_id_list[i],
                     "associated_entities__case_gdc_id": associated_entities__case_gdc_id_list[i],
                     "associated_entities__entity_submitter_id": associated_entities__entity_submitter_id_list[i],
-                    "associated_entities__entity_type": associated_entities__entity_type_list[i],
                 }
 
                 associated_entities_list.append(associated_entity_dict)
