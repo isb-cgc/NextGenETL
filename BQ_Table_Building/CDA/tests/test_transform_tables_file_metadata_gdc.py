@@ -99,9 +99,7 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
         else:
             associated_entities__entity_submitter_id_list = list()
 
-        if len(associated_entities__entity_gdc_id_list) == len(associated_entities__case_gdc_id_list) \
-                == len(associated_entities__entity_submitter_id_list):
-
+        if len(associated_entities__entity_gdc_id_list) == len(associated_entities__entity_submitter_id_list):
             associated_entities_list = list()
 
             entity_count = len(associated_entities__entity_gdc_id_list)
