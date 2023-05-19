@@ -46,5 +46,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/${SCRIPT_FILE}
+python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE}
 deactivate
