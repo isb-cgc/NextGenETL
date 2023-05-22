@@ -191,13 +191,13 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     def make_case_project_program_sql() -> str:
         return f"""
         SELECT f.file_id AS file_gdc_id, 
-            STRING_AGG(cpp.case_gdc_id, ';'),
+            STRING_AGG(cpp.case_gdc_id, ';') AS case_gdc_id,
             cpp.project_dbgap_accession_number, 
             cpp.project_id AS project_short_name, 
             cpp.project_name, 
             cpp.program_name, 
             cpp.program_dbgap_accession_number,
-            c.disease_type AS project_disease_type
+            # c.disease_type AS project_disease_type
         FROM {file_table_id} f
         JOIN {file_in_case_table_id} fc
             ON f.file_id = fc.file_id
@@ -206,7 +206,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         JOIN {case_table_id} c
             ON cpp.case_gdc_id = c.case_id
         GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
-            cpp.program_name, cpp.program_dbgap_accession_number, project_disease_type
+            cpp.program_name, cpp.program_dbgap_accession_number #, project_disease_type
         """
 
     def make_index_file_sql() -> str:
@@ -366,7 +366,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         file_records[file_gdc_id]['project_short_name'] = row.get('project_short_name')
         file_records[file_gdc_id]['project_name'] = row.get('project_name')
         file_records[file_gdc_id]['program_name'] = row.get('program_name')
-        file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
+        # file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
 
         if row.get('case_gdc_id'):
             file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'))
