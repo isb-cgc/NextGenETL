@@ -43,6 +43,28 @@ def make_new_gdc_file_metadata_query() -> str:
     """
 
 
+def compare_table_columns(file_id: str, column_name: str, table_1, table_2) -> str:
+    return f"""
+    (
+        SELECT {file_id}, {column_name}
+        FROM `{table_1}`
+        EXCEPT DISTINCT 
+        SELECT {file_id}, {column_name}
+        FROM `{table_2}`
+    )
+    
+    UNION ALL
+    
+    (
+        SELECT {file_id}, {column_name}
+        FROM `{table_2}`
+        EXCEPT DISTINCT 
+        SELECT {file_id}, {column_name}
+        FROM `{table_1}`
+    )
+    """
+
+
 def compare_two_tables() -> str:
     return f"""
     (
@@ -279,38 +301,58 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
 
         count += 1
 
-        if count % 10000 == 0:
+        if count % 100000 == 0:
             print(f"{count} rows processed.")
 
     return file_metadata_dict
 
 
 def main(args):
-    print("Creating old file metadata dict!")
-    old_file_metadata_dict = create_file_metadata_dict(sql=make_old_gdc_file_metadata_query())
-    print("Creating new file metadata dict!")
-    new_file_metadata_dict = create_file_metadata_dict(sql=make_new_gdc_file_metadata_query())
+    non_concat_columns = [
+        "dbName",
+        "access",
+        "analysis_workflow_link",
+        "analysis_workflow_type",
+        "archive_gdc_id",
+        "archive_revision",
+        "archive_state",
+        "archive_submitter_id",
+        "associated_entities__entity_type",
+        "project_dbgap_accession_number",
+        "project_disease_type",
+        "project_name",
+        "program_dbgap_accession_number",
+        "program_name",
+        "project_short_name",
+        "created_datetime",
+        "data_category",
+        "data_format",
+        "data_type",
+        "downstream_analyses__workflow_link",
+        "downstream_analyses__workflow_type",
+        "experimental_strategy",
+        "file_name",
+        "file_size",
+        "file_id",
+        "index_file_gdc_id",
+        # "index_file_name", not yet in data
+        # "index_file_size", not yet in data
+        "md5sum",
+        "platform",
+        "file_state",
+        "file_submitter_id",
+        "file_type",
+        "updated_datetime"
+    ]
 
-    old_file_key_set = set(old_file_metadata_dict.keys())
-    new_file_key_set = set(new_file_metadata_dict.keys())
-
-    old_new_keys_symmetric_difference = old_file_key_set ^ new_file_key_set
-
-    print("\nComparing old and new table file ids...")
-
-    if len(old_new_keys_symmetric_difference) > 0:
-        old_missing_keys = new_file_key_set - old_file_key_set
-        new_missing_keys = old_file_key_set - new_file_key_set
-        print(f"File id differences in old and new table.")
-        print(f"File ids missing from new table: {new_missing_keys}")
-        print(f"File ids missing from old table: {old_missing_keys}")
-        print(f"Ending tests.")
-        exit(-1)
-    else:
-        print("File ids are identical in both tables!\n")
-
-    # to test:
-    # same length, same file ids, same contents within each file id field.
+    concat_columns = [
+        'acl',
+        'analysis_input_file_gdc_ids',
+        'downstream_analyses__output_file_gdc_ids',
+        'associated_entities__entity_gdc_id',
+        'associated_entities__entity_submitter_id',
+        'gdc_case_id'
+    ]
 
 
 if __name__ == "__main__":

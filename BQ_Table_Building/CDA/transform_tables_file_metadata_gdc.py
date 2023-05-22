@@ -341,7 +341,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         file_id: str = record.get('file_gdc_id')
 
         for field in associated_entities_concat_field_list:
-            file_records[file_id][field] = convert_concat_to_multi((record.get(field)))
+            file_records[file_id][field] = convert_concat_to_multi(record.get(field))
 
         associated_entities__case_gdc_ids = record.get("associated_entities__case_gdc_id")
         # old table doesn't concatenate duplicate ids, so this eliminates any
@@ -369,7 +369,9 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         file_records[file_gdc_id]['project_name'] = row.get('project_name')
         file_records[file_gdc_id]['program_name'] = row.get('program_name')
         file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
-        file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'))
+
+        if row.get('case_gdc_id'):
+            file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'))
 
     del case_project_program_result
 
