@@ -156,7 +156,7 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
     def make_downstream_analyses_output_file_gdc_ids_sql() -> str:
         return f"""
-        SELECT apf.file_id AS file_gdc_id, 
+        SELECT adff.file_id AS file_gdc_id, 
             STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
         FROM {analysis_downstream_from_file_table_id} adff
         JOIN {analysis_table_id} a
