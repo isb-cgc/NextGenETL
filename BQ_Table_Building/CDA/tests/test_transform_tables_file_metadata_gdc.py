@@ -54,6 +54,8 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
                           'associated_entities__entity_gdc_id',
                           'associated_entities__entity_submitter_id'}
 
+    count = 0
+
     for row in file_result:
         file_id: str = row.get('file_gdc_id')
 
@@ -112,6 +114,11 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
             print(f"{row}")
 
         file_metadata_dict[file_id] = record_dict
+
+        count += 1
+
+        if count % 10000 == 0:
+            print(f"{count} rows processed.")
 
     return file_metadata_dict
 
