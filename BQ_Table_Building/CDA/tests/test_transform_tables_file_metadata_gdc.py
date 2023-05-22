@@ -61,7 +61,9 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns)
         return records_dict
 
     old_records_dict = make_records_dict(query=make_concat_column_query(old_table_id))
+    print("Created dict for old table records!")
     new_records_dict = make_records_dict(query=make_concat_column_query(new_table_id))
+    print("Created dict for new table records!")
 
     count = 0
 
@@ -80,7 +82,7 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns)
 
         count += 1
 
-        if count % 50000 == 0:
+        if count % 10000 == 0:
             print(f"{count} records evaluated!")
 
 
