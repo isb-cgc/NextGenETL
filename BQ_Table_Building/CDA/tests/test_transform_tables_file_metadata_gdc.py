@@ -31,14 +31,26 @@ BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 def make_old_gdc_file_metadata_query() -> str:
     return f"""
-    SELECT * 
+    SELECT file_gdc_id, 
+        acl, 
+        analysis_input_file_gdc_ids, 
+        downstream_analyses__output_file_gdc_ids, 
+        associated_entities__entity_gdc_id, 
+        associated_entities__entity_submitter_id, 
+        gdc_case_id
     FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current`
     """
 
 
 def make_new_gdc_file_metadata_query() -> str:
     return f"""
-    SELECT * 
+    SELECT file_gdc_id, 
+        acl, 
+        analysis_input_file_gdc_ids, 
+        downstream_analyses__output_file_gdc_ids, 
+        associated_entities__entity_gdc_id, 
+        associated_entities__entity_submitter_id, 
+        gdc_case_id 
     FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
     """
 
