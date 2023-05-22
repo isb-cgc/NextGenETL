@@ -43,29 +43,42 @@ def make_new_gdc_file_metadata_query() -> str:
     """
 
 
-def compare_table_columns(file_id: str, column_name: str, table_1, table_2) -> str:
+def make_compare_table_column_query(table_id_1: str, table_id_2: str, column_name: str) -> str:
     return f"""
     (
-        SELECT {file_id}, {column_name}
-        FROM `{table_1}`
+        SELECT file_gdc_id, {column_name}
+        FROM `{table_id_1}`
         EXCEPT DISTINCT 
-        SELECT {file_id}, {column_name}
-        FROM `{table_2}`
+        SELECT file_gdc_id, {column_name}
+        FROM `{table_id_2}`
     )
     
     UNION ALL
     
     (
-        SELECT {file_id}, {column_name}
-        FROM `{table_2}`
+        SELECT file_gdc_id, {column_name}
+        FROM `{table_id_2}`
         EXCEPT DISTINCT 
-        SELECT {file_id}, {column_name}
-        FROM `{table_1}`
+        SELECT file_gdc_id, {column_name}
+        FROM `{table_id_1}`
     )
     """
 
 
-def compare_two_tables() -> str:
+def compare_non_concat_table_columns(old_table_id: str, new_table_id: str, columns: list[str]):
+    for column in columns:
+        column_comparison_query = make_compare_table_column_query(old_table_id, new_table_id, column)
+
+        result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
+
+        if result.total_rows > 0:
+            print(f"Found mismatched data for {column}.")
+            print(f"{result.total_rows} records do not match between old and new tables.")
+        else:
+            print(f"Old and new table records match for {column} column. Excellent.")
+
+
+def make_compare_two_tables_query() -> str:
     return f"""
     (
         SELECT dbName,
@@ -353,6 +366,11 @@ def main(args):
         'associated_entities__entity_submitter_id',
         'gdc_case_id'
     ]
+
+    old_table_id = 'isb-cgc-bq.GDC_case_file_metadata.fileData_active_current'
+    new_table_id = 'isb-project-zero.cda_gdc_test.file_metadata_2023_03'
+
+    compare_non_concat_table_columns(old_table_id, new_table_id, non_concat_columns)
 
 
 if __name__ == "__main__":
