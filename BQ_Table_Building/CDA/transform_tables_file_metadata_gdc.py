@@ -158,9 +158,9 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
         return f"""
         SELECT apf.file_id AS file_gdc_id, 
             STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
-        FROM {analysis_produced_file_table_id} apf
+        FROM {analysis_downstream_from_file_table_id} adff
         JOIN {analysis_table_id} a
-            ON a.analysis_id = apf.analysis_id
+            ON a.analysis_id = adff.analysis_id
         JOIN {downstream_analysis_table_id} da
             ON da.analysis_id = a.analysis_id
         GROUP BY file_gdc_id
@@ -168,12 +168,10 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
     def make_downstream_analyses_sql() -> str:
         return f"""
-        SELECT apf.file_id AS file_gdc_id, 
+        SELECT adff.file_id AS file_gdc_id, 
             STRING_AGG(a.workflow_link) AS downstream_analyses__workflow_link, 
             STRING_AGG(a.workflow_type) AS downstream_analyses__workflow_type
-        FROM {analysis_produced_file_table_id} apf
-        JOIN {analysis_downstream_from_file_table_id} adff
-            ON adff.analysis_id = apf.analysis_id
+        FROM {analysis_downstream_from_file_table_id} adff
         JOIN {analysis_table_id} a
             ON a.analysis_id = adff.analysis_id
         GROUP BY file_gdc_id

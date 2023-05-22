@@ -319,7 +319,7 @@ def main(args):
         "archive_submitter_id",
         "associated_entities__entity_type",
         "project_dbgap_accession_number",
-        "project_disease_type",
+        # "project_disease_type", not yet correctly in data
         "project_name",
         "program_dbgap_accession_number",
         "program_name",
