@@ -52,7 +52,6 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
                           'analysis_input_file_gdc_ids',
                           'downstream_analyses__output_file_gdc_ids',
                           'associated_entities__entity_gdc_id',
-                          'associated_entities__case_gdc_id',
                           'associated_entities__entity_submitter_id'}
 
     for row in file_result:
@@ -87,12 +86,6 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
         else:
             associated_entities__entity_gdc_id_list = list()
 
-        associated_entities__case_gdc_id = row.get('associated_entities__case_gdc_id')
-        if associated_entities__case_gdc_id:
-            associated_entities__case_gdc_id_list = associated_entities__case_gdc_id.split(';')
-        else:
-            associated_entities__case_gdc_id_list = list()
-
         associated_entities__entity_submitter_id = row.get('associated_entities__entity_submitter_id')
         if associated_entities__entity_submitter_id:
             associated_entities__entity_submitter_id_list = associated_entities__entity_submitter_id.split(';')
@@ -124,7 +117,9 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
 
 
 def main(args):
+    print("Creating old file metadata dict!")
     old_file_metadata_dict = create_file_metadata_dict(sql=make_old_gdc_file_metadata_query())
+    print("Creating new file metadata dict!")
     new_file_metadata_dict = create_file_metadata_dict(sql=make_new_gdc_file_metadata_query())
 
     old_file_key_set = set(old_file_metadata_dict.keys())
