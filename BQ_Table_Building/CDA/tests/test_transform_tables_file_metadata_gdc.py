@@ -29,7 +29,7 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
-def make_old_gdc_file_metadata_query() -> str:
+def make_concat_column_query(table_id) -> str:
     return f"""
     SELECT file_gdc_id, 
         acl, 
@@ -38,41 +38,70 @@ def make_old_gdc_file_metadata_query() -> str:
         associated_entities__entity_gdc_id, 
         associated_entities__entity_submitter_id, 
         gdc_case_id
-    FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current`
+    FROM `{table_id}`
     """
 
 
-def make_new_gdc_file_metadata_query() -> str:
-    return f"""
-    SELECT file_gdc_id, 
-        acl, 
-        analysis_input_file_gdc_ids, 
-        downstream_analyses__output_file_gdc_ids, 
-        associated_entities__entity_gdc_id, 
-        associated_entities__entity_submitter_id, 
-        gdc_case_id 
-    FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
-    """
+def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns):
+    def make_records_dict(query: str) -> dict[str, dict[str, str]]:
+        result = bq_harness_with_result(sql=query, do_batch=False, verbose=False)
+
+        records_dict = dict()
+
+        for record in result:
+            file_gdc_id = record.get('file_gdc_id')
+
+            record_dict = dict()
+
+            for column in concat_columns:
+                record_dict[column] = record.get(column)
+
+            records_dict[file_gdc_id] = record_dict
+
+        return records_dict
+
+    old_records_dict = make_records_dict(query=make_concat_column_query(old_table_id))
+    new_records_dict = make_records_dict(query=make_concat_column_query(new_table_id))
+
+    count = 0
+
+    for file_id in old_records_dict.keys():
+        for column in concat_columns:
+            old_column_value = old_records_dict[file_id][column]
+            new_column_value = new_records_dict[file_id][column]
+            old_column_value_set = set(old_column_value.split(';'))
+            new_column_value_set = set(new_column_value.split(';'))
+
+            missing_values = old_column_value_set ^ new_column_value_set
+
+            if len(missing_values) > 0:
+                print(f'file id {file_id} value mismatch for {column}.')
+                print(f'old column values: {old_column_value} new column values: {new_column_value}')
+
+        count += 1
+
+        if count % 50000 == 0:
+            print(f"{count} records evaluated!")
 
 
-def make_compare_table_column_query(table_id_1: str, table_id_2: str, column_name: str) -> str:
+def make_compare_table_column_query(old_table_id: str, new_table_id: str, column_name: str) -> str:
     return f"""
     (
         SELECT file_gdc_id, {column_name}
-        FROM `{table_id_1}`
+        FROM `{old_table_id}`
         EXCEPT DISTINCT 
         SELECT file_gdc_id, {column_name}
-        FROM `{table_id_2}`
+        FROM `{new_table_id}`
     )
     
     UNION ALL
     
     (
         SELECT file_gdc_id, {column_name}
-        FROM `{table_id_2}`
+        FROM `{new_table_id}`
         EXCEPT DISTINCT 
         SELECT file_gdc_id, {column_name}
-        FROM `{table_id_1}`
+        FROM `{old_table_id}`
     )
     """
 
@@ -85,9 +114,9 @@ def compare_non_concat_table_columns(old_table_id: str, new_table_id: str, colum
 
         if result.total_rows > 0:
             print(f"Found mismatched data for {column}.")
-            print(f"{result.total_rows} records do not match between old and new tables.")
+            print(f"{result.total_rows} total records do not match in old and new tables.")
         else:
-            print(f"Old and new table records match for {column} column. Excellent.")
+            print(f"{column} column matches in published and new tables!")
 
 
 def make_compare_two_tables_query() -> str:
@@ -382,7 +411,11 @@ def main(args):
     old_table_id = 'isb-cgc-bq.GDC_case_file_metadata.fileData_active_current'
     new_table_id = 'isb-project-zero.cda_gdc_test.file_metadata_2023_03'
 
+    print("\nComparing non-concatenated columns!\n")
     compare_non_concat_table_columns(old_table_id, new_table_id, non_concat_columns)
+
+    print("\nComparing concatenated columns!\n")
+    compare_concat_columns(old_table_id, new_table_id, concat_columns)
 
 
 if __name__ == "__main__":
