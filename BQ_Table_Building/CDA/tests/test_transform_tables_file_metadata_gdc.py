@@ -37,7 +37,7 @@ def make_concat_column_query(table_id) -> str:
         downstream_analyses__output_file_gdc_ids, 
         associated_entities__entity_gdc_id, 
         associated_entities__entity_submitter_id, 
-        gdc_case_id
+        case_gdc_id
     FROM `{table_id}`
     """
 
@@ -113,8 +113,8 @@ def compare_non_concat_table_columns(old_table_id: str, new_table_id: str, colum
         result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
 
         if result.total_rows > 0:
-            print(f"Found mismatched data for {column}.")
-            print(f"{result.total_rows} total records do not match in old and new tables.")
+            print(f"\nFound mismatched data for {column}.")
+            print(f"{result.total_rows} total records do not match in old and new tables.\n")
         else:
             print(f"{column} column matches in published and new tables!")
 
@@ -382,8 +382,6 @@ def main(args):
         "data_category",
         "data_format",
         "data_type",
-        "downstream_analyses__workflow_link",
-        "downstream_analyses__workflow_type",
         "experimental_strategy",
         "file_name",
         "file_size",
@@ -405,7 +403,9 @@ def main(args):
         'downstream_analyses__output_file_gdc_ids',
         'associated_entities__entity_gdc_id',
         'associated_entities__entity_submitter_id',
-        'gdc_case_id'
+        'case_gdc_id',
+        "downstream_analyses__workflow_link",
+        "downstream_analyses__workflow_type",
     ]
 
     old_table_id = 'isb-cgc-bq.GDC_case_file_metadata.fileData_active_current'
