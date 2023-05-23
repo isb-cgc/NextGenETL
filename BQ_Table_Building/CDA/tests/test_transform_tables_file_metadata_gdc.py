@@ -422,8 +422,8 @@ def main(args):
         'associated_entities__entity_gdc_id',
         'associated_entities__entity_submitter_id',
         'case_gdc_id',
-        "downstream_analyses__workflow_link",
-        "downstream_analyses__workflow_type",
+        # "downstream_analyses__workflow_link",
+        # "downstream_analyses__workflow_type",
     ]
 
     old_table_id = 'isb-cgc-bq.GDC_case_file_metadata.fileData_active_current'

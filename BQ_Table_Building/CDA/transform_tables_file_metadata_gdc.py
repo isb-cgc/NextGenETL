@@ -33,8 +33,13 @@ from common_etl.utils import format_seconds, normalize_flat_json_values, write_l
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
-def convert_concat_to_multi(value_string: str, max_length: int = 8) -> str:
-    string_length: int = len(value_string.split(';'))
+def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
+    if filter_duplicates:
+        value_set = set(value_string.split(';'))
+        string_length = len(value_set)
+        value_string = ';'.join(value_set)
+    else:
+        string_length: int = len(value_string.split(';'))
 
     if string_length > max_length:
         return 'multi'
@@ -220,7 +225,9 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
             ON fhif.index_file_id = f.file_id
         """
 
-    def add_concat_fields_to_file_records(sql: str, concat_field_list: Union[None, list[str]]):
+    def add_concat_fields_to_file_records(sql: str,
+                                          concat_field_list: Union[None, list[str]],
+                                          filter_duplicates: bool = False):
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
@@ -231,7 +238,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
             if concat_field_list:
                 for field in concat_field_list:
-                    file_records[file_id][field] = convert_concat_to_multi((record.get(field)))
+                    file_records[file_id][field] = convert_concat_to_multi(value_string=record.get(field),
+                                                                           filter_duplicates=filter_duplicates)
 
     print("\nCreating base file metadata record objects")
 
@@ -323,7 +331,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
                                                         'downstream_analyses__workflow_type']
 
     add_concat_fields_to_file_records(sql=make_downstream_analyses_sql(),
-                                      concat_field_list=downstream_analyses_concat_field_list)
+                                      concat_field_list=downstream_analyses_concat_field_list,
+                                      filter_duplicates=True)
 
     # Add associated entity fields to file records
     print("Adding associated entity fields to file records")
