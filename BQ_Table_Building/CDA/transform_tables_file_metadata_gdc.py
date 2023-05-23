@@ -306,7 +306,9 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
     acl_concat_field_list: list[str] = ['acl']
 
-    add_concat_fields_to_file_records(sql=make_acl_sql(), concat_field_list=acl_concat_field_list)
+    add_concat_fields_to_file_records(sql=make_acl_sql(),
+                                      concat_field_list=acl_concat_field_list,
+                                      filter_duplicates=True)
 
     # Add analysis input file ids to file records
     print("Adding analysis input file ids to file records")
@@ -314,7 +316,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     analysis_input_concat_field_list: list[str] = ['analysis_input_file_gdc_ids']
 
     add_concat_fields_to_file_records(sql=make_analysis_input_file_gdc_ids_sql(),
-                                      concat_field_list=analysis_input_concat_field_list)
+                                      concat_field_list=analysis_input_concat_field_list,
+                                      filter_duplicates=True)
 
     # Add downstream analyses output file ids to file records
     print("Adding downstream analyses output file ids to file records")
@@ -322,7 +325,8 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
     downstream_output_concat_field_list: list[str] = ['downstream_analyses__output_file_gdc_ids']
 
     add_concat_fields_to_file_records(sql=make_downstream_analyses_output_file_gdc_ids_sql(),
-                                      concat_field_list=downstream_output_concat_field_list)
+                                      concat_field_list=downstream_output_concat_field_list,
+                                      filter_duplicates=True)
 
     # Add downstream analyses fields to file records
     print("Adding downstream analyses fields to file records")
