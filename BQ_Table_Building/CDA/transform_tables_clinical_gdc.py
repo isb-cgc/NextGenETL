@@ -37,14 +37,14 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
         if child_field_group:
             return f"""
                 WITH projects AS (
-                    SELECT DISTINCT project_id
-                    FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` 
+                    SELECT DISTINCT case_proj.project_id
+                    FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` parent
                     JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
                         USING ({parent_field_group}_id)
                     JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
                         ON child_case.case_id = case_proj.case_id
-                    GROUP BY {parent_field_group}_id, project_id
-                    HAVING COUNT({parent_field_group}_id) > 1
+                    GROUP BY parent.{parent_field_group}_id, case_proj.project_id
+                    HAVING COUNT(parent.{parent_field_group}_id) > 1
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
@@ -53,11 +53,11 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
         else:
             return f"""
                 WITH projects AS (
-                    SELECT DISTINCT project_id
+                    SELECT DISTINCT case_proj.project_id
                     FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
                     JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
                         ON child_case.case_id = case_proj.case_id
-                    GROUP BY child_case.case_id, project_id
+                    GROUP BY child_case.case_id, case_proj.project_id
                     HAVING COUNT(child_case.case_id) > 1
                 )
 
@@ -65,7 +65,7 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
                 FROM projects
             """
 
-    field_groups_and_projects_with_supplemental_tables = dict()
+    supplemental_tables = dict()
 
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
@@ -79,11 +79,11 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
             for project in projects:
                 project_set.add(project[0])
 
-            # if result is non-null, add to projects_with_supplemental_tables
+            # if result is non-null, add to supplemental_tables
             if len(project_set) > 0:
-                field_groups_and_projects_with_supplemental_tables[field_group_name] = project_set
+                supplemental_tables[field_group_name] = project_set
 
-    for field_group, projects in field_groups_and_projects_with_supplemental_tables.items():
+    for field_group, projects in supplemental_tables.items():
         print(f"{field_group}: {projects}")
 
 
