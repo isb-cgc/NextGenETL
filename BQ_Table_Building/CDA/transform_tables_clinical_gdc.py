@@ -109,6 +109,11 @@ def find_base_and_supplemental_tables_for_programs(field_groups_dict: dict[str, 
 
 
 def main(args):
+    api_params = {
+
+
+
+    }
     field_groups_dict = {
         "demographic": {
             "first_level_field_group": "demographic",
@@ -162,14 +167,11 @@ def main(args):
     for field_group, programs in clinical_table_program_mappings.items():
         print(f"{field_group}: {sorted(programs)}")
 
-
-
-    # Steps:
-    # Create mappings for column names in CDA and ISB-CGC tables
-    # Retrieve a list of programs
+    # steps:
+    # Create mappings for column names in CDA and ISB-CGC tables -- make yaml API params file for this, it's too big
+    # Add field groups dict to yaml
     # Retrieve case ids by program
     # Determine which tables need to be created for each program -- single clinical table, or additional mapping tables?
-    #
 
 
 if __name__ == "__main__":
