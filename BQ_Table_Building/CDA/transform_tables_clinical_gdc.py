@@ -25,7 +25,7 @@ from common_etl.support import bq_harness_with_result
 
 
 def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]]):
-    def make_projects_with_multiple_ids_per_case_sql() -> str:
+    def make_programs_with_multiple_ids_per_case_sql() -> str:
         parent_field_group = table_vocabulary_dict['first_level_field_group']
 
         # only has a value if this field group is a child of another (e.g. diagnoses.treatments)
@@ -36,7 +36,7 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
 
         if child_field_group:
             return f"""
-                WITH projects AS (
+                WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
                     FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` parent
                     JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
@@ -48,11 +48,11 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-                FROM projects
+                FROM programs
             """
         else:
             return f"""
-                WITH projects AS (
+                WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
                     FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
                     JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
@@ -62,29 +62,47 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-                FROM projects
+                FROM programs
             """
+
+    def make_programs_with_cases_sql() -> str:
+        # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
+        # clinical case associations, which has happened in the past
+        return f"""
+        SELECT DISTINCT program_name
+        FROM `isb-project-zero.cda_gdc_test.2023_03_case_project_program`
+        
+        """
 
     supplemental_tables = dict()
 
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
-        projects = bq_harness_with_result(sql=make_projects_with_multiple_ids_per_case_sql(),
+        programs = bq_harness_with_result(sql=make_programs_with_multiple_ids_per_case_sql(),
                                           do_batch=False,
                                           verbose=False)
 
-        project_set = set()
+        program_set = set()
 
-        if projects is not None:
-            for project in projects:
-                project_set.add(project[0])
+        if programs is not None:
+            for program in programs:
+                program_set.add(program[0])
 
             # if result is non-null, add to supplemental_tables
-            if len(project_set) > 0:
-                supplemental_tables[field_group_name] = project_set
+            if len(program_set) > 0:
+                supplemental_tables[field_group_name] = program_set
 
-    for field_group, projects in supplemental_tables.items():
-        print(f"{field_group}: {projects}")
+    base_programs = bq_harness_with_result(sql=make_programs_with_cases_sql(), do_batch=False, verbose=False)
+
+    base_program_set = set()
+
+    if base_programs is not None:
+        for base_program in base_programs:
+            base_program_set.add(base_program[0])
+
+        supplemental_tables['clinical'] = base_program_set
+
+    return supplemental_tables
 
 
 def main(args):
@@ -136,7 +154,17 @@ def main(args):
         },
     }
 
-    find_project_supplemental_tables(field_groups_dict)
+    supplemental_tables = find_project_supplemental_tables(field_groups_dict)
+
+    for field_group, programs in supplemental_tables.items():
+        print(f"{field_group}: {programs}")
+
+    # Steps:
+    # Create mappings for column names in CDA and ISB-CGC tables
+    # Retrieve a list of programs
+    # Retrieve case ids by program
+    # Determine which tables need to be created for each program -- single clinical table, or additional mapping tables?
+    #
 
 
 if __name__ == "__main__":
