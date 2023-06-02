@@ -24,7 +24,16 @@ import sys
 from common_etl.support import bq_harness_with_result
 
 
-def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]]):
+def find_base_and_supplemental_tables_for_programs(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+    def make_programs_with_cases_sql() -> str:
+        # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
+        # clinical case associations, which has happened in the past
+        return f"""
+        SELECT DISTINCT program_name
+        FROM `isb-project-zero.cda_gdc_test.2023_03_case_project_program`
+
+        """
+
     def make_programs_with_multiple_ids_per_case_sql() -> str:
         parent_field_group = table_vocabulary_dict['first_level_field_group']
 
@@ -65,17 +74,21 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
                 FROM programs
             """
 
-    def make_programs_with_cases_sql() -> str:
-        # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
-        # clinical case associations, which has happened in the past
-        return f"""
-        SELECT DISTINCT program_name
-        FROM `isb-project-zero.cda_gdc_test.2023_03_case_project_program`
-        
-        """
+    clinical_table_program_mappings = dict()
 
-    supplemental_tables = dict()
+    # Create program set for base clinical tables -- will include every program with clinical cases
+    base_programs = bq_harness_with_result(sql=make_programs_with_cases_sql(), do_batch=False, verbose=False)
 
+    base_program_set = set()
+
+    if base_programs is not None:
+        for base_program in base_programs:
+            base_program_set.add(base_program[0])
+
+        clinical_table_program_mappings['clinical'] = base_program_set
+
+    # Create set of programs for each mapping table type,
+    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
         programs = bq_harness_with_result(sql=make_programs_with_multiple_ids_per_case_sql(),
@@ -88,21 +101,11 @@ def find_project_supplemental_tables(field_groups_dict: dict[str, dict[str, str]
             for program in programs:
                 program_set.add(program[0])
 
-            # if result is non-null, add to supplemental_tables
+            # if result is non-null, add to clinical_table_program_mappings
             if len(program_set) > 0:
-                supplemental_tables[field_group_name] = program_set
+                clinical_table_program_mappings[field_group_name] = program_set
 
-    base_programs = bq_harness_with_result(sql=make_programs_with_cases_sql(), do_batch=False, verbose=False)
-
-    base_program_set = set()
-
-    if base_programs is not None:
-        for base_program in base_programs:
-            base_program_set.add(base_program[0])
-
-        supplemental_tables['clinical'] = base_program_set
-
-    return supplemental_tables
+    return clinical_table_program_mappings
 
 
 def main(args):
@@ -154,10 +157,12 @@ def main(args):
         },
     }
 
-    supplemental_tables = find_project_supplemental_tables(field_groups_dict)
+    clinical_table_program_mappings = find_base_and_supplemental_tables_for_programs(field_groups_dict)
 
-    for field_group, programs in supplemental_tables.items():
-        print(f"{field_group}: {programs}")
+    for field_group, programs in clinical_table_program_mappings.items():
+        print(f"{field_group}: {sorted(programs)}")
+
+
 
     # Steps:
     # Create mappings for column names in CDA and ISB-CGC tables
