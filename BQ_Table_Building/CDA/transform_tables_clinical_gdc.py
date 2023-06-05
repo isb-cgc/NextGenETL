@@ -197,15 +197,17 @@ def main(args):
     all_program_columns = dict()
 
     for program in programs:
+        print(f"finding columns for {program}!")
         program_columns = dict()
 
         for field_group in field_groups:
-            non_null_columns = find_null_columns_by_program(program='APOLLO', field_group=field_group)
+            non_null_columns = find_null_columns_by_program(program=program, field_group=field_group)
             if len(non_null_columns) > 0:
                 program_columns[field_group] = non_null_columns
 
         all_program_columns[program] = program_columns
 
+    print("\n*** Non-null columns, by program\n")
     for program, column_groups in all_program_columns.items():
         print(f"\n{program}\n")
         for field_group, columns in column_groups:
