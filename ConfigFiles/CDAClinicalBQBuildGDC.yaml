@@ -1,6 +1,6 @@
 #
-# YAML Configuration file used for script build_gdc_api_clinical_program_tables.py
-# Builds BQ program-level tables for clinical data.
+# YAML Configuration file used for script transform_tables_clinical_gdc.py
+# Builds BQ program-level tables for CDA-GDC clinical data.
 #
 
 version: 1
@@ -11,14 +11,9 @@ version: 1
 #
 ######################################################################################
 api_params:
-  # Configuration parameters for selecting how and which fields to include in the
-  # GDC clinical program tables:
-  # - prefix: how to modify field names by field group, in order to ensure uniqueness
-  # - table_suffix: suffix for base clinical table name, used to name one-to-many tables
-  # - id_key: unique identifier key for the field group
-  # - column_order: order in which to display columns in BQ table.
-  #     Note: when two field groups are merged together into one table, the order is first
-  #     determined by FG_CONFIG['order'], then by FIELD_CONFIG[fg]['column_order'].
+
+  # Define names for clinical mapping tsv files. Used to automatically generate a dictionary of
+  # required clinical mapping tables for programs.
 
   TSV_FIELD_GROUP_CONFIG:
     demographic:
@@ -58,7 +53,14 @@ api_params:
       second_level_field_group: molecular_test
       table_join_word: from
 
-
+  # Configuration parameters for selecting how and which fields to include in the
+  # GDC clinical program tables:
+  # - prefix: how to modify field names by field group, in order to ensure uniqueness
+  # - table_suffix: suffix for base clinical table name, used to name one-to-many tables
+  # - id_key: unique identifier key for the field group
+  # - column_order: order in which to display columns in BQ table.
+  #     Note: when two field groups are merged together into one table, the order is first
+  #     determined by FG_CONFIG['order'], then by FIELD_CONFIG[fg]['column_order'].
   FIELD_CONFIG:
     cases:
       prefix:

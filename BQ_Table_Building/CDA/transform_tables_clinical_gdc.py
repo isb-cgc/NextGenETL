@@ -22,9 +22,14 @@ SOFTWARE.
 import sys
 
 from common_etl.support import bq_harness_with_result
+from common_etl.utils import load_config, has_fatal_error
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def find_base_and_supplemental_tables_for_programs(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_cases_sql() -> str:
         # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
         # clinical case associations, which has happened in the past
@@ -109,60 +114,14 @@ def find_base_and_supplemental_tables_for_programs(field_groups_dict: dict[str, 
 
 
 def main(args):
-    api_params = {
 
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
 
-
-    }
-    field_groups_dict = {
-        "demographic": {
-            "first_level_field_group": "demographic",
-            "second_level_field_group": "",
-            "table_join_word": "",
-        },
-        "diagnoses": {
-            "first_level_field_group": "diagnosis",
-            "second_level_field_group": "",
-            "table_join_word": "",
-        },
-        "diagnoses.annotations": {
-            "first_level_field_group": "diagnosis",
-            "second_level_field_group": "annotation",
-            "table_join_word": "has",
-        },
-        "diagnoses.pathology_details": {
-            "first_level_field_group": "diagnosis",
-            "second_level_field_group": "pathology_details",
-            "table_join_word": "of",
-        },
-        "diagnoses.treatments": {
-            "first_level_field_group": "diagnosis",
-            "second_level_field_group": "treatment",
-            "table_join_word": "of",
-        },
-        "exposures": {
-            "first_level_field_group": "exposure",
-            "second_level_field_group": "",
-            "table_join_word": "",
-        },
-        "family_histories": {
-            "first_level_field_group": "family_history",
-            "second_level_field_group": "",
-            "table_join_word": "",
-        },
-        "follow_ups": {
-            "first_level_field_group": "follow_up",
-            "second_level_field_group": "",
-            "table_join_word": "",
-        },
-        "follow_ups.molecular_tests": {
-            "first_level_field_group": "follow_up",
-            "second_level_field_group": "molecular_test",
-            "table_join_word": "from",
-        },
-    }
-
-    clinical_table_program_mappings = find_base_and_supplemental_tables_for_programs(field_groups_dict)
+    clinical_table_program_mappings = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
     for field_group, programs in clinical_table_program_mappings.items():
         print(f"{field_group}: {sorted(programs)}")
