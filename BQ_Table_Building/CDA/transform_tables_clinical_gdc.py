@@ -200,7 +200,8 @@ def main(args):
         non_null_columns = find_null_columns_by_program(program='APOLLO', field_group=field_group)
         program_columns[field_group] = non_null_columns
 
-    print(program_columns)
+    for field_group, columns in program_columns.items():
+        print(f"{field_group}: {columns}")
 
     # steps:
     # Retrieve case ids by program
