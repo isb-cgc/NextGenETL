@@ -189,6 +189,7 @@ def main(args):
     programs = ['APOLLO', 'BEATAML1.0', 'CDDP_EAGLE', 'CGCI', 'CMI', 'CPTAC', 'CTSP', 'EXCEPTIONAL_RESPONDERS', 'FM',
                 'GENIE', 'HCMI', 'MATCH', 'MMRF', 'MP2PRT', 'NCICCR', 'OHSU', 'ORGANOID', 'REBC', 'TARGET', 'TCGA',
                 'TRIO', 'VAREPOP', 'WCDT']
+    programs = ['TCGA']
     field_groups = ['demographic', 'diagnosis', 'annotation', 'treatment', 'pathology_detail', 'exposure',
                     'family_history', 'follow_up', 'molecular_test']
 
@@ -197,7 +198,7 @@ def main(args):
     all_program_columns = dict()
 
     for program in programs:
-        print(f"finding columns for {program}!")
+        print(f"Finding columns for {program}")
         program_columns = dict()
 
         for field_group in field_groups:
@@ -210,7 +211,7 @@ def main(args):
     print("\n*** Non-null columns, by program\n")
     for program, column_groups in all_program_columns.items():
         print(f"\n{program}\n")
-        for field_group, columns in column_groups:
+        for field_group, columns in column_groups.items():
             print(f"{field_group}: {columns}")
 
     # steps:
