@@ -151,14 +151,17 @@ def find_null_columns_by_program(program, field_group):
 
     column_count_result = bq_harness_with_result(sql=make_count_column_sql(), do_batch=False, verbose=False)
 
-    columns_counts = dict()
+    non_null_columns = set()
 
     for row in column_count_result:
         # get columns for field group
         for column in API_PARAMS['FIELD_CONFIG'][field_group]['column_order']:
-            columns_counts[column] = row.get(f"{column}_count")
+            count = row.get(f"{column}_count")
 
-    print(columns_counts)
+            if count is not None and count > 0:
+                non_null_columns.add(column)
+
+    return non_null_columns
 
 
 def create_base_clinical_table_for_program():
@@ -191,7 +194,9 @@ def main(args):
 
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
-    find_null_columns_by_program(program='APOLLO', field_group="demographic")
+    non_null_columns = find_null_columns_by_program(program='APOLLO', field_group="demographic")
+
+    print(non_null_columns)
 
     # for field_group in field_groups:
     #    sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
