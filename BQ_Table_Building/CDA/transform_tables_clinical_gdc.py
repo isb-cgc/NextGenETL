@@ -103,6 +103,60 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     return tables_per_program_dict
 
 
+def find_null_columns_by_program(program, field_group):
+    def make_count_column_sql() -> str:
+        columns = API_PARAMS['FIELD_CONFIG'][field_group]['column_order']
+        mapping_table = API_PARAMS['FIELD_CONFIG'][field_group]['mapping_table']
+        id_key = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
+        parent_table = API_PARAMS['FIELD_CONFIG'][field_group]['child_of']
+
+        count_sql_str = ''
+
+        for column in columns:
+            count_sql_str += f'SUM(CASE WHEN child_table.{column} is null THEN 0 ELSE 1 END)  AS {column}_count,'
+
+        # remove extra comma (due to looping) from end of string
+        count_sql_str = count_sql_str[:-1]
+
+        if parent_table == 'case':
+            return f"""
+            SELECT {count_sql_str}
+            FROM `isb-project-zero.cda_gdc_test.2023_03_{field_group}` child_table
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_{mapping_table}` mapping_table
+                ON mapping_table.{id_key} = child_table.{id_key}
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
+                ON mapping_table.case_id = cpp.case_gdc_id
+            WHERE cpp.program_name = {program}
+            """
+        elif parent_table:
+            parent_mapping_table = API_PARAMS['FIELD_CONFIG'][parent_table]['mapping_table']
+            parent_id_key = API_PARAMS['FIELD_CONFIG'][parent_table]['id_key']
+
+            return f"""
+            SELECT {count_sql_str}
+            FROM `isb-project-zero.cda_gdc_test.2023_03_{field_group}` child_table
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_{mapping_table}` mapping_table
+                ON mapping_table.{id_key} = child_table.{id_key}
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_table}` parent_table
+                ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_mapping_table}` parent_mapping_table
+                ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
+            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
+                ON parent_mapping_table.case_id = cpp.case_gdc_id
+            WHERE cpp.program_name = {program}
+            """
+        else:
+            pass
+            # handle project and case field groups
+
+
+def create_base_clinical_table_for_program():
+    pass
+    # get list of mapping tables to flatten into clinical -- exclude those in tables_per_program_dict
+    # create query that contains all the columns for each included field group
+    # don't include columns that are null for every case within the given program
+
+
 def main(args):
 
     try:
@@ -118,9 +172,19 @@ def main(args):
         for program, tables in tables_per_program_dict.items():
             print(f"{program}: {tables}")
 
+    programs = ['APOLLO', 'BEATAML1.0', 'CDDP_EAGLE', 'CGCI', 'CMI', 'CPTAC', 'CTSP', 'EXCEPTIONAL_RESPONDERS', 'FM',
+                'GENIE', 'HCMI', 'MATCH', 'MMRF', 'MP2PRT', 'NCICCR', 'OHSU', 'ORGANOID', 'REBC', 'TARGET', 'TCGA',
+                'TRIO', 'VAREPOP', 'WCDT']
+    field_groups = ['demographic', 'diagnosis', 'annotation', 'treatment', 'pathology_detail', 'exposure',
+                    'family_history', 'follow_up', 'molecular_test']
+
+    # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
+
+    for field_group in field_groups:
+        find_null_columns_by_program(program='APOLLO',
+                                     field_group=field_group)
+
     # steps:
-    # Create mappings for column names in CDA and ISB-CGC tables -- make yaml API params file for this, it's too big
-    # Add field groups dict to yaml
     # Retrieve case ids by program
     # Determine which tables need to be created for each program -- single clinical table, or additional mapping tables?
 
