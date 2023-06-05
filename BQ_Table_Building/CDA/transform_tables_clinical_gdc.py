@@ -181,8 +181,7 @@ def main(args):
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
     for field_group in field_groups:
-        find_null_columns_by_program(program='APOLLO',
-                                     field_group=field_group)
+        print(find_null_columns_by_program(program='APOLLO', field_group=field_group))
 
     # steps:
     # Retrieve case ids by program
