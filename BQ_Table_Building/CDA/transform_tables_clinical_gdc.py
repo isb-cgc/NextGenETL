@@ -113,10 +113,10 @@ def find_null_columns_by_program(program, field_group):
         count_sql_str = ''
 
         for column in columns:
-            count_sql_str += f'SUM(CASE WHEN child_table.{column} is null THEN 0 ELSE 1 END)  AS {column}_count,'
+            count_sql_str += f'\nSUM(CASE WHEN child_table.{column} is null THEN 0 ELSE 1 END) AS {column}_count, '
 
         # remove extra comma (due to looping) from end of string
-        count_sql_str = count_sql_str[:-1]
+        count_sql_str = count_sql_str[:-2]
 
         if parent_table == 'case':
             return f"""
@@ -126,7 +126,7 @@ def find_null_columns_by_program(program, field_group):
                 ON mapping_table.{id_key} = child_table.{id_key}
             JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
                 ON mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = {program}
+            WHERE cpp.program_name = '{program}'
             """
         elif parent_table:
             parent_mapping_table = API_PARAMS['FIELD_CONFIG'][parent_table]['mapping_table']
@@ -143,7 +143,7 @@ def find_null_columns_by_program(program, field_group):
                 ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
             JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
                 ON parent_mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = {program}
+            WHERE cpp.program_name = '{program}'
             """
         else:
             pass
