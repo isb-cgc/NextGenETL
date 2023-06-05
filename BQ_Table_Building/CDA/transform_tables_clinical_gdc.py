@@ -123,10 +123,12 @@ def main(args):
 
     print(API_PARAMS)
 
-    clinical_table_program_mappings = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
+    if 'find_program_tables' in steps:
 
-    for field_group, programs in clinical_table_program_mappings.items():
-        print(f"{field_group}: {sorted(programs)}")
+        clinical_table_program_mappings = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
+
+        for field_group, programs in clinical_table_program_mappings.items():
+            print(f"{field_group}: {sorted(programs)}")
 
     # steps:
     # Create mappings for column names in CDA and ISB-CGC tables -- make yaml API params file for this, it's too big
