@@ -151,8 +151,14 @@ def find_null_columns_by_program(program, field_group):
 
     column_count_result = bq_harness_with_result(sql=make_count_column_sql(), do_batch=False, verbose=False)
 
-    for column, column_count in column_count_result.items():
-        print(f"{column}: {column_count}")
+    columns_counts = dict()
+
+    for row in column_count_result:
+        # get columns for field group
+        for column in API_PARAMS['FIELD_CONFIG'][field_group]['column_order']:
+            columns_counts[column] = row.get(f"{column}_count")
+
+    print(columns_counts)
 
 
 def create_base_clinical_table_for_program():
