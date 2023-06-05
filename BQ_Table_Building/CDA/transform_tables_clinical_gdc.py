@@ -151,7 +151,7 @@ def find_null_columns_by_program(program, field_group):
 
     column_count_result = bq_harness_with_result(sql=make_count_column_sql(), do_batch=False, verbose=False)
 
-    non_null_columns = set()
+    non_null_columns = list()
 
     for row in column_count_result:
         # get columns for field group
@@ -159,7 +159,7 @@ def find_null_columns_by_program(program, field_group):
             count = row.get(f"{column}_count")
 
             if count is not None and count > 0:
-                non_null_columns.add(column)
+                non_null_columns.append(column)
 
     return non_null_columns
 
@@ -194,14 +194,22 @@ def main(args):
 
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
-    program_columns = dict()
+    all_program_columns = dict()
 
-    for field_group in field_groups:
-        non_null_columns = find_null_columns_by_program(program='APOLLO', field_group=field_group)
-        program_columns[field_group] = non_null_columns
+    for program in programs:
+        program_columns = dict()
 
-    for field_group, columns in program_columns.items():
-        print(f"{field_group}: {columns}")
+        for field_group in field_groups:
+            non_null_columns = find_null_columns_by_program(program='APOLLO', field_group=field_group)
+            if len(non_null_columns) > 0:
+                program_columns[field_group] = non_null_columns
+
+        all_program_columns[program] = program_columns
+
+    for program, column_groups in all_program_columns.items():
+        print(f"\n{program}\n")
+        for field_group, columns in column_groups:
+            print(f"{field_group}: {columns}")
 
     # steps:
     # Retrieve case ids by program
