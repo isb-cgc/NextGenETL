@@ -119,6 +119,7 @@ def main(args):
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
+        print("here")
         has_fatal_error(err, ValueError)
 
     clinical_table_program_mappings = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
