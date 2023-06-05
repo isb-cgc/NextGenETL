@@ -149,6 +149,8 @@ def find_null_columns_by_program(program, field_group):
             pass
             # handle project and case field groups
 
+    return make_count_column_sql()
+
 
 def create_base_clinical_table_for_program():
     pass
@@ -181,7 +183,7 @@ def main(args):
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
     for field_group in field_groups:
-        print(find_null_columns_by_program(program='APOLLO', field_group=field_group))
+        sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
 
     # steps:
     # Retrieve case ids by program
