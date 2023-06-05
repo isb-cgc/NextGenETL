@@ -149,7 +149,10 @@ def find_null_columns_by_program(program, field_group):
             pass
             # handle project and case field groups
 
-    return make_count_column_sql()
+    column_count_result = bq_harness_with_result(sql=make_count_column_sql(), do_batch=False, verbose=False)
+
+    for column, column_count in column_count_result.items():
+        print(f"{column}: {column_count}")
 
 
 def create_base_clinical_table_for_program():
@@ -182,9 +185,11 @@ def main(args):
 
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
-    for field_group in field_groups:
-        sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
-        print(sql)
+    find_null_columns_by_program(program='APOLLO', field_group="demographic")
+
+    # for field_group in field_groups:
+    #    sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
+    #    print(sql)
 
     # steps:
     # Retrieve case ids by program
