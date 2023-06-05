@@ -171,8 +171,8 @@ def main(args):
 
         tables_per_program_dict = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
-        for program, tables in tables_per_program_dict.items():
-            print(f"{program}: {tables}")
+        # for program, tables in tables_per_program_dict.items():
+        #     print(f"{program}: {tables}")
 
     programs = ['APOLLO', 'BEATAML1.0', 'CDDP_EAGLE', 'CGCI', 'CMI', 'CPTAC', 'CTSP', 'EXCEPTIONAL_RESPONDERS', 'FM',
                 'GENIE', 'HCMI', 'MATCH', 'MMRF', 'MP2PRT', 'NCICCR', 'OHSU', 'ORGANOID', 'REBC', 'TARGET', 'TCGA',
@@ -184,6 +184,7 @@ def main(args):
 
     for field_group in field_groups:
         sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
+        print(sql)
 
     # steps:
     # Retrieve case ids by program
