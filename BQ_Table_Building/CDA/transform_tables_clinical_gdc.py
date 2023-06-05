@@ -79,18 +79,14 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
                 FROM programs
             """
 
-    clinical_table_program_mappings = dict()
+    tables_per_program_dict = dict()
 
     # Create program set for base clinical tables -- will include every program with clinical cases
     base_programs = bq_harness_with_result(sql=make_programs_with_cases_sql(), do_batch=False, verbose=False)
 
-    base_program_set = set()
-
     if base_programs is not None:
         for base_program in base_programs:
-            base_program_set.add(base_program[0])
-
-        clinical_table_program_mappings['clinical'] = base_program_set
+            tables_per_program_dict[base_program[0]] = {'clinical'}
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
@@ -100,17 +96,11 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
                                           do_batch=False,
                                           verbose=False)
 
-        program_set = set()
-
         if programs is not None:
             for program in programs:
-                program_set.add(program[0])
+                tables_per_program_dict[program[0]].add(field_group_name)
 
-            # if result is non-null, add to clinical_table_program_mappings
-            if len(program_set) > 0:
-                clinical_table_program_mappings[field_group_name] = program_set
-
-    return clinical_table_program_mappings
+    return tables_per_program_dict
 
 
 def main(args):
@@ -121,14 +111,12 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    print(API_PARAMS)
-
     if 'find_program_tables' in steps:
 
-        clinical_table_program_mappings = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
+        tables_per_program_dict = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
-        for field_group, programs in clinical_table_program_mappings.items():
-            print(f"{field_group}: {sorted(programs)}")
+        for program, tables in tables_per_program_dict.items():
+            print(f"{program}: {tables}")
 
     # steps:
     # Create mappings for column names in CDA and ISB-CGC tables -- make yaml API params file for this, it's too big
