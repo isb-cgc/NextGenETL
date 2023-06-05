@@ -194,13 +194,13 @@ def main(args):
 
     # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
-    non_null_columns = find_null_columns_by_program(program='APOLLO', field_group="demographic")
+    program_columns = dict()
 
-    print(non_null_columns)
+    for field_group in field_groups:
+        non_null_columns = find_null_columns_by_program(program='APOLLO', field_group=field_group)
+        program_columns[field_group] = non_null_columns
 
-    # for field_group in field_groups:
-    #    sql = find_null_columns_by_program(program='APOLLO', field_group=field_group)
-    #    print(sql)
+    print(program_columns)
 
     # steps:
     # Retrieve case ids by program
