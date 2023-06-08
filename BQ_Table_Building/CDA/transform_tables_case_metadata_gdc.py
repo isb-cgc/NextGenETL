@@ -60,7 +60,7 @@ def make_case_metadata_table_sql():
         ON c.case_id = cpp.case_gdc_id
     JOIN {create_dev_table_id('project_studies_disease_type')} psdt
         ON psdt.project_id = cpp.project_id
-    JOIN {BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']} r
+    JOIN `{BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
         ON cpp.case_gdc_id = r.case_gdc_id
     JOIN counts 
         ON counts.case_id = cpp.case_gdc_id
