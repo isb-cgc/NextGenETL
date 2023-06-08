@@ -76,6 +76,9 @@ def main(args):
 
     if 'create_table_from_query' in steps:
         table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.case_metadata_{API_PARAMS['RELEASE']}"
+
+        print(make_case_metadata_table_sql())
+
         load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_case_metadata_table_sql())
 
 
