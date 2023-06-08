@@ -24,17 +24,17 @@ FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformCaseGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_case_gdc.py"
+    CONFIG_FILE="CDATestTransformCaseBQBuildGDC.yaml"
+    SCRIPT_FILE="test_transform_tables_case_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformClinicalGDC.yaml"
+    CONFIG_FILE="CDATestTransformClinicalBQBuildGDC.yaml"
     SCRIPT_FILE="test_transform_tables_clinical_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformFileGDC.yaml"
+    CONFIG_FILE="CDATestTransformFileBQBuildGDC.yaml"
     SCRIPT_FILE="test_transform_tables_file_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformPerSampleFileGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_per_sample_file_metadata_gdc.py"
+    CONFIG_FILE="CDATestTransformPerSampleFileBQBuildGDC.yaml"
+    SCRIPT_FILE="test_transform_tables_per_sample_file_gdc.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file"
     exit 1
