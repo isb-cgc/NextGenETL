@@ -103,6 +103,14 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     return tables_per_program_dict
 
 
+def create_dev_table_id(table_name) -> str:
+    working_project: str = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset: str = BQ_PARAMS['WORKING_DATASET']
+    release: str = API_PARAMS['RELEASE']
+
+    return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
+
+
 def find_null_columns_by_program(program, field_group):
     def make_count_column_sql() -> str:
         columns = API_PARAMS['FIELD_CONFIG'][field_group]['column_order']
@@ -121,10 +129,10 @@ def find_null_columns_by_program(program, field_group):
         if parent_table == 'case':
             return f"""
             SELECT {count_sql_str}
-            FROM `isb-project-zero.cda_gdc_test.2023_03_{field_group}` child_table
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_{mapping_table}` mapping_table
+            FROM `{create_dev_table_id(field_group)}` child_table
+            JOIN `{create_dev_table_id(mapping_table)}` mapping_table
                 ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
+            JOIN `{create_dev_table_id('case_project_program')}` cpp
                 ON mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
             """
@@ -134,14 +142,14 @@ def find_null_columns_by_program(program, field_group):
 
             return f"""
             SELECT {count_sql_str}
-            FROM `isb-project-zero.cda_gdc_test.2023_03_{field_group}` child_table
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_{mapping_table}` mapping_table
+            FROM `{create_dev_table_id(field_group)}` child_table
+            JOIN `{create_dev_table_id(mapping_table)}` mapping_table
                 ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_table}` parent_table
+            JOIN `{create_dev_table_id(parent_table)}` parent_table
                 ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_mapping_table}` parent_mapping_table
+            JOIN `{create_dev_table_id(parent_mapping_table)}` parent_mapping_table
                 ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-            JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
+            JOIN `{create_dev_table_id('case_project_program')}` cpp
                 ON parent_mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
             """
@@ -172,7 +180,6 @@ def create_base_clinical_table_for_program():
 
 
 def main(args):
-
     try:
         global API_PARAMS, BQ_PARAMS
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)

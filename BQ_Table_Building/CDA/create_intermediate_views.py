@@ -20,10 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
-from common_etl.utils import create_view_from_query
+from common_etl.utils import create_view_from_query, load_config, has_fatal_error
 
 
-def create_project_program_view(bq_params, release):
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+
+
+def create_project_program_view():
     def make_project_program_view_query():
         return f"""
             SELECT 
@@ -42,8 +47,9 @@ def create_project_program_view(bq_params, release):
                 ON case_proj.project_id = proj.project_id 
         """
 
-    working_project = bq_params['WORKING_PROJECT']
-    working_dataset = bq_params['WORKING_DATASET']
+    release = API_PARAMS['RELEASE']
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
 
     view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
 
@@ -51,14 +57,14 @@ def create_project_program_view(bq_params, release):
 
 
 def main(args):
-    bq_params = {
-        "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": f"cda_gdc_test"
-    }
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
 
-    release = '2023_03'
-
-    create_project_program_view(bq_params, release)
+    if 'create_project_program_view' in steps:
+        create_project_program_view()
 
 
 if __name__ == "__main__":

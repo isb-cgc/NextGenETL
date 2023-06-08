@@ -24,12 +24,16 @@ FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformCaseGDC.yaml"
     SCRIPT_FILE="test_transform_tables_case_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformClinicalGDC.yaml"
     SCRIPT_FILE="test_transform_tables_clinical_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformFileGDC.yaml"
     SCRIPT_FILE="test_transform_tables_file_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformPerSampleFileGDC.yaml"
     SCRIPT_FILE="test_transform_tables_per_sample_file_metadata_gdc.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file"
@@ -39,6 +43,11 @@ fi
 export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
+mkdir -p ~/config
+pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
+popd > /dev/null
+
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
@@ -46,5 +55,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE}
+python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
 deactivate

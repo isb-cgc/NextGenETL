@@ -22,9 +22,15 @@ SOFTWARE.
 import sys
 
 from common_etl.support import bq_harness_with_result
-from typing import Any, Union, Optional
+from typing import Union
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
+
+from common_etl.utils import has_fatal_error, load_config
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
@@ -380,6 +386,12 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
 
 
 def main(args):
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
+
     non_concat_columns = [
         "dbName",
         "access",

@@ -16,8 +16,31 @@
 
 source ~/setEnvVars.sh
 
+DATA_SOURCE=$1
+
+GDC_ARG="gdc"
+PDC_ARG="pdc"
+IDC_ARG="idc"
+
+if [[ ${DATA_SOURCE} = ${GDC_ARG} ]] ; then
+    CONFIG_FILE="CDAExtractFromTSVGDC.yaml"
+elif [[ ${DATA_SOURCE} = ${PDC_ARG} ]] ; then
+    CONFIG_FILE="CDAExtractFromTSVPDC.yaml"
+elif [[ ${DATA_SOURCE} = ${IDC_ARG} ]] ; then
+    CONFIG_FILE="CDAExtractFromTSVIDC.yaml"
+else
+    echo "Error: incorrect or missing script data type argument. Accepted values: gdc, idc, pdc"
+    exit 1
+fi
+
+
 export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
+
+mkdir -p ~/config
+pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
+popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
@@ -26,5 +49,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py
+python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${CONFIG_FILE}
 deactivate

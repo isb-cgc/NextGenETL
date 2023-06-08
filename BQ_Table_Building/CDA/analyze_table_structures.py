@@ -26,22 +26,24 @@ import sys
 from typing import Union, Optional
 
 from common_etl.support import bq_harness_with_result
-from common_etl.utils import download_from_bucket, get_scratch_fp
+from common_etl.utils import download_from_bucket, get_scratch_fp, load_config, has_fatal_error
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 ParamsDict = dict[str, Union[str, int, dict, list]]
 
 
-def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = None) -> list[list[str]]:
+def retrieve_dataset_columns(version: Optional[str] = None) -> list[list[str]]:
     """
     Retrieve list of columns and tables in a given set, optionally filtering by data version.
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
-    :param str version: Optional, version prefix by which to filter
-    :return: List of table and column names
+    :param str version: version release number to by which to filter
     :rtype: list[list[str]]
     """
     table_column_query = f"""
         SELECT table_name, column_name
-        FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+        FROM `{BQ_PARAMS['WORKING_PROJECT']}`.{BQ_PARAMS['WORKING_DATASET']}.INFORMATION_SCHEMA.COLUMNS
     """
 
     table_columns = bq_harness_with_result(sql=table_column_query, do_batch=False, verbose=False)
@@ -58,8 +60,8 @@ def retrieve_dataset_columns(bq_params: ParamsDict, version: Optional[str] = Non
     return filtered_table_columns
 
 
-def get_tables_per_column(table_columns: list[list[str]], multiple_only: bool = False,
-                          print_output: bool = False) -> dict[str, list]:
+def get_tables_per_column(table_columns: list[list[str]],
+                          multiple_only: bool = False, print_output: bool = False) -> dict[str, list]:
     """
     Get list of tables for each column name (useful for identifying keys).
     :param list[list[str]] table_columns: Table and column names
@@ -95,18 +97,17 @@ def get_tables_per_column(table_columns: list[list[str]], multiple_only: bool = 
         return column_dict
 
 
-def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str) -> dict[str, dict[str, list]]:
+def import_current_fields(filename: str, bucket_path: str) -> dict[str, dict[str, list]]:
     """
     Import list of fields in current ISB-CGC workflows from tsv file.
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
-    :param str filename: Name of tsv file containing current fields
+    :param str filename: todo
     :param str bucket_path: Bucket path to current fields file
     :return: Dictionary of fields with endpoint and workflow data.
     :rtype: dict[str, dict[str, list]]
     """
-    download_from_bucket(bq_params, filename, bucket_path)
+    download_from_bucket(BQ_PARAMS, filename, bucket_path)
 
-    with open(get_scratch_fp(bq_params, filename), mode="r") as fields_file:
+    with open(get_scratch_fp(BQ_PARAMS, filename), mode="r") as fields_file:
         tsv_reader = csv.reader(fields_file, delimiter="\t")
 
         field_dict = dict()
@@ -128,18 +129,16 @@ def import_current_fields(bq_params: ParamsDict, filename: str, bucket_path: str
         return field_dict
 
 
-def output_field_column_differences(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
-                                    field_file_name: str):
+def output_field_column_differences(table_columns: list[list[str]], bucket_path: str, field_file_name: str):
     """
     Find column names not currently found in ISB-CGC workflows.
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
-    :param list[list[str]] table_columns: Table and column names
+    :param list[list[str]] table_columns: todo
     :param str bucket_path: Bucket path to current fields file
     :param str field_file_name: Name of tsv file containing current fields
     """
     columns_dict = get_tables_per_column(table_columns)
 
-    field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
+    field_dict = import_current_fields(filename=field_file_name, bucket_path=bucket_path)
 
     columns = set(columns_dict.keys())
     fields = set(field_dict.keys())
@@ -158,11 +157,11 @@ def output_field_column_differences(bq_params: ParamsDict, table_columns: list[l
         print(f"{field}\t{endpoint}\t{workflows}")
 
 
-def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
+def find_columns_not_in_current_workflows(table_columns: list[list[str]], bucket_path: str,
                                           field_file_name: str) -> set[str]:
     """
     Find column names not currently found in ISB-CGC workflows.
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
+    :param dict[str, Union[str, int, dict, list]] BQ_PARAMS: BQ params in YAML config
     :param list[list[str]] table_columns: Table and column names
     :param str bucket_path: Bucket path to current fields file
     :param str field_file_name: Name of tsv file containing current fields
@@ -170,7 +169,7 @@ def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: 
     :rtype: set[str]
     """
     columns_dict = get_tables_per_column(table_columns)
-    field_dict = import_current_fields(bq_params, filename=field_file_name, bucket_path=bucket_path)
+    field_dict = import_current_fields(filename=field_file_name, bucket_path=bucket_path)
 
     columns = set(columns_dict.keys())
     fields = set(field_dict.keys())
@@ -178,11 +177,9 @@ def find_columns_not_in_current_workflows(bq_params: ParamsDict, table_columns: 
     return columns - fields
 
 
-def count_non_null_column_values(bq_params: ParamsDict,
-                                 table_columns: list[list, str]) -> list[tuple[str, str, int, int, float]]:
+def count_non_null_column_values(table_columns: list[list, str]) -> list[tuple[str, str, int, int, float]]:
     """
     Calculate count of non-null values, total rows, and percentage of non-null values for each column.
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
     :param list[list[str]] table_columns: Table and column names
     :return: List of tuples containing (table name, column name, non-null count, total count, percentage non-null)
     :rtype: list[tuple[str, str, int, int, float]]
@@ -194,7 +191,7 @@ def count_non_null_column_values(bq_params: ParamsDict,
     for table_name, column_name in table_columns:
         sql_query = f"""
             SELECT COUNTIF({column_name} IS NOT NULL) as non_null_count, COUNT(*) as total_count
-            FROM `{bq_params['WORKING_PROJECT']}`.{bq_params['WORKING_DATASET']}.{table_name}
+            FROM `{BQ_PARAMS['WORKING_PROJECT']}`.{BQ_PARAMS['WORKING_DATASET']}.{table_name}
         """
 
         count_result = bq_harness_with_result(sql_query, do_batch=False, verbose=False)
@@ -235,8 +232,7 @@ def append_column_inclusion_status(columns_list: list[tuple[str, str, int, int, 
     return column_included_list
 
 
-def output_main_column_analysis(bq_params: ParamsDict, table_columns: list[list[str]], bucket_path: str,
-                                field_file_name: str):
+def output_main_column_analysis(table_columns: list[list[str]], bucket_path: str, field_file_name: str):
     """
     Build tsv print output for analysis spreadsheet, composed of the following columns:
         - table name
@@ -245,17 +241,15 @@ def output_main_column_analysis(bq_params: ParamsDict, table_columns: list[list[
         - total row count
         - percent non-null rows
         - column name included in current workflow?
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params in YAML config
     :param list[list[str]] table_columns: Table and column names
     :param str bucket_path: Bucket path to current fields file
     :param str field_file_name: Name of tsv file containing current fields
     """
-    columns_not_found_in_workflow = find_columns_not_in_current_workflows(bq_params,
-                                                                          table_columns,
+    columns_not_found_in_workflow = find_columns_not_in_current_workflows(table_columns,
                                                                           bucket_path,
                                                                           field_file_name=field_file_name)
 
-    columns_list = count_non_null_column_values(bq_params, table_columns)
+    columns_list = count_non_null_column_values(table_columns)
 
     column_included_list = append_column_inclusion_status(columns_list, columns_not_found_in_workflow)
 
@@ -266,39 +260,36 @@ def output_main_column_analysis(bq_params: ParamsDict, table_columns: list[list[
 
 
 def main(args):
-    data_source = "gdc"
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
 
-    bq_params = {
-        "SCRATCH_DIR": "scratch",
-        "WORKING_BUCKET": "next-gen-etl-scratch",
-        "WORKING_PROJECT": "isb-project-zero",
-        # "WORKING_DATASET": f"cda_{data_source}_test"
-        "WORKING_DATASET": "GDC_Clinical_Data"
-    }
-    # version = '2023_03'
-    version = 'r37'
-    bucket_path = 'law/etl/analysis_files'
-    # field_file_name = f'{data_source}_current_fields.tsv'
+    field_file_name = f"{API_PARAMS['DATA_SOURCE']}_current_fields.tsv"
 
-    table_columns = retrieve_dataset_columns(bq_params, version)
+    if 'retrieve_dataset_columns' in steps:
+        table_columns = retrieve_dataset_columns(API_PARAMS['RELEASE'])
 
-    column_name_set = set()
+        column_name_set = set()
 
-    for table_column in table_columns:
-        table_name = table_column[0]
-        column_name = table_column[1]
+        for table_column in table_columns:
+            table_name = table_column[0]
+            column_name = table_column[1]
 
-        if table_name.endswith('ref') or table_name == "r37_clinical":
-            continue
+            if table_name.endswith('ref') or table_name == f"{API_PARAMS['RELEASE']}_clinical":
+                continue
 
-        column_name_set.add(column_name)
+            column_name_set.add(column_name)
 
-    for column_name in sorted(column_name_set):
-        print(column_name)
+        for column_name in sorted(column_name_set):
+            print(column_name)
 
-    # output_field_column_differences(bq_params, table_columns, bucket_path, field_file_name)
+    if 'output_field_column_differences' in steps:
+        output_field_column_differences(table_columns, BQ_PARAMS['WORKING_BUCKET_DIR'], field_file_name)
 
-    # output_main_column_analysis(bq_params, table_columns, bucket_path, field_file_name)
+    if 'output_main_column_analysis' in steps:
+        output_main_column_analysis(table_columns, BQ_PARAMS['WORKING_BUCKET_DIR'], field_file_name)
 
 
 if __name__ == "__main__":

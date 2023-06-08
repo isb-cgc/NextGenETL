@@ -29,7 +29,11 @@ from typing import Union
 
 from common_etl.utils import create_and_load_table_from_tsv, create_and_upload_schema_for_tsv, \
     retrieve_bq_schema_object, upload_to_bucket, create_normalized_tsv, download_from_bucket, get_scratch_fp, \
-    get_filepath
+    get_filepath, load_config, has_fatal_error
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 ParamsDict = dict[str, Union[str, int, dict, list]]
 
@@ -129,12 +133,10 @@ def create_table_name(file_name: str) -> str:
     return table_name
 
 
-def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: list[str], dest_path: str) -> list[str]:
+def normalize_files(file_list: list[str], dest_path: str) -> list[str]:
     """
     Create new file containing normalized data from raw data file. Cast ints, convert to null and boolean
     where possible.
-    :param dict[str, Union[str, int, dict, list]] api_params: API params from YAML config
-    :param dict[str, Union[str, int, dict, list]] bq_params: BQ params from YAML config
     :param list[str] file_list: List of files to normalize
     :param str dest_path: Destination path for normalized file creation
     :return: Normalized file name list
@@ -150,12 +152,12 @@ def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: li
 
         original_tsv_path = f"{dest_path}/{tsv_file}"
         # rename raw file
-        raw_tsv_file = f"{api_params['RELEASE']}_raw_{tsv_file}"
+        raw_tsv_file = f"{API_PARAMS['RELEASE']}_raw_{tsv_file}"
         raw_tsv_path = f"{dest_path}/{raw_tsv_file}"
 
         os.rename(src=original_tsv_path, dst=raw_tsv_path)
 
-        normalized_tsv_file = f"{api_params['RELEASE']}_{tsv_file}"
+        normalized_tsv_file = f"{API_PARAMS['RELEASE']}_{tsv_file}"
         normalized_tsv_path = f"{dest_path}/{normalized_tsv_file}"
 
         # add file to list, used to generate txt list of files for later table creation
@@ -166,18 +168,17 @@ def normalize_files(api_params: ParamsDict, bq_params: ParamsDict, file_list: li
         create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
         # upload raw and normalized tsv files to google cloud storage
-        upload_to_bucket(bq_params, raw_tsv_path, delete_local=True, verbose=False)
-        upload_to_bucket(bq_params, normalized_tsv_path, delete_local=True, verbose=False)
+        upload_to_bucket(BQ_PARAMS, raw_tsv_path, delete_local=True, verbose=False)
+        upload_to_bucket(BQ_PARAMS, normalized_tsv_path, delete_local=True, verbose=False)
 
         print(f"Successfully uploaded raw and normalized {normalized_tsv_file} files to bucket.")
 
     return normalized_file_names
 
 
-def get_schema_filename(api_params: ParamsDict, tsv_file_name: str) -> str:
+def get_schema_filename(tsv_file_name: str) -> str:
     """
     Create schema file name based on tsv file name.
-    :param dict[str, Union[str, int, dict, list]] api_params: API params from YAML config
     :param str tsv_file_name: Source file used in schema creation
     :return: Schema file name
     :rtype: str
@@ -189,122 +190,50 @@ def get_schema_filename(api_params: ParamsDict, tsv_file_name: str) -> str:
 
     schema_file_name = "_".join(tsv_file_name.split("_")[2:])
     schema_file_name = schema_file_name.split(".")[0]
-    schema_file_name = f"{api_params['RELEASE']}_schema_{schema_file_name}.json"
+    schema_file_name = f"{API_PARAMS['RELEASE']}_schema_{schema_file_name}.json"
 
     return schema_file_name
 
 
-def make_file_project_mapping_view(bq_params):
-    working_project = bq_params['WORKING_PROJECT']
-    working_dataset = bq_params['WORKING_DATASET']
-    release = bq_params['RELEASE']
+def make_file_project_mapping_view():
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    release = API_PARAMS['RELEASE']
 
     return f"""
-    SELECT DISTINCT file_id, project_id 
+    SELECT DISTINCT file_case.file_id, case_project.project_id 
     FROM `{working_project}.{working_dataset}.{release}_file_in_case` file_case
     JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_project
-    USING (case_id)
+        USING (case_id)
     """
 
-def make_project_view(bq_params):
-    working_project = bq_params['WORKING_PROJECT']
-    working_dataset = bq_params['WORKING_DATASET']
-    release = bq_params['RELEASE']
-
-    return """
-    
-    """
 
 def main(args):
-    source_dc = "pdc"
-
-    if source_dc == "pdc":
-        api_params = {
-            "RELEASE": "2023_03",
-            "LOCAL_TAR_DIR": "scratch/cda_archive_files",
-            "LOCAL_EXTRACT_DIR": "cda_pdc",
-            "TAR_FILE": "pdc_2023_03.tgz"
-        }
-        bq_params = {
-            "WORKING_BUCKET": "next-gen-etl-scratch",
-            "WORKING_BUCKET_DIR": "law/etl/cda_pdc_test",
-            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
-            "SCRATCH_DIR": "scratch",
-            "LOCATION": "US",
-            "WORKING_PROJECT": "isb-project-zero",
-            "WORKING_DATASET": "cda_pdc_test"
-        }
-        steps = {
-            # "download_cda_archive_file",
-            # "extract_cda_archive_file",
-            # "normalize_and_upload_tsvs",
-            "create_schemas",
-            "create_tables"
-        }
-    elif source_dc == "gdc":
-        api_params = {
-            "RELEASE": "2023_03",
-            "LOCAL_TAR_DIR": "scratch/cda_archive_files",
-            "LOCAL_EXTRACT_DIR": "cda_gdc",
-            "TAR_FILE": "2023_03_gdc_as_extracted.tgz"
-        }
-        bq_params = {
-            "WORKING_BUCKET": "next-gen-etl-scratch",
-            "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
-            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
-            "SCRATCH_DIR": "scratch",
-            "LOCATION": "US",
-            "WORKING_PROJECT": "isb-project-zero",
-            "WORKING_DATASET": "cda_gdc_test"
-        }
-        steps = {
-            # "download_cda_archive_file",
-            "extract_cda_archive_file",
-            "normalize_and_upload_tsvs",
-            "create_schemas",
-            "create_tables"
-        }
-    else:
-        api_params = {
-            "RELEASE": "",
-            "LOCAL_TAR_DIR": "",
-            "TAR_FILE": ""
-        }
-        bq_params = {
-            "WORKING_BUCKET": "next-gen-etl-scratch",
-            "WORKING_BUCKET_DIR": "",
-            "ARCHIVE_BUCKET_PATH": "law/etl/cda_archive_files",
-            "SCRATCH_DIR": "scratch",
-            "LOCATION": "US",
-            "WORKING_PROJECT": "isb-project-zero",
-            "WORKING_DATASET": ""
-        }
-        steps = {
-            "download_and_extract_cda_archive_file",
-            "normalize_and_upload_tsvs",
-            "create_schemas",
-            "create_tables"
-        }
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
 
     if "download_cda_archive_file" in steps:
         print("\n*** Downloading archive file from bucket!\n")
-        local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
+        local_tar_dir = get_filepath(API_PARAMS['LOCAL_TAR_DIR'])
 
         if not os.path.exists(local_tar_dir):
             os.mkdir(local_tar_dir)
 
-        download_from_bucket(bq_params,
-                             bucket_path=bq_params['ARCHIVE_BUCKET_PATH'],
-                             filename=api_params['TAR_FILE'],
+        download_from_bucket(BQ_PARAMS,
+                             bucket_path=BQ_PARAMS['ARCHIVE_BUCKET_PATH'],
+                             filename=API_PARAMS['TAR_FILE'],
                              dir_path=local_tar_dir,
                              timeout=30)
 
     if "extract_cda_archive_file" in steps:
         print("\n*** Extracting archive file!\n")
-        local_tar_dir = get_filepath(api_params['LOCAL_TAR_DIR'])
+        local_tar_dir = get_filepath(API_PARAMS['LOCAL_TAR_DIR'])
 
-        src_path = f"{local_tar_dir}/{api_params['TAR_FILE']}"
-        dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
+        src_path = f"{local_tar_dir}/{API_PARAMS['TAR_FILE']}"
+        dest_path = get_filepath(API_PARAMS['LOCAL_EXTRACT_DIR'])
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
@@ -313,55 +242,52 @@ def main(args):
 
     if "normalize_and_upload_tsvs" in steps:
         print("\n*** Normalizing and uploading tsvs!\n")
-        dest_path = get_filepath(api_params['LOCAL_EXTRACT_DIR'])
+        dest_path = get_filepath(API_PARAMS['LOCAL_EXTRACT_DIR'])
 
         normalized_file_names = list()
 
-        if source_dc == "pdc":
+        if API_PARAMS['DATA_SOURCE'] == "pdc":
             dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
             for directory, file_list in dir_file_dict.items():
                 local_directory = f"{dest_path}/{directory}"
 
-                directory_normalized_file_names = normalize_files(api_params,
-                                                                  bq_params,
-                                                                  file_list=file_list,
-                                                                  dest_path=local_directory)
+                directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
 
                 normalized_file_names.extend(directory_normalized_file_names)
-        elif source_dc == "gdc":
+        elif API_PARAMS['DATA_SOURCE'] == "gdc":
             directory = os.listdir(dest_path)
             dest_path += f"/{directory[0]}"
             file_list = os.listdir(dest_path)
 
-            normalized_file_names = normalize_files(api_params, bq_params, file_list=file_list, dest_path=dest_path)
+            normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
-        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
+        index_txt_file_name = f"{API_PARAMS['RELEASE']}_{API_PARAMS['DATA_SOURCE']}_file_index.txt"
 
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
 
-        upload_to_bucket(bq_params, index_txt_file_name, delete_local=True)
+        upload_to_bucket(BQ_PARAMS, index_txt_file_name, delete_local=True)
 
     if "create_schemas" in steps:
         print("\n*** Creating schemas!\n")
         # download index file
-        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
-        download_from_bucket(bq_params, index_txt_file_name)
+        index_txt_file_name = f"{API_PARAMS['RELEASE']}_{API_PARAMS['DATA_SOURCE']}_file_index.txt"
+        download_from_bucket(BQ_PARAMS, index_txt_file_name)
 
-        with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
+        with open(get_scratch_fp(BQ_PARAMS, index_txt_file_name), mode="r") as index_file:
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
-                download_from_bucket(bq_params, tsv_file_name)
+                download_from_bucket(BQ_PARAMS, tsv_file_name)
 
-                schema_file_name = get_schema_filename(api_params, tsv_file_name)
-                schema_file_path = get_scratch_fp(bq_params, schema_file_name)
-                local_file_path = get_scratch_fp(bq_params, tsv_file_name)
+                schema_file_name = get_schema_filename(tsv_file_name)
+                schema_file_path = get_scratch_fp(BQ_PARAMS, schema_file_name)
+                local_file_path = get_scratch_fp(BQ_PARAMS, tsv_file_name)
 
-                create_and_upload_schema_for_tsv(api_params,
-                                                 bq_params,
+                create_and_upload_schema_for_tsv(API_PARAMS,
+                                                 BQ_PARAMS,
                                                  tsv_fp=local_file_path,
                                                  header_row=0,
                                                  skip_rows=1,
@@ -371,25 +297,25 @@ def main(args):
 
     if "create_tables" in steps:
         print("\n*** Creating tables!\n")
-        index_txt_file_name = f"{api_params['RELEASE']}_{source_dc}_file_index.txt"
-        download_from_bucket(bq_params, index_txt_file_name)
+        index_txt_file_name = f"{API_PARAMS['RELEASE']}_{API_PARAMS['DATA_SOURCE']}_file_index.txt"
+        download_from_bucket(BQ_PARAMS, index_txt_file_name)
 
-        with open(get_scratch_fp(bq_params, index_txt_file_name), mode="r") as index_file:
+        with open(get_scratch_fp(BQ_PARAMS, index_txt_file_name), mode="r") as index_file:
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
-                tsv_file_path = get_scratch_fp(bq_params, tsv_file_name)
-                download_from_bucket(bq_params, tsv_file_name)
+                tsv_file_path = get_scratch_fp(BQ_PARAMS, tsv_file_name)
+                download_from_bucket(BQ_PARAMS, tsv_file_name)
 
-                schema_file_name = get_schema_filename(api_params, tsv_file_name)
-                schema_object = retrieve_bq_schema_object(api_params, bq_params, schema_filename=schema_file_name)
+                schema_file_name = get_schema_filename(tsv_file_name)
+                schema_object = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, schema_filename=schema_file_name)
 
                 table_name = create_table_name(tsv_file_name)
-                table_id = f"{bq_params['WORKING_PROJECT']}.{bq_params['WORKING_DATASET']}.{table_name}"
+                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{table_name}"
 
                 if get_data_row_count(f"{tsv_file_path}") >= 1:
-                    create_and_load_table_from_tsv(bq_params,
+                    create_and_load_table_from_tsv(BQ_PARAMS,
                                                    tsv_file=tsv_file_name,
                                                    table_id=table_id,
                                                    num_header_rows=1,
@@ -399,7 +325,7 @@ def main(args):
 
                 os.remove(tsv_file_path)
 
-        os.remove(get_scratch_fp(bq_params, index_txt_file_name))
+        os.remove(get_scratch_fp(BQ_PARAMS, index_txt_file_name))
 
 
 if __name__ == "__main__":

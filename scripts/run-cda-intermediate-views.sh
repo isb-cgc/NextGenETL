@@ -16,8 +16,30 @@
 
 source ~/setEnvVars.sh
 
+DATA_SOURCE=$1
+
+GDC_ARG="gdc"
+PDC_ARG="pdc"
+IDC_ARG="idc"
+
+if [[ ${DATA_SOURCE} = ${GDC_ARG} ]] ; then
+    CONFIG_FILE="CDAIntermediateViewsBQBuildGDC.yaml"
+elif [[ ${DATA_SOURCE} = ${PDC_ARG} ]] ; then
+    CONFIG_FILE="CDAIntermediateViewsBQBuildPDC.yaml"
+elif [[ ${DATA_SOURCE} = ${IDC_ARG} ]] ; then
+    CONFIG_FILE="CDAIntermediateViewsBQBuildIDC.yaml"
+else
+    echo "Error: incorrect or missing script data type argument. Accepted values: gdc, idc, pdc"
+    exit 1
+fi
+
 export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
+
+mkdir -p ~/config
+pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
+popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
@@ -26,5 +48,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/create_intermediate_views.py
+python3.9 ./BQ_Table_Building/CDA/create_intermediate_views.py ~/config/${CONFIG_FILE}
 deactivate

@@ -25,7 +25,6 @@ from typing import Any, Union, Optional
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from BQ_Table_Building.PDC.pdc_utils import build_table_from_jsonl
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import format_seconds, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json, create_and_load_table_from_jsonl, retrieve_bq_schema_object, load_config, \
@@ -60,10 +59,9 @@ def create_dev_table_id(table_name) -> str:
     return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
-def create_file_metadata_dict(release) -> list[dict[str, Optional[Any]]]:
+def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     """
 
-    :param release:
     :return:
     """
 
@@ -116,7 +114,7 @@ def create_file_metadata_dict(release) -> list[dict[str, Optional[Any]]]:
         f.experimental_strategy,
         f.file_name,
         f.file_size,
-        f.file_id, # do we actually need this? There aren't two values for file_id and file_gdc_id
+        f.file_id,
         fhif.index_file_id AS index_file_gdc_id,
         # index_file_name, # separate join
         # index_file_size, # separate join
@@ -417,7 +415,7 @@ def main(args):
     start_time: float = time.time()
 
     if 'create_and_upload_file_metadata_json' in steps:
-        file_record_list = create_file_metadata_dict(API_PARAMS['RELEASE'])
+        file_record_list = create_file_metadata_dict()
 
         count_dict = dict()
 
@@ -446,10 +444,13 @@ def main(args):
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name='file', include_release=True)
 
+        working_project = BQ_PARAMS['WORKING_PROJECT']
+        working_dataset = BQ_PARAMS['WORKING_DATASET']
+
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS,
-                                         jsonl_file='file_2023_03.jsonl',
-                                         table_id='isb-project-zero.cda_gdc_test.file_metadata_2023_03',
+                                         jsonl_file=f"file_{API_PARAMS['RELEASE']}.jsonl",
+                                         table_id=f"{working_project}.{working_dataset}.file_metadata_2023_03",
                                          schema=table_schema)
 
     end_time: float = time.time()
