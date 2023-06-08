@@ -28,7 +28,12 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 from BQ_Table_Building.PDC.pdc_utils import build_table_from_jsonl
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import format_seconds, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
-    create_and_upload_schema_for_json, create_and_load_table_from_jsonl, retrieve_bq_schema_object
+    create_and_upload_schema_for_json, create_and_load_table_from_jsonl, retrieve_bq_schema_object, load_config, \
+    has_fatal_error
+
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
@@ -47,39 +52,35 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
         return value_string
 
 
-def create_dev_table_id(bq_params, release, table_name) -> str:
-    working_project: str = bq_params['WORKING_PROJECT']
-    working_dataset: str = bq_params['WORKING_DATASET']
+def create_dev_table_id(table_name) -> str:
+    working_project: str = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset: str = BQ_PARAMS['WORKING_DATASET']
+    release: str = API_PARAMS['RELEASE']
 
     return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
-def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any]]]:
+def create_file_metadata_dict(release) -> list[dict[str, Optional[Any]]]:
     """
 
-    :param bq_params:
     :param release:
     :return:
     """
 
-    analysis_table_id: str = create_dev_table_id(bq_params, release, 'analysis')
-    analysis_consumed_input_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_consumed_input_file')
-    analysis_downstream_from_file_table_id: str = create_dev_table_id(bq_params,
-                                                                      release,
-                                                                      'analysis_downstream_from_file')
-    analysis_produced_file_table_id: str = create_dev_table_id(bq_params, release, 'analysis_produced_file')
-    archive_table_id: str = create_dev_table_id(bq_params, release, 'archive')
-    case_project_program_table_id: str = create_dev_table_id(bq_params, release, "case_project_program")
-    case_table_id: str = create_dev_table_id(bq_params, release, "case")
-    downstream_analysis_table_id: str = create_dev_table_id(bq_params,
-                                                            release,
-                                                            "downstream_analysis_produced_output_file")
-    file_table_id: str = create_dev_table_id(bq_params, release, 'file')
-    file_associated_with_entity_table_id: str = create_dev_table_id(bq_params, release, 'file_associated_with_entity')
-    file_has_acl_table_id: str = create_dev_table_id(bq_params, release, 'file_has_acl')
-    file_has_index_file_table_id: str = create_dev_table_id(bq_params, release, 'file_has_index_file')
-    file_in_archive_table_id: str = create_dev_table_id(bq_params, release, 'file_in_archive')
-    file_in_case_table_id: str = create_dev_table_id(bq_params, release, 'file_in_case')
+    analysis_table_id: str = create_dev_table_id('analysis')
+    analysis_consumed_input_file_table_id: str = create_dev_table_id('analysis_consumed_input_file')
+    analysis_downstream_from_file_table_id: str = create_dev_table_id('analysis_downstream_from_file')
+    analysis_produced_file_table_id: str = create_dev_table_id('analysis_produced_file')
+    archive_table_id: str = create_dev_table_id('archive')
+    case_project_program_table_id: str = create_dev_table_id("case_project_program")
+    case_table_id: str = create_dev_table_id("case")
+    downstream_analysis_table_id: str = create_dev_table_id("downstream_analysis_produced_output_file")
+    file_table_id: str = create_dev_table_id('file')
+    file_associated_with_entity_table_id: str = create_dev_table_id('file_associated_with_entity')
+    file_has_acl_table_id: str = create_dev_table_id('file_has_acl')
+    file_has_index_file_table_id: str = create_dev_table_id('file_has_index_file')
+    file_in_archive_table_id: str = create_dev_table_id('file_in_archive')
+    file_in_case_table_id: str = create_dev_table_id('file_in_case')
 
     def make_base_file_metadata_sql() -> str:
         return f"""
@@ -407,26 +408,16 @@ def create_file_metadata_dict(bq_params, release) -> list[dict[str, Optional[Any
 
 
 def main(args):
-    bq_params = {
-        "WORKING_PROJECT": "isb-project-zero",
-        "WORKING_DATASET": "cda_gdc_test",
-        "WORKING_BUCKET": "next-gen-etl-scratch",
-        "WORKING_BUCKET_DIR": "law/etl/cda_gdc_test",
-        'SCRATCH_DIR': 'scratch',
-        'LOCATION': 'us'
-    }
-    api_params = {
-        'RELEASE': '2023_03',
-    }
-    steps = {
-        'create_and_upload_file_metadata_json',
-        'create_table'
-    }
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
 
     start_time: float = time.time()
 
     if 'create_and_upload_file_metadata_json' in steps:
-        file_record_list = create_file_metadata_dict(bq_params, api_params['RELEASE'])
+        file_record_list = create_file_metadata_dict(API_PARAMS['RELEASE'])
 
         count_dict = dict()
 
@@ -442,23 +433,21 @@ def main(args):
             print(f"{key}: {count_dict[key]} non-null values")
 
         normalized_file_record_list = normalize_flat_json_values(file_record_list)
-        write_list_to_jsonl_and_upload(api_params, bq_params, 'file', normalized_file_record_list)
-        write_list_to_jsonl_and_upload(api_params, bq_params, 'file_raw', file_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, 'file', normalized_file_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, 'file_raw', file_record_list)
 
-        create_and_upload_schema_for_json(api_params,
-                                          bq_params,
+        create_and_upload_schema_for_json(API_PARAMS,
+                                          BQ_PARAMS,
                                           record_list=normalized_file_record_list,
                                           table_name='file',
                                           include_release=True)
 
     if 'create_table' in steps:
         # Download schema file from Google Cloud bucket
-        table_schema = retrieve_bq_schema_object(api_params, bq_params,
-                                                 table_name='file',
-                                                 include_release=True)
+        table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name='file', include_release=True)
 
         # Load jsonl data into BigQuery table
-        create_and_load_table_from_jsonl(bq_params,
+        create_and_load_table_from_jsonl(BQ_PARAMS,
                                          jsonl_file='file_2023_03.jsonl',
                                          table_id='isb-project-zero.cda_gdc_test.file_metadata_2023_03',
                                          schema=table_schema)

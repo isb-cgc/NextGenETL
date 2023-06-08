@@ -215,8 +215,10 @@ def main(args):
             print(f"{field_group}: {columns}")
 
     # steps:
-    # Retrieve case ids by program
-    # Determine which tables need to be created for each program -- single clinical table, or additional mapping tables?
+    # use all_program_columns and tables_per_program_dict to stitch together queries to build each program's tables
+    # note: case and project fields are still not completed
+    # use the FG_CONFIG to order fields by FG and to account for last_keys_in_table
+    # use these queries to build the clinical tables
 
 
 if __name__ == "__main__":
