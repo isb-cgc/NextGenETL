@@ -75,7 +75,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
-        table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.case_metadata_{API_PARAMS['RELEASE']}"
+        table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.case_metadata_{API_PARAMS['RELEASE']}"
         load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_case_metadata_table_sql())
 
 
