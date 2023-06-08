@@ -25,7 +25,7 @@ PER_SAMPLE_FILE_ARG="per_sample_file"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
     CONFIG_FILE="CDACaseBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_case_gdc.py"
+    SCRIPT_FILE="transform_tables_case_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
     CONFIG_FILE="CDAClinicalBQBuildGDC.yaml"
     SCRIPT_FILE="transform_tables_clinical_gdc.py"
