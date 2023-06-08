@@ -35,26 +35,38 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
-def make_compare_table_column_sql(old_table_id: str, new_table_id: str) -> str:
-    return f"""
-    (
-        SELECT *
-        FROM `{old_table_id}`
-        EXCEPT DISTINCT 
-        SELECT *
-        FROM `{new_table_id}`
-    )
+def compare_non_concat_table_columns(old_table_id: str, new_table_id: str, primary_key: str, columns: list[str]):
+    def make_compare_table_column_sql(column_name) -> str:
+        return f"""
+        (
+            SELECT {primary_key}, {column_name}
+            FROM `{old_table_id}`
+            EXCEPT DISTINCT 
+            SELECT {primary_key}, {column_name}
+            FROM `{new_table_id}`
+        )
 
-    UNION ALL
+        UNION ALL
 
-    (
-        SELECT *
-        FROM `{new_table_id}`
-        EXCEPT DISTINCT 
-        SELECT *
-        FROM `{old_table_id}`
-    )
-    """
+        (
+            SELECT {primary_key}, {column_name}
+            FROM `{new_table_id}`
+            EXCEPT DISTINCT 
+            SELECT {primary_key}, {column_name}
+            FROM `{old_table_id}`
+        )
+        """
+
+    for column in columns:
+        column_comparison_query = make_compare_table_column_sql(column)
+
+        result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
+
+        if result.total_rows > 0:
+            print(f"\nFound mismatched data for {column}.")
+            print(f"{result.total_rows} total records do not match in old and new tables.\n")
+        else:
+            print(f"{column} column matches in published and new tables!")
 
 
 def main(args):
@@ -64,10 +76,21 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    old_table_id = 'isb-cgc-bq.GDC_case_file_metadata_versioned.caseData_r37'
-    new_table_id = 'isb-project-zero.cda_gdc_test.case_metadata_2023_03'
+    columns_list = ['primary_site',
+                    'project_dbgap_accession_number',
+                    'project_disease_type',
+                    'project_name',
+                    'program_dbgap_accession_number',
+                    'program_name',
+                    'project_id',
+                    'case_barcode',
+                    'legacy_file_count',
+                    'active_file_count']
 
-    comparison_sql = make_compare_table_column_sql(old_table_id, new_table_id)
+    compare_non_concat_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
+                                     new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
+                                     primary_key=BQ_PARAMS['PRIMARY_KEY'],
+                                     columns=columns_list)
 
 
 if __name__ == "__main__":
