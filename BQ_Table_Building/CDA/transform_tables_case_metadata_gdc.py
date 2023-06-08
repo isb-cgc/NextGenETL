@@ -29,11 +29,7 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def create_dev_table_id(table_name) -> str:
-    working_project: str = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset: str = BQ_PARAMS['WORKING_DATASET']
-    release: str = API_PARAMS['RELEASE']
-
-    return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
+    return f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_{table_name}`"
 
 
 def make_case_metadata_table_sql():
