@@ -44,7 +44,7 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="CDATransformPerSampleFileBQBuildGDC.yaml"
     SCRIPT_FILE="transform_tables_per_sample_file_metadata_gdc.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
     exit 1
 fi
 

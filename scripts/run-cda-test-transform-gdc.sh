@@ -22,6 +22,8 @@ CASE_ARG="case"
 CLINICAL_ARG="clinical"
 FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
+ALIQUOT_ARG="aliquot_to_case"
+SLIDE_ARG="slide_to_case"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
     CONFIG_FILE="CDATestTransformCaseBQBuildGDC.yaml"
@@ -29,6 +31,12 @@ if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
     CONFIG_FILE="CDATestTransformClinicalBQBuildGDC.yaml"
     SCRIPT_FILE="test_transform_tables_clinical_gdc.py"
+elif [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformAliquotBQBuildGDC.yaml"
+    SCRIPT_FILE="test_transform_tables_aliquot_case_map_gdc.py"
+elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
+    CONFIG_FILE="CDATestTransformSlideBQBuildGDC.yaml"
+    SCRIPT_FILE="test_transform_tables_slide_case_map_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
     CONFIG_FILE="CDATestTransformFileBQBuildGDC.yaml"
     SCRIPT_FILE="test_transform_tables_file_metadata_gdc.py"
@@ -36,7 +44,7 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="CDATestTransformPerSampleFileBQBuildGDC.yaml"
     SCRIPT_FILE="test_transform_tables_per_sample_file_gdc.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
     exit 1
 fi
 

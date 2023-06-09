@@ -76,16 +76,17 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    columns_list = ['primary_site',
-                    'project_dbgap_accession_number',
-                    'project_disease_type',
-                    'project_name',
-                    'program_dbgap_accession_number',
-                    'program_name',
+    columns_list = ['program_name',
                     'project_id',
                     'case_barcode',
-                    'legacy_file_count',
-                    'active_file_count']
+                    'sample_gdc_id',
+                    'sample_barcode',
+                    'sample_type',
+                    'sample_type_name',
+                    'portion_gdc_id',
+                    'portion_barcode',
+                    'slide_gdc_id',
+                    'slide_barcode']
 
     compare_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
                           new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
