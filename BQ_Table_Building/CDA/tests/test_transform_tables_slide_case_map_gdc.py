@@ -62,7 +62,10 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
 
         result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
 
-        if result.total_rows > 0:
+        if not result:
+            print(f"No results returned for {column}. This can mean that there's a column data type mismatch, "
+                  f"or that the column name differs.")
+        elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
         else:
