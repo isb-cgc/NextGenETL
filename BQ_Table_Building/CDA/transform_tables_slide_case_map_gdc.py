@@ -63,7 +63,7 @@ def make_slide_case_table_sql():
     JOIN {create_dev_table_id('slide_from_case')} sfc
         ON sfc.case_id = cpp.case_gdc_id
     JOIN {create_dev_table_id('slide')} sl
-        ON sl.aliquot_id = sfc.aliquot_id    
+        ON sl.slide_id = sfc.slide_id    
     """
 
 
