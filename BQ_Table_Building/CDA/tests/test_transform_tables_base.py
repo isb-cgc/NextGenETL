@@ -62,12 +62,21 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
 
         result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
 
-        if result is None:
+        if not result:
             print(f"No results returned for {column}. This can mean that there's a column data type mismatch, "
                   f"or that the column name differs.")
         elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
+            print(f"Examples:\n{primary_key}\t{column}")
+
+            count = 0
+
+            for row in result:
+                print(f"{row[0]}\t{row[1]}")
+                count += 1
+                if count == 5:
+                    break
         else:
             print(f"{column} column matches in published and new tables!")
 
@@ -79,16 +88,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    columns_list = ['primary_site',
-                    'project_dbgap_accession_number',
-                    'project_disease_type',
-                    'project_name',
-                    'program_dbgap_accession_number',
-                    'program_name',
-                    'project_id',
-                    'case_barcode',
-                    'legacy_file_count',
-                    'active_file_count']
+    columns_list = BQ_PARAMS["COLUMNS"]
 
     compare_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
                           new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
