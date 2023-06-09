@@ -56,7 +56,7 @@ def make_aliquot_case_table_sql():
         ON c.case_id = cpp.case_gdc_id
     JOIN {create_dev_table_id('project_studies_disease_type')} psdt
         ON psdt.project_id = cpp.project_id
-    JOIN {create_dev_table_id('sample_in_case')} sic
+    JOIN {create_dev_table_id('sample_from_case')} sic
         ON sic.case_id = cpp.case_id
     JOIN {create_dev_table_id('sample')} s
         ON s.sample_id = sic.sample_id
