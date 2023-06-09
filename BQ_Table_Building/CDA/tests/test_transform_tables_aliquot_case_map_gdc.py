@@ -86,7 +86,7 @@ def main(args):
                     'sample_barcode',
                     'sample_type',
                     'sample_type_name',
-                    # 'sample_is_ffpe', todo type disagreement, old table has boolean as string
+                    'sample_is_ffpe',
                     'sample_preservation_method',
                     'portion_gdc_id',
                     'portion_barcode',
