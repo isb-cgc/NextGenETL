@@ -68,7 +68,7 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
         elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
-            print(f"Examples:\n{primary_key}\t{column}")
+            print(f"Examples:\n{primary_key}\t\t\t\t\t\t{column}")
 
             count = 0
 
@@ -89,6 +89,8 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     columns_list = BQ_PARAMS["COLUMNS"]
+
+    print("Comparing table columns!\n")
 
     compare_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
                           new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
