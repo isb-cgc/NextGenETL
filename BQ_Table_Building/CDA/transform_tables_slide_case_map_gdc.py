@@ -53,7 +53,7 @@ def make_slide_case_table_sql():
     JOIN {create_dev_table_id('project_studies_disease_type')} psdt
         ON psdt.project_id = cpp.project_id
     JOIN {create_dev_table_id('sample_from_case')} sic
-        ON sic.case_id = cpp.case_id
+        ON sic.case_id = cpp.case_gdc_id
     JOIN {create_dev_table_id('sample')} s
         ON s.sample_id = sic.sample_id
     JOIN {create_dev_table_id('portion_from_case')} pfc
