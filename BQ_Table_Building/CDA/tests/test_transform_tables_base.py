@@ -55,6 +55,7 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
             SELECT {primary_key}, {column_name}
             FROM `{old_table_id}`
         )
+        ORDER BY {primary_key}
         """
 
     for column in columns:
