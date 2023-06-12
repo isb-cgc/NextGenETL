@@ -38,7 +38,7 @@ def make_slide_case_table_sql():
         cpp.program_name, 
         cpp.project_id,
         cpp.case_gdc_id, 
-        c.submitter_id AS case_barcode,
+        cpp.case_barcode,
         s.sample_id AS sample_gdc_id,
         s.submitter_id AS sample_barcode,
         s.sample_type_id AS sample_type,
@@ -47,23 +47,19 @@ def make_slide_case_table_sql():
         p.submitter_id AS portion_barcode,
         sl.slide_id AS slide_gdc_id,
         sl.submitter_id AS slide_barcode
-    FROM {create_dev_table_id('case_project_program')} cpp
-    JOIN {create_dev_table_id('case')} c
-        ON c.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('project_studies_disease_type')} psdt
-        ON psdt.project_id = cpp.project_id
-    JOIN {create_dev_table_id('sample_from_case')} sic
-        ON sic.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('sample')} s
-        ON s.sample_id = sic.sample_id
-    JOIN {create_dev_table_id('portion_from_case')} pfc
-        ON pfc.case_id = cpp.case_gdc_id
+    FROM {create_dev_table_id('slide')} sl
+    JOIN {create_dev_table_id('slide_from_portion')} sfp
+        ON sfp.slide_id = sl.slide_id
     JOIN {create_dev_table_id('portion')} p 
-        ON p.portion_id = pfc.portion_id
-    JOIN {create_dev_table_id('slide_from_case')} sfc
-        ON sfc.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('slide')} sl
-        ON sl.slide_id = sfc.slide_id    
+        ON p.portion_id = sfp.portion_id
+    JOIN {create_dev_table_id('portion_from_sample')} pfs  
+        ON pfs.portion_id = p.portion_id
+    JOIN {create_dev_table_id('sample')} s
+        ON s.sample_id = pfs.sample_id
+    JOIN {create_dev_table_id('sample_from_case')} sic
+        ON sic.sample_id = s.sample_id
+    JOIN {create_dev_table_id('case_project_program')} cpp
+        ON cpp.case_gdc_id = sic.case_id
     """
 
 
