@@ -33,6 +33,7 @@ def create_project_program_view():
         return f"""
             SELECT 
                 case_proj.case_id AS case_gdc_id,
+                case_proj.submitter_id AS case_barcode,
                 proj.dbgap_accession_number AS project_dbgap_accession_number,
                 proj.project_id, 
                 proj.name AS project_name,
