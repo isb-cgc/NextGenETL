@@ -357,7 +357,7 @@ def main(args):
         manifest_table = f"{bq_dataset}_{base_table_name}_manifest_{release}"
         pull_list_table = f"{bq_dataset}_{base_table_name}_pull_list_{release}"
         table_with_aliquot_fields = f"{bq_dataset}_{base_table_name}_with_aliquot_fields_{release}"
-        draft_table_with_samples = f"{bq_dataset}_{base_table_name}_with_aliquot_{release}"
+        draft_table_with_aliquot = f"{bq_dataset}_{base_table_name}_with_aliquot_{release}"
         draft_table = f"{bq_dataset}_{base_table_name}_{release}"
         draft_full_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}"
         pub_ver_full_id = f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{pub_ver_name}"
@@ -462,11 +462,11 @@ def main(args):
         # for these cases we join the rows by concatenating the samples with semicolons
         if 'merge_same_aliq_samples' in steps:
             merge_samples_by_aliquot(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{table_with_aliquot_fields}",
-                                     draft_table_with_samples, params.SCRATCH_DATASET, params.BQ_AS_BATCH)
+                                     draft_table_with_aliquot, params.SCRATCH_DATASET, params.BQ_AS_BATCH)
 
         if 'add_gene_information' in steps:
-            success = glue_in_gene_names(draft_table_with_samples, params.GENE_NAMES_TABLE, params.SCRATCH_DATASET,
-                                         draft_table, params.BQ_AS_BATCH)
+            success = glue_in_gene_names(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table_with_aliquot}",
+                                         params.GENE_NAMES_TABLE, params.SCRATCH_DATASET, draft_table, params.BQ_AS_BATCH)
 
             if not success:
                 print("Join job failed")
