@@ -46,7 +46,9 @@ def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
         """
 
     def compare_table_keys(table_id_1, table_id_2):
-        result = bq_harness_with_result(sql=make_compare_id_keys_sql(table_id_1, table_id_2))
+        result = bq_harness_with_result(sql=make_compare_id_keys_sql(table_id_1, table_id_2),
+                                        do_batch=False,
+                                        verbose=False)
 
         if not result:
             has_fatal_error(f"Primary key {primary_key} not found in one or both compared tables")
