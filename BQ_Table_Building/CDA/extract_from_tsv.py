@@ -183,7 +183,7 @@ def get_schema_filename(tsv_file_name: str) -> str:
     :return: Schema file name
     :rtype: str
     """
-    # remove "." from file name, as in PDC
+    # remove "." from file name, as occurs in PDC
     extension = tsv_file_name.split(".")[-1]
     file_name = "_".join(tsv_file_name.split(".")[:-1])
     tsv_file_name = f"{file_name}.{extension}"
@@ -276,6 +276,7 @@ def main(args):
         download_from_bucket(BQ_PARAMS, index_txt_file_name)
 
         with open(get_scratch_fp(BQ_PARAMS, index_txt_file_name), mode="r") as index_file:
+            print("")
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
@@ -304,6 +305,7 @@ def main(args):
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
+                print("")
                 tsv_file_name = tsv_file_name.strip()
                 tsv_file_path = get_scratch_fp(BQ_PARAMS, tsv_file_name)
                 download_from_bucket(BQ_PARAMS, tsv_file_name)
