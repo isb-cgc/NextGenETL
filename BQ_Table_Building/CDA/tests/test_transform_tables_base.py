@@ -38,7 +38,7 @@ BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
     def make_compare_id_keys_sql(table_id_1, table_id_2) -> str:
         return f"""
-        SELECT {primary_key} 
+        SELECT DISTINCT {primary_key} 
         FROM {table_id_1}
         WHERE {primary_key} NOT IN (
           SELECT {primary_key} 
