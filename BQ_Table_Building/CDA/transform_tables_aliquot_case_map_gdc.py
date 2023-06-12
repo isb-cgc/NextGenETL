@@ -113,7 +113,6 @@ def make_aliquot_case_table_sql():
         ON sfc.case_id = cpp.case_gdc_id
     JOIN {create_dev_table_id('project_studies_disease_type')} psdt
         ON psdt.project_id = cpp.project_id
-
     """
 
 
@@ -126,6 +125,8 @@ def main(args):
 
     if 'create_table_from_query' in steps:
         table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.aliquot_to_case_{API_PARAMS['RELEASE']}"
+
+        print(make_aliquot_case_table_sql())
 
         load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_aliquot_case_table_sql())
 
