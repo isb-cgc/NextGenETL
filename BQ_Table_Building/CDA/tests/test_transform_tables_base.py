@@ -35,6 +35,42 @@ YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
+def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
+    def make_compare_id_keys_sql(table_id_1, table_id_2) -> str:
+        return f"""
+        SELECT {primary_key} 
+        FROM {table_id_1}
+        WHERE {primary_key} NOT IN (
+          SELECT {primary_key} 
+          FROM {table_id_2})
+        """
+
+    def compare_table_keys(table_id_1, table_id_2):
+        result = bq_harness_with_result(sql=make_compare_id_keys_sql(table_id_1, table_id_2))
+
+        if not result:
+            has_fatal_error(f"Primary key {primary_key} not found in one or both compared tables")
+        elif result.total_rows == 0:
+            print(f"{table_id_1} has no {primary_key} values that don't exist in {table_id_2}. Great!")
+        else:
+            print(f"{table_id_1} has {result.total_rows} {primary_key} values which don't exist in {table_id_2}.")
+            print(f"Example values:")
+
+            count = 0
+
+            for row in result:
+                print(f"{row[0]}")
+                count += 1
+                if count == 5:
+                    break
+
+    # find primary keys in new table that are missing from old table
+    compare_table_keys(new_table_id, old_table_id)
+
+    # find primary keys in old table that are missing from new table
+    compare_table_keys(old_table_id, new_table_id)
+
+
 def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str, columns: list[str]):
     def make_compare_table_column_sql(column_name) -> str:
         return f"""
@@ -69,7 +105,7 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
         elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
-            print(f"Examples:\n{primary_key}\t\t\t\t{column}")
+            print(f"Example values:\n{primary_key}\t\t\t\t{column}")
 
             count = 0
 
@@ -88,6 +124,12 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
+
+    print("Comparing table keys!\n")
+
+    compare_id_keys(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
+                    new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
+                    primary_key=BQ_PARAMS['PRIMARY_KEY'])
 
     columns_list = BQ_PARAMS["COLUMNS"]
 
