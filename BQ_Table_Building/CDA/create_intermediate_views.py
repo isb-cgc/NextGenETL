@@ -33,7 +33,7 @@ def create_project_program_view():
         return f"""
             SELECT 
                 case_proj.case_id AS case_gdc_id,
-                case_proj.submitter_id AS case_barcode,
+                c.submitter_id AS case_barcode,
                 proj.dbgap_accession_number AS project_dbgap_accession_number,
                 proj.project_id, 
                 proj.name AS project_name,
@@ -45,7 +45,9 @@ def create_project_program_view():
             JOIN `{working_project}.{working_dataset}.{release}_program` prog
                 ON proj_prog.program_id = prog.program_id
             JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_proj
-                ON case_proj.project_id = proj.project_id 
+                ON case_proj.project_id = proj.project_id
+            JOIN `{working_project}.{working_dataset}.{release}_case` c
+                ON c.case_id = case_proj.case_id
         """
 
     release = API_PARAMS['RELEASE']
