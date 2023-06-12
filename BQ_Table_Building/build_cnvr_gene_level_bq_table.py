@@ -377,7 +377,7 @@ def main(args):
             max_files = params.MAX_FILES if 'MAX_FILES' in params_dict else None
             bq_filters = [{"access": "open"},
                           {"data_type": "Gene Level Copy Number"},
-                          {"program_name": params.PROGRAMS},
+                          {"program_name": program},
                           {"data_category": "Copy Number Variation"}]
             manifest_success = get_the_bq_manifest(params.FILE_TABLE.format(release),
                                                    bq_filters, max_files,
