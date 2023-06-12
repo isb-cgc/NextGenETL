@@ -227,7 +227,7 @@ def merge_samples_by_aliquot_sql(input_table):
 # Merge Gene Names Into Final Table
 def glue_in_gene_names(draft_table, gene_table, target_dataset, output_table, do_batch):
     sql = glue_in_gene_names_sql(draft_table, gene_table)
-    return generic_bq_harness(sql, target_dataset, output_table, do_batch)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
 
 # SQL code for above
