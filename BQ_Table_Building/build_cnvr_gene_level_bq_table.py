@@ -57,6 +57,7 @@ def load_config(yaml_config):
 
     return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
+
 def concat_all_files(all_files, one_big_tsv):
     """
     Concatenate all Files. Gather up all files and glue them into one big one. We also add columns for the
@@ -91,6 +92,7 @@ def concat_all_files(all_files, one_big_tsv):
                         outfile.write('\n')
                     first = False
 
+
 def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch):
     """
     Merge Skeleton With Aliquot Data
@@ -114,6 +116,7 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
 
     sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+
 
 def merge_bq_sql(cnv_table, aliquot_table, case_table):
     """
@@ -174,9 +177,11 @@ def merge_bq_sql(cnv_table, aliquot_table, case_table):
         JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
     ''' # todo update major to max etc
 
+
 def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
     sql = merge_samples_by_aliquot_sql(input_table)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
+
 
 def merge_samples_by_aliquot_sql(input_table):
     return f"""
@@ -218,6 +223,55 @@ def merge_samples_by_aliquot_sql(input_table):
             file_gdc_id
     """
 
+
+# Merge Gene Names Into Final Table
+def glue_in_gene_names(draft_table, gene_table, target_dataset, output_table, do_batch):
+    sql = glue_in_gene_names_sql(draft_table, gene_table)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch)
+
+
+# SQL code for above
+def glue_in_gene_names_sql(draft_table, gene_table):
+
+    return f'''
+        WITH
+          gene_reference AS (
+          SELECT
+            DISTINCT gene_name,
+            gene_id,
+            gene_id_v,
+            gene_type
+          FROM
+            `{gene_table}`)
+        SELECT
+        a.project_short_name,
+        a.case_barcode,
+        a.primary_site,
+        a.sample_barcode,
+        a.aliquot_barcode,
+        b.gene_id as Ensembl_gene_id,
+        a.gene_id as Ensembl_gene_id_v,
+        a.gene_name,
+        b.gene_type,
+        a.chromosome,
+        a.start_pos,
+        a.end_pos,
+        a.copy_number,
+        a.min_copy_number,
+        a.max_copy_number,
+        a.case_gdc_id,
+        a.sample_gdc_id,
+        a.aliquot_gdc_id,
+        a.file_gdc_id
+        FROM
+          `{draft_table}` AS a
+        JOIN
+          gene_reference AS b
+        ON
+          a.gene_id = b.gene_id_v
+        '''
+
+
 def find_types(file, sample_interval):
     """
     Finds the field type for each column in the file
@@ -240,6 +294,7 @@ def find_types(file, sample_interval):
         typing_tups.append(tup)
 
     return typing_tups
+
 
 def main(args):
     """
@@ -298,10 +353,15 @@ def main(args):
         base_table_name = f"{params.DATA_TYPE}_hg38_gdc"
         pub_curr_name = f"{base_table_name}_current"
         pub_ver_name = f"{base_table_name}_{release}"
-        upload_table = f"{program}_{base_table_name}_raw_{release}"
-        manifest_table = f"{program}_{base_table_name}_manifest_{release}"
-        pull_list_table = f"{program}_{base_table_name}_pull_list_{release}"
-        draft_table = f"{program}_{base_table_name}_{release}"
+        raw_table = f"{bq_dataset}_{base_table_name}_raw_{release}"
+        manifest_table = f"{bq_dataset}_{base_table_name}_manifest_{release}"
+        pull_list_table = f"{bq_dataset}_{base_table_name}_pull_list_{release}"
+        table_with_aliquot_fields = f"{bq_dataset}_{base_table_name}_with_aliquot_fields_{release}"
+        draft_table_with_samples = f"{bq_dataset}_{base_table_name}_with_aliquot_{release}"
+        draft_table = f"{bq_dataset}_{base_table_name}_{release}"
+        draft_full_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}"
+        pub_ver_full_id = f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{pub_ver_name}"
+        pub_curr_full_id = f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{pub_curr_name}"
 
         # Google Bucket Locations
         bucket_target_blob = f'{params.WORKING_BUCKET_DIR}/{release}-{program}-{params.DATA_TYPE}.tsv'
@@ -386,14 +446,14 @@ def main(args):
             bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
             with open(field_list, mode='r') as schema_list:
                 typed_schema = json_loads(schema_list.read())
-            csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH)
+            csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, raw_table, params.BQ_AS_BATCH)
 
         if 'add_aliquot_fields' in steps:
             print('add_aliquot_fields')
-            full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{upload_table}'
+            full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{raw_table}'
             success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_r{params.RELEASE}",
                                               f"{params.CASE_TABLE}_r{params.RELEASE}",
-                                              params.SCRATCH_DATASET, f"{draft_table}_w_metadata",
+                                              params.SCRATCH_DATASET, f"{table_with_aliquot_fields}",
                                               params.BQ_AS_BATCH)
             if not success:
                 print("Join job failed")
@@ -401,28 +461,31 @@ def main(args):
         # For CPTAC there are instances where multiple samples are merged into the same aliquot
         # for these cases we join the rows by concatenating the samples with semicolons
         if 'merge_same_aliq_samples' in steps:
-            source_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_w_metadata"
-            merge_samples_by_aliquot(source_table, draft_table, params.SCRATCH_DATASET,
+            merge_samples_by_aliquot(table_with_aliquot_fields, draft_table_with_samples, params.SCRATCH_DATASET,
                                      params.BQ_AS_BATCH)
+
+        if 'add_gene_information' in steps:
+            success = glue_in_gene_names(draft_table_with_samples, params.GENE_NAMES_TABLE, params.SCRATCH_DATASET,
+                                         draft_table, params.BQ_AS_BATCH)
 
         if 'update_table_schema' in steps:
             print("update schema tags")
             updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
             print("update table schema")
             write_table_schema_with_generic(
-                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}",
+                f"{draft_full_id}",
                 updated_schema_tags, table_metadata, field_desc_fp)
 
         if 'qc_bigquery_tables' in steps: # todo test
             print("QC BQ table")
             print(qc_bq_table_metadata(
-                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}"))
+                f"{draft_full_id}"))
 
         if 'publish' in steps: # todo test
             print('publish tables')
-            success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{base_table_name}_{release}",
-                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{base_table_name}_{release}",
-                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{base_table_name}_current",
+            success = publish_tables_and_update_schema(f"{draft_full_id}",
+                                                       f"{pub_ver_full_id}",
+                                                       f"{pub_curr_full_id}",
                                                        f"REL {str(params.RELEASE)}",
                                                        f"{base_table_name}")
 
