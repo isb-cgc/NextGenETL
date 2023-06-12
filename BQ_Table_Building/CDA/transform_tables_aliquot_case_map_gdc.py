@@ -38,49 +38,6 @@ def make_aliquot_case_table_sql():
         cpp.program_name, 
         cpp.project_id,
         cpp.case_gdc_id, 
-        c.submitter_id AS case_barcode,
-        s.sample_id AS sample_gdc_id,
-        s.submitter_id AS sample_barcode,
-        s.sample_type_id AS sample_type,
-        s.sample_type AS sample_type_name,
-        s.is_ffpe AS sample_is_ffpe, 
-        s.preservation_method AS sample_preservation_method,
-        p.portion_id AS portion_gdc_id,
-        p.submitter_id AS portion_barcode,
-        an.analyte_id AS analyte_gdc_id,
-        an.submitter_id AS analyte_barcode,
-        al.aliquot_id AS aliquot_gdc_id,
-        al.submitter_id AS aliquot_barcode
-    FROM {create_dev_table_id('case_project_program')} cpp
-    JOIN {create_dev_table_id('case')} c
-        ON c.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('project_studies_disease_type')} psdt
-        ON psdt.project_id = cpp.project_id
-    JOIN {create_dev_table_id('sample_from_case')} sic
-        ON sic.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('sample')} s
-        ON s.sample_id = sic.sample_id
-    JOIN {create_dev_table_id('portion_from_case')} pfc
-        ON pfc.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('portion')} p 
-        ON p.portion_id = pfc.portion_id
-    JOIN {create_dev_table_id('analyte_from_case')} anfc
-        ON anfc.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('analyte')} an
-        ON an.analyte_id = anfc.analyte_id
-    JOIN {create_dev_table_id('aliquot_from_case')} alfc
-        ON alfc.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('aliquot')} al
-        ON al.aliquot_id = alfc.aliquot_id    
-    """
-
-
-def make_aliquot_case_table_sql():
-    return f"""
-    SELECT 
-        cpp.program_name, 
-        cpp.project_id,
-        cpp.case_gdc_id, 
         cpp.case_barcode,
         s.sample_id AS sample_gdc_id,
         s.submitter_id AS sample_barcode,
@@ -100,7 +57,7 @@ def make_aliquot_case_table_sql():
     JOIN {create_dev_table_id('analyte')} an
         ON an.analyte_id = aoa.analyte_id
     JOIN {create_dev_table_id('analyte_from_portion')} afp
-        afp.analyte_id = an.analyte_id
+        ON afp.analyte_id = an.analyte_id
     JOIN {create_dev_table_id('portion')} p 
         ON p.portion_id = afp.portion_id
     JOIN {create_dev_table_id('portion_from_sample')} pfs
@@ -111,8 +68,6 @@ def make_aliquot_case_table_sql():
         ON sfc.sample_id = s.sample_id
     JOIN {create_dev_table_id('case_project_program')} cpp
         ON sfc.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('project_studies_disease_type')} psdt
-        ON psdt.project_id = cpp.project_id
     """
 
 
