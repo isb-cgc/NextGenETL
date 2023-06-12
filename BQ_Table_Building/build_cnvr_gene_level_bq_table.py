@@ -461,12 +461,15 @@ def main(args):
         # For CPTAC there are instances where multiple samples are merged into the same aliquot
         # for these cases we join the rows by concatenating the samples with semicolons
         if 'merge_same_aliq_samples' in steps:
-            merge_samples_by_aliquot(table_with_aliquot_fields, draft_table_with_samples, params.SCRATCH_DATASET,
-                                     params.BQ_AS_BATCH)
+            merge_samples_by_aliquot(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{table_with_aliquot_fields}",
+                                     draft_table_with_samples, params.SCRATCH_DATASET, params.BQ_AS_BATCH)
 
         if 'add_gene_information' in steps:
             success = glue_in_gene_names(draft_table_with_samples, params.GENE_NAMES_TABLE, params.SCRATCH_DATASET,
                                          draft_table, params.BQ_AS_BATCH)
+
+            if not success:
+                print("Join job failed")
 
         if 'update_table_schema' in steps:
             print("update schema tags")
