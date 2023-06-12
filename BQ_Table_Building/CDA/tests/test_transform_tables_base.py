@@ -38,7 +38,7 @@ BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
     def make_compare_id_keys_sql(table_id_1, table_id_2) -> str:
         return f"""
-        SELECT DISTINCT {primary_key} 
+        SELECT {primary_key} 
         FROM {table_id_1}
         WHERE {primary_key} NOT IN (
           SELECT {primary_key} 
@@ -55,8 +55,10 @@ def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
         elif result.total_rows == 0:
             print(f"{table_id_1} has no {primary_key} values that don't exist in {table_id_2}. Great!")
         else:
-            print(f"{table_id_1} has {result.total_rows} {primary_key} values which don't exist in {table_id_2}.")
-            print(f"Example values:")
+            print(f"{table_id_1} has "
+                  f"{result.total_rows} {primary_key} values which don't exist in "
+                  f"{table_id_2}.")
+            print(f"\nExample values:")
 
             count = 0
 

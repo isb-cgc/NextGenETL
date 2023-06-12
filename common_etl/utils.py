@@ -1060,6 +1060,13 @@ def is_int_value(value):
         else:
             return True
 
+    def should_be_string(val):
+        if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
+            return True
+
+    if should_be_string(value):
+        return False
+
     if is_valid_decimal(value):
         try:
             if float(value) == int(float(value)):
