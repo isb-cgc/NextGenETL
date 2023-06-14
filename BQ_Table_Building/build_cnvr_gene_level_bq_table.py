@@ -79,7 +79,8 @@ def concat_all_files(all_files, one_big_tsv):
                 file_name = path_pieces[-1]
                 gdc_id = path_pieces[-2]
                 file_name_pieces = file_name.split('.')
-                aliquot_gdc_id = file_name_pieces[1]
+                # File names are different between programs
+                aliquot_gdc_id = file_name_pieces[0] if file_name_pieces[1] == 'wgs' else file_name_pieces[1]
                 for line in readfile:
                     if not line.startswith('gene_id') or first:
                         outfile.write('GDC_Aliquot' if first else aliquot_gdc_id)
