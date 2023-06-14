@@ -79,6 +79,10 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
+
+        print(make_aliquot_case_table_sql())
+        exit()
+
         table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.aliquot_to_case_{API_PARAMS['RELEASE']}"
         load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_aliquot_case_table_sql())
 
