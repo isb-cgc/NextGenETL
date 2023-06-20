@@ -349,20 +349,6 @@ def main(args):
                 all_files = traversal_list_file.read().splitlines()
             concat_all_files(all_files, one_big_tsv)
 
-        # # todo Is this needed?
-        # # if 'check_position_data_type' in steps:
-        # #     # Due to the GDC workflow pipeline, some of the chromosome position numbers are converted to
-        # #     # scientific notation when the file is written out of R. This steps checks for these inconsistencies
-        # #     print('checking the data type of the chromosome position columns')
-        # #     check_position_data_type(one_big_tsv)
-        #
-        # # todo Is this needed? Possibly Not based on
-        # # if 'fix_position_data' in steps:
-        # #     # This function fixes any scientific notation that was found by the check_position_data_type step. This step
-        # #     # can be skipped if no scientific notation was found.
-        # #     print('Fixing rows with scientific notation in them')
-        # #     fix_position_data_type(one_big_tsv)
-        #
         if 'upload_to_bucket' in steps:
             print('upload_to_bucket')
             upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
