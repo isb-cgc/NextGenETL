@@ -93,8 +93,7 @@ def concat_all_files(all_files, one_big_tsv):
 def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table,
                        target_dataset, dest_table, do_batch):
     """
-    Merge Skeleton With Aliquot Data
-    Creates the final BQ table by joining the skeleton with the aliquot ID info
+    Merge Skeleton With Aliquot, File, Gene, and Case Data to create the final draft table
 
     :param cnv_table: Raw Copy Number table name
     :type cnv_table: basestring
