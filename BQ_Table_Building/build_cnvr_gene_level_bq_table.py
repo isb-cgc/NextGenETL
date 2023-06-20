@@ -29,12 +29,13 @@ from json import loads as json_loads
 from types import SimpleNamespace
 
 from common_etl.utils import check_value_type, get_column_list_tsv, \
-                             aggregate_column_data_types_tsv, resolve_type_conflicts
+    aggregate_column_data_types_tsv, resolve_type_conflicts
 
 from common_etl.support import update_dir_from_git, get_the_bq_manifest, confirm_google_vm, create_clean_target, \
-                               generic_bq_harness, build_file_list, pull_from_buckets, upload_to_bucket, csv_to_bq,\
-                               build_pull_list_with_bq, create_schema_hold_list, update_schema_tags,\
+                               generic_bq_harness, build_file_list, pull_from_buckets, upload_to_bucket, csv_to_bq, \
+                               build_pull_list_with_bq, create_schema_hold_list, update_schema_tags, \
                                write_table_schema_with_generic, qc_bq_table_metadata, publish_tables_and_update_schema
+
 
 def load_config(yaml_config):
     """
@@ -94,18 +95,23 @@ def concat_all_files(all_files, one_big_tsv):
                     first = False
 
 
-def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset, dest_table, do_batch):
+def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table,
+                       target_dataset, dest_table, do_batch):
     """
     Merge Skeleton With Aliquot Data
     Creates the final BQ table by joining the skeleton with the aliquot ID info
 
     :param cnv_table: Raw Copy Number table name
     :type cnv_table: basestring
-    :param aliquot_table: Metadata Aliquot table name
+    :param file_table: File Metadata Table
+    :type file_table: basestring
+    :param aliquot_table: Aliquot Metadata table name
     :type aliquot_table: basestring
-    :param case_table: Metadata Case table name
+    :param case_table: Case Metadata table name
     :type case_table: basestring
-    :param target_dataset: Scratch data set name
+    :param gene_table: GENCODE gene table name
+    :type gene_table: basestring
+    :param target_dataset: Scratch dataset name
     :type target_dataset: basestring
     :param dest_table: Name of table to create
     :type dest_table: basestring
@@ -115,162 +121,96 @@ def join_with_aliquot_table(cnv_table, aliquot_table, case_table, target_dataset
     :rtype: bool
     """
 
-    sql = merge_bq_sql(cnv_table, aliquot_table, case_table)
+    sql = sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 
-def merge_bq_sql(cnv_table, aliquot_table, case_table):
+def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table):
     """
     SQL Code For Final Table Generation
 
     :param cnv_table: Raw Copy Number table name
     :type cnv_table: basestring
-    :param aliquot_table: Metadata Aliquot table name
+    :param file_table: File Metadata Table
+    :type file_table: basestring
+    :param aliquot_table: Aliquot Metadata table name
     :type aliquot_table: basestring
-    :param case_table: Metadata Case table name
+    :param case_table: Case Metadata table name
     :type case_table: basestring
+    :param gene_table: GENCODE gene table name
+    :type gene_table: basestring
     :return: Sting with query to join the tables together
     :rtype: basestring
     """
 
-    return f'''
-            WITH
-            a1 AS (SELECT DISTINCT GDC_Aliquot
-                   FROM `{cnv_table}`),
-            a2 AS (SELECT b.project_id AS project_short_name,
-                          b.case_barcode,
-                          b.sample_barcode,
-                          b.aliquot_barcode,
-                          b.case_gdc_id,
-                          b.sample_gdc_id,
-                          b.aliquot_gdc_id
-                   FROM a1
-                   JOIN `{aliquot_table}` b ON a1.GDC_Aliquot = b.aliquot_gdc_id),
-            a3 AS (SELECT a2.project_short_name,
-                          a2.case_barcode,
-                          a2.sample_barcode,
-                          a2.aliquot_barcode,
-                          a2.case_gdc_id,
-                          a2.sample_gdc_id,
-                          a2.aliquot_gdc_id,
-                          b.primary_site
-                    FROM a2
-                    JOIN `{case_table}` b ON a2.case_gdc_id = b.case_gdc_id)
-        SELECT
-            project_short_name,
-            case_barcode,
-            primary_site,
-            sample_barcode,
-            aliquot_barcode,
-            gene_id,
-            gene_name,
-            chromosome,
-            start AS start_pos,
-            `end` AS end_pos,
-            copy_number,
-            min_copy_number,	
-            max_copy_number,
-            case_gdc_id,
-            sample_gdc_id,
-            aliquot_gdc_id,
-            source_file_id AS file_gdc_id
-        FROM a3
-        JOIN `{cnv_table}` b ON a3.aliquot_gdc_id = b.GDC_Aliquot
-    ''' # todo update major to max etc
-
-
-def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
-    sql = merge_samples_by_aliquot_sql(input_table)
-    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
-
-
-def merge_samples_by_aliquot_sql(input_table):
-    return f"""
-        SELECT
-            project_short_name,
-            case_barcode,
-            primary_site,
-            string_agg(distinct sample_barcode, ';') as sample_barcode,
-            aliquot_barcode,
-            gene_id,
-            gene_name,
-            chromosome,
-            start_pos,
-            end_pos,
-            copy_number,
-            min_copy_number,	
-            max_copy_number,
-            case_gdc_id,
-            string_agg(distinct sample_gdc_id, ';') as sample_gdc_id,
-            aliquot_gdc_id,
-            file_gdc_id
-        FROM
-            `{input_table}`
-        GROUP BY
-            project_short_name,
-            case_barcode,
-            primary_site,
-            aliquot_barcode,
-            gene_id,
-            gene_name,
-            chromosome,
-            start_pos,
-            end_pos,
-            copy_number,
-            min_copy_number,	
-            max_copy_number,
-            case_gdc_id,
-            aliquot_gdc_id,
-            file_gdc_id
-    """
-
-
-# Merge Gene Names Into Final Table
-def glue_in_gene_names(draft_table, gene_table, target_dataset, output_table, do_batch):
-    sql = glue_in_gene_names_sql(draft_table, gene_table)
-    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
-
-
-# SQL code for above
-def glue_in_gene_names_sql(draft_table, gene_table):
+    regex_string1 = r"^\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}"
+    regex_string2 = r"\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}$"
 
     return f'''
-        WITH
-          gene_reference AS (
-          SELECT
-            DISTINCT gene_name,
-            gene_id,
-            gene_id_v,
-            gene_type
-          FROM
-            `{gene_table}`)
-        SELECT
-        a.project_short_name,
-        a.case_barcode,
-        a.primary_site,
-        a.sample_barcode,
-        a.aliquot_barcode,
-        b.gene_id as Ensembl_gene_id,
-        a.gene_id as Ensembl_gene_id_v,
-        a.gene_name,
-        b.gene_type,
-        a.chromosome,
-        a.start_pos,
-        a.end_pos,
-        a.copy_number,
-        a.min_copy_number,
-        a.max_copy_number,
-        a.case_gdc_id,
-        a.sample_gdc_id,
-        a.aliquot_gdc_id,
-        a.file_gdc_id
-        FROM
-          `{draft_table}` AS a
-        JOIN
-          gene_reference AS b
-        ON
-          a.gene_id = b.gene_id_v
-        '''
+            SELECT
+              DISTINCT
+              b.project_id AS project_short_name,
+              b.case_barcode,
+              c.primary_site,
+              string_agg(distinct b.sample_barcode, ';') as sample_barcode,
+              b.aliquot_barcode,
+              e.gene_id as Ensembl_gene_id,
+              d.gene_id as Ensembl_gene_id_v,
+              d.gene_name,
+              e.gene_type,
+              d.chromosome,
+              d.start AS start_pos,
+              d.`end` AS end_pos,
+              d.copy_number,
+              d.min_copy_number,
+              d.max_copy_number,
+              b.case_gdc_id,
+              string_agg(distinct b.sample_gdc_id, ';') as sample_gdc_id,
+              b.aliquot_gdc_id,
+              a.file_gdc_id
+            FROM
+              `{file_table}` AS a
+            JOIN
+              `{aliquot_table}` AS b
+            ON
+              REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string1}') = b.aliquot_gdc_id
+              OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string2}') = b.aliquot_gdc_id
+            JOIN
+              `{case_table}` AS c
+            ON
+              b.case_gdc_id = c.case_gdc_id
+            JOIN
+              `{cnv_table}` AS d
+            ON
+              a.file_gdc_id = d.source_file_id
+            JOIN `{gene_table}` as e
+            ON d.gene_id = e.gene_id_v
+            WHERE
+              b.sample_type_name NOT LIKE '%Normal%'
+              AND b.sample_type_name <> "Granulocytes"
+              AND `access` = "open"
+              AND a.data_type = "Gene Level Copy Number"
+              AND a.data_category = "Copy Number Variation"
+              AND a.program_name = "TARGET"
+            GROUP BY
+              project_short_name,
+              b.case_barcode,
+              c.primary_site,
+              b.aliquot_barcode,
+              Ensembl_gene_id,
+              Ensembl_gene_id_v,
+              d.gene_name,
+              e.gene_type,
+              d.chromosome,
+              start_pos,
+              end_pos,
+              d.copy_number,
+              d.min_copy_number,
+              d.max_copy_number,
+              b.case_gdc_id,
+              b.aliquot_gdc_id,
+              a.file_gdc_id
+    '''
 
 
 def find_types(file, sample_interval):
@@ -357,8 +297,6 @@ def main(args):
         raw_table = f"{bq_dataset}_{base_table_name}_raw_{release}"
         manifest_table = f"{bq_dataset}_{base_table_name}_manifest_{release}"
         pull_list_table = f"{bq_dataset}_{base_table_name}_pull_list_{release}"
-        table_with_aliquot_fields = f"{bq_dataset}_{base_table_name}_with_aliquot_fields_{release}"
-        draft_table_with_aliquot = f"{bq_dataset}_{base_table_name}_with_aliquot_{release}"
         draft_table = f"{bq_dataset}_{base_table_name}_{release}"
         draft_full_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}"
         pub_ver_full_id = f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{pub_ver_name}"
@@ -449,26 +387,13 @@ def main(args):
                 typed_schema = json_loads(schema_list.read())
             csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, raw_table, params.BQ_AS_BATCH)
 
-        if 'add_aliquot_fields' in steps:
-            print('add_aliquot_fields')
+        if 'create_draft_table' in steps:
+            print('Creating final draft table by joining on extra data')
             full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{raw_table}'
-            success = join_with_aliquot_table(full_target_table, f"{params.ALIQUOT_TABLE}_r{params.RELEASE}",
-                                              f"{params.CASE_TABLE}_r{params.RELEASE}",
-                                              params.SCRATCH_DATASET, f"{table_with_aliquot_fields}",
-                                              params.BQ_AS_BATCH)
-            if not success:
-                print("Join job failed")
-
-        # For CPTAC there are instances where multiple samples are merged into the same aliquot
-        # for these cases we join the rows by concatenating the samples with semicolons
-        if 'merge_same_aliq_samples' in steps:
-            merge_samples_by_aliquot(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{table_with_aliquot_fields}",
-                                     draft_table_with_aliquot, params.SCRATCH_DATASET, params.BQ_AS_BATCH)
-
-        if 'add_gene_information' in steps:
-            success = glue_in_gene_names(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table_with_aliquot}",
-                                         params.GENE_NAMES_TABLE, params.SCRATCH_DATASET, draft_table, params.BQ_AS_BATCH)
-
+            success = create_draft_table(full_target_table, params.FILE_TABLE.format(release),
+                                         f"{params.ALIQUOT_TABLE}_{release}", f"{params.CASE_TABLE}_{release}",
+                                         params.GENE_NAMES_TABLE, params.SCRATCH_DATASET, f"{draft_table}",
+                                         params.BQ_AS_BATCH)
             if not success:
                 print("Join job failed")
 
@@ -480,12 +405,12 @@ def main(args):
                 f"{draft_full_id}",
                 updated_schema_tags, table_metadata, field_desc_fp)
 
-        if 'qc_bigquery_tables' in steps: # todo test
+        if 'qc_bigquery_tables' in steps:  # todo test
             print("QC BQ table")
             print(qc_bq_table_metadata(
                 f"{draft_full_id}"))
 
-        if 'publish' in steps: # todo test
+        if 'publish' in steps:  # todo test
             print('publish tables')
             success = publish_tables_and_update_schema(f"{draft_full_id}",
                                                        f"{pub_ver_full_id}",
@@ -505,6 +430,7 @@ def main(args):
         #     #     delete_table_bq_job(params.SCRATCH_DATASET, table)
 
         print('job completed')
+
 
 if __name__ == "__main__":
     main(sys.argv)
