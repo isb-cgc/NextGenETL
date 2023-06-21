@@ -90,7 +90,7 @@ def concat_all_files(all_files, one_big_tsv):
                     first = False
 
 
-def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table,
+def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table, program,
                        target_dataset, dest_table, do_batch):
     """
     Merge Skeleton With Aliquot, File, Gene, and Case Data to create the final draft table
@@ -105,6 +105,8 @@ def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_ta
     :type case_table: basestring
     :param gene_table: GENCODE gene table name
     :type gene_table: basestring
+    :param program: GDC Program
+    :type program: basestring
     :param target_dataset: Scratch dataset name
     :type target_dataset: basestring
     :param dest_table: Name of table to create
@@ -115,11 +117,11 @@ def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_ta
     :rtype: bool
     """
 
-    sql = sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table)
+    sql = sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table, program)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
 
-def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table):
+def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table, program):
     """
     SQL Code For Final Table Generation
 
@@ -133,6 +135,8 @@ def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_t
     :type case_table: basestring
     :param gene_table: GENCODE gene table name
     :type gene_table: basestring
+    :param program: GDC Program
+    :type program: basestring
     :return: Sting with query to join the tables together
     :rtype: basestring
     """
@@ -185,7 +189,7 @@ def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_t
               AND `access` = "open"
               AND a.data_type = "Gene Level Copy Number"
               AND a.data_category = "Copy Number Variation"
-              AND a.program_name = "TARGET"
+              AND a.program_name = "{program}"
             GROUP BY
               project_short_name,
               b.case_barcode,
@@ -372,7 +376,7 @@ def main(args):
             full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{raw_table}'
             success = create_draft_table(full_target_table, params.FILE_TABLE.format(release),
                                          f"{params.ALIQUOT_TABLE}_{release}", f"{params.CASE_TABLE}_{release}",
-                                         params.GENE_NAMES_TABLE, params.SCRATCH_DATASET, f"{draft_table}",
+                                         params.GENE_NAMES_TABLE, program, params.SCRATCH_DATASET, f"{draft_table}",
                                          params.BQ_AS_BATCH)
             if not success:
                 print("Join job failed")
