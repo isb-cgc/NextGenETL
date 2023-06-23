@@ -34,7 +34,7 @@ from common_etl.support import create_clean_target, generic_bq_harness, upload_t
                                build_file_list, get_the_bq_manifest, BucketPuller, build_pull_list_with_bq, \
                                concat_all_files, generic_bq_harness_write_depo,retrieve_table_schema, \
                                update_schema_with_dict, install_labels_and_desc, \
-                               compare_two_tables, publish_table
+                               compare_two_tables, publish_table, bq_harness_with_result
                                
 
 # The configuration reader. Parses the YAML configuration into dictionaries
@@ -339,6 +339,14 @@ def install_table_metadata( table_id, metadata ):
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
 
+def cluster_table( input_table, output_table, in_dataset, out_dataset, cluster_fields ):
+    cluster_string = ', '.join(cluster_fields)
+    sql = f'''
+    CREATE TABLE `{out_dataset}.{output_table}` 
+    CLUSTER BY {cluster_string} 
+    AS SELECT * FROM `{in_dataset}.{input_table}`'''
+    return( sql )
+
 def update_final_schema( draft_table, field_lookup_json, table_description ):
     draft_table_path = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}'
     with open(field_lookup_json, 'r') as inf: field_dict = json.loads( inf.read() )
@@ -356,14 +364,16 @@ def dump_working_tables( local_files_dir, manifest_file, one_big_tsv, dump_table
     os.remove(one_big_tsv)
     table_cleaner(dump_tables, False)
 
-def publish():
-    source_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}'
-    publication_dest = f'{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}_versioned.{publication_table}_{release}'
-    print( 'publishing current and versioned tables' )
-    if not publish_table( source_table, publication_dest, overwrite = FALSE ):
-        sys.exit( 'versioned publication failed' )
-    publication_dest = '{params.PUBLICATION_PROJECT}.{params.PUBLICATION_DATASET}.{publication_table}_current'
-    if not publish_table( source_table, publication_dest, overwrite = TRUE ):
+def publish( draft_table, publication_table, bq_program ):
+    source_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_cluster'
+    publication_dest = f'{params.PUBLICATION_PROJECT}.{bq_program}_versioned.{publication_table}_r{params.RELEASE}'
+    print( f'publishing current and versioned {params.PROGRAM} tables' )
+    #if not publish_table( source_table, publication_dest, overwrite = False ):
+    #    sys.exit( 'versioned publication failed' )
+    publication_dest = f'{params.PUBLICATION_PROJECT}.{bq_program}.{publication_table}_current'
+    success = delete_table_bq_job( bq_program, f'{publication_table}_current', params.PUBLICATION_PROJECT )
+    if not success: sys.exit('deletion failed')
+    if not publish_table( source_table, publication_dest, overwrite = True ):
         sys.exit( 'current publication failed' )    
 
 def run_archive( manifest_table, pull_list_table ):
@@ -448,13 +458,17 @@ def main(args):
             csv_to_bq_write_depo( typed_schema, full_bucket_path, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH, "WRITE_TRUNCATE" )
         if 'bq_metadata_steps' in steps:
             bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table )
-        if 'update_final_schema' in steps:           update_final_schema( draft_table, field_lookup_json, table_description )
+        if 'cluster_table' in steps:
+            sql = cluster_table( draft_table, draft_table+'_cluster', params.SCRATCH_DATASET, params.SCRATCH_DATASET, ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode'] )
+            success = bq_harness_with_result(sql, False, verbose=True)
+        if 'update_final_schema' in steps:           update_final_schema( draft_table+'_cluster', field_lookup_json, table_description )
         if 'dump_working_tables' in steps:           
             dump_tables = [upload_table, manifest_table, pull_list_table, files_to_case_table, 
                 ftc_plat_table, barcodes_table, counts_metadata_table]
             dump_working_tables( local_files_dir, manifest_file, one_big_tsv, dump_tables )
         # if 'compare_remove_old_current' in steps: compare_to_last_publish () #### REPLACE need to grab support function
-        if 'publish' in steps:                       publish(  )  
+        if 'publish' in steps:                       publish( draft_table, publication_table, bq_program )
+        #if 'update_current_schema' in steps:         update_final_schema( , field_lookup, table_description )
         if 'update_status_tag' in steps:             run_update_status_tag(  )  # Update previous versioned table with archived tag
         if 'archive' in steps:                       run_archive( manifest_table, pull_list_table )
 
