@@ -944,6 +944,7 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, l
     :param bq_params: bq_params supplied in yaml config
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
+    :param local_filepath: todo
     """
     if not local_filepath:
         jsonl_filename = get_filename(api_params, file_extension='jsonl', prefix=prefix)
