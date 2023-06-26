@@ -388,8 +388,8 @@ def main(args):
             cluster_fields = ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode']
             success = cluster_table(intermediate_table_id, draft_full_id, cluster_fields, params.BQ_AS_BATCH)
 
-        if not success:
-            print("Clustering job failed")
+            if not success:
+                print("Clustering job failed")
 
         if 'update_table_schema' in steps:
             print("update schema tags")
