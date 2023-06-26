@@ -22,64 +22,101 @@ SOFTWARE.
 import sys
 from common_etl.utils import create_view_from_query, load_config, has_fatal_error
 
-
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def create_project_program_view():
-    def make_project_program_view_query():
-        return f"""
-            SELECT 
-                case_proj.case_id AS case_gdc_id,
-                c.submitter_id AS case_barcode,
-                proj.dbgap_accession_number AS project_dbgap_accession_number,
-                proj.project_id, 
-                proj.name AS project_name,
-                prog.name AS program_name,
-                prog.dbgap_accession_number AS program_dbgap_accession_number
-            FROM `{working_project}.{working_dataset}.{release}_project` proj
-            JOIN `{working_project}.{working_dataset}.{release}_project_in_program` proj_prog
-                ON proj.project_id = proj_prog.project_id
-            JOIN `{working_project}.{working_dataset}.{release}_program` prog
-                ON proj_prog.program_id = prog.program_id
-            JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_proj
-                ON case_proj.project_id = proj.project_id
-            JOIN `{working_project}.{working_dataset}.{release}_case` c
-                ON c.case_id = case_proj.case_id
-        """
-
+def make_project_program_view_query():
     release = API_PARAMS['RELEASE']
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
 
-    view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
+    return f"""
+        SELECT 
+            case_proj.case_id AS case_gdc_id,
+            c.submitter_id AS case_barcode,
+            proj.dbgap_accession_number AS project_dbgap_accession_number,
+            proj.project_id, 
+            proj.name AS project_name,
+            prog.name AS program_name,
+            prog.dbgap_accession_number AS program_dbgap_accession_number
+        FROM `{working_project}.{working_dataset}.{release}_project` proj
+        JOIN `{working_project}.{working_dataset}.{release}_project_in_program` proj_prog
+            ON proj.project_id = proj_prog.project_id
+        JOIN `{working_project}.{working_dataset}.{release}_program` prog
+            ON proj_prog.program_id = prog.program_id
+        JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_proj
+            ON case_proj.project_id = proj.project_id
+        JOIN `{working_project}.{working_dataset}.{release}_case` c
+            ON c.case_id = case_proj.case_id
+    """
 
-    create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
 
-
-def create_archived_file_case_view():
-    def create_archived_file_case_query():
-        return f"""
-        SELECT file.*
-        FROM `{published_project}.{published_dataset}.fileData_legacy_current` file
-        JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_current` url
-            ON file.file_gdc_id = url.file_gdc_id
-        WHERE file.case_gdc_id IN (
-          SELECT case_gdc_id 
-          FROM `{working_project}.{working_dataset}.r37_case_archived`
-        ) 
-        """
-
+def make_aliquot_case_legacy_filtered_query():
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
     published_project = BQ_PARAMS['PUBLISHED_PROJECT']
     published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
+    release = API_PARAMS['RELEASE']
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
 
-    view_id = f"{working_project}.{working_dataset}.r37_file_case_archived"
+    return f"""
+    SELECT * 
+    FROM `{published_project}.{published_dataset}.aliquot2caseIDmap_{gdc_archive_release}`
+    WHERE portion_gdc_id NOT IN (
+      SELECT portion_gdc_id
+      FROM `{working_project}.{working_dataset}.aliquot_to_case_{release}`
+    )
+    """
 
-    create_view_from_query(view_id=view_id, view_query=create_archived_file_case_query())
+
+def make_case_metadata_legacy_filtered_query():
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
+    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
+    release = BQ_PARAMS['RELEASE']
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
+
+    # query filters out any file/case ids that have no DCF file references
+
+    return f"""
+    SELECT * 
+    FROM `{published_project}.{published_dataset}.caseData_{gdc_archive_release}`
+    WHERE case_gdc_id NOT IN (
+      SELECT case_gdc_id 
+      FROM `{working_project}.{working_dataset}.case_metadata_{release}`
+    ) AND case_gdc_id IN (
+      SELECT case_gdc_id
+      FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
+      JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
+        USING(file_gdc_id)
+    )
+    """
+
+
+def make_file_metadata_legacy_filtered_query():
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
+    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
+    release = BQ_PARAMS['RELEASE']
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
+
+    # query filters out any file/case ids that have no DCF file references
+
+    return f"""
+    SELECT * 
+    FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
+    WHERE file_gdc_id NOT IN (
+      SELECT file_gdc_id 
+      FROM `{working_project}.{working_dataset}.file_metadata_{release}`
+    ) AND file_gdc_id IN (
+      SELECT file_gdc_id
+      FROM `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
+    )
+    """
 
 
 def main(args):
@@ -89,10 +126,30 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    release = API_PARAMS['RELEASE']
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
+
     if 'create_project_program_view' in steps:
-        create_project_program_view()
-    if 'create_archived_file_case_view' in steps:
-        create_archived_file_case_view()
+        view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
+
+        create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
+
+    if 'create_aliquot_case_legacy_filtered_view' in steps:
+        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_aliquot_to_case_legacy_filtered"
+
+        create_view_from_query(view_id=view_id, view_query=make_aliquot_case_legacy_filtered_query())
+
+    if 'create_case_metadata_legacy_filtered_view' in steps:
+        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_case_metadata_legacy_filtered"
+
+        create_view_from_query(view_id=view_id, view_query=make_case_metadata_legacy_filtered_query())
+
+    if 'create_file_metadata_legacy_filtered_view' in steps:
+        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_file_metadata_legacy_filtered"
+
+        create_view_from_query(view_id=view_id, view_query=make_file_metadata_legacy_filtered_query())
 
 
 if __name__ == "__main__":
