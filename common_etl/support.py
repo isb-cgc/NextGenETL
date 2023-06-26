@@ -1145,9 +1145,10 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
     install_table_metadata(table_id, final_table_metadata)
 
 
-def cluster_table(input_table, output_table, out_dataset, cluster_fields, do_batch):
-    cluster_sql = cluster_sql_table(input_table, output_table, cluster_fields)
-    return generic_bq_harness(cluster_sql, out_dataset, do_batch, True)
+def cluster_table(input_table_id, output_table_id, cluster_fields, do_batch):
+    cluster_sql = cluster_sql_table(input_table_id, output_table_id, cluster_fields)
+    out_program, out_dataset, out_table = output_table_id.split('.')
+    return generic_bq_harness(cluster_sql, out_dataset, out_table, do_batch, True)
 
 def cluster_sql_table(input_table, output_table, cluster_fields):
     cluster_string = ', '.join(cluster_fields)
