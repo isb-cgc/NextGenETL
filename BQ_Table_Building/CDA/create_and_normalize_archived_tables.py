@@ -93,7 +93,7 @@ def make_case_metadata_legacy_filtered_query():
     ) AND case_gdc_id IN (
       SELECT case_gdc_id
       FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
-      JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
+      JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_r36`
         USING(file_gdc_id)
     )
     """
@@ -161,7 +161,7 @@ def make_file_metadata_legacy_filtered_query():
       FROM `{working_project}.{working_dataset}.file_metadata_{release}`
     ) AND file_gdc_id IN (
       SELECT file_gdc_id
-      FROM `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
+      FROM `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_r36`
     )
     """
 
