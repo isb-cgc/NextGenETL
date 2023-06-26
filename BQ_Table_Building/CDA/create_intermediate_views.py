@@ -137,16 +137,19 @@ def main(args):
         create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
 
     if 'create_aliquot_case_legacy_filtered_view' in steps:
+        # shouldn't need to run this step again unless view is damaged--data won't change
         view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_aliquot_to_case_legacy_filtered"
 
         create_view_from_query(view_id=view_id, view_query=make_aliquot_case_legacy_filtered_query())
 
     if 'create_case_metadata_legacy_filtered_view' in steps:
+        # shouldn't need to run this step again unless view is damaged--data won't change
         view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_case_metadata_legacy_filtered"
 
         create_view_from_query(view_id=view_id, view_query=make_case_metadata_legacy_filtered_query())
 
     if 'create_file_metadata_legacy_filtered_view' in steps:
+        # shouldn't need to run this step again unless view is damaged--data won't change
         view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_file_metadata_legacy_filtered"
 
         create_view_from_query(view_id=view_id, view_query=make_file_metadata_legacy_filtered_query())
