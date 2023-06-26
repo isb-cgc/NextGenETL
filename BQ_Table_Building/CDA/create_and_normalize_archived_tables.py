@@ -69,7 +69,7 @@ def make_case_metadata_legacy_filtered_query():
     working_dataset = BQ_PARAMS['WORKING_DATASET']
     published_project = BQ_PARAMS['PUBLISHED_PROJECT']
     published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
-    release = BQ_PARAMS['RELEASE']
+    release = API_PARAMS['RELEASE']
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
 
     # query filters out any file/case ids that have no DCF file references
@@ -104,7 +104,7 @@ def make_file_metadata_legacy_filtered_query():
     working_dataset = BQ_PARAMS['WORKING_DATASET']
     published_project = BQ_PARAMS['PUBLISHED_PROJECT']
     published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
-    release = BQ_PARAMS['RELEASE']
+    release = API_PARAMS['RELEASE']
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
 
     # query filters out any file/case ids that have no DCF file references
