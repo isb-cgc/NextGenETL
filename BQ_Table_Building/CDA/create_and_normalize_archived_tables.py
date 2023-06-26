@@ -184,6 +184,8 @@ def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
                                       table_name=table_name,
                                       include_release=True)
 
+    print("JSONL file and schema uploaded to cloud!")
+
 
 def create_table(table_name: str):
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']

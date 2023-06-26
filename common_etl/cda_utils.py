@@ -30,6 +30,8 @@ JSONList = list[dict[str, Union[None, str, float, int, bool]]]
 def convert_bq_result_to_object_list(result: RowIterator, column_list: list[str]) -> JSONList:
     object_list = list()
 
+    count = 0
+
     for row in result:
         object_dict = dict()
 
@@ -37,5 +39,8 @@ def convert_bq_result_to_object_list(result: RowIterator, column_list: list[str]
             object_dict[column] = row.get(column)
 
         object_list.append(object_dict)
+        count += 1
+        if count % 50000 == 0:
+            print(f"{count} rows added to object.")
 
     return object_list
