@@ -59,6 +59,29 @@ def create_project_program_view():
     create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
 
 
+def create_archived_file_case_view():
+    def create_archived_file_case_query():
+        return f"""
+        SELECT file.*
+        FROM `{published_project}.{published_dataset}.fileData_legacy_current` file
+        JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_current` url
+            ON file.file_gdc_id = url.file_gdc_id
+        WHERE file.case_gdc_id IN (
+          SELECT case_gdc_id 
+          FROM `{working_project}.{working_dataset}.r37_case_archived`
+        ) 
+        """
+
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
+    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
+
+    view_id = f"{working_project}.{working_dataset}.r37_file_case_archived"
+
+    create_view_from_query(view_id=view_id, view_query=create_archived_file_case_query())
+
+
 def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
@@ -68,6 +91,8 @@ def main(args):
 
     if 'create_project_program_view' in steps:
         create_project_program_view()
+    if 'create_archived_file_case_view' in steps:
+        create_archived_file_case_view()
 
 
 if __name__ == "__main__":
