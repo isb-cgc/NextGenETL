@@ -185,6 +185,8 @@ def main(args):
 
         aliquot_to_case_list = convert_bq_result_to_object_list(result=result, column_list=aliquot_column_list)
 
+        print(aliquot_to_case_list)
+
         normalized_aliquot_to_case_list = normalize_flat_json_values(aliquot_to_case_list)
 
         write_list_to_jsonl_and_upload(API_PARAMS,
