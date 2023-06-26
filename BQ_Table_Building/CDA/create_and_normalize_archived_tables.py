@@ -166,6 +166,39 @@ def make_file_metadata_legacy_filtered_query():
     """
 
 
+def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
+    result = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+
+    obj_list = convert_bq_result_to_object_list(result=result, column_list=column_list)
+
+    normalized_obj_list = normalize_flat_json_values(obj_list)
+
+    write_list_to_jsonl_and_upload(API_PARAMS,
+                                   BQ_PARAMS,
+                                   prefix=table_name,
+                                   record_list=normalized_obj_list)
+
+    create_and_upload_schema_for_json(API_PARAMS,
+                                      BQ_PARAMS,
+                                      record_list=normalized_obj_list,
+                                      table_name=table_name,
+                                      include_release=True)
+
+
+def create_table(table_name: str):
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+
+    table_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_{table_name}"
+    jsonl_file = f"{table_name}_{API_PARAMS['RELEASE']}.jsonl"
+
+    table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name, include_release=True)
+
+    # Load jsonl data into BigQuery table
+    create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
+
+
 def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
@@ -176,50 +209,30 @@ def main(args):
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
-    aliquot_table_name = BQ_PARAMS['ALIQUOT_TABLE_NAME']
 
     if 'create_aliquot_to_case_legacy_jsonl' in steps:
-        result = bq_harness_with_result(sql=make_aliquot_to_case_legacy_filtered_query(), do_batch=False, verbose=False)
-
-        aliquot_column_list = BQ_PARAMS['ALIQUOT_COLUMN_LIST']
-
-        aliquot_to_case_list = convert_bq_result_to_object_list(result=result, column_list=aliquot_column_list)
-
-        normalized_aliquot_to_case_list = normalize_flat_json_values(aliquot_to_case_list)
-
-        write_list_to_jsonl_and_upload(API_PARAMS,
-                                       BQ_PARAMS,
-                                       prefix=aliquot_table_name,
-                                       record_list=normalized_aliquot_to_case_list)
-
-        create_and_upload_schema_for_json(API_PARAMS,
-                                          BQ_PARAMS,
-                                          record_list=normalized_aliquot_to_case_list,
-                                          table_name=aliquot_table_name,
-                                          include_release=True)
+        create_jsonl_and_schema(sql=make_aliquot_to_case_legacy_filtered_query(),
+                                column_list=BQ_PARAMS['ALIQUOT_COLUMN_LIST'],
+                                table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
 
     if 'create_aliquot_to_case_legacy_table' in steps:
-        table_schema = retrieve_bq_schema_object(API_PARAMS,
-                                                 BQ_PARAMS,
-                                                 table_name=aliquot_table_name,
-                                                 include_release=True)
+        create_table(table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
 
-        # Load jsonl data into BigQuery table
-        table_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_{aliquot_table_name}"
+    if 'create_case_metadata_legacy_jsonl' in steps:
+        create_jsonl_and_schema(sql=make_case_metadata_legacy_filtered_query(),
+                                column_list=BQ_PARAMS['CASE_COLUMN_LIST'],
+                                table_name=BQ_PARAMS['CASE_TABLE_NAME'])
 
-        create_and_load_table_from_jsonl(BQ_PARAMS,
-                                         jsonl_file=f"{aliquot_table_name}_{API_PARAMS['RELEASE']}.jsonl",
-                                         table_id=table_id,
-                                         schema=table_schema)
+    if 'create_case_metadata_legacy_table' in steps:
+        create_table(table_name=BQ_PARAMS['CASE_TABLE_NAME'])
 
-    # retrieve records via query
-    # bq_harness_with_result()
-    # for row in result
-    # row.get('column')
-    # create list of dicts
-    # normalize list
-    # create jsonl and schema
-    # insert records into new table
+    if 'create_file_metadata_legacy_jsonl' in steps:
+        create_jsonl_and_schema(sql=make_file_metadata_legacy_filtered_query(),
+                                column_list=BQ_PARAMS['FILE_COLUMN_LIST'],
+                                table_name=BQ_PARAMS['FILE_TABLE_NAME'])
+
+    if 'create_file_metadata_legacy_table' in steps:
+        create_table(table_name=BQ_PARAMS['FILE_TABLE_NAME'])
 
 
 if __name__ == "__main__":
