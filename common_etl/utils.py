@@ -1103,6 +1103,11 @@ def check_value_type(value):
         else:
             return True
 
+    # A sequence of numbers starting with a 0 represents a string id,
+    # but int() check will pass and data loss would occur.
+    if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
+        return "STRING"
+
     if isinstance(value, bool):
         return "BOOL"
     # currently not working for tsv because we don't normalize those files prior to upload yet
@@ -1125,11 +1130,6 @@ def check_value_type(value):
         return "RECORD"
     if not value:
         return None
-
-    # A sequence of numbers starting with a 0 represents a string id,
-    # but int() check will pass and data loss would occur.
-    if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
-        return "STRING"
 
     # check to see if value is numeric, float or int;
     # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
