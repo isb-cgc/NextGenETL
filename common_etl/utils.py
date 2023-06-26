@@ -1062,6 +1062,7 @@ def is_int_value(value):
             return True
 
     def should_be_string(val):
+        val = str(val)
         if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
             return True
 
